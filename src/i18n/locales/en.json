@@ -1,0 +1,112 @@
+{
+  "onboarding": {
+    "welcome": "Welcome",
+    "subtitle": "Find people who share your values",
+    "enter_phone": "Enter phone number",
+    "phone_placeholder": "+1 (555) 123-4567",
+    "send_code": "Send code",
+    "enter_code": "Enter SMS code",
+    "code_sent": "Code sent to",
+    "resend_code": "Resend",
+    "verify": "Verify",
+    "consent_title": "Data processing consent",
+    "consent_text": "I agree to the terms of use and privacy policy",
+    "accept_continue": "Accept and continue",
+    "terms": "Terms of service",
+    "privacy": "Privacy policy"
+  },
+  "chat": {
+    "title": "Chat with assistant",
+    "placeholder": "Type a message...",
+    "send": "Send",
+    "typing": "typing...",
+    "welcome_message": "Hi! I'll help you find kindred spirits. Tell me what interests you?",
+    "suggestions": {
+      "values": "Tell me about your values",
+      "goals": "What are your goals?",
+      "interests": "What are your interests?"
+    }
+  },
+  "profile": {
+    "title": "My profile",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "values": "Values",
+    "beliefs": "Beliefs",
+    "desires": "Desires",
+    "intentions": "Intentions",
+    "completion": "Profile completion",
+    "timeline": "Change history",
+    "confidence": "Confidence",
+    "add_value": "Add value",
+    "privacy_settings": "Privacy settings"
+  },
+  "search": {
+    "title": "Find people",
+    "placeholder": "Search people, values...",
+    "recommendations": "Recommendations",
+    "match_score": "Match",
+    "common_values": "common values",
+    "complementary": "Complementary goals",
+    "view_profile": "View profile",
+    "start_chat": "Start chat",
+    "no_results": "No one found",
+    "try_different": "Try changing your search criteria"
+  },
+  "graph": {
+    "title": "Connection map",
+    "zoom_in": "Zoom in",
+    "zoom_out": "Zoom out",
+    "center": "Center",
+    "legend": "Legend",
+    "node_size": "Node size — closeness level",
+    "line_thickness": "Line thickness — common values count",
+    "unexplored": "Unexplored areas"
+  },
+  "chats": {
+    "title": "Chats",
+    "new_chat": "New chat",
+    "new_group": "New group",
+    "search_contacts": "Search contacts",
+    "group_info": "Group info",
+    "leave_group": "Leave group",
+    "add_members": "Add members",
+    "members": "Members",
+    "online": "online",
+    "typing_indicator": "is typing..."
+  },
+  "settings": {
+    "title": "Settings",
+    "privacy": "Privacy",
+    "profile_visibility": "Profile visibility",
+    "values_visibility": "Show values",
+    "allow_chats": "Allow chats",
+    "language": "Interface language",
+    "notifications": "Notifications",
+    "account": "Account",
+    "logout": "Logout",
+    "delete_account": "Delete account",
+    "version": "App version"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  }
+}

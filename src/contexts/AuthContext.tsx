@@ -1,0 +1,117 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+interface User {
+  id: string;
+  phone: string;
+  name?: string;
+  avatar?: string;
+  profile?: {
+    values: Array<{ name: string; confidence: number; private: boolean }>;
+    beliefs: string[];
+    desires: string[];
+    intentions: string[];
+    completion: number;
+  };
+}
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (phone: string, token: string) => void;
+  logout: () => void;
+  updateProfile: (profile: Partial<User['profile']>) => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check for existing auth token
+    const token = localStorage.getItem('authToken');
+    const userData = localStorage.getItem('userData');
+    
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+      }
+    }
+    
+    setIsLoading(false);
+  }, []);
+
+  const login = (phone: string, token: string) => {
+    const newUser: User = {
+      id: Math.random().toString(36).substr(2, 9),
+      phone,
+      profile: {
+        values: [],
+        beliefs: [],
+        desires: [],
+        intentions: [],
+        completion: 0
+      }
+    };
+
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('userData', JSON.stringify(newUser));
+    setUser(newUser);
+  };
+
+  const logout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    setUser(null);
+  };
+
+  const updateProfile = (profileUpdate: Partial<User['profile']>) => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        profile: {
+          ...user.profile!,
+          ...profileUpdate
+        }
+      };
+      setUser(updatedUser);
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+    }
+  };
+
+  const isAuthenticated = !!user;
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isLoading,
+        login,
+        logout,
+        updateProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
