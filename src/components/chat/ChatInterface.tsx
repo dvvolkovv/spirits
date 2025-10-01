@@ -192,14 +192,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0">
+      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 relative z-10">
         <h1 className="text-lg font-semibold text-gray-900">
           {title || t('chat.title')}
         </h1>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0 pb-safe">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -249,7 +249,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t px-4 py-3 flex-shrink-0">
+      <div className="bg-white border-t px-4 py-3 flex-shrink-0 pb-safe">
         <div className="flex items-end space-x-2">
           <div className="flex-1 relative">
             <textarea
