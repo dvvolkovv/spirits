@@ -341,7 +341,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
               className={clsx(
                 'flex',
                 isOwn ? 'justify-end' : 'justify-start'
-                  ? 'bg-primary-600 text-white rounded-br-md'
+              )}
             >
               {!isOwn && (
                 <div className="w-8 mr-2 flex-shrink-0">
@@ -356,8 +356,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
               )}
               
               <div className={clsx(
-                'max-w-xs sm:max-w-md',
-                isOwn ? 'text-primary-100' : 'text-gray-500'
+                'max-w-xs sm:max-w-md'
               )}>
                 {!isOwn && showAvatar && chat.type === 'group' && (
                   <p className="text-xs text-gray-500 mb-1 ml-3">
@@ -395,7 +394,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
                         {message.status === 'read' && (
                           <div className="w-3 h-3 bg-forest-200 rounded-full border-2 border-forest-100" />
                         )}
-                      <div className="w-3 h-3 border border-primary-200 rounded-full" />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -479,10 +478,10 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
             {/* Chat Avatar and Name */}
             <div className="text-center">
               <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <div className="w-3 h-3 bg-primary-200 rounded-full" />
+                {chat.type === 'direct' ? (
                   <span className="text-white font-semibold text-xl">
                     {getAvatarInitials(chat.name)}
-                      <div className="w-3 h-3 bg-primary-200 rounded-full border-2 border-primary-100" />
+                  </span>
                 ) : (
                   <Users className="w-10 h-10 text-white" />
                 )}
