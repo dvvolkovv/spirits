@@ -42,7 +42,7 @@ const Navigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
       <div className="flex justify-around md:flex-col md:space-y-2 md:p-4">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -52,7 +52,7 @@ const Navigation: React.FC = () => {
               to={item.to}
               className={({ isActive }) =>
                 clsx(
-                  'flex flex-col items-center px-3 py-2 rounded-lg transition-colors duration-200',
+                  'flex flex-col items-center justify-center px-3 py-2 rounded-lg transition-colors duration-200',
                   'md:flex-row md:px-4 md:py-3',
                   isActive
                     ? 'text-forest-600 bg-forest-50'
@@ -60,8 +60,8 @@ const Navigation: React.FC = () => {
                 )
               }
             >
-              <Icon className="w-5 h-5 md:w-4 md:h-4 md:mr-3" />
-              <span className="text-xs mt-1 md:text-sm md:mt-0">
+              <Icon className="w-6 h-6 md:w-4 md:h-4 md:mr-3" />
+              <span className="hidden md:block text-sm">
                 {item.label}
               </span>
             </NavLink>
