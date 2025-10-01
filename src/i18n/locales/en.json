@@ -61,16 +61,6 @@
     "no_results": "No one found",
     "try_different": "Try changing your search criteria"
   },
-  "graph": {
-    "title": "Connection map",
-    "zoom_in": "Zoom in",
-    "zoom_out": "Zoom out",
-    "center": "Center",
-    "legend": "Legend",
-    "node_size": "Node size — closeness level",
-    "line_thickness": "Line thickness — common values count",
-    "unexplored": "Unexplored areas"
-  },
   "chats": {
     "title": "Chats",
     "new_chat": "New chat",

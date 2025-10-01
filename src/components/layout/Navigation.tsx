@@ -6,8 +6,7 @@ import {
   Users,
   Search,
   User,
-  Settings,
-  Network
+  Settings
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -24,11 +23,6 @@ const Navigation: React.FC = () => {
       to: '/search',
       icon: Search,
       label: t('search.title'),
-    },
-    {
-      to: '/graph',
-      icon: Network,
-      label: t('graph.title'),
     },
     {
       to: '/chats',
