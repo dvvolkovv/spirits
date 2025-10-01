@@ -341,8 +341,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
               className={clsx(
                 'flex',
                 isOwn ? 'justify-end' : 'justify-start'
-              )}
-            >
+              )}>
               {!isOwn && (
                 <div className="w-8 mr-2 flex-shrink-0">
                   {showAvatar && (
