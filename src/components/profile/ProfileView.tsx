@@ -160,7 +160,6 @@ const ProfileView: React.FC = () => {
               )}
               
               {/* Upload button overlay */}
-              <label className="absolute bottom-0 right-0 w-8 h-8 bg-forest-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-forest-700 transition-colors shadow-lg">
               <label className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-700 transition-colors shadow-lg">
                 <input
                   type="file"
