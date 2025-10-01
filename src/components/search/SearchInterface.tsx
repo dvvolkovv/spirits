@@ -163,7 +163,6 @@ const SearchInterface: React.FC = () => {
               >
                 <div className="flex items-start space-x-4">
                   {/* Avatar */}
-                  <div className="w-12 h-12 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
                   <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-semibold text-lg">
                       {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
