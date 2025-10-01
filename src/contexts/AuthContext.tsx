@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 interface User {
   id: string;
   phone: string;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
   profile?: {
     values: Array<{ name: string; confidence: number; private: boolean }>;
@@ -21,6 +22,7 @@ interface AuthContextType {
   login: (phone: string, token: string) => void;
   logout: () => void;
   updateProfile: (profile: Partial<User['profile']>) => void;
+  updateUserInfo: (info: { firstName?: string; lastName?: string }) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,6 +100,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateUserInfo = (info: { firstName?: string; lastName?: string }) => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        ...info
+      };
+      setUser(updatedUser);
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
@@ -109,6 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         logout,
         updateProfile,
+        updateUserInfo,
       }}
     >
       {children}

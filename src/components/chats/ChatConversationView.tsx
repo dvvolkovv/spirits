@@ -225,7 +225,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
   };
 
   const getAvatarInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   };
 
   const getOnlineStatus = () => {

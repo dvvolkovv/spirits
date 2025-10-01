@@ -29,6 +29,13 @@
   },
   "profile": {
     "title": "Мой профиль",
+    "personal_info": "Личная информация",
+    "first_name": "Имя",
+    "last_name": "Фамилия",
+    "phone": "Телефон",
+    "first_name_placeholder": "Введите ваше имя",
+    "last_name_placeholder": "Введите вашу фамилию",
+    "not_specified": "Не указано",
     "edit": "Редактировать",
     "save": "Сохранить",
     "cancel": "Отмена",

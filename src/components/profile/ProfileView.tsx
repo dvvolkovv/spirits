@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard as Edit2, Shield, Calendar, TrendingUp } from 'lucide-react';
+import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const ProfileView: React.FC = () => {
   const { t } = useTranslation();
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, updateUserInfo } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [editingInfo, setEditingInfo] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || ''
+  });
 
   const mockProfile = {
     values: [
@@ -41,7 +45,21 @@ const ProfileView: React.FC = () => {
   };
 
   const handleSave = () => {
-    // In real app, save to backend
+    // Save user info changes
+    if (editingInfo.firstName !== user?.firstName || editingInfo.lastName !== user?.lastName) {
+      updateUserInfo({
+        firstName: editingInfo.firstName,
+        lastName: editingInfo.lastName
+      });
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditingInfo({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || ''
+    });
     setIsEditing(false);
   };
 
@@ -53,21 +71,87 @@ const ProfileView: React.FC = () => {
           <h1 className="text-xl font-bold text-gray-900">
             {t('profile.title')}
           </h1>
-          <button
-            onClick={isEditing ? handleSave : handleEdit}
-            className={clsx(
-              'px-4 py-2 rounded-lg font-medium transition-colors',
-              isEditing
-                ? 'bg-forest-600 hover:bg-forest-700 text-white'
-                : 'bg-warm-600 hover:bg-warm-700 text-white'
+          <div className="flex space-x-2">
+            {isEditing && (
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                {t('profile.cancel')}
+              </button>
             )}
-          >
-            {isEditing ? t('profile.save') : t('profile.edit')}
-          </button>
+            <button
+              onClick={isEditing ? handleSave : handleEdit}
+              className={clsx(
+                'px-4 py-2 rounded-lg font-medium transition-colors',
+                isEditing
+                  ? 'bg-forest-600 hover:bg-forest-700 text-white'
+                  : 'bg-warm-600 hover:bg-warm-700 text-white'
+              )}
+            >
+              {isEditing ? t('profile.save') : t('profile.edit')}
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="flex-1 p-4 pb-20 md:pb-4 space-y-6 overflow-y-auto">
+        {/* Personal Information */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <User className="w-5 h-5 mr-2 text-forest-600" />
+            {t('profile.personal_info')}
+          </h2>
+          
+          {isEditing ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('profile.first_name')}
+                </label>
+                <input
+                  type="text"
+                  value={editingInfo.firstName}
+                  onChange={(e) => setEditingInfo(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder={t('profile.first_name_placeholder')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('profile.last_name')}
+                </label>
+                <input
+                  type="text"
+                  value={editingInfo.lastName}
+                  onChange={(e) => setEditingInfo(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder={t('profile.last_name_placeholder')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">{t('profile.first_name')}:</span>
+                <span className="text-sm text-gray-900">
+                  {user?.firstName || t('profile.not_specified')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">{t('profile.last_name')}:</span>
+                <span className="text-sm text-gray-900">
+                  {user?.lastName || t('profile.not_specified')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">{t('profile.phone')}:</span>
+                <span className="text-sm text-gray-900">{user?.phone}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Profile Completion */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
