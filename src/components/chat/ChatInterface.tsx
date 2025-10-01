@@ -217,7 +217,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   : 'bg-white text-gray-900 shadow-sm rounded-bl-md relative'
               )}
             >
-              <p className="text-sm leading-relaxed">{message.content}</p>
               {message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   <ReactMarkdown
