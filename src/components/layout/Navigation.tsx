@@ -53,7 +53,7 @@ const Navigation: React.FC = () => {
               className={({ isActive }) =>
                 clsx(
                   'flex flex-col items-center justify-center px-3 py-2 rounded-lg transition-colors duration-200',
-                  'md:flex-row md:px-4 md:py-3',
+                  'md:flex-row md:justify-start md:px-4 md:py-3',
                   isActive
                     ? 'text-forest-600 bg-forest-50'
                     : 'text-gray-600 hover:text-forest-600 hover:bg-warm-50'
