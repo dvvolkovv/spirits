@@ -278,13 +278,13 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
         {/* Avatar */}
         <div className="relative">
           {chat.type === 'direct' ? (
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-warm-500 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center">
               <span className="text-white font-semibold text-sm">
                 {getAvatarInitials(chat.name)}
               </span>
             </div>
           ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-warm-500 to-primary-500 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">
               <Users className="w-5 h-5 text-white" />
             </div>
           )}
@@ -341,7 +341,8 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
               className={clsx(
                 'flex',
                 isOwn ? 'justify-end' : 'justify-start'
-              )}>
+              )}
+            >
               {!isOwn && (
                 <div className="w-8 mr-2 flex-shrink-0">
                   {showAvatar && (
@@ -355,7 +356,8 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
               )}
               
               <div className={clsx(
-                'max-w-xs sm:max-w-md'
+                'max-w-xs sm:max-w-md',
+                isOwn ? 'ml-8' : 'mr-8'
               )}>
                 {!isOwn && showAvatar && chat.type === 'group' && (
                   <p className="text-xs text-gray-500 mb-1 ml-3">
@@ -367,7 +369,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
                   className={clsx(
                     'px-4 py-2 rounded-2xl',
                     isOwn
-                      ? 'bg-primary-600 text-white rounded-br-md'
+                      ? 'bg-forest-600 text-white rounded-br-md'
                       : 'bg-white text-gray-900 shadow-sm rounded-bl-md'
                   )}
                 >
@@ -382,16 +384,16 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
                     {isOwn && (
                       <div className="flex items-center space-x-1">
                         {message.status === 'sending' && (
-                          <div className="w-3 h-3 border border-primary-200 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-3 h-3 border border-forest-200 border-t-transparent rounded-full animate-spin" />
                         )}
                         {message.status === 'sent' && (
-                          <div className="w-3 h-3 border border-primary-200 rounded-full" />
+                          <div className="w-3 h-3 border border-forest-200 rounded-full" />
                         )}
                         {message.status === 'delivered' && (
-                          <div className="w-3 h-3 bg-primary-200 rounded-full" />
+                          <div className="w-3 h-3 bg-forest-200 rounded-full" />
                         )}
                         {message.status === 'read' && (
-                          <div className="w-3 h-3 bg-primary-200 rounded-full border-2 border-primary-100" />
+                          <div className="w-3 h-3 bg-forest-200 rounded-full border-2 border-forest-100" />
                         )}
                       </div>
                     )}
@@ -431,7 +433,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={t('chat.placeholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               rows={1}
               style={{ minHeight: '40px', maxHeight: '120px' }}
             />
@@ -447,7 +449,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
             className={clsx(
               'p-2 rounded-lg transition-colors',
               input.trim()
-                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                ? 'bg-forest-600 text-white hover:bg-forest-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             )}
           >
@@ -476,7 +478,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
           <div className="p-4 space-y-6">
             {/* Chat Avatar and Name */}
             <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-warm-500 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-3">
                 {chat.type === 'direct' ? (
                   <span className="text-white font-semibold text-xl">
                     {getAvatarInitials(chat.name)}
@@ -498,7 +500,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
                 {chat.members.map((member) => (
                   <div key={member.id} className="flex items-center space-x-3">
                     <div className="relative">
-                      <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-warm-500 rounded-full flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold text-xs">
                           {getAvatarInitials(member.name)}
                         </span>
@@ -522,7 +524,7 @@ const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) =
             <div className="space-y-2">
               {chat.type === 'group' && (
                 <>
-                  <button className="w-full px-4 py-2 text-left text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                  <button className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                     {t('chats.add_members')}
                   </button>
                   <button className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors">

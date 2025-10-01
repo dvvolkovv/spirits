@@ -212,17 +212,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               className={clsx(
                 'max-w-xs sm:max-w-md px-4 py-2 rounded-2xl',
                 message.type === 'user'
-                  ? 'bg-primary-600 text-white rounded-br-md'
+                  ? 'bg-forest-600 text-white rounded-br-md'
                   : 'bg-white text-gray-900 shadow-sm rounded-bl-md relative'
               )}
             >
               <p className="text-sm leading-relaxed">{message.content}</p>
               {message.isStreaming && (
-                <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-primary-500 rounded-full animate-pulse" />
+                <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
               )}
               <p className={clsx(
                 'text-xs mt-1',
-                message.type === 'user' ? 'text-primary-100' : 'text-gray-500'
+                message.type === 'user' ? 'text-forest-100' : 'text-gray-500'
               )}>
                 {message.timestamp.toLocaleTimeString([], { 
                   hour: '2-digit', 
@@ -257,7 +257,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={t('chat.placeholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               rows={1}
               style={{ minHeight: '40px', maxHeight: '120px' }}
             />
@@ -273,12 +273,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             className={clsx(
               'p-2 rounded-lg transition-colors',
               input.trim() && !isTyping
-                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                ? 'bg-forest-600 text-white hover:bg-forest-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             )}
           >
             {isTyping ? (
-              <div className="w-5 h-5 border-2 border-gray-400 border-t-primary-600 rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-gray-400 border-t-forest-600 rounded-full animate-spin" />
             ) : (
               <Send className="w-5 h-5" />
             )}

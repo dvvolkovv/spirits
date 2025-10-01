@@ -86,7 +86,7 @@ const Navigation: React.FC = () => {
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className="bg-gradient-to-r from-primary-500 to-warm-500 h-2 rounded-full transition-all duration-500"
+            className="bg-gradient-to-r from-forest-500 to-warm-500 h-2 rounded-full transition-all duration-500"
             style={{ width: `${profile.completion}%` }}
           />
         </div>
@@ -107,8 +107,8 @@ const Navigation: React.FC = () => {
                   'flex flex-col items-center justify-center px-3 py-2 rounded-lg transition-colors duration-200',
                   'md:flex-row md:justify-start md:px-4 md:py-3',
                   isActive
-                    ? 'text-primary-600 bg-primary-50'
-                    : 'text-gray-600 hover:text-primary-600 hover:bg-warm-50'
+                    ? 'text-forest-600 bg-forest-50'
+                    : 'text-gray-600 hover:text-forest-600 hover:bg-warm-50'
                 )
               }
             >

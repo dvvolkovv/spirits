@@ -225,14 +225,14 @@ const ChatsListView: React.FC = () => {
           <div className="flex space-x-2">
             <button
               onClick={handleNewChat}
-              className="p-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               title={t('chats.new_chat')}
             >
               <MessageCircle className="w-5 h-5" />
             </button>
             <button
               onClick={handleNewGroup}
-              className="p-2 bg-warm-600 text-white rounded-lg hover:bg-warm-700 transition-colors"
+              className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               title={t('chats.new_group')}
             >
               <Users className="w-5 h-5" />
@@ -248,7 +248,7 @@ const ChatsListView: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('chats.search_contacts')}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
 
@@ -266,7 +266,7 @@ const ChatsListView: React.FC = () => {
               className={clsx(
                 'flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                 activeFilter === key
-                  ? 'bg-white text-primary-600 shadow-sm'
+                  ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               )}
             >
@@ -305,7 +305,7 @@ const ChatsListView: React.FC = () => {
                   <div className="flex items-center space-x-3">
                     {/* Avatar */}
                     <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-warm-500 rounded-full flex items-center justify-center">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold">
                           {getAvatarInitials(friend.name)}
                         </span>
@@ -347,7 +347,7 @@ const ChatsListView: React.FC = () => {
                         {friend.commonValues.slice(0, 2).map((value, index) => (
                           <span
                             key={index}
-                            className="px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full"
+                            className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
                           >
                             {value}
                           </span>
@@ -383,7 +383,7 @@ const ChatsListView: React.FC = () => {
                   <div className="flex justify-center space-x-3">
                     <button
                       onClick={handleNewChat}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                     >
                       {t('chats.new_chat')}
                     </button>
@@ -407,13 +407,13 @@ const ChatsListView: React.FC = () => {
                     {/* Avatar */}
                     <div className="relative">
                       {chat.type === 'direct' ? (
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-warm-500 rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold">
                             {getAvatarInitials(chat.name)}
                           </span>
                         </div>
                       ) : (
-                        <div className="w-12 h-12 bg-gradient-to-br from-warm-500 to-primary-500 rounded-full flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">
                           <Users className="w-6 h-6 text-white" />
                         </div>
                       )}
@@ -479,7 +479,7 @@ const ChatsListView: React.FC = () => {
       <div className="fixed bottom-20 right-4 md:hidden">
         <button
           onClick={handleNewChat}
-          className="w-14 h-14 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors flex items-center justify-center"
+          className="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
         >
           <Plus className="w-6 h-6" />
         </button>

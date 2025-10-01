@@ -78,7 +78,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-forest-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -102,7 +102,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
                 value={digit}
                 onChange={(e) => handleInputChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
+                className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-colors"
                 disabled={isLoading}
               />
             ))}
@@ -117,7 +117,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
             ) : (
               <button
                 onClick={handleResend}
-                className="text-primary-600 hover:text-primary-700 text-sm font-medium hover:underline"
+                className="text-forest-600 hover:text-forest-700 text-sm font-medium hover:underline"
               >
                 {t('onboarding.resend_code')}
               </button>
@@ -128,7 +128,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
           {isLoading && (
             <div className="text-center">
               <div className="inline-flex items-center space-x-2 text-gray-600">
-                <div className="w-4 h-4 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-forest-600 rounded-full animate-spin" />
                 <span className="text-sm">{t('common.loading')}</span>
               </div>
             </div>
