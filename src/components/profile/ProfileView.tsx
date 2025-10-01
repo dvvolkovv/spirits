@@ -114,7 +114,8 @@ const ProfileView: React.FC = () => {
                   value={editingInfo.firstName}
                   onChange={(e) => setEditingInfo(prev => ({ ...prev, firstName: e.target.value }))}
                   placeholder={t('profile.first_name_placeholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors"
+                  maxLength={50}
                 />
               </div>
               <div>
@@ -126,8 +127,14 @@ const ProfileView: React.FC = () => {
                   value={editingInfo.lastName}
                   onChange={(e) => setEditingInfo(prev => ({ ...prev, lastName: e.target.value }))}
                   placeholder={t('profile.last_name_placeholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors"
+                  maxLength={50}
                 />
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-xs text-gray-500">
+                  {t('profile.name_help_text')}
+                </p>
               </div>
             </div>
           ) : (
@@ -148,6 +155,13 @@ const ProfileView: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">{t('profile.phone')}:</span>
                 <span className="text-sm text-gray-900">{user?.phone}</span>
               </div>
+              {(!user?.firstName || !user?.lastName) && (
+                <div className="mt-3 p-3 bg-warm-50 border border-warm-200 rounded-lg">
+                  <p className="text-sm text-warm-800">
+                    {t('profile.complete_name_prompt')}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -47,7 +47,9 @@
     "timeline": "Change history",
     "confidence": "Confidence",
     "add_value": "Add value",
-    "privacy_settings": "Privacy settings"
+    "privacy_settings": "Privacy settings",
+    "name_help_text": "First and last name help other users get to know you better",
+    "complete_name_prompt": "Fill in your first and last name so other users can get to know you better"
   },
   "search": {
     "title": "Find people",
