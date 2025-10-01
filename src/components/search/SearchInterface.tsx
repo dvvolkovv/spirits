@@ -58,6 +58,9 @@ const SearchInterface: React.FC = () => {
   useEffect(() => {
     // Load initial recommendations
     setResults(mockRecommendations);
+    
+    // Scroll to top on mobile when component mounts
+    window.scrollTo(0, 0);
   }, []);
 
   const handleSearch = async () => {
