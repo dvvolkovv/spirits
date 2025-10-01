@@ -130,7 +130,7 @@ const ProfileView: React.FC = () => {
               className={clsx(
                 'px-4 py-2 rounded-lg font-medium transition-colors',
                 isEditing
-                  ? 'bg-forest-600 hover:bg-forest-700 text-white'
+                  ? 'bg-primary-600 hover:bg-primary-700 text-white'
                   : 'bg-warm-600 hover:bg-warm-700 text-white'
               )}
             >
@@ -152,7 +152,7 @@ const ProfileView: React.FC = () => {
                   className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                 />
               ) : (
-                <div className="w-24 h-24 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-warm-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
                   <span className="text-white font-bold text-2xl">
                     {getAvatarInitials(getUserDisplayName())}
                   </span>
@@ -161,6 +161,7 @@ const ProfileView: React.FC = () => {
               
               {/* Upload button overlay */}
               <label className="absolute bottom-0 right-0 w-8 h-8 bg-forest-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-forest-700 transition-colors shadow-lg">
+              <label className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-700 transition-colors shadow-lg">
                 <input
                   type="file"
                   accept="image/*"
@@ -216,7 +217,7 @@ const ProfileView: React.FC = () => {
                   value={editingInfo.firstName}
                   onChange={(e) => setEditingInfo(prev => ({ ...prev, firstName: e.target.value }))}
                   placeholder={t('profile.first_name_placeholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
                   maxLength={50}
                 />
               </div>
@@ -229,7 +230,7 @@ const ProfileView: React.FC = () => {
                   value={editingInfo.lastName}
                   onChange={(e) => setEditingInfo(prev => ({ ...prev, lastName: e.target.value }))}
                   placeholder={t('profile.last_name_placeholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
                   maxLength={50}
                 />
               </div>
@@ -280,7 +281,7 @@ const ProfileView: React.FC = () => {
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div
-              className="bg-gradient-to-r from-forest-500 to-warm-500 h-3 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-primary-500 to-warm-500 h-3 rounded-full transition-all duration-500"
               style={{ width: `${profile.completion}%` }}
             />
           </div>
@@ -293,7 +294,7 @@ const ProfileView: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-forest-600" />
+              <TrendingUp className="w-5 h-5 mr-2 text-primary-600" />
               {t('profile.values')}
             </h2>
             {isEditing && (
@@ -317,7 +318,7 @@ const ProfileView: React.FC = () => {
                   </div>
                   <div className="w-16 bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-forest-500 h-2 rounded-full"
+                      className="bg-primary-500 h-2 rounded-full"
                       style={{ width: `${value.confidence}%` }}
                     />
                   </div>
@@ -335,7 +336,7 @@ const ProfileView: React.FC = () => {
           <div className="space-y-2">
             {profile.beliefs.map((belief, index) => (
               <div key={index} className="flex items-start space-x-2">
-                <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
+                <div className="w-2 h-2 bg-primary-500 rounded-full mt-2 flex-shrink-0" />
                 <p className="text-gray-700">{belief}</p>
               </div>
             ))}
@@ -350,7 +351,7 @@ const ProfileView: React.FC = () => {
           <div className="space-y-2">
             {profile.desires.map((desire, index) => (
               <div key={index} className="flex items-start space-x-2">
-                <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
+                <div className="w-2 h-2 bg-secondary-500 rounded-full mt-2 flex-shrink-0" />
                 <p className="text-gray-700">{desire}</p>
               </div>
             ))}
@@ -380,12 +381,12 @@ const ProfileView: React.FC = () => {
           </h2>
           <div className="space-y-3">
             <div className="flex items-center space-x-3 text-sm">
-              <div className="w-2 h-2 bg-forest-500 rounded-full" />
+              <div className="w-2 h-2 bg-primary-500 rounded-full" />
               <span className="text-gray-500">2 дня назад</span>
               <span className="text-gray-900">Добавлена ценность "Креативность"</span>
             </div>
             <div className="flex items-center space-x-3 text-sm">
-              <div className="w-2 h-2 bg-warm-500 rounded-full" />
+              <div className="w-2 h-2 bg-secondary-500 rounded-full" />
               <span className="text-gray-500">5 дней назад</span>
               <span className="text-gray-900">Обновлено намерение: "Изучить новый навык"</span>
             </div>

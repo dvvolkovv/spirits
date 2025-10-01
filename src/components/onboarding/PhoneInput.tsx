@@ -52,7 +52,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-forest-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <Phone className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -94,7 +94,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
                 <input
                   type="checkbox"
                   {...register('consent', { required: true })}
-                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <span className="text-sm text-gray-700">
                   {t('onboarding.consent_text')}
@@ -104,14 +104,14 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
               <div className="flex space-x-4 text-xs">
                 <button
                   type="button"
-                  className="text-forest-600 hover:underline"
+                  className="text-primary-600 hover:underline"
                   onClick={() => {/* Open terms modal */}}
                 >
                   {t('onboarding.terms')}
                 </button>
                 <button
                   type="button"
-                  className="text-forest-600 hover:underline"
+                  className="text-primary-600 hover:underline"
                   onClick={() => {/* Open privacy modal */}}
                 >
                   {t('onboarding.privacy')}
@@ -126,7 +126,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
               className={clsx(
                 'w-full px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200',
                 canSubmit
-                  ? 'bg-forest-600 hover:bg-forest-700 text-white shadow-md hover:shadow-lg'
+                  ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-md hover:shadow-lg'
                   : 'bg-gray-200 text-gray-500 cursor-not-allowed'
               )}
             >

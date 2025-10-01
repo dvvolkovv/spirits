@@ -64,7 +64,7 @@ const SettingsView: React.FC = () => {
       disabled={disabled}
       className={clsx(
         'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-        enabled ? 'bg-forest-600' : 'bg-gray-300',
+        enabled ? 'bg-primary-600' : 'bg-gray-300',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
     >
@@ -91,7 +91,7 @@ const SettingsView: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Shield className="w-5 h-5 mr-2 text-forest-600" />
+              <Shield className="w-5 h-5 mr-2 text-primary-600" />
               {t('settings.privacy')}
             </h2>
           </div>
@@ -109,7 +109,7 @@ const SettingsView: React.FC = () => {
               <select
                 value={settings.profileVisibility}
                 onChange={(e) => handleSettingChange('profileVisibility', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="public">Всем</option>
                 <option value="matches">Только совпадениям</option>
@@ -148,7 +148,7 @@ const SettingsView: React.FC = () => {
               <select
                 value={settings.allowChats}
                 onChange={(e) => handleSettingChange('allowChats', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="all">Все пользователи</option>
                 <option value="matches">Только совпадения</option>
@@ -162,7 +162,7 @@ const SettingsView: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Globe className="w-5 h-5 mr-2 text-forest-600" />
+              <Globe className="w-5 h-5 mr-2 text-primary-600" />
               {t('settings.language')}
             </h2>
           </div>
@@ -179,7 +179,7 @@ const SettingsView: React.FC = () => {
               <select
                 value={settings.language}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="ru">🇷🇺 Русский</option>
                 <option value="en">🇺🇸 English</option>
