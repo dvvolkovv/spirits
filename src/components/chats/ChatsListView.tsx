@@ -305,7 +305,7 @@ const ChatsListView: React.FC = () => {
                   <div className="flex items-center space-x-3">
                     {/* Avatar */}
                     <div className="relative">
-                          className="px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-full"
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-warm-500 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold">
                           {getAvatarInitials(friend.name)}
                         </span>
