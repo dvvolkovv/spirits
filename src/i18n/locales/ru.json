@@ -30,6 +30,10 @@
   "profile": {
     "title": "Мой профиль",
     "personal_info": "Личная информация",
+    "profile_photo": "Фото профиля",
+    "change_photo": "Изменить фото",
+    "upload_photo": "Загрузить фото",
+    "uploading": "Загрузка...",
     "first_name": "Имя",
     "last_name": "Фамилия",
     "phone": "Телефон",

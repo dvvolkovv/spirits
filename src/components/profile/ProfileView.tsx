@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User } from 'lucide-react';
+import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const ProfileView: React.FC = () => {
   const { t } = useTranslation();
-  const { user, updateProfile, updateUserInfo } = useAuth();
+  const { user, updateProfile, updateUserInfo, updateAvatar } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editingInfo, setEditingInfo] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || ''
   });
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const mockProfile = {
     values: [
@@ -63,6 +64,50 @@ const ProfileView: React.FC = () => {
     setIsEditing(false);
   };
 
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите изображение');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Размер файла не должен превышать 5MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      updateAvatar(result);
+      setIsUploadingAvatar(false);
+    };
+    reader.onerror = () => {
+      alert('Ошибка при загрузке файла');
+      setIsUploadingAvatar(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const getAvatarInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  };
+
+  const getUserDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    return 'Пользователь';
+  };
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
@@ -96,6 +141,63 @@ const ProfileView: React.FC = () => {
       </div>
 
       <div className="flex-1 p-4 pb-20 md:pb-4 space-y-6 overflow-y-auto">
+        {/* Profile Photo */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
+                  <span className="text-white font-bold text-2xl">
+                    {getAvatarInitials(getUserDisplayName())}
+                  </span>
+                </div>
+              )}
+              
+              {/* Upload button overlay */}
+              <label className="absolute bottom-0 right-0 w-8 h-8 bg-forest-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-forest-700 transition-colors shadow-lg">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={isUploadingAvatar}
+                />
+                {isUploadingAvatar ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 text-white" />
+                )}
+              </label>
+            </div>
+            
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-gray-900">
+                {getUserDisplayName()}
+              </h2>
+              <p className="text-sm text-gray-600">{user?.phone}</p>
+            </div>
+            
+            <label className="flex items-center space-x-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+                disabled={isUploadingAvatar}
+              />
+              <Upload className="w-4 h-4 text-gray-600" />
+              <span className="text-sm text-gray-700">
+                {isUploadingAvatar ? 'Загрузка...' : 'Изменить фото'}
+              </span>
+            </label>
+          </div>
+        </div>
         {/* Personal Information */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">

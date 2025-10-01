@@ -23,6 +23,7 @@ interface AuthContextType {
   logout: () => void;
   updateProfile: (profile: Partial<User['profile']>) => void;
   updateUserInfo: (info: { firstName?: string; lastName?: string }) => void;
+  updateAvatar: (avatar: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -111,6 +112,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateAvatar = (avatar: string) => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        avatar
+      };
+      setUser(updatedUser);
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+    }
+  };
   const isAuthenticated = !!user;
 
   return (
@@ -123,6 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         logout,
         updateProfile,
         updateUserInfo,
+        updateAvatar,
       }}
     >
       {children}
