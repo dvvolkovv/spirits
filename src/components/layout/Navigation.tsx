@@ -34,6 +34,11 @@ const Navigation: React.FC = () => {
       icon: User,
       label: t('profile.title'),
     },
+    {
+      to: '/settings',
+      icon: Settings,
+      label: t('settings.title'),
+    },
   ];
 
   return (
@@ -62,24 +67,6 @@ const Navigation: React.FC = () => {
             </NavLink>
           );
         })}
-      </div>
-      
-      {/* Settings at bottom on desktop */}
-      <div className="hidden md:block md:mt-auto md:p-4">
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            clsx(
-              'flex items-center px-4 py-3 rounded-lg transition-colors duration-200',
-              isActive
-                ? 'text-forest-600 bg-forest-50'
-                : 'text-gray-600 hover:text-forest-600 hover:bg-warm-50'
-            )
-          }
-        >
-          <Settings className="w-4 h-4 mr-3" />
-          <span className="text-sm">{t('settings.title')}</span>
-        </NavLink>
       </div>
     </nav>
   );
