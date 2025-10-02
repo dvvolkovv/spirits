@@ -49,7 +49,7 @@ const SettingsView: React.FC = () => {
 
   const handleDeleteAccount = () => {
     if (window.confirm('Это действие необратимо. Все ваши данные будут удалены с сервера. Удалить аккаунт?')) {
-      deleteProfile().catch((error) => {
+      deleteProfile().catch((error: Error) => {
         alert(`Ошибка при удалении аккаунта: ${error.message}`);
       });
     }
@@ -259,7 +259,7 @@ const SettingsView: React.FC = () => {
             
             <button
               onClick={handleDeleteAccount}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
               <span>{t('settings.delete_account')}</span>
