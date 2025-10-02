@@ -106,14 +106,59 @@ const ProfileView: React.FC = () => {
   };
 
   const handleSave = () => {
-    // Save user info changes
+    // Save user info changes to server
     if (editingInfo.firstName !== user?.firstName || editingInfo.lastName !== user?.lastName) {
-      updateUserInfo({
-        firstName: editingInfo.firstName,
-        lastName: editingInfo.lastName
-      });
+      updateProfileOnServer();
     }
-    setIsEditing(false);
+  };
+
+  const updateProfileOnServer = async () => {
+    if (!user?.phone) {
+      alert('Номер телефона не найден');
+      return;
+    }
+
+    // Очищаем номер телефона от всех символов кроме цифр
+    const cleanPhone = user.phone.replace(/\D/g, '');
+    
+    try {
+      const response = await fetch('https://travel-n8n.up.railway.app/webhook/profile-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: cleanPhone,
+          name: editingInfo.firstName,
+          family_name: editingInfo.lastName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка обновления профиля: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Обновляем локальные данные только после успешного сохранения на сервере
+        updateUserInfo({
+          firstName: editingInfo.firstName,
+          lastName: editingInfo.lastName
+        });
+        
+        // Перезагружаем профиль с сервера для получения актуальных данных
+        await loadProfileFromServer();
+        
+        setIsEditing(false);
+        alert('Профиль успешно обновлен');
+      } else {
+        throw new Error('Сервер вернул ошибку');
+      }
+    } catch (error) {
+      console.error('Ошибка при обновлении профиля:', error);
+      alert(`Ошибка при обновлении профиля: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+    }
   };
 
   const handleCancel = () => {
