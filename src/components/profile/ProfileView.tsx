@@ -465,28 +465,11 @@ const ProfileView: React.FC = () => {
             )}
           </div>
           {profile.values.length > 0 ? (
-            <div className="grid gap-3">
+            <div className="space-y-2">
               {profile.values.map((value, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <span className="font-medium text-gray-900">{typeof value === 'string' ? value : value.name}</span>
-                    {typeof value === 'object' && value.private && (
-                      <Shield className="w-4 h-4 text-gray-500" />
-                    )}
-                  </div>
-                  {typeof value === 'object' && (
-                    <div className="flex items-center space-x-2">
-                      <div className="text-sm text-gray-600">
-                        {value.confidence}%
-                      </div>
-                      <div className="w-16 bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-forest-500 h-2 rounded-full"
-                          style={{ width: `${value.confidence}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700">{value}</p>
                 </div>
               ))}
             </div>
