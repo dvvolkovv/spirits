@@ -24,12 +24,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const saved = localStorage.getItem('chat_messages');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Сохраняем сообщения в localStorage при изменениях
+  useEffect(() => {
+    localStorage.setItem('chat_messages', JSON.stringify(messages));
+  }, [messages]);
 
   useEffect(() => {
     if (welcomeMessage && messages.length === 0) {
