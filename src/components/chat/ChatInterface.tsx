@@ -26,7 +26,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem('chat_messages');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      const parsedMessages = JSON.parse(saved);
+      return parsedMessages.map((msg: any) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp)
+      }));
+    }
+    return [];
   });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
