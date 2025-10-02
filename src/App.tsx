@@ -40,8 +40,6 @@ const AppContent: React.FC = () => {
       <div className="flex-1 overflow-hidden pb-16 md:pb-0">
         <Routes>
           <Route path="/chat" element={<ChatPage />} />
-          <Route path="/chats" element={<ChatsPage />} />
-          <Route path="/chats/:chatId" element={<ChatConversationPage />} />
           <Route path="/profile" element={<ProfileView />} />
           <Route path="/search" element={<SearchInterface />} />
           <Route path="/settings" element={<SettingsView />} />

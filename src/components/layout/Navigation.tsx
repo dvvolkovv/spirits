@@ -56,11 +56,6 @@ const Navigation: React.FC = () => {
       label: t('search.title'),
     },
     {
-      to: '/chats',
-      icon: Users,
-      label: t('chats.title'),
-    },
-    {
       to: '/profile',
       icon: User,
       label: t('profile.title'),
