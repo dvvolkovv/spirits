@@ -111,26 +111,57 @@ const SearchInterface: React.FC = () => {
       if (searchResultFound && jsonBuffer.trim()) {
         try {
           // Clean up the JSON buffer - remove any trailing text and parse
-          const cleanJson = jsonBuffer.trim();
+          let cleanJson = jsonBuffer.trim();
+          
+          // Remove any trailing non-JSON content
+          const lastBraceIndex = cleanJson.lastIndexOf('}');
+          const lastBracketIndex = cleanJson.lastIndexOf(']');
+          const lastValidIndex = Math.max(lastBraceIndex, lastBracketIndex);
+          
+          if (lastValidIndex > -1) {
+            cleanJson = cleanJson.substring(0, lastValidIndex + 1);
+          }
+          
+          console.log('Parsing JSON:', cleanJson);
           const searchResults = JSON.parse(cleanJson);
           
           if (Array.isArray(searchResults)) {
             const formattedResults: UserMatch[] = searchResults.map((result: any) => ({
-              id: result.id || Math.random().toString(),
+              id: result.id || result.userId || Math.random().toString(),
               name: result.name || 'Неизвестный пользователь',
               values: result.values || [],
               intents: result.intents || [],
-              corellation: result.corellation || 0
+              corellation: result.corellation || result.correlation || 0
             }));
             
+            console.log('Formatted results:', formattedResults);
             setResults(formattedResults);
+          } else if (searchResults && typeof searchResults === 'object') {
+            // Handle single result object
+            const singleResult: UserMatch = {
+              id: searchResults.id || searchResults.userId || Math.random().toString(),
+              name: searchResults.name || 'Неизвестный пользователь',
+              values: searchResults.values || [],
+              intents: searchResults.intents || [],
+              corellation: searchResults.corellation || searchResults.correlation || 0
+            };
+            
+            console.log('Single result:', singleResult);
+            setResults([singleResult]);
+          } else {
+            console.warn('Unexpected search results format:', searchResults);
+            setResults([]);
           }
         } catch (jsonError) {
           console.error('Failed to parse search results JSON:', jsonError);
-          console.log('JSON buffer:', jsonBuffer);
+          console.log('Raw JSON buffer:', jsonBuffer);
+          console.log('Cleaned JSON:', cleanJson);
           // Fallback to empty results
           setResults([]);
         }
+      } else {
+        console.log('No search results found in stream');
+        setResults([]);
       }
       
     } catch (error) {
