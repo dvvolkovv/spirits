@@ -56,7 +56,7 @@ const ProfileView: React.FC = () => {
 
   // Используем данные с сервера, если они есть, иначе mock данные
   const getProfileValues = () => {
-    if (profileData?.values) {
+    if (Array.isArray(profileData?.values)) {
       return profileData.values.map(value => ({
         name: value,
         confidence: 90, // Значение по умолчанию
@@ -66,9 +66,9 @@ const ProfileView: React.FC = () => {
     return mockProfile.values;
   };
 
-  const getProfileBeliefs = () => profileData?.beliefs || mockProfile.beliefs;
-  const getProfileDesires = () => profileData?.desires || mockProfile.desires;
-  const getProfileIntentions = () => profileData?.intents || mockProfile.intentions;
+  const getProfileBeliefs = () => Array.isArray(profileData?.beliefs) ? profileData.beliefs : mockProfile.beliefs;
+  const getProfileDesires = () => Array.isArray(profileData?.desires) ? profileData.desires : mockProfile.desires;
+  const getProfileIntentions = () => Array.isArray(profileData?.intents) ? profileData.intents : mockProfile.intentions;
   const getProfileCompletion = () => profileData?.completeness ? parseInt(profileData.completeness) : mockProfile.completion;
 
   const profile = {
