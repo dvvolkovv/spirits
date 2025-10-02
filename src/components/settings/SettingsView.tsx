@@ -49,14 +49,9 @@ const SettingsView: React.FC = () => {
 
   const handleDeleteAccount = () => {
     if (window.confirm('Это действие необратимо. Все ваши данные будут удалены с сервера. Удалить аккаунт?')) {
-      deleteProfile()
-        .then(() => {
-          // Успешное удаление - пользователь автоматически выйдет из системы
-          console.log('Профиль успешно удален');
-        })
-        .catch((error) => {
-          alert(`Ошибка при удалении аккаунта: ${error.message}`);
-        });
+      deleteProfile().catch((error) => {
+        alert(`Ошибка при удалении аккаунта: ${error.message}`);
+      });
     }
   };
 
