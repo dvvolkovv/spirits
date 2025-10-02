@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../contexts/AuthContext';
 import { Search, Filter, Users, MessageCircle, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -7,51 +8,48 @@ interface UserMatch {
   id: string;
   name: string;
   avatar?: string;
-  matchScore: number;
-  commonValues: string[];
-  isComplementary: boolean;
-  topIntent: string;
+  values: string[];
+  intents: string[];
+  corellation: number;
 }
 
 const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<UserMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchComment, setSearchComment] = useState('');
 
   // Mock data for recommendations
   const mockRecommendations: UserMatch[] = [
     {
       id: '1',
       name: 'Анна Петрова',
-      matchScore: 95,
-      commonValues: ['Честность', 'Креативность', 'Саморазвитие'],
-      isComplementary: true,
-      topIntent: 'Ищет партнера для стартапа'
+      values: ['Честность', 'Креативность', 'Саморазвитие'],
+      intents: ['Ищет партнера для стартапа'],
+      corellation: 0.95
     },
     {
       id: '2',
       name: 'Михаил Сидоров',
-      matchScore: 88,
-      commonValues: ['Семья', 'Путешествия'],
-      isComplementary: false,
-      topIntent: 'Хочет найти единомышленников'
+      values: ['Семья', 'Путешествия'],
+      intents: ['Хочет найти единомышленников'],
+      corellation: 0.88
     },
     {
       id: '3',
       name: 'Елена Васильева',
-      matchScore: 82,
-      commonValues: ['Экология', 'Волонтерство', 'Образование'],
-      isComplementary: true,
-      topIntent: 'Планирует социальный проект'
+      values: ['Экология', 'Волонтерство', 'Образование'],
+      intents: ['Планирует социальный проект'],
+      corellation: 0.82
     },
     {
       id: '4',
       name: 'Дмитрий Козлов',
-      matchScore: 76,
-      commonValues: ['Технологии', 'Инновации'],
-      isComplementary: false,
-      topIntent: 'Изучает искусственный интеллект'
+      values: ['Технологии', 'Инновации'],
+      intents: ['Изучает искусственный интеллект'],
+      corellation: 0.76
     }
   ];
 
@@ -67,21 +65,113 @@ const SearchInterface: React.FC = () => {
     if (!searchQuery.trim()) return;
     
     setIsSearching(true);
+    setSearchComment('');
+    setResults([]);
     
-    // Simulate search delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Get user phone number for userId
+    const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
     
-    // Filter results based on query
-    const filtered = mockRecommendations.filter(user => 
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.commonValues.some(value => 
-        value.toLowerCase().includes(searchQuery.toLowerCase())
-      ) ||
-      user.topIntent.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    
-    setResults(filtered);
-    setIsSearching(false);
+    try {
+      const response = await fetch('https://travel-n8n.up.railway.app/webhook/search-mate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: searchQuery,
+          userId: userId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+
+      let accumulatedText = '';
+      let searchResultFound = false;
+      let jsonBuffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim());
+        
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            
+            if (data.type === 'item' && data.content) {
+              accumulatedText += data.content;
+              
+              // Check if we've reached the search_result marker
+              if (accumulatedText.includes('search_result:')) {
+                searchResultFound = true;
+                // Extract everything after search_result:
+                const searchResultIndex = accumulatedText.indexOf('search_result:');
+                const beforeSearchResult = accumulatedText.substring(0, searchResultIndex);
+                const afterSearchResult = accumulatedText.substring(searchResultIndex + 'search_result:'.length);
+                
+                // Update comment with text before search_result
+                setSearchComment(beforeSearchResult.trim());
+                
+                // Start collecting JSON
+                jsonBuffer = afterSearchResult;
+              } else if (!searchResultFound) {
+                // Still collecting comment text
+                setSearchComment(accumulatedText);
+              } else {
+                // Collecting JSON data
+                jsonBuffer += data.content;
+              }
+            }
+          } catch (e) {
+            // Skip invalid JSON lines
+            console.warn('Failed to parse streaming data:', line);
+          }
+        }
+      }
+      
+      // Parse the final JSON results
+      if (searchResultFound && jsonBuffer.trim()) {
+        try {
+          // Clean up the JSON buffer - remove any trailing text and parse
+          const cleanJson = jsonBuffer.trim();
+          const searchResults = JSON.parse(cleanJson);
+          
+          if (Array.isArray(searchResults)) {
+            const formattedResults: UserMatch[] = searchResults.map((result: any) => ({
+              id: result.id || Math.random().toString(),
+              name: result.name || 'Неизвестный пользователь',
+              values: result.values || [],
+              intents: result.intents || [],
+              corellation: result.corellation || 0
+            }));
+            
+            setResults(formattedResults);
+          }
+        } catch (jsonError) {
+          console.error('Failed to parse search results JSON:', jsonError);
+          console.log('JSON buffer:', jsonBuffer);
+          // Fallback to empty results
+          setResults([]);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error during search:', error);
+      setSearchComment('Произошла ошибка при поиске. Попробуйте еще раз.');
+      setResults([]);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -91,9 +181,9 @@ const SearchInterface: React.FC = () => {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 bg-green-100';
-    if (score >= 80) return 'text-blue-600 bg-blue-100';
-    if (score >= 70) return 'text-yellow-600 bg-yellow-100';
+    if (score >= 0.9) return 'text-green-600 bg-green-100';
+    if (score >= 0.8) return 'text-blue-600 bg-blue-100';
+    if (score >= 0.7) return 'text-yellow-600 bg-yellow-100';
     return 'text-gray-600 bg-gray-100';
   };
 
@@ -137,6 +227,26 @@ const SearchInterface: React.FC = () => {
 
       {/* Results */}
       <div className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4">
+        {/* Search Comment */}
+        {(searchComment || isSearching) && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">
+                {isSearching ? (
+                  <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Search className="w-5 h-5 text-blue-600 mt-0.5" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-blue-800 text-sm leading-relaxed">
+                  {isSearching && !searchComment ? 'Ищем подходящих людей...' : searchComment}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {!searchQuery && (
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Users className="w-5 h-5 mr-2 text-forest-600" />
@@ -177,23 +287,23 @@ const SearchInterface: React.FC = () => {
                       </h3>
                       <div className={clsx(
                         'px-2 py-1 rounded-full text-sm font-medium',
-                        getScoreColor(user.matchScore)
+                        getScoreColor(user.corellation)
                       )}>
-                        {user.matchScore}%
+                        {Math.round(user.corellation * 100)}%
                       </div>
                     </div>
 
                     <p className="text-gray-600 text-sm mb-3">
-                      {user.topIntent}
+                      {user.intents[0] || 'Нет описания'}
                     </p>
 
                     {/* Common Values */}
                     <div className="mb-4">
                       <p className="text-xs text-gray-500 mb-2">
-                        {user.commonValues.length} {t('search.common_values')}
+                        Ценности ({user.values.length})
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {user.commonValues.map((value, index) => (
+                        {user.values.slice(0, 3).map((value, index) => (
                           <span
                             key={index}
                             className="px-2 py-1 bg-forest-50 text-forest-700 text-xs rounded-full"
@@ -201,10 +311,9 @@ const SearchInterface: React.FC = () => {
                             {value}
                           </span>
                         ))}
-                        {user.isComplementary && (
+                        {user.values.length > 3 && (
                           <span className="px-2 py-1 bg-warm-50 text-warm-700 text-xs rounded-full flex items-center">
-                            <Heart className="w-3 h-3 mr-1" />
-                            {t('search.complementary')}
+                            +{user.values.length - 3}
                           </span>
                         )}
                       </div>
