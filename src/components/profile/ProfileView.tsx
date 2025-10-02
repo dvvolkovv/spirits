@@ -4,6 +4,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload } from 'lucide-react';
 import { clsx } from 'clsx';
 
+interface ProfileData {
+  profile?: string[];
+  values?: string[];
+  beliefs?: string[];
+  desires?: string[];
+  intents?: string[];
+  name?: string;
+  family_name?: string;
+  user_nickname?: string;
+  completeness?: string;
+  user_id?: string;
+}
+
 const ProfileView: React.FC = () => {
   const { t } = useTranslation();
   const { user, updateProfile, updateUserInfo, updateAvatar } = useAuth();
@@ -13,6 +26,8 @@ const ProfileView: React.FC = () => {
     lastName: user?.lastName || ''
   });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
 
   const mockProfile = {
     values: [
@@ -39,7 +54,77 @@ const ProfileView: React.FC = () => {
     completion: 78,
   };
 
-  const profile = user?.profile || mockProfile;
+  // Используем данные с сервера, если они есть, иначе mock данные
+  const getProfileValues = () => {
+    if (profileData?.values) {
+      return profileData.values.map(value => ({
+        name: value,
+        confidence: 90, // Значение по умолчанию
+        private: false
+      }));
+    }
+    return mockProfile.values;
+  };
+
+  const getProfileBeliefs = () => profileData?.beliefs || mockProfile.beliefs;
+  const getProfileDesires = () => profileData?.desires || mockProfile.desires;
+  const getProfileIntentions = () => profileData?.intents || mockProfile.intentions;
+  const getProfileCompletion = () => profileData?.completeness ? parseInt(profileData.completeness) : mockProfile.completion;
+
+  const profile = {
+    values: getProfileValues(),
+    beliefs: getProfileBeliefs(),
+    desires: getProfileDesires(),
+    intentions: getProfileIntentions(),
+    completion: getProfileCompletion(),
+  };
+
+  // Загрузка профиля с сервера
+  const loadProfileFromServer = async () => {
+    if (!user?.phone) return;
+
+    setIsLoadingProfile(true);
+    
+    // Очищаем номер телефона от всех символов кроме цифр
+    const cleanPhone = user.phone.replace(/\D/g, '');
+    
+    try {
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const data: ProfileData = await response.json();
+        setProfileData(data);
+        
+        // Обновляем имя и фамилию в контексте, если они пришли с сервера
+        if (data.name || data.family_name) {
+          updateUserInfo({
+            firstName: data.name || user.firstName,
+            lastName: data.family_name || user.lastName
+          });
+          setEditingInfo({
+            firstName: data.name || user.firstName || '',
+            lastName: data.family_name || user.lastName || ''
+          });
+        }
+      } else {
+        console.warn('Профиль не найден на сервере, используем локальные данные');
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке профиля:', error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  // Загружаем профиль при монтировании компонента
+  React.useEffect(() => {
+    loadProfileFromServer();
+  }, [user?.phone]);
 
   const handleEdit = () => {
     setIsEditing(!isEditing);
@@ -100,6 +185,13 @@ const ProfileView: React.FC = () => {
   };
 
   const getUserDisplayName = () => {
+    // Используем данные с сервера, если они есть
+    if (profileData?.name && profileData?.family_name) {
+      return `${profileData.name} ${profileData.family_name}`;
+    }
+    if (profileData?.name) {
+      return profileData.name;
+    }
     if (user?.firstName && user?.lastName) {
       return `${user.firstName} ${user.lastName}`;
     }
@@ -117,6 +209,17 @@ const ProfileView: React.FC = () => {
             {t('profile.title')}
           </h1>
           <div className="flex space-x-2">
+            <button
+              onClick={loadProfileFromServer}
+              disabled={isLoadingProfile}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {isLoadingProfile ? (
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+              ) : (
+                'Обновить'
+              )}
+            </button>
             {isEditing && (
               <button
                 onClick={handleCancel}
@@ -141,6 +244,16 @@ const ProfileView: React.FC = () => {
       </div>
 
       <div className="flex-1 p-4 pb-20 md:pb-4 space-y-6 overflow-y-auto">
+        {/* Loading indicator */}
+        {isLoadingProfile && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <span className="text-blue-800">Загружаем профиль с сервера...</span>
+            </div>
+          </div>
+        )}
+
         {/* Profile Photo */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex flex-col items-center space-y-4">
@@ -180,6 +293,9 @@ const ProfileView: React.FC = () => {
               <h2 className="text-xl font-bold text-gray-900">
                 {getUserDisplayName()}
               </h2>
+              {profileData?.user_nickname && (
+                <p className="text-sm text-gray-500">@{profileData.user_nickname}</p>
+              )}
               <p className="text-sm text-gray-600">{user?.phone}</p>
             </div>
             
@@ -244,20 +360,26 @@ const ProfileView: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">{t('profile.first_name')}:</span>
                 <span className="text-sm text-gray-900">
-                  {user?.firstName || t('profile.not_specified')}
+                  {profileData?.name || user?.firstName || t('profile.not_specified')}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">{t('profile.last_name')}:</span>
                 <span className="text-sm text-gray-900">
-                  {user?.lastName || t('profile.not_specified')}
+                  {profileData?.family_name || user?.lastName || t('profile.not_specified')}
                 </span>
               </div>
+              {profileData?.user_nickname && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Никнейм:</span>
+                  <span className="text-sm text-gray-900">@{profileData.user_nickname}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">{t('profile.phone')}:</span>
                 <span className="text-sm text-gray-900">{user?.phone}</span>
               </div>
-              {(!user?.firstName || !user?.lastName) && (
+              {(!profileData?.name && !user?.firstName || !profileData?.family_name && !user?.lastName) && (
                 <div className="mt-3 p-3 bg-warm-50 border border-warm-200 rounded-lg">
                   <p className="text-sm text-warm-800">
                     {t('profile.complete_name_prompt')}
@@ -285,7 +407,7 @@ const ProfileView: React.FC = () => {
             />
           </div>
           <p className="text-sm text-gray-600 mt-2">
-            Продолжайте общение с ассистентом для улучшения профиля
+            {profileData ? 'Данные загружены с сервера' : 'Продолжайте общение с ассистентом для улучшения профиля'}
           </p>
         </div>
 
@@ -302,75 +424,159 @@ const ProfileView: React.FC = () => {
               </button>
             )}
           </div>
-          <div className="grid gap-3">
-            {profile.values.map((value, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <span className="font-medium text-gray-900">{value.name}</span>
-                  {value.private && (
-                    <Shield className="w-4 h-4 text-gray-500" />
+          {profile.values.length > 0 ? (
+            <div className="grid gap-3">
+              {profile.values.map((value, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <span className="font-medium text-gray-900">{typeof value === 'string' ? value : value.name}</span>
+                    {typeof value === 'object' && value.private && (
+                      <Shield className="w-4 h-4 text-gray-500" />
+                    )}
+                  </div>
+                  {typeof value === 'object' && (
+                    <div className="flex items-center space-x-2">
+                      <div className="text-sm text-gray-600">
+                        {value.confidence}%
+                      </div>
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-forest-500 h-2 rounded-full"
+                          style={{ width: `${value.confidence}%` }}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <div className="text-sm text-gray-600">
-                    {value.confidence}%
-                  </div>
-                  <div className="w-16 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-forest-500 h-2 rounded-full"
-                      style={{ width: `${value.confidence}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">
+                {profileData ? 'Ценности не указаны' : 'Ценности будут определены в процессе общения с ассистентом'}
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Profile Parameters */}
+        {profileData?.profile && profileData.profile.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Параметры профиля
+            </h2>
+            <div className="space-y-2">
+              {profileData.profile.map((param, index) => (
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700">{param}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Beliefs */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {t('profile.beliefs')}
-          </h2>
-          <div className="space-y-2">
-            {profile.beliefs.map((belief, index) => (
-              <div key={index} className="flex items-start space-x-2">
-                <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                <p className="text-gray-700">{belief}</p>
-              </div>
-            ))}
+        {profile.beliefs.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {t('profile.beliefs')}
+            </h2>
+            <div className="space-y-2">
+              {profile.beliefs.map((belief, index) => (
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700">{belief}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Desires */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {t('profile.desires')}
-          </h2>
-          <div className="space-y-2">
-            {profile.desires.map((desire, index) => (
-              <div key={index} className="flex items-start space-x-2">
-                <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
-                <p className="text-gray-700">{desire}</p>
-              </div>
-            ))}
+        {profile.desires.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {t('profile.desires')}
+            </h2>
+            <div className="space-y-2">
+              {profile.desires.map((desire, index) => (
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700">{desire}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Intentions */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            {t('profile.intentions')}
-          </h2>
-          <div className="space-y-2">
-            {profile.intentions.map((intention, index) => (
-              <div key={index} className="flex items-start space-x-2">
-                <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
-                <p className="text-gray-700">{intention}</p>
-              </div>
-            ))}
+        {profile.intentions.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {t('profile.intentions')}
+            </h2>
+            <div className="space-y-2">
+              {profile.intentions.map((intention, index) => (
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700">{intention}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Empty state when no server data */}
+        {!profileData && (
+          <>
+            {/* Beliefs */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {t('profile.beliefs')}
+              </h2>
+              <div className="space-y-2">
+                {profile.beliefs.map((belief, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{belief}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Desires */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {t('profile.desires')}
+              </h2>
+              <div className="space-y-2">
+                {profile.desires.map((desire, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{desire}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Intentions */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {t('profile.intentions')}
+              </h2>
+              <div className="space-y-2">
+                {profile.intentions.map((intention, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{intention}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Timeline */}
         <div className="bg-white rounded-lg shadow-sm p-6">
@@ -379,6 +585,13 @@ const ProfileView: React.FC = () => {
             {t('profile.timeline')}
           </h2>
           <div className="space-y-3">
+            {profileData && (
+              <div className="flex items-center space-x-3 text-sm">
+                <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                <span className="text-gray-500">Сейчас</span>
+                <span className="text-gray-900">Профиль загружен с сервера</span>
+              </div>
+            )}
             <div className="flex items-center space-x-3 text-sm">
               <div className="w-2 h-2 bg-forest-500 rounded-full" />
               <span className="text-gray-500">2 дня назад</span>
