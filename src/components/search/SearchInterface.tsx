@@ -21,43 +21,9 @@ const SearchInterface: React.FC = () => {
   const [results, setResults] = useState<UserMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchComment, setSearchComment] = useState('');
-
-  // Mock data for recommendations
-  const mockRecommendations: UserMatch[] = [
-    {
-      id: '1',
-      name: 'Анна Петрова',
-      values: ['Честность', 'Креативность', 'Саморазвитие'],
-      intents: ['Ищет партнера для стартапа'],
-      corellation: 0.95
-    },
-    {
-      id: '2',
-      name: 'Михаил Сидоров',
-      values: ['Семья', 'Путешествия'],
-      intents: ['Хочет найти единомышленников'],
-      corellation: 0.88
-    },
-    {
-      id: '3',
-      name: 'Елена Васильева',
-      values: ['Экология', 'Волонтерство', 'Образование'],
-      intents: ['Планирует социальный проект'],
-      corellation: 0.82
-    },
-    {
-      id: '4',
-      name: 'Дмитрий Козлов',
-      values: ['Технологии', 'Инновации'],
-      intents: ['Изучает искусственный интеллект'],
-      corellation: 0.76
-    }
-  ];
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
-    // Load initial recommendations
-    setResults(mockRecommendations);
-    
     // Scroll to top on mobile when component mounts
     window.scrollTo(0, 0);
   }, []);
@@ -68,6 +34,7 @@ const SearchInterface: React.FC = () => {
     setIsSearching(true);
     setSearchComment('');
     setResults([]);
+    setHasSearched(true);
     
     // Get user phone number for userId
     const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
@@ -282,14 +249,14 @@ const SearchInterface: React.FC = () => {
           </div>
         )}
 
-        {!searchQuery && (
+        {!hasSearched && !searchQuery && (
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Users className="w-5 h-5 mr-2 text-forest-600" />
-            {t('search.recommendations')}
+            Начните поиск людей
           </h2>
         )}
 
-        {results.length === 0 && searchQuery ? (
+        {results.length === 0 && hasSearched && !isSearching ? (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -297,6 +264,16 @@ const SearchInterface: React.FC = () => {
             </h3>
             <p className="text-gray-600">
               {t('search.try_different')}
+            </p>
+          </div>
+        ) : !hasSearched && !searchQuery ? (
+          <div className="text-center py-12">
+            <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Найдите людей, близких по духу
+            </h3>
+            <p className="text-gray-600">
+              Введите запрос в поисковую строку, чтобы найти единомышленников
             </p>
           </div>
         ) : (
