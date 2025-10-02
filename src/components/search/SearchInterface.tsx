@@ -17,16 +17,44 @@ interface UserMatch {
 const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState<UserMatch[]>([]);
+  
+  // Используем localStorage для сохранения состояния поиска
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return localStorage.getItem('search_query') || '';
+  });
+  const [results, setResults] = useState<UserMatch[]>(() => {
+    const saved = localStorage.getItem('search_results');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isSearching, setIsSearching] = useState(false);
-  const [searchComment, setSearchComment] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
+  const [searchComment, setSearchComment] = useState(() => {
+    return localStorage.getItem('search_comment') || '';
+  });
+  const [hasSearched, setHasSearched] = useState(() => {
+    return localStorage.getItem('has_searched') === 'true';
+  });
 
   useEffect(() => {
     // Scroll to top on mobile when component mounts
     window.scrollTo(0, 0);
   }, []);
+
+  // Сохраняем состояние в localStorage при изменениях
+  useEffect(() => {
+    localStorage.setItem('search_query', searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    localStorage.setItem('search_results', JSON.stringify(results));
+  }, [results]);
+
+  useEffect(() => {
+    localStorage.setItem('search_comment', searchComment);
+  }, [searchComment]);
+
+  useEffect(() => {
+    localStorage.setItem('has_searched', hasSearched.toString());
+  }, [hasSearched]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -35,6 +63,10 @@ const SearchInterface: React.FC = () => {
     setSearchComment('');
     setResults([]);
     setHasSearched(true);
+    
+    // Очищаем предыдущие результаты из localStorage
+    localStorage.removeItem('search_results');
+    localStorage.removeItem('search_comment');
     
     // Get user phone number for userId
     const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
