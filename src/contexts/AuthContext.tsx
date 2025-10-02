@@ -21,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (phone: string, token: string) => void;
   logout: () => void;
+  deleteProfile: () => Promise<void>;
   updateProfile: (profile: Partial<User['profile']>) => void;
   updateUserInfo: (info: { firstName?: string; lastName?: string }) => void;
   updateAvatar: (avatar: string) => void;
@@ -87,6 +88,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
+  const deleteProfile = async () => {
+    if (!user?.phone) {
+      throw new Error('Номер телефона не найден');
+    }
+
+    // Очищаем номер телефона от всех символов кроме цифр
+    const cleanPhone = user.phone.replace(/\D/g, '');
+    
+    try {
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/${cleanPhone}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка удаления профиля: ${response.status}`);
+      }
+
+      // После успешного удаления на сервере, очищаем локальные данные
+      logout();
+    } catch (error) {
+      console.error('Ошибка при удалении профиля:', error);
+      throw error;
+    }
+  };
+
   const updateProfile = (profileUpdate: Partial<User['profile']>) => {
     if (user) {
       const updatedUser = {
@@ -132,6 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isLoading,
         login,
         logout,
+        deleteProfile,
         updateProfile,
         updateUserInfo,
         updateAvatar,

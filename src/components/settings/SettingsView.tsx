@@ -16,7 +16,7 @@ import { clsx } from 'clsx';
 
 const SettingsView: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, logout, deleteProfile } = useAuth();
   const [settings, setSettings] = useState({
     profileVisibility: 'public',
     valuesVisibility: 'all',
@@ -48,9 +48,10 @@ const SettingsView: React.FC = () => {
   };
 
   const handleDeleteAccount = () => {
-    if (window.confirm('Это действие необратимо. Удалить аккаунт?')) {
-      // Handle account deletion
-      logout();
+    if (window.confirm('Это действие необратимо. Все ваши данные будут удалены с сервера. Удалить аккаунт?')) {
+      deleteProfile().catch((error) => {
+        alert(`Ошибка при удалении аккаунта: ${error.message}`);
+      });
     }
   };
 
