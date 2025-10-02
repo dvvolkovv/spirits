@@ -29,32 +29,7 @@ const ProfileView: React.FC = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
 
-  const mockProfile = {
-    values: [
-      { name: 'Честность', confidence: 95, private: false },
-      { name: 'Креативность', confidence: 88, private: false },
-      { name: 'Семья', confidence: 92, private: true },
-      { name: 'Саморазвитие', confidence: 85, private: false },
-    ],
-    beliefs: [
-      'Важность баланса между работой и личной жизнью',
-      'Каждый человек уникален и ценен',
-      'Непрерывное обучение - ключ к успеху',
-    ],
-    desires: [
-      'Создать собственный проект',
-      'Путешествовать по миру',
-      'Найти единомышленников',
-    ],
-    intentions: [
-      'Изучить новый навык в этом году',
-      'Расширить круг общения',
-      'Запустить социальный проект',
-    ],
-    completion: 78,
-  };
-
-  // Используем данные с сервера, если они есть, иначе mock данные
+  // Используем только данные с сервера
   const getProfileValues = () => {
     if (Array.isArray(profileData?.values)) {
       return profileData.values.map(value => ({
@@ -63,13 +38,13 @@ const ProfileView: React.FC = () => {
         private: false
       }));
     }
-    return mockProfile.values;
+    return [];
   };
 
-  const getProfileBeliefs = () => Array.isArray(profileData?.beliefs) ? profileData.beliefs : mockProfile.beliefs;
-  const getProfileDesires = () => Array.isArray(profileData?.desires) ? profileData.desires : mockProfile.desires;
-  const getProfileIntentions = () => Array.isArray(profileData?.intents) ? profileData.intents : mockProfile.intentions;
-  const getProfileCompletion = () => profileData?.completeness ? parseInt(profileData.completeness) : mockProfile.completion;
+  const getProfileBeliefs = () => Array.isArray(profileData?.beliefs) ? profileData.beliefs : [];
+  const getProfileDesires = () => Array.isArray(profileData?.desires) ? profileData.desires : [];
+  const getProfileIntentions = () => Array.isArray(profileData?.intents) ? profileData.intents : [];
+  const getProfileCompletion = () => profileData?.completeness ? parseInt(profileData.completeness) : 0;
 
   const profile = {
     values: getProfileValues(),
@@ -407,7 +382,12 @@ const ProfileView: React.FC = () => {
             />
           </div>
           <p className="text-sm text-gray-600 mt-2">
-            {profileData ? 'Данные загружены с сервера' : 'Продолжайте общение с ассистентом для улучшения профиля'}
+            {profileData 
+              ? 'Данные загружены с сервера' 
+              : profile.completion === 0 
+                ? 'Профиль не найден. Начните общение с ассистентом для создания профиля'
+                : 'Продолжайте общение с ассистентом для улучшения профиля'
+            }
           </p>
         </div>
 
@@ -454,7 +434,7 @@ const ProfileView: React.FC = () => {
             <div className="text-center py-8">
               <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">
-                {profileData ? 'Ценности не указаны' : 'Ценности будут определены в процессе общения с ассистентом'}
+                Ценности не указаны. Начните общение с ассистентом для их определения.
               </p>
             </div>
           )}
@@ -528,54 +508,25 @@ const ProfileView: React.FC = () => {
           </div>
         )}
 
-        {/* Empty state when no server data */}
-        {!profileData && (
-          <>
-            {/* Beliefs */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {t('profile.beliefs')}
-              </h2>
-              <div className="space-y-2">
-                {profile.beliefs.map((belief, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{belief}</p>
-                  </div>
-                ))}
-              </div>
+        {/* Empty state when no data */}
+        {!profileData && profile.completion === 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="text-center py-8">
+              <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Профиль не найден
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Начните общение с ассистентом для создания и заполнения профиля
+              </p>
+              <button
+                onClick={() => window.location.href = '/chat'}
+                className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors"
+              >
+                Перейти к чату
+              </button>
             </div>
-
-            {/* Desires */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {t('profile.desires')}
-              </h2>
-              <div className="space-y-2">
-                {profile.desires.map((desire, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{desire}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Intentions */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {t('profile.intentions')}
-              </h2>
-              <div className="space-y-2">
-                {profile.intentions.map((intention, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{intention}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
+          </div>
         )}
 
         {/* Timeline */}
@@ -594,18 +545,10 @@ const ProfileView: React.FC = () => {
             )}
             <div className="flex items-center space-x-3 text-sm">
               <div className="w-2 h-2 bg-forest-500 rounded-full" />
-              <span className="text-gray-500">2 дня назад</span>
-              <span className="text-gray-900">Добавлена ценность "Креативность"</span>
-            </div>
-            <div className="flex items-center space-x-3 text-sm">
-              <div className="w-2 h-2 bg-warm-500 rounded-full" />
-              <span className="text-gray-500">5 дней назад</span>
-              <span className="text-gray-900">Обновлено намерение: "Изучить новый навык"</span>
-            </div>
-            <div className="flex items-center space-x-3 text-sm">
-              <div className="w-2 h-2 bg-earth-500 rounded-full" />
-              <span className="text-gray-500">1 неделя назад</span>
-              <span className="text-gray-900">Профиль создан</span>
+              <span className="text-gray-500">История</span>
+              <span className="text-gray-900">
+                {profileData ? 'Профиль обновляется через общение с ассистентом' : 'Профиль будет создан после первого общения с ассистентом'}
+              </span>
             </div>
           </div>
         </div>
