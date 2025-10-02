@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
 import { Search, Filter, Users, MessageCircle, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -239,9 +240,43 @@ const SearchInterface: React.FC = () => {
                 )}
               </div>
               <div className="flex-1">
-                <p className="text-blue-800 text-sm leading-relaxed">
-                  {isSearching && !searchComment ? 'Ищем подходящих людей...' : searchComment}
-                </p>
+                <div className="text-blue-800 text-sm leading-relaxed prose prose-sm max-w-none prose-blue">
+                  {isSearching && !searchComment ? (
+                    <p>Ищем подходящих людей...</p>
+                  ) : (
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        strong: ({ children }) => <strong className="font-semibold text-blue-900">{children}</strong>,
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                        li: ({ children }) => <li className="text-sm">{children}</li>,
+                        code: ({ children }) => (
+                          <code className="bg-blue-100 text-blue-900 px-1 py-0.5 rounded text-xs font-mono">
+                            {children}
+                          </code>
+                        ),
+                        pre: ({ children }) => (
+                          <pre className="bg-blue-100 text-blue-900 p-2 rounded text-xs font-mono overflow-x-auto mb-2">
+                            {children}
+                          </pre>
+                        ),
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-l-2 border-blue-300 pl-2 italic text-blue-700 mb-2">
+                            {children}
+                          </blockquote>
+                        ),
+                        h1: ({ children }) => <h1 className="text-base font-bold mb-2 text-blue-900">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-sm font-bold mb-2 text-blue-900">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-blue-900">{children}</h3>,
+                        br: () => <br />,
+                      }}
+                    >
+                      {searchComment}
+                    </ReactMarkdown>
+                  )}
+                </div>
               </div>
             </div>
           </div>
