@@ -423,10 +423,10 @@ const SearchInterface: React.FC = () => {
 
                     {/* Actions */}
                     <div className="flex space-x-3">
-                      <button className="flex-1 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm font-medium">
                         onClick={() => handleViewProfile(user)}
                         className="flex-1 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm font-medium"
                       >
+                        {t('search.view_profile')}
                       </button>
                       <button 
                         onClick={() => handleChatClick(user)}
