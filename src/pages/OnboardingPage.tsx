@@ -14,99 +14,30 @@ const OnboardingPage: React.FC = () => {
   const handlePhoneSubmit = async (phoneNumber: string) => {
     setIsLoading(true);
     setPhone(phoneNumber);
-
-    // Очищаем номер телефона от всех символов кроме цифр
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-
-    try {
-      const response = await fetch(`https://travel-n8n.up.railway.app/w/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ошибка отправки SMS: ${response.status}`);
-      }
-
-      const result = await response.text();
-
-      if (result !== 'SMS sent') {
-        throw new Error('Не удалось отправить SMS');
-      }
-
-      setIsLoading(false);
-      setStep('otp');
-    } catch (error) {
-      console.error('Ошибка при отправке SMS:', error);
-      alert('Ошибка при отправке кода. Попробуйте еще раз.');
-      setIsLoading(false);
-    }
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setIsLoading(false);
+    setStep('otp');
   };
 
   const handleOTPSubmit = async (code: string) => {
     setIsLoading(true);
-
-    // Очищаем номер телефона от всех символов кроме цифр
-    const cleanPhone = phone.replace(/\D/g, '');
-
-    try {
-      // Проверяем код через вебхук
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ошибка проверки кода: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      // Проверяем статус
-      if (result.status === 'Confirmed') {
-        const mockToken = 'verified-jwt-token';
-        localStorage.removeItem('smsCode');
-        login(phone, mockToken);
-      } else {
-        alert('Неверный код. Попробуйте еще раз.');
-      }
-    } catch (error) {
-      console.error('Ошибка при проверке кода:', error);
-      alert('Ошибка при проверке кода. Попробуйте еще раз.');
-    } finally {
-      setIsLoading(false);
-    }
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Mock successful login
+    const mockToken = 'mock-jwt-token';
+    login(phone, mockToken);
+    
+    setIsLoading(false);
   };
 
   const handleResendOTP = async () => {
-    // Очищаем номер телефона от всех символов кроме цифр
-    const cleanPhone = phone.replace(/\D/g, '');
-
-    try {
-      const response = await fetch(`https://travel-n8n.up.railway.app/w/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ошибка отправки SMS: ${response.status}`);
-      }
-
-      const result = await response.text();
-
-      if (result !== 'SMS sent') {
-        throw new Error('Не удалось отправить SMS');
-      }
-    } catch (error) {
-      console.error('Ошибка при повторной отправке SMS:', error);
-      alert('Ошибка при отправке кода. Попробуйте еще раз.');
-    }
+    // Simulate resend
+    await new Promise(resolve => setTimeout(resolve, 500));
   };
 
   const handleBack = () => {
