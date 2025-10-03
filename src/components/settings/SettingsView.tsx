@@ -5,9 +5,6 @@ import {
   Shield,
   Globe,
   Bell,
-  User,
-  LogOut,
-  Trash2,
   Eye,
   EyeOff,
   MessageCircle
@@ -16,7 +13,7 @@ import { clsx } from 'clsx';
 
 const SettingsView: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user, logout, deleteProfile } = useAuth();
+  const { user } = useAuth();
   const [settings, setSettings] = useState({
     profileVisibility: 'public',
     valuesVisibility: 'all',
@@ -39,20 +36,6 @@ const SettingsView: React.FC = () => {
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
     handleSettingChange('language', lang);
-  };
-
-  const handleLogout = () => {
-    if (window.confirm('Вы уверены, что хотите выйти?')) {
-      logout();
-    }
-  };
-
-  const handleDeleteAccount = () => {
-    if (window.confirm('Это действие необратимо. Все ваши данные будут удалены с сервера. Удалить аккаунт?')) {
-      deleteProfile().catch((error: Error) => {
-        alert(`Ошибка при удалении аккаунта: ${error.message}`);
-      });
-    }
   };
 
   const ToggleSwitch: React.FC<{
@@ -237,33 +220,6 @@ const SettingsView: React.FC = () => {
                 }
               />
             </div>
-          </div>
-        </div>
-
-        {/* Account Actions */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <User className="w-5 h-5 mr-2 text-gray-600" />
-              {t('settings.account')}
-            </h2>
-          </div>
-          <div className="p-6 space-y-4">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>{t('settings.logout')}</span>
-            </button>
-            
-            <button
-              onClick={handleDeleteAccount}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>{t('settings.delete_account')}</span>
-            </button>
           </div>
         </div>
 

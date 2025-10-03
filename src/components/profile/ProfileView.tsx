@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload } from 'lucide-react';
+import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface ProfileData {
@@ -19,7 +19,7 @@ interface ProfileData {
 
 const ProfileView: React.FC = () => {
   const { t } = useTranslation();
-  const { user, updateProfile, updateUserInfo, updateAvatar } = useAuth();
+  const { user, updateProfile, updateUserInfo, updateAvatar, logout, deleteProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editingInfo, setEditingInfo] = useState({
     firstName: user?.firstName || '',
@@ -235,6 +235,21 @@ const ProfileView: React.FC = () => {
     }
     return 'Пользователь';
   };
+
+  const handleLogout = () => {
+    if (window.confirm('Вы уверены, что хотите выйти?')) {
+      logout();
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (window.confirm('Это действие необратимо. Все ваши данные будут удалены с сервера. Удалить аккаунт?')) {
+      deleteProfile().catch((error: Error) => {
+        alert(`Ошибка при удалении аккаунта: ${error.message}`);
+      });
+    }
+  };
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
@@ -571,6 +586,33 @@ const ProfileView: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Account Actions */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <User className="w-5 h-5 mr-2 text-gray-600" />
+              {t('settings.account')}
+            </h2>
+          </div>
+          <div className="p-6 space-y-4">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{t('settings.logout')}</span>
+            </button>
+            
+            <button
+              onClick={handleDeleteAccount}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>{t('settings.delete_account')}</span>
+            </button>
+          </div>
+        </div>
 
         {/* Timeline */}
         <div className="bg-white rounded-lg shadow-sm p-6">
