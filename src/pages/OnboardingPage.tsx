@@ -36,6 +36,11 @@ const OnboardingPage: React.FC = () => {
         throw new Error('Не удалось отправить SMS');
       }
 
+      // Сохраняем код из поля text в localStorage
+      if (result.data && result.data.text) {
+        localStorage.setItem('smsCode', result.data.text);
+      }
+
       setIsLoading(false);
       setStep('otp');
     } catch (error) {
@@ -48,30 +53,20 @@ const OnboardingPage: React.FC = () => {
   const handleOTPSubmit = async (code: string) => {
     setIsLoading(true);
 
-    // Очищаем номер телефона от всех символов кроме цифр
-    const cleanPhone = phone.replace(/\D/g, '');
-
     try {
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      // Получаем сохраненный код из localStorage
+      const savedCode = localStorage.getItem('smsCode');
 
-      if (!response.ok) {
-        throw new Error(`Ошибка проверки кода: ${response.status}`);
+      if (!savedCode) {
+        alert('Код не найден. Попробуйте отправить код повторно.');
+        setIsLoading(false);
+        return;
       }
 
-      const result = await response.json();
-
-      if (!result.success || !result.data) {
-        throw new Error('Не удалось получить код для проверки');
-      }
-
-      // Сравниваем введенный код с кодом из поля text
-      if (result.data.text === code) {
+      // Сравниваем введенный код с сохраненным кодом
+      if (savedCode === code) {
         const mockToken = 'verified-jwt-token';
+        localStorage.removeItem('smsCode');
         login(phone, mockToken);
       } else {
         alert('Неверный код. Попробуйте еще раз.');
@@ -104,6 +99,11 @@ const OnboardingPage: React.FC = () => {
 
       if (!result.success) {
         throw new Error('Не удалось отправить SMS');
+      }
+
+      // Сохраняем новый код из поля text в localStorage
+      if (result.data && result.data.text) {
+        localStorage.setItem('smsCode', result.data.text);
       }
     } catch (error) {
       console.error('Ошибка при повторной отправке SMS:', error);
