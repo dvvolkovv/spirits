@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Очищаем номер телефона от всех символов кроме цифр
     const cleanPhone = user.phone.replace(/\D/g, '');
-    
+
     try {
       const response = await fetch(`https://travel-n8n.up.railway.app/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/${cleanPhone}`, {
         method: 'DELETE',
@@ -108,8 +108,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(`Ошибка удаления профиля: ${response.status}`);
       }
 
-      // После успешного удаления на сервере, очищаем локальные данные
-      logout();
+      // После успешного удаления на сервере, очищаем все данные из localStorage
+      localStorage.clear();
+      setUser(null);
     } catch (error) {
       console.error('Ошибка при удалении профиля:', error);
       throw error;
