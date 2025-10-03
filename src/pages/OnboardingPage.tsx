@@ -14,12 +14,35 @@ const OnboardingPage: React.FC = () => {
   const handlePhoneSubmit = async (phoneNumber: string) => {
     setIsLoading(true);
     setPhone(phoneNumber);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsLoading(false);
-    setStep('otp');
+
+    // Очищаем номер телефона от всех символов кроме цифр
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+
+    try {
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка отправки SMS: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error('Не удалось отправить SMS');
+      }
+
+      setIsLoading(false);
+      setStep('otp');
+    } catch (error) {
+      console.error('Ошибка при отправке SMS:', error);
+      alert('Ошибка при отправке кода. Попробуйте еще раз.');
+      setIsLoading(false);
+    }
   };
 
   const handleOTPSubmit = async (code: string) => {
@@ -36,8 +59,30 @@ const OnboardingPage: React.FC = () => {
   };
 
   const handleResendOTP = async () => {
-    // Simulate resend
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Очищаем номер телефона от всех символов кроме цифр
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    try {
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка отправки SMS: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error('Не удалось отправить SMS');
+      }
+    } catch (error) {
+      console.error('Ошибка при повторной отправке SMS:', error);
+      alert('Ошибка при отправке кода. Попробуйте еще раз.');
+    }
   };
 
   const handleBack = () => {
