@@ -12,6 +12,7 @@ interface UserMatch {
   values: string[];
   intents: string[];
   corellation: number;
+  phone?: string;
 }
 
 const SearchInterface: React.FC = () => {
@@ -163,7 +164,8 @@ const SearchInterface: React.FC = () => {
               name: result.name || 'Неизвестный пользователь',
               values: result.values || [],
               intents: result.intents || [],
-              corellation: result.corellation || result.correlation || 0
+              corellation: result.corellation || result.correlation || 0,
+              phone: result.phone || result.user_id || null
             }));
             
             console.log('Formatted results:', formattedResults);
@@ -175,7 +177,8 @@ const SearchInterface: React.FC = () => {
               name: searchResults.name || 'Неизвестный пользователь',
               values: searchResults.values || [],
               intents: searchResults.intents || [],
-              corellation: searchResults.corellation || searchResults.correlation || 0
+              corellation: searchResults.corellation || searchResults.correlation || 0,
+              phone: searchResults.phone || searchResults.user_id || null
             };
             
             console.log('Single result:', singleResult);
@@ -218,6 +221,16 @@ const SearchInterface: React.FC = () => {
     return 'text-gray-600 bg-gray-100';
   };
 
+  const handleChatClick = (user: UserMatch) => {
+    if (user.phone) {
+      // Очищаем номер телефона от всех символов кроме цифр
+      const cleanPhone = user.phone.replace(/\D/g, '');
+      // Открываем Telegram с номером телефона
+      window.open(`https://t.me/+${cleanPhone}`, '_blank');
+    } else {
+      alert('Номер телефона пользователя недоступен');
+    }
+  };
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
@@ -399,7 +412,11 @@ const SearchInterface: React.FC = () => {
                       <button className="flex-1 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm font-medium">
                         {t('search.view_profile')}
                       </button>
-                      <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                      <button 
+                        onClick={() => handleChatClick(user)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        title="Написать в Telegram"
+                      >
                         <MessageCircle className="w-4 h-4 text-gray-600" />
                       </button>
                     </div>
