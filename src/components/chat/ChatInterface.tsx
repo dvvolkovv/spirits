@@ -46,7 +46,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-  const [isVoiceSupported, setIsVoiceSupported] = useState(false);</parameter>
+  const [isVoiceSupported, setIsVoiceSupported] = useState(false);
 
   // Сохраняем сообщения в localStorage при изменениях
   useEffect(() => {
@@ -315,7 +315,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } else {
       recognition.start();
     }
-  };</parameter>
+  };
 
   const quickSuggestions = [
     "Расскажи о моих ценностях",
