@@ -47,8 +47,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // Сохраняем сообщения в localStorage при изменениях
   useEffect(() => {
-    localStorage.setItem('chat_messages', JSON.stringify(messages));
+    const container = messagesContainerRef.current;
+    if (container) {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   }, [messages]);
+
+  // Handle scroll to show/hide scroll-to-bottom button
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      setShowScrollButton(!isNearBottom && messages.length > 3);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [messages.length]);
 
   useEffect(() => {
     if (welcomeMessage && messages.length === 0) {
@@ -202,6 +222,60 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     await sendMessageToAI(messageText);
   };
 
+  const handleClearChat = () => {
+    if (window.confirm('Очистить историю чата? Это действие нельзя отменить.')) {
+      setMessages([]);
+      localStorage.removeItem('chat_messages');
+      if (welcomeMessage) {
+        setMessages([{
+          id: '1',
+          type: 'assistant',
+          content: welcomeMessage,
+          timestamp: new Date()
+        }]);
+      }
+    }
+  };
+
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageId(messageId);
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+    }
+  };
+
+  const handleRegenerateResponse = async () => {
+    if (messages.length < 2) return;
+    
+    // Find the last user message
+    const lastUserMessageIndex = messages.findLastIndex(msg => msg.type === 'user');
+    if (lastUserMessageIndex === -1) return;
+
+    const lastUserMessage = messages[lastUserMessageIndex];
+    
+    // Remove all messages after the last user message
+    const newMessages = messages.slice(0, lastUserMessageIndex + 1);
+    setMessages(newMessages);
+    
+    // Regenerate response
+    await sendMessageToAI(lastUserMessage.content);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -209,13 +283,56 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    adjustTextareaHeight();
+  };
+
+  const insertSuggestion = (suggestion: string) => {
+    setInput(suggestion);
+    textareaRef.current?.focus();
+    adjustTextareaHeight();
+  };
+
+  const quickSuggestions = [
+    "Расскажи о моих ценностях",
+    "Какие у меня цели в жизни?",
+    "Что меня мотивирует?",
+    "Помоги найти единомышленников"
+  ];
+
+  const shouldShowSuggestions = messages.length <= 1 && !input.trim() && !isTyping;
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0">
-        <h1 className="text-lg font-semibold text-gray-900">
-          {title || t('chat.title')}
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-gray-900">
+            {title || t('chat.title')}
+          </h1>
+          <div className="flex items-center space-x-2">
+            {messages.length > 1 && (
+              <>
+                <button
+                  onClick={handleRegenerateResponse}
+                  disabled={isTyping}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  title="Перегенерировать ответ"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleClearChat}
+                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Очистить чат"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Messages */}
