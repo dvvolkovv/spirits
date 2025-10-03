@@ -47,15 +47,41 @@ const OnboardingPage: React.FC = () => {
 
   const handleOTPSubmit = async (code: string) => {
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Mock successful login
-    const mockToken = 'mock-jwt-token';
-    login(phone, mockToken);
-    
-    setIsLoading(false);
+
+    // Очищаем номер телефона от всех символов кроме цифр
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    try {
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка проверки кода: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success || !result.data) {
+        throw new Error('Не удалось получить код для проверки');
+      }
+
+      // Сравниваем введенный код с кодом из поля text
+      if (result.data.text === code) {
+        const mockToken = 'verified-jwt-token';
+        login(phone, mockToken);
+      } else {
+        alert('Неверный код. Попробуйте еще раз.');
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке кода:', error);
+      alert('Ошибка при проверке кода. Попробуйте еще раз.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResendOTP = async () => {
