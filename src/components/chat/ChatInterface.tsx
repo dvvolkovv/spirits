@@ -301,8 +301,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     "Помоги найти единомышленников"
   ];
 
-  const shouldShowSuggestions = messages.length <= 1 && !input.trim() && !isTyping;
-
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header */}
