@@ -160,12 +160,12 @@ const SearchInterface: React.FC = () => {
           
           if (Array.isArray(searchResults)) {
             const formattedResults: UserMatch[] = searchResults.map((result: any) => ({
-              id: result.id || result.userId || Math.random().toString(),
+              id: result.id || result.userId || result.user_id || Math.random().toString(),
               name: result.name || 'Неизвестный пользователь',
               values: result.values || [],
               intents: result.intents || [],
               corellation: result.corellation || result.correlation || 0,
-              phone: result.phone || result.user_id || null
+              phone: result.id || result.userId || result.user_id || null
             }));
             
             console.log('Formatted results:', formattedResults);
@@ -173,12 +173,12 @@ const SearchInterface: React.FC = () => {
           } else if (searchResults && typeof searchResults === 'object') {
             // Handle single result object
             const singleResult: UserMatch = {
-              id: searchResults.id || searchResults.userId || Math.random().toString(),
+              id: searchResults.id || searchResults.userId || searchResults.user_id || Math.random().toString(),
               name: searchResults.name || 'Неизвестный пользователь',
               values: searchResults.values || [],
               intents: searchResults.intents || [],
               corellation: searchResults.corellation || searchResults.correlation || 0,
-              phone: searchResults.phone || searchResults.user_id || null
+              phone: searchResults.id || searchResults.userId || searchResults.user_id || null
             };
             
             console.log('Single result:', singleResult);
