@@ -7,7 +7,6 @@ import {
   Users,
   Search,
   User,
-  Settings,
   TrendingUp
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -88,11 +87,6 @@ const Navigation: React.FC = () => {
       to: '/profile',
       icon: User,
       label: t('profile.title'),
-    },
-    {
-      to: '/settings',
-      icon: Settings,
-      label: t('settings.title'),
     },
   ];
 
