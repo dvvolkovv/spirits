@@ -14,12 +14,22 @@ const OnboardingPage: React.FC = () => {
   const handlePhoneSubmit = async (phoneNumber: string) => {
     setIsLoading(true);
     setPhone(phoneNumber);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsLoading(false);
-    setStep('otp');
+
+    try {
+      const cleanPhone = phoneNumber.replace(/\D/g, '');
+      const response = await fetch(`https://travel-n8n.up.railway.app/w/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to send SMS');
+      }
+
+      setStep('otp');
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      alert('Ошибка отправки СМС. Попробуйте еще раз.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOTPSubmit = async (code: string) => {
@@ -36,8 +46,17 @@ const OnboardingPage: React.FC = () => {
   };
 
   const handleResendOTP = async () => {
-    // Simulate resend
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const response = await fetch(`https://travel-n8n.up.railway.app/w/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to resend SMS');
+      }
+    } catch (error) {
+      console.error('Error resending SMS:', error);
+      alert('Ошибка повторной отправки СМС. Попробуйте еще раз.');
+    }
   };
 
   const handleBack = () => {
