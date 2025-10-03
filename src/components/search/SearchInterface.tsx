@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
+import UserProfileModal from './UserProfileModal';
 import { Search, Filter, Users, MessageCircle, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -34,6 +35,8 @@ const SearchInterface: React.FC = () => {
   const [hasSearched, setHasSearched] = useState(() => {
     return localStorage.getItem('has_searched') === 'true';
   });
+  const [selectedUser, setSelectedUser] = useState<UserMatch | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     // Scroll to top on mobile when component mounts
@@ -231,6 +234,17 @@ const SearchInterface: React.FC = () => {
       alert('Номер телефона пользователя недоступен');
     }
   };
+
+  const handleViewProfile = (user: UserMatch) => {
+    setSelectedUser(user);
+    setIsProfileModalOpen(true);
+  };
+
+  const handleCloseProfileModal = () => {
+    setIsProfileModalOpen(false);
+    setSelectedUser(null);
+  };
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
@@ -410,7 +424,9 @@ const SearchInterface: React.FC = () => {
                     {/* Actions */}
                     <div className="flex space-x-3">
                       <button className="flex-1 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm font-medium">
-                        {t('search.view_profile')}
+                        onClick={() => handleViewProfile(user)}
+                        className="flex-1 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm font-medium"
+                      >
                       </button>
                       <button 
                         onClick={() => handleChatClick(user)}
@@ -427,6 +443,16 @@ const SearchInterface: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* User Profile Modal */}
+      {selectedUser && (
+        <UserProfileModal
+          user={selectedUser}
+          isOpen={isProfileModalOpen}
+          onClose={handleCloseProfileModal}
+          onStartChat={handleChatClick}
+        />
+      )}
     </div>
   );
 };
