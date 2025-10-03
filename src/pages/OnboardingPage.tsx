@@ -34,15 +34,29 @@ const OnboardingPage: React.FC = () => {
 
   const handleOTPSubmit = async (code: string) => {
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Mock successful login
-    const mockToken = 'mock-jwt-token';
-    login(phone, mockToken);
-    
-    setIsLoading(false);
+
+    try {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to verify code');
+      }
+
+      const result = await response.text();
+
+      if (result.trim() === 'Confirmed') {
+        const mockToken = 'mock-jwt-token';
+        login(phone, mockToken);
+      } else {
+        alert('Неверный код. Попробуйте еще раз.');
+      }
+    } catch (error) {
+      console.error('Error verifying code:', error);
+      alert('Ошибка проверки кода. Попробуйте еще раз.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleResendOTP = async () => {
