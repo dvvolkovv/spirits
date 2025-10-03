@@ -47,28 +47,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // Сохраняем сообщения в localStorage при изменениях
   useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
+    localStorage.setItem('chat_messages', JSON.stringify(messages));
   }, [messages]);
-
-  // Handle scroll to show/hide scroll-to-bottom button
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      setShowScrollButton(!isNearBottom && messages.length > 3);
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [messages.length]);
 
   useEffect(() => {
     if (welcomeMessage && messages.length === 0) {
