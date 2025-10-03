@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Phone, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
+import LegalModal from './LegalModal';
 
 interface PhoneInputProps {
   onSubmit: (phone: string) => void;
@@ -16,6 +17,8 @@ interface FormData {
 
 const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
   const { t } = useTranslation();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'terms' | 'privacy'>('terms');
   const {
     register,
     handleSubmit,
@@ -25,6 +28,11 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
 
   const phone = watch('phone');
   const consent = watch('consent');
+
+  const openModal = (type: 'terms' | 'privacy') => {
+    setModalType(type);
+    setModalOpen(true);
+  };
 
   const formatPhone = (value: string) => {
     // Remove all non-digits
@@ -105,14 +113,14 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
                 <button
                   type="button"
                   className="text-forest-600 hover:underline"
-                  onClick={() => {/* Open terms modal */}}
+                  onClick={() => openModal('terms')}
                 >
                   {t('onboarding.terms')}
                 </button>
                 <button
                   type="button"
                   className="text-forest-600 hover:underline"
-                  onClick={() => {/* Open privacy modal */}}
+                  onClick={() => openModal('privacy')}
                 >
                   {t('onboarding.privacy')}
                 </button>
@@ -142,6 +150,12 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
           </div>
         </form>
       </div>
+
+      <LegalModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        type={modalType}
+      />
     </div>
   );
 };
