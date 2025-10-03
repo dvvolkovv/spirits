@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
 import UserProfileModal from './UserProfileModal';
-import { Search, Filter, Users, MessageCircle, Heart } from 'lucide-react';
+import { Search, Users, MessageCircle, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface UserMatch {
@@ -276,9 +276,6 @@ const SearchInterface: React.FC = () => {
             ) : (
               <Search className="w-5 h-5" />
             )}
-          </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <Filter className="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>
