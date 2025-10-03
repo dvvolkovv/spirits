@@ -53,18 +53,26 @@ const OnboardingPage: React.FC = () => {
   const handleOTPSubmit = async (code: string) => {
     setIsLoading(true);
 
-    try {
-      // Получаем сохраненный код из localStorage
-      const savedCode = localStorage.getItem('smsCode');
+    // Очищаем номер телефона от всех символов кроме цифр
+    const cleanPhone = phone.replace(/\D/g, '');
 
-      if (!savedCode) {
-        alert('Код не найден. Попробуйте отправить код повторно.');
-        setIsLoading(false);
-        return;
+    try {
+      // Проверяем код через вебхук
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка проверки кода: ${response.status}`);
       }
 
-      // Сравниваем введенный код с сохраненным кодом
-      if (savedCode === code) {
+      const result = await response.json();
+
+      // Проверяем статус
+      if (result.status === 'Confirmed') {
         const mockToken = 'verified-jwt-token';
         localStorage.removeItem('smsCode');
         login(phone, mockToken);
