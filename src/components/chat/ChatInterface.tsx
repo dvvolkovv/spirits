@@ -47,6 +47,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // Сохраняем сообщения в localStorage при изменениях
   useEffect(() => {
+    // Ограничиваем количество сообщений до 100
+    const messagesToSave = messages.slice(-100);
+    localStorage.setItem('chat_messages', JSON.stringify(messagesToSave));
+  }, [messages]);
+
+  // Отдельный useEffect для прокрутки
+  useEffect(() => {
     const container = messagesContainerRef.current;
     if (container) {
       const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
@@ -54,7 +61,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
     }
-  }, [messages]);
 
   // Handle scroll to show/hide scroll-to-bottom button
   useEffect(() => {
