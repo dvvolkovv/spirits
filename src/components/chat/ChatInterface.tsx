@@ -83,6 +83,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
@@ -221,60 +222,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     await sendMessageToAI(messageText);
   };
 
-  const handleClearChat = () => {
-    if (window.confirm('Очистить историю чата? Это действие нельзя отменить.')) {
-      setMessages([]);
-      localStorage.removeItem('chat_messages');
-      if (welcomeMessage) {
-        setMessages([{
-          id: '1',
-          type: 'assistant',
-          content: welcomeMessage,
-          timestamp: new Date()
-        }]);
-      }
-    }
-  };
-
-  const handleCopyMessage = async (content: string, messageId: string) => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopiedMessageId(messageId);
-      setTimeout(() => setCopiedMessageId(null), 2000);
-    } catch (error) {
-      console.error('Failed to copy message:', error);
-    }
-  };
-
-  const handleRegenerateResponse = async () => {
-    if (messages.length < 2) return;
-    
-    // Find the last user message
-    const lastUserMessageIndex = messages.findLastIndex(msg => msg.type === 'user');
-    if (lastUserMessageIndex === -1) return;
-
-    const lastUserMessage = messages[lastUserMessageIndex];
-    
-    // Remove all messages after the last user message
-    const newMessages = messages.slice(0, lastUserMessageIndex + 1);
-    setMessages(newMessages);
-    
-    // Regenerate response
-    await sendMessageToAI(lastUserMessage.content);
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const adjustTextareaHeight = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-    }
-  };
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -282,65 +229,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    adjustTextareaHeight();
-  };
-
-  const insertSuggestion = (suggestion: string) => {
-    setInput(suggestion);
-    textareaRef.current?.focus();
-    adjustTextareaHeight();
-  };
-
-  const quickSuggestions = [
-    "Расскажи о моих ценностях",
-    "Какие у меня цели в жизни?",
-    "Что меня мотивирует?",
-    "Помоги найти единомышленников"
-  ];
-
-  const shouldShowSuggestions = messages.length <= 1 && !input.trim() && !isTyping;
-    }
-  };
-
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">
-            {title || t('chat.title')}
-          </h1>
-          <div className="flex items-center space-x-2">
-            {messages.length > 1 && (
-              <>
-                <button
-                  onClick={handleRegenerateResponse}
-                  disabled={isTyping}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                  title="Перегенерировать ответ"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleClearChat}
-                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Очистить чат"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <h1 className="text-lg font-semibold text-gray-900">
+          {title || t('chat.title')}
+        </h1>
       </div>
 
       {/* Messages */}
-      <div 
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0 relative"
-      >
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -351,29 +250,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           >
             <div
               className={clsx(
-                'max-w-xs sm:max-w-md px-4 py-2 rounded-2xl relative group',
+                'max-w-xs sm:max-w-md px-4 py-2 rounded-2xl',
                 message.type === 'user'
                   ? 'bg-forest-600 text-white rounded-br-md'
                   : 'bg-white text-gray-900 shadow-sm rounded-bl-md relative'
               )}
             >
-              {/* Message Actions */}
-              {message.type === 'assistant' && (
-                <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleCopyMessage(message.content, message.id)}
-                    className="p-1 bg-white shadow-md rounded-full hover:bg-gray-50 transition-colors"
-                    title="Копировать"
-                  >
-                    {copiedMessageId === message.id ? (
-                      <Check className="w-3 h-3 text-green-600" />
-                    ) : (
-                      <Copy className="w-3 h-3 text-gray-600" />
-                    )}
-                  </button>
-                </div>
-              )}
-              
               {message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   <ReactMarkdown
@@ -442,85 +324,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Suggestions */}
-      {shouldShowSuggestions && (
-        <div className="px-4 py-2 bg-gray-50 border-t">
-          <p className="text-xs text-gray-600 mb-2">Попробуйте спросить:</p>
-          <div className="flex flex-wrap gap-2">
-            {quickSuggestions.map((suggestion, index) => (
-              <button
-                key={index}
-                onClick={() => insertSuggestion(suggestion)}
-                className="px-3 py-1 bg-white text-gray-700 text-sm rounded-full border border-gray-200 hover:bg-forest-50 hover:border-forest-300 transition-colors"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Scroll to Bottom Button */}
-      {showScrollButton && (
-        <div className="absolute bottom-20 right-4 z-10">
-          <button
-            onClick={scrollToBottom}
-            className="p-3 bg-white shadow-lg rounded-full hover:bg-gray-50 transition-colors border"
-            title="Прокрутить вниз"
-          >
-            <MessageSquare className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-      )}
-
       {/* Input */}
       <div className="bg-white border-t px-4 py-3 flex-shrink-0">
         <div className="flex items-end space-x-2">
-          <button 
-            className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-            title="Прикрепить файл"
-          >
-            <Paperclip className="w-5 h-5" />
-          </button>
-
-          <div className="flex-1 relative min-h-[40px]">
+          <div className="flex-1 relative">
             <textarea
-              ref={textareaRef}
               value={input}
-              onChange={handleInputChange}
+              onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={t('chat.placeholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-all duration-200"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               rows={1}
-              style={{ minHeight: '40px', maxHeight: '120px', height: '40px' }}
-              disabled={isTyping}
+              style={{ minHeight: '40px', maxHeight: '120px' }}
             />
-            
-            {/* Character count for long messages */}
-            {input.length > 500 && (
-              <div className="absolute -top-6 right-0 text-xs text-gray-500">
-                {input.length}/2000
-              </div>
-            )}
           </div>
 
-          <button 
-            className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-            title="Голосовое сообщение"
-          >
+          <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
             <Mic className="w-5 h-5" />
           </button>
 
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isTyping || input.length > 2000}
+            disabled={!input.trim() || isTyping}
             className={clsx(
-              'p-2 rounded-lg transition-all duration-200',
-              input.trim() && !isTyping && input.length <= 2000
-                ? 'bg-forest-600 text-white hover:bg-forest-700 shadow-md hover:shadow-lg'
+              'p-2 rounded-lg transition-colors',
+              input.trim() && !isTyping
+                ? 'bg-forest-600 text-white hover:bg-forest-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             )}
-            title={input.length > 2000 ? 'Сообщение слишком длинное' : 'Отправить'}
           >
             {isTyping ? (
               <div className="w-5 h-5 border-2 border-gray-400 border-t-forest-600 rounded-full animate-spin" />
@@ -528,17 +359,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <Send className="w-5 h-5" />
             )}
           </button>
-        </div>
-        
-        {/* Input hints */}
-        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-          <span>Enter - отправить, Shift+Enter - новая строка</span>
-          {isTyping && (
-            <span className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
-              <span>Ассистент печатает...</span>
-            </span>
-          )}
         </div>
       </div>
     </div>
