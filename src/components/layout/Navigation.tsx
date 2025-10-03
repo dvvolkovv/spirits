@@ -15,34 +15,63 @@ import { clsx } from 'clsx';
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const [profileCompletion, setProfileCompletion] = React.useState<number>(0);
+  const [isLoadingCompletion, setIsLoadingCompletion] = React.useState(false);
 
-  // Mock profile completion - в реальном приложении это будет браться из профиля пользователя
-  const mockProfile = {
-    values: [
-      { name: 'Честность', confidence: 95, private: false },
-      { name: 'Креативность', confidence: 88, private: false },
-      { name: 'Семья', confidence: 92, private: true },
-      { name: 'Саморазвитие', confidence: 85, private: false },
-    ],
-    beliefs: [
-      'Важность баланса между работой и личной жизнью',
-      'Каждый человек уникален и ценен',
-      'Непрерывное обучение - ключ к успеху',
-    ],
-    desires: [
-      'Создать собственный проект',
-      'Путешествовать по миру',
-      'Найти единомышленников',
-    ],
-    intentions: [
-      'Изучить новый навык в этом году',
-      'Расширить круг общения',
-      'Запустить социальный проект',
-    ],
-    completion: 78,
-  };
+  // Загрузка заполнения профиля с сервера
+  const loadProfileCompletion = React.useCallback(async () => {
+    if (!user?.phone) return;
 
-  const profile = user?.profile || mockProfile;
+    setIsLoadingCompletion(true);
+    
+    // Очищаем номер телефона от всех символов кроме цифр
+    const cleanPhone = user.phone.replace(/\D/g, '');
+    
+    try {
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        
+        // Проверяем, является ли ответ массивом
+        let profileRecord;
+        if (Array.isArray(responseData) && responseData.length > 0) {
+          // Берем первый элемент массива
+          profileRecord = responseData[0];
+        } else if (responseData && typeof responseData === 'object') {
+          // Если это объект, используем его напрямую
+          profileRecord = responseData;
+        } else {
+          throw new Error('Неожиданный формат ответа сервера');
+        }
+        
+        // Извлекаем profile_data из записи
+        const data = profileRecord.profile_data || profileRecord;
+        
+        // Получаем completeness и конвертируем в число
+        const completion = data.completeness ? parseInt(data.completeness) : 0;
+        setProfileCompletion(completion);
+      } else {
+        console.warn('Профиль не найден на сервере');
+        setProfileCompletion(0);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке заполнения профиля:', error);
+      setProfileCompletion(0);
+    } finally {
+      setIsLoadingCompletion(false);
+    }
+  }, [user?.phone]);
+
+  // Загружаем заполнение профиля при монтировании компонента
+  React.useEffect(() => {
+    loadProfileCompletion();
+  }, [loadProfileCompletion]);
 
   const navItems = [
     {
@@ -75,18 +104,25 @@ const Navigation: React.FC = () => {
           <h3 className="text-sm font-medium text-gray-700">
             Заполнение профиля
           </h3>
-          <span className="text-lg font-bold text-forest-600">
-            {profile.completion}%
-          </span>
+          {isLoadingCompletion ? (
+            <div className="w-4 h-4 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <span className="text-lg font-bold text-forest-600">
+              {profileCompletion}%
+            </span>
+          )}
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className="bg-gradient-to-r from-forest-500 to-warm-500 h-2 rounded-full transition-all duration-500"
-            style={{ width: `${profile.completion}%` }}
+            style={{ width: `${profileCompletion}%` }}
           />
         </div>
         <p className="text-xs text-gray-500 mt-2">
-          Продолжайте общение для улучшения профиля
+          {profileCompletion === 0 
+            ? 'Начните общение с ассистентом для создания профиля'
+            : 'Продолжайте общение для улучшения профиля'
+          }
         </p>
       </div>
 
