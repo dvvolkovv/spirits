@@ -95,6 +95,45 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Initialize speech recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = false;
+      recognitionInstance.lang = 'ru-RU';
+
+      recognitionInstance.onstart = () => {
+        setIsRecording(true);
+      };
+
+      recognitionInstance.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev + (prev ? ' ' : '') + transcript);
+        adjustTextareaHeight();
+      };
+
+      recognitionInstance.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsRecording(false);
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          alert('Ошибка распознавания речи: ' + event.error);
+        }
+      };
+
+      recognitionInstance.onend = () => {
+        setIsRecording(false);
+      };
+
+      setRecognition(recognitionInstance);
+      setIsVoiceSupported(true);
+    } else {
+      setIsVoiceSupported(false);
+    }
+  }, []);
+
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
