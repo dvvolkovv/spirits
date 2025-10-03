@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -44,6 +44,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [isVoiceSupported, setIsVoiceSupported] = useState(false);</parameter>
 
   // Сохраняем сообщения в localStorage при изменениях
   useEffect(() => {
@@ -301,6 +304,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     adjustTextareaHeight();
   };
 
+  const handleVoiceInput = () => {
+    if (!recognition || !isVoiceSupported) {
+      alert('Голосовой ввод не поддерживается в вашем браузере');
+      return;
+    }
+
+    if (isRecording) {
+      recognition.stop();
+    } else {
+      recognition.start();
+    }
+  };</parameter>
+
   const quickSuggestions = [
     "Расскажи о моих ценностях",
     "Какие у меня цели в жизни?",
@@ -442,8 +458,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             />
           </div>
 
-          <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
-            <Mic className="w-5 h-5" />
+          <button 
+            onClick={handleVoiceInput}
+            disabled={!isVoiceSupported}
+            className={clsx(
+              'p-2 transition-colors rounded-lg',
+              isRecording 
+                ? 'text-red-600 bg-red-50 hover:bg-red-100' 
+                : isVoiceSupported
+                  ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-300 cursor-not-allowed'
+            )}
+            title={
+              !isVoiceSupported 
+                ? 'Голосовой ввод не поддерживается' 
+                : isRecording 
+                  ? 'Остановить запись' 
+                  : 'Начать голосовой ввод'
+            }
+          >
+            {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
 
           <button
