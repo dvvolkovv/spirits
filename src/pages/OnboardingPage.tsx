@@ -19,7 +19,7 @@ const OnboardingPage: React.FC = () => {
     const cleanPhone = phoneNumber.replace(/\D/g, '');
 
     try {
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
+      const response = await fetch(`https://travel-n8n.up.railway.app/w/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -30,15 +30,10 @@ const OnboardingPage: React.FC = () => {
         throw new Error(`Ошибка отправки SMS: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = await response.text();
 
-      if (!result.success) {
+      if (result !== 'SMS sent') {
         throw new Error('Не удалось отправить SMS');
-      }
-
-      // Сохраняем код из поля text в localStorage
-      if (result.data && result.data.text) {
-        localStorage.setItem('smsCode', result.data.text);
       }
 
       setIsLoading(false);
@@ -92,7 +87,7 @@ const OnboardingPage: React.FC = () => {
     const cleanPhone = phone.replace(/\D/g, '');
 
     try {
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
+      const response = await fetch(`https://travel-n8n.up.railway.app/w/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -103,15 +98,10 @@ const OnboardingPage: React.FC = () => {
         throw new Error(`Ошибка отправки SMS: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = await response.text();
 
-      if (!result.success) {
+      if (result !== 'SMS sent') {
         throw new Error('Не удалось отправить SMS');
-      }
-
-      // Сохраняем новый код из поля text в localStorage
-      if (result.data && result.data.text) {
-        localStorage.setItem('smsCode', result.data.text);
       }
     } catch (error) {
       console.error('Ошибка при повторной отправке SMS:', error);
