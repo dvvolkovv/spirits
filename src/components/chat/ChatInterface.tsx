@@ -61,6 +61,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
     }
+  }, [messages]);
 
   // Handle scroll to show/hide scroll-to-bottom button
   useEffect(() => {
@@ -340,7 +341,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0" ref={messagesContainerRef}>
         {messages.map((message) => (
           <div
             key={message.id}
@@ -430,8 +431,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div className="flex items-end space-x-2">
           <div className="flex-1 relative">
             <textarea
+              ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               placeholder={t('chat.placeholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
