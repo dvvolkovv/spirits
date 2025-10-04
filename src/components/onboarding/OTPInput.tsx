@@ -45,6 +45,34 @@ const OTPInput: React.FC<OTPInputProps> = ({
     }
   }, [error, onErrorClear]);
 
+  useEffect(() => {
+    if ('OTPCredential' in window) {
+      const ac = new AbortController();
+
+      navigator.credentials
+        .get({
+          otp: { transport: ['sms'] },
+          signal: ac.signal,
+        } as any)
+        .then((otp: any) => {
+          if (otp?.code) {
+            const digits = otp.code.split('');
+            if (digits.length === 6) {
+              setCode(digits);
+              onSubmit(otp.code);
+            }
+          }
+        })
+        .catch((err) => {
+          console.log('Web OTP error:', err);
+        });
+
+      return () => {
+        ac.abort();
+      };
+    }
+  }, [onSubmit]);
+
   const handleInputChange = (index: number, value: string) => {
     if (value.length > 1) return;
     
@@ -122,6 +150,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-colors"
                 disabled={isLoading}
+                autoComplete={index === 0 ? 'one-time-code' : 'off'}
               />
             ))}
           </div>
