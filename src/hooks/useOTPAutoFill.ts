@@ -20,22 +20,32 @@ export const useOTPAutoFill = ({ onCodeReceived, enabled = true }: UseOTPAutoFil
 
     const startOTPListener = async () => {
       try {
+        console.log('WebOTP: Starting listener...');
         if ('credentials' in navigator) {
+          console.log('WebOTP: Requesting OTP credential...');
           const otpCredential = await (navigator.credentials as any).get({
             otp: { transport: ['sms'] },
             signal: abortController.signal,
           });
 
-          if (otpCredential?.code) {
-            const code = otpCredential.code;
-            const match = code.match(/#(\d{6})/);
+          console.log('WebOTP: Received credential:', otpCredential);
 
-            if (match) {
-              onCodeReceived(match[1]);
+          if (otpCredential?.code) {
+            const fullText = otpCredential.code;
+            console.log('Received SMS text:', fullText);
+
+            const hashMatch = fullText.match(/#(\d{6})/);
+
+            if (hashMatch && hashMatch[1]) {
+              console.log('Extracted code from #pattern:', hashMatch[1]);
+              onCodeReceived(hashMatch[1]);
             } else {
-              const simpleMatch = code.match(/\d{6}/);
-              if (simpleMatch) {
-                onCodeReceived(simpleMatch[0]);
+              const anyMatch = fullText.match(/\d{6}/);
+              if (anyMatch) {
+                console.log('Extracted code from any pattern:', anyMatch[0]);
+                onCodeReceived(anyMatch[0]);
+              } else {
+                console.log('Could not extract code from SMS');
               }
             }
           }

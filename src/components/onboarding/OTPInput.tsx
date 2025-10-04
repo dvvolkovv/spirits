@@ -64,18 +64,30 @@ const OTPInput: React.FC<OTPInputProps> = ({
   }, [error, onErrorClear]);
 
   const handleInputChange = (index: number, value: string) => {
+    if (value.length > 6) return;
+
+    if (value.length === 6 && /^\d{6}$/.test(value)) {
+      setIsAutoFilling(true);
+      const digits = value.split('');
+      setCode(digits);
+
+      setTimeout(() => {
+        setIsAutoFilling(false);
+        onSubmit(value);
+      }, 300);
+      return;
+    }
+
     if (value.length > 1) return;
-    
+
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit when all fields are filled
     if (newCode.every(digit => digit) && value) {
       onSubmit(newCode.join(''));
     }
@@ -132,8 +144,9 @@ const OTPInput: React.FC<OTPInputProps> = ({
               <input
                 key={index}
                 ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
+                type="tel"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleInputChange(index, e.target.value)}
