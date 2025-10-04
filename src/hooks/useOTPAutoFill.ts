@@ -28,10 +28,15 @@ export const useOTPAutoFill = ({ onCodeReceived, enabled = true }: UseOTPAutoFil
 
           if (otpCredential?.code) {
             const code = otpCredential.code;
-            const match = code.match(/\d{6}/);
+            const match = code.match(/#(\d{6})/);
 
             if (match) {
-              onCodeReceived(match[0]);
+              onCodeReceived(match[1]);
+            } else {
+              const simpleMatch = code.match(/\d{6}/);
+              if (simpleMatch) {
+                onCodeReceived(simpleMatch[0]);
+              }
             }
           }
         }
