@@ -38,34 +38,6 @@ const OTPInput: React.FC<OTPInputProps> = ({
   }, []);
 
   useEffect(() => {
-    if ('OTPCredential' in window) {
-      const abortController = new AbortController();
-
-      navigator.credentials
-        .get({
-          otp: { transport: ['sms'] },
-          signal: abortController.signal,
-        } as any)
-        .then((otp: any) => {
-          if (otp && otp.code) {
-            const digits = otp.code.split('');
-            if (digits.length === 6) {
-              setCode(digits);
-              onSubmit(otp.code);
-            }
-          }
-        })
-        .catch((err) => {
-          console.log('SMS OTP retrieval error:', err);
-        });
-
-      return () => {
-        abortController.abort();
-      };
-    }
-  }, [onSubmit]);
-
-  useEffect(() => {
     if (error) {
       setCode(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
