@@ -17,7 +17,7 @@ const OnboardingPage: React.FC = () => {
 
     try {
       const cleanPhone = phoneNumber.replace(/\D/g, '');
-      const response = await fetch(`https://travel-n8n.up.railway.app/w/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
 
       if (!response.ok) {
         throw new Error('Failed to send SMS');
@@ -62,7 +62,7 @@ const OnboardingPage: React.FC = () => {
   const handleResendOTP = async () => {
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`https://travel-n8n.up.railway.app/w/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
 
       if (!response.ok) {
         throw new Error('Failed to resend SMS');
