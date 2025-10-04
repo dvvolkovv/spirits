@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Shield, ArrowLeft } from 'lucide-react';
+import { useOTPAutoFill } from '../../hooks/useOTPAutoFill';
 
 interface OTPInputProps {
   phone: string;
@@ -24,7 +25,24 @@ const OTPInput: React.FC<OTPInputProps> = ({
   const { t } = useTranslation();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [resendTimer, setResendTimer] = useState(300);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleAutoFillCode = useCallback((receivedCode: string) => {
+    setIsAutoFilling(true);
+    const digits = receivedCode.split('');
+    setCode(digits);
+
+    setTimeout(() => {
+      setIsAutoFilling(false);
+      onSubmit(receivedCode);
+    }, 300);
+  }, [onSubmit]);
+
+  useOTPAutoFill({
+    onCodeReceived: handleAutoFillCode,
+    enabled: !isLoading
+  });
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -120,7 +138,12 @@ const OTPInput: React.FC<OTPInputProps> = ({
                 value={digit}
                 onChange={(e) => handleInputChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-colors"
+                autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                className={`w-12 h-12 text-center text-xl font-bold border-2 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-all ${
+                  isAutoFilling
+                    ? 'border-forest-400 bg-forest-50 animate-pulse'
+                    : 'border-gray-300'
+                }`}
                 disabled={isLoading}
               />
             ))}
