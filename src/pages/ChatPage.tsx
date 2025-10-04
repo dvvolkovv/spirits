@@ -6,10 +6,12 @@ const ChatPage: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <ChatInterface
-      title={t('chat.title')}
-      welcomeMessage={t('chat.welcome_message')}
-    />
+    <div className="h-full flex flex-col">
+      <ChatInterface
+        title={t('chat.title')}
+        welcomeMessage={t('chat.welcome_message')}
+      />
+    </div>
   );
 };
 

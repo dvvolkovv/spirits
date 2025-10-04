@@ -364,7 +364,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+    <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
