@@ -36,7 +36,7 @@ const AppContent: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col pb-20 md:pb-0">
         <Routes>
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/profile" element={<ProfileView />} />

@@ -91,7 +91,7 @@ const Navigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
       {/* Profile Completion - только для десктопа */}
       <div className="hidden md:block p-4 border-b border-gray-200 mb-4">
         <div className="flex items-center justify-between mb-3">
