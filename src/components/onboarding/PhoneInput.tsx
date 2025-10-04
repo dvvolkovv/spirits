@@ -62,7 +62,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
         <div className="text-center mb-8">
           <div className="w-24 h-24 mx-auto mb-4">
             <img
-              src="/logo.jpg"
+              src="/logo-Photoroom.png"
               alt="Logo"
               className="w-full h-full object-contain"
             />
