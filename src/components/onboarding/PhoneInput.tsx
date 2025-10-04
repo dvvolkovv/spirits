@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
-import { Phone, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
 import LegalModal from './LegalModal';
 
@@ -60,8 +60,12 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-forest-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Phone className="w-8 h-8 text-white" />
+          <div className="w-24 h-24 mx-auto mb-4">
+            <img
+              src="/logo.jpg"
+              alt="Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             {t('onboarding.welcome')}
