@@ -10,6 +10,7 @@ const OnboardingPage: React.FC = () => {
   const [step, setStep] = useState<OnboardingStep>('phone');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [otpError, setOtpError] = useState<string>('');
 
   const handlePhoneSubmit = async (phoneNumber: string) => {
     setIsLoading(true);
@@ -34,6 +35,7 @@ const OnboardingPage: React.FC = () => {
 
   const handleOTPSubmit = async (code: string) => {
     setIsLoading(true);
+    setOtpError('');
 
     try {
       const cleanPhone = phone.replace(/\D/g, '');
@@ -49,11 +51,11 @@ const OnboardingPage: React.FC = () => {
         const mockToken = 'mock-jwt-token';
         login(phone, mockToken);
       } else {
-        alert('Неверный код. Попробуйте еще раз.');
+        setOtpError('Неверный код. Попробуйте еще раз.');
       }
     } catch (error) {
       console.error('Error verifying code:', error);
-      alert('Ошибка проверки кода. Попробуйте еще раз.');
+      setOtpError('Ошибка проверки кода. Попробуйте еще раз.');
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +95,8 @@ const OnboardingPage: React.FC = () => {
           onBack={handleBack}
           isLoading={isLoading}
           onResend={handleResendOTP}
+          error={otpError}
+          onErrorClear={() => setOtpError('')}
         />
       );
     default:

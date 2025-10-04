@@ -8,6 +8,8 @@ interface OTPInputProps {
   onBack: () => void;
   isLoading: boolean;
   onResend: () => void;
+  error?: string;
+  onErrorClear?: () => void;
 }
 
 const OTPInput: React.FC<OTPInputProps> = ({
@@ -15,7 +17,9 @@ const OTPInput: React.FC<OTPInputProps> = ({
   onSubmit,
   onBack,
   isLoading,
-  onResend
+  onResend,
+  error,
+  onErrorClear
 }) => {
   const { t } = useTranslation();
   const [code, setCode] = useState(['', '', '', '', '', '']);
@@ -32,6 +36,14 @@ const OTPInput: React.FC<OTPInputProps> = ({
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  useEffect(() => {
+    if (error) {
+      setCode(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+      onErrorClear?.();
+    }
+  }, [error, onErrorClear]);
 
   const handleInputChange = (index: number, value: string) => {
     if (value.length > 1) return;
@@ -123,6 +135,13 @@ const OTPInput: React.FC<OTPInputProps> = ({
               </button>
             )}
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="text-center">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
 
           {/* Loading State */}
           {isLoading && (
