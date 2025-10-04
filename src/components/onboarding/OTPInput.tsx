@@ -23,7 +23,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
 }) => {
   const { t } = useTranslation();
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [resendTimer, setResendTimer] = useState(60);
+  const [resendTimer, setResendTimer] = useState(300);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -70,8 +70,14 @@ const OTPInput: React.FC<OTPInputProps> = ({
   };
 
   const handleResend = () => {
-    setResendTimer(60);
+    setResendTimer(300);
     onResend();
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const maskedPhone = phone.replace(/(\+7)(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 ($2) ***-**-$5');
@@ -124,7 +130,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
           <div className="text-center">
             {resendTimer > 0 ? (
               <p className="text-gray-500 text-sm">
-                {t('onboarding.resend_code')} через {resendTimer}с
+                {t('onboarding.resend_code')} через {formatTime(resendTimer)}
               </p>
             ) : (
               <button
