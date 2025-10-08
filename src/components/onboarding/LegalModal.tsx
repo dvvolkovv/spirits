@@ -27,7 +27,19 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">2. Цель Приложения</h3>
+        <h3 className="text-lg font-semibold text-gray-800">2. Правообладатель</h3>
+        <p className="text-gray-700 leading-relaxed">
+          Приложение "Kindred Spirits" принадлежит Волкову Дмитрию Викторовичу, который является
+          правообладателем и администратором Приложения.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Все права на Приложение, включая исключительные права на использование, принадлежат
+          Волкову Дмитрию Викторовичу.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-lg font-semibold text-gray-800">3. Цель Приложения</h3>
         <p className="text-gray-700 leading-relaxed">
           Приложение предназначено для поиска и общения с людьми, близкими по духу, ценностям и
           интересам. Приложение использует искусственный интеллект для анализа и подбора совместимых
@@ -36,7 +48,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">3. Регистрация и аккаунт</h3>
+        <h3 className="text-lg font-semibold text-gray-800">4. Регистрация и аккаунт</h3>
         <p className="text-gray-700 leading-relaxed">
           Для использования Приложения необходимо пройти процедуру регистрации с использованием
           номера телефона. Вы обязуетесь предоставлять достоверную информацию о себе.
@@ -48,7 +60,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">4. Правила поведения</h3>
+        <h3 className="text-lg font-semibold text-gray-800">5. Правила поведения</h3>
         <p className="text-gray-700 leading-relaxed">
           Пользователям запрещается:
         </p>
@@ -62,15 +74,15 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">5. Интеллектуальная собственность</h3>
+        <h3 className="text-lg font-semibold text-gray-800">6. Интеллектуальная собственность</h3>
         <p className="text-gray-700 leading-relaxed">
           Все права на Приложение, включая исходный код, дизайн, логотипы и другие материалы,
-          принадлежат администрации Приложения.
+          принадлежат Волкову Дмитрию Викторовичу.
         </p>
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">6. Ответственность</h3>
+        <h3 className="text-lg font-semibold text-gray-800">7. Ответственность</h3>
         <p className="text-gray-700 leading-relaxed">
           Приложение предоставляется "как есть". Администрация не несет ответственности за
           взаимодействие между пользователями и за последствия такого взаимодействия.
@@ -78,7 +90,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">7. Изменение условий</h3>
+        <h3 className="text-lg font-semibold text-gray-800">8. Изменение условий</h3>
         <p className="text-gray-700 leading-relaxed">
           Администрация оставляет за собой право изменять условия настоящего Соглашения в любое
           время. Продолжение использования Приложения после внесения изменений означает ваше
@@ -191,6 +203,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
 
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">10. Контакты</h3>
+        <p className="text-gray-700 leading-relaxed">
+          Правообладатель: Волков Дмитрий Викторович
+        </p>
         <p className="text-gray-700 leading-relaxed">
           Если у вас есть вопросы о настоящей Политике конфиденциальности или об обработке ваших
           данных, пожалуйста, свяжитесь с нами через форму обратной связи в Приложении.
