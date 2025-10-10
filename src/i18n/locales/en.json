@@ -20,6 +20,11 @@
     "placeholder": "Type a message...",
     "send": "Send",
     "typing": "typing...",
+    "upload_file": "Upload PDF file",
+    "uploading": "Uploading file...",
+    "file_uploaded": "File uploaded",
+    "upload_error": "File upload error",
+    "pdf_only": "Please upload a PDF file",
     "welcome_message": "Hi! I'll help you find kindred spirits. Tell me what interests you?",
     "suggestions": {
       "values": "Tell me about your values",
