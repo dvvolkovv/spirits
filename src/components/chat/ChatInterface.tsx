@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -47,6 +47,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [isVoiceSupported, setIsVoiceSupported] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Сохраняем сообщения в localStorage при изменениях
   useEffect(() => {
@@ -356,6 +358,123 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Пожалуйста, загрузите файл в формате PDF');
+      return;
+    }
+
+    setIsUploadingFile(true);
+
+    try {
+      const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
+
+      const formData = new FormData();
+      formData.append('user-id', userId);
+      formData.append('file', file);
+
+      const response = await fetch('https://travel-n8n.up.railway.app/webhook/scan-document', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка загрузки файла');
+      }
+
+      const result = await response.json();
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: `Загружен файл: ${file.name}`,
+        timestamp: new Date()
+      };
+
+      const profileData = result.output;
+
+      let profileText = '📄 **Данные из документа обработаны:**\n\n';
+
+      if (profileData.name && profileData.family_name) {
+        profileText += `**Имя:** ${profileData.name} ${profileData.family_name}\n`;
+      }
+
+      if (profileData.profile && profileData.profile.length > 0) {
+        profileText += '\n**Профиль:**\n';
+        profileData.profile.forEach((item: string) => {
+          profileText += `• ${item}\n`;
+        });
+      }
+
+      if (profileData.values && profileData.values.length > 0) {
+        profileText += '\n**Ценности:**\n';
+        profileData.values.forEach((item: string) => {
+          profileText += `• ${item}\n`;
+        });
+      }
+
+      if (profileData.skills && profileData.skills.length > 0) {
+        profileText += '\n**Навыки:**\n';
+        profileData.skills.forEach((item: string) => {
+          profileText += `• ${item}\n`;
+        });
+      }
+
+      if (profileData.beliefs && profileData.beliefs.length > 0) {
+        profileText += '\n**Убеждения:**\n';
+        profileData.beliefs.forEach((item: string) => {
+          profileText += `• ${item}\n`;
+        });
+      }
+
+      if (profileData.desires && profileData.desires.length > 0) {
+        profileText += '\n**Желания:**\n';
+        profileData.desires.forEach((item: string) => {
+          profileText += `• ${item}\n`;
+        });
+      }
+
+      if (profileData.interests && profileData.interests.length > 0) {
+        profileText += '\n**Интересы:**\n';
+        profileData.interests.forEach((item: string) => {
+          profileText += `• ${item}\n`;
+        });
+      }
+
+      if (profileData.intents && profileData.intents.length > 0) {
+        profileText += '\n**Намерения:**\n';
+        profileData.intents.forEach((item: string) => {
+          profileText += `• ${item}\n`;
+        });
+      }
+
+      if (profileData.completeness) {
+        profileText += `\n**Полнота профиля:** ${profileData.completeness}`;
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: profileText,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, userMessage, assistantMessage]);
+
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Произошла ошибка при загрузке файла. Попробуйте еще раз.');
+    } finally {
+      setIsUploadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const quickSuggestions = [
     "Расскажи о моих ценностях",
     "Какие у меня цели в жизни?",
@@ -484,6 +603,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Input */}
       <div className="bg-white border-t px-4 py-3 flex-shrink-0">
         <div className="flex items-end space-x-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploadingFile || isTyping}
+            className={clsx(
+              'p-2 transition-colors rounded-lg',
+              isUploadingFile
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            )}
+            title="Загрузить PDF файл"
+          >
+            {isUploadingFile ? (
+              <div className="w-5 h-5 border-2 border-gray-400 border-t-forest-600 rounded-full animate-spin" />
+            ) : (
+              <Plus className="w-5 h-5" />
+            )}
+          </button>
+
           <div className="flex-1 relative">
             <textarea
               ref={textareaRef}
@@ -497,22 +642,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             />
           </div>
 
-          <button 
+          <button
             onClick={handleVoiceInput}
             disabled={!isVoiceSupported}
             className={clsx(
               'p-2 transition-colors rounded-lg',
-              isRecording 
-                ? 'text-red-600 bg-red-50 hover:bg-red-100' 
+              isRecording
+                ? 'text-red-600 bg-red-50 hover:bg-red-100'
                 : isVoiceSupported
                   ? 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                   : 'text-gray-300 cursor-not-allowed'
             )}
             title={
-              !isVoiceSupported 
-                ? 'Голосовой ввод не поддерживается' 
-                : isRecording 
-                  ? 'Остановить запись' 
+              !isVoiceSupported
+                ? 'Голосовой ввод не поддерживается'
+                : isRecording
+                  ? 'Остановить запись'
                   : 'Начать голосовой ввод'
             }
           >
