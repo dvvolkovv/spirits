@@ -18,7 +18,7 @@ const OnboardingPage: React.FC = () => {
 
     try {
       const cleanPhone = phoneNumber.replace(/\D/g, '');
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
 
       if (!response.ok) {
         throw new Error('Failed to send SMS');
