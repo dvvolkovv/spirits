@@ -151,7 +151,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
     
     try {
-      const response = await fetch('https://travel-n8n.up.railway.app/webhook/soulmate/chat', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/soulmate/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -376,7 +376,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       formData.append('user-id', userId);
       formData.append('file', file);
 
-      const response = await fetch('https://travel-n8n.up.railway.app/webhook/scan-document', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/scan-document`, {
         method: 'POST',
         body: formData,
       });
