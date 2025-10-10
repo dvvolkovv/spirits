@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const cleanPhone = user.phone.replace(/\D/g, '');
 
     try {
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/${cleanPhone}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/${cleanPhone}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

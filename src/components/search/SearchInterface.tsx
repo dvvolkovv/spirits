@@ -76,7 +76,7 @@ const SearchInterface: React.FC = () => {
     const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
     
     try {
-      const response = await fetch('https://travel-n8n.up.railway.app/webhook/search-mate', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/search-mate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

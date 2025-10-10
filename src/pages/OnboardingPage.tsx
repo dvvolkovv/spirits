@@ -18,7 +18,7 @@ const OnboardingPage: React.FC = () => {
 
     try {
       const cleanPhone = phoneNumber.replace(/\D/g, '');
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
 
       if (!response.ok) {
         throw new Error('Failed to send SMS');
@@ -39,7 +39,7 @@ const OnboardingPage: React.FC = () => {
 
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}`);
 
       if (!response.ok) {
         throw new Error('Failed to verify code');
@@ -64,7 +64,7 @@ const OnboardingPage: React.FC = () => {
   const handleResendOTP = async () => {
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
 
       if (!response.ok) {
         throw new Error('Failed to resend SMS');

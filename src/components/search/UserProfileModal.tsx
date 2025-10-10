@@ -53,7 +53,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const cleanPhone = user.phone.replace(/\D/g, '');
     
     try {
-      const response = await fetch(`https://travel-n8n.up.railway.app/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
