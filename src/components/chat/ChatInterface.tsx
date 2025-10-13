@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown } from 'lucide-react';
@@ -45,12 +45,40 @@ interface ChatInterfaceProps {
   welcomeMessage?: string;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
-  title, 
-  welcomeMessage 
+const ChatInterface: React.FC<ChatInterfaceProps> = ({
+  title,
+  welcomeMessage
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+
+  const markdownComponents = useMemo(() => ({
+    p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
+    strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
+    em: ({ children }: any) => <em className="italic">{children}</em>,
+    ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+    li: ({ children }: any) => <li className="text-sm">{children}</li>,
+    code: ({ children }: any) => (
+      <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs font-mono">
+        {children}
+      </code>
+    ),
+    pre: ({ children }: any) => (
+      <pre className="bg-gray-100 text-gray-800 p-2 rounded text-xs font-mono overflow-x-auto mb-2">
+        {children}
+      </pre>
+    ),
+    blockquote: ({ children }: any) => (
+      <blockquote className="border-l-2 border-gray-300 pl-2 italic text-gray-600 mb-2">
+        {children}
+      </blockquote>
+    ),
+    h1: ({ children }: any) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+    br: () => <br />,
+  }), []);
 
   const getChatStorageKey = (assistantId: number | null) => {
     return `chat_messages_assistant_${assistantId || 'default'}`;
@@ -75,6 +103,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -167,12 +196,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (container) {
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
       if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: isTyping ? 'auto' : 'smooth' });
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
       }
     }
-  }, [messages, isTyping]);
+  }, [messages, currentStreamingMessage]);
 
   // Handle scroll to show/hide scroll-to-bottom button
   useEffect(() => {
@@ -245,12 +274,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
-    
+    setStreamingMessageId(null);
+
     // Cancel any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     abortControllerRef.current = new AbortController();
     
     // Extract phone number from user data and clean it for sessionId
@@ -280,42 +310,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       let accumulatedContent = '';
-      let assistantMessageId = Date.now().toString();
-      
-      // Add initial empty assistant message
-      const initialAssistantMessage: Message = {
-        id: assistantMessageId,
-        type: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        isStreaming: true
-      };
-      
-      setMessages(prev => [...prev, initialAssistantMessage]);
+      const assistantMessageId = Date.now().toString();
+
+      // Set streaming message ID to display streaming indicator
+      setStreamingMessageId(assistantMessageId);
+
+      let lastUpdate = Date.now();
+      const updateInterval = 50;
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
-        
+
         const chunk = new TextDecoder().decode(value);
         const lines = chunk.split('\n').filter(line => line.trim());
-        
+
         for (const line of lines) {
           try {
             const data = JSON.parse(line);
-            
+
             if (data.type === 'item' && data.content) {
               accumulatedContent += data.content;
-              setCurrentStreamingMessage(accumulatedContent);
 
-              // Update the streaming message - batch updates to reduce re-renders
-              if (accumulatedContent.length % 10 === 0 || data.content.includes('\n')) {
-                setMessages(prev => prev.map(msg =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: accumulatedContent }
-                    : msg
-                ));
+              const now = Date.now();
+              if (now - lastUpdate >= updateInterval) {
+                setCurrentStreamingMessage(accumulatedContent);
+                lastUpdate = now;
               }
             }
           } catch (e) {
@@ -324,13 +345,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }
         }
       }
+
+      setCurrentStreamingMessage(accumulatedContent);
       
-      // Finalize the message with the complete content
-      setMessages(prev => prev.map(msg =>
-        msg.id === assistantMessageId
-          ? { ...msg, content: accumulatedContent, isStreaming: false }
-          : msg
-      ));
+      // Add the completed message to the messages array
+      const completedMessage: Message = {
+        id: assistantMessageId,
+        type: 'assistant',
+        content: accumulatedContent,
+        timestamp: new Date(),
+        isStreaming: false
+      };
+
+      setMessages(prev => [...prev, completedMessage]);
+      setStreamingMessageId(null);
       
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -352,6 +380,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } finally {
       setIsTyping(false);
       setCurrentStreamingMessage('');
+      setStreamingMessageId(null);
       abortControllerRef.current = null;
     }
   };
@@ -697,35 +726,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             >
               {message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                      em: ({ children }) => <em className="italic">{children}</em>,
-                      ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                      li: ({ children }) => <li className="text-sm">{children}</li>,
-                      code: ({ children }) => (
-                        <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs font-mono">
-                          {children}
-                        </code>
-                      ),
-                      pre: ({ children }) => (
-                        <pre className="bg-gray-100 text-gray-800 p-2 rounded text-xs font-mono overflow-x-auto mb-2">
-                          {children}
-                        </pre>
-                      ),
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-2 border-gray-300 pl-2 italic text-gray-600 mb-2">
-                          {children}
-                        </blockquote>
-                      ),
-                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
-                      br: () => <br />,
-                    }}
-                  >
+                  <ReactMarkdown components={markdownComponents}>
                     {message.content}
                   </ReactMarkdown>
                 </div>
@@ -748,7 +749,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         ))}
 
-        {isTyping && (
+        {streamingMessageId && currentStreamingMessage && (
+          <div className="flex justify-start">
+            <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative">
+              <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+                <ReactMarkdown components={markdownComponents}>
+                  {currentStreamingMessage}
+                </ReactMarkdown>
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
+            </div>
+          </div>
+        )}
+
+        {isTyping && !streamingMessageId && (
           <div className="flex justify-start">
             <div className="bg-white shadow-sm px-4 py-3 rounded-2xl rounded-bl-md">
               <div className="flex space-x-1">
