@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Shield, ArrowLeft } from 'lucide-react';
+import { Shield, ArrowLeft, Clipboard } from 'lucide-react';
 
 interface OTPInputProps {
   phone: string;
@@ -110,6 +110,20 @@ const OTPInput: React.FC<OTPInputProps> = ({
     }
   };
 
+  const handleClipboardPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const digits = text.replace(/\D/g, '').slice(0, 6).split('');
+
+      if (digits.length === 6) {
+        setCode(digits);
+        onSubmit(digits.join(''));
+      }
+    } catch (err) {
+      console.error('Failed to read clipboard:', err);
+    }
+  };
+
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
@@ -181,6 +195,18 @@ const OTPInput: React.FC<OTPInputProps> = ({
                 autoComplete={index === 0 ? 'one-time-code' : 'off'}
               />
             ))}
+          </div>
+
+          {/* Paste Button for Mobile */}
+          <div className="flex justify-center">
+            <button
+              onClick={handleClipboardPaste}
+              disabled={isLoading}
+              className="flex items-center space-x-2 px-4 py-2 text-forest-600 hover:text-forest-700 hover:bg-forest-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Clipboard className="w-4 h-4" />
+              <span className="text-sm font-medium">Вставить код из буфера</span>
+            </button>
           </div>
 
           {/* Resend */}
