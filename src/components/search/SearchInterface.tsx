@@ -224,9 +224,26 @@ const SearchInterface: React.FC = () => {
     }
   };
 
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+
+    if (digits.length === 0) return '';
+    if (digits.length <= 1) return '+7';
+    if (digits.length <= 4) return `+7 (${digits.slice(1)}`;
+    if (digits.length <= 7) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4)}`;
+    if (digits.length <= 9) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
+  };
+
+  const handlePhoneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    setCurrentPhoneInput(formatted);
+    setPhoneError('');
+  };
+
   const validatePhoneNumber = (phone: string): boolean => {
-    const phoneRegex = /^\+\d{11,15}$/;
-    return phoneRegex.test(phone);
+    const digits = phone.replace(/\D/g, '');
+    return digits.length === 11 && digits.startsWith('7');
   };
 
   const addPhoneNumber = () => {
@@ -237,16 +254,18 @@ const SearchInterface: React.FC = () => {
     }
 
     if (!validatePhoneNumber(trimmedPhone)) {
-      setPhoneError('Неверный формат. Используйте формат: +79991234567');
+      setPhoneError('Введите полный номер телефона');
       return;
     }
 
-    if (phoneNumbers.includes(trimmedPhone)) {
+    const cleanPhone = '+' + trimmedPhone.replace(/\D/g, '');
+
+    if (phoneNumbers.includes(cleanPhone)) {
       setPhoneError('Этот номер уже добавлен');
       return;
     }
 
-    setPhoneNumbers([...phoneNumbers, trimmedPhone]);
+    setPhoneNumbers([...phoneNumbers, cleanPhone]);
     setCurrentPhoneInput('');
     setPhoneError('');
   };
@@ -321,17 +340,14 @@ const SearchInterface: React.FC = () => {
                 <input
                   type="tel"
                   value={currentPhoneInput}
-                  onChange={(e) => {
-                    setCurrentPhoneInput(e.target.value);
-                    setPhoneError('');
-                  }}
+                  onChange={handlePhoneInputChange}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       addPhoneNumber();
                     }
                   }}
-                  placeholder="Введите номер телефона (+79991234567)"
+                  placeholder="+7 (999) 999-99-99"
                   className={clsx(
                     "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent",
                     phoneError ? "border-red-300" : "border-gray-300"
@@ -340,7 +356,7 @@ const SearchInterface: React.FC = () => {
               </div>
               <button
                 onClick={addPhoneNumber}
-                disabled={!currentPhoneInput.trim()}
+                disabled={!validatePhoneNumber(currentPhoneInput)}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
                 <Plus className="w-5 h-5" />
