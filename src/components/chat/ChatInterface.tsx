@@ -1,9 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
+
+interface Assistant {
+  id: string;
+  name: string;
+  role: string;
+  description: string;
+}
+
+const ASSISTANTS: Assistant[] = [
+  { id: 'misha', name: 'Миша', role: 'Коуч', description: 'Помогу достичь ваших целей' },
+  { id: 'olya', name: 'Оля', role: 'Психолог', description: 'Поддержу в сложных ситуациях' },
+  { id: 'pavel', name: 'Павел', role: 'Астролог', description: 'Расскажу о влиянии звезд' },
+  { id: 'roman', name: 'Роман', role: 'Human Design', description: 'Помогу понять ваш дизайн' },
+  { id: 'lubov', name: 'Любовь', role: 'Игропрактик', description: 'Применю игровые методы' },
+];
 
 interface Message {
   id: string;
@@ -49,6 +64,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isVoiceSupported, setIsVoiceSupported] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedAssistant, setSelectedAssistant] = useState<Assistant>(() => {
+    const saved = localStorage.getItem('selected_assistant');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return ASSISTANTS[0];
+  });
+  const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Сохраняем сообщения в localStorage при изменениях
   useEffect(() => {
@@ -56,6 +80,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const messagesToSave = messages.slice(-100);
     localStorage.setItem('chat_messages', JSON.stringify(messagesToSave));
   }, [messages]);
+
+  // Сохраняем выбранного ассистента
+  useEffect(() => {
+    localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
+  }, [selectedAssistant]);
+
+  // Закрытие дропдауна при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowAssistantDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Отдельный useEffect для прокрутки
   useEffect(() => {
@@ -158,7 +199,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         },
         body: JSON.stringify({
           chatInput: userMessage,
-          sessionId: phoneNumber
+          sessionId: phoneNumber,
+          assistant: selectedAssistant.id
         }),
         signal: abortControllerRef.current.signal
       });
@@ -487,9 +529,48 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">
-            {title || t('chat.title')}
-          </h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-lg font-semibold text-gray-900">
+              {title || t('chat.title')}
+            </h1>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
+                className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors"
+              >
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
+                  <span className="text-xs text-forest-600">{selectedAssistant.role}</span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-forest-700" />
+              </button>
+
+              {showAssistantDropdown && (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div className="py-1">
+                    {ASSISTANTS.map((assistant) => (
+                      <button
+                        key={assistant.id}
+                        onClick={() => {
+                          setSelectedAssistant(assistant);
+                          setShowAssistantDropdown(false);
+                        }}
+                        className={clsx(
+                          'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
+                          selectedAssistant.id === assistant.id && 'bg-forest-50'
+                        )}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">{assistant.name} - {assistant.role}</span>
+                          <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex items-center space-x-2">
             {messages.length > 1 && (
               <>
