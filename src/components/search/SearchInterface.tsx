@@ -419,7 +419,7 @@ const SearchInterface: React.FC = () => {
                   Поиск...
                 </div>
               ) : (
-                `Найти (${phoneNumbers.length})`
+                `Показать (${phoneNumbers.length})`
               )}
             </button>
           </div>
