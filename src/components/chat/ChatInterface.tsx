@@ -529,47 +529,42 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed top-0 left-0 right-0 z-40">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <h1 className="text-lg font-semibold text-gray-900">
-              {title || t('chat.title')}
-            </h1>
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
-                className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors"
-              >
-                <div className="flex flex-col items-start">
-                  <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
-                  <span className="text-xs text-forest-600">{selectedAssistant.role}</span>
-                </div>
-                <ChevronDown className="w-4 h-4 text-forest-700" />
-              </button>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
+              className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors"
+            >
+              <div className="flex flex-col items-start">
+                <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
+                <span className="text-xs text-forest-600">{selectedAssistant.role}</span>
+              </div>
+              <ChevronDown className="w-4 h-4 text-forest-700" />
+            </button>
 
-              {showAssistantDropdown && (
-                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="py-1">
-                    {ASSISTANTS.map((assistant) => (
-                      <button
-                        key={assistant.id}
-                        onClick={() => {
-                          setSelectedAssistant(assistant);
-                          setShowAssistantDropdown(false);
-                        }}
-                        className={clsx(
-                          'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
-                          selectedAssistant.id === assistant.id && 'bg-forest-50'
-                        )}
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">{assistant.name} - {assistant.role}</span>
-                          <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+            {showAssistantDropdown && (
+              <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className="py-1">
+                  {ASSISTANTS.map((assistant) => (
+                    <button
+                      key={assistant.id}
+                      onClick={() => {
+                        setSelectedAssistant(assistant);
+                        setShowAssistantDropdown(false);
+                      }}
+                      className={clsx(
+                        'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
+                        selectedAssistant.id === assistant.id && 'bg-forest-50'
+                      )}
+                    >
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900">{assistant.name} - {assistant.role}</span>
+                        <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-2">
             {messages.length > 1 && (
