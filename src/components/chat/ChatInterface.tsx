@@ -6,20 +6,31 @@ import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface Assistant {
-  id: string;
+  id: number;
   name: string;
-  role: string;
   description: string;
-  avatar: string;
 }
 
-const ASSISTANTS: Assistant[] = [
-  { id: 'misha', name: 'Миша', role: 'Коуч', description: 'Помогу достичь ваших целей', avatar: '💼' },
-  { id: 'olya', name: 'Оля', role: 'Психолог', description: 'Поддержу в сложных ситуациях', avatar: '🧠' },
-  { id: 'pavel', name: 'Павел', role: 'Астролог', description: 'Расскажу о влиянии звезд', avatar: '⭐' },
-  { id: 'roman', name: 'Роман', role: 'Human Design', description: 'Помогу понять ваш дизайн', avatar: '🎨' },
-  { id: 'lubov', name: 'Любовь', role: 'Игропрактик', description: 'Применю игровые методы', avatar: '🎮' },
-];
+const getAvatarForAssistant = (name: string): string => {
+  const avatarMap: { [key: string]: string } = {
+    'Миша': '💼',
+    'Оля': '🧠',
+    'Маша': '🎮',
+    'Павел': '⭐',
+    'Роман': '🎨',
+    'Любовь': '🎮'
+  };
+  return avatarMap[name] || '👤';
+};
+
+const getRoleForAssistant = (description: string): string => {
+  if (description.includes('Коуч')) return 'Коуч';
+  if (description.includes('Психолог')) return 'Психолог';
+  if (description.includes('Игропрактик')) return 'Игропрактик';
+  if (description.includes('Астролог')) return 'Астролог';
+  if (description.includes('Human Design')) return 'Human Design';
+  return 'Ассистент';
+};
 
 interface Message {
   id: string;
@@ -65,12 +76,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isVoiceSupported, setIsVoiceSupported] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedAssistant, setSelectedAssistant] = useState<Assistant>(() => {
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [isLoadingAssistants, setIsLoadingAssistants] = useState(true);
+  const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(() => {
     const saved = localStorage.getItem('selected_assistant');
     if (saved) {
       return JSON.parse(saved);
     }
-    return ASSISTANTS[0];
+    return null;
   });
   const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -82,9 +95,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     localStorage.setItem('chat_messages', JSON.stringify(messagesToSave));
   }, [messages]);
 
-  // Сохраняем выбранного ассистента
   useEffect(() => {
-    localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
+    const fetchAssistants = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/agents`);
+        if (response.ok) {
+          const data = await response.json();
+          setAssistants(data);
+          if (!selectedAssistant && data.length > 0) {
+            setSelectedAssistant(data[0]);
+          }
+        } else {
+          console.error('Failed to fetch assistants');
+        }
+      } catch (error) {
+        console.error('Error fetching assistants:', error);
+      } finally {
+        setIsLoadingAssistants(false);
+      }
+    };
+
+    fetchAssistants();
+  }, []);
+
+  useEffect(() => {
+    if (selectedAssistant) {
+      localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
+    }
   }, [selectedAssistant]);
 
   // Закрытие дропдауна при клике вне его
@@ -201,7 +238,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         body: JSON.stringify({
           chatInput: userMessage,
           sessionId: phoneNumber,
-          assistant: selectedAssistant.id
+          assistant: selectedAssistant?.id || 1
         }),
         signal: abortControllerRef.current.signal
       });
@@ -531,49 +568,58 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 md:relative md:z-10 fixed top-0 left-0 right-0 z-40">
         <div className="flex items-center justify-between max-w-full">
           <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-lg">{selectedAssistant.avatar}</span>
+            {isLoadingAssistants ? (
+              <div className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 rounded-lg">
+                <div className="w-4 h-4 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-gray-600">Загрузка...</span>
               </div>
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
-                <span className="text-xs text-forest-600">{selectedAssistant.role}</span>
-              </div>
-              <ChevronDown className="w-4 h-4 text-forest-700" />
-            </button>
+            ) : selectedAssistant ? (
+              <>
+                <button
+                  onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg">{getAvatarForAssistant(selectedAssistant.name)}</span>
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
+                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description)}</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-forest-700" />
+                </button>
 
-            {showAssistantDropdown && (
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <div className="py-1">
-                  {ASSISTANTS.map((assistant) => (
-                    <button
-                      key={assistant.id}
-                      onClick={() => {
-                        setSelectedAssistant(assistant);
-                        setShowAssistantDropdown(false);
-                      }}
-                      className={clsx(
-                        'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
-                        selectedAssistant.id === assistant.id && 'bg-forest-50'
-                      )}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
-                          {assistant.avatar}
-                        </div>
-                        <div className="flex flex-col flex-1">
-                          <span className="text-sm font-medium text-gray-900">{assistant.name} - {assistant.role}</span>
-                          <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                {showAssistantDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="py-1">
+                      {assistants.map((assistant) => (
+                        <button
+                          key={assistant.id}
+                          onClick={() => {
+                            setSelectedAssistant(assistant);
+                            setShowAssistantDropdown(false);
+                          }}
+                          className={clsx(
+                            'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
+                            selectedAssistant.id === assistant.id && 'bg-forest-50'
+                          )}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
+                              {getAvatarForAssistant(assistant.name)}
+                            </div>
+                            <div className="flex flex-col flex-1">
+                              <span className="text-sm font-medium text-gray-900">{assistant.name}</span>
+                              <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
           </div>
           <div className="flex items-center space-x-2">
             {messages.length > 1 && (
