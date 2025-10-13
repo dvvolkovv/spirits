@@ -25,6 +25,7 @@ const SearchInterface: React.FC = () => {
   const [searchMode, setSearchMode] = useState<SearchMode>('intent');
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>([]);
   const [currentPhoneInput, setCurrentPhoneInput] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   // Используем localStorage для сохранения состояния поиска
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -223,6 +224,33 @@ const SearchInterface: React.FC = () => {
     }
   };
 
+  const validatePhoneNumber = (phone: string): boolean => {
+    const phoneRegex = /^\+\d{11,15}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const addPhoneNumber = () => {
+    const trimmedPhone = currentPhoneInput.trim();
+
+    if (!trimmedPhone) {
+      return;
+    }
+
+    if (!validatePhoneNumber(trimmedPhone)) {
+      setPhoneError('Неверный формат. Используйте формат: +79991234567');
+      return;
+    }
+
+    if (phoneNumbers.includes(trimmedPhone)) {
+      setPhoneError('Этот номер уже добавлен');
+      return;
+    }
+
+    setPhoneNumbers([...phoneNumbers, trimmedPhone]);
+    setCurrentPhoneInput('');
+    setPhoneError('');
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 0.9) return 'text-green-600 bg-green-100';
     if (score >= 0.8) return 'text-blue-600 bg-blue-100';
@@ -288,38 +316,40 @@ const SearchInterface: React.FC = () => {
         {/* Search Bar */}
         {searchMode === 'phone' ? (
           <div>
-            <div className="flex space-x-2 mb-3">
+            <div className="flex space-x-2 mb-2">
               <div className="flex-1 relative">
                 <input
                   type="tel"
                   value={currentPhoneInput}
-                  onChange={(e) => setCurrentPhoneInput(e.target.value)}
+                  onChange={(e) => {
+                    setCurrentPhoneInput(e.target.value);
+                    setPhoneError('');
+                  }}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      if (currentPhoneInput.trim()) {
-                        setPhoneNumbers([...phoneNumbers, currentPhoneInput.trim()]);
-                        setCurrentPhoneInput('');
-                      }
+                      addPhoneNumber();
                     }
                   }}
-                  placeholder="Введите номер телефона"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Введите номер телефона (+79991234567)"
+                  className={clsx(
+                    "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                    phoneError ? "border-red-300" : "border-gray-300"
+                  )}
                 />
               </div>
               <button
-                onClick={() => {
-                  if (currentPhoneInput.trim()) {
-                    setPhoneNumbers([...phoneNumbers, currentPhoneInput.trim()]);
-                    setCurrentPhoneInput('');
-                  }
-                }}
+                onClick={addPhoneNumber}
                 disabled={!currentPhoneInput.trim()}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
               >
                 <Plus className="w-5 h-5" />
               </button>
             </div>
+
+            {phoneError && (
+              <p className="text-red-600 text-sm mb-3">{phoneError}</p>
+            )}
 
             {phoneNumbers.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
