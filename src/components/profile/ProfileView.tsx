@@ -575,8 +575,7 @@ const ProfileView: React.FC = () => {
         {/* Interests */}
         {profile.interests.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Heart className="w-5 h-5 mr-2 text-red-500" />
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Интересы
             </h2>
             <div className="space-y-2">
@@ -593,8 +592,7 @@ const ProfileView: React.FC = () => {
         {/* Skills */}
         {profile.skills.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Навыки
             </h2>
             <div className="space-y-2">
