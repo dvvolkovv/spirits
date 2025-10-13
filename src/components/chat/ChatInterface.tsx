@@ -10,14 +10,15 @@ interface Assistant {
   name: string;
   role: string;
   description: string;
+  avatar: string;
 }
 
 const ASSISTANTS: Assistant[] = [
-  { id: 'misha', name: 'Миша', role: 'Коуч', description: 'Помогу достичь ваших целей' },
-  { id: 'olya', name: 'Оля', role: 'Психолог', description: 'Поддержу в сложных ситуациях' },
-  { id: 'pavel', name: 'Павел', role: 'Астролог', description: 'Расскажу о влиянии звезд' },
-  { id: 'roman', name: 'Роман', role: 'Human Design', description: 'Помогу понять ваш дизайн' },
-  { id: 'lubov', name: 'Любовь', role: 'Игропрактик', description: 'Применю игровые методы' },
+  { id: 'misha', name: 'Миша', role: 'Коуч', description: 'Помогу достичь ваших целей', avatar: '💼' },
+  { id: 'olya', name: 'Оля', role: 'Психолог', description: 'Поддержу в сложных ситуациях', avatar: '🧠' },
+  { id: 'pavel', name: 'Павел', role: 'Астролог', description: 'Расскажу о влиянии звезд', avatar: '⭐' },
+  { id: 'roman', name: 'Роман', role: 'Human Design', description: 'Помогу понять ваш дизайн', avatar: '🎨' },
+  { id: 'lubov', name: 'Любовь', role: 'Игропрактик', description: 'Применю игровые методы', avatar: '🎮' },
 ];
 
 interface Message {
@@ -534,6 +535,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
               className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
             >
+              <div className="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-lg">{selectedAssistant.avatar}</span>
+              </div>
               <div className="flex flex-col items-start">
                 <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
                 <span className="text-xs text-forest-600">{selectedAssistant.role}</span>
@@ -556,9 +560,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         selectedAssistant.id === assistant.id && 'bg-forest-50'
                       )}
                     >
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900">{assistant.name} - {assistant.role}</span>
-                        <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
+                          {assistant.avatar}
+                        </div>
+                        <div className="flex flex-col flex-1">
+                          <span className="text-sm font-medium text-gray-900">{assistant.name} - {assistant.role}</span>
+                          <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
+                        </div>
                       </div>
                     </button>
                   ))}
