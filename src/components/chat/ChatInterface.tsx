@@ -47,13 +47,25 @@ interface ChatInterfaceProps {
 
 const StreamingMessage = React.memo(({ content, components }: { content: string; components: any }) => (
   <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
-    <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative">
-      <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-        <ReactMarkdown components={components}>
-          {content}
-        </ReactMarkdown>
+    <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
+      <div className="min-h-[24px]">
+        {content ? (
+          <>
+            <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+              <ReactMarkdown components={components}>
+                {content}
+              </ReactMarkdown>
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
+          </>
+        ) : (
+          <div className="flex space-x-1 items-center h-[24px]">
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+          </div>
+        )}
       </div>
-      <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
     </div>
   </div>
 ));
@@ -309,7 +321,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
-    setStreamingMessageId(null);
+
+    // Set streaming message ID immediately to show loading state
+    const assistantMessageId = Date.now().toString();
+    setStreamingMessageId(assistantMessageId);
 
     // Cancel any ongoing request
     if (abortControllerRef.current) {
@@ -317,10 +332,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
 
     abortControllerRef.current = new AbortController();
-    
+
     // Extract phone number from user data and clean it for sessionId
     const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
-    
+
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/soulmate/chat`, {
         method: 'POST',
@@ -345,10 +360,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       let accumulatedContent = '';
-      const assistantMessageId = Date.now().toString();
-
-      // Set streaming message ID to display streaming indicator
-      setStreamingMessageId(assistantMessageId);
 
       let lastUpdate = Date.now();
       const updateInterval = 50;
@@ -788,20 +799,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         ))}
 
-        {streamingMessageId && currentStreamingMessage && (
+        {streamingMessageId && (
           <StreamingMessage content={currentStreamingMessage} components={markdownComponents} />
-        )}
-
-        {isTyping && !streamingMessageId && (
-          <div className="flex justify-start">
-            <div className="bg-white shadow-sm px-4 py-3 rounded-2xl rounded-bl-md">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-              </div>
-            </div>
-          </div>
         )}
 
         <div ref={messagesEndRef} />
