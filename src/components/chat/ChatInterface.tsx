@@ -169,10 +169,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (container) {
       const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
       if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView({ behavior: isTyping ? 'auto' : 'smooth' });
       }
     }
-  }, [messages]);
+  }, [messages, isTyping]);
 
   // Handle scroll to show/hide scroll-to-bottom button
   useEffect(() => {
@@ -308,13 +308,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (data.type === 'item' && data.content) {
               accumulatedContent += data.content;
               setCurrentStreamingMessage(accumulatedContent);
-              
-              // Update the streaming message
-              setMessages(prev => prev.map(msg => 
-                msg.id === assistantMessageId 
-                  ? { ...msg, content: accumulatedContent }
-                  : msg
-              ));
+
+              // Update the streaming message - batch updates to reduce re-renders
+              if (accumulatedContent.length % 10 === 0 || data.content.includes('\n')) {
+                setMessages(prev => prev.map(msg =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                ));
+              }
             }
           } catch (e) {
             // Skip invalid JSON lines
@@ -323,10 +325,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
       }
       
-      // Finalize the message
-      setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessageId 
-          ? { ...msg, isStreaming: false }
+      // Finalize the message with the complete content
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? { ...msg, content: accumulatedContent, isStreaming: false }
           : msg
       ));
       
