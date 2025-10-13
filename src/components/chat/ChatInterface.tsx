@@ -45,6 +45,21 @@ interface ChatInterfaceProps {
   welcomeMessage?: string;
 }
 
+const StreamingMessage = React.memo(({ content, components }: { content: string; components: any }) => (
+  <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
+    <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative">
+      <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+        <ReactMarkdown components={components}>
+          {content}
+        </ReactMarkdown>
+      </div>
+      <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
+    </div>
+  </div>
+));
+
+StreamingMessage.displayName = 'StreamingMessage';
+
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   title,
   welcomeMessage
@@ -192,15 +207,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Отдельный useEffect для прокрутки
+  // Отдельный useEffect для прокрутки с throttling
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (container) {
+    if (!container) return;
+
+    let rafId: number;
+    let lastScrollTime = 0;
+    const scrollThrottle = 16;
+
+    const scrollToBottom = () => {
+      const now = Date.now();
+      if (now - lastScrollTime < scrollThrottle) return;
+
       const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
       if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        rafId = requestAnimationFrame(() => {
+          if (container) {
+            container.scrollTop = container.scrollHeight;
+            lastScrollTime = now;
+          }
+        });
       }
-    }
+    };
+
+    scrollToBottom();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [messages, currentStreamingMessage]);
 
   // Handle scroll to show/hide scroll-to-bottom button
@@ -707,7 +742,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 space-y-4 min-h-0 pt-24 md:pt-4 pb-4" ref={messagesContainerRef}>
+      <div
+        className="flex-1 overflow-y-auto px-4 space-y-4 min-h-0 pt-24 md:pt-4 pb-4"
+        ref={messagesContainerRef}
+        style={{ willChange: 'scroll-position' }}
+      >
         {messages.map((message) => (
           <div
             key={message.id}
@@ -750,16 +789,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ))}
 
         {streamingMessageId && currentStreamingMessage && (
-          <div className="flex justify-start">
-            <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative">
-              <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-                <ReactMarkdown components={markdownComponents}>
-                  {currentStreamingMessage}
-                </ReactMarkdown>
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
-            </div>
-          </div>
+          <StreamingMessage content={currentStreamingMessage} components={markdownComponents} />
         )}
 
         {isTyping && !streamingMessageId && (
