@@ -16,10 +16,14 @@ interface UserMatch {
   phone?: string;
 }
 
+type SearchMode = 'intent' | 'phone' | 'community';
+
 const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  
+
+  const [searchMode, setSearchMode] = useState<SearchMode>('intent');
+
   // Используем localStorage для сохранения состояния поиска
   const [searchQuery, setSearchQuery] = useState(() => {
     return localStorage.getItem('search_query') || '';
@@ -252,7 +256,44 @@ const SearchInterface: React.FC = () => {
         <h1 className="text-xl font-bold text-gray-900 mb-4">
           {t('search.title')}
         </h1>
-        
+
+        {/* Search Mode Tabs */}
+        <div className="flex space-x-2 mb-4">
+          <button
+            onClick={() => setSearchMode('intent')}
+            className={clsx(
+              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              searchMode === 'intent'
+                ? 'bg-forest-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            )}
+          >
+            По намерению
+          </button>
+          <button
+            onClick={() => setSearchMode('phone')}
+            className={clsx(
+              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              searchMode === 'phone'
+                ? 'bg-forest-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            )}
+          >
+            По телефону
+          </button>
+          <button
+            onClick={() => setSearchMode('community')}
+            className={clsx(
+              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              searchMode === 'community'
+                ? 'bg-forest-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            )}
+          >
+            Сообщество
+          </button>
+        </div>
+
         {/* Search Bar */}
         <div className="flex space-x-2">
           <div className="flex-1 relative">
@@ -262,7 +303,13 @@ const SearchInterface: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={t('search.placeholder')}
+              placeholder={
+                searchMode === 'intent'
+                  ? t('search.placeholder')
+                  : searchMode === 'phone'
+                  ? 'Введите номер телефона'
+                  : 'Название сообщества или тема'
+              }
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
