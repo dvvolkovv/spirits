@@ -579,14 +579,12 @@ const ProfileView: React.FC = () => {
               <Heart className="w-5 h-5 mr-2 text-red-500" />
               Интересы
             </h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {profile.interests.map((interest, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium"
-                >
-                  {interest}
-                </span>
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700">{interest}</p>
+                </div>
               ))}
             </div>
           </div>
@@ -599,14 +597,12 @@ const ProfileView: React.FC = () => {
               <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
               Навыки
             </h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {profile.skills.map((skill, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-full text-sm font-medium"
-                >
-                  {skill}
-                </span>
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700">{skill}</p>
+                </div>
               ))}
             </div>
           </div>
