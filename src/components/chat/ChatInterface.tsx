@@ -51,7 +51,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+
+  const getChatStorageKey = (assistantId: number | null) => {
+    return `chat_messages_assistant_${assistantId || 'default'}`;
+  };
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const savedAssistant = localStorage.getItem('selected_assistant');
+    if (savedAssistant) {
+      const assistant = JSON.parse(savedAssistant);
+      const storageKey = getChatStorageKey(assistant.id);
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsedMessages = JSON.parse(saved);
+        return parsedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+      }
+    }
+    return [];
+  });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
@@ -77,10 +97,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   });
   const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const getChatStorageKey = (assistantId: number | null) => {
-    return `chat_messages_assistant_${assistantId || 'default'}`;
-  };
 
   useEffect(() => {
     if (selectedAssistant) {
