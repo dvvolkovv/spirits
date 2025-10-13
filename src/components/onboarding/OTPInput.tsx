@@ -74,8 +74,16 @@ const OTPInput: React.FC<OTPInputProps> = ({
   }, [onSubmit]);
 
   const handleInputChange = (index: number, value: string) => {
-    if (value.length > 1) return;
-    
+    // Handle paste of full code
+    if (value.length > 1) {
+      const digits = value.replace(/\D/g, '').slice(0, 6).split('');
+      if (digits.length === 6) {
+        setCode(digits);
+        onSubmit(digits.join(''));
+      }
+      return;
+    }
+
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
@@ -88,6 +96,17 @@ const OTPInput: React.FC<OTPInputProps> = ({
     // Auto-submit when all fields are filled
     if (newCode.every(digit => digit) && value) {
       onSubmit(newCode.join(''));
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text');
+    const digits = pastedData.replace(/\D/g, '').slice(0, 6).split('');
+
+    if (digits.length === 6) {
+      setCode(digits);
+      onSubmit(digits.join(''));
     }
   };
 
@@ -156,6 +175,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
                 value={digit}
                 onChange={(e) => handleInputChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
+                onPaste={handlePaste}
                 className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-colors"
                 disabled={isLoading}
                 autoComplete={index === 0 ? 'one-time-code' : 'off'}
