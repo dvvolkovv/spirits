@@ -527,7 +527,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <div className="flex flex-col h-full bg-gray-50 relative">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed top-0 left-0 right-0 z-40 md:z-40">
+      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 md:relative md:z-10 fixed top-0 left-0 right-0 z-40">
         <div className="flex items-center justify-between max-w-full">
           <div className="relative" ref={dropdownRef}>
             <button
@@ -591,7 +591,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 space-y-4 min-h-0 pt-24 pb-4" ref={messagesContainerRef}>
+      <div className="flex-1 overflow-y-auto px-4 space-y-4 min-h-0 pt-24 md:pt-4 pb-4" ref={messagesContainerRef}>
         {messages.map((message) => (
           <div
             key={message.id}
