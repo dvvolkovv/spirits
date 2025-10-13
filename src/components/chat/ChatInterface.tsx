@@ -51,17 +51,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = localStorage.getItem('chat_messages');
-    if (saved) {
-      const parsedMessages = JSON.parse(saved);
-      return parsedMessages.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      }));
-    }
-    return [];
-  });
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
@@ -88,12 +78,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Сохраняем сообщения в localStorage при изменениях
+  const getChatStorageKey = (assistantId: number | null) => {
+    return `chat_messages_assistant_${assistantId || 'default'}`;
+  };
+
   useEffect(() => {
-    // Ограничиваем количество сообщений до 100
-    const messagesToSave = messages.slice(-100);
-    localStorage.setItem('chat_messages', JSON.stringify(messagesToSave));
-  }, [messages]);
+    if (selectedAssistant) {
+      const storageKey = getChatStorageKey(selectedAssistant.id);
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsedMessages = JSON.parse(saved);
+        setMessages(parsedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        })));
+      } else {
+        setMessages([]);
+      }
+    }
+  }, [selectedAssistant]);
+
+  useEffect(() => {
+    if (selectedAssistant) {
+      const messagesToSave = messages.slice(-100);
+      const storageKey = getChatStorageKey(selectedAssistant.id);
+      localStorage.setItem(storageKey, JSON.stringify(messagesToSave));
+    }
+  }, [messages, selectedAssistant]);
 
   useEffect(() => {
     const fetchAssistants = async () => {
@@ -356,7 +367,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleClearChat = () => {
     if (window.confirm('Очистить историю чата? Это действие нельзя отменить.')) {
       setMessages([]);
-      localStorage.removeItem('chat_messages');
+      if (selectedAssistant) {
+        const storageKey = getChatStorageKey(selectedAssistant.id);
+        localStorage.removeItem(storageKey);
+      }
       if (welcomeMessage) {
         setMessages([{
           id: '1',
