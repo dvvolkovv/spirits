@@ -190,35 +190,59 @@ const ProfileView: React.FC = () => {
     setIsEditing(false);
   };
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Пожалуйста, выберите изображение');
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('Размер файла не должен превышать 5MB');
       return;
     }
 
+    if (!user?.phone) {
+      alert('Номер телефона не найден');
+      return;
+    }
+
     setIsUploadingAvatar(true);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      updateAvatar(result);
+    try {
+      const cleanPhone = user.phone.replace(/\D/g, '');
+      const uploadUrl = `${import.meta.env.VITE_BACKEND_URL}/webhook/44307ad8-9652-43b4-b63a-ca1a780e7247/avatar/${cleanPhone}`;
+
+      const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ошибка загрузки аватара: ${response.status}`);
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        updateAvatar(result);
+        setIsUploadingAvatar(false);
+        alert('Аватар успешно загружен');
+      };
+      reader.onerror = () => {
+        throw new Error('Ошибка при чтении файла');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Ошибка при загрузке аватара:', error);
+      alert(`Ошибка при загрузке аватара: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       setIsUploadingAvatar(false);
-    };
-    reader.onerror = () => {
-      alert('Ошибка при загрузке файла');
-      setIsUploadingAvatar(false);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   const getAvatarInitials = (name: string) => {
