@@ -117,10 +117,34 @@ const ProfileView: React.FC = () => {
     }
   };
 
-  // Загружаем профиль при монтировании компонента
+  // Загружаем профиль и аватар при монтировании компонента
   React.useEffect(() => {
     loadProfileFromServer();
+    loadAvatarFromServer();
   }, [user?.phone]);
+
+  // Загрузка аватара с сервера
+  const loadAvatarFromServer = async () => {
+    if (!user?.phone) return;
+
+    const cleanPhone = user.phone.replace(/\D/g, '');
+    const avatarUrl = `${import.meta.env.VITE_BACKEND_URL}/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/avatar/${cleanPhone}`;
+
+    try {
+      const response = await fetch(avatarUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          updateAvatar(base64data);
+        };
+        reader.readAsDataURL(blob);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке аватара:', error);
+    }
+  };
 
   const handleEdit = () => {
     setIsEditing(!isEditing);
