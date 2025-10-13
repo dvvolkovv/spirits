@@ -527,12 +527,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <div className="flex flex-col h-full bg-gray-50 relative">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed top-0 left-0 right-0 z-40">
-        <div className="flex items-center justify-between">
+      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed top-0 left-0 right-0 z-40 md:z-40">
+        <div className="flex items-center justify-between max-w-full">
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors"
+              className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
             >
               <div className="flex flex-col items-start">
                 <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
