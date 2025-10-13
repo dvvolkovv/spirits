@@ -22,6 +22,20 @@ const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
 
+  const intentPlaceholders = [
+    'Хочу создать счастливую семью',
+    'Хочу научиться играть на гитаре',
+    'Планирую создать группу',
+    'Создаю поселок единомышленников',
+    'Нужна консультация по психологии',
+    'Хочу пройти коучинговую сессию',
+    'Ищу партнера для создания фитнес центра'
+  ];
+
+  const [currentPlaceholder, setCurrentPlaceholder] = useState(() => {
+    return intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)];
+  });
+
   const [searchMode, setSearchMode] = useState<SearchMode>('intent');
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>([]);
   const [currentPhoneInput, setCurrentPhoneInput] = useState('');
@@ -48,6 +62,12 @@ const SearchInterface: React.FC = () => {
   useEffect(() => {
     // Scroll to top on mobile when component mounts
     window.scrollTo(0, 0);
+
+    const interval = setInterval(() => {
+      setCurrentPlaceholder(intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)]);
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Сохраняем состояние в localStorage при изменениях
@@ -412,7 +432,7 @@ const SearchInterface: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={t('search.placeholder')}
+                placeholder={currentPlaceholder}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
