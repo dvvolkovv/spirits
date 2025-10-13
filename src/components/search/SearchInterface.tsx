@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
 import UserProfileModal from './UserProfileModal';
-import { Search, Users, MessageCircle, Heart } from 'lucide-react';
+import { Search, Users, MessageCircle, Heart, X, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface UserMatch {
@@ -23,6 +23,8 @@ const SearchInterface: React.FC = () => {
   const { user } = useAuth();
 
   const [searchMode, setSearchMode] = useState<SearchMode>('intent');
+  const [phoneNumbers, setPhoneNumbers] = useState<string[]>([]);
+  const [currentPhoneInput, setCurrentPhoneInput] = useState('');
 
   // Используем localStorage для сохранения состояния поиска
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -284,36 +286,103 @@ const SearchInterface: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="flex space-x-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={
-                searchMode === 'intent'
-                  ? t('search.placeholder')
-                  : searchMode === 'phone'
-                  ? 'Введите номер телефона'
-                  : 'Название сообщества или тема'
-              }
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <button
-            onClick={handleSearch}
-            disabled={isSearching}
-            className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
-          >
-            {isSearching ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Search className="w-5 h-5" />
+        {searchMode === 'phone' ? (
+          <div>
+            <div className="flex space-x-2 mb-3">
+              <div className="flex-1 relative">
+                <input
+                  type="tel"
+                  value={currentPhoneInput}
+                  onChange={(e) => setCurrentPhoneInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (currentPhoneInput.trim()) {
+                        setPhoneNumbers([...phoneNumbers, currentPhoneInput.trim()]);
+                        setCurrentPhoneInput('');
+                      }
+                    }
+                  }}
+                  placeholder="Введите номер телефона"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={() => {
+                  if (currentPhoneInput.trim()) {
+                    setPhoneNumbers([...phoneNumbers, currentPhoneInput.trim()]);
+                    setCurrentPhoneInput('');
+                  }
+                }}
+                disabled={!currentPhoneInput.trim()}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+
+            {phoneNumbers.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {phoneNumbers.map((phone, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 text-forest-700 rounded-lg"
+                  >
+                    <span className="text-sm">{phone}</span>
+                    <button
+                      onClick={() => {
+                        setPhoneNumbers(phoneNumbers.filter((_, i) => i !== index));
+                      }}
+                      className="text-forest-600 hover:text-forest-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
-          </button>
-        </div>
+
+            <button
+              onClick={handleSearch}
+              disabled={isSearching || phoneNumbers.length === 0}
+              className="w-full px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
+            >
+              {isSearching ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Поиск...
+                </div>
+              ) : (
+                `Найти (${phoneNumbers.length})`
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="flex space-x-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={t('search.placeholder')}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
+            >
+              {isSearching ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Search className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results */}
