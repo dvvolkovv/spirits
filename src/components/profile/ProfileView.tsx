@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2 } from 'lucide-react';
+import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, Heart, Lightbulb } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface ProfileData {
@@ -10,6 +10,8 @@ interface ProfileData {
   beliefs?: string[];
   desires?: string[];
   intents?: string[];
+  interests?: string[];
+  skills?: string[];
   name?: string;
   family_name?: string;
   user_nickname?: string;
@@ -34,7 +36,7 @@ const ProfileView: React.FC = () => {
     if (Array.isArray(profileData?.values)) {
       return profileData.values.map(value => ({
         name: value,
-        confidence: 90, // Значение по умолчанию
+        confidence: 90,
         private: false
       }));
     }
@@ -44,6 +46,8 @@ const ProfileView: React.FC = () => {
   const getProfileBeliefs = () => Array.isArray(profileData?.beliefs) ? profileData.beliefs : [];
   const getProfileDesires = () => Array.isArray(profileData?.desires) ? profileData.desires : [];
   const getProfileIntentions = () => Array.isArray(profileData?.intents) ? profileData.intents : [];
+  const getProfileInterests = () => Array.isArray(profileData?.interests) ? profileData.interests : [];
+  const getProfileSkills = () => Array.isArray(profileData?.skills) ? profileData.skills : [];
   const getProfileCompletion = () => profileData?.completeness ? parseInt(profileData.completeness) : 0;
 
   const profile = {
@@ -51,6 +55,8 @@ const ProfileView: React.FC = () => {
     beliefs: getProfileBeliefs(),
     desires: getProfileDesires(),
     intentions: getProfileIntentions(),
+    interests: getProfileInterests(),
+    skills: getProfileSkills(),
     completion: getProfileCompletion(),
   };
 
@@ -561,6 +567,46 @@ const ProfileView: React.FC = () => {
                   <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
                   <p className="text-gray-700">{intention}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Interests */}
+        {profile.interests.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Heart className="w-5 h-5 mr-2 text-red-500" />
+              Интересы
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {profile.interests.map((interest, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1.5 bg-red-50 text-red-700 rounded-full text-sm font-medium"
+                >
+                  {interest}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Skills */}
+        {profile.skills.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
+              Навыки
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {profile.skills.map((skill, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-full text-sm font-medium"
+                >
+                  {skill}
+                </span>
               ))}
             </div>
           </div>
