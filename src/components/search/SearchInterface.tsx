@@ -12,6 +12,8 @@ interface UserMatch {
   avatar?: string;
   values: string[];
   intents: string[];
+  interests?: string[];
+  skills?: string[];
   corellation: number;
   phone?: string;
 }
@@ -167,6 +169,8 @@ const SearchInterface: React.FC = () => {
               name: result.name || 'Неизвестный пользователь',
               values: result.values || [],
               intents: result.intents || [],
+              interests: result.interests || [],
+              skills: result.skills || [],
               corellation: result.corellation || result.correlation || 0,
               phone: result.id || result.userId || result.user_id || null
             }));
@@ -180,6 +184,8 @@ const SearchInterface: React.FC = () => {
               name: searchResults.name || 'Неизвестный пользователь',
               values: searchResults.values || [],
               intents: searchResults.intents || [],
+              interests: searchResults.interests || [],
+              skills: searchResults.skills || [],
               corellation: searchResults.corellation || searchResults.correlation || 0,
               phone: searchResults.id || searchResults.userId || searchResults.user_id || null
             };
@@ -397,26 +403,76 @@ const SearchInterface: React.FC = () => {
                     </p>
 
                     {/* Common Values */}
-                    <div className="mb-4">
-                      <p className="text-xs text-gray-500 mb-2">
-                        Ценности ({user.values.length})
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {user.values.slice(0, 3).map((value, index) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-forest-50 text-forest-700 text-xs rounded-full"
-                          >
-                            {value}
-                          </span>
-                        ))}
-                        {user.values.length > 3 && (
-                          <span className="px-2 py-1 bg-warm-50 text-warm-700 text-xs rounded-full flex items-center">
-                            +{user.values.length - 3}
-                          </span>
-                        )}
+                    {user.values && user.values.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Ценности ({user.values.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {user.values.slice(0, 3).map((value, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-forest-50 text-forest-700 text-xs rounded-full"
+                            >
+                              {value}
+                            </span>
+                          ))}
+                          {user.values.length > 3 && (
+                            <span className="px-2 py-1 bg-warm-50 text-warm-700 text-xs rounded-full flex items-center">
+                              +{user.values.length - 3}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Interests */}
+                    {user.interests && user.interests.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Интересы ({user.interests.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {user.interests.slice(0, 3).map((interest, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded-full"
+                            >
+                              {interest}
+                            </span>
+                          ))}
+                          {user.interests.length > 3 && (
+                            <span className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded-full flex items-center">
+                              +{user.interests.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Skills */}
+                    {user.skills && user.skills.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Навыки ({user.skills.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {user.skills.slice(0, 3).map((skill, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs rounded-full"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {user.skills.length > 3 && (
+                            <span className="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs rounded-full flex items-center">
+                              +{user.skills.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex space-x-3">
