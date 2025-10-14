@@ -204,8 +204,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (selectedAssistant) {
       localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
+      changeAgentOnServer(selectedAssistant.name);
     }
   }, [selectedAssistant]);
+
+  const changeAgentOnServer = async (agentName: string) => {
+    if (!user?.phone) return;
+
+    const cleanPhone = user.phone.replace(/\D/g, '');
+
+    try {
+      const formData = new FormData();
+      formData.append('user-id', cleanPhone);
+      formData.append('agent', agentName);
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        console.error('Failed to change agent on server');
+      }
+    } catch (error) {
+      console.error('Error changing agent on server:', error);
+    }
+  };
 
   // Закрытие дропдауна при клике вне его
   useEffect(() => {
