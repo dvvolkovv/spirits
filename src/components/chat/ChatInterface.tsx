@@ -1,9 +1,36 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
+
+interface Assistant {
+  id: number;
+  name: string;
+  description: string;
+}
+
+const getAvatarForAssistant = (name: string): string => {
+  const avatarMap: { [key: string]: string } = {
+    'Миша': '💼',
+    'Оля': '🧠',
+    'Маша': '🎮',
+    'Павел': '⭐',
+    'Роман': '🎨',
+    'Любовь': '🎮'
+  };
+  return avatarMap[name] || '👤';
+};
+
+const getRoleForAssistant = (description: string): string => {
+  if (description.includes('Коуч')) return 'Коуч';
+  if (description.includes('Психолог')) return 'Психолог';
+  if (description.includes('Игропрактик')) return 'Игропрактик';
+  if (description.includes('Астролог')) return 'Астролог';
+  if (description.includes('Human Design')) return 'Human Design';
+  return 'Ассистент';
+};
 
 interface Message {
   id: string;
@@ -18,26 +45,92 @@ interface ChatInterfaceProps {
   welcomeMessage?: string;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
-  title, 
-  welcomeMessage 
+const StreamingMessage = React.memo(({ content, components }: { content: string; components: any }) => (
+  <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
+    <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
+      <div className="min-h-[24px]">
+        {content ? (
+          <>
+            <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+              <ReactMarkdown components={components}>
+                {content}
+              </ReactMarkdown>
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
+          </>
+        ) : (
+          <div className="flex space-x-1 items-center h-[24px]">
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+));
+
+StreamingMessage.displayName = 'StreamingMessage';
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({
+  title,
+  welcomeMessage
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+
+  const markdownComponents = useMemo(() => ({
+    p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
+    strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
+    em: ({ children }: any) => <em className="italic">{children}</em>,
+    ul: ({ children }: any) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+    ol: ({ children }: any) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+    li: ({ children }: any) => <li className="text-sm">{children}</li>,
+    code: ({ children }: any) => (
+      <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs font-mono">
+        {children}
+      </code>
+    ),
+    pre: ({ children }: any) => (
+      <pre className="bg-gray-100 text-gray-800 p-2 rounded text-xs font-mono overflow-x-auto mb-2">
+        {children}
+      </pre>
+    ),
+    blockquote: ({ children }: any) => (
+      <blockquote className="border-l-2 border-gray-300 pl-2 italic text-gray-600 mb-2">
+        {children}
+      </blockquote>
+    ),
+    h1: ({ children }: any) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+    h3: ({ children }: any) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+    br: () => <br />,
+  }), []);
+
+  const getChatStorageKey = (assistantId: number | null) => {
+    return `chat_messages_assistant_${assistantId || 'default'}`;
+  };
+
   const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = localStorage.getItem('chat_messages');
-    if (saved) {
-      const parsedMessages = JSON.parse(saved);
-      return parsedMessages.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      }));
+    const savedAssistant = localStorage.getItem('selected_assistant');
+    if (savedAssistant) {
+      const assistant = JSON.parse(savedAssistant);
+      const storageKey = getChatStorageKey(assistant.id);
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsedMessages = JSON.parse(saved);
+        return parsedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+      }
     }
     return [];
   });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -49,24 +142,137 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isVoiceSupported, setIsVoiceSupported] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [isLoadingAssistants, setIsLoadingAssistants] = useState(true);
+  const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(() => {
+    const saved = localStorage.getItem('selected_assistant');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return null;
+  });
+  const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Сохраняем сообщения в localStorage при изменениях
   useEffect(() => {
-    // Ограничиваем количество сообщений до 100
-    const messagesToSave = messages.slice(-100);
-    localStorage.setItem('chat_messages', JSON.stringify(messagesToSave));
-  }, [messages]);
-
-  // Отдельный useEffect для прокрутки
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (selectedAssistant) {
+      const storageKey = getChatStorageKey(selectedAssistant.id);
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsedMessages = JSON.parse(saved);
+        setMessages(parsedMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        })));
+      } else {
+        setMessages([]);
       }
     }
-  }, [messages]);
+  }, [selectedAssistant]);
+
+  useEffect(() => {
+    if (selectedAssistant) {
+      const messagesToSave = messages.slice(-100);
+      const storageKey = getChatStorageKey(selectedAssistant.id);
+      localStorage.setItem(storageKey, JSON.stringify(messagesToSave));
+    }
+  }, [messages, selectedAssistant]);
+
+  useEffect(() => {
+    const fetchAssistants = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/agents`);
+        if (response.ok) {
+          const data = await response.json();
+          setAssistants(data);
+          if (!selectedAssistant && data.length > 0) {
+            setSelectedAssistant(data[0]);
+          }
+        } else {
+          console.error('Failed to fetch assistants');
+        }
+      } catch (error) {
+        console.error('Error fetching assistants:', error);
+      } finally {
+        setIsLoadingAssistants(false);
+      }
+    };
+
+    fetchAssistants();
+  }, []);
+
+  useEffect(() => {
+    if (selectedAssistant) {
+      localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
+      changeAgentOnServer(selectedAssistant.name);
+    }
+  }, [selectedAssistant]);
+
+  const changeAgentOnServer = async (agentName: string) => {
+    if (!user?.phone) return;
+
+    const cleanPhone = user.phone.replace(/\D/g, '');
+
+    try {
+      const formData = new FormData();
+      formData.append('user-id', cleanPhone);
+      formData.append('agent', agentName);
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        console.error('Failed to change agent on server');
+      }
+    } catch (error) {
+      console.error('Error changing agent on server:', error);
+    }
+  };
+
+  // Закрытие дропдауна при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowAssistantDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Отдельный useEffect для прокрутки с throttling
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    let rafId: number;
+    let lastScrollTime = 0;
+    const scrollThrottle = 16;
+
+    const scrollToBottom = () => {
+      const now = Date.now();
+      if (now - lastScrollTime < scrollThrottle) return;
+
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+      if (isNearBottom) {
+        rafId = requestAnimationFrame(() => {
+          if (container) {
+            container.scrollTop = container.scrollHeight;
+            lastScrollTime = now;
+          }
+        });
+      }
+    };
+
+    scrollToBottom();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [messages, currentStreamingMessage]);
 
   // Handle scroll to show/hide scroll-to-bottom button
   useEffect(() => {
@@ -139,17 +345,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
-    
+
+    // Set streaming message ID immediately to show loading state
+    const assistantMessageId = Date.now().toString();
+    setStreamingMessageId(assistantMessageId);
+
     // Cancel any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     abortControllerRef.current = new AbortController();
-    
+
     // Extract phone number from user data and clean it for sessionId
     const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
-    
+
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/soulmate/chat`, {
         method: 'POST',
@@ -158,7 +368,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         },
         body: JSON.stringify({
           chatInput: userMessage,
-          sessionId: phoneNumber
+          sessionId: phoneNumber,
+          assistant: selectedAssistant?.id || 1
         }),
         signal: abortControllerRef.current.signal
       });
@@ -173,41 +384,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       let accumulatedContent = '';
-      let assistantMessageId = Date.now().toString();
-      
-      // Add initial empty assistant message
-      const initialAssistantMessage: Message = {
-        id: assistantMessageId,
-        type: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        isStreaming: true
-      };
-      
-      setMessages(prev => [...prev, initialAssistantMessage]);
+
+      let lastUpdate = Date.now();
+      const updateInterval = 50;
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
-        
+
         const chunk = new TextDecoder().decode(value);
         const lines = chunk.split('\n').filter(line => line.trim());
-        
+
         for (const line of lines) {
           try {
             const data = JSON.parse(line);
-            
+
             if (data.type === 'item' && data.content) {
               accumulatedContent += data.content;
-              setCurrentStreamingMessage(accumulatedContent);
-              
-              // Update the streaming message
-              setMessages(prev => prev.map(msg => 
-                msg.id === assistantMessageId 
-                  ? { ...msg, content: accumulatedContent }
-                  : msg
-              ));
+
+              const now = Date.now();
+              if (now - lastUpdate >= updateInterval) {
+                setCurrentStreamingMessage(accumulatedContent);
+                lastUpdate = now;
+              }
             }
           } catch (e) {
             // Skip invalid JSON lines
@@ -215,13 +415,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }
         }
       }
+
+      setCurrentStreamingMessage(accumulatedContent);
       
-      // Finalize the message
-      setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessageId 
-          ? { ...msg, isStreaming: false }
-          : msg
-      ));
+      // Add the completed message to the messages array
+      const completedMessage: Message = {
+        id: assistantMessageId,
+        type: 'assistant',
+        content: accumulatedContent,
+        timestamp: new Date(),
+        isStreaming: false
+      };
+
+      setMessages(prev => [...prev, completedMessage]);
+      setStreamingMessageId(null);
       
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -243,6 +450,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } finally {
       setIsTyping(false);
       setCurrentStreamingMessage('');
+      setStreamingMessageId(null);
       abortControllerRef.current = null;
     }
   };
@@ -276,7 +484,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleClearChat = () => {
     if (window.confirm('Очистить историю чата? Это действие нельзя отменить.')) {
       setMessages([]);
-      localStorage.removeItem('chat_messages');
+      if (selectedAssistant) {
+        const storageKey = getChatStorageKey(selectedAssistant.id);
+        localStorage.removeItem(storageKey);
+      }
       if (welcomeMessage) {
         setMessages([{
           id: '1',
@@ -483,13 +694,64 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
+    <div className="flex flex-col h-full bg-gray-50 relative">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">
-            {title || t('chat.title')}
-          </h1>
+      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 md:relative md:z-10 fixed top-0 left-0 right-0 z-40">
+        <div className="flex items-center justify-between max-w-full">
+          <div className="relative" ref={dropdownRef}>
+            {isLoadingAssistants ? (
+              <div className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 rounded-lg">
+                <div className="w-4 h-4 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-gray-600">Загрузка...</span>
+              </div>
+            ) : selectedAssistant ? (
+              <>
+                <button
+                  onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg">{getAvatarForAssistant(selectedAssistant.name)}</span>
+                  </div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
+                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description)}</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-forest-700" />
+                </button>
+
+                {showAssistantDropdown && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="py-1">
+                      {assistants.map((assistant) => (
+                        <button
+                          key={assistant.id}
+                          onClick={() => {
+                            setSelectedAssistant(assistant);
+                            setShowAssistantDropdown(false);
+                          }}
+                          className={clsx(
+                            'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
+                            selectedAssistant.id === assistant.id && 'bg-forest-50'
+                          )}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
+                              {getAvatarForAssistant(assistant.name)}
+                            </div>
+                            <div className="flex flex-col flex-1">
+                              <span className="text-sm font-medium text-gray-900">{assistant.name}</span>
+                              <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
           <div className="flex items-center space-x-2">
             {messages.length > 1 && (
               <>
@@ -515,7 +777,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0" ref={messagesContainerRef}>
+      <div
+        className="flex-1 overflow-y-auto px-4 space-y-4 min-h-0 pt-24 md:pt-4 pb-4"
+        ref={messagesContainerRef}
+        style={{ willChange: 'scroll-position' }}
+      >
         {messages.map((message) => (
           <div
             key={message.id}
@@ -534,35 +800,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             >
               {message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                      em: ({ children }) => <em className="italic">{children}</em>,
-                      ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                      li: ({ children }) => <li className="text-sm">{children}</li>,
-                      code: ({ children }) => (
-                        <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs font-mono">
-                          {children}
-                        </code>
-                      ),
-                      pre: ({ children }) => (
-                        <pre className="bg-gray-100 text-gray-800 p-2 rounded text-xs font-mono overflow-x-auto mb-2">
-                          {children}
-                        </pre>
-                      ),
-                      blockquote: ({ children }) => (
-                        <blockquote className="border-l-2 border-gray-300 pl-2 italic text-gray-600 mb-2">
-                          {children}
-                        </blockquote>
-                      ),
-                      h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
-                      br: () => <br />,
-                    }}
-                  >
+                  <ReactMarkdown components={markdownComponents}>
                     {message.content}
                   </ReactMarkdown>
                 </div>
@@ -585,16 +823,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         ))}
 
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-white shadow-sm px-4 py-3 rounded-2xl rounded-bl-md">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-              </div>
-            </div>
-          </div>
+        {streamingMessageId && (
+          <StreamingMessage content={currentStreamingMessage} components={markdownComponents} />
         )}
 
         <div ref={messagesEndRef} />

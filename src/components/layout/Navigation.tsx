@@ -77,16 +77,19 @@ const Navigation: React.FC = () => {
       to: '/chat',
       icon: MessageCircle,
       label: t('chat.title'),
+      isLogo: false,
     },
     {
       to: '/search',
       icon: Search,
       label: t('search.title'),
+      isLogo: true,
     },
     {
       to: '/profile',
       icon: User,
       label: t('profile.title'),
+      isLogo: false,
     },
   ];
 
@@ -137,7 +140,15 @@ const Navigation: React.FC = () => {
                 )
               }
             >
-              <Icon className="w-6 h-6 md:w-4 md:h-4 md:mr-3" />
+              {item.isLogo ? (
+                <img
+                  src="/logo-Photoroom.png"
+                  alt={item.label}
+                  className="w-6 h-6 md:w-5 md:h-5 md:mr-3 object-contain"
+                />
+              ) : (
+                <Icon className="w-6 h-6 md:w-4 md:h-4 md:mr-3" />
+              )}
               <span className="hidden md:block text-sm">
                 {item.label}
               </span>

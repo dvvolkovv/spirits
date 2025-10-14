@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
 import UserProfileModal from './UserProfileModal';
-import { Search, Users, MessageCircle, Heart } from 'lucide-react';
+import { Search, Users, MessageCircle, Heart, X, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface UserMatch {
@@ -18,10 +18,31 @@ interface UserMatch {
   phone?: string;
 }
 
+type SearchMode = 'intent' | 'phone' | 'community';
+
 const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  
+
+  const intentPlaceholders = [
+    'Хочу создать счастливую семью',
+    'Хочу научиться играть на гитаре',
+    'Планирую создать группу',
+    'Создаю поселок единомышленников',
+    'Нужна консультация по психологии',
+    'Хочу пройти коучинговую сессию',
+    'Ищу партнера для создания фитнес центра'
+  ];
+
+  const [currentPlaceholder, setCurrentPlaceholder] = useState(() => {
+    return intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)];
+  });
+
+  const [searchMode, setSearchMode] = useState<SearchMode>('intent');
+  const [phoneNumbers, setPhoneNumbers] = useState<string[]>([]);
+  const [currentPhoneInput, setCurrentPhoneInput] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
   // Используем localStorage для сохранения состояния поиска
   const [searchQuery, setSearchQuery] = useState(() => {
     return localStorage.getItem('search_query') || '';
@@ -43,6 +64,12 @@ const SearchInterface: React.FC = () => {
   useEffect(() => {
     // Scroll to top on mobile when component mounts
     window.scrollTo(0, 0);
+
+    const interval = setInterval(() => {
+      setCurrentPlaceholder(intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)]);
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Сохраняем состояние в localStorage при изменениях
@@ -223,6 +250,52 @@ const SearchInterface: React.FC = () => {
     }
   };
 
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+
+    if (digits.length === 0) return '';
+    if (digits.length <= 1) return '+7';
+    if (digits.length <= 4) return `+7 (${digits.slice(1)}`;
+    if (digits.length <= 7) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4)}`;
+    if (digits.length <= 9) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
+  };
+
+  const handlePhoneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    setCurrentPhoneInput(formatted);
+    setPhoneError('');
+  };
+
+  const validatePhoneNumber = (phone: string): boolean => {
+    const digits = phone.replace(/\D/g, '');
+    return digits.length === 11 && digits.startsWith('7');
+  };
+
+  const addPhoneNumber = () => {
+    const trimmedPhone = currentPhoneInput.trim();
+
+    if (!trimmedPhone) {
+      return;
+    }
+
+    if (!validatePhoneNumber(trimmedPhone)) {
+      setPhoneError('Введите полный номер телефона');
+      return;
+    }
+
+    const cleanPhone = '+' + trimmedPhone.replace(/\D/g, '');
+
+    if (phoneNumbers.includes(cleanPhone)) {
+      setPhoneError('Этот номер уже добавлен');
+      return;
+    }
+
+    setPhoneNumbers([...phoneNumbers, cleanPhone]);
+    setCurrentPhoneInput('');
+    setPhoneError('');
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 0.9) return 'text-green-600 bg-green-100';
     if (score >= 0.8) return 'text-blue-600 bg-blue-100';
@@ -258,32 +331,130 @@ const SearchInterface: React.FC = () => {
         <h1 className="text-xl font-bold text-gray-900 mb-4">
           {t('search.title')}
         </h1>
-        
-        {/* Search Bar */}
-        <div className="flex space-x-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={t('search.placeholder')}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+
+        {/* Search Mode Tabs */}
+        <div className="flex space-x-2 mb-4">
           <button
-            onClick={handleSearch}
-            disabled={isSearching}
-            className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
-          >
-            {isSearching ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Search className="w-5 h-5" />
+            onClick={() => setSearchMode('intent')}
+            className={clsx(
+              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              searchMode === 'intent'
+                ? 'bg-forest-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             )}
+          >
+            По намерению
+          </button>
+          <button
+            onClick={() => setSearchMode('phone')}
+            className={clsx(
+              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              searchMode === 'phone'
+                ? 'bg-forest-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            )}
+          >
+            По людям
           </button>
         </div>
+
+        {/* Search Bar */}
+        {searchMode === 'phone' ? (
+          <div>
+            <div className="flex space-x-2 mb-2">
+              <div className="flex-1 relative">
+                <input
+                  type="tel"
+                  value={currentPhoneInput}
+                  onChange={handlePhoneInputChange}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addPhoneNumber();
+                    }
+                  }}
+                  placeholder="+7 (999) 999-99-99"
+                  className={clsx(
+                    "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                    phoneError ? "border-red-300" : "border-gray-300"
+                  )}
+                />
+              </div>
+              <button
+                onClick={addPhoneNumber}
+                disabled={!validatePhoneNumber(currentPhoneInput)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+
+            {phoneError && (
+              <p className="text-red-600 text-sm mb-3">{phoneError}</p>
+            )}
+
+            {phoneNumbers.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {phoneNumbers.map((phone, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 text-forest-700 rounded-lg"
+                  >
+                    <span className="text-sm">{phone}</span>
+                    <button
+                      onClick={() => {
+                        setPhoneNumbers(phoneNumbers.filter((_, i) => i !== index));
+                      }}
+                      className="text-forest-600 hover:text-forest-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={handleSearch}
+              disabled={isSearching || phoneNumbers.length === 0}
+              className="w-full px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
+            >
+              {isSearching ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Поиск...
+                </div>
+              ) : (
+                `Показать (${phoneNumbers.length})`
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="flex space-x-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={currentPlaceholder}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
+            >
+              {isSearching ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Search className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results */}
