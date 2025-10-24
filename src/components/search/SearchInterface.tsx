@@ -130,6 +130,8 @@ const SearchInterface: React.FC = () => {
       }
 
       let accumulatedText = '';
+      let searchResultFound = false;
+      let jsonBuffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -145,12 +147,94 @@ const SearchInterface: React.FC = () => {
 
             if (data.type === 'item' && data.content) {
               accumulatedText += data.content;
-              setSearchComment(accumulatedText);
+
+              // Check if we've reached the search_result marker
+              if (accumulatedText.includes('search_result:')) {
+                searchResultFound = true;
+                // Extract everything after search_result:
+                const searchResultIndex = accumulatedText.indexOf('search_result:');
+                const beforeSearchResult = accumulatedText.substring(0, searchResultIndex);
+                const afterSearchResult = accumulatedText.substring(searchResultIndex + 'search_result:'.length);
+
+                // Update comment with text before search_result
+                setSearchComment(beforeSearchResult.trim());
+
+                // Start collecting JSON
+                jsonBuffer = afterSearchResult;
+              } else if (!searchResultFound) {
+                // Still collecting comment text
+                setSearchComment(accumulatedText);
+              } else {
+                // Collecting JSON data
+                jsonBuffer += data.content;
+              }
             }
           } catch (e) {
             console.warn('Failed to parse streaming data:', line);
           }
         }
+      }
+
+      // Parse the final JSON results
+      if (searchResultFound && jsonBuffer.trim()) {
+        try {
+          // Clean up the JSON buffer - remove any trailing text and parse
+          let cleanJson = jsonBuffer.trim();
+
+          // Remove any trailing non-JSON content
+          const lastBraceIndex = cleanJson.lastIndexOf('}');
+          const lastBracketIndex = cleanJson.lastIndexOf(']');
+          const lastValidIndex = Math.max(lastBraceIndex, lastBracketIndex);
+
+          if (lastValidIndex > -1) {
+            cleanJson = cleanJson.substring(0, lastValidIndex + 1);
+          }
+
+          console.log('Parsing JSON:', cleanJson);
+          const searchResults = JSON.parse(cleanJson);
+
+          if (Array.isArray(searchResults)) {
+            const formattedResults: UserMatch[] = searchResults.map((result: any) => ({
+              id: result.id || result.userId || result.user_id || Math.random().toString(),
+              name: result.name || 'Неизвестный пользователь',
+              values: result.values || [],
+              intents: result.intents || [],
+              interests: result.interests || [],
+              skills: result.skills || [],
+              corellation: result.corellation || result.correlation || 0,
+              phone: result.id || result.userId || result.user_id || null
+            }));
+
+            console.log('Formatted results:', formattedResults);
+            setResults(formattedResults);
+          } else if (searchResults && typeof searchResults === 'object') {
+            // Handle single result object
+            const singleResult: UserMatch = {
+              id: searchResults.id || searchResults.userId || searchResults.user_id || Math.random().toString(),
+              name: searchResults.name || 'Неизвестный пользователь',
+              values: searchResults.values || [],
+              intents: searchResults.intents || [],
+              interests: searchResults.interests || [],
+              skills: searchResults.skills || [],
+              corellation: searchResults.corellation || searchResults.correlation || 0,
+              phone: searchResults.id || searchResults.userId || searchResults.user_id || null
+            };
+
+            console.log('Single result:', singleResult);
+            setResults([singleResult]);
+          } else {
+            console.warn('Unexpected search results format:', searchResults);
+            setResults([]);
+          }
+        } catch (jsonError) {
+          console.error('Failed to parse search results JSON:', jsonError);
+          console.log('Raw JSON buffer:', jsonBuffer);
+          // Fallback to empty results
+          setResults([]);
+        }
+      } else {
+        console.log('No search results found in stream');
+        setResults([]);
       }
 
     } catch (error) {
