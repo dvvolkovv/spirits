@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, Heart, Lightbulb } from 'lucide-react';
+import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, Heart, Lightbulb, X } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface ProfileData {
@@ -30,11 +30,13 @@ const ProfileView: React.FC = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [editedData, setEditedData] = useState<ProfileData | null>(null);
 
-  // Используем только данные с сервера
+  // Используем только данные с сервера (или отредактированные данные в режиме редактирования)
   const getProfileValues = () => {
-    if (Array.isArray(profileData?.values)) {
-      return profileData.values.map(value => ({
+    const data = isEditing ? editedData : profileData;
+    if (Array.isArray(data?.values)) {
+      return data.values.map(value => ({
         name: value,
         confidence: 90,
         private: false
@@ -43,11 +45,30 @@ const ProfileView: React.FC = () => {
     return [];
   };
 
-  const getProfileBeliefs = () => Array.isArray(profileData?.beliefs) ? profileData.beliefs : [];
-  const getProfileDesires = () => Array.isArray(profileData?.desires) ? profileData.desires : [];
-  const getProfileIntentions = () => Array.isArray(profileData?.intents) ? profileData.intents : [];
-  const getProfileInterests = () => Array.isArray(profileData?.interests) ? profileData.interests : [];
-  const getProfileSkills = () => Array.isArray(profileData?.skills) ? profileData.skills : [];
+  const getProfileBeliefs = () => {
+    const data = isEditing ? editedData : profileData;
+    return Array.isArray(data?.beliefs) ? data.beliefs : [];
+  };
+  const getProfileDesires = () => {
+    const data = isEditing ? editedData : profileData;
+    return Array.isArray(data?.desires) ? data.desires : [];
+  };
+  const getProfileIntentions = () => {
+    const data = isEditing ? editedData : profileData;
+    return Array.isArray(data?.intents) ? data.intents : [];
+  };
+  const getProfileInterests = () => {
+    const data = isEditing ? editedData : profileData;
+    return Array.isArray(data?.interests) ? data.interests : [];
+  };
+  const getProfileSkills = () => {
+    const data = isEditing ? editedData : profileData;
+    return Array.isArray(data?.skills) ? data.skills : [];
+  };
+  const getProfileParams = () => {
+    const data = isEditing ? editedData : profileData;
+    return Array.isArray(data?.profile) ? data.profile : [];
+  };
   const getProfileCompletion = () => profileData?.completeness ? parseInt(profileData.completeness) : 0;
 
   const profile = {
@@ -57,6 +78,7 @@ const ProfileView: React.FC = () => {
     intentions: getProfileIntentions(),
     interests: getProfileInterests(),
     skills: getProfileSkills(),
+    params: getProfileParams(),
     completion: getProfileCompletion(),
   };
 
@@ -147,14 +169,16 @@ const ProfileView: React.FC = () => {
   };
 
   const handleEdit = () => {
+    if (!isEditing) {
+      // Entering edit mode - copy current data to edited state
+      setEditedData(JSON.parse(JSON.stringify(profileData || {})));
+    }
     setIsEditing(!isEditing);
   };
 
   const handleSave = () => {
-    // Save user info changes to server
-    if (editingInfo.firstName !== user?.firstName || editingInfo.lastName !== user?.lastName) {
-      updateProfileOnServer();
-    }
+    // Save all changes to server
+    updateProfileOnServer();
   };
 
   const updateProfileOnServer = async () => {
@@ -165,18 +189,29 @@ const ProfileView: React.FC = () => {
 
     // Очищаем номер телефона от всех символов кроме цифр
     const cleanPhone = user.phone.replace(/\D/g, '');
-    
+
     try {
+      const payload: any = {
+        user_id: cleanPhone,
+        name: editingInfo.firstName,
+        family_name: editingInfo.lastName
+      };
+
+      // Add all edited arrays if they exist
+      if (editedData?.values) payload.values = editedData.values;
+      if (editedData?.beliefs) payload.beliefs = editedData.beliefs;
+      if (editedData?.desires) payload.desires = editedData.desires;
+      if (editedData?.intents) payload.intents = editedData.intents;
+      if (editedData?.interests) payload.interests = editedData.interests;
+      if (editedData?.skills) payload.skills = editedData.skills;
+      if (editedData?.profile) payload.profile = editedData.profile;
+
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/profile-update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          user_id: cleanPhone,
-          name: editingInfo.firstName,
-          family_name: editingInfo.lastName
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -184,18 +219,19 @@ const ProfileView: React.FC = () => {
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         // Обновляем локальные данные только после успешного сохранения на сервере
         updateUserInfo({
           firstName: editingInfo.firstName,
           lastName: editingInfo.lastName
         });
-        
+
         // Перезагружаем профиль с сервера для получения актуальных данных
         await loadProfileFromServer();
-        
+
         setIsEditing(false);
+        setEditedData(null);
         alert('Профиль успешно обновлен');
       } else {
         throw new Error('Сервер вернул ошибку');
@@ -211,6 +247,7 @@ const ProfileView: React.FC = () => {
       firstName: user?.firstName || '',
       lastName: user?.lastName || ''
     });
+    setEditedData(null);
     setIsEditing(false);
   };
 
@@ -302,6 +339,19 @@ const ProfileView: React.FC = () => {
         alert(`Ошибка при удалении аккаунта: ${error.message}`);
       });
     }
+  };
+
+  const removeFromArray = (field: keyof ProfileData, index: number) => {
+    if (!editedData) return;
+
+    const currentArray = editedData[field];
+    if (!Array.isArray(currentArray)) return;
+
+    const newArray = currentArray.filter((_, i) => i !== index);
+    setEditedData({
+      ...editedData,
+      [field]: newArray
+    });
   };
 
   return (
@@ -527,18 +577,24 @@ const ProfileView: React.FC = () => {
               <TrendingUp className="w-5 h-5 mr-2 text-forest-600" />
               {t('profile.values')}
             </h2>
-            {isEditing && (
-              <button className="text-blue-600 hover:text-blue-800 text-sm">
-                {t('profile.add_value')}
-              </button>
-            )}
           </div>
           {profile.values.length > 0 ? (
             <div className="space-y-2">
               {profile.values.map((value, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700">{typeof value === 'string' ? value : value.name}</p>
+                <div key={index} className="flex items-start justify-between space-x-2 group">
+                  <div className="flex items-start space-x-2 flex-1">
+                    <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{typeof value === 'string' ? value : value.name}</p>
+                  </div>
+                  {isEditing && (
+                    <button
+                      onClick={() => removeFromArray('values', index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      title="Удалить"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -553,16 +609,27 @@ const ProfileView: React.FC = () => {
         </div>
 
         {/* Profile Parameters */}
-        {profileData?.profile && profileData.profile.length > 0 && (
+        {profile.params.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Параметры профиля
             </h2>
             <div className="space-y-2">
-              {profileData.profile.map((param, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700">{param}</p>
+              {profile.params.map((param, index) => (
+                <div key={index} className="flex items-start justify-between space-x-2 group">
+                  <div className="flex items-start space-x-2 flex-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{param}</p>
+                  </div>
+                  {isEditing && (
+                    <button
+                      onClick={() => removeFromArray('profile', index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      title="Удалить"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -577,9 +644,20 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.beliefs.map((belief, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700">{belief}</p>
+                <div key={index} className="flex items-start justify-between space-x-2 group">
+                  <div className="flex items-start space-x-2 flex-1">
+                    <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{belief}</p>
+                  </div>
+                  {isEditing && (
+                    <button
+                      onClick={() => removeFromArray('beliefs', index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      title="Удалить"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -594,9 +672,20 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.desires.map((desire, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700">{desire}</p>
+                <div key={index} className="flex items-start justify-between space-x-2 group">
+                  <div className="flex items-start space-x-2 flex-1">
+                    <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{desire}</p>
+                  </div>
+                  {isEditing && (
+                    <button
+                      onClick={() => removeFromArray('desires', index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      title="Удалить"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -611,9 +700,20 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.intentions.map((intention, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700">{intention}</p>
+                <div key={index} className="flex items-start justify-between space-x-2 group">
+                  <div className="flex items-start space-x-2 flex-1">
+                    <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{intention}</p>
+                  </div>
+                  {isEditing && (
+                    <button
+                      onClick={() => removeFromArray('intents', index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      title="Удалить"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -628,9 +728,20 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.interests.map((interest, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700">{interest}</p>
+                <div key={index} className="flex items-start justify-between space-x-2 group">
+                  <div className="flex items-start space-x-2 flex-1">
+                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{interest}</p>
+                  </div>
+                  {isEditing && (
+                    <button
+                      onClick={() => removeFromArray('interests', index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      title="Удалить"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -645,9 +756,20 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.skills.map((skill, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700">{skill}</p>
+                <div key={index} className="flex items-start justify-between space-x-2 group">
+                  <div className="flex items-start space-x-2 flex-1">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{skill}</p>
+                  </div>
+                  {isEditing && (
+                    <button
+                      onClick={() => removeFromArray('skills', index)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      title="Удалить"
+                    >
+                      <X className="w-4 h-4 text-red-600" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
