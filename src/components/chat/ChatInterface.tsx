@@ -11,16 +11,8 @@ interface Assistant {
   description: string;
 }
 
-const getAvatarForAssistant = (name: string): string => {
-  const avatarMap: { [key: string]: string } = {
-    'Миша': '💼',
-    'Оля': '🧠',
-    'Маша': '🎮',
-    'Павел': '⭐',
-    'Роман': '🎨',
-    'Любовь': '🎮'
-  };
-  return avatarMap[name] || '👤';
+const getAvatarUrl = (agentId: number): string => {
+  return `https://travel-n8n.up.railway.app/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/agent/avatar/${agentId}`;
 };
 
 const getRoleForAssistant = (description: string): string => {
@@ -710,9 +702,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
                   className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg">{getAvatarForAssistant(selectedAssistant.name)}</span>
-                  </div>
+                  <img
+                    src={getAvatarUrl(selectedAssistant.id)}
+                    alt={selectedAssistant.name}
+                    className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = '<div class="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0"><span class="text-lg">👤</span></div>';
+                      }
+                    }}
+                  />
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
                     <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description)}</span>
@@ -736,9 +738,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           )}
                         >
                           <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
-                              {getAvatarForAssistant(assistant.name)}
-                            </div>
+                            <img
+                              src={getAvatarUrl(assistant.id)}
+                              alt={assistant.name}
+                              className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = '<div class="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">👤</div>';
+                                }
+                              }}
+                            />
                             <div className="flex flex-col flex-1">
                               <span className="text-sm font-medium text-gray-900">{assistant.name}</span>
                               <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
