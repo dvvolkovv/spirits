@@ -696,7 +696,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <div className="flex flex-col h-full bg-gray-50 relative">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed top-0 left-0 right-0 z-40">
+      <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed md:relative top-0 left-0 right-0 z-40">
         <div className="flex items-center justify-between max-w-full">
           <div className="relative" ref={dropdownRef}>
             {isLoadingAssistants ? (

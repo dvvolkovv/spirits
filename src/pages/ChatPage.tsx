@@ -6,7 +6,7 @@ const ChatPage: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="h-full flex flex-col pt-16">
+    <div className="h-full flex flex-col pt-16 md:pt-0">
       <ChatInterface
         title={t('chat.title')}
         welcomeMessage={t('chat.welcome_message')}
