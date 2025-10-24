@@ -89,21 +89,93 @@ const SearchInterface: React.FC = () => {
     localStorage.setItem('has_searched', hasSearched.toString());
   }, [hasSearched]);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    
+  const handlePhoneSearch = async () => {
+    if (phoneNumbers.length === 0) return;
+
     setIsSearching(true);
     setSearchComment('');
     setResults([]);
     setHasSearched(true);
-    
+
     // Очищаем предыдущие результаты из localStorage
     localStorage.removeItem('search_results');
     localStorage.removeItem('search_comment');
-    
+
     // Get user phone number for userId
     const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
-    
+
+    // Prepare phone IDs list - remove '+' and format as needed
+    const phoneIds = phoneNumbers.map(phone => phone.replace(/\D/g, ''));
+    const query = `проанализируй совместимость пользователей с id: ${phoneIds.join(', ')}`;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/search-mate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: query,
+          userId: userId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+
+            if (data.type === 'item' && data.content) {
+              accumulatedText += data.content;
+              setSearchComment(accumulatedText);
+            }
+          } catch (e) {
+            console.warn('Failed to parse streaming data:', line);
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Error during phone search:', error);
+      setSearchComment('Произошла ошибка при поиске. Попробуйте еще раз.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    setSearchComment('');
+    setResults([]);
+    setHasSearched(true);
+
+    // Очищаем предыдущие результаты из localStorage
+    localStorage.removeItem('search_results');
+    localStorage.removeItem('search_comment');
+
+    // Get user phone number for userId
+    const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
+
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/search-mate`, {
         method: 'POST',
@@ -415,14 +487,14 @@ const SearchInterface: React.FC = () => {
             )}
 
             <button
-              onClick={handleSearch}
+              onClick={handlePhoneSearch}
               disabled={isSearching || phoneNumbers.length === 0}
               className="w-full px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
             >
               {isSearching ? (
                 <div className="flex items-center justify-center">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Поиск...
+                  Анализ...
                 </div>
               ) : (
                 `Показать (${phoneNumbers.length})`
