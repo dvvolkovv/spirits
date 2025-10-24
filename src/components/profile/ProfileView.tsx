@@ -581,15 +581,13 @@ const ProfileView: React.FC = () => {
           {profile.values.length > 0 ? (
             <div className="space-y-2">
               {profile.values.map((value, index) => (
-                <div key={index} className="flex items-start justify-between space-x-2 group">
-                  <div className="flex items-start space-x-2 flex-1">
-                    <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{typeof value === 'string' ? value : value.name}</p>
-                  </div>
+                <div key={index} className="flex items-start space-x-2 group">
+                  <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700 flex-1">{typeof value === 'string' ? value : value.name}</p>
                   {isEditing && (
                     <button
                       onClick={() => removeFromArray('values', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
                       title="Удалить"
                     >
                       <X className="w-4 h-4 text-red-600" />
@@ -616,15 +614,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.params.map((param, index) => (
-                <div key={index} className="flex items-start justify-between space-x-2 group">
-                  <div className="flex items-start space-x-2 flex-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{param}</p>
-                  </div>
+                <div key={index} className="flex items-start space-x-2 group">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700 flex-1">{param}</p>
                   {isEditing && (
                     <button
                       onClick={() => removeFromArray('profile', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
                       title="Удалить"
                     >
                       <X className="w-4 h-4 text-red-600" />
@@ -644,15 +640,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.beliefs.map((belief, index) => (
-                <div key={index} className="flex items-start justify-between space-x-2 group">
-                  <div className="flex items-start space-x-2 flex-1">
-                    <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{belief}</p>
-                  </div>
+                <div key={index} className="flex items-start space-x-2 group">
+                  <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700 flex-1">{belief}</p>
                   {isEditing && (
                     <button
                       onClick={() => removeFromArray('beliefs', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
                       title="Удалить"
                     >
                       <X className="w-4 h-4 text-red-600" />
@@ -672,15 +666,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.desires.map((desire, index) => (
-                <div key={index} className="flex items-start justify-between space-x-2 group">
-                  <div className="flex items-start space-x-2 flex-1">
-                    <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{desire}</p>
-                  </div>
+                <div key={index} className="flex items-start space-x-2 group">
+                  <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700 flex-1">{desire}</p>
                   {isEditing && (
                     <button
                       onClick={() => removeFromArray('desires', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
                       title="Удалить"
                     >
                       <X className="w-4 h-4 text-red-600" />
@@ -700,15 +692,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.intentions.map((intention, index) => (
-                <div key={index} className="flex items-start justify-between space-x-2 group">
-                  <div className="flex items-start space-x-2 flex-1">
-                    <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{intention}</p>
-                  </div>
+                <div key={index} className="flex items-start space-x-2 group">
+                  <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700 flex-1">{intention}</p>
                   {isEditing && (
                     <button
                       onClick={() => removeFromArray('intents', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
                       title="Удалить"
                     >
                       <X className="w-4 h-4 text-red-600" />
@@ -728,15 +718,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.interests.map((interest, index) => (
-                <div key={index} className="flex items-start justify-between space-x-2 group">
-                  <div className="flex items-start space-x-2 flex-1">
-                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{interest}</p>
-                  </div>
+                <div key={index} className="flex items-start space-x-2 group">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700 flex-1">{interest}</p>
                   {isEditing && (
                     <button
                       onClick={() => removeFromArray('interests', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
                       title="Удалить"
                     >
                       <X className="w-4 h-4 text-red-600" />
@@ -756,15 +744,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.skills.map((skill, index) => (
-                <div key={index} className="flex items-start justify-between space-x-2 group">
-                  <div className="flex items-start space-x-2 flex-1">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{skill}</p>
-                  </div>
+                <div key={index} className="flex items-start space-x-2 group">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-gray-700 flex-1">{skill}</p>
                   {isEditing && (
                     <button
                       onClick={() => removeFromArray('skills', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
                       title="Удалить"
                     >
                       <X className="w-4 h-4 text-red-600" />
