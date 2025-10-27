@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
-import { Heart, X, Plus } from 'lucide-react';
+import { Heart, X, Plus, Users, Info } from 'lucide-react';
 
 const CompatibilityInterface: React.FC = () => {
   const { user } = useAuth();
@@ -10,6 +10,32 @@ const CompatibilityInterface: React.FC = () => {
   const [phoneError, setPhoneError] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [analysisResult, setAnalysisResult] = useState('');
+  const [isContactPickerSupported, setIsContactPickerSupported] = useState(false);
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+
+  useEffect(() => {
+    if ('contacts' in navigator && 'ContactsManager' in window) {
+      setIsContactPickerSupported(true);
+    }
+  }, []);
+
+  const normalizePhoneNumber = (phone: string): string => {
+    let cleaned = phone.replace(/\D/g, '');
+
+    if (cleaned.startsWith('8') && cleaned.length === 11) {
+      cleaned = '7' + cleaned.slice(1);
+    }
+
+    if (cleaned.startsWith('7') && cleaned.length === 11) {
+      return cleaned;
+    }
+
+    if (cleaned.length === 10) {
+      return '7' + cleaned;
+    }
+
+    return cleaned;
+  };
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -70,6 +96,67 @@ const CompatibilityInterface: React.FC = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       addPhoneNumber();
+    }
+  };
+
+  const handleSelectFromContacts = async () => {
+    if (!isContactPickerSupported) {
+      setPhoneError('Ваш браузер не поддерживает выбор контактов. Попробуйте использовать Chrome на Android.');
+      return;
+    }
+
+    try {
+      setIsLoadingContacts(true);
+      setPhoneError('');
+
+      const contacts = await (navigator as any).contacts.select(['tel'], { multiple: true });
+
+      if (!contacts || contacts.length === 0) {
+        setPhoneError('Контакты не выбраны');
+        return;
+      }
+
+      const newPhoneNumbers: string[] = [];
+      const duplicates: string[] = [];
+
+      for (const contact of contacts) {
+        if (contact.tel && contact.tel.length > 0) {
+          for (const tel of contact.tel) {
+            const normalized = normalizePhoneNumber(tel);
+
+            if (normalized.length === 11) {
+              const formatted = formatPhoneNumber(normalized);
+
+              if (!phoneNumbers.includes(formatted) && !newPhoneNumbers.includes(formatted)) {
+                newPhoneNumbers.push(formatted);
+              } else {
+                duplicates.push(formatted);
+              }
+            }
+          }
+        }
+      }
+
+      if (newPhoneNumbers.length > 0) {
+        setPhoneNumbers([...phoneNumbers, ...newPhoneNumbers]);
+
+        if (duplicates.length > 0) {
+          setPhoneError(`Добавлено ${newPhoneNumbers.length} номеров. ${duplicates.length} номеров пропущено (дубликаты).`);
+        }
+      } else {
+        setPhoneError('Не найдено подходящих номеров телефонов');
+      }
+
+    } catch (error: any) {
+      console.error('Error selecting contacts:', error);
+
+      if (error.name === 'AbortError') {
+        setPhoneError('Выбор контактов отменен');
+      } else {
+        setPhoneError('Ошибка при выборе контактов. Убедитесь, что вы дали разрешение на доступ к контактам.');
+      }
+    } finally {
+      setIsLoadingContacts(false);
     }
   };
 
@@ -152,6 +239,38 @@ const CompatibilityInterface: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Добавьте номера телефонов
           </h2>
+
+          {isContactPickerSupported && (
+            <div className="mb-4">
+              <button
+                onClick={handleSelectFromContacts}
+                disabled={isLoadingContacts}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center space-x-2"
+              >
+                {isLoadingContacts ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Открываем контакты...</span>
+                  </>
+                ) : (
+                  <>
+                    <Users className="w-5 h-5" />
+                    <span>Выбрать из контактов</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {!isContactPickerSupported && (
+            <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start space-x-2">
+              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">Выбор из контактов недоступен</p>
+                <p>Для использования этой функции откройте приложение в Chrome на Android устройстве.</p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className="flex space-x-2">
