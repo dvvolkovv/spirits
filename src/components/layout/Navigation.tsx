@@ -5,10 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   MessageCircle,
   Users,
-  Search,
   User,
   TrendingUp,
-  Heart
+  Heart,
+  ArrowRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -82,9 +82,9 @@ const Navigation: React.FC = () => {
     },
     {
       to: '/search',
-      icon: Search,
+      icon: ArrowRight,
       label: t('search.title'),
-      isLogo: true,
+      isLogo: false,
     },
     {
       to: '/compatibility',
