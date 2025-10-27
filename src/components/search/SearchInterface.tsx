@@ -18,8 +18,6 @@ interface UserMatch {
   phone?: string;
 }
 
-type SearchMode = 'intent' | 'phone' | 'community';
-
 const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -37,11 +35,6 @@ const SearchInterface: React.FC = () => {
   const [currentPlaceholder, setCurrentPlaceholder] = useState(() => {
     return intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)];
   });
-
-  const [searchMode, setSearchMode] = useState<SearchMode>('intent');
-  const [phoneNumbers, setPhoneNumbers] = useState<string[]>([]);
-  const [currentPhoneInput, setCurrentPhoneInput] = useState('');
-  const [phoneError, setPhoneError] = useState('');
 
   // Используем localStorage для сохранения состояния поиска
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -406,34 +399,8 @@ const SearchInterface: React.FC = () => {
           {t('search.title')}
         </h1>
 
-        {/* Search Mode Tabs */}
-        <div className="flex space-x-2 mb-4">
-          <button
-            onClick={() => setSearchMode('intent')}
-            className={clsx(
-              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              searchMode === 'intent'
-                ? 'bg-forest-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            )}
-          >
-            По намерению
-          </button>
-          <button
-            onClick={() => setSearchMode('phone')}
-            className={clsx(
-              'flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              searchMode === 'phone'
-                ? 'bg-forest-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            )}
-          >
-            По людям
-          </button>
-        </div>
-
         {/* Search Bar */}
-        {searchMode === 'phone' ? (
+        {false ? (
           <div>
             <div className="flex space-x-2 mb-2">
               <div className="flex-1 relative">

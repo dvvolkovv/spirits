@@ -8,6 +8,7 @@ import ChatsPage from './pages/ChatsPage';
 import ChatConversationPage from './pages/ChatConversationPage';
 import ProfileView from './components/profile/ProfileView';
 import SearchInterface from './components/search/SearchInterface';
+import CompatibilityPage from './pages/CompatibilityPage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -41,6 +42,7 @@ const AppContent: React.FC = () => {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/profile" element={<ProfileView />} />
           <Route path="/search" element={<SearchInterface />} />
+          <Route path="/compatibility" element={<CompatibilityPage />} />
           <Route path="/" element={<Navigate to="/chat" replace />} />
         </Routes>
       </div>

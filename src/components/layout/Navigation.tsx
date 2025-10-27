@@ -7,7 +7,8 @@ import {
   Users,
   Search,
   User,
-  TrendingUp
+  TrendingUp,
+  Heart
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -84,6 +85,12 @@ const Navigation: React.FC = () => {
       icon: Search,
       label: t('search.title'),
       isLogo: true,
+    },
+    {
+      to: '/compatibility',
+      icon: Heart,
+      label: 'Совместимость',
+      isLogo: false,
     },
     {
       to: '/profile',
