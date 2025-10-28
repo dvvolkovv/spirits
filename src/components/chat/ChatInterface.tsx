@@ -12,24 +12,7 @@ interface Assistant {
 }
 
 const getAvatarUrl = (agentId: number): string => {
-  const cacheKey = `avatar_cache_${agentId}`;
-  const cachedUrl = localStorage.getItem(cacheKey);
-
-  if (cachedUrl) {
-    return cachedUrl;
-  }
-
-  const url = `https://travel-n8n.up.railway.app/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/agent/avatar/${agentId}`;
-
-  fetch(url)
-    .then(response => response.blob())
-    .then(blob => {
-      const objectUrl = URL.createObjectURL(blob);
-      localStorage.setItem(cacheKey, objectUrl);
-    })
-    .catch(error => console.error('Error caching avatar:', error));
-
-  return url;
+  return `https://travel-n8n.up.railway.app/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/agent/avatar/${agentId}`;
 };
 
 const getRoleForAssistant = (description: string): string => {
