@@ -241,22 +241,54 @@ const SearchInterface: React.FC = () => {
       
       // Parse the final JSON results
       if (searchResultFound && jsonBuffer.trim()) {
+        let cleanJson = '';
+        let additionalText = '';
+
         try {
-          // Clean up the JSON buffer - remove any trailing text and parse
-          let cleanJson = jsonBuffer.trim();
-          
-          // Remove any trailing non-JSON content
-          const lastBraceIndex = cleanJson.lastIndexOf('}');
+          cleanJson = jsonBuffer.trim();
+
+          // Remove markdown formatting (**, `, etc)
+          cleanJson = cleanJson.replace(/\*\*/g, '');
+          cleanJson = cleanJson.replace(/```json\s*/g, '');
+          cleanJson = cleanJson.replace(/```\s*/g, '');
+
+          // Find the JSON array boundaries
+          const firstBracketIndex = cleanJson.indexOf('[');
           const lastBracketIndex = cleanJson.lastIndexOf(']');
-          const lastValidIndex = Math.max(lastBraceIndex, lastBracketIndex);
-          
-          if (lastValidIndex > -1) {
-            cleanJson = cleanJson.substring(0, lastValidIndex + 1);
+
+          if (firstBracketIndex > -1 && lastBracketIndex > -1 && lastBracketIndex > firstBracketIndex) {
+            // Extract text after JSON as additional recommendation
+            if (lastBracketIndex + 1 < cleanJson.length) {
+              additionalText = cleanJson.substring(lastBracketIndex + 1).trim();
+            }
+
+            // Extract only the JSON array
+            cleanJson = cleanJson.substring(firstBracketIndex, lastBracketIndex + 1);
+          } else {
+            // Fallback: try to find object boundaries
+            const firstBraceIndex = cleanJson.indexOf('{');
+            const lastBraceIndex = cleanJson.lastIndexOf('}');
+
+            if (firstBraceIndex > -1 && lastBraceIndex > -1) {
+              cleanJson = cleanJson.substring(firstBraceIndex, lastBraceIndex + 1);
+            }
           }
-          
+
           console.log('Parsing JSON:', cleanJson);
           const searchResults = JSON.parse(cleanJson);
-          
+
+          // If there's additional text after JSON, append it to search comment
+          if (additionalText) {
+            const cleanAdditionalText = additionalText
+              .replace(/^\s*[\n\r]+/g, '')
+              .replace(/\*\*Рекомендация\*\*/gi, '\n\n**Рекомендация**')
+              .trim();
+
+            if (cleanAdditionalText && searchComment) {
+              setSearchComment(searchComment + '\n\n' + cleanAdditionalText);
+            }
+          }
+
           if (Array.isArray(searchResults)) {
             const formattedResults: UserMatch[] = searchResults.map((result: any) => ({
               id: result.id || result.userId || result.user_id || Math.random().toString(),
@@ -268,7 +300,7 @@ const SearchInterface: React.FC = () => {
               corellation: result.corellation || result.correlation || 0,
               phone: result.id || result.userId || result.user_id || null
             }));
-            
+
             console.log('Formatted results:', formattedResults);
             setResults(formattedResults);
           } else if (searchResults && typeof searchResults === 'object') {
@@ -283,7 +315,7 @@ const SearchInterface: React.FC = () => {
               corellation: searchResults.corellation || searchResults.correlation || 0,
               phone: searchResults.id || searchResults.userId || searchResults.user_id || null
             };
-            
+
             console.log('Single result:', singleResult);
             setResults([singleResult]);
           } else {
@@ -294,7 +326,6 @@ const SearchInterface: React.FC = () => {
           console.error('Failed to parse search results JSON:', jsonError);
           console.log('Raw JSON buffer:', jsonBuffer);
           console.log('Cleaned JSON:', cleanJson);
-          // Fallback to empty results
           setResults([]);
         }
       } else {
