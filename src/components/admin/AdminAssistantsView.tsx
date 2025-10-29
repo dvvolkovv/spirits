@@ -64,7 +64,7 @@ const AdminAssistantsView: React.FC = () => {
       formData.append('description', '');
       formData.append('name', selectedAgent.name);
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook-test/agent`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/agent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
