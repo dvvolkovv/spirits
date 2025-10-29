@@ -15,7 +15,7 @@ import { clsx } from 'clsx';
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [profileCompletion, setProfileCompletion] = React.useState<number>(0);
+  const [profileCompletion, setProfileCompletion] = React.useState<number | null>(null);
   const [isLoadingCompletion, setIsLoadingCompletion] = React.useState(false);
 
   // Загрузка заполнения профиля с сервера
@@ -54,16 +54,20 @@ const Navigation: React.FC = () => {
         const data = profileRecord.profile_data || profileRecord;
         
         // Получаем completeness и конвертируем в число
-        const completion = data.completeness ? parseInt(data.completeness) : 0;
-        // Проверяем, что это валидное число
-        setProfileCompletion(isNaN(completion) ? 0 : completion);
+        if (data.completeness) {
+          const completion = parseInt(data.completeness);
+          // Если это валидное число, сохраняем его, иначе null
+          setProfileCompletion(isNaN(completion) ? null : completion);
+        } else {
+          setProfileCompletion(0);
+        }
       } else {
         console.warn('Профиль не найден на сервере');
-        setProfileCompletion(0);
+        setProfileCompletion(null);
       }
     } catch (error) {
       console.error('Ошибка при загрузке заполнения профиля:', error);
-      setProfileCompletion(0);
+      setProfileCompletion(null);
     } finally {
       setIsLoadingCompletion(false);
     }
@@ -104,7 +108,7 @@ const Navigation: React.FC = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
       {/* Profile Completion - только для десктопа */}
-      {!isNaN(profileCompletion) && profileCompletion >= 0 && (
+      {profileCompletion !== null && (
         <div className="hidden md:block p-4 border-b border-gray-200 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-gray-700">

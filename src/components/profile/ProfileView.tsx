@@ -70,9 +70,9 @@ const ProfileView: React.FC = () => {
     return Array.isArray(data?.profile) ? data.profile : [];
   };
   const getProfileCompletion = () => {
-    if (!profileData?.completeness) return 0;
+    if (!profileData?.completeness) return null;
     const completion = parseInt(profileData.completeness);
-    return isNaN(completion) ? 0 : completion;
+    return isNaN(completion) ? null : completion;
   };
 
   const profile = {
@@ -549,7 +549,7 @@ const ProfileView: React.FC = () => {
         </div>
 
         {/* Profile Completion */}
-        {!isNaN(profile.completion) && profile.completion >= 0 && (
+        {profile.completion !== null && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">
