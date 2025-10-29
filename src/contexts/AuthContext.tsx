@@ -6,6 +6,7 @@ interface User {
   firstName?: string;
   lastName?: string;
   avatar?: string;
+  isAdmin?: boolean;
   profile?: {
     values: Array<{ name: string; confidence: number; private: boolean }>;
     beliefs: string[];
@@ -25,6 +26,7 @@ interface AuthContextType {
   updateProfile: (profile: Partial<User['profile']>) => void;
   updateUserInfo: (info: { firstName?: string; lastName?: string }) => void;
   updateAvatar: (avatar: string) => void;
+  checkAdminStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,25 +48,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing auth token
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
+    const initAuth = async () => {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('userData');
+
+      if (token && userData) {
+        try {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+        }
       }
-    }
-    
-    setIsLoading(false);
+
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
-  const login = (phone: string, token: string) => {
+  useEffect(() => {
+    if (user && !isLoading) {
+      checkAdminStatus();
+    }
+  }, [user?.phone]);
+
+  const login = async (phone: string, token: string) => {
     const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
       phone,
@@ -80,6 +91,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('authToken', token);
     localStorage.setItem('userData', JSON.stringify(newUser));
     setUser(newUser);
+
+    await checkAdminStatus();
+  };
+
+  const checkAdminStatus = async () => {
+    if (!user?.phone) return;
+
+    const cleanPhone = user.phone.replace(/\D/g, '');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+
+        let profileRecord;
+        if (Array.isArray(responseData) && responseData.length > 0) {
+          profileRecord = responseData[0];
+        } else if (responseData && typeof responseData === 'object') {
+          profileRecord = responseData;
+        }
+
+        if (profileRecord?.isadmin === true) {
+          const updatedUser = {
+            ...user,
+            isAdmin: true
+          };
+          setUser(updatedUser);
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
   };
 
   const logout = () => {
@@ -167,6 +217,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updateProfile,
         updateUserInfo,
         updateAvatar,
+        checkAdminStatus,
       }}
     >
       {children}

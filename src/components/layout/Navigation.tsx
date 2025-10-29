@@ -8,7 +8,8 @@ import {
   User,
   TrendingUp,
   Heart,
-  ArrowRight
+  ArrowRight,
+  Shield
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -78,7 +79,7 @@ const Navigation: React.FC = () => {
     loadProfileCompletion();
   }, [loadProfileCompletion]);
 
-  const navItems = [
+  const baseNavItems = [
     {
       to: '/chat',
       icon: MessageCircle,
@@ -104,6 +105,15 @@ const Navigation: React.FC = () => {
       isLogo: false,
     },
   ];
+
+  const adminNavItem = {
+    to: '/admin',
+    icon: Shield,
+    label: 'Admin',
+    isLogo: false,
+  };
+
+  const navItems = user?.isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
