@@ -58,30 +58,39 @@ const AdminAssistantsView: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/update-agent`, {
+      const formData = new URLSearchParams();
+      formData.append('agent-id', selectedAgent.id.toString());
+      formData.append('system_prompt', editedPrompt);
+      formData.append('description', '');
+      formData.append('name', selectedAgent.name);
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook-test/agent`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({
-          id: selectedAgent.id,
-          system_prompt: editedPrompt
-        })
+        body: formData.toString()
       });
 
       if (!response.ok) {
         throw new Error(`Ошибка сохранения: ${response.status}`);
       }
 
-      const updatedAgents = agents.map(agent =>
-        agent.id === selectedAgent.id
-          ? { ...agent, system_prompt: editedPrompt }
-          : agent
-      );
-      setAgents(updatedAgents);
-      setSelectedAgent({ ...selectedAgent, system_prompt: editedPrompt });
+      const result = await response.json();
 
-      alert('Системный промпт успешно обновлен');
+      if (result.success === 'agent updated') {
+        const updatedAgents = agents.map(agent =>
+          agent.id === selectedAgent.id
+            ? { ...agent, system_prompt: editedPrompt }
+            : agent
+        );
+        setAgents(updatedAgents);
+        setSelectedAgent({ ...selectedAgent, system_prompt: editedPrompt });
+
+        alert('Системный промпт успешно обновлен');
+      } else {
+        throw new Error('Сервер не подтвердил обновление');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при сохранении');
       console.error('Error saving agent:', err);
