@@ -69,7 +69,11 @@ const ProfileView: React.FC = () => {
     const data = isEditing ? editedData : profileData;
     return Array.isArray(data?.profile) ? data.profile : [];
   };
-  const getProfileCompletion = () => profileData?.completeness ? parseInt(profileData.completeness) : 0;
+  const getProfileCompletion = () => {
+    if (!profileData?.completeness) return 0;
+    const completion = parseInt(profileData.completeness);
+    return isNaN(completion) ? 0 : completion;
+  };
 
   const profile = {
     values: getProfileValues(),
@@ -545,30 +549,32 @@ const ProfileView: React.FC = () => {
         </div>
 
         {/* Profile Completion */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {t('profile.completion')}
-            </h2>
-            <span className="text-2xl font-bold text-blue-600">
-              {profile.completion}%
-            </span>
+        {!isNaN(profile.completion) && profile.completion >= 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {t('profile.completion')}
+              </h2>
+              <span className="text-2xl font-bold text-blue-600">
+                {profile.completion}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="bg-gradient-to-r from-forest-500 to-warm-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${profile.completion}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              {profileData
+                ? 'Данные загружены с сервера'
+                : profile.completion === 0
+                  ? 'Профиль не найден. Начните общение с ассистентом для создания профиля'
+                  : 'Продолжайте общение с ассистентом для улучшения профиля'
+              }
+            </p>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-forest-500 to-warm-500 h-3 rounded-full transition-all duration-500"
-              style={{ width: `${profile.completion}%` }}
-            />
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            {profileData 
-              ? 'Данные загружены с сервера' 
-              : profile.completion === 0 
-                ? 'Профиль не найден. Начните общение с ассистентом для создания профиля'
-                : 'Продолжайте общение с ассистентом для улучшения профиля'
-            }
-          </p>
-        </div>
+        )}
 
         {/* Values */}
         <div className="bg-white rounded-lg shadow-sm p-6">
