@@ -162,6 +162,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         })));
       } else {
         setMessages([]);
+        sendInitialGreeting(selectedAssistant);
       }
     }
   }, [selectedAssistant, hasUserSelectedAssistant]);
