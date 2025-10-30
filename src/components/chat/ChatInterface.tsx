@@ -184,7 +184,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           const data = await response.json();
           setAssistants(data);
           if (!selectedAssistant && data.length > 0) {
-            setSelectedAssistant(data[0]);
+            const olyaAssistant = data.find((assistant: Assistant) => assistant.name === 'Оля');
+            setSelectedAssistant(olyaAssistant || data[0]);
           }
         } else {
           console.error('Failed to fetch assistants');
