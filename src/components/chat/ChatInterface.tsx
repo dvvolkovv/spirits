@@ -158,9 +158,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         })));
       } else {
         setMessages([]);
+        sendInitialGreeting();
       }
     }
   }, [selectedAssistant]);
+
+  const sendInitialGreeting = async () => {
+    const greetingMessage = "Привет! Расскажи про себя!";
+    await sendMessageToAI(greetingMessage);
+  };
 
   useEffect(() => {
     if (selectedAssistant) {
