@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
+import { AssistantSelection } from './AssistantSelection';
 
 interface Assistant {
   id: number;
@@ -144,10 +145,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return null;
   });
   const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
+  const [hasUserSelectedAssistant, setHasUserSelectedAssistant] = useState<boolean>(() => {
+    return localStorage.getItem('selected_assistant') !== null;
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (selectedAssistant) {
+    if (selectedAssistant && hasUserSelectedAssistant) {
       const storageKey = getChatStorageKey(selectedAssistant.id);
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -158,10 +162,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         })));
       } else {
         setMessages([]);
-        sendInitialGreeting(selectedAssistant);
       }
     }
-  }, [selectedAssistant]);
+  }, [selectedAssistant, hasUserSelectedAssistant]);
 
   const sendInitialGreeting = async (assistant: Assistant) => {
     if (user?.phone) {
@@ -201,10 +204,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (response.ok) {
           const data = await response.json();
           setAssistants(data);
-          if (!selectedAssistant && data.length > 0) {
-            const olyaAssistant = data.find((assistant: Assistant) => assistant.name === 'Оля');
-            setSelectedAssistant(olyaAssistant || data[0]);
-          }
         } else {
           console.error('Failed to fetch assistants');
         }
@@ -709,6 +708,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     "Что меня мотивирует?",
     "Помоги найти единомышленников"
   ];
+
+  const handleSelectAssistant = async (assistant: Assistant) => {
+    setSelectedAssistant(assistant);
+    setHasUserSelectedAssistant(true);
+    localStorage.setItem('selected_assistant', JSON.stringify(assistant));
+
+    await sendInitialGreeting(assistant);
+  };
+
+  if (!hasUserSelectedAssistant) {
+    return (
+      <AssistantSelection
+        assistants={assistants}
+        onSelectAssistant={handleSelectAssistant}
+        isLoading={isLoadingAssistants}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-gray-50 relative">
