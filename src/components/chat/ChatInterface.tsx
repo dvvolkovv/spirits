@@ -158,12 +158,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         })));
       } else {
         setMessages([]);
-        sendInitialGreeting();
+        sendInitialGreeting(selectedAssistant);
       }
     }
   }, [selectedAssistant]);
 
-  const sendInitialGreeting = async () => {
+  const sendInitialGreeting = async (assistant: Assistant) => {
+    if (user?.phone) {
+      const cleanPhone = user.phone.replace(/\D/g, '');
+      try {
+        const formData = new FormData();
+        formData.append('user-id', cleanPhone);
+        formData.append('agent', assistant.name);
+
+        await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
+          method: 'POST',
+          body: formData
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error('Error changing agent on server:', error);
+      }
+    }
+
     const greetingMessage = "Привет! Расскажи про себя!";
     await sendMessageToAI(greetingMessage);
   };
