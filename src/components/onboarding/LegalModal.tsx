@@ -240,7 +240,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <p className="text-gray-700"><strong>Наименование:</strong> Волков Дмитрий Викторович</p>
         <p className="text-gray-700"><strong>ИНН:</strong> 463404496646</p>
         <p className="text-gray-700"><strong>Статус:</strong> Плательщик налога на профессиональный доход (самозанятый)</p>
-        <p className="text-gray-700"><strong>Контактный email:</strong> support@kindredspirits.app</p>
+        <p className="text-gray-700"><strong>Контактный email:</strong> support@linkeon.io</p>
       </div>
 
       <p className="text-gray-700 leading-relaxed">
