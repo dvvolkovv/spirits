@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, X, Edit2, Shield } from 'lucide-react';
+import { Save, X, CreditCard as Edit2, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface Agent {
