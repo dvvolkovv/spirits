@@ -168,11 +168,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [selectedAssistant, hasUserSelectedAssistant]);
 
   const sendInitialGreeting = async (assistant: Assistant) => {
+    console.log('sendInitialGreeting called with assistant:', assistant);
     await changeAgentOnServer(assistant);
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const greetingMessage = "Привет! Расскажи про себя!";
-    await sendMessageToAI(greetingMessage);
+    await sendMessageToAI(greetingMessage, assistant);
   };
 
   useEffect(() => {
@@ -349,7 +350,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, []);
 
-  const sendMessageToAI = async (userMessage: string) => {
+  const sendMessageToAI = async (userMessage: string, assistantOverride?: Assistant) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
 
@@ -376,8 +377,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         body: JSON.stringify({
           chatInput: userMessage,
           sessionId: phoneNumber,
-          assistant: selectedAssistant?.id || 1,
-          agentId: selectedAssistant?.id || 1
+          assistant: (assistantOverride || selectedAssistant)?.id || 1,
+          agentId: (assistantOverride || selectedAssistant)?.id || 1
         }),
         signal: abortControllerRef.current.signal
       });
