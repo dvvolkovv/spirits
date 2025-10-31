@@ -212,7 +212,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         </p>
         <p className="text-gray-700 leading-relaxed">
           До обращения в суд пользователь обязан направить письменную претензию на
-          email support@kindredspirits.app. Претензия рассматривается в течение 30 дней.
+          email support@linkeon.io. Претензия рассматривается в течение 30 дней.
         </p>
         <p className="text-gray-700 leading-relaxed">
           При недостижении согласия споры разрешаются в судебном порядке по месту
