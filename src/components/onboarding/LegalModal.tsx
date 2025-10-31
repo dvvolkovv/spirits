@@ -198,7 +198,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           частичном использовании подписки.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Претензия направляется на email support@kindredspirits.app и рассматривается
+          Претензия направляется на email support@linkeon.io и рассматривается
           в течение 10 рабочих дней. Возврат производится в течение 30 дней за вычетом
           комиссий платежных систем (3-5%).
         </p>
