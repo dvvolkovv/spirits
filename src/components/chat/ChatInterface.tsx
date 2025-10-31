@@ -160,9 +160,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           ...msg,
           timestamp: new Date(msg.timestamp)
         })));
+        changeAgentOnServer(selectedAssistant);
       } else {
         setMessages([]);
-        sendInitialGreeting(selectedAssistant);
       }
     }
   }, [selectedAssistant, hasUserSelectedAssistant]);
@@ -207,7 +207,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (selectedAssistant) {
       localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
-      changeAgentOnServer(selectedAssistant);
     }
   }, [selectedAssistant]);
 
