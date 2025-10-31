@@ -26,7 +26,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           (самозанятый), далее - "Исполнитель" или "Администрация".
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Контактный email: support@kindredspirits.app
+          Контактный email: support@linkeon.io
         </p>
         <p className="text-gray-700 leading-relaxed">
           Настоящее Соглашение является публичной офертой в соответствии со
