@@ -180,6 +180,37 @@ const Navigation: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Legal Footer - только для десктопа */}
+      <div className="hidden md:block mt-auto border-t border-gray-200 p-4 bg-gray-50 text-xs text-gray-600 space-y-3">
+        <div className="flex items-center justify-center mb-2">
+          <span className="inline-block px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+            18+
+          </span>
+        </div>
+
+        <div className="space-y-1 text-center">
+          <p className="font-medium text-gray-700">Волков Дмитрий Викторович</p>
+          <p>ИНН 463404496646</p>
+          <p className="text-gray-500">Самозанятый</p>
+        </div>
+
+        <div className="space-y-1">
+          <a href="#" className="block hover:text-forest-600 transition-colors">
+            Пользовательское соглашение
+          </a>
+          <a href="#" className="block hover:text-forest-600 transition-colors">
+            Политика конфиденциальности
+          </a>
+          <a href="#" className="block hover:text-forest-600 transition-colors">
+            Правила сообщества
+          </a>
+        </div>
+
+        <div className="pt-2 border-t border-gray-200">
+          <p className="text-gray-500">support@kindredspirits.app</p>
+        </div>
+      </div>
     </nav>
   );
 };
