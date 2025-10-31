@@ -765,6 +765,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           onClick={() => {
                             setSelectedAssistant(assistant);
                             setShowAssistantDropdown(false);
+                            changeAgentOnServer(assistant);
                           }}
                           className={clsx(
                             'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
