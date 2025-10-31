@@ -12,11 +12,7 @@ interface PhoneInputProps {
 
 interface FormData {
   phone: string;
-  ageConfirm: boolean;
-  termsAccept: boolean;
-  privacyAccept: boolean;
-  dataConsent: boolean;
-  smsConsent: boolean;
+  allConsents: boolean;
 }
 
 const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
@@ -31,11 +27,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
   } = useForm<FormData>();
 
   const phone = watch('phone');
-  const ageConfirm = watch('ageConfirm');
-  const termsAccept = watch('termsAccept');
-  const privacyAccept = watch('privacyAccept');
-  const dataConsent = watch('dataConsent');
-  const smsConsent = watch('smsConsent');
+  const allConsents = watch('allConsents');
 
   const openModal = (type: 'terms' | 'privacy') => {
     setModalType(type);
@@ -61,8 +53,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
   };
 
   const isValidPhone = phone && phone.replace(/\D/g, '').length === 11;
-  const allRequiredChecked = ageConfirm && termsAccept && privacyAccept && dataConsent;
-  const canSubmit = isValidPhone && allRequiredChecked && !isLoading;
+  const canSubmit = isValidPhone && allConsents && !isLoading;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-forest-50 flex items-center justify-center p-4">
@@ -110,32 +101,15 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
             </div>
 
             {/* Legal Consents */}
-            <div className="space-y-3 bg-gray-50 rounded-lg p-4">
-              <p className="text-sm font-medium text-gray-900 mb-3">
-                Для регистрации необходимо подтвердить:
-              </p>
-
-              {/* Age Confirmation */}
+            <div className="bg-gray-50 rounded-lg p-4">
               <label className="flex items-start space-x-3">
                 <input
                   type="checkbox"
-                  {...register('ageConfirm', { required: true })}
+                  {...register('allConsents', { required: true })}
                   className="mt-1 w-4 h-4 text-forest-600 border-gray-300 rounded focus:ring-forest-500"
                 />
-                <span className="text-sm text-gray-700">
-                  <strong>Подтверждаю, что мне исполнилось 18 лет</strong>
-                </span>
-              </label>
-
-              {/* Terms of Service */}
-              <label className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  {...register('termsAccept', { required: true })}
-                  className="mt-1 w-4 h-4 text-forest-600 border-gray-300 rounded focus:ring-forest-500"
-                />
-                <span className="text-sm text-gray-700">
-                  Принимаю{' '}
+                <span className="text-sm text-gray-700 leading-relaxed">
+                  Мне больше 18 лет, принимаю{' '}
                   <button
                     type="button"
                     className="text-forest-600 hover:underline font-medium"
@@ -143,18 +117,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
                   >
                     Пользовательское соглашение
                   </button>
-                </span>
-              </label>
-
-              {/* Privacy Policy */}
-              <label className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  {...register('privacyAccept', { required: true })}
-                  className="mt-1 w-4 h-4 text-forest-600 border-gray-300 rounded focus:ring-forest-500"
-                />
-                <span className="text-sm text-gray-700">
-                  Принимаю{' '}
+                  ,{' '}
                   <button
                     type="button"
                     className="text-forest-600 hover:underline font-medium"
@@ -162,30 +125,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
                   >
                     Политику конфиденциальности
                   </button>
-                </span>
-              </label>
-
-              {/* Data Processing Consent */}
-              <label className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  {...register('dataConsent', { required: true })}
-                  className="mt-1 w-4 h-4 text-forest-600 border-gray-300 rounded focus:ring-forest-500"
-                />
-                <span className="text-sm text-gray-700">
-                  Даю согласие на обработку персональных данных
-                </span>
-              </label>
-
-              {/* SMS Consent (optional) */}
-              <label className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  {...register('smsConsent')}
-                  className="mt-1 w-4 h-4 text-forest-600 border-gray-300 rounded focus:ring-forest-500"
-                />
-                <span className="text-sm text-gray-600">
-                  Согласен получать информационные SMS (необязательно)
+                  {' '}и даю согласие на обработку персональных данных
                 </span>
               </label>
             </div>
