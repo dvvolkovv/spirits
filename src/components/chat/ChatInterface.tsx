@@ -173,7 +173,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       try {
         const formData = new FormData();
         formData.append('user-id', cleanPhone);
-        formData.append('agent', assistant.name);
+        formData.append('agent-id', assistant.id.toString());
 
         await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
           method: 'POST',
@@ -221,11 +221,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (selectedAssistant) {
       localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
-      changeAgentOnServer(selectedAssistant.name);
+      changeAgentOnServer(selectedAssistant.id);
     }
   }, [selectedAssistant]);
 
-  const changeAgentOnServer = async (agentName: string) => {
+  const changeAgentOnServer = async (agentId: number) => {
     if (!user?.phone) return;
 
     const cleanPhone = user.phone.replace(/\D/g, '');
@@ -233,7 +233,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     try {
       const formData = new FormData();
       formData.append('user-id', cleanPhone);
-      formData.append('agent', agentName);
+      formData.append('agent-id', agentId.toString());
 
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
         method: 'POST',
