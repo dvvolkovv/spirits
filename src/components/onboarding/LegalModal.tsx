@@ -26,7 +26,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           (самозанятый), далее - "Исполнитель" или "Администрация".
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Контактный email: support@linkeon.io
+          Контактный email: support@linkeon.ru
         </p>
         <p className="text-gray-700 leading-relaxed">
           Настоящее Соглашение является публичной офертой в соответствии со
@@ -198,7 +198,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           частичном использовании подписки.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Претензия направляется на email support@linkeon.io и рассматривается
+          Претензия направляется на email support@linkeon.ru и рассматривается
           в течение 10 рабочих дней. Возврат производится в течение 30 дней за вычетом
           комиссий платежных систем (3-5%).
         </p>
@@ -212,7 +212,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         </p>
         <p className="text-gray-700 leading-relaxed">
           До обращения в суд пользователь обязан направить письменную претензию на
-          email support@linkeon.io. Претензия рассматривается в течение 30 дней.
+          email support@linkeon.ru. Претензия рассматривается в течение 30 дней.
         </p>
         <p className="text-gray-700 leading-relaxed">
           При недостижении согласия споры разрешаются в судебном порядке по месту
@@ -240,7 +240,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <p className="text-gray-700"><strong>Наименование:</strong> Волков Дмитрий Викторович</p>
         <p className="text-gray-700"><strong>ИНН:</strong> 463404496646</p>
         <p className="text-gray-700"><strong>Статус:</strong> Плательщик налога на профессиональный доход (самозанятый)</p>
-        <p className="text-gray-700"><strong>Контактный email:</strong> support@linkeon.io</p>
+        <p className="text-gray-700"><strong>Контактный email:</strong> support@linkeon.ru</p>
       </div>
 
       <p className="text-gray-700 leading-relaxed">

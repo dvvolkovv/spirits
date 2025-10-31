@@ -208,7 +208,7 @@ const Navigation: React.FC = () => {
         </div>
 
         <div className="pt-2 border-t border-gray-200">
-          <p className="text-gray-500">support@linkeon.io</p>
+          <p className="text-gray-500">support@linkeon.ru</p>
         </div>
       </div>
     </nav>
