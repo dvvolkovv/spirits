@@ -168,23 +168,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [selectedAssistant, hasUserSelectedAssistant]);
 
   const sendInitialGreeting = async (assistant: Assistant) => {
-    if (user?.phone) {
-      const cleanPhone = user.phone.replace(/\D/g, '');
-      try {
-        const formData = new FormData();
-        formData.append('user-id', cleanPhone);
-        formData.append('agent-id', assistant.id.toString());
-
-        await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
-          method: 'POST',
-          body: formData
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error('Error changing agent on server:', error);
-      }
-    }
+    await changeAgentOnServer(assistant);
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const greetingMessage = "Привет! Расскажи про себя!";
     await sendMessageToAI(greetingMessage);
@@ -221,11 +206,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (selectedAssistant) {
       localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
-      changeAgentOnServer(selectedAssistant.id);
+      changeAgentOnServer(selectedAssistant);
     }
   }, [selectedAssistant]);
 
-  const changeAgentOnServer = async (agentId: number) => {
+  const changeAgentOnServer = async (assistant: Assistant) => {
     if (!user?.phone) return;
 
     const cleanPhone = user.phone.replace(/\D/g, '');
@@ -233,7 +218,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     try {
       const formData = new FormData();
       formData.append('user-id', cleanPhone);
-      formData.append('agent-id', agentId.toString());
+      formData.append('agent-id', assistant.id.toString());
+      formData.append('agent', assistant.name);
+
+      console.log('Changing agent:', { id: assistant.id, name: assistant.name, userId: cleanPhone });
 
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
         method: 'POST',
@@ -242,6 +230,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       if (!response.ok) {
         console.error('Failed to change agent on server');
+      } else {
+        console.log('Agent changed successfully');
       }
     } catch (error) {
       console.error('Error changing agent on server:', error);
@@ -386,7 +376,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         body: JSON.stringify({
           chatInput: userMessage,
           sessionId: phoneNumber,
-          assistant: selectedAssistant?.id || 1
+          assistant: selectedAssistant?.id || 1,
+          agentId: selectedAssistant?.id || 1
         }),
         signal: abortControllerRef.current.signal
       });
