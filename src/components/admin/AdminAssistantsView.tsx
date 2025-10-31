@@ -6,12 +6,14 @@ interface Agent {
   id: number;
   name: string;
   system_prompt: string;
+  description: string;
 }
 
 const AdminAssistantsView: React.FC = () => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [editedPrompt, setEditedPrompt] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +51,7 @@ const AdminAssistantsView: React.FC = () => {
   const handleSelectAgent = (agent: Agent) => {
     setSelectedAgent(agent);
     setEditedPrompt(agent.system_prompt);
+    setEditedDescription(agent.description || '');
   };
 
   const handleSave = async () => {
@@ -61,7 +64,7 @@ const AdminAssistantsView: React.FC = () => {
       const formData = new URLSearchParams();
       formData.append('agent-id', selectedAgent.id.toString());
       formData.append('system_prompt', editedPrompt);
-      formData.append('description', '');
+      formData.append('description', editedDescription);
       formData.append('name', selectedAgent.name);
 
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/agent`, {
@@ -81,13 +84,13 @@ const AdminAssistantsView: React.FC = () => {
       if (result.success === 'agent updated') {
         const updatedAgents = agents.map(agent =>
           agent.id === selectedAgent.id
-            ? { ...agent, system_prompt: editedPrompt }
+            ? { ...agent, system_prompt: editedPrompt, description: editedDescription }
             : agent
         );
         setAgents(updatedAgents);
-        setSelectedAgent({ ...selectedAgent, system_prompt: editedPrompt });
+        setSelectedAgent({ ...selectedAgent, system_prompt: editedPrompt, description: editedDescription });
 
-        alert('Системный промпт успешно обновлен');
+        alert('Ассистент успешно обновлен');
       } else {
         throw new Error('Сервер не подтвердил обновление');
       }
@@ -102,10 +105,14 @@ const AdminAssistantsView: React.FC = () => {
   const handleCancel = () => {
     if (selectedAgent) {
       setEditedPrompt(selectedAgent.system_prompt);
+      setEditedDescription(selectedAgent.description || '');
     }
   };
 
-  const hasChanges = selectedAgent && editedPrompt !== selectedAgent.system_prompt;
+  const hasChanges = selectedAgent && (
+    editedPrompt !== selectedAgent.system_prompt ||
+    editedDescription !== (selectedAgent.description || '')
+  );
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
@@ -206,19 +213,36 @@ const AdminAssistantsView: React.FC = () => {
               </div>
 
               <div className="flex-1 p-6 overflow-y-auto pb-20 md:pb-6">
-                <div className="max-w-4xl">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Системный промпт
-                  </label>
-                  <textarea
-                    value={editedPrompt}
-                    onChange={(e) => setEditedPrompt(e.target.value)}
-                    className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors font-mono text-sm"
-                    placeholder="Введите системный промпт для ассистента..."
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Символов: {editedPrompt.length}
-                  </p>
+                <div className="max-w-4xl space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Описание ассистента
+                    </label>
+                    <textarea
+                      value={editedDescription}
+                      onChange={(e) => setEditedDescription(e.target.value)}
+                      className="w-full h-24 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors text-sm"
+                      placeholder="Краткое описание ассистента для пользователей..."
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Символов: {editedDescription.length}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Системный промпт
+                    </label>
+                    <textarea
+                      value={editedPrompt}
+                      onChange={(e) => setEditedPrompt(e.target.value)}
+                      className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors font-mono text-sm"
+                      placeholder="Введите системный промпт для ассистента..."
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Символов: {editedPrompt.length}
+                    </p>
+                  </div>
                 </div>
               </div>
             </>
