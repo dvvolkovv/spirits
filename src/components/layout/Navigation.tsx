@@ -15,13 +15,13 @@ import { clsx } from 'clsx';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [profileCompletion, setProfileCompletion] = React.useState<number | null>(null);
   const [isLoadingCompletion, setIsLoadingCompletion] = React.useState(false);
 
   // Загрузка заполнения профиля с сервера
   const loadProfileCompletion = React.useCallback(async () => {
-    if (!user?.phone) return;
+    if (!user?.phone || user?.isDemo) return;
 
     setIsLoadingCompletion(true);
     
@@ -117,8 +117,28 @@ const Navigation: React.FC = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
+      {/* Demo Mode Banner */}
+      {user?.isDemo && (
+        <div className="hidden md:block bg-gradient-to-r from-warm-500 to-forest-500 text-white p-4 mb-4 rounded-lg shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-bold">
+              Демо-режим
+            </h3>
+          </div>
+          <p className="text-xs mb-3 opacity-90">
+            Вы используете ограниченную версию. Зарегистрируйтесь, чтобы получить полный доступ
+          </p>
+          <button
+            onClick={logout}
+            className="w-full bg-white text-forest-600 font-medium text-sm px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            Зарегистрироваться
+          </button>
+        </div>
+      )}
+
       {/* Profile Completion - только для десктопа */}
-      {profileCompletion !== null && (
+      {profileCompletion !== null && !user?.isDemo && (
         <div className="hidden md:block p-4 border-b border-gray-200 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-gray-700">

@@ -6,7 +6,7 @@ import OTPInput from '../components/onboarding/OTPInput';
 type OnboardingStep = 'phone' | 'otp' | 'consent';
 
 const OnboardingPage: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginDemo } = useAuth();
   const [step, setStep] = useState<OnboardingStep>('phone');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -79,11 +79,16 @@ const OnboardingPage: React.FC = () => {
     setStep('phone');
   };
 
+  const handleDemoClick = () => {
+    loginDemo();
+  };
+
   switch (step) {
     case 'phone':
       return (
         <PhoneInput
           onSubmit={handlePhoneSubmit}
+          onDemoClick={handleDemoClick}
           isLoading={isLoading}
         />
       );

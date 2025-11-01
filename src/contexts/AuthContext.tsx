@@ -7,6 +7,7 @@ interface User {
   lastName?: string;
   avatar?: string;
   isAdmin?: boolean;
+  isDemo?: boolean;
   profile?: {
     values: Array<{ name: string; confidence: number; private: boolean }>;
     beliefs: string[];
@@ -21,6 +22,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (phone: string, token: string) => void;
+  loginDemo: () => void;
   logout: () => void;
   deleteProfile: () => Promise<void>;
   updateProfile: (profile: Partial<User['profile']>) => void;
@@ -93,6 +95,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(newUser);
 
     await checkAdminStatus();
+  };
+
+  const loginDemo = () => {
+    const demoUser: User = {
+      id: 'demo-user',
+      phone: '79999999999',
+      firstName: 'Демо',
+      lastName: 'Пользователь',
+      isDemo: true,
+      profile: {
+        values: [],
+        beliefs: [],
+        desires: [],
+        intentions: [],
+        completion: 0
+      }
+    };
+
+    localStorage.setItem('authToken', 'demo-token');
+    localStorage.setItem('userData', JSON.stringify(demoUser));
+    setUser(demoUser);
   };
 
   const checkAdminStatus = async () => {
@@ -212,6 +235,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated,
         isLoading,
         login,
+        loginDemo,
         logout,
         deleteProfile,
         updateProfile,
