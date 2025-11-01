@@ -692,6 +692,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       setMessages(prev => [...prev, userMessage, assistantMessage]);
 
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      await sendMessageToAI('Прокомментируй, пожалуйста');
+
     } catch (error) {
       console.error('Error uploading file:', error);
       alert('Произошла ошибка при загрузке файла. Попробуйте еще раз.');
