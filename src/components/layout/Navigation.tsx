@@ -118,34 +118,7 @@ const Navigation: React.FC = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
       {/* Profile Completion - только для десктопа */}
-      {profileCompletion !== null && (
-        <div className="hidden md:block p-4 border-b border-gray-200 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-700">
-              Заполнение профиля
-            </h3>
-            {isLoadingCompletion ? (
-              <div className="w-4 h-4 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <span className="text-lg font-bold text-forest-600">
-                {profileCompletion}%
-              </span>
-            )}
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-gradient-to-r from-forest-500 to-warm-500 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${profileCompletion}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            {profileCompletion === 0
-              ? 'Начните общение с ассистентом для создания профиля'
-              : 'Продолжайте общение для улучшения профиля'
-            }
-          </p>
-        </div>
-      )}
+
 
       <div className="flex justify-around md:flex-col md:space-y-2 md:p-4">
         {navItems.map((item) => {
