@@ -126,7 +126,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   const getProfileBeliefs = () => Array.isArray(profileData?.beliefs) ? profileData.beliefs : [];
   const getProfileDesires = () => Array.isArray(profileData?.desires) ? profileData.desires : [];
   const getProfileIntentions = () => Array.isArray(profileData?.intents) ? profileData.intents : user.intents || [];
-  const getProfileCompletion = () => profileData?.completeness ? parseInt(profileData.completeness) : 0;
 
   if (!isOpen) return null;
 
@@ -182,26 +181,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Profile Completion */}
-          {profileData && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Заполнение профиля
-                </h2>
-                <span className="text-2xl font-bold text-blue-600">
-                  {getProfileCompletion()}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="bg-gradient-to-r from-forest-500 to-warm-500 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${getProfileCompletion()}%` }}
-                />
-              </div>
-            </div>
-          )}
 
           {/* Values */}
           <div className="bg-white rounded-lg shadow-sm p-6">

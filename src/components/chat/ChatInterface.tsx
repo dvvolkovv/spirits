@@ -679,10 +679,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         });
       }
 
-      if (profileData.completeness) {
-        profileText += `\n**Полнота профиля:** ${profileData.completeness}`;
-      }
-
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
