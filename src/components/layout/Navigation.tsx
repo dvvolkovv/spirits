@@ -77,27 +77,24 @@ const Navigation: React.FC = () => {
         {/* Tokens Display - только для десктопа */}
         {user?.tokens !== undefined && (
           <div className="hidden md:block mb-4 px-4 pt-4">
-            <div className="bg-gradient-to-br from-forest-50 to-warm-50 rounded-lg p-4 border border-forest-200">
+            <button
+              onClick={() => setShowTokenPackages(true)}
+              className="w-full bg-gradient-to-br from-forest-50 to-warm-50 rounded-lg p-4 border border-forest-200 hover:border-forest-300 transition-all hover:shadow-md text-left"
+            >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
                   <Coins className="w-5 h-5 text-forest-600" />
                   <span className="text-sm font-medium text-gray-700">Токены</span>
                 </div>
+                <Plus className="w-4 h-4 text-forest-600" />
               </div>
               <div className="text-2xl font-bold text-forest-700">
                 {formatTokens(user.tokens)}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Доступно для использования
+              <p className="text-xs text-forest-600 mt-1 font-medium">
+                Нажмите для пополнения
               </p>
-              <button
-                onClick={() => setShowTokenPackages(true)}
-                className="mt-3 w-full flex items-center justify-center space-x-2 px-4 py-2 bg-forest-600 hover:bg-forest-700 text-white rounded-lg transition-colors font-medium text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Пополнить</span>
-              </button>
-            </div>
+            </button>
           </div>
         )}
 

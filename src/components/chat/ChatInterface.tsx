@@ -5,6 +5,7 @@ import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSq
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
+import { TokenPackages } from '../tokens/TokenPackages';
 
 interface Assistant {
   id: number;
@@ -148,6 +149,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [hasUserSelectedAssistant, setHasUserSelectedAssistant] = useState<boolean>(() => {
     return localStorage.getItem('selected_assistant') !== null;
   });
+  const [showTokenPackages, setShowTokenPackages] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -733,8 +735,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 relative">
-      {/* Header */}
+    <>
+      {showTokenPackages && (
+        <TokenPackages onClose={() => setShowTokenPackages(false)} />
+      )}
+
+      <div className="flex flex-col h-full bg-gray-50 relative">
+        {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed md:relative top-0 left-0 right-0 z-40">
         <div className="flex items-center justify-between max-w-full">
           <div className="relative" ref={dropdownRef}>
@@ -813,12 +820,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
           <div className="flex items-center space-x-3">
             {user?.tokens !== undefined && (
-              <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-forest-50 rounded-lg border border-forest-200">
+              <button
+                onClick={() => setShowTokenPackages(true)}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg border border-forest-200 hover:border-forest-300 transition-all cursor-pointer"
+                title="Нажмите для пополнения токенов"
+              >
                 <Coins className="w-4 h-4 text-forest-600" />
                 <span className="text-sm font-semibold text-forest-700">
                   {formatTokens(user.tokens)}
                 </span>
-              </div>
+              </button>
             )}
             {messages.length > 1 && (
               <>
@@ -979,7 +990,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
