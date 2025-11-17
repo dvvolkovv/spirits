@@ -673,7 +673,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       if (profileData.intents && profileData.intents.length > 0) {
-        profileText += '\n**Намерения:**\n';
+        profileText += '\n**Поиск людей:**\n';
         profileData.intents.forEach((item: string) => {
           profileText += `• ${item}\n`;
         });
