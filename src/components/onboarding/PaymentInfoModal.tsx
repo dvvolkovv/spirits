@@ -260,12 +260,7 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
                   support@linkeon.ru
                 </a>
               </div>
-              <div className="flex items-center space-x-3">
-                <Phone className="w-5 h-5 text-forest-600 flex-shrink-0" />
-                <a href="tel:+79030169187" className="text-forest-600 hover:text-forest-700 font-medium">
-                  +7 (903) 016-91-87
-                </a>
-              </div>
+             
             </div>
           </section>
         </div>
