@@ -95,7 +95,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+        <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Пополнение токенов</h2>
             <p className="text-sm text-gray-600 mt-1">
@@ -104,7 +104,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             disabled={isProcessing}
           >
             <X className="w-6 h-6 text-gray-600" />
