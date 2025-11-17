@@ -7,6 +7,7 @@ interface User {
   lastName?: string;
   avatar?: string;
   isAdmin?: boolean;
+  tokens?: number;
   profile?: {
     values: Array<{ name: string; confidence: number; private: boolean }>;
     beliefs: string[];
@@ -27,6 +28,8 @@ interface AuthContextType {
   updateUserInfo: (info: { firstName?: string; lastName?: string }) => void;
   updateAvatar: (avatar: string) => void;
   checkAdminStatus: () => Promise<void>;
+  updateTokens: (tokens: number) => void;
+  consumeTokens: (amount: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -203,6 +206,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('userData', JSON.stringify(updatedUser));
     }
   };
+
+  const updateTokens = (tokens: number) => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        tokens
+      };
+      setUser(updatedUser);
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+    }
+  };
+
+  const consumeTokens = (amount: number) => {
+    if (user && user.tokens !== undefined) {
+      const newTokens = Math.max(0, user.tokens - amount);
+      updateTokens(newTokens);
+    }
+  };
   const isAuthenticated = !!user;
 
   return (
@@ -218,6 +239,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updateUserInfo,
         updateAvatar,
         checkAdminStatus,
+        updateTokens,
+        consumeTokens,
       }}
     >
       {children}

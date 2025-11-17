@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
@@ -728,6 +728,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     );
   }
 
+  const formatTokens = (tokens: number) => {
+    return tokens.toLocaleString('ru-RU');
+  };
+
   return (
     <div className="flex flex-col h-full bg-gray-50 relative">
       {/* Header */}
@@ -807,7 +811,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </>
             ) : null}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
+            {user?.tokens !== undefined && (
+              <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-forest-50 rounded-lg border border-forest-200">
+                <Coins className="w-4 h-4 text-forest-600" />
+                <span className="text-sm font-semibold text-forest-700">
+                  {formatTokens(user.tokens)}
+                </span>
+              </div>
+            )}
             {messages.length > 1 && (
               <>
                 <button
