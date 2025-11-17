@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,13 +10,16 @@ import {
   Heart,
   ArrowRight,
   Shield,
-  Coins
+  Coins,
+  Plus
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { TokenPackages } from '../tokens/TokenPackages';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
   const { user, updateTokens } = useAuth();
+  const [showTokenPackages, setShowTokenPackages] = useState(false);
 
   React.useEffect(() => {
     if (user && user.tokens === undefined) {
@@ -65,26 +68,38 @@ const Navigation: React.FC = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
-      {/* Tokens Display - только для десктопа */}
-      {user?.tokens !== undefined && (
-        <div className="hidden md:block mb-4 px-4 pt-4">
-          <div className="bg-gradient-to-br from-forest-50 to-warm-50 rounded-lg p-4 border border-forest-200">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Coins className="w-5 h-5 text-forest-600" />
-                <span className="text-sm font-medium text-gray-700">Токены</span>
-              </div>
-            </div>
-            <div className="text-2xl font-bold text-forest-700">
-              {formatTokens(user.tokens)}
-            </div>
-            <p className="text-xs text-gray-600 mt-1">
-              Доступно для использования
-            </p>
-          </div>
-        </div>
+    <>
+      {showTokenPackages && (
+        <TokenPackages onClose={() => setShowTokenPackages(false)} />
       )}
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
+        {/* Tokens Display - только для десктопа */}
+        {user?.tokens !== undefined && (
+          <div className="hidden md:block mb-4 px-4 pt-4">
+            <div className="bg-gradient-to-br from-forest-50 to-warm-50 rounded-lg p-4 border border-forest-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Coins className="w-5 h-5 text-forest-600" />
+                  <span className="text-sm font-medium text-gray-700">Токены</span>
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-forest-700">
+                {formatTokens(user.tokens)}
+              </div>
+              <p className="text-xs text-gray-600 mt-1">
+                Доступно для использования
+              </p>
+              <button
+                onClick={() => setShowTokenPackages(true)}
+                className="mt-3 w-full flex items-center justify-center space-x-2 px-4 py-2 bg-forest-600 hover:bg-forest-700 text-white rounded-lg transition-colors font-medium text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Пополнить</span>
+              </button>
+            </div>
+          </div>
+        )}
 
       <div className="flex justify-around md:flex-col md:space-y-2 md:p-4">
         {navItems.map((item) => {
@@ -120,7 +135,8 @@ const Navigation: React.FC = () => {
         })}
       </div>
 
-    </nav>
+      </nav>
+    </>
   );
 };
 
