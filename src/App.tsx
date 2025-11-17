@@ -10,6 +10,7 @@ import ProfileView from './components/profile/ProfileView';
 import SearchInterface from './components/search/SearchInterface';
 import CompatibilityPage from './pages/CompatibilityPage';
 import AdminPage from './pages/AdminPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -45,6 +46,7 @@ const AppContent: React.FC = () => {
           <Route path="/search" element={<SearchInterface />} />
           <Route path="/compatibility" element={<CompatibilityPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
           <Route path="/" element={<Navigate to="/chat" replace />} />
         </Routes>
       </div>
@@ -59,11 +61,11 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <AppContent />
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 };
 

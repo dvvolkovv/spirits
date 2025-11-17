@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,75 +9,23 @@ import {
   TrendingUp,
   Heart,
   ArrowRight,
-  Shield
+  Shield,
+  Coins,
+  Plus
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { TokenPackages } from '../tokens/TokenPackages';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [profileCompletion, setProfileCompletion] = React.useState<number | null>(null);
-  const [isLoadingCompletion, setIsLoadingCompletion] = React.useState(false);
+  const { user, updateTokens } = useAuth();
+  const [showTokenPackages, setShowTokenPackages] = useState(false);
 
-  // Загрузка заполнения профиля с сервера
-  const loadProfileCompletion = React.useCallback(async () => {
-    if (!user?.phone) return;
-
-    setIsLoadingCompletion(true);
-    
-    // Очищаем номер телефона от всех символов кроме цифр
-    const cleanPhone = user.phone.replace(/\D/g, '');
-    
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        const responseData = await response.json();
-        
-        // Проверяем, является ли ответ массивом
-        let profileRecord;
-        if (Array.isArray(responseData) && responseData.length > 0) {
-          // Берем первый элемент массива
-          profileRecord = responseData[0];
-        } else if (responseData && typeof responseData === 'object') {
-          // Если это объект, используем его напрямую
-          profileRecord = responseData;
-        } else {
-          throw new Error('Неожиданный формат ответа сервера');
-        }
-        
-        // Извлекаем profile_data из записи
-        const data = profileRecord.profile_data || profileRecord;
-        
-        // Получаем completeness и конвертируем в число
-        if (data.completeness) {
-          const completion = parseInt(data.completeness);
-          // Если это валидное число, сохраняем его, иначе null
-          setProfileCompletion(isNaN(completion) ? null : completion);
-        } else {
-          setProfileCompletion(0);
-        }
-      } else {
-        console.warn('Профиль не найден на сервере');
-        setProfileCompletion(null);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке заполнения профиля:', error);
-      setProfileCompletion(null);
-    } finally {
-      setIsLoadingCompletion(false);
-    }
-  }, [user?.phone]);
-
-  // Загружаем заполнение профиля при монтировании компонента
   React.useEffect(() => {
-    loadProfileCompletion();
-  }, [loadProfileCompletion]);
+    if (user && user.tokens === undefined) {
+      updateTokens(50000);
+    }
+  }, [user, updateTokens]);
 
   const baseNavItems = [
     {
@@ -115,10 +63,40 @@ const Navigation: React.FC = () => {
 
   const navItems = user?.isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
 
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
-      {/* Profile Completion - только для десктопа */}
+  const formatTokens = (tokens: number) => {
+    return tokens.toLocaleString('ru-RU');
+  };
 
+  return (
+    <>
+      {showTokenPackages && (
+        <TokenPackages onClose={() => setShowTokenPackages(false)} />
+      )}
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
+        {/* Tokens Display - только для десктопа */}
+        {user?.tokens !== undefined && (
+          <div className="hidden md:block mb-4 px-4 pt-4">
+            <button
+              onClick={() => setShowTokenPackages(true)}
+              className="w-full bg-gradient-to-br from-forest-50 to-warm-50 rounded-lg p-4 border border-forest-200 hover:border-forest-300 transition-all hover:shadow-md text-left"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  <Coins className="w-5 h-5 text-forest-600" />
+                  <span className="text-sm font-medium text-gray-700">Токены</span>
+                </div>
+                <Plus className="w-4 h-4 text-forest-600" />
+              </div>
+              <div className="text-2xl font-bold text-forest-700">
+                {formatTokens(user.tokens)}
+              </div>
+              <p className="text-xs text-forest-600 mt-1 font-medium">
+                Нажмите для пополнения
+              </p>
+            </button>
+          </div>
+        )}
 
       <div className="flex justify-around md:flex-col md:space-y-2 md:p-4">
         {navItems.map((item) => {
@@ -154,7 +132,8 @@ const Navigation: React.FC = () => {
         })}
       </div>
 
-    </nav>
+      </nav>
+    </>
   );
 };
 
