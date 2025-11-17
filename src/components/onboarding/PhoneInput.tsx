@@ -162,24 +162,8 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
               )}
             </button>
 
-           <!-- {/* Demo Mode Button */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">или</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={onDemoClick}
-              className="w-full px-6 py-3 rounded-lg font-medium border-2 border-forest-600 text-forest-600 hover:bg-forest-50 transition-all duration-200 flex items-center justify-center space-x-2"
-            >
-              <span>Попробовать без регистрации</span>
-            </button>
-          </div>-->
+          
+          </div>
             
         </form>
       </div>
