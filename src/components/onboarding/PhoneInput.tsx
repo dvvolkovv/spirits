@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Info } from 'lucide-react';
 import { clsx } from 'clsx';
 import LegalModal from './LegalModal';
+import PaymentInfoModal from './PaymentInfoModal';
 
 interface PhoneInputProps {
   onSubmit: (phone: string) => void;
+  onDemoClick: () => void;
   isLoading: boolean;
 }
 
@@ -15,10 +17,11 @@ interface FormData {
   allConsents: boolean;
 }
 
-const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
+const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoading }) => {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'terms' | 'privacy'>('terms');
+  const [paymentInfoOpen, setPaymentInfoOpen] = useState(false);
   const {
     register,
     handleSubmit,
@@ -73,6 +76,14 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
           <p className="text-gray-600">
             {t('onboarding.subtitle')}
           </p>
+          <button
+            type="button"
+            onClick={() => setPaymentInfoOpen(true)}
+            className="mt-4 inline-flex items-center space-x-2 text-sm text-forest-600 hover:text-forest-700 font-medium transition-colors"
+          >
+            <Info className="w-4 h-4" />
+            <span>Описание услуг и порядок оплаты</span>
+          </button>
         </div>
 
         {/* Form */}
@@ -150,6 +161,24 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
                 </>
               )}
             </button>
+
+            {/* Demo Mode Button */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">или</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onDemoClick}
+              className="w-full px-6 py-3 rounded-lg font-medium border-2 border-forest-600 text-forest-600 hover:bg-forest-50 transition-all duration-200 flex items-center justify-center space-x-2"
+            >
+              <span>Попробовать без регистрации</span>
+            </button>
           </div>
         </form>
       </div>
@@ -158,6 +187,11 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         type={modalType}
+      />
+
+      <PaymentInfoModal
+        isOpen={paymentInfoOpen}
+        onClose={() => setPaymentInfoOpen(false)}
       />
     </div>
   );
