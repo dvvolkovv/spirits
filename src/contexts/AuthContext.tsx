@@ -50,6 +50,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchUserTokens = async (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/get-user-tokens/user/tokens/${cleanPhone}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.tokens !== undefined) {
+          return data.tokens;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user tokens:', error);
+    }
+
+    return undefined;
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('authToken');
@@ -58,7 +77,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (token && userData) {
         try {
           const parsedUser = JSON.parse(userData);
+
+          const tokens = await fetchUserTokens(parsedUser.phone);
+          if (tokens !== undefined) {
+            parsedUser.tokens = tokens;
+          }
+
           setUser(parsedUser);
+          localStorage.setItem('userData', JSON.stringify(parsedUser));
         } catch (error) {
           console.error('Error parsing user data:', error);
           localStorage.removeItem('authToken');
@@ -90,6 +116,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         completion: 0
       }
     };
+
+    const tokens = await fetchUserTokens(phone);
+    if (tokens !== undefined) {
+      newUser.tokens = tokens;
+    }
 
     localStorage.setItem('authToken', token);
     localStorage.setItem('userData', JSON.stringify(newUser));
@@ -224,6 +255,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       updateTokens(newTokens);
     }
   };
+
+  const refreshTokens = async () => {
+    if (user?.phone) {
+      const tokens = await fetchUserTokens(user.phone);
+      if (tokens !== undefined) {
+        updateTokens(tokens);
+      }
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
@@ -241,6 +282,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         checkAdminStatus,
         updateTokens,
         consumeTokens,
+        refreshTokens,
       }}
     >
       {children}
