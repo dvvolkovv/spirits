@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (tokens !== undefined) {
         updateTokens(tokens);
       }
-    }, 60000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [user?.phone, isLoading]);
