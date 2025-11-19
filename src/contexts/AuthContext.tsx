@@ -104,6 +104,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [user?.phone]);
 
+  useEffect(() => {
+    if (!user || isLoading) return;
+
+    const interval = setInterval(async () => {
+      const tokens = await fetchUserTokens(user.phone);
+      if (tokens !== undefined) {
+        updateTokens(tokens);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [user?.phone, isLoading]);
+
   const login = async (phone: string, token: string) => {
     const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
