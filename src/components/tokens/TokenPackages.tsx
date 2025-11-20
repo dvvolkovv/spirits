@@ -73,12 +73,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
         const data = await response.json();
 
         if (data.status === 'succeeded') {
-          alert('Платеж успешно завершен! Токены зачислены.');
+          alert(`Токены успешно начислены! Пакет "${selectedPkg.name}" (${formatTokens(selectedPkg.tokens)} токенов)`);
           window.location.reload();
-        } else if (data.confirmation_url) {
-          window.location.href = data.confirmation_url;
         } else {
-          throw new Error('Не получен URL для оплаты');
+          throw new Error('Ошибка начисления токенов');
         }
       } else {
         const errorData = await response.json();
