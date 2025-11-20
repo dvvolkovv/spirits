@@ -30,6 +30,7 @@ interface AuthContextType {
   checkAdminStatus: () => Promise<void>;
   updateTokens: (tokens: number) => void;
   consumeTokens: (amount: number) => void;
+  refreshTokens: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
