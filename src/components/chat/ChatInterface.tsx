@@ -37,6 +37,7 @@ interface Message {
 interface ChatInterfaceProps {
   title?: string;
   welcomeMessage?: string;
+  initialShowTokens?: boolean;
 }
 
 const StreamingMessage = React.memo(({ content, components }: { content: string; components: any }) => (
@@ -68,7 +69,8 @@ StreamingMessage.displayName = 'StreamingMessage';
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   title,
-  welcomeMessage
+  welcomeMessage,
+  initialShowTokens = false
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -149,8 +151,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [hasUserSelectedAssistant, setHasUserSelectedAssistant] = useState<boolean>(() => {
     return localStorage.getItem('selected_assistant') !== null;
   });
-  const [showTokenPackages, setShowTokenPackages] = useState(false);
+  const [showTokenPackages, setShowTokenPackages] = useState(initialShowTokens);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialShowTokens) {
+      setShowTokenPackages(true);
+    }
+  }, [initialShowTokens]);
 
   useEffect(() => {
     if (selectedAssistant && hasUserSelectedAssistant) {

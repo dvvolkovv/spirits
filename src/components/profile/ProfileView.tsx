@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { CreditCard, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, Heart, Lightbulb, X, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -21,6 +22,7 @@ interface ProfileData {
 
 const ProfileView: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user, updateProfile, updateUserInfo, updateAvatar, logout, deleteProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editingInfo, setEditingInfo] = useState({
@@ -486,7 +488,7 @@ const ProfileView: React.FC = () => {
             </div>
 
             <button
-              onClick={() => window.location.href = '/chat?view=tokens'}
+              onClick={() => navigate('/chat?view=tokens')}
               className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-forest-600 to-warm-600 text-white rounded-lg hover:from-forest-700 hover:to-warm-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 w-full sm:w-auto"
             >
               <CreditCard className="w-5 h-5" />
