@@ -64,18 +64,18 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phone: cleanPhone,
+          user_id: cleanPhone,
           package_id: packageId,
-          tokens: selectedPkg.tokens,
-          amount: selectedPkg.price,
-          description: `Пополнение ${formatTokens(selectedPkg.tokens)} токенов`,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
 
-        if (data.confirmation_url) {
+        if (data.status === 'succeeded') {
+          alert('Платеж успешно завершен! Токены зачислены.');
+          window.location.reload();
+        } else if (data.confirmation_url) {
           window.location.href = data.confirmation_url;
         } else {
           throw new Error('Не получен URL для оплаты');
