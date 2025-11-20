@@ -6,6 +6,8 @@ import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
+import { useNavigate } from 'react-router-dom';
+import { parseCustomMarkdown, createButtonComponent, createLinkComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 
 interface Assistant {
   id: number;
@@ -40,30 +42,103 @@ interface ChatInterfaceProps {
   initialShowTokens?: boolean;
 }
 
-const StreamingMessage = React.memo(({ content, components }: { content: string; components: any }) => (
-  <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
-    <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
-      <div className="min-h-[24px]">
-        {content ? (
-          <>
-            <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-              <ReactMarkdown components={components}>
-                {content}
-              </ReactMarkdown>
+const StreamingMessage = React.memo(({
+  content,
+  components,
+  onButtonClick,
+  onLinkClick
+}: {
+  content: string;
+  components: any;
+  onButtonClick: (action: string) => void;
+  onLinkClick: (url: string) => void;
+}) => {
+  const { content: parsedContent, buttons, links } = parseCustomMarkdown(content);
+
+  const renderContent = () => {
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
+    const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
+
+    const allMatches = [...buttonMatches, ...linkMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+
+    allMatches.forEach((match, idx) => {
+      const matchIndex = match.index || 0;
+
+      if (lastIndex < matchIndex) {
+        const textBefore = parsedContent.slice(lastIndex, matchIndex);
+        parts.push(
+          <ReactMarkdown key={`text-${idx}`} components={components}>
+            {textBefore}
+          </ReactMarkdown>
+        );
+      }
+
+      if (match[0].startsWith('__BUTTON_')) {
+        const buttonId = match[1];
+        const buttonConfig = buttons.get(`btn_${buttonId}`);
+        if (buttonConfig) {
+          parts.push(
+            <span key={`button-${idx}`}>
+              {createButtonComponent(buttonConfig, onButtonClick)}
+            </span>
+          );
+        }
+      } else if (match[0].startsWith('__LINK_')) {
+        const linkId = match[1];
+        const linkConfig = links.get(`link_${linkId}`);
+        if (linkConfig) {
+          parts.push(
+            <span key={`link-${idx}`}>
+              {createLinkComponent(linkConfig, onLinkClick)}
+            </span>
+          );
+        }
+      }
+
+      lastIndex = matchIndex + match[0].length;
+    });
+
+    if (lastIndex < parsedContent.length) {
+      const textAfter = parsedContent.slice(lastIndex);
+      parts.push(
+        <ReactMarkdown key="text-last" components={components}>
+          {textAfter}
+        </ReactMarkdown>
+      );
+    }
+
+    return parts.length > 0 ? parts : (
+      <ReactMarkdown components={components}>
+        {content}
+      </ReactMarkdown>
+    );
+  };
+
+  return (
+    <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
+      <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
+        <div className="min-h-[24px]">
+          {content ? (
+            <>
+              <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+                {renderContent()}
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
+            </>
+          ) : (
+            <div className="flex space-x-1 items-center h-[24px]">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
             </div>
-            <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
-          </>
-        ) : (
-          <div className="flex space-x-1 items-center h-[24px]">
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
-  </div>
-));
+  );
+});
 
 StreamingMessage.displayName = 'StreamingMessage';
 
@@ -74,6 +149,43 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleButtonAction = useCallback((action: string) => {
+    switch(action) {
+      case 'buy-tokens':
+        setShowTokenPackages(true);
+        break;
+      case 'compatibility':
+        navigate('/compatibility');
+        break;
+      case 'profile':
+        navigate('/profile');
+        break;
+      case 'settings':
+        navigate('/settings');
+        break;
+      case 'search':
+        navigate('/search');
+        break;
+      case 'chats':
+        navigate('/chats');
+        break;
+      case 'home':
+        navigate('/');
+        break;
+      default:
+        console.warn(`Unknown action: ${action}`);
+    }
+  }, [navigate]);
+
+  const handleLinkNavigation = useCallback((url: string) => {
+    if (url.startsWith('/')) {
+      navigate(url);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }, [navigate]);
 
   const markdownComponents = useMemo(() => ({
     p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -101,7 +213,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     h2: ({ children }: any) => <h2 className="text-base font-bold mb-2">{children}</h2>,
     h3: ({ children }: any) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
     br: () => <br />,
-  }), []);
+    a: ({ href, children }: any) => {
+      if (href?.startsWith('http://') || href?.startsWith('https://')) {
+        return (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-forest-600 hover:text-forest-700 underline"
+          >
+            {children}
+          </a>
+        );
+      }
+      return (
+        <a
+          href={href}
+          onClick={(e) => {
+            e.preventDefault();
+            if (href) handleLinkNavigation(href);
+          }}
+          className="text-forest-600 hover:text-forest-700 underline cursor-pointer"
+        >
+          {children}
+        </a>
+      );
+    },
+  }), [handleLinkNavigation]);
 
   const getChatStorageKey = (assistantId: number | null) => {
     return `chat_messages_assistant_${assistantId || 'default'}`;
@@ -886,9 +1024,67 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             >
               {message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-                  <ReactMarkdown components={markdownComponents}>
-                    {message.content}
-                  </ReactMarkdown>
+                  {(() => {
+                    const { content: parsedContent, buttons, links } = parseCustomMarkdown(message.content);
+                    const parts: React.ReactNode[] = [];
+                    let lastIndex = 0;
+                    const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
+                    const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
+
+                    const allMatches = [...buttonMatches, ...linkMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+
+                    allMatches.forEach((match, idx) => {
+                      const matchIndex = match.index || 0;
+
+                      if (lastIndex < matchIndex) {
+                        const textBefore = parsedContent.slice(lastIndex, matchIndex);
+                        parts.push(
+                          <ReactMarkdown key={`text-${idx}`} components={markdownComponents}>
+                            {textBefore}
+                          </ReactMarkdown>
+                        );
+                      }
+
+                      if (match[0].startsWith('__BUTTON_')) {
+                        const buttonId = match[1];
+                        const buttonConfig = buttons.get(`btn_${buttonId}`);
+                        if (buttonConfig) {
+                          parts.push(
+                            <span key={`button-${idx}`}>
+                              {createButtonComponent(buttonConfig, handleButtonAction)}
+                            </span>
+                          );
+                        }
+                      } else if (match[0].startsWith('__LINK_')) {
+                        const linkId = match[1];
+                        const linkConfig = links.get(`link_${linkId}`);
+                        if (linkConfig) {
+                          parts.push(
+                            <span key={`link-${idx}`}>
+                              {createLinkComponent(linkConfig, handleLinkNavigation)}
+                            </span>
+                          );
+                        }
+                      }
+
+                      lastIndex = matchIndex + match[0].length;
+                    });
+
+                    if (lastIndex < parsedContent.length) {
+                      const textAfter = parsedContent.slice(lastIndex);
+                      parts.push(
+                        <ReactMarkdown key="text-last" components={markdownComponents}>
+                          {textAfter}
+                        </ReactMarkdown>
+                      );
+                    }
+
+                    return parts.length > 0 ? parts : (
+                      <ReactMarkdown components={markdownComponents}>
+                        {message.content}
+                      </ReactMarkdown>
+                    );
+                  })()}
                 </div>
               ) : (
                 <p className="text-sm leading-relaxed">{message.content}</p>
@@ -910,7 +1106,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ))}
 
         {streamingMessageId && (
-          <StreamingMessage content={currentStreamingMessage} components={markdownComponents} />
+          <StreamingMessage
+            content={currentStreamingMessage}
+            components={markdownComponents}
+            onButtonClick={handleButtonAction}
+            onLinkClick={handleLinkNavigation}
+          />
         )}
 
         <div ref={messagesEndRef} />
