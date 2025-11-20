@@ -6,6 +6,8 @@ interface User {
   firstName?: string;
   lastName?: string;
   avatar?: string;
+  isAdmin?: boolean;
+  tokens?: number;
   profile?: {
     values: Array<{ name: string; confidence: number; private: boolean }>;
     beliefs: string[];
@@ -25,6 +27,9 @@ interface AuthContextType {
   updateProfile: (profile: Partial<User['profile']>) => void;
   updateUserInfo: (info: { firstName?: string; lastName?: string }) => void;
   updateAvatar: (avatar: string) => void;
+  checkAdminStatus: () => Promise<void>;
+  updateTokens: (tokens: number) => void;
+  consumeTokens: (amount: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,26 +50,74 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for existing auth token
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
+  const fetchUserTokens = async (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/get-user-tokens/user/tokens/${cleanPhone}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.tokens !== undefined) {
+          return data.tokens;
+        }
       }
+    } catch (error) {
+      console.error('Error fetching user tokens:', error);
     }
-    
-    setIsLoading(false);
+
+    return undefined;
+  };
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('authToken');
+      const userData = localStorage.getItem('userData');
+
+      if (token && userData) {
+        try {
+          const parsedUser = JSON.parse(userData);
+
+          const tokens = await fetchUserTokens(parsedUser.phone);
+          if (tokens !== undefined) {
+            parsedUser.tokens = tokens;
+          }
+
+          setUser(parsedUser);
+          localStorage.setItem('userData', JSON.stringify(parsedUser));
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
-  const login = (phone: string, token: string) => {
+  useEffect(() => {
+    if (user && !isLoading) {
+      checkAdminStatus();
+    }
+  }, [user?.phone]);
+
+  useEffect(() => {
+    if (!user || isLoading) return;
+
+    const interval = setInterval(async () => {
+      const tokens = await fetchUserTokens(user.phone);
+      if (tokens !== undefined) {
+        updateTokens(tokens);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [user?.phone, isLoading]);
+
+  const login = async (phone: string, token: string) => {
     const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
       phone,
@@ -77,9 +130,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
+    const tokens = await fetchUserTokens(phone);
+    if (tokens !== undefined) {
+      newUser.tokens = tokens;
+    }
+
     localStorage.setItem('authToken', token);
     localStorage.setItem('userData', JSON.stringify(newUser));
     setUser(newUser);
+
+    await checkAdminStatus();
+  };
+
+  const checkAdminStatus = async () => {
+    if (!user?.phone) return;
+
+    const cleanPhone = user.phone.replace(/\D/g, '');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+
+        let profileRecord;
+        if (Array.isArray(responseData) && responseData.length > 0) {
+          profileRecord = responseData[0];
+        } else if (responseData && typeof responseData === 'object') {
+          profileRecord = responseData;
+        }
+
+        if (profileRecord?.isadmin === true) {
+          const updatedUser = {
+            ...user,
+            isAdmin: true
+          };
+          setUser(updatedUser);
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
   };
 
   const logout = () => {
@@ -108,8 +205,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(`Ошибка удаления профиля: ${response.status}`);
       }
 
-      // После успешного удаления на сервере, очищаем все данные из localStorage
-      localStorage.clear();
+      // После успешного удаления на сервере, очищаем только данные пользователя
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userData');
       setUser(null);
     } catch (error) {
       console.error('Ошибка при удалении профиля:', error);
@@ -152,6 +250,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('userData', JSON.stringify(updatedUser));
     }
   };
+
+  const updateTokens = (tokens: number) => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        tokens
+      };
+      setUser(updatedUser);
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+    }
+  };
+
+  const consumeTokens = (amount: number) => {
+    if (user && user.tokens !== undefined) {
+      const newTokens = Math.max(0, user.tokens - amount);
+      updateTokens(newTokens);
+    }
+  };
+
+  const refreshTokens = async () => {
+    if (user?.phone) {
+      const tokens = await fetchUserTokens(user.phone);
+      if (tokens !== undefined) {
+        updateTokens(tokens);
+      }
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
@@ -166,6 +292,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updateProfile,
         updateUserInfo,
         updateAvatar,
+        checkAdminStatus,
+        updateTokens,
+        consumeTokens,
+        refreshTokens,
       }}
     >
       {children}

@@ -1,24 +1,27 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Info } from 'lucide-react';
 import { clsx } from 'clsx';
 import LegalModal from './LegalModal';
+import PaymentInfoModal from './PaymentInfoModal';
 
 interface PhoneInputProps {
   onSubmit: (phone: string) => void;
+  onDemoClick: () => void;
   isLoading: boolean;
 }
 
 interface FormData {
   phone: string;
-  consent: boolean;
+  allConsents: boolean;
 }
 
-const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
+const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoading }) => {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'terms' | 'privacy'>('terms');
+  const [paymentInfoOpen, setPaymentInfoOpen] = useState(false);
   const {
     register,
     handleSubmit,
@@ -27,7 +30,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
   } = useForm<FormData>();
 
   const phone = watch('phone');
-  const consent = watch('consent');
+  const allConsents = watch('allConsents');
 
   const openModal = (type: 'terms' | 'privacy') => {
     setModalType(type);
@@ -53,7 +56,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
   };
 
   const isValidPhone = phone && phone.replace(/\D/g, '').length === 11;
-  const canSubmit = isValidPhone && consent && !isLoading;
+  const canSubmit = isValidPhone && allConsents && !isLoading;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-forest-50 flex items-center justify-center p-4">
@@ -73,6 +76,14 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
           <p className="text-gray-600">
             {t('onboarding.subtitle')}
           </p>
+          <button
+            type="button"
+            onClick={() => setPaymentInfoOpen(true)}
+            className="mt-4 inline-flex items-center space-x-2 text-sm text-forest-600 hover:text-forest-700 font-medium transition-colors"
+          >
+            <Info className="w-4 h-4" />
+            <span>Описание услуг и порядок оплаты</span>
+          </button>
         </div>
 
         {/* Form */}
@@ -100,35 +111,34 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
               )}
             </div>
 
-            {/* Consent */}
-            <div className="space-y-4">
+            {/* Legal Consents */}
+            <div className="bg-gray-50 rounded-lg p-4">
               <label className="flex items-start space-x-3">
                 <input
                   type="checkbox"
-                  {...register('consent', { required: true })}
-                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  {...register('allConsents', { required: true })}
+                  className="mt-1 w-4 h-4 text-forest-600 border-gray-300 rounded focus:ring-forest-500"
                 />
-                <span className="text-sm text-gray-700">
-                  {t('onboarding.consent_text')}
+                <span className="text-sm text-gray-700 leading-relaxed">
+                  Мне больше 18 лет, принимаю{' '}
+                  <button
+                    type="button"
+                    className="text-forest-600 hover:underline font-medium"
+                    onClick={() => openModal('terms')}
+                  >
+                    Пользовательское соглашение
+                  </button>
+                  ,{' '}
+                  <button
+                    type="button"
+                    className="text-forest-600 hover:underline font-medium"
+                    onClick={() => openModal('privacy')}
+                  >
+                    Политику конфиденциальности
+                  </button>
+                  {' '}и даю согласие на обработку персональных данных
                 </span>
               </label>
-              
-              <div className="flex space-x-4 text-xs">
-                <button
-                  type="button"
-                  className="text-forest-600 hover:underline"
-                  onClick={() => openModal('terms')}
-                >
-                  {t('onboarding.terms')}
-                </button>
-                <button
-                  type="button"
-                  className="text-forest-600 hover:underline"
-                  onClick={() => openModal('privacy')}
-                >
-                  {t('onboarding.privacy')}
-                </button>
-              </div>
             </div>
 
             {/* Submit Button */}
@@ -151,7 +161,10 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
                 </>
               )}
             </button>
+
+          
           </div>
+            
         </form>
       </div>
 
@@ -159,6 +172,11 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         type={modalType}
+      />
+
+      <PaymentInfoModal
+        isOpen={paymentInfoOpen}
+        onClose={() => setPaymentInfoOpen(false)}
       />
     </div>
   );

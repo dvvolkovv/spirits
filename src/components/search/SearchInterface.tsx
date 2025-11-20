@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
 import UserProfileModal from './UserProfileModal';
-import { Search, Users, MessageCircle, Heart } from 'lucide-react';
+import { Search, Users, MessageCircle, Heart, X, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface UserMatch {
@@ -12,6 +12,8 @@ interface UserMatch {
   avatar?: string;
   values: string[];
   intents: string[];
+  interests?: string[];
+  skills?: string[];
   corellation: number;
   phone?: string;
 }
@@ -19,7 +21,21 @@ interface UserMatch {
 const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  
+
+  const intentPlaceholders = [
+    'Хочу создать счастливую семью',
+    'Хочу научиться играть на гитаре',
+    'Планирую создать группу',
+    'Создаю поселок единомышленников',
+    'Нужна консультация по психологии',
+    'Хочу пройти коучинговую сессию',
+    'Ищу партнера для создания фитнес центра'
+  ];
+
+  const [currentPlaceholder, setCurrentPlaceholder] = useState(() => {
+    return intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)];
+  });
+
   // Используем localStorage для сохранения состояния поиска
   const [searchQuery, setSearchQuery] = useState(() => {
     return localStorage.getItem('search_query') || '';
@@ -41,6 +57,12 @@ const SearchInterface: React.FC = () => {
   useEffect(() => {
     // Scroll to top on mobile when component mounts
     window.scrollTo(0, 0);
+
+    const interval = setInterval(() => {
+      setCurrentPlaceholder(intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)]);
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Сохраняем состояние в localStorage при изменениях
@@ -60,21 +82,95 @@ const SearchInterface: React.FC = () => {
     localStorage.setItem('has_searched', hasSearched.toString());
   }, [hasSearched]);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    
+  const handlePhoneSearch = async () => {
+    if (phoneNumbers.length === 0) return;
+
     setIsSearching(true);
     setSearchComment('');
     setResults([]);
     setHasSearched(true);
-    
+
     // Очищаем предыдущие результаты из localStorage
     localStorage.removeItem('search_results');
     localStorage.removeItem('search_comment');
-    
+
     // Get user phone number for userId
     const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
-    
+
+    // Prepare phone IDs list - remove '+' and format as needed
+    const phoneIds = phoneNumbers.map(phone => phone.replace(/\D/g, ''));
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/analyze-compatibility`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          'user-id': userId,
+          users: phoneIds
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+
+            if (data.type === 'item' && data.content) {
+              accumulatedText += data.content;
+              setSearchComment(accumulatedText);
+            }
+          } catch (e) {
+            console.warn('Failed to parse streaming data:', line);
+          }
+        }
+      }
+
+      // No results list needed for compatibility analysis - just show the markdown text
+      setResults([]);
+
+    } catch (error) {
+      console.error('Error during phone search:', error);
+      setSearchComment('Произошла ошибка при поиске. Попробуйте еще раз.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    setSearchComment('');
+    setResults([]);
+    setHasSearched(true);
+
+    // Очищаем предыдущие результаты из localStorage
+    localStorage.removeItem('search_results');
+    localStorage.removeItem('search_comment');
+
+    // Get user phone number for userId
+    const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
+
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/search-mate`, {
         method: 'POST',
@@ -145,32 +241,66 @@ const SearchInterface: React.FC = () => {
       
       // Parse the final JSON results
       if (searchResultFound && jsonBuffer.trim()) {
+        let cleanJson = '';
+        let additionalText = '';
+
         try {
-          // Clean up the JSON buffer - remove any trailing text and parse
-          let cleanJson = jsonBuffer.trim();
-          
-          // Remove any trailing non-JSON content
-          const lastBraceIndex = cleanJson.lastIndexOf('}');
+          cleanJson = jsonBuffer.trim();
+
+          // Remove markdown formatting (**, `, etc)
+          cleanJson = cleanJson.replace(/\*\*/g, '');
+          cleanJson = cleanJson.replace(/```json\s*/g, '');
+          cleanJson = cleanJson.replace(/```\s*/g, '');
+
+          // Find the JSON array boundaries
+          const firstBracketIndex = cleanJson.indexOf('[');
           const lastBracketIndex = cleanJson.lastIndexOf(']');
-          const lastValidIndex = Math.max(lastBraceIndex, lastBracketIndex);
-          
-          if (lastValidIndex > -1) {
-            cleanJson = cleanJson.substring(0, lastValidIndex + 1);
+
+          if (firstBracketIndex > -1 && lastBracketIndex > -1 && lastBracketIndex > firstBracketIndex) {
+            // Extract text after JSON as additional recommendation
+            if (lastBracketIndex + 1 < cleanJson.length) {
+              additionalText = cleanJson.substring(lastBracketIndex + 1).trim();
+            }
+
+            // Extract only the JSON array
+            cleanJson = cleanJson.substring(firstBracketIndex, lastBracketIndex + 1);
+          } else {
+            // Fallback: try to find object boundaries
+            const firstBraceIndex = cleanJson.indexOf('{');
+            const lastBraceIndex = cleanJson.lastIndexOf('}');
+
+            if (firstBraceIndex > -1 && lastBraceIndex > -1) {
+              cleanJson = cleanJson.substring(firstBraceIndex, lastBraceIndex + 1);
+            }
           }
-          
+
           console.log('Parsing JSON:', cleanJson);
           const searchResults = JSON.parse(cleanJson);
-          
+
+          // If there's additional text after JSON, append it to search comment
+          if (additionalText) {
+            const cleanAdditionalText = additionalText
+              .replace(/^\s*[\n\r]+/g, '')
+              .replace(/\*\*Рекомендация\*\*/gi, '\n\n**Рекомендация**')
+              .trim();
+
+            if (cleanAdditionalText && searchComment) {
+              setSearchComment(searchComment + '\n\n' + cleanAdditionalText);
+            }
+          }
+
           if (Array.isArray(searchResults)) {
             const formattedResults: UserMatch[] = searchResults.map((result: any) => ({
               id: result.id || result.userId || result.user_id || Math.random().toString(),
               name: result.name || 'Неизвестный пользователь',
               values: result.values || [],
               intents: result.intents || [],
+              interests: result.interests || [],
+              skills: result.skills || [],
               corellation: result.corellation || result.correlation || 0,
               phone: result.id || result.userId || result.user_id || null
             }));
-            
+
             console.log('Formatted results:', formattedResults);
             setResults(formattedResults);
           } else if (searchResults && typeof searchResults === 'object') {
@@ -180,10 +310,12 @@ const SearchInterface: React.FC = () => {
               name: searchResults.name || 'Неизвестный пользователь',
               values: searchResults.values || [],
               intents: searchResults.intents || [],
+              interests: searchResults.interests || [],
+              skills: searchResults.skills || [],
               corellation: searchResults.corellation || searchResults.correlation || 0,
               phone: searchResults.id || searchResults.userId || searchResults.user_id || null
             };
-            
+
             console.log('Single result:', singleResult);
             setResults([singleResult]);
           } else {
@@ -194,7 +326,6 @@ const SearchInterface: React.FC = () => {
           console.error('Failed to parse search results JSON:', jsonError);
           console.log('Raw JSON buffer:', jsonBuffer);
           console.log('Cleaned JSON:', cleanJson);
-          // Fallback to empty results
           setResults([]);
         }
       } else {
@@ -215,6 +346,52 @@ const SearchInterface: React.FC = () => {
     if (e.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+
+    if (digits.length === 0) return '';
+    if (digits.length <= 1) return '+7';
+    if (digits.length <= 4) return `+7 (${digits.slice(1)}`;
+    if (digits.length <= 7) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4)}`;
+    if (digits.length <= 9) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
+  };
+
+  const handlePhoneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    setCurrentPhoneInput(formatted);
+    setPhoneError('');
+  };
+
+  const validatePhoneNumber = (phone: string): boolean => {
+    const digits = phone.replace(/\D/g, '');
+    return digits.length === 11 && digits.startsWith('7');
+  };
+
+  const addPhoneNumber = () => {
+    const trimmedPhone = currentPhoneInput.trim();
+
+    if (!trimmedPhone) {
+      return;
+    }
+
+    if (!validatePhoneNumber(trimmedPhone)) {
+      setPhoneError('Введите полный номер телефона');
+      return;
+    }
+
+    const cleanPhone = '+' + trimmedPhone.replace(/\D/g, '');
+
+    if (phoneNumbers.includes(cleanPhone)) {
+      setPhoneError('Этот номер уже добавлен');
+      return;
+    }
+
+    setPhoneNumbers([...phoneNumbers, cleanPhone]);
+    setCurrentPhoneInput('');
+    setPhoneError('');
   };
 
   const getScoreColor = (score: number) => {
@@ -252,32 +429,104 @@ const SearchInterface: React.FC = () => {
         <h1 className="text-xl font-bold text-gray-900 mb-4">
           {t('search.title')}
         </h1>
-        
+
         {/* Search Bar */}
-        <div className="flex space-x-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={t('search.placeholder')}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <button
-            onClick={handleSearch}
-            disabled={isSearching}
-            className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
-          >
-            {isSearching ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Search className="w-5 h-5" />
+        {false ? (
+          <div>
+            <div className="flex space-x-2 mb-2">
+              <div className="flex-1 relative">
+                <input
+                  type="tel"
+                  value={currentPhoneInput}
+                  onChange={handlePhoneInputChange}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addPhoneNumber();
+                    }
+                  }}
+                  placeholder="+7 (999) 999-99-99"
+                  className={clsx(
+                    "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                    phoneError ? "border-red-300" : "border-gray-300"
+                  )}
+                />
+              </div>
+              <button
+                onClick={addPhoneNumber}
+                disabled={!validatePhoneNumber(currentPhoneInput)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+
+            {phoneError && (
+              <p className="text-red-600 text-sm mb-3">{phoneError}</p>
             )}
-          </button>
-        </div>
+
+            {phoneNumbers.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {phoneNumbers.map((phone, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 text-forest-700 rounded-lg"
+                  >
+                    <span className="text-sm">{phone}</span>
+                    <button
+                      onClick={() => {
+                        setPhoneNumbers(phoneNumbers.filter((_, i) => i !== index));
+                      }}
+                      className="text-forest-600 hover:text-forest-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={handlePhoneSearch}
+              disabled={isSearching || phoneNumbers.length === 0}
+              className="w-full px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
+            >
+              {isSearching ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Анализ...
+                </div>
+              ) : (
+                `Показать (${phoneNumbers.length})`
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="flex space-x-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={currentPlaceholder}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
+            >
+              {isSearching ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Search className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results */}
@@ -397,26 +646,76 @@ const SearchInterface: React.FC = () => {
                     </p>
 
                     {/* Common Values */}
-                    <div className="mb-4">
-                      <p className="text-xs text-gray-500 mb-2">
-                        Ценности ({user.values.length})
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {user.values.slice(0, 3).map((value, index) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-forest-50 text-forest-700 text-xs rounded-full"
-                          >
-                            {value}
-                          </span>
-                        ))}
-                        {user.values.length > 3 && (
-                          <span className="px-2 py-1 bg-warm-50 text-warm-700 text-xs rounded-full flex items-center">
-                            +{user.values.length - 3}
-                          </span>
-                        )}
+                    {user.values && user.values.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Ценности ({user.values.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {user.values.slice(0, 3).map((value, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-forest-50 text-forest-700 text-xs rounded-full"
+                            >
+                              {value}
+                            </span>
+                          ))}
+                          {user.values.length > 3 && (
+                            <span className="px-2 py-1 bg-warm-50 text-warm-700 text-xs rounded-full flex items-center">
+                              +{user.values.length - 3}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Interests */}
+                    {user.interests && user.interests.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Интересы ({user.interests.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {user.interests.slice(0, 3).map((interest, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded-full"
+                            >
+                              {interest}
+                            </span>
+                          ))}
+                          {user.interests.length > 3 && (
+                            <span className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded-full flex items-center">
+                              +{user.interests.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Skills */}
+                    {user.skills && user.skills.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-xs text-gray-500 mb-2">
+                          Навыки ({user.skills.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {user.skills.slice(0, 3).map((skill, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs rounded-full"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                          {user.skills.length > 3 && (
+                            <span className="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs rounded-full flex items-center">
+                              +{user.skills.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex space-x-3">
