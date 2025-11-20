@@ -11,6 +11,7 @@ import SearchInterface from './components/search/SearchInterface';
 import CompatibilityPage from './pages/CompatibilityPage';
 import AdminPage from './pages/AdminPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import TokenPurchasePage from './pages/TokenPurchasePage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -63,7 +64,10 @@ const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
-        <AppContent />
+        <Routes>
+          <Route path="/tokens" element={<TokenPurchasePage />} />
+          <Route path="*" element={<AppContent />} />
+        </Routes>
       </AuthProvider>
     </Router>
   );
