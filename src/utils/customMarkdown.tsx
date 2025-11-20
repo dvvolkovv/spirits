@@ -177,20 +177,6 @@ export const createLinkComponent = (
   config: LinkConfig,
   onNavigate?: (url: string) => void
 ): React.ReactNode => {
-  if (config.external) {
-    return (
-      <a
-        href={config.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-forest-600 hover:text-forest-700 underline inline-flex items-center space-x-1"
-      >
-        <span>{config.text}</span>
-        <LucideIcons.ExternalLink className="w-3 h-3" />
-      </a>
-    );
-  }
-
   return (
     <a
       href={config.url}

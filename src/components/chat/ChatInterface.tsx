@@ -183,7 +183,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (url.startsWith('/')) {
       navigate(url);
     } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      window.location.href = url;
     }
   }, [navigate]);
 
@@ -214,18 +214,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     h3: ({ children }: any) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
     br: () => <br />,
     a: ({ href, children }: any) => {
-      if (href?.startsWith('http://') || href?.startsWith('https://')) {
-        return (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-forest-600 hover:text-forest-700 underline"
-          >
-            {children}
-          </a>
-        );
-      }
       return (
         <a
           href={href}
