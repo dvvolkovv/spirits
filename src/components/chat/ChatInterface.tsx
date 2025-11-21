@@ -923,6 +923,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     await sendInitialGreeting(assistant);
   };
 
+  const handleSwitchAssistant = async (assistant: Assistant) => {
+    if (selectedAssistant?.id === assistant.id) {
+      setShowAssistantDropdown(false);
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    setCurrentStreamingMessage('');
+    setStreamingMessageId(null);
+    setIsTyping(false);
+
+    setSelectedAssistant(assistant);
+    localStorage.setItem('selected_assistant', JSON.stringify(assistant));
+    setShowAssistantDropdown(false);
+
+    setAssistantSwitchNotification(`Переключено на ${assistant.name}`);
+    setTimeout(() => setAssistantSwitchNotification(null), 3000);
+  };
+
   if (!hasUserSelectedAssistant) {
     return (
       <AssistantSelection
@@ -995,10 +1018,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       {assistants.map((assistant) => (
                         <button
                           key={assistant.id}
-                          onClick={() => {
-                            setSelectedAssistant(assistant);
-                            setShowAssistantDropdown(false);
-                          }}
+                          onClick={() => handleSwitchAssistant(assistant)}
                           className={clsx(
                             'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
                             selectedAssistant.id === assistant.id && 'bg-forest-50'
