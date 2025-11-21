@@ -471,7 +471,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           console.log('[Sync] Profile record:', profileRecord);
 
           if (profileRecord) {
-            const serverAgent = profileRecord.profile_data?.agent || profileRecord.agent;
+            const serverAgent = profileRecord.profile_data?.preferred_agent || profileRecord.preferred_agent || profileRecord.profile_data?.agent || profileRecord.agent;
             console.log('[Sync] Server agent:', serverAgent);
             console.log('[Sync] Current assistant:', selectedAssistant?.name);
             console.log('[Sync] All available assistants:', assistants.map(a => a.name));
