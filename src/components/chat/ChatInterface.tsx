@@ -115,7 +115,7 @@ const StreamingMessage = React.memo(({
 
   return (
     <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
-      <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
+      <div className="max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
         <div className="min-h-[24px]">
           {content ? (
             <>
@@ -1199,10 +1199,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           >
             <div
               className={clsx(
-                'max-w-xs sm:max-w-md px-4 py-2 rounded-2xl',
+                'px-4 py-2 rounded-2xl',
                 message.type === 'user'
-                  ? 'bg-forest-600 text-white rounded-br-md'
-                  : 'bg-white text-gray-900 shadow-sm rounded-bl-md relative'
+                  ? 'max-w-xs sm:max-w-md bg-forest-600 text-white rounded-br-md'
+                  : 'max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl bg-white text-gray-900 shadow-sm rounded-bl-md relative'
               )}
             >
               {message.type === 'assistant' ? (
