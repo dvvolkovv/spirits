@@ -8,16 +8,13 @@ import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
+import { avatarService } from '../../services/avatarService';
 
 interface Assistant {
   id: number;
   name: string;
   description: string;
 }
-
-const getAvatarUrl = (agentId: number): string => {
-  return `https://travel-n8n.up.railway.app/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/agent/avatar/${agentId}`;
-};
 
 const getRoleForAssistant = (description: string): string => {
   if (description.includes('Коуч')) return 'Коуч';
@@ -280,6 +277,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [showTokenPackages, setShowTokenPackages] = useState(initialShowTokens);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [assistantSwitchNotification, setAssistantSwitchNotification] = useState<string | null>(null);
+  const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (initialShowTokens) {
@@ -342,6 +340,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (response.ok) {
           const data = await response.json();
           setAssistants(data);
+
+          const urls: Record<number, string> = {};
+          await Promise.all(
+            data.map(async (assistant: Assistant) => {
+              try {
+                const url = await avatarService.getAvatarUrl(assistant.id);
+                urls[assistant.id] = url;
+              } catch (error) {
+                console.error(`Failed to load avatar for ${assistant.name}:`, error);
+              }
+            })
+          );
+          setAvatarUrls(urls);
         } else {
           console.error('Failed to fetch assistants');
         }
@@ -1073,19 +1084,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
                   className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
                 >
-                  <img
-                    src={getAvatarUrl(selectedAssistant.id)}
-                    alt={selectedAssistant.name}
-                    className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div class="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0"><span class="text-lg">👤</span></div>';
-                      }
-                    }}
-                  />
+                  {avatarUrls[selectedAssistant.id] ? (
+                    <img
+                      src={avatarUrls[selectedAssistant.id]}
+                      alt={selectedAssistant.name}
+                      className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg">👤</span>
+                    </div>
+                  )}
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
                     <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description)}</span>
@@ -1106,19 +1119,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           )}
                         >
                           <div className="flex items-center space-x-3">
-                            <img
-                              src={getAvatarUrl(assistant.id)}
-                              alt={assistant.name}
-                              className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = '<div class="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">👤</div>';
-                                }
-                              }}
-                            />
+                            {avatarUrls[assistant.id] ? (
+                              <img
+                                src={avatarUrls[assistant.id]}
+                                alt={assistant.name}
+                                className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
+                                👤
+                              </div>
+                            )}
                             <div className="flex flex-col flex-1">
                               <span className="text-sm font-medium text-gray-900">{assistant.name}</span>
                               <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
