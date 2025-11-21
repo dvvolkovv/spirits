@@ -279,6 +279,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   });
   const [showTokenPackages, setShowTokenPackages] = useState(initialShowTokens);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [assistantSwitchNotification, setAssistantSwitchNotification] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialShowTokens) {
@@ -383,6 +384,43 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       console.error('Error changing agent on server:', error);
     }
   };
+
+  // Синхронизация выбора ассистента между окнами/вкладками
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'selected_assistant' && e.newValue) {
+        try {
+          const newAssistant = JSON.parse(e.newValue);
+
+          // Проверяем, что это действительно другой ассистент
+          if (selectedAssistant?.id !== newAssistant.id) {
+            // Прерываем активные запросы
+            if (abortControllerRef.current) {
+              abortControllerRef.current.abort();
+              abortControllerRef.current = null;
+            }
+
+            // Очищаем потоковое сообщение
+            setCurrentStreamingMessage('');
+            setStreamingMessageId(null);
+            setIsTyping(false);
+
+            // Обновляем выбранного ассистента
+            setSelectedAssistant(newAssistant);
+
+            // Показываем уведомление
+            setAssistantSwitchNotification(`Переключено на ${newAssistant.name}`);
+            setTimeout(() => setAssistantSwitchNotification(null), 3000);
+          }
+        } catch (error) {
+          console.error('Error parsing selected assistant from storage:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [selectedAssistant]);
 
   // Закрытие дропдауна при клике вне его
   useEffect(() => {
@@ -513,6 +551,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Extract phone number from user data and clean it for sessionId
     const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
 
+    // Получаем актуальный ID ассистента из localStorage для дополнительной проверки
+    let currentAssistantId = selectedAssistant?.id || 1;
+    const savedAssistant = localStorage.getItem('selected_assistant');
+    if (savedAssistant) {
+      try {
+        const assistant = JSON.parse(savedAssistant);
+        currentAssistantId = assistant.id;
+      } catch (error) {
+        console.error('Error parsing assistant from localStorage:', error);
+      }
+    }
+
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/soulmate/chat`, {
         method: 'POST',
@@ -522,7 +572,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         body: JSON.stringify({
           chatInput: userMessage,
           sessionId: phoneNumber,
-          assistant: selectedAssistant?.id || 1
+          assistant: currentAssistantId
         }),
         signal: abortControllerRef.current.signal
       });
@@ -620,6 +670,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
+    // Проверяем актуальность выбранного ассистента перед отправкой
+    const savedAssistant = localStorage.getItem('selected_assistant');
+    if (savedAssistant) {
+      try {
+        const currentAssistant = JSON.parse(savedAssistant);
+        // Если ассистент изменился, обновляем состояние
+        if (selectedAssistant?.id !== currentAssistant.id) {
+          setSelectedAssistant(currentAssistant);
+          // Ожидаем обновления состояния и синхронизации с сервером
+          await changeAgentOnServer(currentAssistant.name);
+          // Показываем уведомление
+          setAssistantSwitchNotification(`Переключено на ${currentAssistant.name}`);
+          setTimeout(() => setAssistantSwitchNotification(null), 3000);
+        }
+      } catch (error) {
+        console.error('Error checking assistant before send:', error);
+      }
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
@@ -630,7 +699,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMessage]);
     const messageText = input;
     setInput('');
-    
+
     await sendMessageToAI(messageText);
   };
 
@@ -875,6 +944,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       )}
 
       <div className="flex flex-col h-full bg-gray-50 relative">
+        {/* Уведомление о смене ассистента */}
+        {assistantSwitchNotification && (
+          <div className="fixed top-20 md:top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+            <div className="bg-forest-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">{assistantSwitchNotification}</span>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed md:relative top-0 left-0 right-0 z-40">
         <div className="flex items-center justify-between max-w-full">
