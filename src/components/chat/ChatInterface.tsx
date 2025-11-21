@@ -459,8 +459,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (response.ok) {
           const responseData = await response.json();
 
-          console.log('[Sync] Full API response:', responseData);
-
           let profileRecord;
           if (Array.isArray(responseData) && responseData.length > 0) {
             profileRecord = responseData[0];
@@ -468,22 +466,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             profileRecord = responseData;
           }
 
-          console.log('[Sync] Profile record:', profileRecord);
-
           if (profileRecord) {
             const serverAgent = profileRecord.profile_data?.preferred_agent || profileRecord.preferred_agent || profileRecord.profile_data?.agent || profileRecord.agent;
-            console.log('[Sync] Server agent:', serverAgent);
-            console.log('[Sync] Current assistant:', selectedAssistant?.name);
-            console.log('[Sync] All available assistants:', assistants.map(a => a.name));
 
             if (serverAgent && selectedAssistant?.name !== serverAgent) {
-              console.log('[Sync] Agent changed! Looking for:', serverAgent);
-
               const matchingAssistant = assistants.find(
                 (a) => a.name === serverAgent
               );
-
-              console.log('[Sync] Matching assistant found:', matchingAssistant);
 
               if (matchingAssistant) {
                 if (abortControllerRef.current) {
@@ -495,17 +484,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 setStreamingMessageId(null);
                 setIsTyping(false);
 
-                console.log('[Sync] Switching to assistant:', matchingAssistant);
                 setSelectedAssistant(matchingAssistant);
                 localStorage.setItem('selected_assistant', JSON.stringify(matchingAssistant));
 
                 setAssistantSwitchNotification(`Переключено на ${matchingAssistant.name}`);
                 setTimeout(() => setAssistantSwitchNotification(null), 3000);
-              } else {
-                console.warn('[Sync] No matching assistant found for:', serverAgent);
               }
-            } else {
-              console.log('[Sync] No change needed. Server and local match.');
             }
           }
         }
