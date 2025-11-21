@@ -434,6 +434,87 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Синхронизация выбранного ассистента с сервером каждые 10 секунд
+  useEffect(() => {
+    if (!user?.phone || !assistants.length) return;
+
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const syncAssistantFromServer = async () => {
+      if (document.hidden) return;
+
+      const cleanPhone = user.phone.replace(/\D/g, '');
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          }
+        );
+
+        if (response.ok) {
+          const responseData = await response.json();
+
+          let profileRecord;
+          if (Array.isArray(responseData) && responseData.length > 0) {
+            profileRecord = responseData[0];
+          } else if (responseData && typeof responseData === 'object') {
+            profileRecord = responseData;
+          }
+
+          if (profileRecord) {
+            const serverAgent = profileRecord.profile_data?.agent || profileRecord.agent;
+
+            if (serverAgent && selectedAssistant?.name !== serverAgent) {
+              const matchingAssistant = assistants.find(
+                (a) => a.name === serverAgent
+              );
+
+              if (matchingAssistant) {
+                if (abortControllerRef.current) {
+                  abortControllerRef.current.abort();
+                  abortControllerRef.current = null;
+                }
+
+                setCurrentStreamingMessage('');
+                setStreamingMessageId(null);
+                setIsTyping(false);
+
+                setSelectedAssistant(matchingAssistant);
+                localStorage.setItem('selected_assistant', JSON.stringify(matchingAssistant));
+
+                setAssistantSwitchNotification(`Переключено на ${matchingAssistant.name}`);
+                setTimeout(() => setAssistantSwitchNotification(null), 3000);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing assistant from server:', error);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        syncAssistantFromServer();
+      }
+    };
+
+    intervalId = setInterval(syncAssistantFromServer, 10000);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    syncAssistantFromServer();
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.phone, assistants, selectedAssistant]);
+
   // Отдельный useEffect для прокрутки с throttling
   useEffect(() => {
     const container = messagesContainerRef.current;
