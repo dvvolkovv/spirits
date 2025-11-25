@@ -16,19 +16,36 @@ const PaymentSuccessPage: React.FC = () => {
       const userId = searchParams.get('user_id');
       const paymentIdFromUrl = searchParams.get('payment_id');
       const paymentIdFromStorage = localStorage.getItem('pending_payment_id');
-      const paymentId = paymentIdFromUrl || paymentIdFromStorage;
+      const paymentIdFromSession = sessionStorage.getItem('pending_payment_id');
+      const paymentId = paymentIdFromUrl || paymentIdFromStorage || paymentIdFromSession;
 
-      console.log('Payment verification data:', { userId, paymentIdFromUrl, paymentIdFromStorage, paymentId });
+      console.log('=== Payment Verification Debug ===');
+      console.log('URL params:', Object.fromEntries(searchParams.entries()));
+      console.log('Full URL:', window.location.href);
+      console.log('userId:', userId);
+      console.log('paymentIdFromUrl:', paymentIdFromUrl);
+      console.log('paymentIdFromStorage:', paymentIdFromStorage);
+      console.log('paymentIdFromSession:', paymentIdFromSession);
+      console.log('Final paymentId:', paymentId);
+      console.log('localStorage contents:', {
+        pending_payment_id: localStorage.getItem('pending_payment_id'),
+        all_keys: Object.keys(localStorage)
+      });
+      console.log('sessionStorage contents:', {
+        pending_payment_id: sessionStorage.getItem('pending_payment_id'),
+        all_keys: Object.keys(sessionStorage)
+      });
+
+      if (!paymentId) {
+        setStatus('error');
+        setErrorMessage(`Недостаточно данных для проверки платежа (отсутствует payment_id).\n\nДанные отладки:\n- URL: ${window.location.href}\n- URL параметры: ${JSON.stringify(Object.fromEntries(searchParams.entries()))}\n- localStorage: ${paymentIdFromStorage || 'отсутствует'}\n- sessionStorage: ${paymentIdFromSession || 'отсутствует'}`);
+        console.error('Payment ID not found!');
+        return;
+      }
 
       if (!userId) {
         setStatus('error');
         setErrorMessage('Недостаточно данных для проверки платежа (отсутствует user_id)');
-        return;
-      }
-
-      if (!paymentId) {
-        setStatus('error');
-        setErrorMessage('Недостаточно данных для проверки платежа (отсутствует payment_id). Проверьте localStorage и URL параметры.');
         return;
       }
 

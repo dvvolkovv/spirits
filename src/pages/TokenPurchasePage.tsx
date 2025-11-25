@@ -139,7 +139,9 @@ const TokenPurchasePage: React.FC = () => {
 
         if (paymentData && paymentData.payment_url && paymentData.payment_id) {
           localStorage.setItem('pending_payment_id', paymentData.payment_id);
-          console.log('Saved payment_id to localStorage:', paymentData.payment_id);
+          sessionStorage.setItem('pending_payment_id', paymentData.payment_id);
+          console.log('Saved payment_id to localStorage and sessionStorage:', paymentData.payment_id);
+          console.log('Full payment data:', paymentData);
           window.location.href = paymentData.payment_url;
         } else {
           console.error('Invalid payment data structure:', data);
