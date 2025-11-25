@@ -91,16 +91,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
       if (response.ok) {
         const data = await response.json();
 
-        if (data && data.length > 0) {
-          const paymentData = data[0];
-
-          if (paymentData.payment_url) {
-            window.location.href = paymentData.payment_url;
-          } else {
-            throw new Error('Не получена ссылка на оплату');
-          }
+        if (data && data.confirmation_url) {
+          window.location.href = data.confirmation_url;
         } else {
-          throw new Error('Некорректный ответ от сервера');
+          throw new Error('Не получена ссылка на оплату');
         }
       } else {
         const errorData = await response.json();
