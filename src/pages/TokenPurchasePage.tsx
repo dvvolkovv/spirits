@@ -47,9 +47,14 @@ const TokenPurchasePage: React.FC = () => {
   useEffect(() => {
     const phoneParam = searchParams.get('phone');
     const packageParam = searchParams.get('package');
+    const savedEmail = localStorage.getItem('payment_email');
 
     if (phoneParam) {
       setPhone(phoneParam);
+    }
+
+    if (savedEmail) {
+      setEmail(savedEmail);
     }
 
     if (packageParam && packages.some(pkg => pkg.id === packageParam)) {
@@ -107,7 +112,9 @@ const TokenPurchasePage: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
 
-        if (data && data.confirmation_url) {
+        if (data && data.confirmation_url && data.payment_id) {
+          localStorage.setItem('pending_payment_id', data.payment_id);
+          localStorage.setItem('payment_email', email.trim());
           window.location.href = data.confirmation_url;
         } else {
           throw new Error('Не получена ссылка на оплату');
