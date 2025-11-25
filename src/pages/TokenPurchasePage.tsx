@@ -45,6 +45,7 @@ const TokenPurchasePage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const emailInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const phoneParam = searchParams.get('phone');
@@ -83,11 +84,15 @@ const TokenPurchasePage: React.FC = () => {
 
     if (!email.trim()) {
       setEmailError('Пожалуйста, укажите email для получения чека');
+      emailInputRef.current?.focus();
+      emailInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
     if (!validateEmail(email)) {
       setEmailError('Пожалуйста, укажите корректный email');
+      emailInputRef.current?.focus();
+      emailInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
 
@@ -181,6 +186,7 @@ const TokenPurchasePage: React.FC = () => {
                 </div>
               </label>
               <input
+                ref={emailInputRef}
                 type="email"
                 value={email}
                 onChange={(e) => {
