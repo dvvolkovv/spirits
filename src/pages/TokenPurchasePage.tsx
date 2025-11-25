@@ -128,11 +128,16 @@ const TokenPurchasePage: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Payment creation response:', data);
 
-        if (data && data.confirmation_url && data.payment_id) {
-          localStorage.setItem('pending_payment_id', data.payment_id);
-          window.location.href = data.confirmation_url;
+        const paymentData = Array.isArray(data) ? data[0] : data;
+
+        if (paymentData && paymentData.payment_url && paymentData.payment_id) {
+          localStorage.setItem('pending_payment_id', paymentData.payment_id);
+          console.log('Saved payment_id to localStorage:', paymentData.payment_id);
+          window.location.href = paymentData.payment_url;
         } else {
+          console.error('Invalid payment data structure:', data);
           throw new Error('Не получена ссылка на оплату');
         }
       } else {
