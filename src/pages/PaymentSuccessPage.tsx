@@ -14,11 +14,13 @@ const PaymentSuccessPage: React.FC = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       const userId = searchParams.get('user_id');
+      const paymentId = searchParams.get('payment_id');
 
       console.log('=== Payment Verification Debug ===');
       console.log('URL params:', Object.fromEntries(searchParams.entries()));
       console.log('Full URL:', window.location.href);
-      console.log('userId (phone):', userId);
+      console.log('userId:', userId);
+      console.log('paymentId:', paymentId);
 
       if (!userId) {
         setStatus('error');
@@ -26,45 +28,10 @@ const PaymentSuccessPage: React.FC = () => {
         return;
       }
 
-      let paymentId: string | null = null;
-
-      try {
-        console.log('Fetching payment from database for phone:', userId);
-        const { data: payment, error: dbError } = await supabase
-          .from('payments')
-          .select('payment_id, status, user_id, phone')
-          .eq('phone', userId)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        console.log('Database query result:', { payment, error: dbError });
-
-        if (dbError) {
-          console.error('Database error:', dbError);
-        } else if (payment) {
-          paymentId = payment.payment_id;
-          console.log('Found pending payment in database:', payment);
-          console.log('Using payment_id:', paymentId);
-        } else {
-          console.log('No pending payment found in database for phone:', userId);
-        }
-      } catch (error) {
-        console.error('Error fetching payment from database:', error);
-      }
-
-      if (!paymentId) {
-        const paymentIdFromStorage = localStorage.getItem('pending_payment_id');
-        const paymentIdFromSession = sessionStorage.getItem('pending_payment_id');
-        paymentId = paymentIdFromStorage || paymentIdFromSession;
-        console.log('Fallback to storage:', { paymentIdFromStorage, paymentIdFromSession, paymentId });
-      }
-
       if (!paymentId) {
         setStatus('error');
-        setErrorMessage('Не найден платеж для проверки. Попробуйте снова или свяжитесь с поддержкой.');
-        console.error('Payment ID not found anywhere!');
+        setErrorMessage(`Недостаточно данных для проверки платежа (отсутствует payment_id).\n\nURL: ${window.location.href}\n\nБэкенд должен добавить payment_id в return_url:\nhttps://my.linkeon.io/payment/success?user_id=${userId}&payment_id=PAYMENT_ID`);
+        console.error('Payment ID not found in URL!');
         return;
       }
 
