@@ -14,15 +14,27 @@ const PaymentSuccessPage: React.FC = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       const userId = searchParams.get('user_id');
-      const paymentId = localStorage.getItem('pending_payment_id');
+      const paymentIdFromUrl = searchParams.get('payment_id');
+      const paymentIdFromStorage = localStorage.getItem('pending_payment_id');
+      const paymentId = paymentIdFromUrl || paymentIdFromStorage;
 
-      if (!paymentId || !userId) {
+      console.log('Payment verification data:', { userId, paymentIdFromUrl, paymentIdFromStorage, paymentId });
+
+      if (!userId) {
         setStatus('error');
-        setErrorMessage('Недостаточно данных для проверки платежа');
+        setErrorMessage('Недостаточно данных для проверки платежа (отсутствует user_id)');
+        return;
+      }
+
+      if (!paymentId) {
+        setStatus('error');
+        setErrorMessage('Недостаточно данных для проверки платежа (отсутствует payment_id). Проверьте localStorage и URL параметры.');
         return;
       }
 
       try {
+        console.log('Sending payment verification request:', { payment_id: paymentId, user_id: userId });
+
         const response = await fetch('https://travel-n8n.up.railway.app/webhook/yookassa/verify-payment', {
           method: 'POST',
           headers: {
@@ -34,8 +46,11 @@ const PaymentSuccessPage: React.FC = () => {
           }),
         });
 
+        console.log('Payment verification response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('Payment verification response data:', data);
 
           if (data.yoo_status === 'succeeded' || data.db_status === 'succeeded') {
             setTokensAdded(data.tokens);
@@ -64,7 +79,7 @@ const PaymentSuccessPage: React.FC = () => {
       } catch (error) {
         console.error('Error verifying payment:', error);
         setStatus('error');
-        setErrorMessage('Произошла ошибка при проверке платежа');
+        setErrorMessage(`Произошла ошибка при проверке платежа: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       }
     };
 
