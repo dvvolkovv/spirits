@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Coins, Check, Loader, ArrowLeft, Mail } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TokenPackage {
   id: string;
@@ -38,11 +39,11 @@ const packages: TokenPackage[] = [
 const TokenPurchasePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
@@ -51,38 +52,16 @@ const TokenPurchasePage: React.FC = () => {
 
     if (phoneParam) {
       setPhone(phoneParam);
-      const cleanPhone = phoneParam.replace(/\D/g, '');
-      fetchUserEmail(cleanPhone);
+    }
+
+    if (user?.email) {
+      setEmail(user.email);
     }
 
     if (packageParam && packages.some(pkg => pkg.id === packageParam)) {
       setSelectedPackage(packageParam);
     }
-  }, [searchParams]);
-
-  const fetchUserEmail = async (userId: string) => {
-    setIsLoadingEmail(true);
-    try {
-      const response = await fetch('https://travel-n8n.up.railway.app/webhook/get-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user_id: userId }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.email) {
-          setEmail(data.email);
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке email:', error);
-    } finally {
-      setIsLoadingEmail(false);
-    }
-  };
+  }, [searchParams, user]);
 
   const formatTokens = (tokens: number) => {
     return tokens.toLocaleString('ru-RU');
@@ -212,7 +191,7 @@ const TokenPurchasePage: React.FC = () => {
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
                   emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
-                disabled={isProcessing || isLoadingEmail}
+                disabled={isProcessing}
               />
               {emailError && (
                 <p className="mt-2 text-sm text-red-600">{emailError}</p>
