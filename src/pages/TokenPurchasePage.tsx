@@ -45,6 +45,7 @@ const TokenPurchasePage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [showToast, setShowToast] = useState(false);
   const emailInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -84,6 +85,8 @@ const TokenPurchasePage: React.FC = () => {
 
     if (!email.trim()) {
       setEmailError('Пожалуйста, укажите email для получения чека');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
       emailInputRef.current?.focus();
       emailInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -91,6 +94,8 @@ const TokenPurchasePage: React.FC = () => {
 
     if (!validateEmail(email)) {
       setEmailError('Пожалуйста, укажите корректный email');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
       emailInputRef.current?.focus();
       emailInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -153,7 +158,15 @@ const TokenPurchasePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-white to-warm-50">
+    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-white to-warm-50 relative">
+      {showToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+          <div className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+            <Mail className="w-5 h-5" />
+            <span className="font-medium">Заполните email</span>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 py-8">
         <button
           onClick={() => navigate(-1)}
