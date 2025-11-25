@@ -42,25 +42,47 @@ const TokenPurchasePage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
     const phoneParam = searchParams.get('phone');
     const packageParam = searchParams.get('package');
-    const savedEmail = localStorage.getItem('payment_email');
 
     if (phoneParam) {
       setPhone(phoneParam);
-    }
-
-    if (savedEmail) {
-      setEmail(savedEmail);
+      const cleanPhone = phoneParam.replace(/\D/g, '');
+      fetchUserEmail(cleanPhone);
     }
 
     if (packageParam && packages.some(pkg => pkg.id === packageParam)) {
       setSelectedPackage(packageParam);
     }
   }, [searchParams]);
+
+  const fetchUserEmail = async (userId: string) => {
+    setIsLoadingEmail(true);
+    try {
+      const response = await fetch('https://travel-n8n.up.railway.app/webhook/get-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: userId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.email) {
+          setEmail(data.email);
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке email:', error);
+    } finally {
+      setIsLoadingEmail(false);
+    }
+  };
 
   const formatTokens = (tokens: number) => {
     return tokens.toLocaleString('ru-RU');
@@ -97,6 +119,17 @@ const TokenPurchasePage: React.FC = () => {
     try {
       const cleanPhone = phone.replace(/\D/g, '');
 
+      await fetch('https://travel-n8n.up.railway.app/webhook/set-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: cleanPhone,
+          email: email.trim(),
+        }),
+      });
+
       const response = await fetch('https://travel-n8n.up.railway.app/webhook/yookassa/create-payment', {
         method: 'POST',
         headers: {
@@ -114,7 +147,6 @@ const TokenPurchasePage: React.FC = () => {
 
         if (data && data.confirmation_url && data.payment_id) {
           localStorage.setItem('pending_payment_id', data.payment_id);
-          localStorage.setItem('payment_email', email.trim());
           window.location.href = data.confirmation_url;
         } else {
           throw new Error('Не получена ссылка на оплату');
@@ -180,7 +212,7 @@ const TokenPurchasePage: React.FC = () => {
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
                   emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
-                disabled={isProcessing}
+                disabled={isProcessing || isLoadingEmail}
               />
               {emailError && (
                 <p className="mt-2 text-sm text-red-600">{emailError}</p>
