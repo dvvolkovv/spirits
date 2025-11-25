@@ -1,76 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, Loader, AlertCircle, Coins } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { Check, Loader, AlertCircle, Coins, ArrowLeft } from 'lucide-react';
 
 const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, updateTokens } = useAuth();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [tokensAdded, setTokensAdded] = useState<number>(0);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'pending'>('loading');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const verifyPayment = async () => {
+    const checkPaymentStatus = () => {
+      const paymentStatus = searchParams.get('status');
       const paymentId = searchParams.get('payment_id');
 
-      if (!paymentId || !user?.phone) {
+      if (!paymentId) {
         setStatus('error');
-        setErrorMessage('Недостаточно данных для проверки платежа');
+        setMessage('Не найден идентификатор платежа');
         return;
       }
 
-      try {
-        const cleanPhone = user.phone.replace(/\D/g, '');
-
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/yookassa/verify-payment`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            payment_id: paymentId,
-            phone: cleanPhone,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-
-          if (data.status === 'succeeded') {
-            setTokensAdded(data.tokens_added);
-            updateTokens((user.tokens || 0) + data.tokens_added);
-            setStatus('success');
-
-            setTimeout(() => {
-              navigate('/chat');
-            }, 3000);
-          } else {
-            setStatus('error');
-            setErrorMessage(data.message || 'Платеж не был завершен');
-          }
-        } else {
-          const errorData = await response.json();
-          setStatus('error');
-          setErrorMessage(errorData.message || 'Ошибка проверки платежа');
-        }
-      } catch (error) {
-        console.error('Error verifying payment:', error);
+      if (paymentStatus === 'success' || paymentStatus === 'succeeded') {
+        setStatus('success');
+        setMessage('Платеж успешно обработан. Токены будут зачислены в ближайшее время.');
+      } else if (paymentStatus === 'pending' || paymentStatus === 'waiting_for_capture') {
+        setStatus('pending');
+        setMessage('Платеж находится в обработке. Пожалуйста, подождите.');
+      } else if (paymentStatus === 'canceled' || paymentStatus === 'cancelled') {
         setStatus('error');
-        setErrorMessage('Произошла ошибка при проверке платежа');
+        setMessage('Платеж был отменен');
+      } else {
+        setStatus('pending');
+        setMessage('Проверка статуса платежа. Токены будут зачислены автоматически после подтверждения оплаты.');
       }
     };
 
-    verifyPayment();
-  }, [searchParams, user, updateTokens, navigate]);
-
-  const formatTokens = (tokens: number) => {
-    return tokens.toLocaleString('ru-RU');
-  };
+    setTimeout(() => {
+      checkPaymentStatus();
+    }, 1000);
+  }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 to-warm-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-white to-warm-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8">
         {status === 'loading' && (
           <div className="text-center">
@@ -86,61 +56,127 @@ const PaymentSuccessPage: React.FC = () => {
 
         {status === 'success' && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-10 h-10 text-green-600" />
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-12 h-12 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
               Оплата прошла успешно!
             </h2>
-            <p className="text-gray-600 mb-6">
-              Ваши токены успешно зачислены
+            <p className="text-gray-600 mb-8">
+              {message}
             </p>
 
-            <div className="bg-forest-50 rounded-lg p-6 border border-forest-200 mb-6">
-              <div className="flex items-center justify-center space-x-3 mb-2">
-                <Coins className="w-8 h-8 text-forest-600" />
-                <span className="text-4xl font-bold text-forest-700">
-                  +{formatTokens(tokensAdded)}
+            <div className="bg-gradient-to-br from-forest-50 to-warm-50 rounded-xl p-6 border-2 border-forest-200 mb-8">
+              <div className="flex items-center justify-center space-x-3 mb-3">
+                <Coins className="w-10 h-10 text-forest-600" />
+                <span className="text-2xl font-bold text-forest-700">
+                  Токены зачисляются
                 </span>
               </div>
-              <p className="text-sm text-gray-600">токенов добавлено</p>
+              <p className="text-sm text-gray-600">
+                Баланс обновится автоматически в течение нескольких минут
+              </p>
             </div>
 
-            <div className="text-sm text-gray-500">
-              Вы будете перенаправлены в чат через несколько секунд...
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/chat')}
+                className="w-full py-3 px-4 bg-gradient-to-r from-forest-600 to-warm-600 hover:from-forest-700 hover:to-warm-700 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+              >
+                Перейти в чат
+              </button>
+              <button
+                onClick={() => navigate('/profile')}
+                className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors"
+              >
+                Мой профиль
+              </button>
             </div>
-
-            <button
-              onClick={() => navigate('/chat')}
-              className="mt-6 w-full py-3 px-4 bg-forest-600 hover:bg-forest-700 text-white rounded-lg font-semibold transition-colors"
-            >
-              Перейти в чат
-            </button>
           </div>
         )}
 
-        {status === 'error' && (
+        {status === 'pending' && (
           <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-10 h-10 text-red-600" />
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Loader className="w-12 h-12 text-blue-600 animate-spin" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Ошибка оплаты
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+              Платеж обрабатывается
             </h2>
-            <p className="text-gray-600 mb-6">
-              {errorMessage || 'Что-то пошло не так'}
+            <p className="text-gray-600 mb-8">
+              {message}
             </p>
+
+            <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-200 mb-8">
+              <div className="flex items-center space-x-3 mb-3">
+                <AlertCircle className="w-8 h-8 text-blue-600" />
+                <p className="text-sm text-gray-700 text-left">
+                  Платеж находится в обработке. Токены будут автоматически зачислены после подтверждения платежа банком.
+                </p>
+              </div>
+              <p className="text-xs text-gray-600 mt-3">
+                Обычно это занимает от нескольких секунд до 5 минут.
+              </p>
+            </div>
 
             <div className="space-y-3">
               <button
                 onClick={() => navigate('/chat')}
                 className="w-full py-3 px-4 bg-forest-600 hover:bg-forest-700 text-white rounded-lg font-semibold transition-colors"
               >
-                Вернуться в чат
+                Перейти в чат
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="w-full py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
+                className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+              >
+                <Loader className="w-5 h-5" />
+                <span>Обновить статус</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className="text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-12 h-12 text-red-600" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+              Ошибка оплаты
+            </h2>
+            <p className="text-gray-600 mb-8">
+              {message || 'Что-то пошло не так при обработке платежа'}
+            </p>
+
+            <div className="bg-red-50 rounded-xl p-6 border-2 border-red-200 mb-8">
+              <div className="flex items-center space-x-3">
+                <AlertCircle className="w-8 h-8 text-red-600 flex-shrink-0" />
+                <div className="text-left">
+                  <p className="text-sm text-gray-700 mb-2">
+                    Возможные причины:
+                  </p>
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    <li>• Платеж был отменен</li>
+                    <li>• Недостаточно средств на карте</li>
+                    <li>• Истекло время ожидания</li>
+                    <li>• Технические проблемы</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => navigate('/chat')}
+                className="w-full py-3 px-4 bg-forest-600 hover:bg-forest-700 text-white rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Вернуться в чат</span>
+              </button>
+              <button
+                onClick={() => window.history.back()}
+                className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-semibold transition-colors"
               >
                 Попробовать снова
               </button>
