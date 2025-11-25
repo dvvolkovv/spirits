@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Coins, Check, Loader } from 'lucide-react';
+import { X, Coins, Check, Loader, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface TokenPackage {
@@ -43,22 +43,40 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   const { user } = useAuth();
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   const formatTokens = (tokens: number) => {
     return tokens.toLocaleString('ru-RU');
+  };
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const handlePurchase = async (packageId: string) => {
     const selectedPkg = packages.find(pkg => pkg.id === packageId);
     if (!selectedPkg || !user?.phone) return;
 
+    if (!email.trim()) {
+      setEmailError('Пожалуйста, укажите email для получения чека');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setEmailError('Пожалуйста, укажите корректный email');
+      return;
+    }
+
+    setEmailError('');
     setIsProcessing(true);
     setSelectedPackage(packageId);
 
     try {
       const cleanPhone = user.phone.replace(/\D/g, '');
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/yookassa/create-payment`, {
+      const response = await fetch('https://travel-n8n.up.railway.app/webhook/yookassa/create-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,17 +84,23 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
         body: JSON.stringify({
           user_id: cleanPhone,
           package_id: packageId,
+          email: email.trim(),
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
 
-        if (data.status === 'succeeded') {
-          alert(`Токены успешно начислены! Пакет "${selectedPkg.name}" (${formatTokens(selectedPkg.tokens)} токенов)`);
-          window.location.reload();
+        if (data && data.length > 0) {
+          const paymentData = data[0];
+
+          if (paymentData.payment_url) {
+            window.location.href = paymentData.payment_url;
+          } else {
+            throw new Error('Не получена ссылка на оплату');
+          }
         } else {
-          throw new Error('Ошибка начисления токенов');
+          throw new Error('Некорректный ответ от сервера');
         }
       } else {
         const errorData = await response.json();
@@ -123,6 +147,34 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               </div>
             </div>
           )}
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="flex items-center space-x-2">
+                <Mail className="w-4 h-4 text-gray-600" />
+                <span>Email для получения чека</span>
+              </div>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError('');
+              }}
+              placeholder="example@mail.com"
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
+                emailError ? 'border-red-500' : 'border-gray-300'
+              }`}
+              disabled={isProcessing}
+            />
+            {emailError && (
+              <p className="mt-2 text-sm text-red-600">{emailError}</p>
+            )}
+            <p className="mt-2 text-xs text-gray-500">
+              На указанный email будет отправлен чек об оплате
+            </p>
+          </div>
 
           <div className="grid md:grid-cols-3 gap-6">
             {packages.map((pkg) => (
