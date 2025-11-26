@@ -46,6 +46,7 @@ const TokenPurchasePage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [isLoadingEmail, setIsLoadingEmail] = useState(true);
   const emailInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -64,6 +65,35 @@ const TokenPurchasePage: React.FC = () => {
       setSelectedPackage(packageParam);
     }
   }, [searchParams, user]);
+
+  useEffect(() => {
+    const fetchUserEmail = async () => {
+      if (!phone) {
+        setIsLoadingEmail(false);
+        return;
+      }
+
+      try {
+        const cleanPhone = phone.replace(/\D/g, '');
+        const response = await fetch(
+          `https://travel-n8n.up.railway.app/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0 && data[0].email) {
+            setEmail(data[0].email);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user email:', error);
+      } finally {
+        setIsLoadingEmail(false);
+      }
+    };
+
+    fetchUserEmail();
+  }, [phone]);
 
   const formatTokens = (tokens: number) => {
     return tokens.toLocaleString('ru-RU');
@@ -133,18 +163,10 @@ const TokenPurchasePage: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Payment creation response:', data);
 
-        const paymentData = Array.isArray(data) ? data[0] : data;
-
-        if (paymentData && paymentData.payment_url && paymentData.payment_id) {
-          localStorage.setItem('pending_payment_id', paymentData.payment_id);
-          sessionStorage.setItem('pending_payment_id', paymentData.payment_id);
-          console.log('Saved payment_id to localStorage and sessionStorage:', paymentData.payment_id);
-          console.log('Full payment data:', paymentData);
-          window.location.href = paymentData.payment_url;
+        if (data && data.confirmation_url) {
+          window.location.href = data.confirmation_url;
         } else {
-          console.error('Invalid payment data structure:', data);
           throw new Error('Не получена ссылка на оплату');
         }
       } else {
@@ -213,11 +235,11 @@ const TokenPurchasePage: React.FC = () => {
                   setEmail(e.target.value);
                   setEmailError('');
                 }}
-                placeholder="example@mail.com"
+                placeholder={isLoadingEmail ? 'Загрузка...' : 'example@mail.com'}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
                   emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
-                disabled={isProcessing}
+                disabled={isProcessing || isLoadingEmail}
               />
               {emailError && (
                 <p className="mt-2 text-sm text-red-600">{emailError}</p>
