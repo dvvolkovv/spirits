@@ -76,6 +76,17 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
     try {
       const cleanPhone = user.phone.replace(/\D/g, '');
 
+      await fetch('https://travel-n8n.up.railway.app/webhook/set-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: cleanPhone,
+          email: email.trim(),
+        }),
+      });
+
       const response = await fetch('https://travel-n8n.up.railway.app/webhook/yookassa/create-payment', {
         method: 'POST',
         headers: {
