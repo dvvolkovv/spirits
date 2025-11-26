@@ -71,8 +71,8 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
 
         if (response.ok) {
           const data = await response.json();
-          if (data.email) {
-            setEmail(data.email);
+          if (Array.isArray(data) && data.length > 0 && data[0].email) {
+            setEmail(data[0].email);
           }
         }
       } catch (error) {
