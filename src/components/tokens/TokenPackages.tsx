@@ -45,6 +45,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [isLoadingEmail, setIsLoadingEmail] = useState(true);
 
   const formatTokens = (tokens: number) => {
     return tokens.toLocaleString('ru-RU');
@@ -54,6 +55,35 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
+
+  React.useEffect(() => {
+    const fetchUserEmail = async () => {
+      if (!user?.phone) {
+        setIsLoadingEmail(false);
+        return;
+      }
+
+      try {
+        const cleanPhone = user.phone.replace(/\D/g, '');
+        const response = await fetch(
+          `https://travel-n8n.up.railway.app/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.email) {
+            setEmail(data.email);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user email:', error);
+      } finally {
+        setIsLoadingEmail(false);
+      }
+    };
+
+    fetchUserEmail();
+  }, [user?.phone]);
 
   const handlePurchase = async (packageId: string) => {
     const selectedPkg = packages.find(pkg => pkg.id === packageId);
@@ -167,11 +197,11 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                 setEmail(e.target.value);
                 setEmailError('');
               }}
-              placeholder="example@mail.com"
+              placeholder={isLoadingEmail ? 'Загрузка...' : 'example@mail.com'}
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
                 emailError ? 'border-red-500' : 'border-gray-300'
               }`}
-              disabled={isProcessing}
+              disabled={isProcessing || isLoadingEmail}
             />
             {emailError && (
               <p className="mt-2 text-sm text-red-600">{emailError}</p>
