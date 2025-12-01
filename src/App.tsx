@@ -12,6 +12,7 @@ import CompatibilityPage from './pages/CompatibilityPage';
 import AdminPage from './pages/AdminPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import TokenPurchasePage from './pages/TokenPurchasePage';
+import MaintenancePage from './pages/MaintenancePage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -61,6 +62,12 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+
+  if (isMaintenanceMode) {
+    return <MaintenancePage />;
+  }
+
   return (
     <Router>
       <AuthProvider>
