@@ -17,8 +17,8 @@ class APIClient {
 
   private isProtectedEndpoint(url: string): boolean {
     const publicEndpoints = [
-      '/webhook/sms/',
-      '/webhook/check-code/',
+      '/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/',
+      '/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/',
       '/webhook/yookassa/',
       '/webhook/get-user-tokens/',
       '/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/',

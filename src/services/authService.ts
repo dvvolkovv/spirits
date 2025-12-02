@@ -7,7 +7,7 @@ class AuthService {
   async requestSMSCode(phone: string): Promise<SMSResponse> {
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`${BASE_URL}/webhook/sms/${cleanPhone}`, {
+      const response = await fetch(`${BASE_URL}/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
         method: 'GET',
       });
 
@@ -28,7 +28,7 @@ class AuthService {
   async verifyCode(phone: string, code: string): Promise<AuthResponse> {
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`${BASE_URL}/webhook/check-code/${cleanPhone}/${code}`, {
+      const response = await fetch(`${BASE_URL}/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}`, {
         method: 'GET',
       });
 
