@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { tokenManager } from '../utils/tokenManager';
+import { authService } from '../services/authService';
+import { apiClient } from '../services/apiClient';
 
 interface User {
   id: string;
@@ -80,6 +83,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           const parsedUser = JSON.parse(userData);
 
+          if (tokenManager.hasTokens()) {
+            if (tokenManager.isAccessTokenExpiringSoon(120)) {
+              await authService.refreshTokens();
+            }
+          }
+
           const tokens = await fetchUserTokens(parsedUser.phone);
           if (tokens !== undefined) {
             parsedUser.tokens = tokens;
@@ -91,6 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.error('Error parsing user data:', error);
           localStorage.removeItem('authToken');
           localStorage.removeItem('userData');
+          tokenManager.clearTokens();
         }
       }
 
@@ -150,11 +160,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const cleanPhone = user.phone.replace(/\D/g, '');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
+        skipAuth: true
       });
 
       if (response.ok) {
@@ -185,6 +192,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
+    tokenManager.clearTokens();
+    authService.logout();
     setUser(null);
   };
 
@@ -193,24 +202,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw new Error('Номер телефона не найден');
     }
 
-    // Очищаем номер телефона от всех символов кроме цифр
     const cleanPhone = user.phone.replace(/\D/g, '');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/${cleanPhone}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await apiClient.delete(`/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/${cleanPhone}`, {
+        skipAuth: true
       });
 
       if (!response.ok) {
         throw new Error(`Ошибка удаления профиля: ${response.status}`);
       }
 
-      // После успешного удаления на сервере, очищаем только данные пользователя
       localStorage.removeItem('authToken');
       localStorage.removeItem('userData');
+      tokenManager.clearTokens();
       setUser(null);
     } catch (error) {
       console.error('Ошибка при удалении профиля:', error);

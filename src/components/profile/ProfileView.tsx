@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { CreditCard, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, Heart, Lightbulb, X, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
+import { apiClient } from '../../services/apiClient';
 
 interface ProfileData {
   profile?: string[];
@@ -91,11 +92,8 @@ const ProfileView: React.FC = () => {
     const cleanPhone = user.phone.replace(/\D/g, '');
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
+        skipAuth: true
       });
 
       if (response.ok) {
@@ -205,13 +203,7 @@ const ProfileView: React.FC = () => {
       if (editedData?.skills) payload.skills = editedData.skills;
       if (editedData?.profile) payload.profile = editedData.profile;
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/profile-update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await apiClient.post('/webhook/profile-update', payload);
 
       if (!response.ok) {
         throw new Error(`Ошибка обновления профиля: ${response.status}`);

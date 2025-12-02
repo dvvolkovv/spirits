@@ -9,6 +9,7 @@ import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { avatarService } from '../../services/avatarService';
+import { apiClient } from '../../services/apiClient';
 
 interface Assistant {
   id: number;
@@ -310,9 +311,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         formData.append('user-id', cleanPhone);
         formData.append('agent', assistant.name);
 
-        await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
-          method: 'POST',
-          body: formData
+        await apiClient.post('/webhook/change-agent', formData, {
+          headers: {}
         });
 
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -336,7 +336,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     const fetchAssistants = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/agents`);
+        const response = await apiClient.get('/webhook/agents');
         if (response.ok) {
           const data = await response.json();
           setAssistants(data);
@@ -383,9 +383,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       formData.append('user-id', cleanPhone);
       formData.append('agent', agentName);
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/change-agent`, {
-        method: 'POST',
-        body: formData
+      const response = await apiClient.post('/webhook/change-agent', formData, {
+        headers: {}
       });
 
       if (!response.ok) {
@@ -656,16 +655,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/soulmate/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chatInput: userMessage,
-          sessionId: phoneNumber,
-          assistant: currentAssistantId
-        }),
+      const response = await apiClient.post('/webhook/soulmate/chat', {
+        chatInput: userMessage,
+        sessionId: phoneNumber,
+        assistant: currentAssistantId
+      }, {
         signal: abortControllerRef.current.signal
       });
 
@@ -901,9 +895,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       formData.append('user-id', userId);
       formData.append('file', file);
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/scan-document`, {
-        method: 'POST',
-        body: formData,
+      const response = await apiClient.post('/webhook/scan-document', formData, {
+        headers: {}
       });
 
       if (!response.ok) {

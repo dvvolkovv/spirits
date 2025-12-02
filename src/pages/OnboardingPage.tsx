@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import PhoneInput from '../components/onboarding/PhoneInput';
 import OTPInput from '../components/onboarding/OTPInput';
+import { authService } from '../services/authService';
 
 type OnboardingStep = 'phone' | 'otp' | 'consent';
 
@@ -17,14 +18,17 @@ const OnboardingPage: React.FC = () => {
     setPhone(phoneNumber);
 
     try {
-      const cleanPhone = phoneNumber.replace(/\D/g, '');
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+      const result = await authService.requestSMSCode(phoneNumber);
 
-      if (!response.ok) {
-        throw new Error('Failed to send SMS');
+      if (result.success) {
+        setStep('otp');
+      } else {
+        if (result.message === 'User blocked') {
+          alert('Ваш аккаунт заблокирован. Пожалуйста, свяжитесь с поддержкой.');
+        } else {
+          alert('Ошибка отправки СМС. Попробуйте еще раз.');
+        }
       }
-
-      setStep('otp');
     } catch (error) {
       console.error('Error sending SMS:', error);
       alert('Ошибка отправки СМС. Попробуйте еще раз.');
@@ -38,20 +42,24 @@ const OnboardingPage: React.FC = () => {
     setOtpError('');
 
     try {
-      const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}`);
+      const result = await authService.verifyCode(phone, code);
 
-      if (!response.ok) {
-        throw new Error('Failed to verify code');
-      }
-
-      const result = await response.text();
-
-      if (result.trim() === 'Confirmed') {
-        const mockToken = 'mock-jwt-token';
-        login(phone, mockToken);
+      if (result.success) {
+        if (result.tokens) {
+          login(phone, result.tokens['access-token']);
+        } else {
+          login(phone, 'legacy-token');
+        }
       } else {
-        setOtpError('Неверный код. Попробуйте еще раз.');
+        if (result.error === 'Wrong code') {
+          setOtpError('Неверный код. Попробуйте еще раз.');
+        } else if (result.error === 'Code not found') {
+          setOtpError('Код не найден. Запросите новый код.');
+        } else if (result.error === 'User disable') {
+          setOtpError('Ваш аккаунт отключен. Обратитесь в поддержку.');
+        } else {
+          setOtpError('Ошибка проверки кода. Попробуйте еще раз.');
+        }
       }
     } catch (error) {
       console.error('Error verifying code:', error);
@@ -63,11 +71,10 @@ const OnboardingPage: React.FC = () => {
 
   const handleResendOTP = async () => {
     try {
-      const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`);
+      const result = await authService.requestSMSCode(phone);
 
-      if (!response.ok) {
-        throw new Error('Failed to resend SMS');
+      if (!result.success) {
+        alert('Ошибка повторной отправки СМС. Попробуйте еще раз.');
       }
     } catch (error) {
       console.error('Error resending SMS:', error);

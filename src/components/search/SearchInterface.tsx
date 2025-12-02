@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import UserProfileModal from './UserProfileModal';
 import { Search, Users, MessageCircle, Heart, X, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
+import { apiClient } from '../../services/apiClient';
 
 interface UserMatch {
   id: string;
@@ -101,15 +102,9 @@ const SearchInterface: React.FC = () => {
     const phoneIds = phoneNumbers.map(phone => phone.replace(/\D/g, ''));
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/analyze-compatibility`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          'user-id': userId,
-          users: phoneIds
-        })
+      const response = await apiClient.post('/webhook/analyze-compatibility', {
+        'user-id': userId,
+        users: phoneIds
       });
 
       if (!response.ok) {
@@ -172,15 +167,9 @@ const SearchInterface: React.FC = () => {
     const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/search-mate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: searchQuery,
-          userId: userId
-        })
+      const response = await apiClient.post('/webhook/search-mate', {
+        query: searchQuery,
+        userId: userId
       });
 
       if (!response.ok) {
