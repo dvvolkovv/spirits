@@ -6,16 +6,15 @@ import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
+import { useNavigate } from 'react-router-dom';
+import { parseCustomMarkdown, createButtonComponent, createLinkComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
+import { avatarService } from '../../services/avatarService';
 
 interface Assistant {
   id: number;
   name: string;
   description: string;
 }
-
-const getAvatarUrl = (agentId: number): string => {
-  return `https://travel-n8n.up.railway.app/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/agent/avatar/${agentId}`;
-};
 
 const getRoleForAssistant = (description: string): string => {
   if (description.includes('Коуч')) return 'Коуч';
@@ -37,41 +36,153 @@ interface Message {
 interface ChatInterfaceProps {
   title?: string;
   welcomeMessage?: string;
+  initialShowTokens?: boolean;
 }
 
-const StreamingMessage = React.memo(({ content, components }: { content: string; components: any }) => (
-  <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
-    <div className="max-w-xs sm:max-w-md px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
-      <div className="min-h-[24px]">
-        {content ? (
-          <>
-            <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-              <ReactMarkdown components={components}>
-                {content}
-              </ReactMarkdown>
+const StreamingMessage = React.memo(({
+  content,
+  components,
+  onButtonClick,
+  onLinkClick
+}: {
+  content: string;
+  components: any;
+  onButtonClick: (action: string) => void;
+  onLinkClick: (url: string) => void;
+}) => {
+  const { content: parsedContent, buttons, links } = parseCustomMarkdown(content);
+
+  const renderContent = () => {
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
+    const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
+
+    const allMatches = [...buttonMatches, ...linkMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+
+    allMatches.forEach((match, idx) => {
+      const matchIndex = match.index || 0;
+
+      if (lastIndex < matchIndex) {
+        const textBefore = parsedContent.slice(lastIndex, matchIndex);
+        parts.push(
+          <ReactMarkdown key={`text-${idx}`} components={components}>
+            {textBefore}
+          </ReactMarkdown>
+        );
+      }
+
+      if (match[0].startsWith('__BUTTON_')) {
+        const buttonId = match[1];
+        const buttonConfig = buttons.get(`btn_${buttonId}`);
+        if (buttonConfig) {
+          parts.push(
+            <span key={`button-${idx}`}>
+              {createButtonComponent(buttonConfig, onButtonClick)}
+            </span>
+          );
+        }
+      } else if (match[0].startsWith('__LINK_')) {
+        const linkId = match[1];
+        const linkConfig = links.get(`link_${linkId}`);
+        if (linkConfig) {
+          parts.push(
+            <span key={`link-${idx}`}>
+              {createLinkComponent(linkConfig, onLinkClick)}
+            </span>
+          );
+        }
+      }
+
+      lastIndex = matchIndex + match[0].length;
+    });
+
+    if (lastIndex < parsedContent.length) {
+      const textAfter = parsedContent.slice(lastIndex);
+      parts.push(
+        <ReactMarkdown key="text-last" components={components}>
+          {textAfter}
+        </ReactMarkdown>
+      );
+    }
+
+    return parts.length > 0 ? parts : (
+      <ReactMarkdown components={components}>
+        {content}
+      </ReactMarkdown>
+    );
+  };
+
+  return (
+    <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
+      <div className="max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
+        <div className="min-h-[24px]">
+          {content ? (
+            <>
+              <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+                {renderContent()}
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
+            </>
+          ) : (
+            <div className="flex space-x-1 items-center h-[24px]">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
             </div>
-            <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
-          </>
-        ) : (
-          <div className="flex space-x-1 items-center h-[24px]">
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
-  </div>
-));
+  );
+});
 
 StreamingMessage.displayName = 'StreamingMessage';
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   title,
-  welcomeMessage
+  welcomeMessage,
+  initialShowTokens = false
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleButtonAction = useCallback((action: string) => {
+    switch(action) {
+      case 'buy-tokens':
+        setShowTokenPackages(true);
+        break;
+      case 'compatibility':
+        navigate('/compatibility');
+        break;
+      case 'profile':
+        navigate('/profile');
+        break;
+      case 'settings':
+        navigate('/settings');
+        break;
+      case 'search':
+        navigate('/search');
+        break;
+      case 'chats':
+        navigate('/chats');
+        break;
+      case 'home':
+        navigate('/');
+        break;
+      default:
+        console.warn(`Unknown action: ${action}`);
+    }
+  }, [navigate]);
+
+  const handleLinkNavigation = useCallback((url: string) => {
+    if (url.startsWith('/')) {
+      navigate(url);
+    } else {
+      window.location.href = url;
+    }
+  }, [navigate]);
 
   const markdownComponents = useMemo(() => ({
     p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -99,7 +210,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     h2: ({ children }: any) => <h2 className="text-base font-bold mb-2">{children}</h2>,
     h3: ({ children }: any) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
     br: () => <br />,
-  }), []);
+    a: ({ href, children }: any) => {
+      return (
+        <a
+          href={href}
+          onClick={(e) => {
+            e.preventDefault();
+            if (href) handleLinkNavigation(href);
+          }}
+          className="text-forest-600 hover:text-forest-700 underline cursor-pointer"
+        >
+          {children}
+        </a>
+      );
+    },
+  }), [handleLinkNavigation]);
 
   const getChatStorageKey = (assistantId: number | null) => {
     return `chat_messages_assistant_${assistantId || 'default'}`;
@@ -149,8 +274,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [hasUserSelectedAssistant, setHasUserSelectedAssistant] = useState<boolean>(() => {
     return localStorage.getItem('selected_assistant') !== null;
   });
-  const [showTokenPackages, setShowTokenPackages] = useState(false);
+  const [showTokenPackages, setShowTokenPackages] = useState(initialShowTokens);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [assistantSwitchNotification, setAssistantSwitchNotification] = useState<string | null>(null);
+  const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (initialShowTokens) {
+      setShowTokenPackages(true);
+    }
+  }, [initialShowTokens]);
 
   useEffect(() => {
     if (selectedAssistant && hasUserSelectedAssistant) {
@@ -207,6 +340,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (response.ok) {
           const data = await response.json();
           setAssistants(data);
+
+          const urls: Record<number, string> = {};
+          await Promise.all(
+            data.map(async (assistant: Assistant) => {
+              try {
+                const url = await avatarService.getAvatarUrl(assistant.id);
+                urls[assistant.id] = url;
+              } catch (error) {
+                console.error(`Failed to load avatar for ${assistant.name}:`, error);
+              }
+            })
+          );
+          setAvatarUrls(urls);
         } else {
           console.error('Failed to fetch assistants');
         }
@@ -250,6 +396,43 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  // Синхронизация выбора ассистента между окнами/вкладками
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'selected_assistant' && e.newValue) {
+        try {
+          const newAssistant = JSON.parse(e.newValue);
+
+          // Проверяем, что это действительно другой ассистент
+          if (selectedAssistant?.id !== newAssistant.id) {
+            // Прерываем активные запросы
+            if (abortControllerRef.current) {
+              abortControllerRef.current.abort();
+              abortControllerRef.current = null;
+            }
+
+            // Очищаем потоковое сообщение
+            setCurrentStreamingMessage('');
+            setStreamingMessageId(null);
+            setIsTyping(false);
+
+            // Обновляем выбранного ассистента
+            setSelectedAssistant(newAssistant);
+
+            // Показываем уведомление
+            setAssistantSwitchNotification(`Переключено на ${newAssistant.name}`);
+            setTimeout(() => setAssistantSwitchNotification(null), 3000);
+          }
+        } catch (error) {
+          console.error('Error parsing selected assistant from storage:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [selectedAssistant]);
+
   // Закрытие дропдауна при клике вне его
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -261,6 +444,87 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Синхронизация выбранного ассистента с сервером каждые 10 секунд
+  useEffect(() => {
+    if (!user?.phone || !assistants.length) return;
+
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const syncAssistantFromServer = async () => {
+      if (document.hidden) return;
+
+      const cleanPhone = user.phone.replace(/\D/g, '');
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          }
+        );
+
+        if (response.ok) {
+          const responseData = await response.json();
+
+          let profileRecord;
+          if (Array.isArray(responseData) && responseData.length > 0) {
+            profileRecord = responseData[0];
+          } else if (responseData && typeof responseData === 'object') {
+            profileRecord = responseData;
+          }
+
+          if (profileRecord) {
+            const serverAgent = profileRecord.profile_data?.preferred_agent || profileRecord.preferred_agent || profileRecord.profile_data?.agent || profileRecord.agent;
+
+            if (serverAgent && selectedAssistant?.name !== serverAgent) {
+              const matchingAssistant = assistants.find(
+                (a) => a.name === serverAgent
+              );
+
+              if (matchingAssistant) {
+                if (abortControllerRef.current) {
+                  abortControllerRef.current.abort();
+                  abortControllerRef.current = null;
+                }
+
+                setCurrentStreamingMessage('');
+                setStreamingMessageId(null);
+                setIsTyping(false);
+
+                setSelectedAssistant(matchingAssistant);
+                localStorage.setItem('selected_assistant', JSON.stringify(matchingAssistant));
+
+                setAssistantSwitchNotification(`Переключено на ${matchingAssistant.name}`);
+                setTimeout(() => setAssistantSwitchNotification(null), 3000);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing assistant from server:', error);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        syncAssistantFromServer();
+      }
+    };
+
+    intervalId = setInterval(syncAssistantFromServer, 10000);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    syncAssistantFromServer();
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.phone, assistants, selectedAssistant]);
 
   // Отдельный useEffect для прокрутки с throttling
   useEffect(() => {
@@ -379,6 +643,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Extract phone number from user data and clean it for sessionId
     const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
 
+    // Получаем актуальный ID ассистента из localStorage для дополнительной проверки
+    let currentAssistantId = selectedAssistant?.id || 1;
+    const savedAssistant = localStorage.getItem('selected_assistant');
+    if (savedAssistant) {
+      try {
+        const assistant = JSON.parse(savedAssistant);
+        currentAssistantId = assistant.id;
+      } catch (error) {
+        console.error('Error parsing assistant from localStorage:', error);
+      }
+    }
+
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/soulmate/chat`, {
         method: 'POST',
@@ -388,7 +664,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         body: JSON.stringify({
           chatInput: userMessage,
           sessionId: phoneNumber,
-          assistant: selectedAssistant?.id || 1
+          assistant: currentAssistantId
         }),
         signal: abortControllerRef.current.signal
       });
@@ -486,6 +762,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
+    // Проверяем актуальность выбранного ассистента перед отправкой
+    const savedAssistant = localStorage.getItem('selected_assistant');
+    if (savedAssistant) {
+      try {
+        const currentAssistant = JSON.parse(savedAssistant);
+        // Если ассистент изменился, обновляем состояние
+        if (selectedAssistant?.id !== currentAssistant.id) {
+          setSelectedAssistant(currentAssistant);
+          // Ожидаем обновления состояния и синхронизации с сервером
+          await changeAgentOnServer(currentAssistant.name);
+          // Показываем уведомление
+          setAssistantSwitchNotification(`Переключено на ${currentAssistant.name}`);
+          setTimeout(() => setAssistantSwitchNotification(null), 3000);
+        }
+      } catch (error) {
+        console.error('Error checking assistant before send:', error);
+      }
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
@@ -496,7 +791,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMessage]);
     const messageText = input;
     setInput('');
-    
+
     await sendMessageToAI(messageText);
   };
 
@@ -720,6 +1015,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     await sendInitialGreeting(assistant);
   };
 
+  const handleSwitchAssistant = async (assistant: Assistant) => {
+    if (selectedAssistant?.id === assistant.id) {
+      setShowAssistantDropdown(false);
+      return;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    setCurrentStreamingMessage('');
+    setStreamingMessageId(null);
+    setIsTyping(false);
+
+    setSelectedAssistant(assistant);
+    localStorage.setItem('selected_assistant', JSON.stringify(assistant));
+    setShowAssistantDropdown(false);
+
+    setAssistantSwitchNotification(`Переключено на ${assistant.name}`);
+    setTimeout(() => setAssistantSwitchNotification(null), 3000);
+  };
+
   if (!hasUserSelectedAssistant) {
     return (
       <AssistantSelection
@@ -741,6 +1059,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       )}
 
       <div className="flex flex-col h-full bg-gray-50 relative">
+        {/* Уведомление о смене ассистента */}
+        {assistantSwitchNotification && (
+          <div className="fixed top-20 md:top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+            <div className="bg-forest-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">{assistantSwitchNotification}</span>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed md:relative top-0 left-0 right-0 z-40">
         <div className="flex items-center justify-between max-w-full">
@@ -756,19 +1084,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
                   className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
                 >
-                  <img
-                    src={getAvatarUrl(selectedAssistant.id)}
-                    alt={selectedAssistant.name}
-                    className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = '<div class="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0"><span class="text-lg">👤</span></div>';
-                      }
-                    }}
-                  />
+                  {avatarUrls[selectedAssistant.id] ? (
+                    <img
+                      src={avatarUrls[selectedAssistant.id]}
+                      alt={selectedAssistant.name}
+                      className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg">👤</span>
+                    </div>
+                  )}
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
                     <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description)}</span>
@@ -782,29 +1112,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       {assistants.map((assistant) => (
                         <button
                           key={assistant.id}
-                          onClick={() => {
-                            setSelectedAssistant(assistant);
-                            setShowAssistantDropdown(false);
-                          }}
+                          onClick={() => handleSwitchAssistant(assistant)}
                           className={clsx(
                             'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
                             selectedAssistant.id === assistant.id && 'bg-forest-50'
                           )}
                         >
                           <div className="flex items-center space-x-3">
-                            <img
-                              src={getAvatarUrl(assistant.id)}
-                              alt={assistant.name}
-                              className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = '<div class="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">👤</div>';
-                                }
-                              }}
-                            />
+                            {avatarUrls[assistant.id] ? (
+                              <img
+                                src={avatarUrls[assistant.id]}
+                                alt={assistant.name}
+                                className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
+                                👤
+                              </div>
+                            )}
                             <div className="flex flex-col flex-1">
                               <span className="text-sm font-medium text-gray-900">{assistant.name}</span>
                               <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
@@ -870,17 +1199,75 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           >
             <div
               className={clsx(
-                'max-w-xs sm:max-w-md px-4 py-2 rounded-2xl',
+                'px-4 py-2 rounded-2xl',
                 message.type === 'user'
-                  ? 'bg-forest-600 text-white rounded-br-md'
-                  : 'bg-white text-gray-900 shadow-sm rounded-bl-md relative'
+                  ? 'max-w-xs sm:max-w-md bg-forest-600 text-white rounded-br-md'
+                  : 'max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl bg-white text-gray-900 shadow-sm rounded-bl-md relative'
               )}
             >
               {message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
-                  <ReactMarkdown components={markdownComponents}>
-                    {message.content}
-                  </ReactMarkdown>
+                  {(() => {
+                    const { content: parsedContent, buttons, links } = parseCustomMarkdown(message.content);
+                    const parts: React.ReactNode[] = [];
+                    let lastIndex = 0;
+                    const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
+                    const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
+
+                    const allMatches = [...buttonMatches, ...linkMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+
+                    allMatches.forEach((match, idx) => {
+                      const matchIndex = match.index || 0;
+
+                      if (lastIndex < matchIndex) {
+                        const textBefore = parsedContent.slice(lastIndex, matchIndex);
+                        parts.push(
+                          <ReactMarkdown key={`text-${idx}`} components={markdownComponents}>
+                            {textBefore}
+                          </ReactMarkdown>
+                        );
+                      }
+
+                      if (match[0].startsWith('__BUTTON_')) {
+                        const buttonId = match[1];
+                        const buttonConfig = buttons.get(`btn_${buttonId}`);
+                        if (buttonConfig) {
+                          parts.push(
+                            <span key={`button-${idx}`}>
+                              {createButtonComponent(buttonConfig, handleButtonAction)}
+                            </span>
+                          );
+                        }
+                      } else if (match[0].startsWith('__LINK_')) {
+                        const linkId = match[1];
+                        const linkConfig = links.get(`link_${linkId}`);
+                        if (linkConfig) {
+                          parts.push(
+                            <span key={`link-${idx}`}>
+                              {createLinkComponent(linkConfig, handleLinkNavigation)}
+                            </span>
+                          );
+                        }
+                      }
+
+                      lastIndex = matchIndex + match[0].length;
+                    });
+
+                    if (lastIndex < parsedContent.length) {
+                      const textAfter = parsedContent.slice(lastIndex);
+                      parts.push(
+                        <ReactMarkdown key="text-last" components={markdownComponents}>
+                          {textAfter}
+                        </ReactMarkdown>
+                      );
+                    }
+
+                    return parts.length > 0 ? parts : (
+                      <ReactMarkdown components={markdownComponents}>
+                        {message.content}
+                      </ReactMarkdown>
+                    );
+                  })()}
                 </div>
               ) : (
                 <p className="text-sm leading-relaxed">{message.content}</p>
@@ -902,7 +1289,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ))}
 
         {streamingMessageId && (
-          <StreamingMessage content={currentStreamingMessage} components={markdownComponents} />
+          <StreamingMessage
+            content={currentStreamingMessage}
+            components={markdownComponents}
+            onButtonClick={handleButtonAction}
+            onLinkClick={handleLinkNavigation}
+          />
         )}
 
         <div ref={messagesEndRef} />

@@ -13,42 +13,66 @@ const PaymentSuccessPage: React.FC = () => {
 
   useEffect(() => {
     const verifyPayment = async () => {
+      const userId = searchParams.get('user_id');
       const paymentId = searchParams.get('payment_id');
 
-      if (!paymentId || !user?.phone) {
+      console.log('=== Payment Verification Debug ===');
+      console.log('URL params:', Object.fromEntries(searchParams.entries()));
+      console.log('Full URL:', window.location.href);
+      console.log('userId:', userId);
+      console.log('paymentId:', paymentId);
+
+      if (!userId) {
         setStatus('error');
-        setErrorMessage('Недостаточно данных для проверки платежа');
+        setErrorMessage('Недостаточно данных для проверки платежа (отсутствует user_id)');
+        return;
+      }
+
+      if (!paymentId) {
+        setStatus('error');
+        setErrorMessage(`Недостаточно данных для проверки платежа (отсутствует payment_id).\n\nURL: ${window.location.href}\n\nБэкенд должен добавить payment_id в return_url:\nhttps://my.linkeon.io/payment/success?user_id=${userId}&payment_id=PAYMENT_ID`);
+        console.error('Payment ID not found in URL!');
         return;
       }
 
       try {
-        const cleanPhone = user.phone.replace(/\D/g, '');
+        console.log('Sending payment verification request:', { payment_id: paymentId, user_id: userId });
 
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/yookassa/verify-payment`, {
+        const response = await fetch('https://travel-n8n.up.railway.app/webhook/yookassa/verify-payment', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             payment_id: paymentId,
-            phone: cleanPhone,
+            user_id: userId,
           }),
         });
 
+        console.log('Payment verification response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('Payment verification response data:', data);
 
-          if (data.status === 'succeeded') {
-            setTokensAdded(data.tokens_added);
-            updateTokens((user.tokens || 0) + data.tokens_added);
+          if (data.yoo_status === 'succeeded' || data.db_status === 'succeeded') {
+            setTokensAdded(data.tokens);
+            if (user) {
+              updateTokens((user.tokens || 0) + data.tokens);
+            }
             setStatus('success');
+            localStorage.removeItem('pending_payment_id');
 
             setTimeout(() => {
               navigate('/chat');
             }, 3000);
+          } else if (data.yoo_status === 'pending' || data.db_status === 'pending') {
+            setStatus('error');
+            setErrorMessage('Платеж еще обрабатывается. Пожалуйста, подождите несколько минут и обновите страницу.');
           } else {
             setStatus('error');
-            setErrorMessage(data.message || 'Платеж не был завершен');
+            setErrorMessage('Платеж не был завершен');
+            localStorage.removeItem('pending_payment_id');
           }
         } else {
           const errorData = await response.json();
@@ -58,7 +82,7 @@ const PaymentSuccessPage: React.FC = () => {
       } catch (error) {
         console.error('Error verifying payment:', error);
         setStatus('error');
-        setErrorMessage('Произошла ошибка при проверке платежа');
+        setErrorMessage(`Произошла ошибка при проверке платежа: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       }
     };
 

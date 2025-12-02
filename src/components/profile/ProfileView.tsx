@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard as Edit2, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, Heart, Lightbulb, X } from 'lucide-react';
+import { CreditCard, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, Heart, Lightbulb, X, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface ProfileData {
@@ -21,6 +22,7 @@ interface ProfileData {
 
 const ProfileView: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user, updateProfile, updateUserInfo, updateAvatar, logout, deleteProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editingInfo, setEditingInfo] = useState({
@@ -465,6 +467,44 @@ const ProfileView: React.FC = () => {
             </label>
           </div>
         </div>
+        {/* Token Balance */}
+        <div className="bg-gradient-to-br from-forest-50 to-warm-50 rounded-lg shadow-sm p-6 border border-forest-200">
+          <div className="flex items-center mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+              <Coins className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-semibold text-gray-900">Баланс токенов</h2>
+              <p className="text-sm text-gray-600">Используется для общения с ассистентом</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-baseline">
+              <span className="text-4xl font-bold text-forest-700">
+                {user?.tokens !== undefined ? user.tokens : 0}
+              </span>
+              <span className="text-lg text-gray-600 ml-2">токенов</span>
+            </div>
+
+            <button
+              onClick={() => navigate('/chat?view=tokens')}
+              className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-forest-600 to-warm-600 text-white rounded-lg hover:from-forest-700 hover:to-warm-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 w-full sm:w-auto"
+            >
+              <CreditCard className="w-5 h-5" />
+              <span className="font-medium">Пополнить</span>
+            </button>
+          </div>
+
+          {user?.tokens !== undefined && user.tokens < 10 && (
+            <div className="mt-4 p-3 bg-warm-100 border border-warm-300 rounded-lg">
+              <p className="text-sm text-warm-800">
+                <span className="font-semibold">Низкий баланс!</span> Пополните токены для продолжения общения с ассистентом.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Personal Information */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">

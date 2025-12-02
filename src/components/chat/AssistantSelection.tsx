@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
+import { avatarService } from '../../services/avatarService';
 
 interface Assistant {
   id: number;
@@ -12,10 +13,6 @@ interface AssistantSelectionProps {
   onSelectAssistant: (assistant: Assistant) => void;
   isLoading: boolean;
 }
-
-const getAvatarUrl = (agentId: number): string => {
-  return `https://travel-n8n.up.railway.app/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/agent/avatar/${agentId}`;
-};
 
 const getRoleForAssistant = (description: string): string => {
   if (description.includes('Коуч')) return 'Коуч';
@@ -31,6 +28,32 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
   onSelectAssistant,
   isLoading
 }) => {
+  const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (assistants.length > 0) {
+      const loadAvatars = async () => {
+        const urls: Record<number, string> = {};
+
+        await Promise.all(
+          assistants.map(async (assistant) => {
+            try {
+              const url = await avatarService.getAvatarUrl(assistant.id);
+              urls[assistant.id] = url;
+            } catch (error) {
+              console.error(`Failed to load avatar for ${assistant.name}:`, error);
+            }
+          })
+        );
+
+        setAvatarUrls(urls);
+      };
+
+      loadAvatars();
+      avatarService.cleanExpiredCache();
+    }
+  }, [assistants]);
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-pink-50">
@@ -66,11 +89,21 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
             >
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-4">
-                  <img
-                    src={getAvatarUrl(assistant.id)}
-                    alt={assistant.name}
-                    className="w-24 h-24 rounded-full object-cover shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300"
-                  />
+                  {avatarUrls[assistant.id] ? (
+                    <img
+                      src={avatarUrls[assistant.id]}
+                      alt={assistant.name}
+                      className="w-24 h-24 rounded-full object-cover shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300 flex items-center justify-center">
+                      <span className="text-3xl">👤</span>
+                    </div>
+                  )}
                   <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
                     <Sparkles className="w-4 h-4 text-white" />
                   </div>
