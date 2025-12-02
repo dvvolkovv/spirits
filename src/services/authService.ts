@@ -48,14 +48,16 @@ class AuthService {
               }
             };
           }
-        }
 
-        const text = await response.text();
-        if (text.trim() === 'Confirmed') {
-          return { success: true };
-        }
+          return { success: false, error: 'Invalid token response' };
+        } else {
+          const text = await response.text();
+          if (text.trim() === 'Confirmed') {
+            return { success: true };
+          }
 
-        return { success: false, error: text };
+          return { success: false, error: text };
+        }
       } else {
         const errorText = await response.text();
 

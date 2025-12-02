@@ -46,28 +46,36 @@ const OTPInput: React.FC<OTPInputProps> = ({
   }, [error, onErrorClear]);
 
   useEffect(() => {
-    if ('OTPCredential' in window) {
+    if ('OTPCredential' in window && navigator.credentials) {
       const ac = new AbortController();
+      let isCompleted = false;
 
-      navigator.credentials
-        .get({
-          otp: { transport: ['sms'] },
-          signal: ac.signal,
-        } as any)
-        .then((otp: any) => {
-          if (otp?.code) {
+      const requestOTP = async () => {
+        try {
+          const otp: any = await navigator.credentials.get({
+            otp: { transport: ['sms'] },
+            signal: ac.signal,
+          } as any);
+
+          if (otp?.code && !isCompleted) {
+            isCompleted = true;
             const digits = otp.code.split('');
             if (digits.length === 6) {
               setCode(digits);
               onSubmit(otp.code);
             }
           }
-        })
-        .catch((err) => {
-          console.log('Web OTP error:', err);
-        });
+        } catch (err: any) {
+          if (err.name !== 'AbortError' && err.name !== 'InvalidStateError') {
+            console.log('Web OTP error:', err);
+          }
+        }
+      };
+
+      requestOTP();
 
       return () => {
+        isCompleted = true;
         ac.abort();
       };
     }

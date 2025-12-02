@@ -46,9 +46,9 @@ const OnboardingPage: React.FC = () => {
 
       if (result.success) {
         if (result.tokens) {
-          login(phone, result.tokens['access-token']);
+          await login(phone, result.tokens['access-token']);
         } else {
-          login(phone, 'legacy-token');
+          await login(phone, 'legacy-token');
         }
       } else {
         if (result.error === 'Wrong code') {
