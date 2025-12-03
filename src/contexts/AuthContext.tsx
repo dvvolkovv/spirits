@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 
 interface User {
   id: string;
@@ -52,6 +52,11 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const userRef = useRef<User | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   const fetchUserTokens = async (phone: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
@@ -105,20 +110,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (user && !isLoading) {
       checkAdminStatus();
     }
-  }, [user?.phone]);
+  }, [user?.phone, isLoading]);
 
   useEffect(() => {
     if (!user || isLoading) return;
 
     const interval = setInterval(async () => {
-      const tokens = await fetchUserTokens(user.phone);
-      if (tokens !== undefined) {
-        updateTokens(tokens);
+      const currentUser = userRef.current;
+      if (currentUser?.phone) {
+        const tokens = await fetchUserTokens(currentUser.phone);
+        if (tokens !== undefined && tokens !== currentUser.tokens) {
+          updateTokens(tokens);
+        }
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [user?.phone, isLoading]);
+  }, [user?.phone, isLoading, updateTokens]);
 
   const login = async (phone: string, token: string) => {
     const newUser: User = {
@@ -258,16 +266,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateTokens = (tokens: number) => {
-    if (user) {
+  const updateTokens = useCallback((tokens: number) => {
+    const currentUser = userRef.current;
+    if (currentUser) {
       const updatedUser = {
-        ...user,
+        ...currentUser,
         tokens
       };
       setUser(updatedUser);
       localStorage.setItem('userData', JSON.stringify(updatedUser));
     }
-  };
+  }, []);
 
   const consumeTokens = (amount: number) => {
     if (user && user.tokens !== undefined) {
