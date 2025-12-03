@@ -100,7 +100,7 @@ const ProfileView: React.FC = () => {
 
       if (response.ok) {
         const responseData = await response.json();
-        
+
         // Проверяем, является ли ответ массивом
         let profileRecord;
         if (Array.isArray(responseData) && responseData.length > 0) {
@@ -112,9 +112,10 @@ const ProfileView: React.FC = () => {
         } else {
           throw new Error('Неожиданный формат ответа сервера');
         }
-        
-        // Извлекаем profile_data из записи
-        const data: ProfileData = profileRecord.profile_data || profileRecord;
+
+        // Извлекаем данные профиля из записи
+        // Поддерживаем оба формата: profileJson (новый) и profile_data (старый)
+        const data: ProfileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
         setProfileData(data);
         
         // Обновляем имя и фамилию в контексте, если они пришли с сервера

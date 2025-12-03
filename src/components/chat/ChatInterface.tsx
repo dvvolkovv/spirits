@@ -478,7 +478,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }
 
           if (profileRecord) {
-            const serverAgent = profileRecord.profile_data?.preferred_agent || profileRecord.preferred_agent || profileRecord.profile_data?.agent || profileRecord.agent;
+            const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
+            const serverAgent = profileData?.preferred_agent || profileData?.agent;
 
             if (serverAgent && selectedAssistant?.name !== serverAgent) {
               const matchingAssistant = assistants.find(
