@@ -124,8 +124,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     return user.values || [];
   };
 
-  const getProfileBeliefs = () => Array.isArray(profileData?.beliefs) ? profileData.beliefs : [];
-  const getProfileDesires = () => Array.isArray(profileData?.desires) ? profileData.desires : [];
   const getProfileIntentions = () => Array.isArray(profileData?.intents) ? profileData.intents : user.intents || [];
 
   if (!isOpen) return null;
@@ -183,7 +181,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Values */}
+          {/* Values ценности*/}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <TrendingUp className="w-5 h-5 mr-2 text-forest-600" />
@@ -206,58 +204,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             )}
           </div>
 
-          {/* Profile Parameters */}
-          {profileData?.profile && profileData.profile.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Параметры профиля
-              </h2>
-              <div className="space-y-2">
-                {profileData.profile.map((param, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{param}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Beliefs */}
-          {getProfileBeliefs().length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Убеждения
-              </h2>
-              <div className="space-y-2">
-                {getProfileBeliefs().map((belief, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{belief}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Desires */}
-          {getProfileDesires().length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Желания
-              </h2>
-              <div className="space-y-2">
-                {getProfileDesires().map((desire, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{desire}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Intentions */}
+          {/* Intentions намерения*/}
           {getProfileIntentions().length > 0 && (
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
