@@ -18,7 +18,7 @@ import { TokenPackages } from '../tokens/TokenPackages';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
-  const { user, updateTokens } = useAuth();
+  const { user, updateTokens, checkAdminStatus } = useAuth();
   const [showTokenPackages, setShowTokenPackages] = useState(false);
 
   React.useEffect(() => {
@@ -26,6 +26,12 @@ const Navigation: React.FC = () => {
       updateTokens(50000);
     }
   }, [user, updateTokens]);
+
+  React.useEffect(() => {
+    if (user?.phone) {
+      checkAdminStatus();
+    }
+  }, [user?.phone]);
 
   const baseNavItems = [
     {
