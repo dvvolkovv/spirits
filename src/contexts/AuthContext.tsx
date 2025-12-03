@@ -77,6 +77,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return undefined;
   };
 
+  const updateTokens = useCallback((tokens: number) => {
+    const currentUser = userRef.current;
+    if (currentUser) {
+      const updatedUser = {
+        ...currentUser,
+        tokens
+      };
+      setUser(updatedUser);
+      localStorage.setItem('userData', JSON.stringify(updatedUser));
+    }
+  }, []);
+
+  const checkAdminStatus = useCallback(async () => {
+    const currentUser = userRef.current;
+    if (!currentUser?.phone) return;
+
+    const cleanPhone = currentUser.phone.replace(/\D/g, '');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+
+        let profileRecord;
+        if (Array.isArray(responseData) && responseData.length > 0) {
+          profileRecord = responseData[0];
+        } else if (responseData && typeof responseData === 'object') {
+          profileRecord = responseData;
+        }
+
+        if (profileRecord) {
+          const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
+
+          const updatedUser = {
+            ...currentUser,
+            isAdmin: profileData.isadmin === true,
+            email: profileData.email || profileRecord.email || currentUser.email,
+            preferredAgent: profileData.preferred_agent || currentUser.preferredAgent
+          };
+          setUser(updatedUser);
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('authToken');
@@ -110,7 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (user && !isLoading) {
       checkAdminStatus();
     }
-  }, [user?.phone, isLoading]);
+  }, [user?.phone, isLoading, checkAdminStatus]);
 
   useEffect(() => {
     if (!user || isLoading) return;
@@ -151,47 +205,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(newUser);
 
     await checkAdminStatus();
-  };
-
-  const checkAdminStatus = async () => {
-    if (!user?.phone) return;
-
-    const cleanPhone = user.phone.replace(/\D/g, '');
-
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        const responseData = await response.json();
-
-        let profileRecord;
-        if (Array.isArray(responseData) && responseData.length > 0) {
-          profileRecord = responseData[0];
-        } else if (responseData && typeof responseData === 'object') {
-          profileRecord = responseData;
-        }
-
-        if (profileRecord) {
-          const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
-
-          const updatedUser = {
-            ...user,
-            isAdmin: profileData.isadmin === true,
-            email: profileData.email || profileRecord.email || user.email,
-            preferredAgent: profileData.preferred_agent || user.preferredAgent
-          };
-          setUser(updatedUser);
-          localStorage.setItem('userData', JSON.stringify(updatedUser));
-        }
-      }
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-    }
   };
 
   const logout = () => {
@@ -265,18 +278,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('userData', JSON.stringify(updatedUser));
     }
   };
-
-  const updateTokens = useCallback((tokens: number) => {
-    const currentUser = userRef.current;
-    if (currentUser) {
-      const updatedUser = {
-        ...currentUser,
-        tokens
-      };
-      setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
-    }
-  }, []);
 
   const consumeTokens = (amount: number) => {
     if (user && user.tokens !== undefined) {
