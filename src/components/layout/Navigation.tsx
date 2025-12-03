@@ -57,7 +57,7 @@ const Navigation: React.FC = () => {
   const adminNavItem = {
     to: '/admin',
     icon: Shield,
-    label: 'Admin',
+    label: 'Управление ассистентами',
     isLogo: false,
   };
 

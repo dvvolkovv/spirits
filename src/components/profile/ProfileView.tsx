@@ -117,17 +117,21 @@ const ProfileView: React.FC = () => {
         // Поддерживаем оба формата: profileJson (новый) и profile_data (старый)
         const data: ProfileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
         setProfileData(data);
-        
-        // Обновляем имя и фамилию в контексте, если они пришли с сервера
+
+        // Обновляем данные пользователя в контексте
+        const updates: any = {};
+
         if (data.name || data.family_name) {
-          updateUserInfo({
-            firstName: data.name || user.firstName,
-            lastName: data.family_name || user.lastName
-          });
+          updates.firstName = data.name || user.firstName;
+          updates.lastName = data.family_name || user.lastName;
           setEditingInfo({
             firstName: data.name || user.firstName || '',
             lastName: data.family_name || user.lastName || ''
           });
+        }
+
+        if (Object.keys(updates).length > 0) {
+          updateUserInfo(updates);
         }
       } else {
         console.warn('Профиль не найден на сервере, используем локальные данные');

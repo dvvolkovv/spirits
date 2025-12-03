@@ -9,6 +9,7 @@ interface User {
   isAdmin?: boolean;
   tokens?: number;
   email?: string;
+  preferredAgent?: string;
   profile?: {
     values: Array<{ name: string; confidence: number; private: boolean }>;
     beliefs: string[];
@@ -168,10 +169,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         if (profileRecord) {
+          const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
+
           const updatedUser = {
             ...user,
-            isAdmin: profileRecord.isadmin === true,
-            email: profileRecord.email || user.email
+            isAdmin: profileData.isadmin === true,
+            email: profileData.email || profileRecord.email || user.email,
+            preferredAgent: profileData.preferred_agent || user.preferredAgent
           };
           setUser(updatedUser);
           localStorage.setItem('userData', JSON.stringify(updatedUser));
