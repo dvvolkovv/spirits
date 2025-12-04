@@ -246,8 +246,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
+    localStorage.clear();
     setUser(null);
   };
 
@@ -271,9 +270,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(`Ошибка удаления профиля: ${response.status}`);
       }
 
-      // После успешного удаления на сервере, очищаем только данные пользователя
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userData');
+      // После успешного удаления на сервере, полностью очищаем localStorage
+      localStorage.clear();
       setUser(null);
     } catch (error) {
       console.error('Ошибка при удалении профиля:', error);
