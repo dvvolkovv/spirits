@@ -64,7 +64,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       phone: user.phone,
       firstName: user.firstName,
       lastName: user.lastName,
-      avatar: user.avatar,
       isAdmin: user.isAdmin,
       tokens: user.tokens,
       email: user.email,
@@ -73,6 +72,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         completion: user.profile.completion
       } : undefined
     };
+  };
+
+  const loadAvatarFromServer = async (phone: string) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const avatarUrl = `${import.meta.env.VITE_BACKEND_URL}/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/avatar/${cleanPhone}`;
+
+    try {
+      const response = await fetch(avatarUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          setUser(prevUser => prevUser ? { ...prevUser, avatar: base64data } : null);
+        };
+        reader.readAsDataURL(blob);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке аватара:', error);
+    }
   };
 
   const fetchUserTokens = async (phone: string) => {
@@ -164,6 +183,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           setUser(parsedUser);
           localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(parsedUser)));
+
+          loadAvatarFromServer(parsedUser.phone);
         } catch (error) {
           console.error('Error parsing user data:', error);
           localStorage.removeItem('authToken');
