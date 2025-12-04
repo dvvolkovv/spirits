@@ -58,6 +58,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     userRef.current = user;
   }, [user]);
 
+  const sanitizeUserForStorage = (user: User) => {
+    return {
+      id: user.id,
+      phone: user.phone,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatar: user.avatar,
+      isAdmin: user.isAdmin,
+      tokens: user.tokens,
+      email: user.email,
+      preferredAgent: user.preferredAgent,
+      profile: user.profile ? {
+        completion: user.profile.completion
+      } : undefined
+    };
+  };
+
   const fetchUserTokens = async (phone: string) => {
     const cleanPhone = phone.replace(/\D/g, '');
 
@@ -85,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         tokens
       };
       setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(updatedUser)));
     }
   }, []);
 
@@ -123,7 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             preferredAgent: profileData.preferred_agent || currentUser.preferredAgent
           };
           setUser(updatedUser);
-          localStorage.setItem('userData', JSON.stringify(updatedUser));
+          localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(updatedUser)));
         }
       }
     } catch (error) {
@@ -146,7 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
 
           setUser(parsedUser);
-          localStorage.setItem('userData', JSON.stringify(parsedUser));
+          localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(parsedUser)));
         } catch (error) {
           console.error('Error parsing user data:', error);
           localStorage.removeItem('authToken');
@@ -201,7 +218,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     localStorage.setItem('authToken', token);
-    localStorage.setItem('userData', JSON.stringify(newUser));
+    localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(newUser)));
     setUser(newUser);
 
     await checkAdminStatus();
@@ -253,7 +270,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       };
       setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(updatedUser)));
     }
   };
 
@@ -264,7 +281,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ...info
       };
       setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(updatedUser)));
     }
   };
 
@@ -275,7 +292,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         avatar
       };
       setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(updatedUser)));
     }
   };
 
