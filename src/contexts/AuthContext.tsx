@@ -55,11 +55,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserTokens = async (phone: string) => {
-    const cleanPhone = phone.replace(/\D/g, '');
-
+  const fetchUserTokens = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/get-user-tokens/user/tokens/${cleanPhone}`);
+      const response = await apiClient.get('/webhook/get-user-tokens/user/tokens/');
 
       if (response.ok) {
         const data = await response.json();
@@ -89,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           }
 
-          const tokens = await fetchUserTokens(parsedUser.phone);
+          const tokens = await fetchUserTokens();
           if (tokens !== undefined) {
             parsedUser.tokens = tokens;
           }
@@ -120,7 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user || isLoading) return;
 
     const interval = setInterval(async () => {
-      const tokens = await fetchUserTokens(user.phone);
+      const tokens = await fetchUserTokens();
       if (tokens !== undefined) {
         updateTokens(tokens);
       }
@@ -142,12 +140,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    const tokens = await fetchUserTokens(phone);
+    localStorage.setItem('authToken', token);
+
+    const tokens = await fetchUserTokens();
     if (tokens !== undefined) {
       newUser.tokens = tokens;
     }
 
-    localStorage.setItem('authToken', token);
     localStorage.setItem('userData', JSON.stringify(newUser));
     setUser(newUser);
 
@@ -271,7 +270,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const refreshTokens = async () => {
     if (user?.phone) {
-      const tokens = await fetchUserTokens(user.phone);
+      const tokens = await fetchUserTokens();
       if (tokens !== undefined) {
         updateTokens(tokens);
       }
