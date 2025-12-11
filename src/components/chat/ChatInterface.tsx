@@ -454,7 +454,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (document.hidden) return;
 
       try {
-        const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/`);
+        const response = await apiClient.get(`/webhook-test/profile`);
 
         if (response.ok) {
           const responseData = await response.json();

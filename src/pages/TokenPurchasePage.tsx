@@ -76,7 +76,7 @@ const TokenPurchasePage: React.FC = () => {
 
       try {
         const cleanPhone = phone.replace(/\D/g, '');
-        const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/?user_id=${cleanPhone}`);
+        const response = await apiClient.get(`/webhook-test/profile?user_id=${cleanPhone}`);
 
         if (response.ok) {
           const data = await response.json();
