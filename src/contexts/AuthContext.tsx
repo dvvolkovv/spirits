@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserTokens = async () => {
     try {
-      const response = await apiClient.get('/webhook/get-user-tokens/user/tokens/');
+      const response = await apiClient.get('/webhook/user/tokens/');
 
       if (response.ok) {
         const data = await response.json();
