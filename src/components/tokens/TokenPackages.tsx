@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Coins, Check, Loader, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { apiClient } from '../../services/apiClient';
 
 interface TokenPackage {
   id: string;
@@ -64,10 +65,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
       }
 
       try {
-        const cleanPhone = user.phone.replace(/\D/g, '');
-        const response = await fetch(
-          `https://travel-n8n.up.railway.app/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`
-        );
+        const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/`);
 
         if (response.ok) {
           const data = await response.json();

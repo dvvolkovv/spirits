@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, User, TrendingUp, Calendar, MessageCircle } from 'lucide-react';
 import { clsx } from 'clsx';
+import { apiClient } from '../../services/apiClient';
 
 interface UserMatch {
   id: string;
@@ -48,17 +49,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     if (!user.phone) return;
 
     setIsLoading(true);
-    
-    // Очищаем номер телефона от всех символов кроме цифр
+
     const cleanPhone = user.phone.replace(/\D/g, '');
-    
+
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/?user_id=${cleanPhone}`);
 
       if (response.ok) {
         const responseData = await response.json();

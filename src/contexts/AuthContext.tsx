@@ -157,12 +157,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAdminStatus = async () => {
     if (!user?.phone) return;
 
-    const cleanPhone = user.phone.replace(/\D/g, '');
-
     try {
-      const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
-        skipAuth: true
-      });
+      const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/`);
 
       if (response.ok) {
         const responseData = await response.json();
@@ -202,12 +198,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw new Error('Номер телефона не найден');
     }
 
-    const cleanPhone = user.phone.replace(/\D/g, '');
-
     try {
-      const response = await apiClient.delete(`/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/${cleanPhone}`, {
-        skipAuth: true
-      });
+      const response = await apiClient.delete(`/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/`);
 
       if (!response.ok) {
         throw new Error(`Ошибка удаления профиля: ${response.status}`);

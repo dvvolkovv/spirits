@@ -453,18 +453,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const syncAssistantFromServer = async () => {
       if (document.hidden) return;
 
-      const cleanPhone = user.phone.replace(/\D/g, '');
-
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          }
-        );
+        const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/`);
 
         if (response.ok) {
           const responseData = await response.json();

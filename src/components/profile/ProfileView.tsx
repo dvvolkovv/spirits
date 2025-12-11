@@ -87,14 +87,9 @@ const ProfileView: React.FC = () => {
     if (!user?.phone) return;
 
     setIsLoadingProfile(true);
-    
-    // Очищаем номер телефона от всех символов кроме цифр
-    const cleanPhone = user.phone.replace(/\D/g, '');
-    
+
     try {
-      const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
-        skipAuth: true
-      });
+      const response = await apiClient.get(`/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/`);
 
       if (response.ok) {
         const responseData = await response.json();
