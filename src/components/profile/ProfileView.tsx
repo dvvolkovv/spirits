@@ -259,7 +259,7 @@ const ProfileView: React.FC = () => {
     setIsUploadingAvatar(true);
 
     try {
-      const response = await apiClient.request('/webhook-test/avatar', {
+      const response = await apiClient.request('/webhook/avatar', {
         method: 'PUT',
         headers: {
           'Content-Type': file.type,
