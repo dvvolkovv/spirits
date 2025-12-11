@@ -259,10 +259,7 @@ const ProfileView: React.FC = () => {
     setIsUploadingAvatar(true);
 
     try {
-      const cleanPhone = user.phone.replace(/\D/g, '');
-      const uploadUrl = `${import.meta.env.VITE_BACKEND_URL}/webhook/44307ad8-9652-43b4-b63a-ca1a780e7247/avatar/${cleanPhone}`;
-
-      const response = await fetch(uploadUrl, {
+      const response = await apiClient.request('/webhook-test/avatar', {
         method: 'PUT',
         headers: {
           'Content-Type': file.type,
