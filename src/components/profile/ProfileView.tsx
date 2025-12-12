@@ -141,10 +141,8 @@ const ProfileView: React.FC = () => {
   const loadAvatarFromServer = async () => {
     if (!user?.phone) return;
 
-    const avatarUrl = `${import.meta.env.VITE_BACKEND_URL}/webhook/avatar`;
-
     try {
-      const response = await fetch(avatarUrl);
+      const response = await apiClient.get('/webhook/avatar');
       if (response.ok) {
         const blob = await response.blob();
         const reader = new FileReader();
