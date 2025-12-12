@@ -89,7 +89,7 @@ const ProfileView: React.FC = () => {
     setIsLoadingProfile(true);
 
     try {
-      const response = await apiClient.get(`/webhook-test/profile`);
+      const response = await apiClient.get(`/webhook/profile`);
 
       if (response.ok) {
         const responseData = await response.json();
