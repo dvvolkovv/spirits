@@ -647,7 +647,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     try {
       const response = await apiClient.post('/webhook/soulmate/chat', {
         chatInput: userMessage,
-        sessionId: phoneNumber,
         assistant: currentAssistantId
       }, {
         signal: abortControllerRef.current.signal
