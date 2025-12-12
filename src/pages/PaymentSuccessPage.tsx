@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Loader, AlertCircle, Coins } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiClient } from '../services/apiClient';
 
 const PaymentSuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -38,15 +39,9 @@ const PaymentSuccessPage: React.FC = () => {
       try {
         console.log('Sending payment verification request:', { payment_id: paymentId, user_id: userId });
 
-        const response = await fetch('https://travel-n8n.up.railway.app/webhook/yookassa/verify-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            payment_id: paymentId,
-            user_id: userId,
-          }),
+        const response = await apiClient.post('/webhook/yookassa/verify-payment', {
+          payment_id: paymentId,
+          user_id: userId,
         });
 
         console.log('Payment verification response status:', response.status);
