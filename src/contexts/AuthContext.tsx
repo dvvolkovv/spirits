@@ -157,7 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user?.phone) return;
 
     try {
-      const response = await apiClient.get(`/webhook-test/profile`);
+      const response = await apiClient.get(`/webhook/profile`);
 
       if (response.ok) {
         const responseData = await response.json();
@@ -198,7 +198,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const response = await apiClient.delete(`/webhook/c6880b9e-3cb3-4d36-8eb8-abeda33e37e8/profile/`);
+      const response = await apiClient.delete(`/webhook/profile`);
 
       if (!response.ok) {
         throw new Error(`Ошибка удаления профиля: ${response.status}`);
