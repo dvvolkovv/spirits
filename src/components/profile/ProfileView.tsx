@@ -141,8 +141,7 @@ const ProfileView: React.FC = () => {
   const loadAvatarFromServer = async () => {
     if (!user?.phone) return;
 
-    const cleanPhone = user.phone.replace(/\D/g, '');
-    const avatarUrl = `${import.meta.env.VITE_BACKEND_URL}/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/avatar/${cleanPhone}`;
+    const avatarUrl = `${import.meta.env.VITE_BACKEND_URL}/webhook/avatar`;
 
     try {
       const response = await fetch(avatarUrl);
