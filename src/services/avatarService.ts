@@ -26,7 +26,7 @@ class AvatarService {
   }
 
   private async fetchAndCacheAvatar(agentId: number): Promise<string> {
-    const url = `/webhook/agent/avatar/${agentId}`;
+    const url = `/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/agent/avatar/${agentId}`;
 
     try {
       const response = await apiClient.get(url, {
