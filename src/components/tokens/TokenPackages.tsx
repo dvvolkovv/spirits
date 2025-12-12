@@ -65,7 +65,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
       }
 
       try {
-        const response = await apiClient.get(`/webhook-test/profile`);
+        const response = await apiClient.get(`/webhook/profile`);
 
         if (response.ok) {
           const data = await response.json();
