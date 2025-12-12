@@ -1,7 +1,6 @@
 import { avatarCache } from '../utils/avatarCache';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://travel-n8n.up.railway.app';
-const AVATAR_BASE_URL = `${BASE_URL}/webhook/agent/avatar`;
 
 class AvatarService {
   private loadingPromises: Map<number, Promise<string>> = new Map();
@@ -28,7 +27,7 @@ class AvatarService {
   }
 
   private async fetchAndCacheAvatar(agentId: number): Promise<string> {
-    const url = `${AVATAR_BASE_URL}/${agentId}`;
+    const url = `${BASE_URL}/webhook/agent/avatar/${agentId}`;
 
     try {
       const response = await fetch(url, {
