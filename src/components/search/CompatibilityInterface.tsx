@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
 import { Heart, X, Plus, Users, Info } from 'lucide-react';
+import { apiClient } from '../../services/apiClient';
 
 const CompatibilityInterface: React.FC = () => {
   const { user } = useAuth();
@@ -170,15 +171,9 @@ const CompatibilityInterface: React.FC = () => {
     const phoneIds = phoneNumbers.map(phone => phone.replace(/\D/g, ''));
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/analyze-compatibility`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          'user-id': userId,
-          users: phoneIds
-        })
+      const response = await apiClient.post('/webhook/analyze-compatibility', {
+        'user-id': userId,
+        users: phoneIds
       });
 
       if (!response.ok) {

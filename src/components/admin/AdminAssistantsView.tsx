@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, X, CreditCard as Edit2, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
+import { apiClient } from '../../services/apiClient';
 
 interface Agent {
   id: number;
@@ -27,12 +28,7 @@ const AdminAssistantsView: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/agent-details`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      const response = await apiClient.get('/webhook/agent-details');
 
       if (!response.ok) {
         throw new Error(`Ошибка загрузки ассистентов: ${response.status}`);
@@ -67,7 +63,7 @@ const AdminAssistantsView: React.FC = () => {
       formData.append('description', editedDescription);
       formData.append('name', selectedAgent.name);
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/agent`, {
+      const response = await apiClient.request('/webhook/agent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

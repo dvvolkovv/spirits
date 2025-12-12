@@ -1,6 +1,5 @@
 import { avatarCache } from '../utils/avatarCache';
-
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://travel-n8n.up.railway.app';
+import { apiClient } from './apiClient';
 
 class AvatarService {
   private loadingPromises: Map<number, Promise<string>> = new Map();
@@ -27,11 +26,10 @@ class AvatarService {
   }
 
   private async fetchAndCacheAvatar(agentId: number): Promise<string> {
-    const url = `${BASE_URL}/webhook/agent/avatar/${agentId}`;
+    const url = `/webhook/agent/avatar/${agentId}`;
 
     try {
-      const response = await fetch(url, {
-        method: 'GET',
+      const response = await apiClient.get(url, {
         cache: 'no-cache'
       });
 
