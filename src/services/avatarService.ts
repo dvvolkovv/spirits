@@ -1,6 +1,6 @@
 import { avatarCache } from '../utils/avatarCache';
 
-const AVATAR_BASE_URL = 'https://travel-n8n.up.railway.app/webhook/0cdacf32-7bfd-4888-b24f-3a6af3b5f99e/agent/avatar';
+const AVATAR_BASE_URL = 'https://travel-n8n.up.railway.app/webhook/agent/avatar';
 
 class AvatarService {
   private loadingPromises: Map<number, Promise<string>> = new Map();
