@@ -69,7 +69,7 @@ const TokenPurchasePage: React.FC = () => {
   useEffect(() => {
     const fetchUserEmail = async () => {
       if (!phone) {
-        setEmail('dvvolkovv@gmail.com');
+        setEmail('');
         setIsLoadingEmail(false);
         return;
       }
@@ -84,16 +84,16 @@ const TokenPurchasePage: React.FC = () => {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
             const profileData = data[0].profileJson || data[0];
-            setEmail(profileData.email || 'dvvolkovv@gmail.com');
+            setEmail(profileData.email || '');
           } else {
-            setEmail('dvvolkovv@gmail.com');
+            setEmail('');
           }
         } else {
-          setEmail('dvvolkovv@gmail.com');
+          setEmail('');
         }
       } catch (error) {
         console.error('Error fetching user email:', error);
-        setEmail('dvvolkovv@gmail.com');
+        setEmail('');
       } finally {
         setIsLoadingEmail(false);
       }
