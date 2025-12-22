@@ -16,7 +16,7 @@ const ChatPage: React.FC = () => {
   }, [location.search]);
 
   return (
-    <div className="h-full flex flex-col pt-16 md:pt-0">
+    <div className="h-full flex flex-col">
       <ChatInterface
         title={t('chat.title')}
         welcomeMessage={t('chat.welcome_message')}

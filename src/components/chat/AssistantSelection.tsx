@@ -66,8 +66,8 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start bg-gradient-to-br from-blue-50 via-white to-pink-50 overflow-y-auto p-4 md:p-6">
-      <div className="w-full max-w-4xl mx-auto pb-6">
+    <div className="h-full w-full flex flex-col items-center justify-start bg-gradient-to-br from-blue-50 via-white to-pink-50 overflow-y-auto p-4 md:p-6">
+      <div className="w-full max-w-4xl mx-auto pb-24 md:pb-6">
         <div className="text-center mb-6 mt-4 md:mb-8 md:mt-8">
           <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full mb-3 md:mb-4 shadow-lg">
             <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white" />
