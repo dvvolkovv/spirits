@@ -1049,11 +1049,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   if (!hasUserSelectedAssistant) {
     return (
-      <AssistantSelection
-        assistants={assistants}
-        onSelectAssistant={handleSelectAssistant}
-        isLoading={isLoadingAssistants}
-      />
+      <div className="h-full flex flex-col overflow-hidden">
+        <AssistantSelection
+          assistants={assistants}
+          onSelectAssistant={handleSelectAssistant}
+          isLoading={isLoadingAssistants}
+        />
+      </div>
     );
   }
 
