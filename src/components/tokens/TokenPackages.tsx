@@ -102,15 +102,11 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
     setSelectedPackage(packageId);
 
     try {
-      const cleanPhone = user.phone.replace(/\D/g, '');
-
       await apiClient.post('/webhook/set-email', {
-        user_id: cleanPhone,
         email: email.trim(),
       });
 
       const response = await apiClient.post('/webhook/yookassa/create-payment', {
-        user_id: cleanPhone,
         package_id: packageId,
         email: email.trim(),
       });

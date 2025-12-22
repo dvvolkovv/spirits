@@ -167,12 +167,10 @@ const CompatibilityInterface: React.FC = () => {
     setIsSearching(true);
     setAnalysisResult('');
 
-    const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
     const phoneIds = phoneNumbers.map(phone => phone.replace(/\D/g, ''));
 
     try {
       const response = await apiClient.post('/webhook/analyze-compatibility', {
-        'user-id': userId,
         users: phoneIds
       });
 

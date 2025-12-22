@@ -308,7 +308,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const cleanPhone = user.phone.replace(/\D/g, '');
       try {
         const formData = new FormData();
-        formData.append('user-id', cleanPhone);
         formData.append('agent', assistant.name);
 
         await apiClient.post('/webhook/change-agent', formData, {
@@ -376,15 +375,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const changeAgentOnServer = async (agentName: string) => {
     if (!user?.phone) return;
 
-    const cleanPhone = user.phone.replace(/\D/g, '');
-
     try {
-      const formData = new FormData();
-      formData.append('user-id', cleanPhone);
-      formData.append('agent', agentName);
-
-      const response = await apiClient.post('/webhook/change-agent', formData, {
-        headers: {}
+      const response = await apiClient.post('/webhook/change-agent', {
+        agent: agentName
       });
 
       if (!response.ok) {
@@ -881,7 +874,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
 
       const formData = new FormData();
-      formData.append('user-id', userId);
       formData.append('file', file);
 
       const response = await apiClient.post('/webhook/scan-document', formData, {

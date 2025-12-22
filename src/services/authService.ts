@@ -81,7 +81,14 @@ class AuthService {
     const refreshToken = tokenManager.getRefreshToken();
 
     if (!refreshToken) {
-      console.warn('No refresh token available');
+      console.warn('No refresh token available for refresh');
+      return null;
+    }
+
+    // Проверяем, не истек ли refresh token
+    if (tokenManager.isTokenExpired(refreshToken)) {
+      console.error('Refresh token has expired');
+      tokenManager.clearTokens();
       return null;
     }
 
@@ -89,6 +96,7 @@ class AuthService {
       const response = await fetch(`${BASE_URL}/webhook/auth/refresh`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${refreshToken}`,
         },
       });
@@ -97,20 +105,32 @@ class AuthService {
         const data = await response.json();
 
         if (data['access-token'] && data['refresh-token']) {
+          // Сохраняем новые токены
           tokenManager.saveTokens(data['access-token'], data['refresh-token']);
-          return data as RefreshResponse;
+          console.log('Tokens successfully refreshed and saved');
+          return {
+            'access-token': data['access-token'],
+            'refresh-token': data['refresh-token']
+          };
+        } else {
+          console.error('Invalid token response format from refresh endpoint');
+          return null;
         }
-      } else {
-        console.error('Refresh token invalid or expired');
+      } else if (response.status === 401) {
+        // Refresh token тоже невалиден или истек
+        console.error('Refresh token rejected by server (401), clearing tokens');
         tokenManager.clearTokens();
+        return null;
+      } else {
+        console.error(`Token refresh failed with status: ${response.status}`);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('Error response:', errorText);
         return null;
       }
     } catch (error) {
-      console.error('Error refreshing tokens:', error);
+      console.error('Network error during token refresh:', error);
       return null;
     }
-
-    return null;
   }
 
   logout(): void {

@@ -76,7 +76,7 @@ const TokenPurchasePage: React.FC = () => {
 
       try {
         const cleanPhone = phone.replace(/\D/g, '');
-        const response = await apiClient.get(`/webhook/profile?user_id=${cleanPhone}`);
+        const response = await apiClient.get(`/webhook/profile`);
 
         if (response.ok) {
           const data = await response.json();
@@ -135,15 +135,11 @@ const TokenPurchasePage: React.FC = () => {
     setSelectedPackage(packageId);
 
     try {
-      const cleanPhone = phone.replace(/\D/g, '');
-
       await apiClient.post('/webhook/set-email', {
-        user_id: cleanPhone,
         email: email.trim(),
       });
 
       const response = await apiClient.post('/webhook/yookassa/create-payment', {
-        user_id: cleanPhone,
         package_id: packageId,
         email: email.trim(),
       });

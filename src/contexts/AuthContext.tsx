@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { tokenManager } from '../utils/tokenManager';
 import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserTokens = async () => {
+  const fetchUserTokens = useCallback(async () => {
     try {
       const response = await apiClient.get('/webhook/user/tokens/');
 
@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     return undefined;
-  };
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -108,11 +108,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
+  const checkAdminStatus = useCallback(async () => {
+    try {
+      const response = await apiClient.get(`/webhook/profile`);
+
+      if (response.ok) {
+        const responseData = await response.json();
+
+        let profileRecord;
+        if (Array.isArray(responseData) && responseData.length > 0) {
+          profileRecord = responseData[0];
+        } else if (responseData && typeof responseData === 'object') {
+          profileRecord = responseData;
+        }
+
+        if (profileRecord) {
+          setUser((currentUser) => {
+            if (currentUser?.phone) {
+              const updatedUser = {
+                ...currentUser,
+                isAdmin: profileRecord.isadmin === true,
+                email: profileRecord.email || currentUser.email
+              };
+              localStorage.setItem('userData', JSON.stringify(updatedUser));
+              return updatedUser;
+            }
+            return currentUser;
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (user && !isLoading) {
       checkAdminStatus();
     }
-  }, [user?.phone]);
+  }, [user?.phone, isLoading, checkAdminStatus]);
+
+  const updateTokens = useCallback((tokens: number) => {
+    setUser((currentUser) => {
+      if (currentUser) {
+        const updatedUser = {
+          ...currentUser,
+          tokens
+        };
+        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return currentUser;
+    });
+  }, []);
 
   useEffect(() => {
     if (!user || isLoading) return;
@@ -125,11 +173,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [user?.phone, isLoading]);
+  }, [user?.phone, isLoading, fetchUserTokens, updateTokens]);
 
   const login = async (phone: string, token: string) => {
     const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).substring(2, 11),
       phone,
       profile: {
         values: [],
@@ -153,36 +201,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await checkAdminStatus();
   };
 
-  const checkAdminStatus = async () => {
-    if (!user?.phone) return;
-
-    try {
-      const response = await apiClient.get(`/webhook/profile`);
-
-      if (response.ok) {
-        const responseData = await response.json();
-
-        let profileRecord;
-        if (Array.isArray(responseData) && responseData.length > 0) {
-          profileRecord = responseData[0];
-        } else if (responseData && typeof responseData === 'object') {
-          profileRecord = responseData;
-        }
-
-        if (profileRecord) {
-          const updatedUser = {
-            ...user,
-            isAdmin: profileRecord.isadmin === true,
-            email: profileRecord.email || user.email
-          };
-          setUser(updatedUser);
-          localStorage.setItem('userData', JSON.stringify(updatedUser));
-        }
-      }
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-    }
-  };
 
   const logout = () => {
     localStorage.removeItem('authToken');
@@ -214,68 +232,72 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateProfile = (profileUpdate: Partial<User['profile']>) => {
-    if (user) {
-      const updatedUser = {
-        ...user,
-        profile: {
-          ...user.profile!,
-          ...profileUpdate
-        }
-      };
-      setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
-    }
-  };
-
-  const updateUserInfo = (info: { firstName?: string; lastName?: string }) => {
-    if (user) {
-      const updatedUser = {
-        ...user,
-        ...info
-      };
-      setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
-    }
-  };
-
-  const updateAvatar = (avatar: string) => {
-    if (user) {
-      const updatedUser = {
-        ...user,
-        avatar
-      };
-      setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
-    }
-  };
-
-  const updateTokens = (tokens: number) => {
-    if (user) {
-      const updatedUser = {
-        ...user,
-        tokens
-      };
-      setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
-    }
-  };
-
-  const consumeTokens = (amount: number) => {
-    if (user && user.tokens !== undefined) {
-      const newTokens = Math.max(0, user.tokens - amount);
-      updateTokens(newTokens);
-    }
-  };
-
-  const refreshTokens = async () => {
-    if (user?.phone) {
-      const tokens = await fetchUserTokens();
-      if (tokens !== undefined) {
-        updateTokens(tokens);
+  const updateProfile = useCallback((profileUpdate: Partial<User['profile']>) => {
+    setUser((currentUser) => {
+      if (currentUser) {
+        const updatedUser = {
+          ...currentUser,
+          profile: {
+            ...currentUser.profile!,
+            ...profileUpdate
+          }
+        };
+        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        return updatedUser;
       }
+      return currentUser;
+    });
+  }, []);
+
+  const updateUserInfo = useCallback((info: { firstName?: string; lastName?: string }) => {
+    setUser((currentUser) => {
+      if (currentUser) {
+        const updatedUser = {
+          ...currentUser,
+          ...info
+        };
+        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return currentUser;
+    });
+  }, []);
+
+  const updateAvatar = useCallback((avatar: string) => {
+    setUser((currentUser) => {
+      if (currentUser) {
+        const updatedUser = {
+          ...currentUser,
+          avatar
+        };
+        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return currentUser;
+    });
+  }, []);
+
+  const consumeTokens = useCallback((amount: number) => {
+    setUser((currentUser) => {
+      if (currentUser && currentUser.tokens !== undefined) {
+        const newTokens = Math.max(0, currentUser.tokens - amount);
+        const updatedUser = {
+          ...currentUser,
+          tokens: newTokens
+        };
+        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return currentUser;
+    });
+  }, []);
+
+  const refreshTokens = useCallback(async () => {
+    const tokens = await fetchUserTokens();
+    if (tokens !== undefined) {
+      updateTokens(tokens);
     }
-  };
+  }, [fetchUserTokens, updateTokens]);
 
   const isAuthenticated = !!user;
 

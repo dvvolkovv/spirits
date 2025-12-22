@@ -53,7 +53,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const cleanPhone = user.phone.replace(/\D/g, '');
 
     try {
-      const response = await apiClient.get(`/webhook/profile?user_id=${cleanPhone}`);
+      const response = await apiClient.get(`/webhook/profile`);
 
       if (response.ok) {
         const responseData = await response.json();

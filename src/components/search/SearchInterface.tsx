@@ -95,15 +95,11 @@ const SearchInterface: React.FC = () => {
     localStorage.removeItem('search_results');
     localStorage.removeItem('search_comment');
 
-    // Get user phone number for userId
-    const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
-
     // Prepare phone IDs list - remove '+' and format as needed
     const phoneIds = phoneNumbers.map(phone => phone.replace(/\D/g, ''));
 
     try {
       const response = await apiClient.post('/webhook/analyze-compatibility', {
-        'user-id': userId,
         users: phoneIds
       });
 
@@ -164,12 +160,9 @@ const SearchInterface: React.FC = () => {
     localStorage.removeItem('search_comment');
 
     // Get user phone number for userId
-    const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
-
     try {
       const response = await apiClient.post('/webhook/search-mate', {
         query: searchQuery,
-        userId: userId
       });
 
       if (!response.ok) {

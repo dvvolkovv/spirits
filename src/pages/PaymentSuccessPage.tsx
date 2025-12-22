@@ -41,7 +41,6 @@ const PaymentSuccessPage: React.FC = () => {
 
         const response = await apiClient.post('/webhook/yookassa/verify-payment', {
           payment_id: paymentId,
-          user_id: userId,
         });
 
         console.log('Payment verification response status:', response.status);

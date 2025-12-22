@@ -36,6 +36,7 @@ class APIClient {
   }
 
   private async handleTokenRefresh(): Promise<boolean> {
+    // Если уже идет обновление токенов, ждем его завершения
     if (this.isRefreshing) {
       await this.waitForTokenRefresh();
       return tokenManager.hasTokens();
@@ -44,12 +45,23 @@ class APIClient {
     this.isRefreshing = true;
 
     try {
+      const refreshToken = tokenManager.getRefreshToken();
+      
+      if (!refreshToken) {
+        console.warn('No refresh token available for token refresh');
+        this.resolvePendingRequests();
+        return false;
+      }
+
+      console.log('Attempting to refresh access token using refresh token');
       const result = await authService.refreshTokens();
 
-      if (result) {
+      if (result && result['access-token'] && result['refresh-token']) {
+        console.log('Access token successfully refreshed');
         this.resolvePendingRequests();
         return true;
       } else {
+        console.error('Failed to refresh tokens: invalid response from server');
         this.resolvePendingRequests();
         return false;
       }
@@ -89,17 +101,38 @@ class APIClient {
       });
 
       if (response.status === 401 && !isRetry && !skipAuth && this.isProtectedEndpoint(fullURL)) {
+        console.log('Received 401 error, attempting to refresh access token');
         const refreshSuccess = await this.handleTokenRefresh();
 
         if (refreshSuccess) {
-          return this.request(url, { ...options, isRetry: true });
+          // Проверяем, что новый токен доступен
+          const newAccessToken = tokenManager.getAccessToken();
+          if (newAccessToken) {
+            console.log('Retrying request with refreshed access token');
+            // Повторяем запрос - метод request сам возьмет новый токен из tokenManager
+            return this.request(url, { 
+              ...options, 
+              isRetry: true
+            });
+          } else {
+            console.error('New access token not available after refresh');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('userData');
+              tokenManager.clearTokens();
+              window.location.href = '/';
+            }
+            throw new Error('Authentication failed: new token not available');
+          }
         } else {
+          console.error('Token refresh failed, redirecting to login');
           if (typeof window !== 'undefined') {
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
+            tokenManager.clearTokens();
             window.location.href = '/';
           }
-          throw new Error('Authentication failed');
+          throw new Error('Authentication failed: token refresh unsuccessful');
         }
       }
 

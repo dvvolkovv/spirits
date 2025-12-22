@@ -138,11 +138,16 @@ const ProfileView: React.FC = () => {
   }, [user?.phone]);
 
   // Загрузка аватара с сервера
-  const loadAvatarFromServer = async () => {
+  const loadAvatarFromServer = async (bypassCache = false) => {
     if (!user?.phone) return;
 
     try {
-      const response = await apiClient.get('/webhook/avatar');
+      // Добавляем параметр для обхода кеша браузера при необходимости
+      const url = bypassCache 
+        ? `/webhook/avatar?t=${Date.now()}`
+        : '/webhook/avatar';
+      
+      const response = await apiClient.get(url);
       if (response.ok) {
         const blob = await response.blob();
         const reader = new FileReader();
@@ -177,11 +182,8 @@ const ProfileView: React.FC = () => {
     }
 
     // Очищаем номер телефона от всех символов кроме цифр
-    const cleanPhone = user.phone.replace(/\D/g, '');
-
     try {
       const payload: any = {
-        user_id: cleanPhone,
         name: editingInfo.firstName,
         family_name: editingInfo.lastName
       };
@@ -268,17 +270,11 @@ const ProfileView: React.FC = () => {
         throw new Error(`Ошибка загрузки аватара: ${response.status}`);
       }
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        updateAvatar(result);
-        setIsUploadingAvatar(false);
-        alert('Аватар успешно загружен');
-      };
-      reader.onerror = () => {
-        throw new Error('Ошибка при чтении файла');
-      };
-      reader.readAsDataURL(file);
+      // Перезагружаем аватар с сервера с параметром для обхода кеша браузера
+      await loadAvatarFromServer(true);
+      
+      setIsUploadingAvatar(false);
+      //alert('Аватар успешно загружен');
     } catch (error) {
       console.error('Ошибка при загрузке аватара:', error);
       alert(`Ошибка при загрузке аватара: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);

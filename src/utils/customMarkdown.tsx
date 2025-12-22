@@ -28,7 +28,7 @@ export const parseCustomMarkdown = (content: string): {
   let parsedContent = content;
 
   parsedContent = parsedContent.replace(BUTTON_REGEX, (match, text, action, variant, icon) => {
-    const buttonId = `btn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const buttonId = `btn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     buttons.set(buttonId, {
       text: text.trim(),
       action: action?.trim() || '',
@@ -39,7 +39,7 @@ export const parseCustomMarkdown = (content: string): {
   });
 
   parsedContent = parsedContent.replace(LINK_REGEX, (match, text, url) => {
-    const linkId = `link_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const linkId = `link_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     const isExternal = url.trim().startsWith('http://') || url.trim().startsWith('https://');
     links.set(linkId, {
       text: text.trim(),
