@@ -524,37 +524,37 @@ const SearchInterface: React.FC = () => {
                   <Search className="w-5 h-5 text-blue-600 mt-0.5" />
                 )}
               </div>
-              <div className="flex-1">
-                <div className="text-blue-800 text-sm leading-relaxed prose prose-sm max-w-none prose-blue">
+              <div className="flex-1 min-w-0">
+                <div className="text-blue-800 text-sm leading-relaxed break-words overflow-wrap-anywhere">
                   {isSearching && !searchComment ? (
                     <p>Ищем подходящих людей...</p>
                   ) : (
                     <ReactMarkdown
                       components={{
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        p: ({ children }) => <p className="mb-2 last:mb-0 break-words">{children}</p>,
                         strong: ({ children }) => <strong className="font-semibold text-blue-900">{children}</strong>,
                         em: ({ children }) => <em className="italic">{children}</em>,
                         ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
                         ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
-                        li: ({ children }) => <li className="text-sm">{children}</li>,
+                        li: ({ children }) => <li className="text-sm break-words">{children}</li>,
                         code: ({ children }) => (
-                          <code className="bg-blue-100 text-blue-900 px-1 py-0.5 rounded text-xs font-mono">
+                          <code className="bg-blue-100 text-blue-900 px-1 py-0.5 rounded text-xs font-mono break-all">
                             {children}
                           </code>
                         ),
                         pre: ({ children }) => (
-                          <pre className="bg-blue-100 text-blue-900 p-2 rounded text-xs font-mono overflow-x-auto mb-2">
+                          <pre className="bg-blue-100 text-blue-900 p-2 rounded text-xs font-mono overflow-x-auto mb-2 whitespace-pre-wrap break-words">
                             {children}
                           </pre>
                         ),
                         blockquote: ({ children }) => (
-                          <blockquote className="border-l-2 border-blue-300 pl-2 italic text-blue-700 mb-2">
+                          <blockquote className="border-l-2 border-blue-300 pl-2 italic text-blue-700 mb-2 break-words">
                             {children}
                           </blockquote>
                         ),
-                        h1: ({ children }) => <h1 className="text-base font-bold mb-2 text-blue-900">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-sm font-bold mb-2 text-blue-900">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-blue-900">{children}</h3>,
+                        h1: ({ children }) => <h1 className="text-base font-bold mb-2 text-blue-900 break-words">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-sm font-bold mb-2 text-blue-900 break-words">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-sm font-bold mb-1 text-blue-900 break-words">{children}</h3>,
                         br: () => <br />,
                       }}
                     >

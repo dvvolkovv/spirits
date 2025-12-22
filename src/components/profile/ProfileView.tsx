@@ -34,6 +34,7 @@ const ProfileView: React.FC = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [editedData, setEditedData] = useState<ProfileData | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Используем только данные с сервера (или отредактированные данные в режиме редактирования)
   const getProfileValues = () => {
@@ -93,7 +94,7 @@ const ProfileView: React.FC = () => {
 
       if (response.ok) {
         const responseData = await response.json();
-        
+
         // Проверяем, является ли ответ массивом
         let profileRecord;
         if (Array.isArray(responseData) && responseData.length > 0) {
@@ -105,21 +106,26 @@ const ProfileView: React.FC = () => {
         } else {
           throw new Error('Неожиданный формат ответа сервера');
         }
-        
-        // Извлекаем profile_data из записи
-        const data: ProfileData = profileRecord.profile_data || profileRecord;
+
+        // Извлекаем данные профиля из записи
+        // Поддерживаем оба формата: profileJson (новый) и profile_data (старый)
+        const data: ProfileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
         setProfileData(data);
-        
-        // Обновляем имя и фамилию в контексте, если они пришли с сервера
+
+        // Обновляем данные пользователя в контексте
+        const updates: any = {};
+
         if (data.name || data.family_name) {
-          updateUserInfo({
-            firstName: data.name || user.firstName,
-            lastName: data.family_name || user.lastName
-          });
+          updates.firstName = data.name || user.firstName;
+          updates.lastName = data.family_name || user.lastName;
           setEditingInfo({
             firstName: data.name || user.firstName || '',
             lastName: data.family_name || user.lastName || ''
           });
+        }
+
+        if (Object.keys(updates).length > 0) {
+          updateUserInfo(updates);
         }
       } else {
         console.warn('Профиль не найден на сервере, используем локальные данные');
@@ -310,11 +316,14 @@ const ProfileView: React.FC = () => {
   };
 
   const handleDeleteAccount = () => {
-    if (window.confirm('Это действие необратимо. Все ваши данные будут удалены с сервера. Удалить аккаунт?')) {
-      deleteProfile().catch((error: Error) => {
-        alert(`Ошибка при удалении аккаунта: ${error.message}`);
-      });
-    }
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAccount = () => {
+    setShowDeleteConfirm(false);
+    deleteProfile().catch((error: Error) => {
+      alert(`Ошибка при удалении аккаунта: ${error.message}`);
+    });
   };
 
   const removeFromArray = (field: keyof ProfileData, index: number) => {
@@ -822,6 +831,63 @@ const ProfileView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
+              <Trash2 className="w-6 h-6 text-red-600" />
+            </div>
+
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+              Удалить аккаунт?
+            </h3>
+
+            <div className="mb-6 space-y-3">
+              <p className="text-gray-700 text-center">
+                Это действие необратимо. Будут удалены:
+              </p>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-start space-x-2">
+                  <span className="text-red-500 font-bold">•</span>
+                  <span>Все личные данные и профиль</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-red-500 font-bold">•</span>
+                  <span>История общения с ассистентами</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-red-500 font-bold">•</span>
+                  <span>Баланс токенов</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-red-500 font-bold">•</span>
+                  <span>Все настройки и предпочтения</span>
+                </li>
+              </ul>
+              <p className="text-red-600 font-semibold text-center mt-4">
+                Восстановление данных будет невозможно
+              </p>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={confirmDeleteAccount}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Удалить навсегда
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

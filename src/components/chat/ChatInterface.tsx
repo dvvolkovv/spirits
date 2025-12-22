@@ -352,6 +352,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             })
           );
           setAvatarUrls(urls);
+
+          if (user?.preferredAgent && !hasUserSelectedAssistant) {
+            const preferredAssistant = data.find((a: Assistant) => a.name === user.preferredAgent);
+            if (preferredAssistant) {
+              setSelectedAssistant(preferredAssistant);
+              setHasUserSelectedAssistant(true);
+            }
+          }
         } else {
           console.error('Failed to fetch assistants');
         }
@@ -363,7 +371,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     fetchAssistants();
-  }, []);
+  }, [user?.preferredAgent, hasUserSelectedAssistant]);
 
   useEffect(() => {
     if (selectedAssistant) {
@@ -460,7 +468,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }
 
           if (profileRecord) {
-            const serverAgent = profileRecord.profile_data?.preferred_agent || profileRecord.preferred_agent || profileRecord.profile_data?.agent || profileRecord.agent;
+            const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
+            const serverAgent = profileData?.preferred_agent || profileData?.agent;
 
             if (serverAgent && selectedAssistant?.name !== serverAgent) {
               const matchingAssistant = assistants.find(
