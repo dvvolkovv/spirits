@@ -140,6 +140,11 @@ const StreamingMessage = React.memo(({
 
 StreamingMessage.displayName = 'StreamingMessage';
 
+// Функция для генерации уникальных ID сообщений
+const generateMessageId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+};
+
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   title,
   welcomeMessage,
@@ -239,10 +244,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsedMessages = JSON.parse(saved);
-        return parsedMessages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }));
+        // Убеждаемся, что все ID уникальны (исправляем старые дубликаты)
+        const seenIds = new Set<string>();
+        return parsedMessages.map((msg: any) => {
+          let messageId = msg.id;
+          // Если ID уже встречался, генерируем новый
+          if (seenIds.has(messageId)) {
+            messageId = generateMessageId();
+          }
+          seenIds.add(messageId);
+          return {
+            ...msg,
+            id: messageId,
+            timestamp: new Date(msg.timestamp)
+          };
+        });
       }
     }
     return [];
@@ -298,28 +314,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         })));
       } else {
         setMessages([]);
-        sendInitialGreeting(selectedAssistant);
+        sendInitialGreeting();
       }
     }
   }, [selectedAssistant, hasUserSelectedAssistant]);
 
-  const sendInitialGreeting = async (assistant: Assistant) => {
-    if (user?.phone) {
-      const cleanPhone = user.phone.replace(/\D/g, '');
-      try {
-        const formData = new FormData();
-        formData.append('agent', assistant.name);
-
-        await apiClient.post('/webhook/change-agent', formData, {
-          headers: {}
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error('Error changing agent on server:', error);
-      }
-    }
-
+  const sendInitialGreeting = async () => {
+    // changeAgentOnServer будет вызван автоматически через useEffect при установке selectedAssistant
     const greetingMessage = "Привет! Расскажи про себя!";
     await sendMessageToAI(greetingMessage);
   };
@@ -373,14 +374,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     fetchAssistants();
   }, [user?.preferredAgent, hasUserSelectedAssistant]);
 
-  useEffect(() => {
-    if (selectedAssistant) {
-      localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
-      changeAgentOnServer(selectedAssistant.name);
-    }
-  }, [selectedAssistant]);
+  // Флаг для предотвращения бесконечного цикла переключений
+  const isChangingAgentRef = useRef(false);
+  const lastChangedAgentRef = useRef<string | null>(null);
 
-  const changeAgentOnServer = async (agentName: string) => {
+  const changeAgentOnServer = useCallback(async (agentName: string) => {
     if (!user?.phone) return;
 
     try {
@@ -394,7 +392,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (error) {
       console.error('Error changing agent on server:', error);
     }
-  };
+  }, [user?.phone]);
+
+  useEffect(() => {
+    if (selectedAssistant && !isChangingAgentRef.current) {
+      // Проверяем, что это действительно новое значение
+      if (lastChangedAgentRef.current !== selectedAssistant.name) {
+        isChangingAgentRef.current = true;
+        lastChangedAgentRef.current = selectedAssistant.name;
+        localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
+        
+        changeAgentOnServer(selectedAssistant.name).finally(() => {
+          // Сбрасываем флаг после небольшой задержки, чтобы дать серверу время обновиться
+          setTimeout(() => {
+            isChangingAgentRef.current = false;
+          }, 2000);
+        });
+      }
+    }
+  }, [selectedAssistant, changeAgentOnServer]);
 
   // Синхронизация выбора ассистента между окнами/вкладками
   useEffect(() => {
@@ -446,76 +462,94 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   // Синхронизация выбранного ассистента с сервером каждые 10 секунд
+  const syncAssistantFromServer = useCallback(async () => {
+    // Не синхронизируем, если идет процесс изменения ассистента
+    if (document.hidden || !user?.phone || !assistants.length || isChangingAgentRef.current) return;
+
+    try {
+      const response = await apiClient.get(`/webhook/profile`);
+
+      if (response.ok) {
+        const responseData = await response.json();
+
+        let profileRecord;
+        if (Array.isArray(responseData) && responseData.length > 0) {
+          profileRecord = responseData[0];
+        } else if (responseData && typeof responseData === 'object') {
+          profileRecord = responseData;
+        }
+
+        if (profileRecord) {
+          const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
+          const serverAgent = profileData?.preferred_agent || profileData?.agent;
+
+          // Синхронизируем только если ассистент действительно отличается
+          if (serverAgent && selectedAssistant?.name !== serverAgent) {
+            const matchingAssistant = assistants.find(
+              (a) => a.name === serverAgent
+            );
+
+            if (matchingAssistant && selectedAssistant?.id !== matchingAssistant.id) {
+              if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+              }
+
+              setCurrentStreamingMessage('');
+              setStreamingMessageId(null);
+              setIsTyping(false);
+
+              // Устанавливаем флаг перед изменением, чтобы предотвратить повторные вызовы
+              isChangingAgentRef.current = true;
+              lastChangedAgentRef.current = matchingAssistant.name;
+              
+              setSelectedAssistant(matchingAssistant);
+              localStorage.setItem('selected_assistant', JSON.stringify(matchingAssistant));
+              // changeAgentOnServer будет вызван автоматически через useEffect
+
+              setAssistantSwitchNotification(`Переключено на ${matchingAssistant.name}`);
+              setTimeout(() => setAssistantSwitchNotification(null), 3000);
+              
+              // Сбрасываем флаг после задержки, чтобы дать серверу время обновиться
+              setTimeout(() => {
+                isChangingAgentRef.current = false;
+              }, 5000); // Увеличена задержка, чтобы сервер успел обновиться
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing assistant from server:', error);
+    }
+  }, [user?.phone, assistants, selectedAssistant]);
+
   useEffect(() => {
     if (!user?.phone || !assistants.length) return;
 
     let intervalId: NodeJS.Timeout | null = null;
-
-    const syncAssistantFromServer = async () => {
-      if (document.hidden) return;
-
-      try {
-        const response = await apiClient.get(`/webhook/profile`);
-
-        if (response.ok) {
-          const responseData = await response.json();
-
-          let profileRecord;
-          if (Array.isArray(responseData) && responseData.length > 0) {
-            profileRecord = responseData[0];
-          } else if (responseData && typeof responseData === 'object') {
-            profileRecord = responseData;
-          }
-
-          if (profileRecord) {
-            const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
-            const serverAgent = profileData?.preferred_agent || profileData?.agent;
-
-            if (serverAgent && selectedAssistant?.name !== serverAgent) {
-              const matchingAssistant = assistants.find(
-                (a) => a.name === serverAgent
-              );
-
-              if (matchingAssistant) {
-                if (abortControllerRef.current) {
-                  abortControllerRef.current.abort();
-                  abortControllerRef.current = null;
-                }
-
-                setCurrentStreamingMessage('');
-                setStreamingMessageId(null);
-                setIsTyping(false);
-
-                setSelectedAssistant(matchingAssistant);
-                localStorage.setItem('selected_assistant', JSON.stringify(matchingAssistant));
-
-                setAssistantSwitchNotification(`Переключено на ${matchingAssistant.name}`);
-                setTimeout(() => setAssistantSwitchNotification(null), 3000);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error syncing assistant from server:', error);
-      }
-    };
+    let isMounted = true;
 
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
+      if (!document.hidden && isMounted) {
         syncAssistantFromServer();
       }
     };
 
-    intervalId = setInterval(syncAssistantFromServer, 10000);
+    intervalId = setInterval(() => {
+      if (isMounted) {
+        syncAssistantFromServer();
+      }
+    }, 10000);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     syncAssistantFromServer();
 
     return () => {
+      isMounted = false;
       if (intervalId) clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user?.phone, assistants, selectedAssistant]);
+  }, [user?.phone, assistants.length, syncAssistantFromServer]);
 
   // Отдельный useEffect для прокрутки с throttling
   useEffect(() => {
@@ -565,7 +599,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (welcomeMessage && messages.length === 0) {
       setMessages([{
-        id: '1',
+        id: generateMessageId(),
         type: 'assistant',
         content: welcomeMessage,
         timestamp: new Date()
@@ -621,7 +655,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setCurrentStreamingMessage('');
 
     // Set streaming message ID immediately to show loading state
-    const assistantMessageId = Date.now().toString();
+    const assistantMessageId = generateMessageId();
     setStreamingMessageId(assistantMessageId);
 
     // Cancel any ongoing request
@@ -720,7 +754,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       
       // Show error message
       const errorMessage: Message = {
-        id: Date.now().toString(),
+        id: generateMessageId(),
         type: 'assistant',
         content: 'Извините, произошла ошибка при обработке вашего сообщения. Попробуйте еще раз.',
         timestamp: new Date()
@@ -755,8 +789,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // Если ассистент изменился, обновляем состояние
         if (selectedAssistant?.id !== currentAssistant.id) {
           setSelectedAssistant(currentAssistant);
-          // Ожидаем обновления состояния и синхронизации с сервером
-          await changeAgentOnServer(currentAssistant.name);
+          // changeAgentOnServer будет вызван автоматически через useEffect
           // Показываем уведомление
           setAssistantSwitchNotification(`Переключено на ${currentAssistant.name}`);
           setTimeout(() => setAssistantSwitchNotification(null), 3000);
@@ -767,7 +800,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: generateMessageId(),
       type: 'user',
       content: input,
       timestamp: new Date()
@@ -789,7 +822,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
       if (welcomeMessage) {
         setMessages([{
-          id: '1',
+          id: generateMessageId(),
           type: 'assistant',
           content: welcomeMessage,
           timestamp: new Date()
@@ -812,7 +845,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (messages.length < 2) return;
     
     // Find the last user message
-    const lastUserMessageIndex = messages.findLastIndex(msg => msg.type === 'user');
+    let lastUserMessageIndex = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].type === 'user') {
+        lastUserMessageIndex = i;
+        break;
+      }
+    }
     if (lastUserMessageIndex === -1) return;
 
     const lastUserMessage = messages[lastUserMessageIndex];
@@ -896,7 +935,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const result = await response.json();
 
       const userMessage: Message = {
-        id: Date.now().toString(),
+        id: generateMessageId(),
         type: 'user',
         content: `Загружен файл: ${file.name}`,
         timestamp: new Date()
@@ -960,7 +999,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateMessageId(),
         type: 'assistant',
         content: profileText,
         timestamp: new Date()
@@ -995,7 +1034,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setHasUserSelectedAssistant(true);
     localStorage.setItem('selected_assistant', JSON.stringify(assistant));
 
-    await sendInitialGreeting(assistant);
+    await sendInitialGreeting();
   };
 
   const handleSwitchAssistant = async (assistant: Assistant) => {

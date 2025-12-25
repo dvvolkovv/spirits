@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard, Shield, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, Heart, Lightbulb, X, Coins } from 'lucide-react';
+import { CreditCard, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, X, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 
@@ -24,7 +24,7 @@ interface ProfileData {
 const ProfileView: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, updateProfile, updateUserInfo, updateAvatar, logout, deleteProfile } = useAuth();
+  const { user, updateUserInfo, updateAvatar, logout, deleteProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editingInfo, setEditingInfo] = useState({
     firstName: user?.firstName || '',

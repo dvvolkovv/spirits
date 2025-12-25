@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode} from 'react';
 import { tokenManager } from '../utils/tokenManager';
 import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
+
 
 interface User {
   id: string;
@@ -73,61 +74,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return undefined;
   }, []);
 
-  const updateTokens = useCallback((tokens: number) => {
-    const currentUser = userRef.current;
-    if (currentUser) {
-      const updatedUser = {
-        ...currentUser,
-        tokens
-      };
-      setUser(updatedUser);
-      localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(updatedUser)));
-    }
-  }, []);
-
-  const checkAdminStatus = useCallback(async () => {
-    const currentUser = userRef.current;
-    if (!currentUser?.phone) return;
-
-    const cleanPhone = currentUser.phone.replace(/\D/g, '');
-
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/webhook/16279efb-08c5-4255-9ded-fdbafb507f32/profile/${cleanPhone}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        const responseData = await response.json();
-
-        let profileRecord;
-        if (Array.isArray(responseData) && responseData.length > 0) {
-          profileRecord = responseData[0];
-        } else if (responseData && typeof responseData === 'object') {
-          profileRecord = responseData;
-        }
-
-        if (profileRecord) {
-          const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
-
-          const updatedUser = {
-            ...currentUser,
-            isAdmin: profileData.isadmin === true,
-            email: profileData.email || profileRecord.email || currentUser.email,
-            preferredAgent: profileData.preferred_agent || currentUser.preferredAgent
-          };
-          setUser(updatedUser);
-          localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(updatedUser)));
-        }
-      }
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-    }
-  }, []);
-
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       const token = localStorage.getItem('authToken');
       const userData = localStorage.getItem('userData');
@@ -143,27 +92,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
 
           const tokens = await fetchUserTokens();
-          if (tokens !== undefined) {
+          if (tokens !== undefined && isMounted) {
             parsedUser.tokens = tokens;
           }
 
-          setUser(parsedUser);
-          localStorage.setItem('userData', JSON.stringify(sanitizeUserForStorage(parsedUser)));
+          // Загружаем аватар с сервера, если его нет
+          if (!parsedUser.avatar && isMounted) {
+            try {
+              const avatarResponse = await apiClient.get('/webhook/avatar');
+              if (avatarResponse.ok && isMounted) {
+                const blob = await avatarResponse.blob();
+                const base64data = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                });
+                if (isMounted) {
+                  parsedUser.avatar = base64data;
+                }
+              }
+            } catch (error) {
+              if (isMounted) {
+                console.error('Error loading avatar:', error);
+              }
+            }
+          }
 
-          loadAvatarFromServer(parsedUser.phone);
+          if (isMounted) {
+            setUser(parsedUser);
+            localStorage.setItem('userData', JSON.stringify(parsedUser));
+          }
         } catch (error) {
-          console.error('Error parsing user data:', error);
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('userData');
-          tokenManager.clearTokens();
+          if (isMounted) {
+            console.error('Error parsing user data:', error);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            tokenManager.clearTokens();
+          }
         }
       }
 
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+      }
     };
 
     initAuth();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchUserTokens]);
 
   const checkAdminStatus = useCallback(async () => {
     try {
