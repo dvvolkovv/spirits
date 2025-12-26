@@ -1062,11 +1062,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   if (!hasUserSelectedAssistant) {
     return (
-      <AssistantSelection
-        assistants={assistants}
-        onSelectAssistant={handleSelectAssistant}
-        isLoading={isLoadingAssistants}
-      />
+      <div className="h-full flex flex-col overflow-hidden">
+        <AssistantSelection
+          assistants={assistants}
+          onSelectAssistant={handleSelectAssistant}
+          isLoading={isLoadingAssistants}
+        />
+      </div>
     );
   }
 
@@ -1129,7 +1131,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </button>
 
                 {showAssistantDropdown && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
                     <div className="py-1">
                       {assistants.map((assistant) => (
                         <button

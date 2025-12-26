@@ -66,16 +66,16 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-start bg-gradient-to-br from-blue-50 via-white to-pink-50 overflow-y-auto p-6">
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="text-center mb-8 mt-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full mb-4 shadow-lg">
-            <Sparkles className="w-8 h-8 text-white" />
+    <div className="h-full w-full flex flex-col items-center justify-start bg-gradient-to-br from-blue-50 via-white to-pink-50 overflow-y-auto p-4 md:p-6">
+      <div className="w-full max-w-4xl mx-auto pb-24 md:pb-6">
+        <div className="text-center mb-6 mt-4 md:mb-8 md:mt-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full mb-3 md:mb-4 shadow-lg">
+            <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
             Выберите ассистента
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-base md:text-lg text-gray-600">
             С кем вы хотите начать общение?
           </p>
         </div>
@@ -85,31 +85,31 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
             <button
               key={assistant.id}
               onClick={() => onSelectAssistant(assistant)}
-              className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 hover:scale-105 active:scale-95 text-left"
+              className="group bg-white rounded-2xl p-4 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 hover:scale-105 active:scale-95 text-left"
             >
               <div className="flex flex-col items-center text-center">
-                <div className="relative mb-4">
+                <div className="relative mb-3 md:mb-4">
                   {avatarUrls[assistant.id] ? (
                     <img
                       src={avatarUrls[assistant.id]}
                       alt={assistant.name}
-                      className="w-24 h-24 rounded-full object-cover shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300"
+                      className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
                       }}
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300 flex items-center justify-center">
-                      <span className="text-3xl">👤</span>
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300 flex items-center justify-center">
+                      <span className="text-2xl md:text-3xl">👤</span>
                     </div>
                   )}
-                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <Sparkles className="w-4 h-4 text-white" />
+                  <div className="absolute -bottom-2 -right-2 w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                    <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-1">
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">
                   {assistant.name}
                 </h3>
 
@@ -117,12 +117,12 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
                   {getRoleForAssistant(assistant.description)}
                 </span>
 
-                <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
+                <p className="text-xs md:text-sm text-gray-600 leading-relaxed line-clamp-3">
                   {assistant.description}
                 </p>
 
-                <div className="mt-4 pt-4 border-t border-gray-100 w-full">
-                  <span className="text-sm font-medium text-blue-600 group-hover:text-blue-700 transition-colors">
+                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100 w-full">
+                  <span className="text-xs md:text-sm font-medium text-blue-600 group-hover:text-blue-700 transition-colors">
                     Начать общение →
                   </span>
                 </div>
