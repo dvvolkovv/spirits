@@ -100,18 +100,33 @@ class APIClient {
         headers,
       });
 
+      if (response.status === 403 && !skipAuth && this.isProtectedEndpoint(fullURL)) {
+        try {
+          const errorData = await response.clone().json();
+          if (errorData.error === 'No token provided as Bearer') {
+            console.error('Authentication error: No token provided, redirecting to login');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('userData');
+              tokenManager.clearTokens();
+              window.location.href = '/';
+            }
+            throw new Error('Authentication failed: no token provided');
+          }
+        } catch (e) {
+        }
+      }
+
       if (response.status === 401 && !isRetry && !skipAuth && this.isProtectedEndpoint(fullURL)) {
         console.log('Received 401 error, attempting to refresh access token');
         const refreshSuccess = await this.handleTokenRefresh();
 
         if (refreshSuccess) {
-          // Проверяем, что новый токен доступен
           const newAccessToken = tokenManager.getAccessToken();
           if (newAccessToken) {
             console.log('Retrying request with refreshed access token');
-            // Повторяем запрос - метод request сам возьмет новый токен из tokenManager
-            return this.request(url, { 
-              ...options, 
+            return this.request(url, {
+              ...options,
               isRetry: true
             });
           } else {
