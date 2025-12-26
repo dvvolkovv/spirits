@@ -320,7 +320,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [selectedAssistant, hasUserSelectedAssistant]);
 
   const sendInitialGreeting = async () => {
-    // changeAgentOnServer будет вызван автоматически через useEffect при установке selectedAssistant
+    if (!selectedAssistant) return;
+
+    if (lastChangedAgentRef.current !== selectedAssistant.name) {
+      isChangingAgentRef.current = true;
+      lastChangedAgentRef.current = selectedAssistant.name;
+      await changeAgentOnServer(selectedAssistant.name);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      isChangingAgentRef.current = false;
+    }
+
     const greetingMessage = "Привет! Расскажи про себя!";
     await sendMessageToAI(greetingMessage);
   };
@@ -1052,12 +1061,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setStreamingMessageId(null);
     setIsTyping(false);
 
+    isChangingAgentRef.current = true;
+    lastChangedAgentRef.current = assistant.name;
+
     setSelectedAssistant(assistant);
     localStorage.setItem('selected_assistant', JSON.stringify(assistant));
     setShowAssistantDropdown(false);
 
+    await changeAgentOnServer(assistant.name);
+
     setAssistantSwitchNotification(`Переключено на ${assistant.name}`);
     setTimeout(() => setAssistantSwitchNotification(null), 3000);
+
+    setTimeout(() => {
+      isChangingAgentRef.current = false;
+    }, 1000);
   };
 
   if (!hasUserSelectedAssistant) {
