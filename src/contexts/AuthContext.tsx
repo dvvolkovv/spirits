@@ -160,12 +160,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         if (profileRecord) {
+          const profileJson = profileRecord.profileJson || profileRecord;
+
           setUser((currentUser) => {
             if (currentUser?.phone) {
               const updatedUser = {
                 ...currentUser,
-                isadmin: profileRecord.isadmin === true,
-                email: profileRecord.email || currentUser.email
+                isAdmin: profileJson.isadmin === true,
+                email: profileJson.email || currentUser.email
               };
               localStorage.setItem('userData', JSON.stringify(updatedUser));
               return updatedUser;
