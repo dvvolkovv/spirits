@@ -933,12 +933,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiClient.post('/webhook/scan-document', formData, {
-        headers: {}
-      });
+      const response = await apiClient.post('/webhook/scan-document', formData);
 
       if (!response.ok) {
-        throw new Error('Ошибка загрузки файла');
+        const errorText = await response.text();
+        console.error('File upload error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        throw new Error(`Ошибка загрузки файла: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -1022,7 +1026,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Произошла ошибка при загрузке файла. Попробуйте еще раз.');
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      alert(`Произошла ошибка при загрузке файла: ${errorMessage}. Попробуйте еще раз.`);
     } finally {
       setIsUploadingFile(false);
       if (fileInputRef.current) {

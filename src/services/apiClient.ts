@@ -163,8 +163,10 @@ class APIClient {
   }
 
   async post<T = any>(url: string, data?: any, options?: RequestOptions): Promise<Response> {
+    const isFormData = data instanceof FormData;
+
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...options?.headers,
     };
 
@@ -172,7 +174,7 @@ class APIClient {
       ...options,
       method: 'POST',
       headers,
-      body: data ? JSON.stringify(data) : undefined,
+      body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
     });
   }
 
