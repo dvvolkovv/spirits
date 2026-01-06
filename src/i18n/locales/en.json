@@ -72,6 +72,12 @@
     "no_results": "No one found",
     "try_different": "Try changing your search criteria"
   },
+  "compatibility": {
+    "title": "Compatibility"
+  },
+  "admin": {
+    "title": "Assistant Management"
+  },
   "chats": {
     "title": "Chats",
     "new_chat": "New chat",

@@ -49,7 +49,7 @@ const Navigation: React.FC = () => {
     {
       to: '/compatibility',
       icon: Heart,
-      label: 'Совместимость',
+      label: t('compatibility.title'),
       isLogo: false,
     },
     {
@@ -63,7 +63,7 @@ const Navigation: React.FC = () => {
   const adminNavItem = {
     to: '/admin',
     icon: Shield,
-    label: 'Управление ассистентами',
+    label: t('admin.title'),
     isLogo: false,
   };
 
