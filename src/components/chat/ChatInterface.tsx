@@ -675,7 +675,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     abortControllerRef.current = new AbortController();
 
     // Extract phone number from user data and clean it for sessionId
-    const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
+    //const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
 
     // Получаем актуальный ID ассистента из localStorage для дополнительной проверки
     let currentAssistantId = selectedAssistant?.id || 1;
@@ -687,6 +687,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       } catch (error) {
         console.error('Error parsing assistant from localStorage:', error);
       }
+    }
+
+    // Принудительно обновляем access token перед запросом к чату
+    try {
+      await apiClient.refreshTokenIfNeeded();
+    } catch (error) {
+      console.warn('Failed to refresh token before chat request:', error);
+      // Продолжаем выполнение, так как запрос сам обработает ошибку авторизации
     }
 
     try {

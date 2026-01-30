@@ -82,8 +82,8 @@ class APIClient {
 
     const fullURL = url.startsWith('http') ? url : `${this.baseURL}${url}`;
 
-    const headers: HeadersInit = {
-      ...fetchOptions.headers,
+    const headers: Record<string, string> = {
+      ...(fetchOptions.headers as Record<string, string>),
     };
 
     if (!skipAuth && this.isProtectedEndpoint(fullURL)) {
@@ -207,6 +207,14 @@ class APIClient {
     }
 
     return response.body.getReader();
+  }
+
+  /**
+   * Принудительно обновляет access token перед важными запросами
+   * @returns Promise<boolean> - true если токен успешно обновлен, false в противном случае
+   */
+  async refreshTokenIfNeeded(): Promise<boolean> {
+    return this.handleTokenRefresh();
   }
 }
 
