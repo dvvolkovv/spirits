@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { tokenManager } from '../utils/tokenManager';
 import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
+import { clearAppStorage } from '../utils/clearAppStorage';
 
 
 interface User {
@@ -242,8 +243,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 
   const logout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
+    clearAppStorage();
     tokenManager.clearTokens();
     authService.logout();
     setUser(null);
@@ -261,8 +261,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error(`Ошибка удаления профиля: ${response.status}`);
       }
 
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userData');
+      clearAppStorage();
       tokenManager.clearTokens();
       setUser(null);
     } catch (error) {
