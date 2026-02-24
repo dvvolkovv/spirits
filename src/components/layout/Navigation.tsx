@@ -23,7 +23,7 @@ const Navigation: React.FC = () => {
 
   React.useEffect(() => {
     if (user && user.tokens === undefined) {
-      updateTokens(50000);
+      updateTokens(0);
     }
   }, [user, updateTokens]);
 

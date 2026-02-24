@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Coins, Check, Loader, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
+import CouponInput from './CouponInput';
 
 interface TokenPackage {
   id: string;
@@ -171,6 +172,19 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               </div>
             </div>
           )}
+
+          <div className="mb-6">
+            <CouponInput />
+          </div>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-3 bg-white text-gray-500">или купите пакет токенов</span>
+            </div>
+          </div>
 
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
