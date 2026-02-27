@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, TrendingUp, MessageCircle } from 'lucide-react';
+import { apiClient } from '../../services/apiClient';
 
 interface UserMatch {
   id: string;
@@ -14,12 +15,81 @@ interface UserMatch {
   phone?: string;
 }
 
+interface FullProfile {
+  values?: string[];
+  beliefs?: string[];
+  desires?: string[];
+  intents?: string[];
+  name?: string;
+  family_name?: string;
+  completeness?: string;
+}
+
 interface UserProfileModalProps {
   user: UserMatch;
   isOpen: boolean;
   onClose: () => void;
   onStartChat: (user: UserMatch) => void;
 }
+
+const parseProfileParams = (paramsRaw: any): FullProfile | null => {
+  if (!paramsRaw) return null;
+
+  let str = typeof paramsRaw === 'string' ? paramsRaw : JSON.stringify(paramsRaw);
+
+  // Strip wrapping single quotes if present: '{"..."}'
+  str = str.trim();
+  if (str.startsWith("'") && str.endsWith("'")) {
+    str = str.slice(1, -1);
+  }
+
+  try {
+    const parsed = JSON.parse(str);
+
+    // New format: { values: [...], beliefs: [...], desires: [...], intents: [...], name, family_name }
+    if (Array.isArray(parsed.values)) {
+      return {
+        values: parsed.values,
+        beliefs: Array.isArray(parsed.beliefs) ? parsed.beliefs : [],
+        desires: Array.isArray(parsed.desires) ? parsed.desires : [],
+        intents: Array.isArray(parsed.intents) ? parsed.intents : [],
+        name: parsed.name,
+        family_name: parsed.family_name,
+        completeness: parsed.completeness,
+      };
+    }
+
+    // Format with nested profile object: { profile: { values: [...] } }
+    if (parsed.profile && Array.isArray(parsed.profile.values)) {
+      return {
+        values: parsed.profile.values,
+        beliefs: Array.isArray(parsed.profile.beliefs) ? parsed.profile.beliefs : [],
+        desires: Array.isArray(parsed.profile.desires) ? parsed.profile.desires : [],
+        intents: Array.isArray(parsed.profile.intents) ? parsed.profile.intents : [],
+        name: parsed.profile.name,
+        family_name: parsed.profile.family_name,
+        completeness: parsed.completeness,
+      };
+    }
+
+    // Old text format: { "person values": "...", beliefs: "...", desires: "...", intents: "..." }
+    if (parsed['person values'] || parsed.beliefs) {
+      const splitText = (text: string) =>
+        text ? text.split(/[;,]\s*/).map((s: string) => s.trim()).filter(Boolean) : [];
+      return {
+        values: splitText(parsed['person values'] || ''),
+        beliefs: splitText(parsed.beliefs || ''),
+        desires: splitText(parsed.desires || ''),
+        intents: splitText(parsed.intents || ''),
+        name: parsed['user nickname'],
+      };
+    }
+  } catch (e) {
+    // ignore parse errors
+  }
+
+  return null;
+};
 
 const UserProfileModal: React.FC<UserProfileModalProps> = ({
   user,
@@ -28,10 +98,45 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onStartChat
 }) => {
   const { t } = useTranslation();
+  const [fullProfile, setFullProfile] = useState<FullProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !user.phone) return;
+
+    setFullProfile(null);
+    setIsLoading(true);
+
+    const userId = user.phone.replace(/\D/g, '');
+
+    apiClient.get(`/webhook/user-profile?userId=${userId}`)
+      .then(async (response) => {
+        if (response.ok) {
+          const data = await response.json();
+          const profile = parseProfileParams(data?.params);
+          setFullProfile(profile);
+        }
+      })
+      .catch(() => {/* ignore, fallback to search data */})
+      .finally(() => setIsLoading(false));
+  }, [isOpen, user.phone]);
+
+  useEffect(() => {
+    if (!isOpen) setFullProfile(null);
+  }, [isOpen]);
 
   const getAvatarInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   };
+
+  const displayName = fullProfile?.name && fullProfile?.family_name
+    ? `${fullProfile.name} ${fullProfile.family_name}`
+    : fullProfile?.name || user.name;
+
+  const values = fullProfile?.values?.length ? fullProfile.values : user.values || [];
+  const intents = fullProfile?.intents?.length ? fullProfile.intents : user.intents || [];
+  const beliefs = fullProfile?.beliefs || [];
+  const desires = fullProfile?.desires || [];
 
   if (!isOpen) return null;
 
@@ -57,14 +162,18 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex flex-col items-center space-y-4">
               <div className="w-24 h-24 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
-                <span className="text-white font-bold text-2xl">
-                  {getAvatarInitials(user.name)}
-                </span>
+                {isLoading ? (
+                  <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <span className="text-white font-bold text-2xl">
+                    {getAvatarInitials(displayName)}
+                  </span>
+                )}
               </div>
 
               <div className="text-center">
                 <h2 className="text-xl font-bold text-gray-900">
-                  {user.name}
+                  {displayName}
                 </h2>
                 <div className="flex items-center justify-center space-x-2 mt-2">
                   <span className="text-sm text-blue-600 font-medium">
@@ -81,9 +190,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <TrendingUp className="w-5 h-5 mr-2 text-forest-600" />
               Ценности
             </h2>
-            {user.values && user.values.length > 0 ? (
+            {values.length > 0 ? (
               <div className="space-y-2">
-                {user.values.map((value, index) => (
+                {values.map((value, index) => (
                   <div key={index} className="flex items-start space-x-2">
                     <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
                     <p className="text-gray-700">{value}</p>
@@ -95,14 +204,48 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             )}
           </div>
 
+          {/* Beliefs убеждения */}
+          {beliefs.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Убеждения
+              </h2>
+              <div className="space-y-2">
+                {beliefs.map((belief, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{belief}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Desires желания */}
+          {desires.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Желания
+              </h2>
+              <div className="space-y-2">
+                {desires.map((desire, index) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
+                    <p className="text-gray-700">{desire}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Intentions намерения */}
-          {user.intents && user.intents.length > 0 && (
+          {intents.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Намерения
               </h2>
               <div className="space-y-2">
-                {user.intents.map((intention, index) => (
+                {intents.map((intention, index) => (
                   <div key={index} className="flex items-start space-x-2">
                     <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
                     <p className="text-gray-700">{intention}</p>
