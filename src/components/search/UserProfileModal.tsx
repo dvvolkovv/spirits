@@ -134,9 +134,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     : fullProfile?.name || user.name;
 
   const values = fullProfile?.values?.length ? fullProfile.values : user.values || [];
-  const intents = fullProfile?.intents?.length ? fullProfile.intents : user.intents || [];
-  const beliefs = fullProfile?.beliefs || [];
-  const desires = fullProfile?.desires || [];
 
   if (!isOpen) return null;
 
@@ -203,57 +200,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
               <p className="text-gray-500">Ценности не указаны</p>
             )}
           </div>
-
-          {/* Beliefs убеждения */}
-          {beliefs.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Убеждения
-              </h2>
-              <div className="space-y-2">
-                {beliefs.map((belief, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{belief}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Desires желания */}
-          {desires.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Желания
-              </h2>
-              <div className="space-y-2">
-                {desires.map((desire, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{desire}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Intentions намерения */}
-          {intents.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Намерения
-              </h2>
-              <div className="space-y-2">
-                {intents.map((intention, index) => (
-                  <div key={index} className="flex items-start space-x-2">
-                    <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
-                    <p className="text-gray-700">{intention}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Interests интересы */}
           {user.interests && user.interests.length > 0 && (
