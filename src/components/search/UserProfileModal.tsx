@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, User, TrendingUp, Calendar, MessageCircle } from 'lucide-react';
-import { clsx } from 'clsx';
-import { apiClient } from '../../services/apiClient';
+import { X, TrendingUp, MessageCircle } from 'lucide-react';
 
 interface UserMatch {
   id: string;
@@ -10,21 +8,10 @@ interface UserMatch {
   avatar?: string;
   values: string[];
   intents: string[];
+  interests?: string[];
+  skills?: string[];
   corellation: number;
   phone?: string;
-}
-
-interface ProfileData {
-  profile?: string[];
-  values?: string[];
-  beliefs?: string[];
-  desires?: string[];
-  intents?: string[];
-  name?: string;
-  family_name?: string;
-  user_nickname?: string;
-  completeness?: string;
-  user_id?: string;
 }
 
 interface UserProfileModalProps {
@@ -41,85 +28,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
   onStartChat
 }) => {
   const { t } = useTranslation();
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Загрузка профиля с сервера
-  const loadUserProfile = async () => {
-    if (!user.phone) return;
-
-    setIsLoading(true);
-
-    const cleanPhone = user.phone.replace(/\D/g, '');
-
-    try {
-      const response = await apiClient.get(`/webhook/profile`);
-
-      if (response.ok) {
-        const responseData = await response.json();
-        
-        // Проверяем, является ли ответ массивом
-        let profileRecord;
-        if (Array.isArray(responseData) && responseData.length > 0) {
-          // Берем первый элемент массива
-          profileRecord = responseData[0];
-        } else if (responseData && typeof responseData === 'object') {
-          // Если это объект, используем его напрямую
-          profileRecord = responseData;
-        } else {
-          throw new Error('Неожиданный формат ответа сервера');
-        }
-        
-        // Извлекаем данные профиля из записи
-        // Поддерживаем оба формата: profileJson (новый) и profile_data (старый)
-        const data: ProfileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
-        setProfileData(data);
-      } else {
-        console.warn('Профиль не найден на сервере');
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке профиля:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Загружаем профиль при открытии модального окна
-  useEffect(() => {
-    if (isOpen && user.phone) {
-      loadUserProfile();
-    }
-  }, [isOpen, user.phone]);
-
-  // Сброс данных при закрытии
-  useEffect(() => {
-    if (!isOpen) {
-      setProfileData(null);
-    }
-  }, [isOpen]);
 
   const getAvatarInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   };
-
-  const getUserDisplayName = () => {
-    if (profileData?.name && profileData?.family_name) {
-      return `${profileData.name} ${profileData.family_name}`;
-    }
-    if (profileData?.name) {
-      return profileData.name;
-    }
-    return user.name;
-  };
-
-  const getProfileValues = () => {
-    if (Array.isArray(profileData?.values)) {
-      return profileData.values;
-    }
-    return user.values || [];
-  };
-
-  const getProfileIntentions = () => Array.isArray(profileData?.intents) ? profileData.intents : user.intents || [];
 
   if (!isOpen) return null;
 
@@ -141,32 +53,19 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
         {/* Content */}
         <div className="overflow-y-auto max-h-[calc(90vh-140px)] p-6 space-y-6">
-          {/* Loading indicator */}
-          {isLoading && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                <span className="text-blue-800">Загружаем профиль...</span>
-              </div>
-            </div>
-          )}
-
           {/* Profile Photo */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex flex-col items-center space-y-4">
               <div className="w-24 h-24 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center border-4 border-white shadow-lg">
                 <span className="text-white font-bold text-2xl">
-                  {getAvatarInitials(getUserDisplayName())}
+                  {getAvatarInitials(user.name)}
                 </span>
               </div>
-              
+
               <div className="text-center">
                 <h2 className="text-xl font-bold text-gray-900">
-                  {getUserDisplayName()}
+                  {user.name}
                 </h2>
-                {profileData?.user_nickname && (
-                  <p className="text-sm text-gray-500">@{profileData.user_nickname}</p>
-                )}
                 <div className="flex items-center justify-center space-x-2 mt-2">
                   <span className="text-sm text-blue-600 font-medium">
                     Совпадение: {Math.round(user.corellation * 100)}%
@@ -176,15 +75,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Values ценности*/}
+          {/* Values ценности */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
               <TrendingUp className="w-5 h-5 mr-2 text-forest-600" />
               Ценности
             </h2>
-            {getProfileValues().length > 0 ? (
+            {user.values && user.values.length > 0 ? (
               <div className="space-y-2">
-                {getProfileValues().map((value, index) => (
+                {user.values.map((value, index) => (
                   <div key={index} className="flex items-start space-x-2">
                     <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
                     <p className="text-gray-700">{value}</p>
@@ -192,21 +91,18 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Ценности не указаны</p>
-              </div>
+              <p className="text-gray-500">Ценности не указаны</p>
             )}
           </div>
 
-          {/* Intentions намерения*/}
-          {getProfileIntentions().length > 0 && (
+          {/* Intentions намерения */}
+          {user.intents && user.intents.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Намерения
               </h2>
               <div className="space-y-2">
-                {getProfileIntentions().map((intention, index) => (
+                {user.intents.map((intention, index) => (
                   <div key={index} className="flex items-start space-x-2">
                     <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
                     <p className="text-gray-700">{intention}</p>
@@ -216,17 +112,40 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             </div>
           )}
 
-          {/* Empty state when no data */}
-          {!profileData && !isLoading && (
+          {/* Interests интересы */}
+          {user.interests && user.interests.length > 0 && (
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-center py-8">
-                <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Профиль не найден
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Не удалось загрузить подробную информацию о пользователе
-                </p>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Интересы
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {user.interests.map((interest, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-red-50 text-red-700 text-sm rounded-full"
+                  >
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Skills навыки */}
+          {user.skills && user.skills.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Навыки
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {user.skills.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-yellow-50 text-yellow-700 text-sm rounded-full"
+                  >
+                    {skill}
+                  </span>
+                ))}
               </div>
             </div>
           )}
