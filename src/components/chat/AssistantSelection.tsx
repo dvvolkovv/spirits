@@ -21,6 +21,7 @@ const getRoleForAssistant = (description: string): string => {
   if (description.includes('Астролог')) return 'Астролог';
   if (description.includes('Human Design')) return 'Human Design';
   if (description.includes('Бухгалтер')) return 'Бухгалтер';
+  if (description.includes('Юрист')) return 'Юрист';
   return 'Ассистент';
 };
 
