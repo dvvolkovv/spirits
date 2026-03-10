@@ -32,6 +32,8 @@ interface Message {
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+  messageType?: 'text' | 'image';
+  imageUrl?: string;
 }
 
 interface ChatInterfaceProps {
@@ -240,6 +242,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [historyLoading, setHistoryLoading] = useState(true);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -641,9 +644,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, []);
 
+  const IMAGE_KEYWORDS = [
+    'нарисуй', 'нарисовать', 'сгенерируй', 'сгенерировать',
+    'создай картинку', 'создай изображение', 'создай рисунок',
+    'сделай картинку', 'сделай изображение', 'сделай рисунок',
+    'покажи картинку', 'покажи изображение',
+    'draw', 'generate image', 'create image',
+    'картинку', 'картинка', 'изображени', 'рисунок'
+  ];
+
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
+
+    const lowerMsg = userMessage.toLowerCase();
+    if (IMAGE_KEYWORDS.some(kw => lowerMsg.includes(kw))) {
+      setIsGeneratingImage(true);
+    }
 
     // Set streaming message ID immediately to show loading state
     const assistantMessageId = generateMessageId();
@@ -697,6 +714,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       let accumulatedContent = '';
+      let imageResponse: { image_data_url: string; output: string } | null = null;
 
       let lastUpdate = Date.now();
       const updateInterval = 50;
@@ -713,7 +731,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           try {
             const data = JSON.parse(line);
 
-            if (data.type === 'item' && data.content) {
+            if (data.type === 'image' && data.image_data_url) {
+              imageResponse = data;
+            } else if (data.type === 'item' && data.content) {
               accumulatedContent += data.content;
 
               const now = Date.now();
@@ -724,23 +744,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             }
           } catch (e) {
             // Skip invalid JSON lines
-            console.warn('Failed to parse streaming data:', line);
           }
         }
       }
 
-      setCurrentStreamingMessage(accumulatedContent);
-      
-      // Add the completed message to the messages array
-      const completedMessage: Message = {
-        id: assistantMessageId,
-        type: 'assistant',
-        content: accumulatedContent,
-        timestamp: new Date(),
-        isStreaming: false
-      };
+      if (imageResponse) {
+        const completedMessage: Message = {
+          id: assistantMessageId,
+          type: 'assistant',
+          content: imageResponse.output || 'Вот ваше изображение',
+          messageType: 'image',
+          imageUrl: imageResponse.image_data_url,
+          timestamp: new Date(),
+          isStreaming: false
+        };
+        setMessages(prev => [...prev, completedMessage]);
+      } else {
+        setCurrentStreamingMessage(accumulatedContent);
 
-      setMessages(prev => [...prev, completedMessage]);
+        const completedMessage: Message = {
+          id: assistantMessageId,
+          type: 'assistant',
+          content: accumulatedContent,
+          timestamp: new Date(),
+          isStreaming: false
+        };
+        setMessages(prev => [...prev, completedMessage]);
+      }
       setStreamingMessageId(null);
       
     } catch (error) {
@@ -762,6 +792,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
+      setIsGeneratingImage(false);
       setCurrentStreamingMessage('');
       setStreamingMessageId(null);
       abortControllerRef.current = null;
@@ -1250,7 +1281,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   : 'max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl bg-white text-gray-900 shadow-sm rounded-bl-md relative'
               )}
             >
-              {message.type === 'assistant' ? (
+              {message.type === 'assistant' && message.messageType === 'image' ? (
+                <div className="text-sm">
+                  {message.content && (
+                    <p className="mb-2 text-gray-700">{message.content}</p>
+                  )}
+                  <img
+                    src={message.imageUrl}
+                    alt="Generated image"
+                    className="rounded-xl max-w-full w-64 sm:w-80 object-contain"
+                    loading="lazy"
+                  />
+                </div>
+              ) : message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const { content: parsedContent, buttons, links } = parseCustomMarkdown(message.content);
@@ -1334,12 +1377,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ))}
 
         {streamingMessageId && !historyLoading && (
-          <StreamingMessage
-            content={currentStreamingMessage}
-            components={markdownComponents}
-            onButtonClick={handleButtonAction}
-            onLinkClick={handleLinkNavigation}
-          />
+          isGeneratingImage ? (
+            <div className="flex justify-start">
+              <div className="max-w-lg px-4 py-3 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md">
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="w-5 h-5 border-2 border-forest-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                  <span>Генерирую изображение...</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <StreamingMessage
+              content={currentStreamingMessage}
+              components={markdownComponents}
+              onButtonClick={handleButtonAction}
+              onLinkClick={handleLinkNavigation}
+            />
+          )
         )}
 
         <div ref={messagesEndRef} />
