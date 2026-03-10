@@ -236,33 +236,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return `chat_messages_assistant_${assistantId || 'default'}`;
   };
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const savedAssistant = localStorage.getItem('selected_assistant');
-    if (savedAssistant) {
-      const assistant = JSON.parse(savedAssistant);
-      const storageKey = getChatStorageKey(assistant.id);
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsedMessages = JSON.parse(saved);
-        // Убеждаемся, что все ID уникальны (исправляем старые дубликаты)
-        const seenIds = new Set<string>();
-        return parsedMessages.map((msg: any) => {
-          let messageId = msg.id;
-          // Если ID уже встречался, генерируем новый
-          if (seenIds.has(messageId)) {
-            messageId = generateMessageId();
-          }
-          seenIds.add(messageId);
-          return {
-            ...msg,
-            id: messageId,
-            timestamp: new Date(msg.timestamp)
-          };
-        });
-      }
-    }
-    return [];
-  });
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
@@ -303,21 +278,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [initialShowTokens]);
 
   useEffect(() => {
-    if (selectedAssistant && hasUserSelectedAssistant) {
-      const storageKey = getChatStorageKey(selectedAssistant.id);
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsedMessages = JSON.parse(saved);
-        setMessages(parsedMessages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        })));
-      } else {
-        setMessages([]);
-        sendInitialGreeting();
+    if (!selectedAssistant || !hasUserSelectedAssistant) return;
+
+    const load = async () => {
+      setHistoryLoading(true);
+      try {
+        const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          const msgs = (data.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+          setMessages(msgs);
+          if (msgs.length === 0) sendInitialGreeting();
+        } else {
+          throw new Error('API error');
+        }
+      } catch {
+        const saved = localStorage.getItem(getChatStorageKey(selectedAssistant.id));
+        if (saved) {
+          setMessages(JSON.parse(saved).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
+        } else {
+          setMessages([]);
+          sendInitialGreeting();
+        }
+      } finally {
+        setHistoryLoading(false);
       }
-    }
-  }, [selectedAssistant, hasUserSelectedAssistant]);
+    };
+
+    load();
+  }, [selectedAssistant?.id, hasUserSelectedAssistant]);
 
   const sendInitialGreeting = async () => {
     if (!selectedAssistant) return;
@@ -334,13 +323,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     await sendMessageToAI(greetingMessage);
   };
 
-  useEffect(() => {
-    if (selectedAssistant) {
-      const messagesToSave = messages.slice(-100);
-      const storageKey = getChatStorageKey(selectedAssistant.id);
-      localStorage.setItem(storageKey, JSON.stringify(messagesToSave));
-    }
-  }, [messages, selectedAssistant]);
 
   useEffect(() => {
     const fetchAssistants = async () => {
@@ -830,12 +812,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     await sendMessageToAI(messageText);
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
     if (window.confirm('Очистить историю чата? Это действие нельзя отменить.')) {
       setMessages([]);
       if (selectedAssistant) {
-        const storageKey = getChatStorageKey(selectedAssistant.id);
-        localStorage.removeItem(storageKey);
+        localStorage.removeItem(getChatStorageKey(selectedAssistant.id));
+        try {
+          await apiClient.delete(`/webhook/chat/history?assistantId=${selectedAssistant.id}`);
+        } catch (error) {
+          console.error('Failed to delete chat history from server:', error);
+        }
       }
       if (welcomeMessage) {
         setMessages([{
@@ -1244,7 +1230,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ref={messagesContainerRef}
         style={{ willChange: 'scroll-position' }}
       >
-        {messages.map((message) => (
+        {historyLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-6 h-6 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : messages.map((message) => (
           <div
             key={message.id}
             className={clsx(
@@ -1334,16 +1324,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 'text-xs mt-1',
                 message.type === 'user' ? 'text-forest-100' : 'text-gray-500'
               )}>
-                {message.timestamp.toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
+                {message.timestamp.toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit'
                 })}
               </p>
             </div>
           </div>
         ))}
 
-        {streamingMessageId && (
+        {streamingMessageId && !historyLoading && (
           <StreamingMessage
             content={currentStreamingMessage}
             components={markdownComponents}
