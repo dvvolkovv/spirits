@@ -13,7 +13,8 @@ import {
   Shield,
   Coins,
   Plus,
-  Handshake
+  Handshake,
+  ImageIcon
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -60,6 +61,12 @@ const Navigation: React.FC = () => {
       to: '/compatibility',
       icon: Heart,
       label: t('compatibility.title'),
+      isLogo: false,
+    },
+    {
+      to: '/image-gen',
+      icon: ImageIcon,
+      label: 'Картинки',
       isLogo: false,
     },
     {
