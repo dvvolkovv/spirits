@@ -29,7 +29,7 @@ import {
 } from '../../types/imageGen';
 
 const DEFAULT_SETTINGS: ImageGenSettings = {
-  model: 'openai/dall-e-3',
+  model: 'black-forest-labs/flux-1.1-pro',
   size: '1024x1024',
   quality: 'standard',
   style: 'vivid',
@@ -48,7 +48,7 @@ const ImageGenInterface: React.FC = () => {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const isDalleModel = settings.model === 'openai/dall-e-3';
+  const isDalleModel = false; // OpenRouter uses chat/completions for all models now
   const tokenCost = TOKEN_COST[settings.quality] * settings.n;
   const hasEnoughTokens = (user?.tokens ?? 0) >= tokenCost;
 

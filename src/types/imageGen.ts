@@ -1,7 +1,7 @@
 export type ImageModel =
-  | 'openai/dall-e-3'
   | 'black-forest-labs/flux-1.1-pro'
-  | 'stability/stable-diffusion-3-5-large';
+  | 'google/gemini-2.5-flash-image'
+  | 'black-forest-labs/flux.2-pro';
 
 export type ImageSize = '1024x1024' | '1792x1024' | '1024x1792';
 export type ImageQuality = 'standard' | 'hd';
@@ -27,9 +27,9 @@ export interface ImageGenResponse {
 }
 
 export const IMAGE_MODELS: { value: ImageModel; label: string; description: string }[] = [
-  { value: 'openai/dall-e-3', label: 'DALL-E 3', description: 'OpenAI · высокое качество' },
   { value: 'black-forest-labs/flux-1.1-pro', label: 'Flux 1.1 Pro', description: 'Быстрый · детализированный' },
-  { value: 'stability/stable-diffusion-3-5-large', label: 'SD 3.5', description: 'Stable Diffusion · гибкий' },
+  { value: 'google/gemini-2.5-flash-image', label: 'Gemini 2.5 Flash', description: 'Google · универсальный' },
+  { value: 'black-forest-labs/flux.2-pro', label: 'Flux 2 Pro', description: 'Black Forest · топовый' },
 ];
 
 export const IMAGE_SIZES: { value: ImageSize; label: string; aspect: string; w: number; h: number }[] = [
