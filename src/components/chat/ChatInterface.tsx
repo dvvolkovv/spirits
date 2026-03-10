@@ -772,6 +772,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
       }
 
+      // Check if accumulated content is an image_ref notification from the AI Agent
+      if (!imageResponse && accumulatedContent.trim()) {
+        try {
+          const stripped = accumulatedContent.trim()
+            .replace(/^```json\s*/m, '').replace(/```\s*$/m, '').trim();
+          const maybeRef = JSON.parse(stripped);
+          if (maybeRef.type === 'image_ref' && maybeRef.id) {
+            console.log('[IMG_DEBUG] image_ref notification, fetching id:', maybeRef.id);
+            const imgResp = await apiClient.get(`/webhook/serve-image?id=${maybeRef.id}`);
+            if (imgResp.ok) {
+              const imgData = await imgResp.json();
+              console.log('[IMG_DEBUG] Fetched image, type:', imgData.type);
+              if (imgData.type === 'image' && imgData.image_data_url) {
+                imageResponse = imgData;
+                accumulatedContent = '';
+              }
+            }
+          }
+        } catch (e) {
+          // Not image_ref JSON, treat as regular text
+        }
+      }
+
       if (imageResponse) {
         const completedMessage: Message = {
           id: assistantMessageId,
