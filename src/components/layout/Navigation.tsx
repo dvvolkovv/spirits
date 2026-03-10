@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
+import { apiClient } from '../../services/apiClient';
 import {
   MessageCircle,
   Users,
@@ -21,17 +22,25 @@ const Navigation: React.FC = () => {
   const { t } = useTranslation();
   const { user, updateTokens, checkAdminStatus } = useAuth();
   const [showTokenPackages, setShowTokenPackages] = useState(false);
+  const [isReferralLeader, setIsReferralLeader] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (user && user.tokens === undefined) {
       updateTokens(0);
     }
   }, [user, updateTokens]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (user?.phone) {
       checkAdminStatus();
     }
+  }, [user?.phone]);
+
+  useEffect(() => {
+    if (!user?.phone) return;
+    apiClient.get('/webhook/referral/stats').then(r => {
+      setIsReferralLeader(r.status === 200);
+    }).catch(() => {});
   }, [user?.phone]);
 
   const baseNavItems = [
@@ -77,7 +86,7 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     ...baseNavItems,
-    referralNavItem,
+    ...(isReferralLeader ? [referralNavItem] : []),
     ...(user?.isAdmin ? [adminNavItem] : []),
   ];
 
