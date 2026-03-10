@@ -13,7 +13,6 @@ export interface ImageGenSettings {
   quality: ImageQuality;
   style: ImageStyle;
   negativePrompt: string;
-  n: number;
 }
 
 export interface GeneratedImage {

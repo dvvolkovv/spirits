@@ -24,8 +24,6 @@ import {
   TOKEN_COST,
   ImageModel,
   ImageSize,
-  ImageQuality,
-  ImageStyle,
 } from '../../types/imageGen';
 
 const DEFAULT_SETTINGS: ImageGenSettings = {
@@ -34,7 +32,6 @@ const DEFAULT_SETTINGS: ImageGenSettings = {
   quality: 'standard',
   style: 'vivid',
   negativePrompt: '',
-  n: 1,
 };
 
 const ImageGenInterface: React.FC = () => {
@@ -48,8 +45,7 @@ const ImageGenInterface: React.FC = () => {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const isDalleModel = false; // OpenRouter uses chat/completions for all models now
-  const tokenCost = TOKEN_COST[settings.quality] * settings.n;
+  const tokenCost = TOKEN_COST[settings.quality];
   const hasEnoughTokens = (user?.tokens ?? 0) >= tokenCost;
 
   const set = <K extends keyof ImageGenSettings>(key: K, value: ImageGenSettings[K]) =>
@@ -68,7 +64,6 @@ const ImageGenInterface: React.FC = () => {
         size: settings.size,
         quality: settings.quality,
         style: settings.style,
-        n: isDalleModel ? 1 : settings.n,
       });
 
       if (!response.ok) {
@@ -220,75 +215,6 @@ const ImageGenInterface: React.FC = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Quality (DALL-E only) */}
-              {isDalleModel && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Качество</p>
-                  <div className="flex gap-2">
-                    {(['standard', 'hd'] as ImageQuality[]).map(q => (
-                      <button
-                        key={q}
-                        onClick={() => set('quality', q)}
-                        className={clsx(
-                          'flex-1 py-2 rounded-lg border text-sm font-medium transition-colors',
-                          settings.quality === q
-                            ? 'border-forest-400 bg-forest-50 text-forest-700'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                        )}
-                      >
-                        {q === 'standard' ? 'Стандарт' : 'HD'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Style (DALL-E only) */}
-              {isDalleModel && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Стиль</p>
-                  <div className="flex gap-2">
-                    {(['vivid', 'natural'] as ImageStyle[]).map(s => (
-                      <button
-                        key={s}
-                        onClick={() => set('style', s)}
-                        className={clsx(
-                          'flex-1 py-2 rounded-lg border text-sm font-medium transition-colors',
-                          settings.style === s
-                            ? 'border-forest-400 bg-forest-50 text-forest-700'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                        )}
-                      >
-                        {s === 'vivid' ? 'Яркий' : 'Натуральный'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Count (non-DALL-E only, DALL-E 3 supports n=1 only) */}
-              {!isDalleModel && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Количество</p>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4].map(n => (
-                      <button
-                        key={n}
-                        onClick={() => set('n', n)}
-                        className={clsx(
-                          'w-10 h-10 rounded-lg border text-sm font-medium transition-colors',
-                          settings.n === n
-                            ? 'border-forest-400 bg-forest-50 text-forest-700'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                        )}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Negative prompt */}
               <div>
