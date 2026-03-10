@@ -61,7 +61,7 @@ const ImageGenInterface: React.FC = () => {
     setError(null);
 
     try {
-      const response = await apiClient.post('/webhook/image/generate', {
+      const response = await apiClient.post('/webhook/imagegen', {
         prompt: prompt.trim(),
         negative_prompt: settings.negativePrompt || undefined,
         model: settings.model,
