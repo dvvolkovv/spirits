@@ -734,6 +734,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
+            console.log('[IMG_DEBUG] parsed line type:', data.type, 'has image:', !!data.image_data_url);
 
             if (data.type === 'image' && data.image_data_url) {
               imageResponse = data;
@@ -753,16 +754,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         if (done) {
           // Process any remaining buffer (last chunk without trailing newline)
+          console.log('[IMG_DEBUG] done, buffer length:', buffer.length, 'buffer start:', buffer.slice(0, 100));
           if (buffer.trim()) {
             try {
               const data = JSON.parse(buffer);
+              console.log('[IMG_DEBUG] parsed buffer, type:', data.type, 'has image:', !!data.image_data_url);
               if (data.type === 'image' && data.image_data_url) {
                 imageResponse = data;
               } else if (data.type === 'item' && data.content) {
                 accumulatedContent += data.content;
               }
             } catch (e) {
-              // Skip invalid JSON
+              console.log('[IMG_DEBUG] JSON.parse error on buffer:', e, 'buffer start:', buffer.slice(0, 200));
             }
           }
           break;
