@@ -10,6 +10,7 @@ import ProfileView from './components/profile/ProfileView';
 import SearchInterface from './components/search/SearchInterface';
 import CompatibilityPage from './pages/CompatibilityPage';
 import AdminPage from './pages/AdminPage';
+import ReferralPage from './pages/ReferralPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import TokenPurchasePage from './pages/TokenPurchasePage';
 import MaintenancePage from './pages/MaintenancePage';
@@ -48,6 +49,7 @@ const AppContent: React.FC = () => {
           <Route path="/search" element={<SearchInterface />} />
           <Route path="/compatibility" element={<CompatibilityPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/referral" element={<ReferralPage />} />
           <Route path="/payment/success" element={<PaymentSuccessPage />} />
           <Route path="/" element={<Navigate to="/chat" replace />} />
         </Routes>

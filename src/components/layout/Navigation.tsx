@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Shield,
   Coins,
-  Plus
+  Plus,
+  Handshake
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -67,7 +68,18 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
-  const navItems = user?.isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
+  const referralNavItem = {
+    to: '/referral',
+    icon: Handshake,
+    label: 'Партнёры',
+    isLogo: false,
+  };
+
+  const navItems = [
+    ...baseNavItems,
+    ...(user?.referralSlug ? [referralNavItem] : []),
+    ...(user?.isAdmin ? [adminNavItem] : []),
+  ];
 
   const formatTokens = (tokens: number) => {
     return tokens.toLocaleString('ru-RU');
