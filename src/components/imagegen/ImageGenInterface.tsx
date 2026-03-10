@@ -29,7 +29,7 @@ import {
 } from '../../types/imageGen';
 
 const DEFAULT_SETTINGS: ImageGenSettings = {
-  model: 'black-forest-labs/flux-1.1-pro',
+  model: 'black-forest-labs/flux.2-pro',
   size: '1024x1024',
   quality: 'standard',
   style: 'vivid',
