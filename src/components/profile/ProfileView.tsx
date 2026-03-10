@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { CreditCard, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, X, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import ReferralDashboard from './ReferralDashboard';
 
 interface ProfileData {
   profile?: string[];
@@ -779,6 +780,9 @@ const ProfileView: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Referral Dashboard — только для лидеров */}
+        {user?.referralSlug && <ReferralDashboard />}
 
         {/* Account Actions */}
         <div className="bg-white rounded-lg shadow-sm">

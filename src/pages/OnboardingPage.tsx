@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PhoneInput from '../components/onboarding/PhoneInput';
 import OTPInput from '../components/onboarding/OTPInput';
@@ -6,8 +7,19 @@ import { authService } from '../services/authService';
 
 type OnboardingStep = 'phone' | 'otp' | 'consent';
 
+const REFERRAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
+
 const OnboardingPage: React.FC = () => {
   const { login } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const refSlug = searchParams.get('ref');
+    if (refSlug) {
+      localStorage.setItem('referral_slug', refSlug);
+      localStorage.setItem('referral_slug_expires', String(Date.now() + REFERRAL_TTL_MS));
+    }
+  }, []);
   const [step, setStep] = useState<OnboardingStep>('phone');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +62,7 @@ const OnboardingPage: React.FC = () => {
         } else {
           await login(phone, 'legacy-token');
         }
+        await authService.registerReferral();
       } else {
         if (result.error === 'Wrong code') {
           setOtpError('Неверный код. Попробуйте еще раз.');

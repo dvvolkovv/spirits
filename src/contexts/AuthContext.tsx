@@ -15,6 +15,7 @@ interface User {
   tokens?: number;
   email?: string;
   preferredAgent?: string;
+  referralSlug?: string;
   profile?: {
     values: Array<{ name: string; confidence: number; private: boolean }>;
     beliefs: string[];
@@ -168,7 +169,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const updatedUser = {
                 ...currentUser,
                 isAdmin: profileJson.isadmin === true,
-                email: profileJson.email || currentUser.email
+                email: profileJson.email || currentUser.email,
+                referralSlug: profileJson.referral_slug || currentUser.referralSlug
               };
               localStorage.setItem('userData', JSON.stringify(updatedUser));
               return updatedUser;

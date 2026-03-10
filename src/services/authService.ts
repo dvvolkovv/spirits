@@ -1,4 +1,5 @@
 import { tokenManager } from '../utils/tokenManager';
+import { apiClient } from './apiClient';
 import { AuthResponse, RefreshResponse, SMSResponse } from '../types/auth';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://travel-n8n.up.railway.app';
@@ -130,6 +131,24 @@ class AuthService {
     } catch (error) {
       console.error('Network error during token refresh:', error);
       return null;
+    }
+  }
+
+  async registerReferral(): Promise<void> {
+    const slug = localStorage.getItem('referral_slug');
+    const expires = Number(localStorage.getItem('referral_slug_expires') || 0);
+    if (!slug || Date.now() >= expires) {
+      localStorage.removeItem('referral_slug');
+      localStorage.removeItem('referral_slug_expires');
+      return;
+    }
+    try {
+      await apiClient.post('/webhook/referral/register', { slug });
+    } catch (error) {
+      console.error('Error registering referral:', error);
+    } finally {
+      localStorage.removeItem('referral_slug');
+      localStorage.removeItem('referral_slug_expires');
     }
   }
 

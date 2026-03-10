@@ -4,8 +4,9 @@ import { Navigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import AdminAssistantsView from '../components/admin/AdminAssistantsView';
 import AdminCouponsView from '../components/admin/AdminCouponsView';
+import AdminReferralsView from '../components/admin/AdminReferralsView';
 
-type AdminTab = 'assistants' | 'coupons';
+type AdminTab = 'assistants' | 'coupons' | 'referrals';
 
 const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -26,6 +27,7 @@ const AdminPage: React.FC = () => {
   const tabs: { id: AdminTab; label: string }[] = [
     { id: 'assistants', label: 'Ассистенты' },
     { id: 'coupons', label: 'Купоны' },
+    { id: 'referrals', label: 'Рефералы' },
   ];
 
   return (
@@ -49,7 +51,9 @@ const AdminPage: React.FC = () => {
         </div>
       </div>
       <div className="flex-1 overflow-hidden">
-        {activeTab === 'assistants' ? <AdminAssistantsView /> : <AdminCouponsView />}
+        {activeTab === 'assistants' && <AdminAssistantsView />}
+        {activeTab === 'coupons' && <AdminCouponsView />}
+        {activeTab === 'referrals' && <AdminReferralsView />}
       </div>
     </div>
   );
