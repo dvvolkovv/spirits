@@ -6,6 +6,7 @@ import { ReferralStats } from '../../types/auth';
 const ReferralDashboard: React.FC = () => {
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNotLeader, setIsNotLeader] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -16,8 +17,13 @@ const ReferralDashboard: React.FC = () => {
   const loadStats = async () => {
     setIsLoading(true);
     setError(null);
+    setIsNotLeader(false);
     try {
       const response = await apiClient.get('/webhook/referral/stats');
+      if (response.status === 403) {
+        setIsNotLeader(true);
+        return;
+      }
       if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
       const data = await response.json();
       setStats(data);
@@ -48,6 +54,16 @@ const ReferralDashboard: React.FC = () => {
           <Loader className="w-5 h-5 animate-spin" />
           <span className="text-sm">Загружаем данные реферальной программы...</span>
         </div>
+      </div>
+    );
+  }
+
+  if (isNotLeader) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+        <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+        <h3 className="text-base font-medium text-gray-700 mb-1">Партнёрская программа</h3>
+        <p className="text-sm text-gray-500">Вы не являетесь участником партнёрской программы.<br />Для подключения обратитесь к администратору.</p>
       </div>
     );
   }

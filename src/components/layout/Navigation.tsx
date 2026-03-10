@@ -77,7 +77,7 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     ...baseNavItems,
-    ...(user?.referralSlug ? [referralNavItem] : []),
+    referralNavItem,
     ...(user?.isAdmin ? [adminNavItem] : []),
   ];
 
