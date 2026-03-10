@@ -718,16 +718,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       let lastUpdate = Date.now();
       const updateInterval = 50;
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
 
-        if (done) break;
+        if (value) {
+          buffer += new TextDecoder().decode(value);
+        }
 
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
+          if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
 
@@ -745,6 +749,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           } catch (e) {
             // Skip invalid JSON lines
           }
+        }
+
+        if (done) {
+          // Process any remaining buffer (last chunk without trailing newline)
+          if (buffer.trim()) {
+            try {
+              const data = JSON.parse(buffer);
+              if (data.type === 'image' && data.image_data_url) {
+                imageResponse = data;
+              } else if (data.type === 'item' && data.content) {
+                accumulatedContent += data.content;
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+          break;
         }
       }
 
