@@ -734,8 +734,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
-            console.log('[IMG_DEBUG] parsed line type:', data.type, 'has image:', !!data.image_data_url);
-
             if (data.type === 'image' && data.image_data_url) {
               imageResponse = data;
             } else if (data.type === 'item' && data.content) {
@@ -753,19 +751,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
 
         if (done) {
-          // Process any remaining buffer (last chunk without trailing newline)
-          console.log('[IMG_DEBUG] done, buffer length:', buffer.length, 'buffer start:', buffer.slice(0, 100));
           if (buffer.trim()) {
             try {
               const data = JSON.parse(buffer);
-              console.log('[IMG_DEBUG] parsed buffer, type:', data.type, 'has image:', !!data.image_data_url);
               if (data.type === 'image' && data.image_data_url) {
                 imageResponse = data;
               } else if (data.type === 'item' && data.content) {
                 accumulatedContent += data.content;
               }
             } catch (e) {
-              console.log('[IMG_DEBUG] JSON.parse error on buffer:', e, 'buffer start:', buffer.slice(0, 200));
+              // ignore
             }
           }
           break;
@@ -773,18 +768,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       // Check if accumulated content is an image notification from the AI Agent
+      // Try exact parse first, then extract JSON object from within text
       if (!imageResponse && accumulatedContent.trim()) {
-        try {
-          const stripped = accumulatedContent.trim()
-            .replace(/^```json\s*/m, '').replace(/```\s*$/m, '').trim();
-          const maybeImg = JSON.parse(stripped);
-          if (maybeImg.type === 'image' && (maybeImg.image_url || maybeImg.image_data_url)) {
-            console.log('[IMG_DEBUG] image notification detected, url:', maybeImg.image_url);
-            imageResponse = maybeImg;
-            accumulatedContent = '';
-          }
-        } catch (e) {
-          // Not image JSON, treat as regular text
+        const tryParseImage = (text: string) => {
+          try {
+            const obj = JSON.parse(text);
+            if (obj.type === 'image' && (obj.image_url || obj.image_data_url)) return obj;
+          } catch (e) { /* ignore */ }
+          return null;
+        };
+
+        const stripped = accumulatedContent.trim()
+          .replace(/^```json\s*/m, '').replace(/```\s*$/m, '').trim();
+
+        let detected = tryParseImage(stripped);
+        if (!detected) {
+          // Try to extract a JSON object if model added prefix/suffix text
+          const match = stripped.match(/\{[\s\S]*\}/);
+          if (match) detected = tryParseImage(match[0]);
+        }
+
+        if (detected) {
+          imageResponse = detected;
+          accumulatedContent = '';
         }
       }
 
