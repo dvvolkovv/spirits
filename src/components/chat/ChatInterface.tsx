@@ -233,11 +233,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       );
     },
     img: ({ src, alt }: any) => (
-      <div className="inline-block my-2">
+      <div className="not-prose my-2">
         <img
           src={src}
           alt={alt || 'изображение'}
-          className="rounded-xl max-w-full w-72 sm:w-96 object-contain block"
+          className="rounded-xl max-w-full w-72 sm:w-96 object-contain"
           loading="lazy"
         />
         <a
