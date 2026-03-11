@@ -165,8 +165,8 @@ const AdminReferralsView: React.FC = () => {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
   const level1Leaders = stats?.leaders.filter(l => l.level === 1) ?? [];
-  const level1Ids = new Set(level1Leaders.map(l => l.id));
-  const orphanL2Leaders = stats?.leaders.filter(l => l.level === 2 && (l.parent_leader_id === null || !level1Ids.has(l.parent_leader_id))) ?? [];
+  const level1Ids = new Set(level1Leaders.map(l => String(l.id)));
+  const orphanL2Leaders = stats?.leaders.filter(l => l.level === 2 && (l.parent_leader_id === null || !level1Ids.has(String(l.parent_leader_id)))) ?? [];
 
   const CommissionsTable = ({ leader }: { leader: Leader }) => {
     const unpaid = leader.commissions.filter(c => !c.paid_out);
@@ -488,7 +488,7 @@ const AdminReferralsView: React.FC = () => {
 
               {level1Leaders.map(l1 => {
                 const isL1Expanded = expandedL1 === l1.id;
-                const children = stats?.leaders.filter(l => l.level === 2 && l.parent_leader_id === l1.id) ?? [];
+                const children = stats?.leaders.filter(l => l.level === 2 && String(l.parent_leader_id) === String(l1.id)) ?? [];
                 const isL1CommExpanded = expandedL1Commissions === l1.id;
 
                 return (
