@@ -1,7 +1,8 @@
 export type ImageModel =
   | 'black-forest-labs/flux.2-pro'
   | 'google/gemini-3.1-flash-image-preview'
-  | 'black-forest-labs/flux.2-flex';
+  | 'google/gemini-3-pro-image-preview'
+  | 'openai/gpt-5-image-mini';
 
 export type ImageSize = '1024x1024' | '1792x1024' | '1024x1792';
 export type ImageQuality = 'standard' | 'hd';
@@ -26,9 +27,9 @@ export interface ImageGenResponse {
 }
 
 export const IMAGE_MODELS: { value: ImageModel; label: string; description: string }[] = [
-  { value: 'black-forest-labs/flux.2-pro', label: 'Flux 2 Pro', description: 'Black Forest · топовый' },
-  { value: 'google/gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash', description: 'Google · про-качество' },
-  { value: 'black-forest-labs/flux.2-flex', label: 'Flux 2 Flex', description: 'Black Forest · гибкий' },
+  { value: 'google/gemini-3-pro-image-preview', label: 'Gemini 3 Pro', description: 'Google · топовый' },
+  { value: 'black-forest-labs/flux.2-pro', label: 'Flux 2 Pro', description: 'Black Forest · детализированный' },
+  { value: 'openai/gpt-5-image-mini', label: 'GPT-5 Image Mini', description: 'OpenAI · компактный' },
 ];
 
 export const IMAGE_SIZES: { value: ImageSize; label: string; aspect: string; w: number; h: number }[] = [
