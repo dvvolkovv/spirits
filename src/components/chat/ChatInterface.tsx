@@ -668,23 +668,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, []);
 
-  const IMAGE_KEYWORDS = [
-    'нарисуй', 'нарисовать', 'сгенерируй', 'сгенерировать',
-    'создай картинку', 'создай изображение', 'создай рисунок',
-    'сделай картинку', 'сделай изображение', 'сделай рисунок',
-    'покажи картинку', 'покажи изображение',
-    'draw', 'generate image', 'create image',
-    'картинку', 'картинка', 'изображени', 'рисунок'
-  ];
-
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
-
-    const lowerMsg = userMessage.toLowerCase();
-    if (IMAGE_KEYWORDS.some(kw => lowerMsg.includes(kw))) {
-      setIsGeneratingImage(true);
-    }
 
     // Set streaming message ID immediately to show loading state
     const assistantMessageId = generateMessageId();
@@ -756,6 +742,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
+            if (data.type === 'begin' && data.metadata?.nodeName === 'Image Echo Agent') {
+              setIsGeneratingImage(true);
+            }
             if (data.type === 'item' && data.content) {
               accumulatedContent += data.content;
               const now = Date.now();
