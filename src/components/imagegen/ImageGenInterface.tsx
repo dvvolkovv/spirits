@@ -14,76 +14,32 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiClient } from '../../services/apiClient';
+import { useImageGen } from '../../contexts/ImageGenContext';
 import {
-  ImageGenSettings,
-  ImageGenResponse,
-  GeneratedImage,
   IMAGE_MODELS,
   IMAGE_SIZES,
-  TOKEN_COST,
   ImageModel,
   ImageSize,
 } from '../../types/imageGen';
 
-const DEFAULT_SETTINGS: ImageGenSettings = {
-  model: 'google/gemini-3-pro-image-preview',
-  size: '1024x1024',
-  quality: 'standard',
-  style: 'vivid',
-  negativePrompt: '',
-};
-
 const ImageGenInterface: React.FC = () => {
-  const { user, updateTokens } = useAuth();
-  const [prompt, setPrompt] = useState('');
-  const [settings, setSettings] = useState<ImageGenSettings>(DEFAULT_SETTINGS);
+  const { user } = useAuth();
+  const {
+    prompt, setPrompt,
+    settings, setSettings,
+    isGenerating, error, results,
+    tokenCost, hasEnoughTokens,
+    handleGenerate,
+  } = useImageGen();
+
   const [showSettings, setShowSettings] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [results, setResults] = useState<GeneratedImage[]>([]);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const tokenCost = TOKEN_COST[settings.quality];
-  const hasEnoughTokens = (user?.tokens ?? 0) >= tokenCost;
-
-  const set = <K extends keyof ImageGenSettings>(key: K, value: ImageGenSettings[K]) =>
+  const set = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) =>
     setSettings(prev => ({ ...prev, [key]: value }));
 
-  const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating || !hasEnoughTokens) return;
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      const response = await apiClient.post('/webhook/imagegen', {
-        prompt: prompt.trim(),
-        negative_prompt: settings.negativePrompt || undefined,
-        model: settings.model,
-        size: settings.size,
-        quality: settings.quality,
-        style: settings.style,
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Ошибка ${response.status}`);
-      }
-
-      const data: ImageGenResponse = await response.json();
-      setResults(prev => [...data.images, ...prev]);
-      if (data.tokensSpent) {
-        updateTokens((user?.tokens ?? 0) - data.tokensSpent);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось сгенерировать изображение');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleDownload = async (url: string, index: number) => {
+  const handleDownload = (url: string, index: number) => {
     const a = document.createElement('a');
     a.href = url;
     a.download = `image-${Date.now()}-${index}.png`;
@@ -198,7 +154,6 @@ const ImageGenInterface: React.FC = () => {
                           : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                       )}
                     >
-                      {/* Aspect ratio visual */}
                       <div
                         className={clsx(
                           'border-2 rounded',

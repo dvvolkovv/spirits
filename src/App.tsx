@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
 import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
@@ -75,10 +76,12 @@ const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          <Route path="/tokens" element={<TokenPurchasePage />} />
-          <Route path="*" element={<AppContent />} />
-        </Routes>
+        <ImageGenProvider>
+          <Routes>
+            <Route path="/tokens" element={<TokenPurchasePage />} />
+            <Route path="*" element={<AppContent />} />
+          </Routes>
+        </ImageGenProvider>
       </AuthProvider>
     </Router>
   );
