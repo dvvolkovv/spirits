@@ -235,11 +235,13 @@ const AdminReferralsView: React.FC = () => {
     isExpanded,
     onToggle,
     indent = false,
+    childrenCount = 0,
   }: {
     leader: Leader;
     isExpanded: boolean;
     onToggle: () => void;
     indent?: boolean;
+    childrenCount?: number;
   }) => {
     const unpaid = leader.commissions.filter(c => !c.paid_out);
     return (
@@ -268,6 +270,9 @@ const AdminReferralsView: React.FC = () => {
               ?ref={leader.slug}
             </button>
             <span className="text-xs text-gray-400">{leader.user_phone}</span>
+            {childrenCount > 0 && (
+              <span className="text-xs text-blue-500">↳ {childrenCount} суб-лидер{childrenCount > 1 ? 'а' : ''}</span>
+            )}
           </div>
         </div>
 
@@ -494,24 +499,18 @@ const AdminReferralsView: React.FC = () => {
                 return (
                   <div key={l1.id}>
                     {/* Строка L1 */}
-                    <div className="relative">
-                      <LeaderRow
-                        leader={l1}
-                        isExpanded={isL1Expanded}
-                        onToggle={() => {
-                          setExpandedL1(isL1Expanded ? null : l1.id);
-                          if (isL1Expanded) {
-                            setExpandedL1Commissions(null);
-                            setExpandedL2(null);
-                          }
-                        }}
-                      />
-                      {children.length > 0 && (
-                        <span className="absolute left-4 bottom-1 text-xs text-blue-500">
-                          ↳ {children.length} суб-лидер{children.length > 1 ? 'а' : ''}
-                        </span>
-                      )}
-                    </div>
+                    <LeaderRow
+                      leader={l1}
+                      isExpanded={isL1Expanded}
+                      childrenCount={children.length}
+                      onToggle={() => {
+                        setExpandedL1(isL1Expanded ? null : l1.id);
+                        if (isL1Expanded) {
+                          setExpandedL1Commissions(null);
+                          setExpandedL2(null);
+                        }
+                      }}
+                    />
 
                     {/* Развёрнутый L1: суб-лидеры + свои начисления */}
                     {isL1Expanded && (
