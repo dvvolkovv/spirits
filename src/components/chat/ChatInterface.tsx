@@ -232,6 +232,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </a>
       );
     },
+    img: ({ src, alt }: any) => (
+      <img
+        src={src}
+        alt={alt || 'изображение'}
+        className="rounded-xl max-w-full w-72 sm:w-96 object-contain my-2 block"
+        loading="lazy"
+      />
+    ),
   }), [handleLinkNavigation]);
 
   const getChatStorageKey = (assistantId: number | null) => {
@@ -714,8 +722,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       let accumulatedContent = '';
-      let imageResponse: { image_data_url?: string; image_url?: string; output: string } | null = null;
-
       let lastUpdate = Date.now();
       const updateInterval = 50;
       let buffer = '';
@@ -734,11 +740,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
-            if (data.type === 'image' && data.image_data_url) {
-              imageResponse = data;
-            } else if (data.type === 'item' && data.content) {
+            if (data.type === 'item' && data.content) {
               accumulatedContent += data.content;
-
               const now = Date.now();
               if (now - lastUpdate >= updateInterval) {
                 setCurrentStreamingMessage(accumulatedContent);
@@ -754,69 +757,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           if (buffer.trim()) {
             try {
               const data = JSON.parse(buffer);
-              if (data.type === 'image' && data.image_data_url) {
-                imageResponse = data;
-              } else if (data.type === 'item' && data.content) {
+              if (data.type === 'item' && data.content) {
                 accumulatedContent += data.content;
               }
-            } catch (e) {
-              // ignore
-            }
+            } catch (e) { /* ignore */ }
           }
           break;
         }
       }
 
-      // Check if accumulated content is an image notification from the AI Agent
-      // Try exact parse first, then extract JSON object from within text
-      if (!imageResponse && accumulatedContent.trim()) {
-        const tryParseImage = (text: string) => {
-          try {
-            const obj = JSON.parse(text);
-            if (obj.type === 'image' && (obj.image_url || obj.image_data_url)) return obj;
-          } catch (e) { /* ignore */ }
-          return null;
-        };
-
-        const stripped = accumulatedContent.trim()
-          .replace(/^```json\s*/m, '').replace(/```\s*$/m, '').trim();
-
-        let detected = tryParseImage(stripped);
-        if (!detected) {
-          // Try to extract a JSON object if model added prefix/suffix text
-          const match = stripped.match(/\{[\s\S]*\}/);
-          if (match) detected = tryParseImage(match[0]);
-        }
-
-        if (detected) {
-          imageResponse = detected;
-          accumulatedContent = '';
-        }
-      }
-
-      if (imageResponse) {
-        const completedMessage: Message = {
-          id: assistantMessageId,
-          type: 'assistant',
-          content: imageResponse.output || 'Вот ваше изображение',
-          messageType: 'image',
-          imageUrl: imageResponse.image_url || imageResponse.image_data_url,
-          timestamp: new Date(),
-          isStreaming: false
-        };
-        setMessages(prev => [...prev, completedMessage]);
-      } else {
-        setCurrentStreamingMessage(accumulatedContent);
-
-        const completedMessage: Message = {
-          id: assistantMessageId,
-          type: 'assistant',
-          content: accumulatedContent,
-          timestamp: new Date(),
-          isStreaming: false
-        };
-        setMessages(prev => [...prev, completedMessage]);
-      }
+      setCurrentStreamingMessage(accumulatedContent);
+      const completedMessage: Message = {
+        id: assistantMessageId,
+        type: 'assistant',
+        content: accumulatedContent,
+        timestamp: new Date(),
+        isStreaming: false
+      };
+      setMessages(prev => [...prev, completedMessage]);
       setStreamingMessageId(null);
       
     } catch (error) {
