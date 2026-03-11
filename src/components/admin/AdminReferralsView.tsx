@@ -165,6 +165,8 @@ const AdminReferralsView: React.FC = () => {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
   const level1Leaders = stats?.leaders.filter(l => l.level === 1) ?? [];
+  const level1Ids = new Set(level1Leaders.map(l => l.id));
+  const orphanL2Leaders = stats?.leaders.filter(l => l.level === 2 && (l.parent_leader_id === null || !level1Ids.has(l.parent_leader_id))) ?? [];
 
   const CommissionsTable = ({ leader }: { leader: Leader }) => {
     const unpaid = leader.commissions.filter(c => !c.paid_out);
@@ -486,23 +488,30 @@ const AdminReferralsView: React.FC = () => {
 
               {level1Leaders.map(l1 => {
                 const isL1Expanded = expandedL1 === l1.id;
-                const children = stats?.leaders.filter(l => l.parent_leader_id === l1.id) ?? [];
+                const children = stats?.leaders.filter(l => l.level === 2 && l.parent_leader_id === l1.id) ?? [];
                 const isL1CommExpanded = expandedL1Commissions === l1.id;
 
                 return (
                   <div key={l1.id}>
                     {/* Строка L1 */}
-                    <LeaderRow
-                      leader={l1}
-                      isExpanded={isL1Expanded}
-                      onToggle={() => {
-                        setExpandedL1(isL1Expanded ? null : l1.id);
-                        if (isL1Expanded) {
-                          setExpandedL1Commissions(null);
-                          setExpandedL2(null);
-                        }
-                      }}
-                    />
+                    <div className="relative">
+                      <LeaderRow
+                        leader={l1}
+                        isExpanded={isL1Expanded}
+                        onToggle={() => {
+                          setExpandedL1(isL1Expanded ? null : l1.id);
+                          if (isL1Expanded) {
+                            setExpandedL1Commissions(null);
+                            setExpandedL2(null);
+                          }
+                        }}
+                      />
+                      {children.length > 0 && (
+                        <span className="absolute left-4 bottom-1 text-xs text-blue-500">
+                          ↳ {children.length} суб-лидер{children.length > 1 ? 'а' : ''}
+                        </span>
+                      )}
+                    </div>
 
                     {/* Развёрнутый L1: суб-лидеры + свои начисления */}
                     {isL1Expanded && (
@@ -571,6 +580,37 @@ const AdminReferralsView: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Лидеры 2-го уровня без привязанного родителя */}
+        {orphanL2Leaders.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="p-4 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs">ур.2</span>
+                Суб-лидеры без родителя ({orphanL2Leaders.length})
+              </h2>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {orphanL2Leaders.map(l2 => {
+                const isL2Expanded = expandedL2 === l2.id;
+                return (
+                  <div key={l2.id}>
+                    <LeaderRow
+                      leader={l2}
+                      isExpanded={isL2Expanded}
+                      onToggle={() => setExpandedL2(isL2Expanded ? null : l2.id)}
+                    />
+                    {isL2Expanded && (
+                      <div className="bg-gray-50 border-t border-gray-100">
+                        <CommissionsTable leader={l2} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
