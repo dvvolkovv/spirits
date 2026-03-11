@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, ToggleLeft, ToggleRight, Copy, ChevronDown, ChevronUp, CheckCircle, Loader } from 'lucide-react';
+import { Users, Plus, ToggleLeft, ToggleRight, Copy, ChevronDown, ChevronUp, ChevronRight, CheckCircle, Loader } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 
@@ -46,7 +46,12 @@ const AdminReferralsView: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedLeader, setExpandedLeader] = useState<string | null>(null);
+  // L1 expanded → shows its L2 children
+  const [expandedL1, setExpandedL1] = useState<string | null>(null);
+  // L1's own commissions expanded
+  const [expandedL1Commissions, setExpandedL1Commissions] = useState<string | null>(null);
+  // L2 expanded → shows its commissions
+  const [expandedL2, setExpandedL2] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
@@ -62,9 +67,7 @@ const AdminReferralsView: React.FC = () => {
   });
   const [slugError, setSlugError] = useState('');
 
-  useEffect(() => {
-    loadStats();
-  }, []);
+  useEffect(() => { loadStats(); }, []);
 
   const loadStats = async () => {
     setIsLoading(true);
@@ -94,7 +97,6 @@ const AdminReferralsView: React.FC = () => {
   const handleCreate = async () => {
     if (!newLeader.name.trim() || !newLeader.slug.trim() || !newLeader.user_phone.trim()) return;
     if (!SLUG_PATTERN.test(newLeader.slug)) return;
-
     setIsSubmitting(true);
     setError(null);
     try {
@@ -124,11 +126,7 @@ const AdminReferralsView: React.FC = () => {
 
   const handleToggle = async (id: string, isActive: boolean) => {
     try {
-      const response = await apiClient.post('/webhook/admin/referral', {
-        action: 'toggle',
-        id,
-        is_active: !isActive,
-      });
+      const response = await apiClient.post('/webhook/admin/referral', { action: 'toggle', id, is_active: !isActive });
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
       await loadStats();
     } catch (err) {
@@ -136,13 +134,10 @@ const AdminReferralsView: React.FC = () => {
     }
   };
 
-  const handleMarkPaid = async (leaderId: string, commissionId: string) => {
+  const handleMarkPaid = async (commissionId: string) => {
     setMarkingPaid(commissionId);
     try {
-      const response = await apiClient.post('/webhook/admin/referral', {
-        action: 'mark_paid',
-        commission_id: commissionId,
-      });
+      const response = await apiClient.post('/webhook/admin/referral', { action: 'mark_paid', commission_id: commissionId });
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
       await loadStats();
     } catch (err) {
@@ -155,10 +150,7 @@ const AdminReferralsView: React.FC = () => {
   const handleMarkAllPaid = async (leaderId: string) => {
     setMarkingPaid(`all_${leaderId}`);
     try {
-      const response = await apiClient.post('/webhook/admin/referral', {
-        action: 'mark_all_paid',
-        leader_id: leaderId,
-      });
+      const response = await apiClient.post('/webhook/admin/referral', { action: 'mark_all_paid', leader_id: leaderId });
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
       await loadStats();
     } catch (err) {
@@ -168,17 +160,171 @@ const AdminReferralsView: React.FC = () => {
     }
   };
 
-  const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`https://my.linkeon.io/?ref=${slug}`);
-  };
-
-  const formatRub = (n: number) =>
-    n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
-
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  const copyLink = (slug: string) => navigator.clipboard.writeText(`https://my.linkeon.io/?ref=${slug}`);
+  const formatRub = (n: number) => n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+  const formatDate = (d: string) => new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
   const level1Leaders = stats?.leaders.filter(l => l.level === 1) ?? [];
+
+  const CommissionsTable = ({ leader }: { leader: Leader }) => {
+    const unpaid = leader.commissions.filter(c => !c.paid_out);
+    return (
+      <div className="px-4 py-3">
+        {unpaid.length > 0 && (
+          <button
+            onClick={() => handleMarkAllPaid(leader.id)}
+            disabled={markingPaid === `all_${leader.id}`}
+            className="mb-2 px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+          >
+            {markingPaid === `all_${leader.id}` ? <Loader className="w-3 h-3 animate-spin" /> : null}
+            Выплатить всё ({unpaid.length})
+          </button>
+        )}
+        {leader.commissions.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-2">Начислений нет</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-gray-500 border-b border-gray-200">
+                  <th className="text-left pb-2 pr-3">Дата</th>
+                  <th className="text-left pb-2 pr-3">Телефон</th>
+                  <th className="text-right pb-2 pr-3">Оплата</th>
+                  <th className="text-right pb-2 pr-3">%</th>
+                  <th className="text-right pb-2 pr-3">Комиссия</th>
+                  <th className="text-center pb-2 pr-3">Ур.</th>
+                  <th className="text-center pb-2">Статус</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {leader.commissions.map(c => (
+                  <tr key={c.id} className={clsx(c.paid_out ? 'text-gray-400' : 'text-gray-700')}>
+                    <td className="py-1.5 pr-3">{formatDate(c.date)}</td>
+                    <td className="py-1.5 pr-3 font-mono">{c.referee_phone}</td>
+                    <td className="py-1.5 pr-3 text-right">{formatRub(c.payment_amount)}</td>
+                    <td className="py-1.5 pr-3 text-right">{c.commission_pct}%</td>
+                    <td className="py-1.5 pr-3 text-right font-medium">{formatRub(c.commission_rub)}</td>
+                    <td className="py-1.5 pr-3 text-center">{c.level}</td>
+                    <td className="py-1.5 text-center">
+                      {c.paid_out ? (
+                        <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                      ) : (
+                        <button
+                          onClick={() => handleMarkPaid(c.id)}
+                          disabled={markingPaid === c.id}
+                          className="px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+                        >
+                          {markingPaid === c.id ? '...' : 'Выплачено'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const LeaderRow = ({
+    leader,
+    isExpanded,
+    onToggle,
+    indent = false,
+  }: {
+    leader: Leader;
+    isExpanded: boolean;
+    onToggle: () => void;
+    indent?: boolean;
+  }) => {
+    const unpaid = leader.commissions.filter(c => !c.paid_out);
+    return (
+      <div className={clsx('flex items-center gap-3 px-4 py-3', indent && 'pl-8 bg-blue-50/40')}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {indent && <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />}
+            <span className="font-medium text-gray-900 text-sm">{leader.name}</span>
+            <span className={clsx(
+              'text-xs px-1.5 py-0.5 rounded-full',
+              leader.level === 1 ? 'bg-forest-100 text-forest-700' : 'bg-blue-100 text-blue-700'
+            )}>
+              ур.{leader.level}
+            </span>
+            {!leader.is_active && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">неактивен</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <button
+              onClick={() => copyLink(leader.slug)}
+              className="flex items-center gap-1 text-xs text-forest-600 hover:text-forest-700"
+              title="Скопировать ссылку"
+            >
+              <Copy className="w-3 h-3" />
+              ?ref={leader.slug}
+            </button>
+            <span className="text-xs text-gray-400">{leader.user_phone}</span>
+          </div>
+        </div>
+
+        {/* Статистика */}
+        <div className="hidden md:flex items-center gap-4 text-sm flex-shrink-0">
+          <div className="text-center">
+            <p className="text-xs text-gray-500">рефералов</p>
+            <p className="font-semibold text-gray-900">{leader.total_referees}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-500">начислено</p>
+            <p className="font-semibold text-gray-900">{formatRub(leader.total_commission_rub)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-500">к выплате</p>
+            <p className={clsx('font-semibold', leader.pending_rub > 0 ? 'text-warm-600' : 'text-gray-400')}>
+              {formatRub(leader.pending_rub)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-500">%</p>
+            <p className="font-semibold text-gray-900">{leader.commission_pct}%</p>
+          </div>
+        </div>
+
+        {/* Действия */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {unpaid.length > 0 && !indent && (
+            <button
+              onClick={() => handleMarkAllPaid(leader.id)}
+              disabled={markingPaid === `all_${leader.id}`}
+              className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {markingPaid === `all_${leader.id}` ? <Loader className="w-3 h-3 animate-spin" /> : 'Выплатить всё'}
+            </button>
+          )}
+          <button
+            onClick={() => handleToggle(leader.id, leader.is_active)}
+            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+            title={leader.is_active ? 'Деактивировать' : 'Активировать'}
+          >
+            {leader.is_active
+              ? <ToggleRight className="w-5 h-5 text-green-600" />
+              : <ToggleLeft className="w-5 h-5 text-gray-400" />
+            }
+          </button>
+          <button
+            onClick={onToggle}
+            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+          >
+            {isExpanded
+              ? <ChevronUp className="w-4 h-4 text-gray-500" />
+              : <ChevronDown className="w-4 h-4 text-gray-500" />
+            }
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -201,7 +347,6 @@ const AdminReferralsView: React.FC = () => {
           </div>
         )}
 
-        {/* Ошибка */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">{error}</div>
         )}
@@ -291,10 +436,7 @@ const AdminReferralsView: React.FC = () => {
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">% комиссии лидера</label>
                   <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.5}
+                    type="number" min={0} max={100} step={0.5}
                     value={newLeader.commission_pct}
                     onChange={e => setNewLeader(prev => ({ ...prev, commission_pct: Number(e.target.value) }))}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
@@ -304,10 +446,7 @@ const AdminReferralsView: React.FC = () => {
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">% для родителя (апстрим)</label>
                     <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.5}
+                      type="number" min={0} max={100} step={0.5}
                       value={newLeader.parent_commission_pct}
                       onChange={e => setNewLeader(prev => ({ ...prev, parent_commission_pct: Number(e.target.value) }))}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
@@ -334,175 +473,95 @@ const AdminReferralsView: React.FC = () => {
             </div>
           )}
 
-          {/* Таблица лидеров */}
+          {/* Иерархия лидеров */}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader className="w-6 h-6 animate-spin text-forest-600" />
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {stats?.leaders.length === 0 && (
+              {level1Leaders.length === 0 && (
                 <p className="text-center text-gray-500 py-8 text-sm">Лидеры не найдены</p>
               )}
-              {stats?.leaders.map(leader => {
-                const isExpanded = expandedLeader === leader.id;
-                const unpaidCommissions = leader.commissions.filter(c => !c.paid_out);
+
+              {level1Leaders.map(l1 => {
+                const isL1Expanded = expandedL1 === l1.id;
+                const children = stats?.leaders.filter(l => l.parent_leader_id === l1.id) ?? [];
+                const isL1CommExpanded = expandedL1Commissions === l1.id;
+
                 return (
-                  <div key={leader.id}>
-                    {/* Строка лидера */}
-                    <div className="px-4 py-3 flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-gray-900 text-sm">{leader.name}</span>
-                          <span className={clsx(
-                            'text-xs px-1.5 py-0.5 rounded-full',
-                            leader.level === 1 ? 'bg-forest-100 text-forest-700' : 'bg-blue-100 text-blue-700'
-                          )}>
-                            ур.{leader.level}
-                          </span>
-                          {!leader.is_active && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">неактивен</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          <button
-                            onClick={() => copyLink(leader.slug)}
-                            className="flex items-center gap-1 text-xs text-forest-600 hover:text-forest-700"
-                            title="Скопировать ссылку"
-                          >
-                            <Copy className="w-3 h-3" />
-                            ?ref={leader.slug}
-                          </button>
-                          <span className="text-xs text-gray-400">{leader.user_phone}</span>
-                          {leader.parent_name && (
-                            <span className="text-xs text-gray-400">↑ {leader.parent_name}</span>
-                          )}
-                        </div>
-                      </div>
+                  <div key={l1.id}>
+                    {/* Строка L1 */}
+                    <LeaderRow
+                      leader={l1}
+                      isExpanded={isL1Expanded}
+                      onToggle={() => {
+                        setExpandedL1(isL1Expanded ? null : l1.id);
+                        if (isL1Expanded) {
+                          setExpandedL1Commissions(null);
+                          setExpandedL2(null);
+                        }
+                      }}
+                    />
 
-                      {/* Статистика */}
-                      <div className="hidden md:flex items-center gap-4 text-sm flex-shrink-0">
-                        <div className="text-center">
-                          <p className="text-xs text-gray-500">рефералов</p>
-                          <p className="font-semibold text-gray-900">{leader.total_referees}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-gray-500">начислено</p>
-                          <p className="font-semibold text-gray-900">{formatRub(leader.total_commission_rub)}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-gray-500">к выплате</p>
-                          <p className={clsx('font-semibold', leader.pending_rub > 0 ? 'text-warm-600' : 'text-gray-400')}>
-                            {formatRub(leader.pending_rub)}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-gray-500">%</p>
-                          <p className="font-semibold text-gray-900">{leader.commission_pct}%</p>
-                        </div>
-                      </div>
+                    {/* Развёрнутый L1: суб-лидеры + свои начисления */}
+                    {isL1Expanded && (
+                      <div className="border-t border-gray-100 bg-gray-50">
 
-                      {/* Действия */}
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {unpaidCommissions.length > 0 && (
+                        {/* Свои начисления L1 */}
+                        <div className="border-b border-gray-100">
                           <button
-                            onClick={() => handleMarkAllPaid(leader.id)}
-                            disabled={markingPaid === `all_${leader.id}`}
-                            className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                            onClick={() => setExpandedL1Commissions(isL1CommExpanded ? null : l1.id)}
+                            className="w-full flex items-center gap-2 px-8 py-2 text-xs text-gray-600 hover:bg-gray-100 transition-colors text-left"
                           >
-                            {markingPaid === `all_${leader.id}` ? (
-                              <Loader className="w-3 h-3 animate-spin" />
-                            ) : (
-                              'Выплатить всё'
+                            {isL1CommExpanded
+                              ? <ChevronUp className="w-3.5 h-3.5" />
+                              : <ChevronDown className="w-3.5 h-3.5" />
+                            }
+                            <span>Свои начисления</span>
+                            <span className="text-gray-400">({l1.commissions.length})</span>
+                            {l1.pending_rub > 0 && (
+                              <span className="ml-auto text-warm-600 font-medium">{formatRub(l1.pending_rub)} к выплате</span>
                             )}
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleToggle(leader.id, leader.is_active)}
-                          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-                          title={leader.is_active ? 'Деактивировать' : 'Активировать'}
-                        >
-                          {leader.is_active
-                            ? <ToggleRight className="w-5 h-5 text-green-600" />
-                            : <ToggleLeft className="w-5 h-5 text-gray-400" />
-                          }
-                        </button>
-                        <button
-                          onClick={() => setExpandedLeader(isExpanded ? null : leader.id)}
-                          className="p-1.5 rounded hover:bg-gray-100 transition-colors"
-                        >
-                          {isExpanded
-                            ? <ChevronUp className="w-4 h-4 text-gray-500" />
-                            : <ChevronDown className="w-4 h-4 text-gray-500" />
-                          }
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Детали начислений */}
-                    {isExpanded && (
-                      <div className="bg-gray-50 border-t border-gray-100 px-4 py-3">
-                        {/* Мобильная статистика */}
-                        <div className="md:hidden grid grid-cols-3 gap-2 mb-3">
-                          <div className="text-center">
-                            <p className="text-xs text-gray-500">рефералов</p>
-                            <p className="font-semibold text-sm">{leader.total_referees}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-gray-500">начислено</p>
-                            <p className="font-semibold text-sm">{formatRub(leader.total_commission_rub)}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-gray-500">к выплате</p>
-                            <p className={clsx('font-semibold text-sm', leader.pending_rub > 0 ? 'text-warm-600' : 'text-gray-400')}>
-                              {formatRub(leader.pending_rub)}
-                            </p>
-                          </div>
+                          {isL1CommExpanded && (
+                            <div className="bg-white border-t border-gray-100 pl-8">
+                              <CommissionsTable leader={l1} />
+                            </div>
+                          )}
                         </div>
 
-                        {leader.commissions.length === 0 ? (
-                          <p className="text-sm text-gray-400 text-center py-2">Начислений нет</p>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs">
-                              <thead>
-                                <tr className="text-gray-500 border-b border-gray-200">
-                                  <th className="text-left pb-2 pr-3">Дата</th>
-                                  <th className="text-left pb-2 pr-3">Телефон</th>
-                                  <th className="text-right pb-2 pr-3">Оплата</th>
-                                  <th className="text-right pb-2 pr-3">%</th>
-                                  <th className="text-right pb-2 pr-3">Комиссия</th>
-                                  <th className="text-center pb-2 pr-3">Ур.</th>
-                                  <th className="text-center pb-2">Статус</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-100">
-                                {leader.commissions.map(c => (
-                                  <tr key={c.id} className={clsx(c.paid_out ? 'text-gray-400' : 'text-gray-700')}>
-                                    <td className="py-1.5 pr-3">{formatDate(c.date)}</td>
-                                    <td className="py-1.5 pr-3 font-mono">{c.referee_phone}</td>
-                                    <td className="py-1.5 pr-3 text-right">{formatRub(c.payment_amount)}</td>
-                                    <td className="py-1.5 pr-3 text-right">{c.commission_pct}%</td>
-                                    <td className="py-1.5 pr-3 text-right font-medium">{formatRub(c.commission_rub)}</td>
-                                    <td className="py-1.5 pr-3 text-center">{c.level}</td>
-                                    <td className="py-1.5 text-center">
-                                      {c.paid_out ? (
-                                        <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                                      ) : (
-                                        <button
-                                          onClick={() => handleMarkPaid(leader.id, c.id)}
-                                          disabled={markingPaid === c.id}
-                                          className="px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50"
-                                        >
-                                          {markingPaid === c.id ? '...' : 'Выплачено'}
-                                        </button>
-                                      )}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                        {/* Суб-лидеры L2 */}
+                        {children.length > 0 && (
+                          <div>
+                            <p className="px-8 py-2 text-xs font-medium text-gray-500">
+                              Суб-лидеры ({children.length})
+                            </p>
+                            <div className="divide-y divide-gray-100">
+                              {children.map(l2 => {
+                                const isL2Expanded = expandedL2 === l2.id;
+                                return (
+                                  <div key={l2.id}>
+                                    <LeaderRow
+                                      leader={l2}
+                                      isExpanded={isL2Expanded}
+                                      onToggle={() => setExpandedL2(isL2Expanded ? null : l2.id)}
+                                      indent
+                                    />
+                                    {isL2Expanded && (
+                                      <div className="bg-white border-t border-gray-100 pl-8">
+                                        <CommissionsTable leader={l2} />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
+                        )}
+
+                        {children.length === 0 && (
+                          <p className="px-8 py-3 text-xs text-gray-400">Суб-лидеров нет</p>
                         )}
                       </div>
                     )}
