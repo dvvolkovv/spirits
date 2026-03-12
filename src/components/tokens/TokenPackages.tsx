@@ -249,6 +249,9 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                     </span>
                   </div>
                   <p className="text-sm text-gray-600">токенов</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    ≈ {Math.floor(pkg.tokens / 1407).toLocaleString('ru-RU')} сообщений
+                  </p>
                 </div>
 
                 <div className="mb-6">
@@ -307,6 +310,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               <li className="flex items-start">
                 <span className="text-blue-600 mr-2">•</span>
                 <span>Мгновенное зачисление токенов после оплаты</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-600 mr-2">•</span>
+                <span className="text-gray-500">Количество сообщений указано для развёрнутых ответов с историей диалога. Короткие вопросы расходуют в 3–4 раза меньше токенов</span>
               </li>
             </ul>
           </div>
