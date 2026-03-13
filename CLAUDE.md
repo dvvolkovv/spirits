@@ -1,0 +1,204 @@
+# My.Linkeon (Kindred Spirits) — CLAUDE.md
+
+## Проект
+
+**my.linkeon.io** — веб-приложение для общения с AI-ассистентами (психолог, коуч, юрист и др.) с системой токенов и совместимости пользователей.
+
+- **Prod:** https://my.linkeon.io
+- **Repo:** git@github.com:dvvolkovv/spirits.git
+- **Backend:** n8n на https://travel-n8n.up.railway.app/ (воркфлоу с префиксом `my.linkeon`)
+
+## Стек
+
+- **React 18** + **TypeScript 5** + **Vite 5**
+- **React Router v6** — роутинг
+- **Tailwind CSS 3** — стили (утилитарный подход)
+- **i18next** — i18n (RU по умолчанию, EN)
+- **React Hook Form** — формы
+- **Lucide React** — иконки
+- **@supabase/supabase-js** — клиент (используется для взаимодействия с бэком через webhooks)
+
+## Команды
+
+```bash
+pnpm dev        # dev-сервер (Vite HMR)
+pnpm build      # production сборка → /dist
+pnpm preview    # предпросмотр production-сборки
+pnpm lint       # ESLint
+```
+
+Пакетный менеджер: **pnpm** (использовать только его, не npm/yarn).
+
+## Переменные окружения
+
+```env
+VITE_BACKEND_URL=https://travel-n8n.up.railway.app   # URL бэкенда (n8n)
+VITE_MAINTENANCE_MODE=false                           # переключает на MaintenancePage
+```
+
+## Архитектура
+
+### Структура `/src`
+
+```
+src/
+├── App.tsx                    # Корень: роутинг + AuthProvider
+├── main.tsx                   # Точка входа
+├── contexts/
+│   └── AuthContext.tsx         # Глобальный auth-стейт (useAuth hook)
+├── services/
+│   ├── apiClient.ts            # HTTP-клиент с автообновлением токенов
+│   ├── authService.ts          # SMS/OTP/refresh логика
+│   └── avatarService.ts        # Кеширование аватаров
+├── utils/
+│   ├── tokenManager.ts         # JWT в localStorage (jwt_access_token, jwt_refresh_token)
+│   ├── customMarkdown.tsx      # Парсинг кастомных кнопок {{button:...}} и ссылок
+│   ├── avatarCache.ts          # Кеш аватаров
+│   ├── clearAppStorage.ts      # Очистка localStorage
+│   └── timeUtils.ts            # Форматирование времени
+├── pages/                     # Тонкие page-обёртки
+├── components/                # UI-компоненты по фичам
+│   ├── admin/                  # AdminAssistantsView, AdminCouponsView
+│   ├── chat/                   # ChatInterface (главный), AssistantSelection
+│   ├── chats/                  # ChatsListView, ChatConversationView, ChatView
+│   ├── layout/                 # Navigation
+│   ├── onboarding/             # PhoneInput, OTPInput, LegalModal, PaymentInfoModal
+│   ├── profile/                # ProfileView
+│   ├── search/                 # SearchInterface, CompatibilityInterface, UserProfileModal
+│   ├── settings/               # SettingsView
+│   └── tokens/                 # TokenPackages, CouponInput
+├── types/
+│   └── auth.ts                 # AuthResponse, RefreshResponse, SMSResponse
+├── i18n/
+│   ├── index.ts                # i18next конфиг
+│   └── locales/{ru,en}.json    # Переводы
+└── index.css                   # Глобальные стили
+```
+
+### Роутинг (App.tsx)
+
+```
+/              → redirect /chat
+/chat          → ChatPage (ChatInterface + AssistantSelection)
+/profile       → ProfileView
+/search        → SearchInterface
+/compatibility → CompatibilityPage
+/admin         → AdminPage (только для isAdmin=true)
+/payment/success → PaymentSuccessPage
+/tokens        → TokenPurchasePage (публичный, без auth)
+```
+
+Если `!isAuthenticated` → показывает `OnboardingPage` (вместо роутов).
+Если `VITE_MAINTENANCE_MODE=true` → показывает `MaintenancePage`.
+
+### Аутентификация
+
+Телефон + SMS OTP, JWT (access + refresh токены).
+
+**Публичные эндпоинты (без Bearer):**
+- `GET /webhook/898c938d-f094-455c-86af-969617e62f7a/sms/{phone}` — отправка SMS
+- `GET /webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/{phone}/{code}` — верификация OTP
+
+**Защищённые эндпоинты (Bearer access-token):**
+- `POST /webhook/auth/refresh` — обновление токенов (тело: refresh-token в Authorization)
+- `GET /webhook/profile` — профиль + isAdmin
+- `PUT /webhook/profile-update` — обновление профиля
+- `DELETE /webhook/profile` — удаление аккаунта
+- `GET /webhook/user/tokens/` — баланс токенов
+- `GET /webhook/avatar` — получение аватара
+- `PUT /webhook/avatar` — загрузка аватара
+
+**localStorage ключи:**
+- `authToken` — legacy-совместимость (устаревший)
+- `jwt_access_token` — текущий access JWT
+- `jwt_refresh_token` — текущий refresh JWT
+- `userData` — сериализованный объект User
+
+**Автообновление токена:** `apiClient` при получении 401 вызывает `/webhook/auth/refresh` и повторяет запрос. Очередь ожидающих запросов предотвращает дублирование refresh.
+
+### Система токенов (in-app валюта)
+
+- Новым пользователям: 50 000 токенов
+- Баланс обновляется каждые **5 секунд** через `AuthContext` (polling)
+- Пакеты: Basic (50K), Extended (200K), Professional (1M) — покупка через YooKassa
+- При балансе < 1000 — предупреждение с кнопкой пополнения
+- URL-параметр `?view=tokens` на `/chat` открывает модал покупки
+
+**Эндпоинты токенов/оплаты:**
+- `POST /webhook/yookassa/create-payment` — создание платежа
+- `GET /webhook/payment-status?user_id=...&payment_id=...` — статус платежа
+
+### Кастомный markdown (CustomMarkdown)
+
+В ответах ассистентов поддерживаются кастомные теги:
+
+```
+{{button: Текст | action: действие | variant: primary|secondary|success|danger | icon: IconName}}
+{{link: Текст | url: /путь}}
+```
+
+### Чат с ассистентами
+
+- `ChatInterface.tsx` — главный компонент (streaming через `apiClient.fetchStream()`)
+- Поддержка PDF-документов (сканирование через `/webhook/...`)
+- Web Speech API для голосового ввода
+- Сессии чата хранятся в `localStorage` по ключу `assistant_{id}_messages`
+- Синхронизация смены ассистента между вкладками через `localStorage` (polling 10s)
+
+## n8n Воркфлоу (бэкенд)
+
+Все активные воркфлоу с префиксом `my.linkeon`:
+
+| Воркфлоу | Назначение |
+|---|---|
+| `my.linkeon.get.sms` | Отправка SMS-кода |
+| `my.linkeon.auth.refresh` | Обновление JWT токенов |
+| `my.linkeon.get.user.profile` | Получение профиля пользователя |
+| `my.linkeon.update.profile` | Обновление профиля |
+| `my.linkeon.get.agent.details` | Данные AI-ассистента |
+| `my.linkeon.change.agent` | Смена предпочтительного ассистента |
+| `my.linkeon.update.agent` | Обновление ассистента |
+| `my.linkeon.Общение с ассистентами с токенами` | Основной чат с ассистентами |
+| `my.linkeon.Учет токенов` | Управление балансом токенов |
+| `my.linkeon.scan.document` | Сканирование PDF |
+| `my.linkeon.YooKassa Notification Webhook` | Колбэк оплаты |
+| `my.linkeon.profiler.mcp` | MCP-профайлер |
+| `my.linkeon.profile.semantic.consolidation` | Семантическая консолидация профиля |
+| `my.linkeon.profile.deduplication` | Дедупликация профиля |
+
+**n8n API:** `https://travel-n8n.up.railway.app/api/v1/` (ключ в `/tmp/api.txt`)
+
+## Паттерны кода
+
+### Компоненты
+- Page-компоненты в `/pages/` — тонкие обёртки, только роутинг и передача URL-параметров
+- Бизнес-логика в компонентах `/components/`
+- Хук `useAuth()` — единственный способ доступа к auth-стейту
+
+### API-вызовы
+```typescript
+// Всегда через apiClient, не через fetch напрямую
+const response = await apiClient.get('/webhook/profile');
+const response = await apiClient.post('/webhook/...', { data });
+
+// Streaming для чата
+const reader = await apiClient.fetchStream('/webhook/chat', { method: 'POST', body: ... });
+```
+
+### Переводы
+```typescript
+import { useTranslation } from 'react-i18next';
+const { t } = useTranslation();
+// Использовать t('key') для всех UI-строк
+```
+
+### Стили
+- Только Tailwind CSS утилиты
+- Тёмная тема не реализована
+- Mobile-first: `md:` префикс для десктопа
+- На мобиле навигация снизу, на десктопе — боковая панель
+
+## Деплой
+
+Проект деплоится как статический SPA. Сборка: `pnpm build` → `/dist`.
+Сервер должен отдавать `index.html` для всех маршрутов (SPA-режим).

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Coins, Check, Loader, ArrowLeft, Mail } from 'lucide-react';
+import CouponInput from '../components/tokens/CouponInput';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
 
@@ -239,6 +240,19 @@ const TokenPurchasePage: React.FC = () => {
               </p>
             </div>
 
+            <div className="mb-6">
+              <CouponInput />
+            </div>
+
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-3 bg-white text-gray-500">или купите пакет токенов</span>
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               {packages.map((pkg) => (
                 <div
@@ -276,6 +290,9 @@ const TokenPurchasePage: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-sm text-gray-600">токенов</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      ≈ {Math.floor(pkg.tokens / 1407).toLocaleString('ru-RU')} сообщений
+                    </p>
                   </div>
 
                   <div className="mb-6">
@@ -335,6 +352,10 @@ const TokenPurchasePage: React.FC = () => {
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">•</span>
                     <span>Мгновенное зачисление токенов после оплаты</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-blue-600 mr-2">•</span>
+                    <span className="text-gray-500">Количество сообщений указано для развёрнутых ответов с историей диалога. Короткие вопросы расходуют в 3–4 раза меньше токенов</span>
                   </li>
                 </ul>
               </div>
