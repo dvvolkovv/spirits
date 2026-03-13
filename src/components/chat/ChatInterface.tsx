@@ -626,7 +626,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [welcomeMessage, messages.length]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
   }, [messages]);
 
   // Initialize speech recognition
@@ -908,7 +908,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
   };
 
   const adjustTextareaHeight = () => {
