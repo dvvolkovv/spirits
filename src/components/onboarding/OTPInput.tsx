@@ -175,11 +175,8 @@ const OTPInput: React.FC<OTPInputProps> = ({
             {t('onboarding.code_sent')} {maskedPhone}
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
-            <p className="mb-1">
-              <span className="font-medium">Код отправлен в Telegram</span>
-            </p>
-            <p className="text-gray-600">
-              Если у вас нет Telegram, код придет по SMS
+            <p>
+              <span className="font-medium">Код отправлен по SMS</span>
             </p>
           </div>
         </div>
