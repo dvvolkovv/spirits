@@ -291,7 +291,7 @@ const TokenPurchasePage: React.FC = () => {
                     </div>
                     <p className="text-sm text-gray-600">токенов</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      ≈ {Math.floor(pkg.tokens / 1407).toLocaleString('ru-RU')} сообщений
+                      ≈ {Math.floor(pkg.tokens / 3500).toLocaleString('ru-RU')} сообщений
                     </p>
                   </div>
 
