@@ -26,6 +26,10 @@ const ReferralDashboard: React.FC = () => {
       }
       if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
       const data = await response.json();
+      if (data.isLeader === false || (!data.leader && !data.referral_link)) {
+        setIsNotLeader(true);
+        return;
+      }
       setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось загрузить данные реферальной программы');

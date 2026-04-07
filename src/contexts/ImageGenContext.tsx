@@ -63,7 +63,11 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       const data: ImageGenResponse = await response.json();
-      setResults(prev => [...data.images, ...prev]);
+      const images = Array.isArray(data.images) ? data.images : [];
+      if (images.length === 0) {
+        throw new Error('Модель не вернула изображений. Попробуйте другую модель.');
+      }
+      setResults(prev => [...images, ...prev]);
       if (data.tokensSpent) {
         updateTokens((user?.tokens ?? 0) - data.tokensSpent);
       }

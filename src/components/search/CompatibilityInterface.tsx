@@ -184,25 +184,41 @@ const CompatibilityInterface: React.FC = () => {
       }
 
       let accumulatedText = '';
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
 
-        if (done) break;
+        if (done) {
+          // Process remaining buffer
+          if (buffer.trim()) {
+            try {
+              const data = JSON.parse(buffer);
+              if (data.type === 'item' && data.content) {
+                accumulatedText += data.content;
+                setAnalysisResult(accumulatedText);
+              }
+            } catch (e) { /* ignore */ }
+          }
+          break;
+        }
 
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
+        buffer += new TextDecoder().decode(value);
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete last line in buffer
 
         for (const line of lines) {
+          if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
-
             if (data.type === 'item' && data.content) {
               accumulatedText += data.content;
               setAnalysisResult(accumulatedText);
             }
           } catch (e) {
-            console.warn('Failed to parse streaming data:', line);
+            // Incomplete JSON — will be completed in next chunk
+            buffer = line + '\n' + buffer;
+            break;
           }
         }
       }

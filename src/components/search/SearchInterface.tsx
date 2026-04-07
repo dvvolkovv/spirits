@@ -178,13 +178,26 @@ const SearchInterface: React.FC = () => {
       let searchResultFound = false;
       let jsonBuffer = '';
 
+      let streamBuffer = '';
       while (true) {
         const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
+
+        if (done) {
+          if (streamBuffer.trim()) {
+            try {
+              const data = JSON.parse(streamBuffer);
+              if (data.type === 'item' && data.content) {
+                accumulatedText += data.content;
+              }
+            } catch (e) { /* ignore */ }
+          }
+          break;
+        }
+
+        streamBuffer += new TextDecoder().decode(value);
+        const rawLines = streamBuffer.split('\n');
+        streamBuffer = rawLines.pop() || '';
+        const lines = rawLines.filter(line => line.trim());
         
         for (const line of lines) {
           try {

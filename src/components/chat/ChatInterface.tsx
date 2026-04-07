@@ -264,6 +264,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [historyOffset, setHistoryOffset] = useState(0);
+  // chatContainerRef removed — using messagesContainerRef
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -309,12 +313,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const load = async () => {
       setHistoryLoading(true);
+      setHistoryOffset(0);
       try {
-        const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}`);
+        const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=0`);
         if (response.ok) {
           const data = await response.json();
           const msgs = (data.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
           setMessages(msgs);
+          setHasMoreHistory(data.hasMore || false);
+          setHistoryOffset(30);
           if (msgs.length === 0) sendInitialGreeting();
         } else {
           throw new Error('API error');
@@ -348,6 +355,44 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const greetingMessage = "Привет! Расскажи про себя!";
     await sendMessageToAI(greetingMessage);
+  };
+
+  const loadMoreHistory = async () => {
+    if (!selectedAssistant || loadingMore || !hasMoreHistory) return;
+    setLoadingMore(true);
+    try {
+      const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=${historyOffset}`);
+      if (response.ok) {
+        const data = await response.json();
+        const older = (data.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+        if (older.length > 0) {
+          const container = messagesContainerRef.current;
+          const prevHeight = container?.scrollHeight || 0;
+          setMessages(prev => [...older, ...prev]);
+          setHistoryOffset(prev => prev + 30);
+          setHasMoreHistory(data.hasMore || false);
+          // Restore scroll position after prepending
+          requestAnimationFrame(() => {
+            if (container) {
+              container.scrollTop = container.scrollHeight - prevHeight;
+            }
+          });
+        } else {
+          setHasMoreHistory(false);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading more history:', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const handleChatScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollTop < 100 && hasMoreHistory && !loadingMore) {
+      loadMoreHistory();
+    }
   };
 
 
@@ -1268,8 +1313,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div
         className="flex-1 overflow-y-auto px-4 space-y-4 min-h-0 pt-20 md:pt-4 pb-4"
         ref={messagesContainerRef}
+        onScroll={handleChatScroll}
         style={{ willChange: 'scroll-position' }}
       >
+        {loadingMore && (
+          <div className="flex items-center justify-center py-3">
+            <div className="w-5 h-5 border-2 border-forest-500 border-t-transparent rounded-full animate-spin" />
+            <span className="ml-2 text-xs text-gray-400">Загрузка истории...</span>
+          </div>
+        )}
+        {hasMoreHistory && !loadingMore && (
+          <div className="flex items-center justify-center py-2">
+            <button onClick={loadMoreHistory} className="text-xs text-forest-500 hover:text-forest-700">↑ Загрузить ещё</button>
+          </div>
+        )}
         {historyLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="w-6 h-6 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
