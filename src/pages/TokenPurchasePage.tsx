@@ -156,6 +156,7 @@ const TokenPurchasePage: React.FC = () => {
         const data = await response.json();
 
         if (data && data.confirmation_url) {
+          if (data.payment_id) localStorage.setItem('pending_payment_id', data.payment_id);
           window.location.href = data.confirmation_url;
         } else {
           throw new Error('Не получена ссылка на оплату');

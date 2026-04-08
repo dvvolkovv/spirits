@@ -14,8 +14,8 @@ const PaymentSuccessPage: React.FC = () => {
 
   useEffect(() => {
     const verifyPayment = async () => {
-      const userId = searchParams.get('user_id');
-      const paymentId = searchParams.get('payment_id');
+      const userId = searchParams.get('user_id') || user?.id || user?.phone;
+      const paymentId = searchParams.get('payment_id') || localStorage.getItem('pending_payment_id');
 
       console.log('=== Payment Verification Debug ===');
       console.log('URL params:', Object.fromEntries(searchParams.entries()));
@@ -29,12 +29,7 @@ const PaymentSuccessPage: React.FC = () => {
         return;
       }
 
-      if (!paymentId) {
-        setStatus('error');
-        setErrorMessage(`Недостаточно данных для проверки платежа (отсутствует payment_id).\n\nURL: ${window.location.href}\n\nБэкенд должен добавить payment_id в return_url:\nhttps://my.linkeon.io/payment/success?user_id=${userId}&payment_id=PAYMENT_ID`);
-        console.error('Payment ID not found in URL!');
-        return;
-      }
+      // If no payment_id in URL — still try to verify (backend will find latest payment)
 
       try {
         console.log('Sending payment verification request:', { payment_id: paymentId, user_id: userId });
@@ -49,11 +44,13 @@ const PaymentSuccessPage: React.FC = () => {
           const data = await response.json();
           console.log('Payment verification response data:', data);
 
-          if (data.yoo_status === 'succeeded' || data.db_status === 'succeeded') {
+          if (data.status === 'not_found') {
+            setStatus('error');
+            setErrorMessage('Оплата не завершена или отменена. Если вы оплатили, токены будут зачислены автоматически.');
+            setTimeout(() => navigate('/chat'), 5000);
+          } else if (data.status === 'succeeded' || data.yoo_status === 'succeeded' || data.db_status === 'succeeded') {
             setTokensAdded(data.tokens);
-            if (user) {
-              updateTokens((user.tokens || 0) + data.tokens);
-            }
+            // Don't manually update tokens — polling in AuthContext will pick up the new balance
             setStatus('success');
             localStorage.removeItem('pending_payment_id');
 

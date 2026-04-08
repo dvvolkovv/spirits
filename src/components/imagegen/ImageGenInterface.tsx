@@ -117,28 +117,6 @@ const ImageGenInterface: React.FC = () => {
           {/* Settings panel */}
           {showSettings && (
             <div className="bg-gray-50 rounded-xl p-4 space-y-4">
-              {/* Model */}
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-2">Модель</p>
-                <div className="flex flex-col gap-1.5">
-                  {IMAGE_MODELS.map(m => (
-                    <button
-                      key={m.value}
-                      onClick={() => set('model', m.value as ImageModel)}
-                      className={clsx(
-                        'flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm transition-colors text-left',
-                        settings.model === m.value
-                          ? 'border-forest-400 bg-forest-50 text-forest-700'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                      )}
-                    >
-                      <span className="font-medium">{m.label}</span>
-                      <span className="text-xs text-gray-400">{m.description}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Size */}
               <div>
                 <p className="text-xs font-medium text-gray-500 mb-2">Формат</p>

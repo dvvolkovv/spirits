@@ -48,13 +48,12 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setError(null);
 
     try {
+      // Map size to aspect_ratio for Kling API
+      const sizeToAspect: Record<string, string> = { '1024x1024': '1:1', '1792x1024': '16:9', '1024x1792': '9:16' };
       const response = await apiClient.post('/webhook/imagegen', {
         prompt: prompt.trim(),
-        negative_prompt: settings.negativePrompt || undefined,
-        model: settings.model,
-        size: settings.size,
         quality: settings.quality,
-        style: settings.style,
+        aspect_ratio: sizeToAspect[settings.size] || '1:1',
       });
 
       if (!response.ok) {
@@ -65,7 +64,7 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const data: ImageGenResponse = await response.json();
       const images = Array.isArray(data.images) ? data.images : [];
       if (images.length === 0) {
-        throw new Error('Модель не вернула изображений. Попробуйте другую модель.');
+        throw new Error('Не удалось сгенерировать изображение. Попробуйте ещё раз.');
       }
       setResults(prev => [...images, ...prev]);
       if (data.tokensSpent) {
