@@ -34,6 +34,7 @@ interface Message {
   isStreaming?: boolean;
   messageType?: 'text' | 'image';
   imageUrl?: string;
+  tokensUsed?: number;
 }
 
 interface ChatInterfaceProps {
@@ -772,6 +773,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       let lastUpdate = Date.now();
       const updateInterval = 50;
       let buffer = '';
+      let lastUsage: { total?: number } | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -798,6 +800,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 lastUpdate = now;
               }
             }
+            if (data.type === 'end' && data.usage) {
+              lastUsage = data.usage;
+            }
           } catch (e) {
             // Skip invalid JSON lines
           }
@@ -822,7 +827,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         type: 'assistant',
         content: accumulatedContent,
         timestamp: new Date(),
-        isStreaming: false
+        isStreaming: false,
+        tokensUsed: lastUsage?.total || undefined,
       };
       setMessages(prev => [...prev, completedMessage]);
       setStreamingMessageId(null);
@@ -1437,6 +1443,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   hour: '2-digit',
                   minute: '2-digit'
                 })}
+                {message.type === 'assistant' && message.tokensUsed ? (
+                  <span className="ml-2 text-gray-400">• {message.tokensUsed.toLocaleString('ru-RU')} токенов</span>
+                ) : null}
               </p>
             </div>
           </div>

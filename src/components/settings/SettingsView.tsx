@@ -228,7 +228,7 @@ const SettingsView: React.FC = () => {
           <div className="p-6">
             <div className="text-center text-sm text-gray-500">
               <p>{t('settings.version')} 1.0.0 (MVP)</p>
-              <p className="mt-1">© 2025 Близкие по Духу</p>
+              <p className="mt-1">© 2025 LINKEON.IO</p>
             </div>
           </div>
         </div>

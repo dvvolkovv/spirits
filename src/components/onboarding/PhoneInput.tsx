@@ -70,11 +70,14 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
               className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
             {t('onboarding.welcome')}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm font-semibold text-forest-600 uppercase tracking-wide mb-2">
             {t('onboarding.subtitle')}
+          </p>
+          <p className="text-xs text-gray-500">
+            где ИИ помогает, люди направляют, а партнёры ускоряют рост твоего бизнеса
           </p>
           <button
             type="button"

@@ -601,7 +601,7 @@ const SearchInterface: React.FC = () => {
           <div className="text-center py-12">
             <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Найдите людей, близких по духу
+              Найдите единомышленников для роста бизнеса
             </h3>
             <p className="text-gray-600">
               Введите запрос в поисковую строку, чтобы найти единомышленников
@@ -720,13 +720,7 @@ const SearchInterface: React.FC = () => {
                       >
                         {t('search.view_profile')}
                       </button>
-                      <button 
-                        onClick={() => handleChatClick(user)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                        title="Написать в Telegram"
-                      >
-                        <MessageCircle className="w-4 h-4 text-gray-600" />
-                      </button>
+                      {/* Telegram button hidden — use profile instead */}
                     </div>
                   </div>
                 </div>

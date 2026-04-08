@@ -248,13 +248,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
           >
             Закрыть
           </button>
-          <button
-            onClick={() => onStartChat(user)}
-            className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors flex items-center space-x-2"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>Написать в Telegram</span>
-          </button>
+          {/* Telegram hidden — contact through platform */}
         </div>
       </div>
     </div>

@@ -54,13 +54,7 @@ const Navigation: React.FC = () => {
     {
       to: '/search',
       icon: ArrowRight,
-      label: t('search.title'),
-      isLogo: false,
-    },
-    {
-      to: '/compatibility',
-      icon: Heart,
-      label: t('compatibility.title'),
+      label: 'Нетворкинг',
       isLogo: false,
     },
     {

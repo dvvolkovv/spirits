@@ -8,8 +8,7 @@ import ChatPage from './pages/ChatPage';
 import ChatsPage from './pages/ChatsPage';
 import ChatConversationPage from './pages/ChatConversationPage';
 import ProfileView from './components/profile/ProfileView';
-import SearchInterface from './components/search/SearchInterface';
-import CompatibilityPage from './pages/CompatibilityPage';
+import NetworkingPage from './pages/NetworkingPage';
 import AdminPage from './pages/AdminPage';
 import ReferralPage from './pages/ReferralPage';
 import ImageGenPage from './pages/ImageGenPage';
@@ -48,8 +47,8 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/profile" element={<ProfileView />} />
-          <Route path="/search" element={<SearchInterface />} />
-          <Route path="/compatibility" element={<CompatibilityPage />} />
+          <Route path="/search" element={<NetworkingPage />} />
+          <Route path="/compatibility" element={<Navigate to="/search" replace />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/referral" element={<ReferralPage />} />
           <Route path="/image-gen" element={<ImageGenPage />} />
