@@ -41,6 +41,9 @@ interface ChatInterfaceProps {
   title?: string;
   welcomeMessage?: string;
   initialShowTokens?: boolean;
+  preSelectedAssistant?: { id: number; name: string; description: string } | null;
+  onAssistantSelected?: (a: any) => void;
+  allAssistants?: any[];
 }
 
 const StreamingMessage = React.memo(({
@@ -151,7 +154,10 @@ const generateMessageId = (): string => {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   title,
   welcomeMessage,
-  initialShowTokens = false
+  initialShowTokens = false,
+  preSelectedAssistant,
+  onAssistantSelected,
+  allAssistants,
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -302,6 +308,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [assistantSwitchNotification, setAssistantSwitchNotification] = useState<string | null>(null);
   const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
+
+  // Sync with ChatLayout sidebar selection
+  useEffect(() => {
+    if (preSelectedAssistant && preSelectedAssistant.id !== selectedAssistant?.id) {
+      setSelectedAssistant(preSelectedAssistant as Assistant);
+      setHasUserSelectedAssistant(true);
+    }
+  }, [preSelectedAssistant?.id]);
 
   useEffect(() => {
     if (initialShowTokens) {
@@ -1169,6 +1183,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   if (!hasUserSelectedAssistant) {
+    // If ChatLayout provides sidebar, show empty state instead of cards
+    if (preSelectedAssistant !== undefined) {
+      return (
+        <div className="h-full flex items-center justify-center bg-gray-50">
+          <div className="text-center text-gray-400">
+            <p className="text-lg mb-2">Выберите ассистента</p>
+            <p className="text-sm">в панели слева</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="h-full flex flex-col overflow-hidden">
         <AssistantSelection
