@@ -291,6 +291,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isVoiceSupported, setIsVoiceSupported] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [fileTaskInput, setFileTaskInput] = useState('');
+  const [showFileTaskModal, setShowFileTaskModal] = useState(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [isLoadingAssistants, setIsLoadingAssistants] = useState(true);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(() => {
@@ -1015,10 +1018,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  const isUniversalAgent = selectedAssistant?.name === 'Роман';
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    if (isUniversalAgent) {
+      // For Роман — show task modal for any file type
+      setPendingFile(file);
+      setFileTaskInput('');
+      setShowFileTaskModal(true);
+      return;
+    }
+
+    // For other assistants — PDF only, scan-document flow
     if (file.type !== 'application/pdf') {
       alert('Пожалуйста, загрузите файл в формате PDF');
       return;
@@ -1027,8 +1043,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setIsUploadingFile(true);
 
     try {
-      const userId = user?.phone?.replace(/\D/g, '') || 'anonymous';
-
       const formData = new FormData();
       formData.append('file', file);
 
@@ -1036,92 +1050,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('File upload error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
+        console.error('File upload error:', { status: response.status, errorText });
         throw new Error(`Ошибка загрузки файла: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
-
-      const userMessage: Message = {
-        id: generateMessageId(),
-        type: 'user',
-        content: `Загружен файл: ${file.name}`,
-        timestamp: new Date()
-      };
-
       const profileData = result.output;
 
       let profileText = '📄 **Данные из документа обработаны:**\n\n';
-
-      if (profileData.name && profileData.family_name) {
-        profileText += `**Имя:** ${profileData.name} ${profileData.family_name}\n`;
+      if (profileData.name && profileData.family_name) profileText += `**Имя:** ${profileData.name} ${profileData.family_name}\n`;
+      for (const [key, label] of [['profile','Профиль'],['values','Ценности'],['skills','Навыки'],['beliefs','Убеждения'],['desires','Желания'],['interests','Интересы'],['intents','Поиск людей']] as const) {
+        if (profileData[key]?.length > 0) {
+          profileText += `\n**${label}:**\n`;
+          profileData[key].forEach((item: string) => { profileText += `• ${item}\n`; });
+        }
       }
 
-      if (profileData.profile && profileData.profile.length > 0) {
-        profileText += '\n**Профиль:**\n';
-        profileData.profile.forEach((item: string) => {
-          profileText += `• ${item}\n`;
-        });
-      }
+      const userMessage: Message = { id: generateMessageId(), type: 'user', content: `Загружен файл: ${file.name}`, timestamp: new Date() };
+      setMessages(prev => [...prev, userMessage]);
 
-      if (profileData.values && profileData.values.length > 0) {
-        profileText += '\n**Ценности:**\n';
-        profileData.values.forEach((item: string) => {
-          profileText += `• ${item}\n`;
-        });
-      }
-
-      if (profileData.skills && profileData.skills.length > 0) {
-        profileText += '\n**Навыки:**\n';
-        profileData.skills.forEach((item: string) => {
-          profileText += `• ${item}\n`;
-        });
-      }
-
-      if (profileData.beliefs && profileData.beliefs.length > 0) {
-        profileText += '\n**Убеждения:**\n';
-        profileData.beliefs.forEach((item: string) => {
-          profileText += `• ${item}\n`;
-        });
-      }
-
-      if (profileData.desires && profileData.desires.length > 0) {
-        profileText += '\n**Желания:**\n';
-        profileData.desires.forEach((item: string) => {
-          profileText += `• ${item}\n`;
-        });
-      }
-
-      if (profileData.interests && profileData.interests.length > 0) {
-        profileText += '\n**Интересы:**\n';
-        profileData.interests.forEach((item: string) => {
-          profileText += `• ${item}\n`;
-        });
-      }
-
-      if (profileData.intents && profileData.intents.length > 0) {
-        profileText += '\n**Поиск людей:**\n';
-        profileData.intents.forEach((item: string) => {
-          profileText += `• ${item}\n`;
-        });
-      }
-
-      const assistantMessage: Message = {
-        id: generateMessageId(),
-        type: 'assistant',
-        content: profileText,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      await sendMessageToAI('В последнем сообщении выжимка из файла');
+      const prompt = `Пользователь загрузил документ "${file.name}". Вот извлечённые данные:\n\n${profileText}\n\nЧто ты можешь предложить сделать с этой информацией?`;
+      await sendMessageToAI(prompt);
 
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -1129,9 +1078,104 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       alert(`Произошла ошибка при загрузке файла: ${errorMessage}. Попробуйте еще раз.`);
     } finally {
       setIsUploadingFile(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileTaskSubmit = async () => {
+    if (!pendingFile || !fileTaskInput.trim()) return;
+
+    setShowFileTaskModal(false);
+    const file = pendingFile;
+    const task = fileTaskInput.trim();
+    setPendingFile(null);
+    setFileTaskInput('');
+
+    const userMessage: Message = { id: generateMessageId(), type: 'user', content: `📎 ${file.name}\n\n${task}`, timestamp: new Date() };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Check if text file — send inline, otherwise upload via multipart
+    const textTypes = ['text/', 'application/json', 'application/xml', 'application/csv', 'text/csv'];
+    const isTextFile = (textTypes.some(t => file.type.startsWith(t)) || !!file.name.match(/\.(txt|csv|json|xml|md|html|css|js|ts|py|sh|yaml|yml|toml|ini|cfg|log|sql)$/i)) && file.size < 500000;
+
+    if (isTextFile) {
+      try {
+        const text = await file.text();
+        const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
+        await sendMessageToAI(prompt);
+      } catch {
+        await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
       }
+      return;
+    }
+
+    // Binary file — upload to server via multipart endpoint
+    setIsTyping(true);
+    const assistantMsgId = generateMessageId();
+    setStreamingMessageId(assistantMsgId);
+    setCurrentStreamingMessage('');
+
+    try {
+      await apiClient.refreshTokenIfNeeded();
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('message', task);
+      formData.append('assistantId', String(selectedAssistant?.id || 'Роман'));
+
+      const response = await apiClient.post('/webhook/agent/upload-and-chat', formData);
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body reader');
+
+      let accumulatedContent = '';
+      let buffer = '';
+      let lastTokensUsed = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += new TextDecoder().decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const event = JSON.parse(line);
+            if (event.type === 'item' && event.content) {
+              accumulatedContent += event.content;
+              setCurrentStreamingMessage(accumulatedContent);
+            } else if (event.type === 'end') {
+              accumulatedContent = event.content || accumulatedContent;
+              lastTokensUsed = event.usage?.total || 0;
+            }
+          } catch {}
+        }
+      }
+
+      const assistantMsg: Message = {
+        id: assistantMsgId,
+        type: 'assistant',
+        content: accumulatedContent,
+        timestamp: new Date(),
+        tokensUsed: lastTokensUsed,
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+    } catch (error) {
+      const errMsg: Message = {
+        id: assistantMsgId,
+        type: 'assistant',
+        content: 'Произошла ошибка при обработке файла. Попробуйте ещё раз.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errMsg]);
+    } finally {
+      setIsTyping(false);
+      setStreamingMessageId(null);
+      setCurrentStreamingMessage('');
     }
   };
 
@@ -1171,6 +1215,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setSelectedAssistant(assistant);
     localStorage.setItem('selected_assistant', JSON.stringify(assistant));
     setShowAssistantDropdown(false);
+    // Sync with ChatLayout sidebar
+    if (onAssistantSelected) onAssistantSelected(assistant);
 
     await changeAgentOnServer(assistant.name);
 
@@ -1505,7 +1551,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf"
+            accept={isUniversalAgent ? '*/*' : '.pdf'}
             onChange={handleFileUpload}
             className="hidden"
           />
@@ -1519,7 +1565,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
             )}
-            title="Загрузить PDF файл"
+            title={isUniversalAgent ? 'Загрузить файл' : 'Загрузить PDF файл'}
           >
             {isUploadingFile ? (
               <div className="w-5 h-5 border-2 border-gray-400 border-t-forest-600 rounded-full animate-spin" />
@@ -1582,6 +1628,51 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
       </div>
       </div>
+
+      {/* File task modal for Роман */}
+      {showFileTaskModal && pendingFile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5">
+            <h3 className="text-lg font-semibold mb-2">Загрузка файла</h3>
+            <div className="bg-gray-50 rounded-lg p-3 mb-3 flex items-center gap-2">
+              <span className="text-xl">📎</span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{pendingFile.name}</p>
+                <p className="text-xs text-gray-500">{(pendingFile.size / 1024).toFixed(1)} KB</p>
+              </div>
+            </div>
+            <textarea
+              value={fileTaskInput}
+              onChange={(e) => setFileTaskInput(e.target.value)}
+              placeholder="Что сделать с этим файлом? Например: проанализируй, переделай, сожми, извлеки текст..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent mb-3"
+              rows={3}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleFileTaskSubmit();
+                }
+              }}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowFileTaskModal(false); setPendingFile(null); }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleFileTaskSubmit}
+                disabled={!fileTaskInput.trim()}
+                className="flex-1 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Отправить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
