@@ -1546,7 +1546,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t px-4 py-3 flex-shrink-0">
+      <div className="bg-white border-t px-4 py-3 pb-20 md:pb-3 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <input
             ref={fileInputRef}

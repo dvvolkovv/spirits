@@ -2,7 +2,7 @@ import { tokenManager } from '../utils/tokenManager';
 import { apiClient } from './apiClient';
 import { AuthResponse, RefreshResponse, SMSResponse } from '../types/auth';
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://travel-n8n.up.railway.app';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 class AuthService {
   async requestSMSCode(phone: string): Promise<SMSResponse> {

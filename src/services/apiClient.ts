@@ -12,7 +12,7 @@ class APIClient {
   private pendingRequests: Array<() => void> = [];
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_BACKEND_URL || 'https://travel-n8n.up.railway.app';
+    this.baseURL = import.meta.env.VITE_BACKEND_URL || '';
   }
 
   private isProtectedEndpoint(url: string): boolean {

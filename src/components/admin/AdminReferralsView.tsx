@@ -160,7 +160,7 @@ const AdminReferralsView: React.FC = () => {
     }
   };
 
-  const copyLink = (slug: string) => navigator.clipboard.writeText(`https://my.linkeon.io/?ref=${slug}`);
+  const copyLink = (slug: string) => navigator.clipboard.writeText(`${window.location.origin}/?ref=${slug}`);
   const formatRub = (n: number) => n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
   const formatDate = (d: string) => new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
