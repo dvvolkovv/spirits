@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
-import { parseCustomMarkdown, createButtonComponent, createLinkComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
+import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { avatarService } from '../../services/avatarService';
 import { apiClient } from '../../services/apiClient';
 import { useVideoJobs } from '../video/useVideoJobs';
@@ -60,15 +60,16 @@ const StreamingMessage = React.memo(({
   onButtonClick: (action: string) => void;
   onLinkClick: (url: string) => void;
 }) => {
-  const { content: parsedContent, buttons, links } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
+    const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -99,6 +100,16 @@ const StreamingMessage = React.memo(({
           parts.push(
             <span key={`link-${idx}`}>
               {createLinkComponent(linkConfig, onLinkClick)}
+            </span>
+          );
+        }
+      } else if (match[0].startsWith('__VIDEO_')) {
+        const videoId = match[1];
+        const videoSrc = videos.get(`video_${videoId}`);
+        if (videoSrc) {
+          parts.push(
+            <span key={`video-${idx}`}>
+              {createVideoComponent(videoSrc, `v-${idx}`)}
             </span>
           );
         }
@@ -1478,13 +1489,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               ) : message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
-                    const { content: parsedContent, buttons, links } = parseCustomMarkdown(message.content);
+                    const { content: parsedContent, buttons, links, videos } = parseCustomMarkdown(message.content);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
                     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
+                    const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -1515,6 +1527,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           parts.push(
                             <span key={`link-${idx}`}>
                               {createLinkComponent(linkConfig, handleLinkNavigation)}
+                            </span>
+                          );
+                        }
+                      } else if (match[0].startsWith('__VIDEO_')) {
+                        const videoId = match[1];
+                        const videoSrc = videos.get(`video_${videoId}`);
+                        if (videoSrc) {
+                          parts.push(
+                            <span key={`video-${idx}`}>
+                              {createVideoComponent(videoSrc, `v-hist-${idx}`)}
                             </span>
                           );
                         }
