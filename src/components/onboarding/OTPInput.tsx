@@ -152,7 +152,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
   const maskedPhone = phone.replace(/(\+7)(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 ($2) ***-**-$5');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-forest-50 flex items-center justify-center p-4">
+    <div data-testid="otp-root" className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-forest-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back Button */}
         <button
@@ -195,6 +195,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
                 onChange={(e) => handleInputChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={handlePaste}
+                data-testid={`otp-input-${index}`}
                 className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-colors"
                 disabled={isLoading}
                 autoComplete={index === 0 ? 'one-time-code' : 'off'}

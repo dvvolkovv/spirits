@@ -156,7 +156,6 @@ const TokenPurchasePage: React.FC = () => {
         const data = await response.json();
 
         if (data && data.confirmation_url) {
-          if (data.payment_id) localStorage.setItem('pending_payment_id', data.payment_id);
           window.location.href = data.confirmation_url;
         } else {
           throw new Error('Не получена ссылка на оплату');
@@ -174,7 +173,7 @@ const TokenPurchasePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-white to-warm-50 relative">
+    <div data-testid="token-packages-root" className="min-h-screen bg-gradient-to-br from-forest-50 via-white to-warm-50 relative">
       {showToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
           <div className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
@@ -221,6 +220,7 @@ const TokenPurchasePage: React.FC = () => {
               </label>
               <input
                 ref={emailInputRef}
+                data-testid="token-email-input"
                 type="email"
                 value={email}
                 onChange={(e) => {
@@ -258,6 +258,7 @@ const TokenPurchasePage: React.FC = () => {
               {packages.map((pkg) => (
                 <div
                   key={pkg.id}
+                  data-testid={`token-package-${pkg.id}`}
                   className={`relative rounded-xl border-2 p-6 transition-all duration-200 ${
                     selectedPackage === pkg.id
                       ? 'border-forest-600 shadow-xl scale-105'
@@ -309,6 +310,7 @@ const TokenPurchasePage: React.FC = () => {
                   <button
                     onClick={() => handlePurchase(pkg.id)}
                     disabled={isProcessing || !phone}
+                    data-testid="token-buy-btn"
                     className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 ${
                       pkg.popular
                         ? 'bg-gradient-to-r from-forest-600 to-warm-600 text-white hover:from-forest-700 hover:to-warm-700 shadow-md hover:shadow-lg'

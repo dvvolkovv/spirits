@@ -147,7 +147,7 @@ const AdminAssistantsView: React.FC = () => {
                 Ассистенты не найдены
               </p>
             ) : (
-              <div className="space-y-2">
+              <div data-testid="admin-assistants-list" className="space-y-2">
                 {agents.map((agent) => (
                   <button
                     key={agent.id}

@@ -1314,7 +1314,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <TokenPackages onClose={() => setShowTokenPackages(false)} />
       )}
 
-      <div className="flex flex-col h-full bg-gray-50 relative">
+      <div className="flex flex-col h-full bg-gray-50 relative" data-testid="chat-root">
         {/* Уведомление о смене ассистента */}
         {assistantSwitchNotification && (
           <div className="fixed top-20 md:top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
@@ -1337,6 +1337,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             ) : selectedAssistant ? (
               <>
                 <button
+                  data-testid="assistant-dropdown-btn"
                   onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
                   className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
                 >
@@ -1363,7 +1364,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </button>
 
                 {showAssistantDropdown && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
+                  <div data-testid="assistant-dropdown-list" className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
                     <div className="py-1">
                       {[...assistants].sort((a, b) => {
                         const order = { assistant: 0, business: 1, personal: 2 };
@@ -1448,6 +1449,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ref={messagesContainerRef}
         onScroll={handleChatScroll}
         style={{ willChange: 'scroll-position' }}
+        data-testid="chat-messages-list"
       >
         {loadingMore && (
           <div className="flex items-center justify-center py-3">
@@ -1467,6 +1469,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ) : messages.map((message) => (
           <div
             key={message.id}
+            data-testid="chat-message"
             className={clsx(
               'flex',
               message.type === 'user' ? 'justify-end' : 'justify-start'
@@ -1654,6 +1657,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               rows={1}
               style={{ minHeight: '40px', maxHeight: '200px' }}
+              data-testid="chat-input"
             />
           </div>
 
@@ -1682,6 +1686,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <button
             onClick={handleSend}
             disabled={!input.trim() || isTyping}
+            data-testid="chat-send-btn"
             className={clsx(
               'p-2 rounded-lg transition-colors',
               input.trim() && !isTyping

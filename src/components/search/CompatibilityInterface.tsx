@@ -232,7 +232,7 @@ const CompatibilityInterface: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div data-testid="compatibility-root" className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
         <div className="flex items-center space-x-3">
           <Heart className="w-6 h-6 text-red-500" />
@@ -285,6 +285,7 @@ const CompatibilityInterface: React.FC = () => {
                   placeholder="+7 (900) 123-45-67"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-all"
                   maxLength={18}
+                  data-testid="compatibility-phone-input"
                 />
                 {phoneError && (
                   <p className="text-red-600 text-sm mt-1">{phoneError}</p>
@@ -322,6 +323,7 @@ const CompatibilityInterface: React.FC = () => {
             <button
               onClick={handleAnalyzeCompatibility}
               disabled={phoneNumbers.length === 0 || isSearching}
+              data-testid="compatibility-submit-btn"
               className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center space-x-2"
             >
               {isSearching ? (
@@ -340,7 +342,7 @@ const CompatibilityInterface: React.FC = () => {
         </div>
 
         {analysisResult && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div data-testid="compatibility-result" className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Результат анализа
             </h2>

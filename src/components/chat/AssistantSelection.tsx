@@ -29,6 +29,7 @@ const getRoleForAssistant = (description: string): string => {
 const AssistantCard: React.FC<{ assistant: Assistant; avatarUrl?: string; onSelect: (a: Assistant) => void }> = ({ assistant, avatarUrl, onSelect }) => (
   <button
     onClick={() => onSelect(assistant)}
+    data-testid="assistant-card"
     className="group bg-white rounded-2xl p-4 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 hover:scale-105 active:scale-95 text-left"
   >
     <div className="flex flex-col items-center text-center">
@@ -97,7 +98,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
   }
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-start bg-gradient-to-br from-blue-50 via-white to-pink-50 overflow-y-auto p-4 md:p-6">
+    <div className="h-full w-full flex flex-col items-center justify-start bg-gradient-to-br from-blue-50 via-white to-pink-50 overflow-y-auto p-4 md:p-6" data-testid="assistant-selection">
       <div className="w-full max-w-4xl mx-auto pb-24 md:pb-6">
         <div className="text-center mb-6 mt-4 md:mb-8 md:mt-8">
           <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full mb-3 md:mb-4 shadow-lg">

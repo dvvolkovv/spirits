@@ -36,7 +36,7 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
       const data = await response.json();
 
       if (data.success) {
-        setSuccess({ tokens: data.tokens_granted });
+        setSuccess({ tokens: data.tokens_granted ?? data.tokens_added ?? 0 });
         setCode('');
         await refreshTokens();
         onSuccess?.();
@@ -52,10 +52,10 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
 
   if (success) {
     return (
-      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+      <div data-testid="coupon-root" className="p-4 bg-green-50 rounded-lg border border-green-200">
         <div className="flex items-center space-x-2 text-green-700">
           <CheckCircle className="w-5 h-5" />
-          <span className="font-medium">
+          <span data-testid="coupon-success-msg" className="font-medium">
             Начислено {success.tokens.toLocaleString('ru-RU')} токенов!
           </span>
         </div>
@@ -64,13 +64,14 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
   }
 
   return (
-    <div className="p-4 bg-warm-50 rounded-lg border border-warm-200">
+    <div data-testid="coupon-root" className="p-4 bg-warm-50 rounded-lg border border-warm-200">
       <div className="flex items-center space-x-2 mb-3">
         <Ticket className="w-5 h-5 text-warm-600" />
         <span className="text-sm font-medium text-gray-700">Есть купон?</span>
       </div>
       <div className="flex space-x-2">
         <input
+          data-testid="coupon-input"
           type="text"
           value={code}
           onChange={(e) => {
@@ -85,6 +86,7 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
         />
         <button
+          data-testid="coupon-submit-btn"
           onClick={handleSubmit}
           disabled={isLoading || !code.trim()}
           className="px-4 py-2 bg-forest-600 text-white rounded-lg text-sm font-medium hover:bg-forest-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
@@ -97,7 +99,7 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
         </button>
       </div>
       {error && (
-        <p className="mt-2 text-sm text-red-600">{error}</p>
+        <p data-testid="coupon-error-msg" className="mt-2 text-sm text-red-600">{error}</p>
       )}
     </div>
   );

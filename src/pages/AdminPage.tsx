@@ -31,12 +31,13 @@ const AdminPage: React.FC = () => {
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div data-testid="admin-root" className="h-screen flex flex-col bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-4 flex-shrink-0">
         <div className="flex space-x-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              data-testid={`admin-tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={clsx(
                 'px-4 py-3 text-sm font-medium border-b-2 transition-colors',

@@ -66,8 +66,10 @@ const AdminCouponsView: React.FC = () => {
       });
       if (!response.ok) throw new Error(`Ошибка создания: ${response.status}`);
       const data = await response.json();
-      if (data.success && data.coupon) {
-        setCoupons([data.coupon, ...coupons]);
+      // API returns coupon object directly, or { success, coupon } wrapper
+      const coupon = data.coupon ?? (data.id ? data : null);
+      if (coupon) {
+        setCoupons([coupon, ...coupons]);
         setNewCode('');
         setNewTokenAmount(60000);
         setShowCreateForm(false);
@@ -240,7 +242,7 @@ const AdminCouponsView: React.FC = () => {
         {/* Right: detail or create form */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {showCreateForm ? (
-            <div className="p-6">
+            <div data-testid="admin-coupon-form" className="p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Новый купон</h2>
               <div className="max-w-md space-y-4">
                 <div>
@@ -248,6 +250,7 @@ const AdminCouponsView: React.FC = () => {
                     Код купона
                   </label>
                   <input
+                    data-testid="admin-coupon-code-input"
                     type="text"
                     value={newCode}
                     onChange={(e) => setNewCode(e.target.value.toUpperCase())}
@@ -260,6 +263,7 @@ const AdminCouponsView: React.FC = () => {
                     Количество токенов
                   </label>
                   <input
+                    data-testid="admin-coupon-tokens-input"
                     type="number"
                     value={newTokenAmount}
                     onChange={(e) => setNewTokenAmount(parseInt(e.target.value) || 0)}
@@ -268,6 +272,7 @@ const AdminCouponsView: React.FC = () => {
                 </div>
                 <div className="flex space-x-2">
                   <button
+                    data-testid="admin-coupon-create-btn"
                     onClick={handleCreate}
                     disabled={isCreating || !newCode.trim()}
                     className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50 flex items-center"

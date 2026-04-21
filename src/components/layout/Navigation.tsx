@@ -138,7 +138,7 @@ const Navigation: React.FC = () => {
         <LegalModal isOpen={true} onClose={() => setShowLegal(null)} type={showLegal} />
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50 md:overflow-y-auto">
+      <nav data-testid="nav-root" className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50 md:overflow-y-auto">
         {/* Logo — desktop only */}
         <a href="/profile" className="hidden md:flex items-center gap-2 px-4 pt-3 pb-1 hover:opacity-70 transition-opacity">
           <img src="/logo-Photoroom.png" alt="LINKEON.IO" className="w-6 h-6 object-contain opacity-70" />
@@ -185,10 +185,12 @@ const Navigation: React.FC = () => {
       <div className="flex justify-around md:flex-col md:space-y-2 md:p-4">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const navTestId = `nav-item-${item.to.replace('/', '')}`;
           return (
             <NavLink
               key={item.to}
               to={item.to}
+              data-testid={navTestId}
               className={({ isActive }) =>
                 clsx(
                   'flex flex-col items-center justify-center px-3 py-2 rounded-lg transition-colors duration-200',

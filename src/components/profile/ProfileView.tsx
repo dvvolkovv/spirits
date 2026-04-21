@@ -340,7 +340,7 @@ const ProfileView: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div data-testid="profile-root" className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -362,6 +362,7 @@ const ProfileView: React.FC = () => {
             {isEditing && (
               <button
                 onClick={handleCancel}
+                data-testid="profile-cancel-btn"
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 {t('profile.cancel')}
@@ -369,6 +370,7 @@ const ProfileView: React.FC = () => {
             )}
             <button
               onClick={isEditing ? handleSave : handleEdit}
+              data-testid={isEditing ? 'profile-save-btn' : 'profile-edit-btn'}
               className={clsx(
                 'px-4 py-2 rounded-lg font-medium transition-colors',
                 isEditing
@@ -429,13 +431,13 @@ const ProfileView: React.FC = () => {
             </div>
             
             <div className="text-center">
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 data-testid="profile-name" className="text-xl font-bold text-gray-900">
                 {getUserDisplayName()}
               </h2>
               {profileData?.user_nickname && (
                 <p className="text-sm text-gray-500">@{profileData.user_nickname}</p>
               )}
-              <p className="text-sm text-gray-600">{user?.phone}</p>
+              <p data-testid="profile-phone" className="text-sm text-gray-600">{user?.phone}</p>
             </div>
             
             <label className="flex items-center space-x-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
@@ -467,7 +469,7 @@ const ProfileView: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-baseline">
-              <span className="text-4xl font-bold text-forest-700">
+              <span data-testid="profile-token-balance" className="text-4xl font-bold text-forest-700">
                 {user?.tokens !== undefined ? user.tokens : 0}
               </span>
               <span className="text-lg text-gray-600 ml-2">токенов</span>
@@ -506,6 +508,7 @@ const ProfileView: React.FC = () => {
                 </label>
                 <input
                   type="text"
+                  data-testid="profile-name-input"
                   value={editingInfo.firstName}
                   onChange={(e) => setEditingInfo(prev => ({ ...prev, firstName: e.target.value }))}
                   placeholder={t('profile.first_name_placeholder')}
@@ -519,6 +522,7 @@ const ProfileView: React.FC = () => {
                 </label>
                 <input
                   type="text"
+                  data-testid="profile-lastname-input"
                   value={editingInfo.lastName}
                   onChange={(e) => setEditingInfo(prev => ({ ...prev, lastName: e.target.value }))}
                   placeholder={t('profile.last_name_placeholder')}

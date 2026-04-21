@@ -59,7 +59,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
   const canSubmit = isValidPhone && allConsents && !isLoading;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-forest-50 flex items-center justify-center p-4">
+    <div data-testid="onboarding-root" className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-forest-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -70,14 +70,11 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
               className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
             {t('onboarding.welcome')}
           </h1>
-          <p className="text-sm font-semibold text-forest-600 uppercase tracking-wide mb-2">
+          <p className="text-gray-600">
             {t('onboarding.subtitle')}
-          </p>
-          <p className="text-xs text-gray-500">
-            где ИИ помогает, люди направляют, а партнёры ускоряют рост твоего бизнеса
           </p>
           <button
             type="button"
@@ -103,6 +100,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
                   required: true,
                   onChange: handlePhoneChange
                 })}
+                data-testid="phone-input"
                 placeholder={t('onboarding.phone_placeholder')}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-lg"
                 autoFocus
@@ -120,6 +118,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
                 <input
                   type="checkbox"
                   {...register('allConsents', { required: true })}
+                  data-testid="consent-checkbox"
                   className="mt-1 w-4 h-4 text-forest-600 border-gray-300 rounded focus:ring-forest-500"
                 />
                 <span className="text-sm text-gray-700 leading-relaxed">
@@ -147,6 +146,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
             {/* Submit Button */}
             <button
               type="submit"
+              data-testid="phone-submit-btn"
               disabled={!canSubmit}
               className={clsx(
                 'w-full px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200',

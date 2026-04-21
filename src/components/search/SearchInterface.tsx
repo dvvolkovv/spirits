@@ -178,26 +178,13 @@ const SearchInterface: React.FC = () => {
       let searchResultFound = false;
       let jsonBuffer = '';
 
-      let streamBuffer = '';
       while (true) {
         const { done, value } = await reader.read();
-
-        if (done) {
-          if (streamBuffer.trim()) {
-            try {
-              const data = JSON.parse(streamBuffer);
-              if (data.type === 'item' && data.content) {
-                accumulatedText += data.content;
-              }
-            } catch (e) { /* ignore */ }
-          }
-          break;
-        }
-
-        streamBuffer += new TextDecoder().decode(value);
-        const rawLines = streamBuffer.split('\n');
-        streamBuffer = rawLines.pop() || '';
-        const lines = rawLines.filter(line => line.trim());
+        
+        if (done) break;
+        
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim());
         
         for (const line of lines) {
           try {
@@ -418,7 +405,7 @@ const SearchInterface: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div data-testid="search-root" className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
         <h1 className="text-xl font-bold text-gray-900 mb-4">
@@ -501,6 +488,7 @@ const SearchInterface: React.FC = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
+                data-testid="search-input"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -510,6 +498,7 @@ const SearchInterface: React.FC = () => {
               />
             </div>
             <button
+              data-testid="search-submit-btn"
               onClick={handleSearch}
               disabled={isSearching}
               className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
@@ -601,7 +590,7 @@ const SearchInterface: React.FC = () => {
           <div className="text-center py-12">
             <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Найдите единомышленников для роста бизнеса
+              Найдите людей, близких по духу
             </h3>
             <p className="text-gray-600">
               Введите запрос в поисковую строку, чтобы найти единомышленников
@@ -612,6 +601,7 @@ const SearchInterface: React.FC = () => {
             {results.map((user) => (
               <div
                 key={user.id}
+                data-testid="search-result-item"
                 className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-4">
@@ -720,7 +710,13 @@ const SearchInterface: React.FC = () => {
                       >
                         {t('search.view_profile')}
                       </button>
-                      {/* Telegram button hidden — use profile instead */}
+                      <button 
+                        onClick={() => handleChatClick(user)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        title="Написать в Telegram"
+                      >
+                        <MessageCircle className="w-4 h-4 text-gray-600" />
+                      </button>
                     </div>
                   </div>
                 </div>
