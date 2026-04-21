@@ -14,7 +14,8 @@ import {
   Coins,
   Plus,
   Handshake,
-  ImageIcon
+  ImageIcon,
+  Film,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -61,6 +62,12 @@ const Navigation: React.FC = () => {
       to: '/image-gen',
       icon: ImageIcon,
       label: 'Картинки',
+      isLogo: false,
+    },
+    {
+      to: '/video',
+      icon: Film,
+      label: t('video.navTitle'),
       isLogo: false,
     },
     {

@@ -7,9 +7,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
-import { parseCustomMarkdown, createButtonComponent, createLinkComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
+import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { avatarService } from '../../services/avatarService';
 import { apiClient } from '../../services/apiClient';
+import { useVideoJobs } from '../video/useVideoJobs';
+import VideoJobCard from '../video/VideoJobCard';
 
 interface Assistant {
   id: number;
@@ -35,6 +37,7 @@ interface Message {
   messageType?: 'text' | 'image';
   imageUrl?: string;
   tokensUsed?: number;
+  inlineJobIds?: string[];
 }
 
 interface ChatInterfaceProps {
@@ -57,15 +60,16 @@ const StreamingMessage = React.memo(({
   onButtonClick: (action: string) => void;
   onLinkClick: (url: string) => void;
 }) => {
-  const { content: parsedContent, buttons, links } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
+    const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -96,6 +100,16 @@ const StreamingMessage = React.memo(({
           parts.push(
             <span key={`link-${idx}`}>
               {createLinkComponent(linkConfig, onLinkClick)}
+            </span>
+          );
+        }
+      } else if (match[0].startsWith('__VIDEO_')) {
+        const videoId = match[1];
+        const videoSrc = videos.get(`video_${videoId}`);
+        if (videoSrc) {
+          parts.push(
+            <span key={`video-${idx}`}>
+              {createVideoComponent(videoSrc, `v-${idx}`)}
             </span>
           );
         }
@@ -149,6 +163,25 @@ StreamingMessage.displayName = 'StreamingMessage';
 // Функция для генерации уникальных ID сообщений
 const generateMessageId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+};
+
+const InlineVideoCards = ({ ids }: { ids: string[] }) => {
+  const { jobs } = useVideoJobs();
+  if (!ids.length) return null;
+  return (
+    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {ids.map((id, i) => {
+        if (id === 'pending') {
+          return <div key={`p-${i}`} className="aspect-video rounded-xl bg-gray-200 animate-pulse" />;
+        }
+        const job = jobs.find((j) => j.id === id);
+        if (!job) {
+          return <div key={id} className="aspect-video rounded-xl bg-gray-100" />;
+        }
+        return <VideoJobCard key={id} job={job} compact />;
+      })}
+    </div>
+  );
 };
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -787,6 +820,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       let accumulatedContent = '';
+      const inlineJobIds: string[] = [];
       let lastUpdate = Date.now();
       const updateInterval = 50;
       let buffer = '';
@@ -820,6 +854,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (data.type === 'end' && data.usage) {
               lastUsage = data.usage;
             }
+            if (data.type === 'tool_start' && data.tool === 'generate_video') {
+              inlineJobIds.push('pending');
+            }
+            if (data.type === 'tool_result' && data.tool === 'generate_video') {
+              const idx = inlineJobIds.lastIndexOf('pending');
+              if (idx >= 0) {
+                if (data.result?.ok && data.result?.kind === 'video' && data.result?.jobId) {
+                  inlineJobIds[idx] = data.result.jobId;
+                } else {
+                  inlineJobIds.splice(idx, 1);
+                  const msg = data.result?.error ? `\n\n*Не удалось сгенерировать видео: ${data.result.error}*` : '';
+                  accumulatedContent += msg;
+                }
+              }
+            }
           } catch (e) {
             // Skip invalid JSON lines
           }
@@ -846,6 +895,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         timestamp: new Date(),
         isStreaming: false,
         tokensUsed: lastUsage?.total || undefined,
+        inlineJobIds: inlineJobIds.length > 0 ? [...inlineJobIds] : undefined,
       };
       setMessages(prev => [...prev, completedMessage]);
       setStreamingMessageId(null);
@@ -1439,13 +1489,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               ) : message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
-                    const { content: parsedContent, buttons, links } = parseCustomMarkdown(message.content);
+                    const { content: parsedContent, buttons, links, videos } = parseCustomMarkdown(message.content);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
                     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
+                    const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -1479,6 +1530,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             </span>
                           );
                         }
+                      } else if (match[0].startsWith('__VIDEO_')) {
+                        const videoId = match[1];
+                        const videoSrc = videos.get(`video_${videoId}`);
+                        if (videoSrc) {
+                          parts.push(
+                            <span key={`video-${idx}`}>
+                              {createVideoComponent(videoSrc, `v-hist-${idx}`)}
+                            </span>
+                          );
+                        }
                       }
 
                       lastIndex = matchIndex + match[0].length;
@@ -1502,6 +1563,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
               ) : (
                 <p className="text-sm leading-relaxed">{message.content}</p>
+              )}
+              {message.type === 'assistant' && message.inlineJobIds && message.inlineJobIds.length > 0 && (
+                <InlineVideoCards ids={message.inlineJobIds} />
               )}
               {message.isStreaming && (
                 <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />

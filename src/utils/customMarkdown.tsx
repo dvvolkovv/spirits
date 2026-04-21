@@ -16,14 +16,17 @@ export interface LinkConfig {
 
 const BUTTON_REGEX = /\{\{button:\s*([^|]+?)(?:\s*\|\s*action:\s*([^|]+?))?(?:\s*\|\s*variant:\s*([^|]+?))?(?:\s*\|\s*icon:\s*([^}]+?))?\}\}/g;
 const LINK_REGEX = /\{\{link:\s*([^|]+?)\s*\|\s*url:\s*([^}]+?)\}\}/g;
+const VIDEO_URL_REGEX = /https?:\/\/\S+?\.(?:mp4|webm)(?:\?\S*)?/gi;
 
 export const parseCustomMarkdown = (content: string): {
   content: string;
   buttons: Map<string, ButtonConfig>;
   links: Map<string, LinkConfig>;
+  videos: Map<string, string>;
 } => {
   const buttons = new Map<string, ButtonConfig>();
   const links = new Map<string, LinkConfig>();
+  const videos = new Map<string, string>();
 
   let parsedContent = content;
 
@@ -49,7 +52,24 @@ export const parseCustomMarkdown = (content: string): {
     return `__LINK_${linkId}__`;
   });
 
-  return { content: parsedContent, buttons, links };
+  parsedContent = parsedContent.replace(VIDEO_URL_REGEX, (match) => {
+    const videoId = `video_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    videos.set(videoId, match);
+    return `__VIDEO_${videoId}__`;
+  });
+
+  return { content: parsedContent, buttons, links, videos };
+};
+
+export const createVideoComponent = (src: string, key?: string): React.ReactNode => {
+  return (
+    <video
+      key={key}
+      src={src}
+      controls
+      className="my-2 max-w-full rounded-lg"
+    />
+  );
 };
 
 export const getButtonStyles = (variant: ButtonConfig['variant'] = 'primary'): string => {

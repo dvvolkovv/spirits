@@ -103,6 +103,46 @@
     "delete_account": "Delete account",
     "version": "App version"
   },
+  "video": {
+    "navTitle": "Video",
+    "pageTitle": "Video generation",
+    "tabs": { "create": "Create", "gallery": "My videos" },
+    "mode": {
+      "label": "Mode",
+      "text2video": "Text → Video",
+      "image2video": "Image → Video",
+      "extend": "Extend",
+      "lipsync": "Lip-sync"
+    },
+    "model": { "label": "Model", "standard": "Standard (v1.6)", "premium": "Premium (v2 Master)" },
+    "quality": { "label": "Quality", "std": "Standard", "pro": "Pro" },
+    "duration": { "label": "Duration", "5s": "5 seconds", "10s": "10 seconds" },
+    "prompt": { "label": "Prompt", "placeholder": "Describe what should happen in the video" },
+    "negativePrompt": { "label": "Negative prompt" },
+    "cfgScale": { "label": "CFG scale" },
+    "cameraType": { "label": "Camera" },
+    "sourceImage": { "label": "Source image", "upload": "Upload", "fromGallery": "From image gallery" },
+    "sourceVideo": { "label": "Source video" },
+    "audio": { "label": "Audio for lip-sync" },
+    "submit": { "create": "Create", "cost": "This will cost {{tokens}} tokens" },
+    "insufficientTokens": { "title": "Not enough tokens", "cta": "Top up" },
+    "job": {
+      "statusPending": "Queued",
+      "statusProcessing": "Generating… {{elapsed}}",
+      "statusReady": "Ready",
+      "statusFailed": "Error",
+      "actions": {
+        "play": "Play",
+        "download": "Download",
+        "sendToChat": "Send to chat",
+        "extend": "Extend",
+        "lipsync": "Lip-sync",
+        "delete": "Delete"
+      },
+      "emptyGallery": "No videos yet. Create your first one on the «Create» tab.",
+      "toastReady": "Video is ready"
+    }
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",

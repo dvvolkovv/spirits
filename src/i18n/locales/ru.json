@@ -102,6 +102,46 @@
     "delete_account": "Удалить аккаунт",
     "version": "Версия приложения"
   },
+  "video": {
+    "navTitle": "Видео",
+    "pageTitle": "Генерация видео",
+    "tabs": { "create": "Создать", "gallery": "Мои видео" },
+    "mode": {
+      "label": "Режим",
+      "text2video": "Текст → Видео",
+      "image2video": "Картинка → Видео",
+      "extend": "Продолжение",
+      "lipsync": "Липсинк"
+    },
+    "model": { "label": "Модель", "standard": "Стандарт (v1.6)", "premium": "Premium (v2 Master)" },
+    "quality": { "label": "Качество", "std": "Обычное", "pro": "Про" },
+    "duration": { "label": "Длина", "5s": "5 секунд", "10s": "10 секунд" },
+    "prompt": { "label": "Промпт", "placeholder": "Опиши, что должно быть в видео" },
+    "negativePrompt": { "label": "Негативный промпт" },
+    "cfgScale": { "label": "CFG Scale" },
+    "cameraType": { "label": "Камера" },
+    "sourceImage": { "label": "Исходное изображение", "upload": "Загрузить", "fromGallery": "Из галереи картинок" },
+    "sourceVideo": { "label": "Исходное видео" },
+    "audio": { "label": "Аудио для липсинка" },
+    "submit": { "create": "Создать", "cost": "Это будет стоить {{tokens}} токенов" },
+    "insufficientTokens": { "title": "Недостаточно токенов", "cta": "Пополнить" },
+    "job": {
+      "statusPending": "В очереди",
+      "statusProcessing": "Генерируется… {{elapsed}}",
+      "statusReady": "Готово",
+      "statusFailed": "Ошибка",
+      "actions": {
+        "play": "Смотреть",
+        "download": "Скачать",
+        "sendToChat": "В чат",
+        "extend": "Продолжить",
+        "lipsync": "Липсинк",
+        "delete": "Удалить"
+      },
+      "emptyGallery": "У тебя пока нет готовых видео. Создай первое на вкладке «Создать».",
+      "toastReady": "Видео готово"
+    }
+  },
   "common": {
     "loading": "Загрузка...",
     "error": "Ошибка",
