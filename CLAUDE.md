@@ -6,7 +6,9 @@
 
 - **Prod:** https://my.linkeon.io
 - **Repo:** git@github.com:dvvolkovv/spirits.git
-- **Backend:** n8n на https://travel-n8n.up.railway.app/ (воркфлоу с префиксом `my.linkeon`)
+- **Frontend (этот репо):** `~/Downloads/spirits_front/`
+- **Backend (NestJS):** `~/Downloads/spirits_back/` → деплоится на `ssh -p 60322 dvolkov@82.202.197.230:~/spirits_back/`
+- **Сервер (единый для API + статики фронта):** `ssh -p 60322 dvolkov@82.202.197.230`, PM2 процесс `linkeon-api` на порту 3001, статика фронта в `/var/www/spirits/dist/` через Nginx
 
 ## Стек
 
@@ -16,7 +18,7 @@
 - **i18next** — i18n (RU по умолчанию, EN)
 - **React Hook Form** — формы
 - **Lucide React** — иконки
-- **@supabase/supabase-js** — клиент (используется для взаимодействия с бэком через webhooks)
+- Бэкенд — NestJS 10 (`spirits_back`), эндпоинты под префиксом `/webhook/*` (исторически из-за миграции с n8n, формат URL сохранён). JWT HS256, SMS через SMS Aero, PostgreSQL + Redis + Neo4j.
 
 ## Команды
 
@@ -32,8 +34,17 @@ pnpm lint       # ESLint
 ## Переменные окружения
 
 ```env
-VITE_BACKEND_URL=https://travel-n8n.up.railway.app   # URL бэкенда (n8n)
-VITE_MAINTENANCE_MODE=false                           # переключает на MaintenancePage
+VITE_BACKEND_URL=https://my.linkeon.io    # единственная среда (staging упразднён)
+VITE_MAINTENANCE_MODE=false               # переключает на MaintenancePage
+```
+
+## Деплой фронта
+
+```bash
+cd ~/Downloads/spirits_front
+echo "VITE_BACKEND_URL=https://my.linkeon.io" > .env
+pnpm build
+rsync -az --delete -e "ssh -p 60322" dist/ dvolkov@82.202.197.230:/var/www/spirits/dist/
 ```
 
 ## Архитектура
@@ -145,28 +156,39 @@ src/
 - Сессии чата хранятся в `localStorage` по ключу `assistant_{id}_messages`
 - Синхронизация смены ассистента между вкладками через `localStorage` (polling 10s)
 
-## n8n Воркфлоу (бэкенд)
+## Бэкенд (NestJS)
 
-Все активные воркфлоу с префиксом `my.linkeon`:
+> n8n больше не используется — вся логика переехала в NestJS-сервис `spirits_back` на одном сервере `82.202.197.230:60322`. Пути URL (`/webhook/...`) сохранены для обратной совместимости с фронтом.
 
-| Воркфлоу | Назначение |
-|---|---|
-| `my.linkeon.get.sms` | Отправка SMS-кода |
-| `my.linkeon.auth.refresh` | Обновление JWT токенов |
-| `my.linkeon.get.user.profile` | Получение профиля пользователя |
-| `my.linkeon.update.profile` | Обновление профиля |
-| `my.linkeon.get.agent.details` | Данные AI-ассистента |
-| `my.linkeon.change.agent` | Смена предпочтительного ассистента |
-| `my.linkeon.update.agent` | Обновление ассистента |
-| `my.linkeon.Общение с ассистентами с токенами` | Основной чат с ассистентами |
-| `my.linkeon.Учет токенов` | Управление балансом токенов |
-| `my.linkeon.scan.document` | Сканирование PDF |
-| `my.linkeon.YooKassa Notification Webhook` | Колбэк оплаты |
-| `my.linkeon.profiler.mcp` | MCP-профайлер |
-| `my.linkeon.profile.semantic.consolidation` | Семантическая консолидация профиля |
-| `my.linkeon.profile.deduplication` | Дедупликация профиля |
+Модули бэка (см. `~/Downloads/spirits_back/src/`):
+`admin`, `agents`, `auth`, `avatar`, `chat`, `dozvon`, `misc`, `neo4j`, `payments`, `profile`, `referral`, `scheduler`, `tokens`.
 
-**n8n API:** `https://travel-n8n.up.railway.app/api/v1/` (ключ в `/tmp/api.txt`)
+Ключевые эндпоинты (полный список — в `~/Downloads/spirits_back/CLAUDE.md`):
+- Auth: `GET /webhook/{uuid}/sms/:phone`, `GET /webhook/{uuid}/check-code/:phone/:code`, `POST /webhook/auth/refresh`
+- Debug OTP: `GET /webhook/debug/sms-code/:phone` (активно при `DEBUG_SMS_CODES=true`)
+- Profile: `GET/POST /webhook/profile`, `POST /webhook/profile-update`, `GET /webhook/user-profile?userId=`
+- Agents: `GET /webhook/agents`, `POST /webhook/change-agent`
+- Chat (streaming NDJSON): `POST /webhook/soulmate/chat`, `GET /webhook/chat/history`
+- Tokens/Payments: `GET /webhook/user/tokens/`, `POST /webhook/yookassa/create-payment`, `POST /webhook/coupon/redeem`
+- Search/Compat: `POST /webhook/search-mate`, `POST /webhook/analyze-compatibility`
+- Referral: `POST /webhook/referral/register`, `GET /webhook/referral/stats`
+- Admin: `POST /webhook/admin/coupons`, `POST /webhook/admin/referral`, `GET /webhook/admin/referral/stats`
+
+## Тестовые аккаунты
+
+| Роль | Телефон |
+|------|---------|
+| Admin (isadmin=true, реферальный лидер) | `79030169187` |
+| Test user | `70000000000` |
+
+OTP-код для этих номеров — через `GET /webhook/debug/sms-code/:phone` (работает при `DEBUG_SMS_CODES=true` на бэке).
+
+## Автотесты
+
+Все существующие авто-тесты живут в `~/Downloads/spirits_back/tests/` (см. `~/Downloads/spirits_back/CLAUDE.md`):
+- `node runner.js --suite api` — 32 API-теста
+- `node runner.js --suite e2e` — 18 E2E с реальной авторизацией
+- `bash referral.e2e.sh` — 20 сценариев реферальной системы (запуск на сервере)
 
 ## Паттерны кода
 
