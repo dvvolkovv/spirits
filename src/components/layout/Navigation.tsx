@@ -16,15 +16,20 @@ import {
   Handshake,
   ImageIcon,
   Film,
+  HelpCircle,
+  CreditCard,
+  Phone
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
+import LegalModal from '../onboarding/LegalModal';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
   const { user, updateTokens, checkAdminStatus } = useAuth();
   const [showTokenPackages, setShowTokenPackages] = useState(false);
   const [isReferralLeader, setIsReferralLeader] = useState(false);
+  const [showLegal, setShowLegal] = useState<'terms' | 'privacy' | null>(null);
 
   useEffect(() => {
     if (user && user.tokens === undefined) {
@@ -61,7 +66,7 @@ const Navigation: React.FC = () => {
     {
       to: '/image-gen',
       icon: ImageIcon,
-      label: 'Картинки',
+      label: 'Генератор изображений',
       isLogo: false,
     },
     {
@@ -85,6 +90,13 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
+  const dozvonNavItem = {
+    to: '/dozvon',
+    icon: Phone,
+    label: 'Дозвон',
+    isLogo: false,
+  };
+
   const referralNavItem = {
     to: '/referral',
     icon: Handshake,
@@ -92,10 +104,25 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
+  const cardNavItem = {
+    to: '/card',
+    icon: CreditCard,
+    label: 'Визитка',
+    isLogo: false,
+  };
+
+  const helpNavItem = {
+    to: '/help',
+    icon: HelpCircle,
+    label: 'Помощь',
+    isLogo: false,
+  };
+
   const navItems = [
     ...baseNavItems,
     ...(isReferralLeader ? [referralNavItem] : []),
-    ...(user?.isAdmin ? [adminNavItem] : []),
+    ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
+    helpNavItem,
   ];
 
   const formatTokens = (tokens: number) => {
@@ -107,8 +134,17 @@ const Navigation: React.FC = () => {
       {showTokenPackages && (
         <TokenPackages onClose={() => setShowTokenPackages(false)} />
       )}
+      {showLegal && (
+        <LegalModal isOpen={true} onClose={() => setShowLegal(null)} type={showLegal} />
+      )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-50 md:relative md:border-t-0 md:border-r md:w-64 md:h-screen md:bg-gray-50 md:overflow-y-auto">
+        {/* Logo — desktop only */}
+        <a href="/profile" className="hidden md:flex items-center gap-2 px-4 pt-3 pb-1 hover:opacity-70 transition-opacity">
+          <img src="/logo-Photoroom.png" alt="LINKEON.IO" className="w-6 h-6 object-contain opacity-70" />
+          <span className="text-xs font-medium text-gray-400">LINKEON.IO</span>
+        </a>
+
         {/* Tokens Display - только для десктопа */}
         {user?.tokens !== undefined && (
           <div className="hidden md:block mb-4 px-4 pt-4">
@@ -130,6 +166,19 @@ const Navigation: React.FC = () => {
                 Нажмите для пополнения
               </p>
             </button>
+            {/* Token pricing info */}
+            <div className="relative mt-2 group">
+              <button className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600 transition-colors px-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" d="M12 16v-4m0-4h.01" strokeWidth="2"/></svg>
+                <span>Как считаются токены?</span>
+              </button>
+              <div className="hidden group-hover:block absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 text-[11px] text-gray-600 leading-relaxed">
+                <p className="font-semibold text-gray-800 mb-1">Динамическая система ценообразования</p>
+                <p className="mb-1">Цена не фиксирована — каждая задача уникальна. Как в сервисах Такси или Гостиничных сетях, стоимость гибко подстраивается под реальный объём работы, спрос и ресурсы.</p>
+                <p className="mb-1">В итоге: прозрачная, справедливая цена без переплат и скрытых комиссий. Вы платите ровно за то, что получаете.</p>
+                <p className="text-gray-500">Счётчик показывает точный расход токенов после каждого сообщения.</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -165,6 +214,18 @@ const Navigation: React.FC = () => {
             </NavLink>
           );
         })}
+      </div>
+
+      {/* Legal links — desktop only */}
+      <div className="hidden md:block mt-auto px-4 pb-4 pt-2 border-t border-gray-200">
+        <div className="flex flex-col gap-1">
+          <button onClick={() => setShowLegal('terms')} className="text-[10px] text-gray-400 hover:text-gray-600 text-left transition-colors">
+            Пользовательское соглашение
+          </button>
+          <button onClick={() => setShowLegal('privacy')} className="text-[10px] text-gray-400 hover:text-gray-600 text-left transition-colors">
+            Политика конфиденциальности
+          </button>
+        </div>
       </div>
 
       </nav>

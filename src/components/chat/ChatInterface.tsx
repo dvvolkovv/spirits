@@ -225,10 +225,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [navigate]);
 
   const handleLinkNavigation = useCallback((url: string) => {
-    if (url.startsWith('/')) {
+    // Static files and external URLs open in new tab
+    if (url.startsWith('/static/') || url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank', 'noopener');
+    } else if (url.startsWith('/')) {
       navigate(url);
     } else {
-      window.location.href = url;
+      window.open(url, '_blank', 'noopener');
     }
   }, [navigate]);
 
@@ -1284,8 +1287,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return (
         <div className="h-full flex items-center justify-center bg-gray-50">
           <div className="text-center text-gray-400">
-            <p className="text-lg mb-2">Выберите ассистента</p>
-            <p className="text-sm">в панели слева</p>
+            <p className="text-lg mb-2">{t('chat.select_assistant')}</p>
+            <p className="text-sm">{t('chat.select_assistant_hint')}</p>
           </div>
         </div>
       );
@@ -1362,7 +1365,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {showAssistantDropdown && (
                   <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
                     <div className="py-1">
-                      {assistants.map((assistant) => (
+                      {[...assistants].sort((a, b) => {
+                        const order = { assistant: 0, business: 1, personal: 2 };
+                        return (order[(a as any).category] ?? 3) - (order[(b as any).category] ?? 3);
+                      }).map((assistant) => (
                         <button
                           key={assistant.id}
                           onClick={() => handleSwitchAssistant(assistant)}
@@ -1610,7 +1616,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t px-4 py-3 pb-20 md:pb-3 flex-shrink-0">
+      <div className="bg-white border-t px-4 py-2 pb-2 md:pb-2 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <input
             ref={fileInputRef}

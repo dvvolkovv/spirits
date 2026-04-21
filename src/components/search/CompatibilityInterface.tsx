@@ -245,9 +245,12 @@ const CompatibilityInterface: React.FC = () => {
 
       <div className="flex-1 p-4 pb-20 md:pb-4 space-y-6 overflow-y-auto">
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
             Добавьте номера телефонов
           </h2>
+          <p className="text-xs text-gray-500 mb-4 bg-blue-50 rounded-lg px-3 py-2">
+            Введите номер телефона пользователя, зарегистрированного на платформе LINKEON.IO. ИИ проанализирует ваши профили и покажет процент совместимости по ценностям, интересам и навыкам.
+          </p>
 
           {isContactPickerSupported && (
             <div className="mb-4">

@@ -7,8 +7,8 @@
 - **Prod:** https://my.linkeon.io
 - **Repo:** git@github.com:dvvolkovv/spirits.git
 - **Frontend (этот репо):** `~/Downloads/spirits_front/`
-- **Backend (NestJS):** `~/Downloads/spirits_back/` → деплоится на `ssh -p 60322 dvolkov@82.202.197.230:~/spirits_back/`
-- **Сервер (единый для API + статики фронта):** `ssh -p 60322 dvolkov@82.202.197.230`, PM2 процесс `linkeon-api` на порту 3001, статика фронта в `/var/www/spirits/dist/` через Nginx
+- **Backend (NestJS):** `~/Downloads/spirits_back/` → деплоится на `ssh dvolkov@212.113.106.202`
+- **Сервер (единый для API + статики фронта):** `ssh dvolkov@212.113.106.202`, PM2 процесс `linkeon-api` на порту 3001, статика фронта в `/home/dvolkov/spirits_front/` через Nginx
 
 ## Стек
 
@@ -44,7 +44,7 @@ VITE_MAINTENANCE_MODE=false               # переключает на Maintena
 cd ~/Downloads/spirits_front
 echo "VITE_BACKEND_URL=https://my.linkeon.io" > .env
 pnpm build
-rsync -az --delete -e "ssh -p 60322" dist/ dvolkov@82.202.197.230:/var/www/spirits/dist/
+rsync -az --delete dist/ dvolkov@212.113.106.202:/home/dvolkov/spirits_front/
 ```
 
 ## Архитектура

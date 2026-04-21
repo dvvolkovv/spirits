@@ -111,6 +111,20 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
           </p>
         </div>
 
+        {/* Личный ассистент */}
+        {assistants.some(a => a.category === 'assistant') && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="text-xl">🤖</span> Личный ассистент
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {assistants.filter(a => a.category === 'assistant').map((assistant) => (
+                <AssistantCard key={assistant.id} assistant={assistant} avatarUrl={avatarUrls[assistant.id]} onSelect={onSelectAssistant} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Для роста бизнеса */}
         {assistants.some(a => a.category === 'business') && (
           <div className="mb-6">

@@ -30,7 +30,15 @@
       "values": "Расскажите о ваших ценностях",
       "goals": "Какие у вас цели?",
       "interests": "Чем увлекаетесь?"
-    }
+    },
+    "assistants": "Ассистенты",
+    "personal_assistant": "Личный ассистент",
+    "for_business": "Для бизнеса",
+    "personal_growth": "Личностный рост",
+    "all_assistants": "Все ассистенты",
+    "select_assistant": "Выберите ассистента",
+    "select_assistant_hint": "в панели слева",
+    "upload_any_file": "Загрузить файл"
   },
   "profile": {
     "title": "Мой профиль",

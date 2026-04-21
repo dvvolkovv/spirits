@@ -27,14 +27,17 @@ const ImageGenInterface: React.FC = () => {
   const {
     prompt, setPrompt,
     settings, setSettings,
-    isGenerating, error, results,
+    isGenerating, error, results, history,
     tokenCost, hasEnoughTokens,
-    handleGenerate,
+    handleGenerate, loadHistory, deleteImage,
   } = useImageGen();
 
   const [showSettings, setShowSettings] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+
+  React.useEffect(() => { loadHistory(); }, []);
 
   const set = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) =>
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -248,10 +251,36 @@ const ImageGenInterface: React.FC = () => {
         )}
 
         {/* Empty state */}
-        {results.length === 0 && !isGenerating && (
+        {results.length === 0 && !isGenerating && history.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center px-4">
             <Image className="w-12 h-12 text-gray-200 mb-3" />
             <p className="text-sm text-gray-400">Введите описание и нажмите «Сгенерировать»</p>
+          </div>
+        )}
+
+        {/* History */}
+        {history.length > 0 && (
+          <div className="mt-4">
+            <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-3">
+              {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              История генераций ({history.length})
+            </button>
+            {showHistory && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {history.map(h => (
+                  <div key={h.id} className="relative group rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
+                    <img src={h.image_url} alt={h.prompt} className="w-full aspect-square object-cover cursor-pointer" onClick={() => setLightboxImg(h.image_url)} loading="lazy" />
+                    <div className="p-2">
+                      <p className="text-[10px] text-gray-500 line-clamp-2">{h.prompt}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">{new Date(h.created_at).toLocaleDateString('ru-RU')}</p>
+                    </div>
+                    <button onClick={() => deleteImage(h.id)} className="absolute top-1 right-1 hidden group-hover:flex w-6 h-6 bg-red-500 text-white rounded-full items-center justify-center text-xs opacity-80 hover:opacity-100">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

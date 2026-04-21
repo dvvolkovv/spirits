@@ -9,6 +9,8 @@ import ChatsPage from './pages/ChatsPage';
 import ChatConversationPage from './pages/ChatConversationPage';
 import ProfileView from './components/profile/ProfileView';
 import NetworkingPage from './pages/NetworkingPage';
+import HelpPage from './pages/HelpPage';
+import CardPage from './pages/CardPage';
 import AdminPage from './pages/AdminPage';
 import ReferralPage from './pages/ReferralPage';
 import ImageGenPage from './pages/ImageGenPage';
@@ -16,6 +18,7 @@ import VideoPage from './pages/VideoPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import TokenPurchasePage from './pages/TokenPurchasePage';
 import MaintenancePage from './pages/MaintenancePage';
+import DozvonPage from './pages/DozvonPage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -51,9 +54,12 @@ const AppContent: React.FC = () => {
           <Route path="/search" element={<NetworkingPage />} />
           <Route path="/compatibility" element={<Navigate to="/search" replace />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/dozvon" element={<DozvonPage />} />
           <Route path="/referral" element={<ReferralPage />} />
           <Route path="/image-gen" element={<ImageGenPage />} />
           <Route path="/video" element={<VideoPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/card" element={<CardPage />} />
           <Route path="/payment/success" element={<PaymentSuccessPage />} />
           <Route path="/" element={<Navigate to="/chat" replace />} />
         </Routes>

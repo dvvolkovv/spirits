@@ -24,9 +24,12 @@ interface ImageGenContextValue {
   isGenerating: boolean;
   error: string | null;
   results: GeneratedImage[];
+  history: any[];
   tokenCost: number;
   hasEnoughTokens: boolean;
   handleGenerate: () => void;
+  loadHistory: () => void;
+  deleteImage: (id: number) => void;
 }
 
 const ImageGenContext = createContext<ImageGenContextValue | null>(null);
@@ -38,6 +41,21 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<GeneratedImage[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+
+  const loadHistory = async () => {
+    try {
+      const resp = await apiClient.get('/webhook/imagegen/history');
+      if (resp.ok) setHistory(await resp.json());
+    } catch {}
+  };
+
+  const deleteImage = async (id: number) => {
+    try {
+      await apiClient.delete(`/webhook/imagegen/history?id=${id}`);
+      setHistory(prev => prev.filter(h => h.id !== id));
+    } catch {}
+  };
 
   const tokenCost = TOKEN_COST[settings.quality];
   const hasEnoughTokens = (user?.tokens ?? 0) >= tokenCost;
@@ -81,9 +99,9 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <ImageGenContext.Provider value={{
       prompt, setPrompt,
       settings, setSettings,
-      isGenerating, error, results,
+      isGenerating, error, results, history,
       tokenCost, hasEnoughTokens,
-      handleGenerate,
+      handleGenerate, loadHistory, deleteImage,
     }}>
       {children}
     </ImageGenContext.Provider>

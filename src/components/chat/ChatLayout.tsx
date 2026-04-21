@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
 import { avatarService } from '../../services/avatarService';
 import { clsx } from 'clsx';
@@ -27,6 +28,7 @@ const getRoleBadge = (desc: string): string => {
 };
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
+  const { t } = useTranslation();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
@@ -51,6 +53,9 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
             setSelectedId(parsed.id);
             setShowSidebar(false);
           } catch {}
+        } else {
+          // No saved assistant — show sidebar (assistant list)
+          setShowSidebar(true);
         }
       }
     });
@@ -64,6 +69,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
     localStorage.setItem('selected_assistant', JSON.stringify(a));
   };
 
+  const myAssistant = assistants.filter(a => a.category === 'assistant');
   const businessAssistants = assistants.filter(a => a.category === 'business');
   const personalAssistants = assistants.filter(a => a.category === 'personal');
   const otherAssistants = assistants.filter(a => !a.category);
@@ -88,7 +94,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
       )}
       <div className="min-w-0 flex-1">
         <p className={clsx('text-sm font-medium truncate', selectedId === a.id ? 'text-forest-700' : 'text-gray-900')}>{a.name}</p>
-        <p className="text-xs text-gray-500 truncate">{getRoleBadge(a.description)}</p>
+        <p className="text-xs text-gray-500 line-clamp-2 leading-tight">{a.description}</p>
       </div>
     </button>
   );
@@ -98,24 +104,30 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
       {/* Sidebar - always visible on desktop, toggle on mobile */}
       <div className={clsx(
         'border-r border-gray-200 bg-white flex-shrink-0 flex flex-col overflow-hidden transition-all duration-200',
-        showSidebar ? 'w-full md:w-72' : 'hidden md:flex md:w-72'
+        (showSidebar || !selected) ? 'w-full md:w-72' : 'hidden md:flex md:w-72'
       )}>
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-700">Ассистенты</h2>
+          <h2 className="text-sm font-semibold text-gray-700">{t('chat.assistants')}</h2>
         </div>
 
         {/* Assistant list */}
         <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+          {myAssistant.length > 0 && (
+            <>
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide px-3 pt-2 pb-1">{t('chat.personal_assistant')}</p>
+              {myAssistant.map(renderAssistantItem)}
+            </>
+          )}
           {businessAssistants.length > 0 && (
             <>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 pt-2 pb-1">Для бизнеса</p>
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide px-3 pt-3 pb-1">{t('chat.for_business')}</p>
               {businessAssistants.map(renderAssistantItem)}
             </>
           )}
           {personalAssistants.length > 0 && (
             <>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 pt-3 pb-1">Личностный рост</p>
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide px-3 pt-3 pb-1">{t('chat.personal_growth')}</p>
               {personalAssistants.map(renderAssistantItem)}
             </>
           )}
@@ -126,7 +138,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
       {/* Chat area */}
       <div className={clsx(
         'flex-1 flex flex-col min-w-0',
-        showSidebar && 'hidden md:flex'
+        (showSidebar || (!selected && !showSidebar)) && 'hidden md:flex'
       )}>
         {/* Mobile back button */}
         {!showSidebar && (
@@ -134,7 +146,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
             onClick={() => setShowSidebar(true)}
             className="md:hidden flex items-center gap-2 px-4 py-2 text-sm text-forest-600 border-b border-gray-100"
           >
-            <span>&#8592;</span> Все ассистенты
+            <span>&#8592;</span> {t('chat.all_assistants')}
           </button>
         )}
         {children({ selectedAssistant: selected, onSelectAssistant: handleSelect, assistants })}

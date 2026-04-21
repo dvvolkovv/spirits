@@ -30,7 +30,15 @@
       "values": "Tell me about your values",
       "goals": "What are your goals?",
       "interests": "What are your interests?"
-    }
+    },
+    "assistants": "Assistants",
+    "personal_assistant": "Personal assistant",
+    "for_business": "For business",
+    "personal_growth": "Personal growth",
+    "all_assistants": "All assistants",
+    "select_assistant": "Select an assistant",
+    "select_assistant_hint": "from the panel on the left",
+    "upload_any_file": "Upload file"
   },
   "profile": {
     "title": "My profile",
