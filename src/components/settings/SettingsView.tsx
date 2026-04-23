@@ -87,7 +87,7 @@ const SettingsView: React.FC = () => {
                   {t('settings.profile_visibility')}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Кто может видеть ваш профиль в поиске
+                  {t('settings.profile_visibility_desc')}
                 </p>
               </div>
               <select
@@ -95,9 +95,9 @@ const SettingsView: React.FC = () => {
                 onChange={(e) => handleSettingChange('profileVisibility', e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               >
-                <option value="public">Всем</option>
-                <option value="matches">Только совпадениям</option>
-                <option value="private">Никому</option>
+                <option value="public">{t('settings.visibility.all')}</option>
+                <option value="matches">{t('settings.visibility.matches')}</option>
+                <option value="private">{t('settings.visibility.private')}</option>
               </select>
             </div>
 
@@ -108,7 +108,7 @@ const SettingsView: React.FC = () => {
                   {t('settings.values_visibility')}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Показывать ваши ценности другим
+                  {t('settings.values_visibility_desc')}
                 </p>
               </div>
               <ToggleSwitch
@@ -126,7 +126,7 @@ const SettingsView: React.FC = () => {
                   {t('settings.allow_chats')}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Кто может начать с вами чат
+                  {t('settings.allow_chats_desc')}
                 </p>
               </div>
               <select
@@ -134,9 +134,9 @@ const SettingsView: React.FC = () => {
                 onChange={(e) => handleSettingChange('allowChats', e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               >
-                <option value="all">Все пользователи</option>
-                <option value="matches">Только совпадения</option>
-                <option value="none">Никто</option>
+                <option value="all">{t('settings.chat_access.all')}</option>
+                <option value="matches">{t('settings.chat_access.matches')}</option>
+                <option value="none">{t('settings.chat_access.none')}</option>
               </select>
             </div>
           </div>
@@ -154,10 +154,10 @@ const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium text-gray-900">
-                  Язык интерфейса
+                  {t('settings.language_title')}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Выберите предпочитаемый язык
+                  {t('settings.language_desc')}
                 </p>
               </div>
               <select
@@ -184,10 +184,10 @@ const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium text-gray-900">
-                  Новые сообщения
+                  {t('settings.new_messages')}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Уведомления о новых сообщениях в чатах
+                  {t('settings.new_messages_desc')}
                 </p>
               </div>
               <ToggleSwitch
@@ -204,10 +204,10 @@ const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium text-gray-900">
-                  Новые совпадения
+                  {t('settings.new_matches')}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Уведомления о подходящих людях
+                  {t('settings.new_matches_desc')}
                 </p>
               </div>
               <ToggleSwitch

@@ -43,6 +43,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Persist user to localStorage without the avatar (base64 avatars push us over the 5MB quota
+ * on iOS Safari, which throws QuotaExceededError and unmounts the React tree).
+ * Avatar is re-fetched from /webhook/avatar on each page load.
+ */
+function persistUser(user: any): void {
+  if (!user) return;
+  try {
+    const { avatar: _drop, ...rest } = user;
+    localStorage.setItem('userData', JSON.stringify(rest));
+  } catch (e: any) {
+    // Still too big (shouldn't happen without avatar) or storage blocked (e.g. private mode):
+    // silently drop — in-memory state stays correct; next load will re-fetch from server.
+    // eslint-disable-next-line no-console
+    console.warn('[auth] userData persist failed:', e?.name || e?.message);
+    try { localStorage.removeItem('userData'); } catch {}
+  }
+}
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -123,7 +142,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           if (isMounted) {
             setUser(parsedUser);
-            localStorage.setItem('userData', JSON.stringify(parsedUser));
+            persistUser(parsedUser);
           }
         } catch (error) {
           if (isMounted) {
@@ -172,7 +191,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 email: profileJson.email || currentUser.email,
                 referralSlug: profileJson.referral_slug || currentUser.referralSlug
               };
-              localStorage.setItem('userData', JSON.stringify(updatedUser));
+              persistUser(updatedUser);
               return updatedUser;
             }
             return currentUser;
@@ -197,7 +216,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ...currentUser,
           tokens
         };
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        persistUser(updatedUser);
         return updatedUser;
       }
       return currentUser;
@@ -237,7 +256,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       newUser.tokens = tokens;
     }
 
-    localStorage.setItem('userData', JSON.stringify(newUser));
+    persistUser(newUser);
     setUser(newUser);
 
     await checkAdminStatus();
@@ -282,7 +301,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             ...profileUpdate
           }
         };
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        persistUser(updatedUser);
         return updatedUser;
       }
       return currentUser;
@@ -296,7 +315,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ...currentUser,
           ...info
         };
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        persistUser(updatedUser);
         return updatedUser;
       }
       return currentUser;
@@ -310,7 +329,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ...currentUser,
           avatar
         };
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        persistUser(updatedUser);
         return updatedUser;
       }
       return currentUser;
@@ -325,7 +344,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ...currentUser,
           tokens: newTokens
         };
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        persistUser(updatedUser);
         return updatedUser;
       }
       return currentUser;

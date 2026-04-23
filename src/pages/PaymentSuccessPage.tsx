@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Check, Loader, AlertCircle, Coins } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
 
 const PaymentSuccessPage: React.FC = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, updateTokens } = useAuth();
@@ -25,7 +27,7 @@ const PaymentSuccessPage: React.FC = () => {
 
       if (!userId) {
         setStatus('error');
-        setErrorMessage('Недостаточно данных для проверки платежа (отсутствует user_id)');
+        setErrorMessage(t('payment.error_missing_user_id'));
         return;
       }
 
@@ -46,7 +48,7 @@ const PaymentSuccessPage: React.FC = () => {
 
           if (data.status === 'not_found') {
             setStatus('error');
-            setErrorMessage('Оплата не завершена или отменена. Если вы оплатили, токены будут зачислены автоматически.');
+            setErrorMessage(t('payment.error_not_completed'));
             setTimeout(() => navigate('/chat'), 5000);
           } else if (data.status === 'succeeded' || data.yoo_status === 'succeeded' || data.db_status === 'succeeded') {
             setTokensAdded(data.tokens);
@@ -59,21 +61,21 @@ const PaymentSuccessPage: React.FC = () => {
             }, 3000);
           } else if (data.yoo_status === 'pending' || data.db_status === 'pending') {
             setStatus('error');
-            setErrorMessage('Платеж еще обрабатывается. Пожалуйста, подождите несколько минут и обновите страницу.');
+            setErrorMessage(t('payment.error_pending'));
           } else {
             setStatus('error');
-            setErrorMessage('Платеж не был завершен');
+            setErrorMessage(t('payment.error_failed'));
             localStorage.removeItem('pending_payment_id');
           }
         } else {
           const errorData = await response.json();
           setStatus('error');
-          setErrorMessage(errorData.message || 'Ошибка проверки платежа');
+          setErrorMessage(errorData.message || t('payment.error_verification'));
         }
       } catch (error) {
         console.error('Error verifying payment:', error);
         setStatus('error');
-        setErrorMessage(`Произошла ошибка при проверке платежа: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+        setErrorMessage(t('payment.error_exception', { error: error instanceof Error ? error.message : t('payment.error_unknown') }));
       }
     };
 
@@ -81,7 +83,7 @@ const PaymentSuccessPage: React.FC = () => {
   }, [searchParams, user, updateTokens, navigate]);
 
   const formatTokens = (tokens: number) => {
-    return tokens.toLocaleString('ru-RU');
+    return tokens.toLocaleString();
   };
 
   return (
@@ -91,10 +93,10 @@ const PaymentSuccessPage: React.FC = () => {
           <div className="text-center">
             <Loader className="w-16 h-16 text-forest-600 animate-spin mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Проверка платежа
+              {t('payment.verify_title')}
             </h2>
             <p className="text-gray-600">
-              Пожалуйста, подождите...
+              {t('payment.verifying')}
             </p>
           </div>
         )}
@@ -105,10 +107,10 @@ const PaymentSuccessPage: React.FC = () => {
               <Check className="w-10 h-10 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Оплата прошла успешно!
+              {t('payment.success_title')}
             </h2>
             <p className="text-gray-600 mb-6">
-              Ваши токены успешно зачислены
+              {t('payment.success_body')}
             </p>
 
             <div className="bg-forest-50 rounded-lg p-6 border border-forest-200 mb-6">
@@ -118,18 +120,18 @@ const PaymentSuccessPage: React.FC = () => {
                   +{formatTokens(tokensAdded)}
                 </span>
               </div>
-              <p className="text-sm text-gray-600">токенов добавлено</p>
+              <p className="text-sm text-gray-600">{t('payment.tokens_added')}</p>
             </div>
 
             <div className="text-sm text-gray-500">
-              Вы будете перенаправлены в чат через несколько секунд...
+              {t('payment.redirect_notice')}
             </div>
 
             <button
               onClick={() => navigate('/chat')}
               className="mt-6 w-full py-3 px-4 bg-forest-600 hover:bg-forest-700 text-white rounded-lg font-semibold transition-colors"
             >
-              Перейти в чат
+              {t('payment.go_to_chat')}
             </button>
           </div>
         )}
@@ -140,10 +142,10 @@ const PaymentSuccessPage: React.FC = () => {
               <AlertCircle className="w-10 h-10 text-red-600" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Ошибка оплаты
+              {t('payment.error_title')}
             </h2>
             <p className="text-gray-600 mb-6">
-              {errorMessage || 'Что-то пошло не так'}
+              {errorMessage || t('payment.error_default')}
             </p>
 
             <div className="space-y-3">
@@ -151,13 +153,13 @@ const PaymentSuccessPage: React.FC = () => {
                 onClick={() => navigate('/chat')}
                 className="w-full py-3 px-4 bg-forest-600 hover:bg-forest-700 text-white rounded-lg font-semibold transition-colors"
               >
-                Вернуться в чат
+                {t('payment.back_to_chat')}
               </button>
               <button
                 onClick={() => window.location.reload()}
                 className="w-full py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-semibold transition-colors"
               >
-                Попробовать снова
+                {t('payment.try_again')}
               </button>
             </div>
           </div>

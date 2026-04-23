@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Download, Film, Mic, Trash2, AlertCircle, Loader2, X } from 'lucide-react';
+import { Play, Download, Film, Mic, Trash2, AlertCircle, Loader2, X, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { VideoJob } from './useVideoJobs';
 
@@ -24,6 +24,7 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
   const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(() => formatElapsed(job.created_at));
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (job.status !== 'processing' && job.status !== 'pending') return;
@@ -38,8 +39,10 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
   const showVideoPreview = !hasBg && job.status === 'ready' && !!job.video_url;
 
   const modeLabel: Record<string, string> = {
-    text2video: 'Текст→Видео', image2video: 'Фото→Видео',
-    extend: 'Продолжение', lipsync: 'Липсинк',
+    text2video: t('video.job.modes.text2video'),
+    image2video: t('video.job.modes.image2video'),
+    extend: t('video.job.modes.extend'),
+    lipsync: t('video.job.modes.lipsync'),
   };
 
   return (
@@ -53,6 +56,45 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
         style={thumbStyle}
         onClick={job.status === 'ready' ? () => setOpen(true) : undefined}
       >
+        {/* Delete button — always visible top-right */}
+        {onDelete && (
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+            {confirmDelete ? (
+              <>
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); onDelete(job.id); }}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-medium shadow-lg"
+                >
+                  <Check className="w-3 h-3" />
+                  {t('video.job.confirmDelete')}
+                </button>
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); setConfirmDelete(false); }}
+                  className="p-1 rounded-lg bg-black/50 hover:bg-black/70 text-white shadow-lg"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setConfirmDelete(true); }}
+                className={clsx(
+                  'p-1.5 rounded-lg text-white shadow-lg backdrop-blur-sm transition-opacity',
+                  job.status === 'failed'
+                    ? 'bg-red-500/80 hover:bg-red-600 opacity-100'
+                    : 'bg-black/40 hover:bg-red-500/80 opacity-0 group-hover:opacity-100'
+                )}
+                title={t('video.job.titles.delete')}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Video as thumbnail when no static thumbnail available */}
         {showVideoPreview && (
           <video
@@ -74,7 +116,7 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/50 text-white gap-2">
             <Loader2 className="w-8 h-8 animate-spin text-forest-400" />
             <span className="text-sm font-medium">{t('video.job.statusProcessing', { elapsed })}</span>
-            <span className="text-xs text-white/60">обычно 3–5 минут</span>
+            <span className="text-xs text-white/60">{t('video.job.processingHint')}</span>
           </div>
         )}
 
@@ -103,7 +145,7 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
             {!compact && (
               <div className="absolute bottom-0 inset-x-0 p-2.5 flex items-end justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                 <span className="text-[10px] text-white/70 bg-black/30 rounded px-1.5 py-0.5 backdrop-blur-sm">
-                  {modeLabel[job.mode] ?? job.mode} · {job.duration}с
+                  {modeLabel[job.mode] ?? job.mode} · {job.duration}{t('video.duration.suffix')}
                 </span>
                 <div className="flex gap-1">
                   {job.video_url && (
@@ -112,7 +154,7 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
                       download
                       onClick={e => e.stopPropagation()}
                       className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
-                      title="Скачать"
+                      title={t('video.job.titles.download')}
                     >
                       <Download className="w-3.5 h-3.5" />
                     </a>
@@ -122,7 +164,7 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
                       type="button"
                       onClick={e => { e.stopPropagation(); onExtend(job); }}
                       className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
-                      title="Продолжить видео (+5с)"
+                      title={t('video.job.titles.extend')}
                     >
                       <Film className="w-3.5 h-3.5" />
                     </button>
@@ -132,19 +174,9 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
                       type="button"
                       onClick={e => { e.stopPropagation(); onLipsync(job); }}
                       className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
-                      title="Синхронизировать губы с аудио"
+                      title={t('video.job.titles.lipsync')}
                     >
                       <Mic className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  {onDelete && (
-                    <button
-                      type="button"
-                      onClick={e => { e.stopPropagation(); onDelete(job.id); }}
-                      className="p-1.5 rounded-lg bg-black/40 hover:bg-red-500/80 text-white backdrop-blur-sm"
-                      title="Удалить"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>

@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useAuth } from '../../contexts/AuthContext';
 import { Heart, X, Plus, Users, Info } from 'lucide-react';
@@ -6,6 +8,8 @@ import { apiClient } from '../../services/apiClient';
 
 const CompatibilityInterface: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const [params, setParams] = useSearchParams();
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>([]);
   const [currentPhoneInput, setCurrentPhoneInput] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -13,12 +17,34 @@ const CompatibilityInterface: React.FC = () => {
   const [analysisResult, setAnalysisResult] = useState('');
   const [isContactPickerSupported, setIsContactPickerSupported] = useState(false);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const autoRunRef = useRef(false);
 
   useEffect(() => {
     if ('contacts' in navigator && 'ContactsManager' in window) {
       setIsContactPickerSupported(true);
     }
   }, []);
+
+  // Preload target from query (?user=<phone>) and auto-run analysis once.
+  useEffect(() => {
+    const incoming = params.get('user');
+    if (!incoming || autoRunRef.current) return;
+    const normalized = incoming.replace(/\D/g, '');
+    if (!normalized) return;
+    autoRunRef.current = true;
+    setPhoneNumbers((list) => (list.includes(normalized) ? list : [...list, normalized]));
+    const p = new URLSearchParams(params);
+    p.delete('user');
+    setParams(p, { replace: true });
+  }, [params, setParams]);
+
+  // Kick off analysis when a preloaded phone arrives.
+  useEffect(() => {
+    if (autoRunRef.current && phoneNumbers.length > 0 && !isSearching && !analysisResult) {
+      handleAnalyzeCompatibility();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phoneNumbers]);
 
   const normalizePhoneNumber = (phone: string): string => {
     let cleaned = phone.replace(/\D/g, '');
@@ -75,12 +101,12 @@ const CompatibilityInterface: React.FC = () => {
     if (!currentPhoneInput.trim()) return;
 
     if (!validatePhoneNumber(currentPhoneInput)) {
-      setPhoneError('Введите корректный номер телефона (11 цифр)');
+      setPhoneError(t('compatibility.error_invalid_11'));
       return;
     }
 
     if (phoneNumbers.includes(currentPhoneInput)) {
-      setPhoneError('Этот номер уже добавлен');
+      setPhoneError(t('compatibility.error_already_added'));
       return;
     }
 
@@ -102,7 +128,7 @@ const CompatibilityInterface: React.FC = () => {
 
   const handleSelectFromContacts = async () => {
     if (!isContactPickerSupported) {
-      setPhoneError('Ваш браузер не поддерживает выбор контактов. Попробуйте использовать Chrome на Android.');
+      setPhoneError(t('compatibility.error_picker_unsupported'));
       return;
     }
 
@@ -113,7 +139,7 @@ const CompatibilityInterface: React.FC = () => {
       const contacts = await (navigator as any).contacts.select(['tel'], { multiple: true });
 
       if (!contacts || contacts.length === 0) {
-        setPhoneError('Контакты не выбраны');
+        setPhoneError(t('compatibility.error_contacts_empty'));
         return;
       }
 
@@ -142,19 +168,19 @@ const CompatibilityInterface: React.FC = () => {
         setPhoneNumbers([...phoneNumbers, ...newPhoneNumbers]);
 
         if (duplicates.length > 0) {
-          setPhoneError(`Добавлено ${newPhoneNumbers.length} номеров. ${duplicates.length} номеров пропущено (дубликаты).`);
+          setPhoneError(t('compatibility.error_added_with_duplicates', { added: newPhoneNumbers.length, duplicates: duplicates.length }));
         }
       } else {
-        setPhoneError('Не найдено подходящих номеров телефонов');
+        setPhoneError(t('compatibility.error_no_valid_phones'));
       }
 
     } catch (error: any) {
       console.error('Error selecting contacts:', error);
 
       if (error.name === 'AbortError') {
-        setPhoneError('Выбор контактов отменен');
+        setPhoneError(t('compatibility.error_picker_cancelled'));
       } else {
-        setPhoneError('Ошибка при выборе контактов. Убедитесь, что вы дали разрешение на доступ к контактам.');
+        setPhoneError(t('compatibility.error_picker_generic'));
       }
     } finally {
       setIsLoadingContacts(false);
@@ -225,7 +251,7 @@ const CompatibilityInterface: React.FC = () => {
 
     } catch (error) {
       console.error('Error during compatibility analysis:', error);
-      setAnalysisResult('Произошла ошибка при анализе совместимости. Попробуйте еще раз.');
+      setAnalysisResult(t('compatibility.error_analysis'));
     } finally {
       setIsSearching(false);
     }
@@ -236,20 +262,20 @@ const CompatibilityInterface: React.FC = () => {
       <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
         <div className="flex items-center space-x-3">
           <Heart className="w-6 h-6 text-red-500" />
-          <h1 className="text-xl font-bold text-gray-900">Совместимость</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('compatibility.title')}</h1>
         </div>
         <p className="text-sm text-gray-600 mt-2">
-          Анализ совместимости с другими пользователями
+          {t('compatibility.subtitle')}
         </p>
       </div>
 
       <div className="flex-1 p-4 pb-20 md:pb-4 space-y-6 overflow-y-auto">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            Добавьте номера телефонов
+            {t('compatibility.add_phones')}
           </h2>
           <p className="text-xs text-gray-500 mb-4 bg-blue-50 rounded-lg px-3 py-2">
-            Введите номер телефона пользователя, зарегистрированного на платформе LINKEON.IO. ИИ проанализирует ваши профили и покажет процент совместимости по ценностям, интересам и навыкам.
+            {t('compatibility.add_phones_hint')}
           </p>
 
           {isContactPickerSupported && (
@@ -262,12 +288,12 @@ const CompatibilityInterface: React.FC = () => {
                 {isLoadingContacts ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Открываем контакты...</span>
+                    <span>{t('compatibility.picker_open')}</span>
                   </>
                 ) : (
                   <>
                     <Users className="w-5 h-5" />
-                    <span>Выбрать из контактов</span>
+                    <span>{t('compatibility.pick_from_contacts')}</span>
                   </>
                 )}
               </button>
@@ -296,13 +322,13 @@ const CompatibilityInterface: React.FC = () => {
                 className="px-4 py-3 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors flex items-center space-x-2"
               >
                 <Plus className="w-5 h-5" />
-                <span className="hidden sm:inline">Добавить</span>
+                <span className="hidden sm:inline">{t('compatibility.add')}</span>
               </button>
             </div>
 
             {phoneNumbers.length > 0 && (
               <div className="space-y-2 mt-4">
-                <h3 className="text-sm font-medium text-gray-700">Добавленные номера:</h3>
+                <h3 className="text-sm font-medium text-gray-700">{t('compatibility.added_numbers')}</h3>
                 {phoneNumbers.map((phone, index) => (
                   <div
                     key={index}
@@ -329,12 +355,12 @@ const CompatibilityInterface: React.FC = () => {
               {isSearching ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Анализируем совместимость...</span>
+                  <span>{t('compatibility.analyzing')}</span>
                 </>
               ) : (
                 <>
                   <Heart className="w-5 h-5" />
-                  <span>Анализировать совместимость</span>
+                  <span>{t('compatibility.analyze')}</span>
                 </>
               )}
             </button>
@@ -344,7 +370,7 @@ const CompatibilityInterface: React.FC = () => {
         {analysisResult && (
           <div data-testid="compatibility-result" className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Результат анализа
+              {t('compatibility.result')}
             </h2>
             <div className="prose prose-sm max-w-none">
               <ReactMarkdown>{analysisResult}</ReactMarkdown>

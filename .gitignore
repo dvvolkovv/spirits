@@ -22,6 +22,7 @@ dist-ssr
 *.sw?
 .env
 .worktrees/
+.claude/
 .playwright-mcp/
 screenshots/
 tests/e2e/.auth/

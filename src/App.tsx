@@ -1,12 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
 import OnboardingPage from './pages/OnboardingPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import ChatPage from './pages/ChatPage';
-import ChatsPage from './pages/ChatsPage';
 import ChatConversationPage from './pages/ChatConversationPage';
+import SupportPage from './pages/SupportPage';
 import ProfileView from './components/profile/ProfileView';
 import NetworkingPage from './pages/NetworkingPage';
 import HelpPage from './pages/HelpPage';
@@ -23,13 +25,14 @@ import './i18n';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Загрузка...</p>
+          <p className="text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -48,21 +51,26 @@ const AppContent: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden flex flex-col pb-20 md:pb-0">
-        <Routes>
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/profile" element={<ProfileView />} />
-          <Route path="/search" element={<NetworkingPage />} />
-          <Route path="/compatibility" element={<Navigate to="/search" replace />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/dozvon" element={<DozvonPage />} />
-          <Route path="/referral" element={<ReferralPage />} />
-          <Route path="/image-gen" element={<ImageGenPage />} />
-          <Route path="/video" element={<VideoPage />} />
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="/card" element={<CardPage />} />
-          <Route path="/payment/success" element={<PaymentSuccessPage />} />
-          <Route path="/" element={<Navigate to="/chat" replace />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/chats" element={<Navigate to="/search?tab=chats" replace />} />
+            <Route path="/chats/:chatId" element={<ChatConversationPage />} />
+            <Route path="/profile" element={<ProfileView />} />
+            <Route path="/search" element={<NetworkingPage />} />
+            <Route path="/compatibility" element={<Navigate to="/search" replace />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/dozvon" element={<DozvonPage />} />
+            <Route path="/referral" element={<ReferralPage />} />
+            <Route path="/image-gen" element={<ImageGenPage />} />
+            <Route path="/video" element={<VideoPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/support" element={<SupportPage />} />
+            <Route path="/card" element={<CardPage />} />
+            <Route path="/payment/success" element={<PaymentSuccessPage />} />
+            <Route path="/" element={<Navigate to="/chat" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </div>
 
       {/* Mobile Navigation */}

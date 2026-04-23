@@ -19,13 +19,13 @@ interface Assistant {
   description: string;
 }
 
-const getRoleForAssistant = (description: string): string => {
-  if (description.includes('Коуч')) return 'Коуч';
-  if (description.includes('Психолог')) return 'Психолог';
-  if (description.includes('Игропрактик')) return 'Игропрактик';
-  if (description.includes('Астролог')) return 'Астролог';
-  if (description.includes('Human Design')) return 'Human Design';
-  return 'Ассистент';
+const getRoleForAssistant = (description: string, t: (k: string) => string): string => {
+  if (description.includes('Коуч')) return t('chat.assistant_role_coach');
+  if (description.includes('Психолог')) return t('chat.assistant_role_psych');
+  if (description.includes('Игропрактик')) return t('chat.assistant_role_gameplay');
+  if (description.includes('Астролог')) return t('chat.assistant_role_astro');
+  if (description.includes('Human Design')) return t('chat.assistant_role_hd');
+  return t('chat.assistant_role_default');
 };
 
 interface Message {
@@ -279,7 +279,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       <div className="not-prose my-2">
         <img
           src={src}
-          alt={alt || 'изображение'}
+          alt={alt || t('chat.image_alt')}
           className="rounded-xl max-w-full w-72 sm:w-96 object-contain"
           loading="lazy"
         />
@@ -295,7 +295,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <polyline points="7 10 12 15 17 10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          Скачать
+          {t('chat.download')}
         </a>
       </div>
     ),
@@ -407,7 +407,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       isChangingAgentRef.current = false;
     }
 
-    const greetingMessage = "Привет! Расскажи про себя!";
+    const greetingMessage = t('chat.initial_greeting');
     await sendMessageToAI(greetingMessage);
   };
 
@@ -553,7 +553,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             setSelectedAssistant(newAssistant);
 
             // Показываем уведомление
-            setAssistantSwitchNotification(`Переключено на ${newAssistant.name}`);
+            setAssistantSwitchNotification(t('chat.switched_to', { name: newAssistant.name }));
             setTimeout(() => setAssistantSwitchNotification(null), 3000);
           }
         } catch (error) {
@@ -624,7 +624,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               localStorage.setItem('selected_assistant', JSON.stringify(matchingAssistant));
               // changeAgentOnServer будет вызван автоматически через useEffect
 
-              setAssistantSwitchNotification(`Переключено на ${matchingAssistant.name}`);
+              setAssistantSwitchNotification(t('chat.switched_to', { name: matchingAssistant.name }));
               setTimeout(() => setAssistantSwitchNotification(null), 3000);
               
               // Сбрасываем флаг после задержки, чтобы дать серверу время обновиться
@@ -752,7 +752,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
         if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          alert('Ошибка распознавания речи: ' + event.error);
+          alert(t('chat.voice_error', { error: event.error }));
         }
       };
 
@@ -867,7 +867,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   inlineJobIds[idx] = data.result.jobId;
                 } else {
                   inlineJobIds.splice(idx, 1);
-                  const msg = data.result?.error ? `\n\n*Не удалось сгенерировать видео: ${data.result.error}*` : '';
+                  const msg = data.result?.error ? `\n\n*${t('chat.video_gen_error', { error: data.result.error })}*` : '';
                   accumulatedContent += msg;
                 }
               }
@@ -915,7 +915,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const errorMessage: Message = {
         id: generateMessageId(),
         type: 'assistant',
-        content: 'Извините, произошла ошибка при обработке вашего сообщения. Попробуйте еще раз.',
+        content: t('chat.ai_error_fallback'),
         timestamp: new Date()
       };
       
@@ -951,7 +951,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           setSelectedAssistant(currentAssistant);
           // changeAgentOnServer будет вызван автоматически через useEffect
           // Показываем уведомление
-          setAssistantSwitchNotification(`Переключено на ${currentAssistant.name}`);
+          setAssistantSwitchNotification(t('chat.switched_to', { name: currentAssistant.name }));
           setTimeout(() => setAssistantSwitchNotification(null), 3000);
         }
       } catch (error) {
@@ -974,7 +974,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const handleClearChat = async () => {
-    if (window.confirm('Очистить историю чата? Это действие нельзя отменить.')) {
+    if (window.confirm(t('chat.clear_confirm'))) {
       setMessages([]);
       if (selectedAssistant) {
         localStorage.removeItem(getChatStorageKey(selectedAssistant.id));
@@ -1060,7 +1060,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const handleVoiceInput = () => {
     if (!recognition || !isVoiceSupported) {
-      alert('Голосовой ввод не поддерживается в вашем браузере');
+      alert(t('chat.voice_not_supported'));
       return;
     }
 
@@ -1089,7 +1089,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     // For other assistants — PDF only, scan-document flow
     if (file.type !== 'application/pdf') {
-      alert('Пожалуйста, загрузите файл в формате PDF');
+      alert(t('chat.pdf_only'));
       return;
     }
 
@@ -1127,8 +1127,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     } catch (error) {
       console.error('Error uploading file:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      alert(`Произошла ошибка при загрузке файла: ${errorMessage}. Попробуйте еще раз.`);
+      const errorMessage = error instanceof Error ? error.message : t('chat.file_error_unknown');
+      alert(t('chat.file_upload_error_generic', { error: errorMessage }));
     } finally {
       setIsUploadingFile(false);
     }
@@ -1221,7 +1221,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const errMsg: Message = {
         id: assistantMsgId,
         type: 'assistant',
-        content: 'Произошла ошибка при обработке файла. Попробуйте ещё раз.',
+        content: t('chat.file_error_fallback'),
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errMsg]);
@@ -1273,7 +1273,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     await changeAgentOnServer(assistant.name);
 
-    setAssistantSwitchNotification(`Переключено на ${assistant.name}`);
+    setAssistantSwitchNotification(t('chat.switched_to', { name: assistant.name }));
     setTimeout(() => setAssistantSwitchNotification(null), 3000);
 
     setTimeout(() => {
@@ -1305,7 +1305,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }
 
   const formatTokens = (tokens: number) => {
-    return tokens.toLocaleString('ru-RU');
+    return tokens.toLocaleString();
   };
 
   return (
@@ -1332,7 +1332,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             {isLoadingAssistants ? (
               <div className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 rounded-lg">
                 <div className="w-4 h-4 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-gray-600">Загрузка...</span>
+                <span className="text-sm text-gray-600">{t('common.loading')}</span>
               </div>
             ) : selectedAssistant ? (
               <>
@@ -1358,7 +1358,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   )}
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
-                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description)}</span>
+                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description, t)}</span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-forest-700" />
                 </button>
@@ -1412,7 +1412,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <button
                 onClick={() => setShowTokenPackages(true)}
                 className="flex items-center space-x-1.5 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg border border-forest-200 hover:border-forest-300 transition-all cursor-pointer"
-                title="Нажмите для пополнения токенов"
+                title={t('chat.tokens_top_up_title')}
               >
                 <Coins className="w-4 h-4 text-forest-600" />
                 <span className="text-sm font-semibold text-forest-700">
@@ -1426,14 +1426,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   onClick={handleRegenerateResponse}
                   disabled={isTyping}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                  title="Перегенерировать ответ"
+                  title={t('chat.regenerate_title')}
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleClearChat}
                   className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Очистить чат"
+                  title={t('chat.clear_title')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -1454,12 +1454,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {loadingMore && (
           <div className="flex items-center justify-center py-3">
             <div className="w-5 h-5 border-2 border-forest-500 border-t-transparent rounded-full animate-spin" />
-            <span className="ml-2 text-xs text-gray-400">Загрузка истории...</span>
+            <span className="ml-2 text-xs text-gray-400">{t('chat.loading_history')}</span>
           </div>
         )}
         {hasMoreHistory && !loadingMore && (
           <div className="flex items-center justify-center py-2">
-            <button onClick={loadMoreHistory} className="text-xs text-forest-500 hover:text-forest-700">↑ Загрузить ещё</button>
+            <button onClick={loadMoreHistory} className="text-xs text-forest-500 hover:text-forest-700">{t('chat.load_more')}</button>
           </div>
         )}
         {historyLoading ? (
@@ -1588,7 +1588,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   minute: '2-digit'
                 })}
                 {message.type === 'assistant' && message.tokensUsed ? (
-                  <span className="ml-2 text-gray-400">• {message.tokensUsed.toLocaleString('ru-RU')} токенов</span>
+                  <span className="ml-2 text-gray-400">• {message.tokensUsed.toLocaleString()} {t('chat.tokens_suffix')}</span>
                 ) : null}
               </p>
             </div>
@@ -1601,7 +1601,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <div className="max-w-lg px-4 py-3 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md">
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
                   <div className="w-5 h-5 border-2 border-forest-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                  <span>Генерирую изображение...</span>
+                  <span>{t('chat.generating_image')}</span>
                 </div>
               </div>
             </div>
@@ -1638,7 +1638,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
             )}
-            title={isUniversalAgent ? 'Загрузить файл' : 'Загрузить PDF файл'}
+            title={isUniversalAgent ? t('chat.upload_any_file') : t('chat.upload_file')}
           >
             {isUploadingFile ? (
               <div className="w-5 h-5 border-2 border-gray-400 border-t-forest-600 rounded-full animate-spin" />
@@ -1674,10 +1674,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             )}
             title={
               !isVoiceSupported
-                ? 'Голосовой ввод не поддерживается'
+                ? t('chat.voice_not_supported_title')
                 : isRecording
-                  ? 'Остановить запись'
-                  : 'Начать голосовой ввод'
+                  ? t('chat.voice_stop')
+                  : t('chat.voice_start')
             }
           >
             {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
@@ -1708,7 +1708,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {showFileTaskModal && pendingFile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5">
-            <h3 className="text-lg font-semibold mb-2">Загрузка файла</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('chat.file_modal_title')}</h3>
             <div className="bg-gray-50 rounded-lg p-3 mb-3 flex items-center gap-2">
               <span className="text-xl">📎</span>
               <div className="min-w-0">
@@ -1719,7 +1719,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <textarea
               value={fileTaskInput}
               onChange={(e) => setFileTaskInput(e.target.value)}
-              placeholder="Что сделать с этим файлом? Например: проанализируй, переделай, сожми, извлеки текст..."
+              placeholder={t('chat.file_modal_placeholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent mb-3"
               rows={3}
               autoFocus
@@ -1735,14 +1735,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 onClick={() => { setShowFileTaskModal(false); setPendingFile(null); }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
               >
-                Отмена
+                {t('chat.file_modal_cancel')}
               </button>
               <button
                 onClick={handleFileTaskSubmit}
                 disabled={!fileTaskInput.trim()}
                 className="flex-1 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Отправить
+                {t('chat.file_modal_submit')}
               </button>
             </div>
           </div>

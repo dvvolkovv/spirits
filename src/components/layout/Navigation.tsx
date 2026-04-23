@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
 import {
   MessageCircle,
-  Users,
   User,
   TrendingUp,
   Heart,
@@ -23,6 +22,7 @@ import {
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
 import LegalModal from '../onboarding/LegalModal';
+import { useUnreadSummary } from '../peer/usePeer';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
@@ -30,6 +30,8 @@ const Navigation: React.FC = () => {
   const [showTokenPackages, setShowTokenPackages] = useState(false);
   const [isReferralLeader, setIsReferralLeader] = useState(false);
   const [showLegal, setShowLegal] = useState<'terms' | 'privacy' | null>(null);
+  const unread = useUnreadSummary();
+  const peerBadge = unread.incomingRequests + unread.unreadMessages;
 
   useEffect(() => {
     if (user && user.tokens === undefined) {
@@ -60,13 +62,14 @@ const Navigation: React.FC = () => {
     {
       to: '/search',
       icon: ArrowRight,
-      label: 'Нетворкинг',
+      label: t('nav.networking'),
       isLogo: false,
+      badge: peerBadge,
     },
     {
       to: '/image-gen',
       icon: ImageIcon,
-      label: 'Генератор изображений',
+      label: t('nav.image_gen'),
       isLogo: false,
     },
     {
@@ -93,28 +96,28 @@ const Navigation: React.FC = () => {
   const dozvonNavItem = {
     to: '/dozvon',
     icon: Phone,
-    label: 'Дозвон',
+    label: t('nav.dozvon'),
     isLogo: false,
   };
 
   const referralNavItem = {
     to: '/referral',
     icon: Handshake,
-    label: 'Партнёры',
+    label: t('nav.referral'),
     isLogo: false,
   };
 
   const cardNavItem = {
     to: '/card',
     icon: CreditCard,
-    label: 'Визитка',
+    label: t('nav.card'),
     isLogo: false,
   };
 
   const helpNavItem = {
     to: '/help',
     icon: HelpCircle,
-    label: 'Помощь',
+    label: t('nav.help'),
     isLogo: false,
   };
 
@@ -126,7 +129,7 @@ const Navigation: React.FC = () => {
   ];
 
   const formatTokens = (tokens: number) => {
-    return tokens.toLocaleString('ru-RU');
+    return tokens.toLocaleString();
   };
 
   return (
@@ -155,7 +158,7 @@ const Navigation: React.FC = () => {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
                   <Coins className="w-5 h-5 text-forest-600" />
-                  <span className="text-sm font-medium text-gray-700">Токены</span>
+                  <span className="text-sm font-medium text-gray-700">{t('nav.tokens.label')}</span>
                 </div>
                 <Plus className="w-4 h-4 text-forest-600" />
               </div>
@@ -163,20 +166,20 @@ const Navigation: React.FC = () => {
                 {formatTokens(user.tokens)}
               </div>
               <p className="text-xs text-forest-600 mt-1 font-medium">
-                Нажмите для пополнения
+                {t('nav.tokens.top_up')}
               </p>
             </button>
             {/* Token pricing info */}
             <div className="relative mt-2 group">
               <button className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600 transition-colors px-1">
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" d="M12 16v-4m0-4h.01" strokeWidth="2"/></svg>
-                <span>Как считаются токены?</span>
+                <span>{t('nav.tokens.how_question')}</span>
               </button>
               <div className="hidden group-hover:block absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 text-[11px] text-gray-600 leading-relaxed">
-                <p className="font-semibold text-gray-800 mb-1">Динамическая система ценообразования</p>
-                <p className="mb-1">Цена не фиксирована — каждая задача уникальна. Как в сервисах Такси или Гостиничных сетях, стоимость гибко подстраивается под реальный объём работы, спрос и ресурсы.</p>
-                <p className="mb-1">В итоге: прозрачная, справедливая цена без переплат и скрытых комиссий. Вы платите ровно за то, что получаете.</p>
-                <p className="text-gray-500">Счётчик показывает точный расход токенов после каждого сообщения.</p>
+                <p className="font-semibold text-gray-800 mb-1">{t('nav.tokens.how_title')}</p>
+                <p className="mb-1">{t('nav.tokens.how_line1')}</p>
+                <p className="mb-1">{t('nav.tokens.how_line2')}</p>
+                <p className="text-gray-500">{t('nav.tokens.how_line3')}</p>
               </div>
             </div>
           </div>
@@ -208,7 +211,14 @@ const Navigation: React.FC = () => {
                   className="w-6 h-6 md:w-5 md:h-5 md:mr-3 object-contain"
                 />
               ) : (
-                <Icon className="w-6 h-6 md:w-4 md:h-4 md:mr-3" />
+                <div className="relative md:mr-3 flex-shrink-0">
+                  <Icon className="w-6 h-6 md:w-4 md:h-4" />
+                  {'badge' in item && typeof item.badge === 'number' && item.badge > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] font-semibold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center leading-none">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                </div>
               )}
               <span className="hidden md:block text-sm">
                 {item.label}
@@ -222,10 +232,10 @@ const Navigation: React.FC = () => {
       <div className="hidden md:block mt-auto px-4 pb-4 pt-2 border-t border-gray-200">
         <div className="flex flex-col gap-1">
           <button onClick={() => setShowLegal('terms')} className="text-[10px] text-gray-400 hover:text-gray-600 text-left transition-colors">
-            Пользовательское соглашение
+            {t('nav.legal.terms')}
           </button>
           <button onClick={() => setShowLegal('privacy')} className="text-[10px] text-gray-400 hover:text-gray-600 text-left transition-colors">
-            Политика конфиденциальности
+            {t('nav.legal.privacy')}
           </button>
         </div>
       </div>

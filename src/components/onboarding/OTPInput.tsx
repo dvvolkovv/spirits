@@ -176,7 +176,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
             <p>
-              <span className="font-medium">Код отправлен по SMS</span>
+              <span className="font-medium">{t('onboarding.sms_sent')}</span>
             </p>
           </div>
         </div>
@@ -211,7 +211,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
               className="flex items-center space-x-2 px-4 py-2 text-forest-600 hover:text-forest-700 hover:bg-forest-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Clipboard className="w-4 h-4" />
-              <span className="text-sm font-medium">Вставить код из буфера</span>
+              <span className="text-sm font-medium">{t('onboarding.paste_from_clipboard')}</span>
             </button>
           </div>
 
@@ -219,7 +219,7 @@ const OTPInput: React.FC<OTPInputProps> = ({
           <div className="text-center">
             {resendTimer > 0 ? (
               <p className="text-gray-500 text-sm">
-                {t('onboarding.resend_code')} через {formatTime(resendTimer)}
+                {t('onboarding.resend_in', { time: formatTime(resendTimer) })}
               </p>
             ) : (
               <button

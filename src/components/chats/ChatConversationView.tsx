@@ -1,540 +1,346 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../contexts/AuthContext';
-import {
-  ArrowLeft,
-  Send,
-  Paperclip,
-  Mic,
-  Phone,
-  Video,
-  MoreVertical,
-  Users,
-  Info
-} from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, ShieldAlert, UserX, Loader2, Heart, Eye } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useAuth } from '../../contexts/AuthContext';
+import { usePeerConversation, blockUser, reportUser } from '../peer/usePeer';
+import { AvatarBubble } from '../peer/PeerInboxPanels';
+import UserProfileModal from '../search/UserProfileModal';
 
-interface Message {
-  id: string;
-  senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: Date;
-  type: 'text' | 'image' | 'file';
-  status: 'sending' | 'sent' | 'delivered' | 'read';
-}
-
-interface Chat {
-  id: string;
-  type: 'direct' | 'group';
-  name: string;
-  avatar?: string;
-  members: Array<{
-    id: string;
-    name: string;
-    avatar?: string;
-    isOnline: boolean;
-    lastSeen?: Date;
-  }>;
-  isOnline?: boolean;
-  lastSeen?: Date;
-}
-
-interface ChatConversationViewProps {
+interface Props {
   chatId: string;
 }
 
-const ChatConversationView: React.FC<ChatConversationViewProps> = ({ chatId }) => {
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  const h = d.getHours().toString().padStart(2, '0');
+  const m = d.getMinutes().toString().padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+function sameDay(a: string, b: string): boolean {
+  const da = new Date(a), db = new Date(b);
+  return da.getFullYear() === db.getFullYear()
+    && da.getMonth() === db.getMonth()
+    && da.getDate() === db.getDate();
+}
+
+function dayLabel(iso: string, t: (k: string, f?: string) => string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  if (sameDay(iso, now.toISOString())) return t('peer.chat.today', 'Сегодня');
+  const y = new Date(); y.setDate(now.getDate() - 1);
+  if (sameDay(iso, y.toISOString())) return t('peer.chat.yesterday', 'Вчера');
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+}
+
+const ChatConversationView: React.FC<Props> = ({ chatId }) => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const myId = user?.phone ? user.phone.replace(/\D/g, '') : '';
+
+  const { conv, messages, loading, sendMessage, markRead } = usePeerConversation(chatId);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [chat, setChat] = useState<Chat | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [sending, setSending] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  // Mock data
-  const mockChats: Record<string, Chat> = {
-    '1': {
-      id: '1',
-      type: 'direct',
-      name: 'Анна Петрова',
-      members: [
-        { id: 'user', name: 'Вы', isOnline: true },
-        { id: '1', name: 'Анна Петрова', isOnline: true }
-      ],
-      isOnline: true
-    },
-    '2': {
-      id: '2',
-      type: 'group',
-      name: 'Стартап команда',
-      members: [
-        { id: 'user', name: 'Вы', isOnline: true },
-        { id: '1', name: 'Анна Петрова', isOnline: true },
-        { id: '2', name: 'Михаил Сидоров', isOnline: false, lastSeen: new Date(Date.now() - 1000 * 60 * 30) },
-        { id: '3', name: 'Елена Васильева', isOnline: true }
-      ]
-    },
-    '3': {
-      id: '3',
-      type: 'direct',
-      name: 'Елена Васильева',
-      members: [
-        { id: 'user', name: 'Вы', isOnline: true },
-        { id: '3', name: 'Елена Васильева', isOnline: false, lastSeen: new Date(Date.now() - 1000 * 60 * 60 * 2) }
-      ],
-      isOnline: false,
-      lastSeen: new Date(Date.now() - 1000 * 60 * 60 * 2)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastScrolledCountRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (messages.length !== lastScrolledCountRef.current) {
+      lastScrolledCountRef.current = messages.length;
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+      });
+    }
+  }, [messages.length]);
+
+  useEffect(() => {
+    if (!messages.length) return;
+    const hasUnread = messages.some((m) => !m.readAt && m.senderId !== myId);
+    if (hasUnread) markRead();
+  }, [messages, myId, markRead]);
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text || sending) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      await sendMessage(text);
+      setInput('');
+    } catch (e: any) {
+      setSendError(e?.message || t('peer.chat.sendFailed', 'Не удалось отправить'));
+    } finally {
+      setSending(false);
     }
   };
 
-  const mockMessages: Record<string, Message[]> = {
-    '1': [
-      {
-        id: '1',
-        senderId: '1',
-        senderName: 'Анна Петрова',
-        content: 'Привет! Как дела с проектом?',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60),
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: '2',
-        senderId: 'user',
-        senderName: 'Вы',
-        content: 'Привет! Всё идёт по плану. Завтра должны закончить MVP.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 45),
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: '3',
-        senderId: '1',
-        senderName: 'Анна Петрова',
-        content: 'Отлично! Не могу дождаться посмотреть результат.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15),
-        type: 'text',
-        status: 'delivered'
-      }
-    ],
-    '2': [
-      {
-        id: '1',
-        senderId: '3',
-        senderName: 'Елена Васильева',
-        content: 'Всем привет! Как прошла встреча с инвесторами?',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3),
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: '2',
-        senderId: '1',
-        senderName: 'Анна Петрова',
-        content: 'Встреча прошла отлично! Они заинтересованы в нашем проекте.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: '3',
-        senderId: 'user',
-        senderName: 'Вы',
-        content: 'Супер! Встречаемся завтра в 10:00 для обсуждения деталей?',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60),
-        type: 'text',
-        status: 'read'
-      }
-    ],
-    '3': [
-      {
-        id: '1',
-        senderId: '3',
-        senderName: 'Елена Васильева',
-        content: 'Спасибо за рекомендацию книги! Очень полезная.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-        type: 'text',
-        status: 'read'
-      },
-      {
-        id: '2',
-        senderId: 'user',
-        senderName: 'Вы',
-        content: 'Рад, что понравилась! У автора есть ещё несколько интересных работ.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 23),
-        type: 'text',
-        status: 'delivered'
-      }
-    ]
-  };
-
-  useEffect(() => {
-    const currentChat = mockChats[chatId];
-    const currentMessages = mockMessages[chatId] || [];
-    
-    if (currentChat) {
-      setChat(currentChat);
-      setMessages(currentMessages);
-    }
-  }, [chatId]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSend = () => {
-    if (!input.trim() || !chat) return;
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      senderId: 'user',
-      senderName: 'Вы',
-      content: input,
-      timestamp: new Date(),
-      type: 'text',
-      status: 'sending'
-    };
-
-    setMessages(prev => [...prev, newMessage]);
-    setInput('');
-
-    // Simulate message delivery
-    setTimeout(() => {
-      setMessages(prev => prev.map(msg => 
-        msg.id === newMessage.id 
-          ? { ...msg, status: 'delivered' as const }
-          : msg
-      ));
-    }, 1000);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const handleBlock = async () => {
+    if (!conv) return;
+    const confirmed = window.confirm(
+      t('peer.chat.confirmBlock', 'Заблокировать этого пользователя? Он больше не сможет вам писать.') as string,
+    );
+    if (!confirmed) return;
+    await blockUser(conv.peerUserId);
+    navigate('/search?tab=chats');
   };
 
-  const getAvatarInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const submitReport = async () => {
+    if (!conv) return;
+    const reason = reportReason.trim();
+    if (!reason) return;
+    await reportUser(conv.peerUserId, reason, { contextType: 'message', contextId: chatId });
+    setReportReason('');
+    setReportOpen(false);
+    alert(t('peer.chat.reportSent', 'Жалоба отправлена'));
   };
 
-  const getOnlineStatus = () => {
-    if (chat?.type === 'direct') {
-      const otherMember = chat.members.find(m => m.id !== 'user');
-      if (otherMember?.isOnline) return t('chats.online');
-      if (otherMember?.lastSeen) {
-        const diffMs = Date.now() - otherMember.lastSeen.getTime();
-        const diffMins = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        
-        if (diffMins < 60) return `был(а) в сети ${diffMins}м назад`;
-        if (diffHours < 24) return `был(а) в сети ${diffHours}ч назад`;
-        return 'был(а) в сети давно';
-      }
-    } else {
-      const onlineCount = chat?.members.filter(m => m.isOnline).length || 0;
-      return `${onlineCount} из ${chat?.members.length} онлайн`;
-    }
-    return '';
+  const handleCompatibility = () => {
+    if (!conv) return;
+    setMenuOpen(false);
+    navigate(`/search?tab=compatibility&user=${encodeURIComponent(conv.peerUserId)}`);
   };
 
-  if (!chat) {
+  if (loading && !conv) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-600">Чат не найден</p>
-          <button
-            onClick={() => navigate('/chats')}
-            className="mt-2 text-blue-600 hover:underline"
-          >
-            Вернуться к чатам
-          </button>
-        </div>
+      <div className="flex flex-col h-full bg-white items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-forest-600" />
+      </div>
+    );
+  }
+
+  if (!conv) {
+    return (
+      <div className="flex flex-col h-full bg-white items-center justify-center gap-3 p-6 text-center">
+        <p className="text-sm text-gray-500">{t('peer.chat.notFound', 'Чат не найден')}</p>
+        <button
+          onClick={() => navigate('/search?tab=chats')}
+          className="px-4 py-2 bg-forest-600 hover:bg-forest-700 text-white rounded-lg text-sm"
+        >
+          {t('peer.chat.backToList', 'К списку чатов')}
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 border-b flex items-center space-x-3 flex-shrink-0">
+      <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center gap-3 flex-shrink-0">
         <button
-          onClick={() => navigate('/chats')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          type="button"
+          onClick={() => navigate('/search?tab=chats')}
+          className="p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600"
         >
-          <ArrowLeft className="w-5 h-5 text-gray-600" />
+          <ArrowLeft className="w-5 h-5" />
         </button>
-
-        {/* Avatar */}
-        <div className="relative">
-          {chat.type === 'direct' ? (
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">
-                {getAvatarInitials(chat.name)}
-              </span>
-            </div>
-          ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
-            </div>
-          )}
-          
-          {chat.type === 'direct' && chat.isOnline && (
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold text-gray-900 truncate">
-            {chat.name}
-          </h1>
-          <p className="text-sm text-gray-600 truncate">
-            {getOnlineStatus()}
+        <AvatarBubble
+          name={conv.peerName}
+          url={conv.peerAvatar}
+          size="sm"
+          onClick={() => setProfileOpen(true)}
+          title={t('peer.profile.title', 'Профиль пользователя') as string}
+        />
+        <button
+          type="button"
+          onClick={() => setProfileOpen(true)}
+          className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+        >
+          <h1 className="text-sm font-semibold text-gray-900 truncate">{conv.peerName}</h1>
+          <p className="text-[11px] text-gray-400 truncate">
+            {t('peer.chat.tapForProfile', 'Нажмите, чтобы открыть профиль')}
           </p>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center space-x-2">
-          {chat.type === 'direct' && (
+        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+          {menuOpen && (
             <>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Phone className="w-5 h-5 text-gray-600" />
-              </button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Video className="w-5 h-5 text-gray-600" />
-              </button>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 w-60 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); setProfileOpen(true); }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  {t('peer.requests.viewProfile', 'Посмотреть профиль')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCompatibility}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Heart className="w-4 h-4" />
+                  {t('peer.requests.compatibility', 'Совместимость')}
+                </button>
+                <div className="border-t border-gray-100 my-1" />
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); setReportOpen(true); }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                  {t('peer.chat.report', 'Пожаловаться')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); handleBlock(); }}
+                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <UserX className="w-4 h-4" />
+                  {t('peer.chat.block', 'Заблокировать')}
+                </button>
+              </div>
             </>
           )}
-          <button
-            onClick={() => setShowInfo(!showInfo)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Info className="w-5 h-5 text-gray-600" />
-          </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
-        {messages.map((message, index) => {
-          const isOwn = message.senderId === 'user';
-          const showAvatar = !isOwn && (
-            index === 0 || 
-            messages[index - 1].senderId !== message.senderId ||
-            (message.timestamp.getTime() - messages[index - 1].timestamp.getTime()) > 5 * 60 * 1000
-          );
-          
-          return (
-            <div
-              key={message.id}
-              className={clsx(
-                'flex',
-                isOwn ? 'justify-end' : 'justify-start'
-              )}
-            >
-              {!isOwn && (
-                <div className="w-8 mr-2 flex-shrink-0">
-                  {showAvatar && (
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-semibold text-xs">
-                        {getAvatarInitials(message.senderName)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className={clsx(
-                'max-w-xs sm:max-w-md',
-                isOwn ? 'ml-8' : 'mr-8'
-              )}>
-                {!isOwn && showAvatar && chat.type === 'group' && (
-                  <p className="text-xs text-gray-500 mb-1 ml-3">
-                    {message.senderName}
-                  </p>
-                )}
-                
-                <div
-                  className={clsx(
-                    'px-4 py-2 rounded-2xl',
-                    isOwn
-                      ? 'bg-forest-600 text-white rounded-br-md'
-                      : 'bg-white text-gray-900 shadow-sm rounded-bl-md'
-                  )}
-                >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
-                  <div className={clsx(
-                    'flex items-center justify-between mt-1',
-                    isOwn ? 'text-forest-100' : 'text-gray-500'
-                  )}>
-                    <span className="text-xs">
-                      {formatTime(message.timestamp)}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 bg-gray-50 space-y-2">
+        {messages.length === 0 ? (
+          <div className="text-center text-sm text-gray-400 py-10">
+            {t('peer.chat.emptyMessages', 'Напишите первое сообщение')}
+          </div>
+        ) : (
+          messages.map((m, i) => {
+            const isMine = m.senderId === myId;
+            const prev = messages[i - 1];
+            const showDaySep = !prev || !sameDay(prev.createdAt, m.createdAt);
+            return (
+              <React.Fragment key={m.id}>
+                {showDaySep && (
+                  <div className="flex justify-center my-2">
+                    <span className="px-3 py-1 rounded-full bg-gray-200 text-gray-600 text-[11px]">
+                      {dayLabel(m.createdAt, t as any)}
                     </span>
-                    {isOwn && (
-                      <div className="flex items-center space-x-1">
-                        {message.status === 'sending' && (
-                          <div className="w-3 h-3 border border-forest-200 border-t-transparent rounded-full animate-spin" />
-                        )}
-                        {message.status === 'sent' && (
-                          <div className="w-3 h-3 border border-forest-200 rounded-full" />
-                        )}
-                        {message.status === 'delivered' && (
-                          <div className="w-3 h-3 bg-forest-200 rounded-full" />
-                        )}
-                        {message.status === 'read' && (
-                          <div className="w-3 h-3 bg-forest-200 rounded-full border-2 border-forest-100" />
-                        )}
-                      </div>
+                  </div>
+                )}
+                <div className={clsx('flex', isMine ? 'justify-end' : 'justify-start')}>
+                  <div
+                    className={clsx(
+                      'max-w-[75%] px-3 py-2 rounded-2xl shadow-sm',
+                      isMine
+                        ? 'bg-forest-600 text-white rounded-br-sm'
+                        : 'bg-white text-gray-900 rounded-bl-sm border border-gray-100',
                     )}
+                  >
+                    <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+                    <div className={clsx('text-[10px] mt-0.5 text-right', isMine ? 'text-white/70' : 'text-gray-400')}>
+                      {formatTime(m.createdAt)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="w-8 mr-2 flex-shrink-0" />
-            <div className="bg-white shadow-sm px-4 py-3 rounded-2xl rounded-bl-md">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-              </div>
-            </div>
-          </div>
+              </React.Fragment>
+            );
+          })
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="bg-white border-t px-4 py-3">
-        <div className="flex items-end space-x-2">
-          <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
-            <Paperclip className="w-5 h-5" />
-          </button>
-
-          <div className="flex-1 relative">
+      {/* Report modal */}
+      {reportOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setReportOpen(false)}>
+          <div className="bg-white rounded-xl max-w-md w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">
+              {t('peer.chat.reportTitle', 'Пожаловаться на пользователя')}
+            </h3>
+            <p className="text-xs text-gray-500 mb-3">
+              {t('peer.chat.reportHint', 'Опишите, что именно вас беспокоит. Модерация рассмотрит жалобу.')}
+            </p>
             <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={t('chat.placeholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-              rows={1}
-              style={{ minHeight: '40px', maxHeight: '120px' }}
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value.slice(0, 2000))}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 resize-none"
+              placeholder={t('peer.chat.reportPlaceholder', 'Причина жалобы…') as string}
             />
-          </div>
-
-          <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
-            <Mic className="w-5 h-5" />
-          </button>
-
-          <button
-            onClick={handleSend}
-            disabled={!input.trim()}
-            className={clsx(
-              'p-2 rounded-lg transition-colors',
-              input.trim()
-                ? 'bg-forest-600 text-white hover:bg-forest-700'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            )}
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Chat Info Sidebar */}
-      {showInfo && (
-        <div className="fixed inset-y-0 right-0 w-80 bg-white shadow-lg border-l z-50 overflow-y-auto">
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                {chat.type === 'group' ? t('chats.group_info') : 'Информация'}
-              </h2>
+            <div className="flex justify-end gap-2 mt-3">
               <button
-                onClick={() => setShowInfo(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                onClick={() => setReportOpen(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
               >
-                <ArrowLeft className="w-5 h-5" />
+                {t('common.cancel', 'Отмена')}
+              </button>
+              <button
+                onClick={submitReport}
+                disabled={!reportReason.trim()}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm disabled:opacity-50"
+              >
+                {t('peer.chat.send', 'Отправить')}
               </button>
             </div>
           </div>
-
-          <div className="p-4 space-y-6">
-            {/* Chat Avatar and Name */}
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                {chat.type === 'direct' ? (
-                  <span className="text-white font-semibold text-xl">
-                    {getAvatarInitials(chat.name)}
-                  </span>
-                ) : (
-                  <Users className="w-10 h-10 text-white" />
-                )}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900">{chat.name}</h3>
-              <p className="text-sm text-gray-600 mt-1">{getOnlineStatus()}</p>
-            </div>
-
-            {/* Members */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-3">
-                {t('chats.members')} ({chat.members.length})
-              </h4>
-              <div className="space-y-2">
-                {chat.members.map((member) => (
-                  <div key={member.id} className="flex items-center space-x-3">
-                    <div className="relative">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold text-xs">
-                          {getAvatarInitials(member.name)}
-                        </span>
-                      </div>
-                      {member.isOnline && (
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{member.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {member.isOnline ? t('chats.online') : 'не в сети'}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="space-y-2">
-              {chat.type === 'group' && (
-                <>
-                  <button className="w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                    {t('chats.add_members')}
-                  </button>
-                  <button className="w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                    {t('chats.leave_group')}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
         </div>
+      )}
+
+      {/* Input — extra bottom padding on mobile to clear the fixed bottom navigation (~80px).
+          Desktop renders the nav as a sidebar, so no offset is needed. */}
+      <div className="bg-white border-t border-gray-200 px-3 pt-2.5 pb-20 md:pb-2.5 flex-shrink-0">
+        {sendError && (
+          <div className="text-xs text-red-600 mb-1 px-1">{sendError}</div>
+        )}
+        <div className="flex items-end gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value.slice(0, 4000))}
+            onKeyDown={handleKey}
+            placeholder={t('peer.chat.inputPlaceholder', 'Напишите сообщение…') as string}
+            rows={1}
+            className="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent max-h-32"
+            style={{ minHeight: '40px' }}
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={sending || !input.trim()}
+            className="p-2.5 bg-forest-600 hover:bg-forest-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full transition-colors flex-shrink-0"
+            aria-label={t('peer.chat.send', 'Отправить') as string}
+          >
+            {sending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Profile modal */}
+      {profileOpen && conv && (
+        <UserProfileModal
+          user={{
+            id: conv.peerUserId,
+            name: conv.peerName,
+            avatar: conv.peerAvatar ?? undefined,
+            values: [],
+            intents: [],
+            corellation: 0,
+            phone: conv.peerUserId,
+          }}
+          isOpen={true}
+          onClose={() => setProfileOpen(false)}
+        />
       )}
     </div>
   );

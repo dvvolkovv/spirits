@@ -23,15 +23,7 @@ const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  const intentPlaceholders = [
-    'Хочу создать счастливую семью',
-    'Хочу научиться играть на гитаре',
-    'Планирую создать группу',
-    'Создаю поселок единомышленников',
-    'Нужна консультация по психологии',
-    'Хочу пройти коучинговую сессию',
-    'Ищу партнера для создания фитнес центра'
-  ];
+  const intentPlaceholders = t('search.intent_placeholders', { returnObjects: true }) as string[];
 
   const [currentPlaceholder, setCurrentPlaceholder] = useState(() => {
     return intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)];
@@ -141,7 +133,7 @@ const SearchInterface: React.FC = () => {
 
     } catch (error) {
       console.error('Error during phone search:', error);
-      setSearchComment('Произошла ошибка при поиске. Попробуйте еще раз.');
+      setSearchComment(t('search.error_stream'));
     } finally {
       setIsSearching(false);
     }

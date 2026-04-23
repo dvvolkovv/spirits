@@ -82,7 +82,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
             className="mt-4 inline-flex items-center space-x-2 text-sm text-forest-600 hover:text-forest-700 font-medium transition-colors"
           >
             <Info className="w-4 h-4" />
-            <span>Описание услуг и порядок оплаты</span>
+            <span>{t('onboarding.payment_info_link')}</span>
           </button>
         </div>
 
@@ -107,7 +107,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
               />
               {errors.phone && (
                 <p className="text-red-500 text-sm mt-1">
-                  Введите корректный номер телефона
+                  {t('onboarding.phone_invalid')}
                 </p>
               )}
             </div>
@@ -122,23 +122,23 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, onDemoClick, isLoadin
                   className="mt-1 w-4 h-4 text-forest-600 border-gray-300 rounded focus:ring-forest-500"
                 />
                 <span className="text-sm text-gray-700 leading-relaxed">
-                  Мне больше 18 лет, принимаю{' '}
+                  {t('onboarding.legal_consent_prefix')}{' '}
                   <button
                     type="button"
                     className="text-forest-600 hover:underline font-medium"
                     onClick={() => openModal('terms')}
                   >
-                    Пользовательское соглашение
+                    {t('onboarding.legal_terms_link')}
                   </button>
-                  ,{' '}
+                  {t('onboarding.legal_and_before_privacy')}
                   <button
                     type="button"
                     className="text-forest-600 hover:underline font-medium"
                     onClick={() => openModal('privacy')}
                   >
-                    Политику конфиденциальности
+                    {t('onboarding.legal_privacy_link')}
                   </button>
-                  {' '}и даю согласие на обработку персональных данных
+                  {t('onboarding.legal_consent_suffix')}
                 </span>
               </label>
             </div>

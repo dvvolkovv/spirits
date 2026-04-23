@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import AdminAssistantsView from '../components/admin/AdminAssistantsView';
 import AdminCouponsView from '../components/admin/AdminCouponsView';
 import AdminReferralsView from '../components/admin/AdminReferralsView';
+import AdminSupportView from '../components/admin/AdminSupportView';
 
-type AdminTab = 'assistants' | 'coupons' | 'referrals';
+type AdminTab = 'support' | 'assistants' | 'coupons' | 'referrals';
 
 const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<AdminTab>('assistants');
+  const { t } = useTranslation();
+  const [params] = useSearchParams();
+  const initialTab = (['support', 'assistants', 'coupons', 'referrals'] as AdminTab[])
+    .includes(params.get('tab') as AdminTab)
+    ? (params.get('tab') as AdminTab)
+    : 'support';
+  const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
 
   if (isLoading) {
     return (
@@ -25,9 +33,10 @@ const AdminPage: React.FC = () => {
   }
 
   const tabs: { id: AdminTab; label: string }[] = [
-    { id: 'assistants', label: 'Ассистенты' },
-    { id: 'coupons', label: 'Купоны' },
-    { id: 'referrals', label: 'Рефералы' },
+    { id: 'support', label: t('admin.tabs.support') },
+    { id: 'assistants', label: t('admin.tabs.assistants') },
+    { id: 'coupons', label: t('admin.tabs.coupons') },
+    { id: 'referrals', label: t('admin.tabs.referrals') },
   ];
 
   return (
@@ -52,6 +61,7 @@ const AdminPage: React.FC = () => {
         </div>
       </div>
       <div className="flex-1 overflow-hidden">
+        {activeTab === 'support' && <AdminSupportView />}
         {activeTab === 'assistants' && <AdminAssistantsView />}
         {activeTab === 'coupons' && <AdminCouponsView />}
         {activeTab === 'referrals' && <AdminReferralsView />}

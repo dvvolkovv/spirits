@@ -1,19 +1,57 @@
 {
   "onboarding": {
-    "welcome": "Welcome",
-    "subtitle": "Find people who share your values",
+    "welcome": "LINKEON.IO",
+    "subtitle": "AI for growing and scaling your business",
     "enter_phone": "Enter phone number",
     "phone_placeholder": "+1 (555) 123-4567",
     "send_code": "Send code",
     "enter_code": "Enter SMS code",
     "code_sent": "Code sent to",
     "resend_code": "Resend",
+    "resend_in": "Resend in {{time}}",
     "verify": "Verify",
     "consent_title": "Data processing consent",
     "consent_text": "I agree to the terms of use and privacy policy",
     "accept_continue": "Accept and continue",
     "terms": "Terms of service",
-    "privacy": "Privacy policy"
+    "privacy": "Privacy policy",
+    "phone_invalid": "Enter a valid phone number",
+    "legal_consent_prefix": "I am over 18 and accept the",
+    "legal_and": ",",
+    "legal_and_before_privacy": ", ",
+    "legal_consent_suffix": " and consent to the processing of personal data",
+    "legal_terms_link": "Terms of Service",
+    "legal_privacy_link": "Privacy Policy",
+    "payment_info_link": "Services description and payment terms",
+    "sms_sent": "Code sent via SMS",
+    "paste_from_clipboard": "Paste code from clipboard"
+  },
+  "nav": {
+    "networking": "Networking",
+    "image_gen": "Image generator",
+    "dozvon": "Dialer",
+    "referral": "Partners",
+    "card": "Business card",
+    "help": "Help",
+    "tokens": {
+      "label": "Tokens",
+      "top_up": "Click to top up",
+      "how_question": "How are tokens counted?",
+      "how_title": "Dynamic pricing",
+      "how_line1": "The price isn't fixed — every task is unique. Like ride-hailing or hotel chains, cost flexibly adjusts to actual workload, demand and resources.",
+      "how_line2": "The result: a transparent, fair price with no markups or hidden fees. You pay exactly for what you get.",
+      "how_line3": "The counter shows the exact token spend after each message."
+    },
+    "legal": {
+      "terms": "Terms of service",
+      "privacy": "Privacy policy"
+    }
+  },
+  "errors": {
+    "boundary_title": "Interface error",
+    "details": "Details",
+    "retry": "Retry",
+    "to_home": "Go home"
   },
   "chat": {
     "title": "Chat with assistant",
@@ -26,6 +64,7 @@
     "upload_error": "File upload error",
     "pdf_only": "Please upload a PDF file",
     "welcome_message": "Hi! I'll help you find kindred spirits. Tell me what interests you?",
+    "initial_greeting": "Hi! Tell me about yourself!",
     "suggestions": {
       "values": "Tell me about your values",
       "goals": "What are your goals?",
@@ -38,7 +77,39 @@
     "all_assistants": "All assistants",
     "select_assistant": "Select an assistant",
     "select_assistant_hint": "from the panel on the left",
-    "upload_any_file": "Upload file"
+    "upload_any_file": "Upload file",
+    "tokens_top_up_title": "Click to top up tokens",
+    "regenerate_title": "Regenerate response",
+    "clear_title": "Clear chat",
+    "clear_confirm": "Clear chat history? This action cannot be undone.",
+    "loading_history": "Loading history...",
+    "load_more": "↑ Load more",
+    "generating_image": "Generating image...",
+    "generating_image_error": "Failed to generate image",
+    "video_gen_error": "Failed to generate video: {{error}}",
+    "ai_error_fallback": "Sorry, an error occurred while processing your message. Please try again.",
+    "file_error_fallback": "An error occurred while processing the file. Please try again.",
+    "file_upload_error_generic": "An error occurred while uploading the file: {{error}}. Please try again.",
+    "file_error_unknown": "Unknown error",
+    "file_modal_title": "Upload file",
+    "file_modal_placeholder": "What should I do with this file? For example: analyze, rewrite, compress, extract text...",
+    "file_modal_cancel": "Cancel",
+    "file_modal_submit": "Send",
+    "tokens_suffix": "tokens",
+    "switched_to": "Switched to {{name}}",
+    "assistant_role_coach": "Coach",
+    "assistant_role_psych": "Psychologist",
+    "assistant_role_gameplay": "Game Practitioner",
+    "assistant_role_astro": "Astrologer",
+    "assistant_role_hd": "Human Design",
+    "assistant_role_default": "Assistant",
+    "voice_not_supported": "Voice input is not supported in your browser",
+    "voice_not_supported_title": "Voice input not supported",
+    "voice_start": "Start voice input",
+    "voice_stop": "Stop recording",
+    "voice_error": "Speech recognition error: {{error}}",
+    "image_alt": "image",
+    "download": "Download"
   },
   "profile": {
     "title": "My profile",
@@ -66,10 +137,12 @@
     "add_value": "Add value",
     "privacy_settings": "Privacy settings",
     "name_help_text": "First and last name help other users get to know you better",
-    "complete_name_prompt": "Fill in your first and last name so other users can get to know you better"
+    "complete_name_prompt": "Fill in your first and last name so other users can get to know you better",
+    "delete_error_no_phone": "Phone number not found",
+    "delete_error_status": "Profile deletion error: {{status}}"
   },
   "search": {
-    "title": "Intentions",
+    "title": "Networking",
     "placeholder": "Enter your intention or desire",
     "recommendations": "Recommendations",
     "match_score": "Match",
@@ -78,13 +151,103 @@
     "view_profile": "View profile",
     "start_chat": "Start chat",
     "no_results": "No one found",
-    "try_different": "Try changing your search criteria"
+    "try_different": "Try changing your search criteria",
+    "start_prompt_title": "Start searching for people",
+    "hint_title": "Find kindred spirits",
+    "hint_body": "Enter a query in the search bar to find like-minded people",
+    "searching": "Looking for matching people...",
+    "error_stream": "An error occurred during search. Please try again.",
+    "values_count": "Values ({{count}})",
+    "interests_count": "Interests ({{count}})",
+    "skills_count": "Skills ({{count}})",
+    "no_description": "No description",
+    "unknown_user": "Unknown user",
+    "telegram_tooltip": "Message on Telegram",
+    "no_phone": "User's phone number is not available",
+    "intent_placeholders": [
+      "I want to build a happy family",
+      "I want to learn how to play guitar",
+      "Planning to start a community",
+      "Building a village of like-minded people",
+      "Need a psychology consultation",
+      "I'd like to take a coaching session",
+      "Looking for a partner to start a fitness center"
+    ]
   },
   "compatibility": {
-    "title": "Compatibility"
+    "title": "Compatibility",
+    "subtitle": "Compatibility analysis with other users",
+    "add_phones": "Add phone numbers",
+    "add_phones_hint": "Enter a phone number of a user registered on LINKEON.IO. The AI will analyze your profiles and show a compatibility percentage across values, interests and skills.",
+    "picker_open": "Opening contacts...",
+    "pick_from_contacts": "Pick from contacts",
+    "add": "Add",
+    "added_numbers": "Added numbers:",
+    "analyzing": "Analyzing compatibility...",
+    "analyze": "Analyze compatibility",
+    "result": "Analysis result",
+    "error_invalid_11": "Enter a valid phone number (11 digits)",
+    "error_already_added": "This number is already added",
+    "error_picker_unsupported": "Your browser doesn't support contact picker. Try Chrome on Android.",
+    "error_contacts_empty": "No contacts selected",
+    "error_added_with_duplicates": "Added {{added}} numbers. {{duplicates}} skipped (duplicates).",
+    "error_no_valid_phones": "No valid phone numbers found",
+    "error_picker_cancelled": "Contact picker cancelled",
+    "error_picker_generic": "Error selecting contacts. Please make sure you've granted access to contacts.",
+    "error_analysis": "An error occurred during compatibility analysis. Please try again."
   },
   "admin": {
-    "title": "Management"
+    "title": "Management",
+    "tabs": {
+      "support": "Support",
+      "assistants": "Assistants",
+      "coupons": "Coupons",
+      "referrals": "Referrals"
+    },
+    "support": {
+      "filters": {
+        "escalated": "Needs attention",
+        "owner_handling": "In progress",
+        "ai_handling": "AI handling",
+        "resolved": "Resolved",
+        "all": "All"
+      },
+      "status": {
+        "owner_handling": "In progress",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      },
+      "time": {
+        "just_now": "just now",
+        "minutes_ago": "{{count}} min ago",
+        "hours_ago": "{{count}} h ago",
+        "days_ago": "{{count}} d ago",
+        "seconds": "{{count}} s",
+        "minutes_short": "{{count}} min",
+        "hours_short": "{{count}} h",
+        "dash": "—"
+      },
+      "kpi_active": "Escalated / Owner / AI",
+      "kpi_window": "last {{days}} days: {{created}} new, {{resolved}} resolved",
+      "kpi_ai_share": "AI without team: {{percent}}%",
+      "kpi_first_reply": "⏱ first reply: {{value}}",
+      "kpi_refunds": "💳 refunds: {{count}} / {{sum}} tok.",
+      "empty_state": "No tickets in this state",
+      "no_messages": "(no messages)",
+      "message_count": "{{count}} msgs · tokens: {{tokens}}",
+      "hint_select": "Select a ticket on the left to see the conversation.",
+      "hint_counts": "Escalated: {{escalated}} · in progress: {{owner}} · AI: {{ai}}",
+      "resolve": "Resolve",
+      "return_ai": "Return to AI",
+      "return_ai_note": "Owner returned the ticket to AI.",
+      "ai_note_title": "AI note for the team",
+      "sender_team": "Team",
+      "sender_user": "User",
+      "reply_placeholder_internal": "Internal note (team only)…",
+      "reply_placeholder_user": "Reply to user…",
+      "internal_note_label": "Internal note (hidden from user)",
+      "tokens_unit": "tokens: {{value}}"
+    }
   },
   "chats": {
     "title": "Chats",
@@ -102,19 +265,41 @@
     "title": "Settings",
     "privacy": "Privacy",
     "profile_visibility": "Profile visibility",
+    "profile_visibility_desc": "Who can see your profile in search",
     "values_visibility": "Show values",
+    "values_visibility_desc": "Show your values to others",
     "allow_chats": "Allow chats",
+    "allow_chats_desc": "Who can start a chat with you",
     "language": "Interface language",
+    "language_title": "Interface language",
+    "language_desc": "Select your preferred language",
     "notifications": "Notifications",
+    "new_messages": "New messages",
+    "new_messages_desc": "Notifications about new messages in chats",
+    "new_matches": "New matches",
+    "new_matches_desc": "Notifications about matching people",
     "account": "Account",
     "logout": "Logout",
     "delete_account": "Delete account",
-    "version": "App version"
+    "version": "App version",
+    "visibility": {
+      "all": "Everyone",
+      "matches": "Matches only",
+      "private": "No one"
+    },
+    "chat_access": {
+      "all": "All users",
+      "matches": "Matches only",
+      "none": "No one"
+    }
   },
   "video": {
     "navTitle": "Video",
     "pageTitle": "Video generation",
-    "tabs": { "create": "Create", "gallery": "My videos" },
+    "tabs": {
+      "create": "Create",
+      "gallery": "My videos"
+    },
     "mode": {
       "label": "Mode",
       "text2video": "Text → Video",
@@ -122,23 +307,67 @@
       "extend": "Extend",
       "lipsync": "Lip-sync"
     },
-    "model": { "label": "Model", "standard": "Standard (v1.6)", "premium": "Premium (v2 Master)" },
-    "quality": { "label": "Quality", "std": "Standard", "pro": "Pro" },
-    "duration": { "label": "Duration", "5s": "5 seconds", "10s": "10 seconds" },
-    "prompt": { "label": "Prompt", "placeholder": "Describe what should happen in the video" },
-    "negativePrompt": { "label": "Negative prompt" },
-    "cfgScale": { "label": "CFG scale" },
-    "cameraType": { "label": "Camera" },
-    "sourceImage": { "label": "Source image", "upload": "Upload", "fromGallery": "From image gallery" },
-    "sourceVideo": { "label": "Source video" },
-    "audio": { "label": "Audio for lip-sync" },
-    "submit": { "create": "Create", "cost": "This will cost {{tokens}} tokens" },
-    "insufficientTokens": { "title": "Not enough tokens", "cta": "Top up" },
+    "model": {
+      "label": "Model",
+      "standard": "Standard (v1.6)",
+      "premium": "Premium (v2 Master)"
+    },
+    "quality": {
+      "label": "Quality",
+      "std": "Standard",
+      "pro": "Pro"
+    },
+    "duration": {
+      "label": "Duration",
+      "5s": "5 seconds",
+      "10s": "10 seconds",
+      "suffix": "s"
+    },
+    "prompt": {
+      "label": "Prompt",
+      "placeholder": "Describe what should happen in the video"
+    },
+    "negativePrompt": {
+      "label": "Negative prompt"
+    },
+    "cfgScale": {
+      "label": "CFG scale"
+    },
+    "cameraType": {
+      "label": "Camera"
+    },
+    "sourceImage": {
+      "label": "Source image",
+      "upload": "Upload",
+      "fromGallery": "From image gallery"
+    },
+    "sourceVideo": {
+      "label": "Source video"
+    },
+    "audio": {
+      "label": "Audio for lip-sync"
+    },
+    "submit": {
+      "create": "Create",
+      "cost": "This will cost {{tokens}} tokens"
+    },
+    "insufficientTokens": {
+      "title": "Not enough tokens",
+      "cta": "Top up"
+    },
     "job": {
       "statusPending": "Queued",
       "statusProcessing": "Generating… {{elapsed}}",
       "statusReady": "Ready",
       "statusFailed": "Error",
+      "processingHint": "usually 3–5 minutes",
+      "modes": {
+        "text2video": "Text→Video",
+        "image2video": "Image→Video",
+        "extend": "Extend",
+        "lipsync": "Lip-sync"
+      },
+      "confirmDelete": "Delete",
       "actions": {
         "play": "Play",
         "download": "Download",
@@ -147,9 +376,144 @@
         "lipsync": "Lip-sync",
         "delete": "Delete"
       },
+      "titles": {
+        "delete": "Delete",
+        "download": "Download",
+        "extend": "Extend video (+5s)",
+        "lipsync": "Sync lips with audio"
+      },
       "emptyGallery": "No videos yet. Create your first one on the «Create» tab.",
       "toastReady": "Video is ready"
     }
+  },
+  "help": {
+    "title": "How to use LINKEON.IO",
+    "subtitle": "Quick guide and answers to common questions",
+    "cta": {
+      "title": "Didn't find the answer?",
+      "body": "Write to support — the AI assistant will reply first and escalate to the team if needed.",
+      "button": "Contact support"
+    },
+    "quick_title": "Quick guide",
+    "faq_title": "Frequently asked questions",
+    "guides": [
+      { "title": "Chat with assistant", "desc": "Select an assistant in the left panel. Write a message or upload a PDF. The assistant will respond based on your profile." },
+      { "title": "Find partners", "desc": "Networking → Find people. Describe who you're looking for — the AI will find matches by values and skills." },
+      { "title": "Check compatibility", "desc": "Networking → Compatibility. Enter a phone number (or click «Compatibility» on a request card/chat) — the AI analyzes the match." },
+      { "title": "Communication requests", "desc": "Found someone interesting? Send a short intro message. The recipient will see it in Networking → Requests and accept or decline." },
+      { "title": "Chats between users", "desc": "Accepted requests create chats. Exchange messages, open the other person's profile, report or block via the «three dots» menu." },
+      { "title": "Image generation", "desc": "Images section or in chat «draw…». The AI creates an image from your description." },
+      { "title": "Video generation", "desc": "Video section. Text→video, image→video, continue a clip, lip-sync voice with image. 5 or 10 seconds." },
+      { "title": "Profile", "desc": "Built automatically from conversations with assistants. You can edit your name, upload a photo, view values/interests/skills." },
+      { "title": "Tokens", "desc": "Balance shown in the sidebar. Top up via YooKassa or promo codes. Spend is visible after every operation." }
+    ],
+    "faq": [
+      { "q": "How do I get started with the platform?", "a": "After signing up with your phone number you receive a starter token pack. Select an assistant in the left panel and start chatting. The assistant will help define your goals and tasks." },
+      { "q": "What are tokens and how are they spent?", "a": "Tokens are the platform's internal currency. They're spent on messages to assistants, image generation, video generation and people search. The cost depends on task complexity — dynamic pricing adapts to workload. After each message you see the token usage." },
+      { "q": "Which assistants are available?", "a": "The platform offers two kinds of assistants:\n\n• For business — HR specialist, accountant, lawyer, marketer, business mentor, copywriter\n• For personal growth — coach, psychologist, game practitioner, numerologist, mindfulness assistant\n• Personal assistant Roman — helps with any task" },
+      { "q": "How does Networking work?", "a": "The Networking section has four tabs:\n\n• Find people — enter a query (for example «looking for a designer for an eco-friendly project») and the system will find matches by values, skills and interests.\n• Compatibility — enter another user's phone number and the AI will analyze your compatibility. You can also launch the analysis right from a request card or an open chat.\n• Requests — incoming and outgoing invitations to talk.\n• Chats — accepted conversations with other users." },
+      { "q": "How do I invite someone to chat?", "a": "From search or compatibility results, open the person's profile and click «Request chat». Write a short intro message (up to 500 characters) — the recipient will see it in «Networking → Requests». You can't send another request until they respond. If they sent you a request first — your request auto-accepts theirs and the chat opens immediately." },
+      { "q": "What do I do with an incoming chat request?", "a": "Open Networking → Requests tab. On the card:\n\n• «View profile» — opens the sender's values, interests and skills.\n• «Compatibility» — instant AI analysis of the match with your profile.\n• «Accept» — a chat is created and you switch to the conversation.\n• «Decline» — the request is silently removed, the sender is not notified of the decline.\n\nLimit: up to 10 active outgoing requests and no more than 5 new per hour." },
+      { "q": "How do user-to-user chats work?", "a": "Once a request is accepted, the conversation appears in Networking → Chats. In the conversation:\n\n• Messages — plain text up to 4000 characters, with read receipts.\n• Avatar and name in the header are clickable — they open the full profile.\n• The «three dots» menu in the top right — «View profile», «Compatibility», «Report», «Block».\n\nYou can exchange phone numbers and contacts directly in the conversation, if you agree to." },
+      { "q": "How do I report or block a user?", "a": "In an open chat click the three dots in the top right → «Report» (describe the reason, moderation will review it) or «Block» (after confirmation, the user can no longer message you and you can no longer message them). Requests from blocked users are also not created." },
+      { "q": "How is my profile built?", "a": "Your profile is built automatically from your conversations with assistants. The AI extracts your values, interests, skills, desires and intentions — they're stored in a graph database and gradually refined. The more you chat, the more accurate your profile and the better search and compatibility results." },
+      { "q": "Can I upload documents?", "a": "Yes! Click the «+» button in the chat and upload a PDF. The AI analyzes the document, extracts key information, and suggests ways to use it — update your profile, find partners, or analyze the data." },
+      { "q": "How do I generate images?", "a": "Two ways:\n\n• In chat — ask the assistant to «draw…» or «create an image…».\n• In the Images section — enter a description and click «Generate».\n\nGeneration costs 5,000 tokens per image." },
+      { "q": "How do I create a video?", "a": "Video section. Four modes are available:\n\n• Text → Video — generate a clip from a description.\n• Image → Video — animate an uploaded image.\n• Extend — add another 5 seconds to your existing video.\n• Lip-sync — overlay voice/audio on a video, syncing to the face (Kling v1.6 model only).\n\nDuration 5 or 10 seconds, Standard or Pro quality. The token cost is shown on the «Create» button — it depends on mode, model, quality and duration. Finished clips appear in the «My videos» tab — you can download them, extend them, or apply lip-sync." },
+      { "q": "How do I top up tokens?", "a": "Click the «Tokens» block in the sidebar or go to the top-up section. Packs from 149₽ to 1990₽ are available. You can also use promo codes for bonus tokens." },
+      { "q": "What is the partner program?", "a": "You can become a partner and receive a commission on payments from referred users. Contact the administrator to join. The commission is credited automatically with every payment from a referral." },
+      { "q": "Is my data safe?", "a": "Yes. We don't share your data with third parties. Other users' phone numbers are hidden — you can only contact them through platform requests and chats. Chat requests require your explicit consent (Accept/Decline). You can block any user and delete your account with all its data at any time from the Profile section." }
+    ]
+  },
+  "support": {
+    "title": "Customer support",
+    "subtitle": "AI replies first, complex questions go to the team",
+    "empty_title": "How can we help?",
+    "empty_body": "The AI assistant answers product questions quickly and checks service and generation status. For complex issues — it hands off to the team and they join this chat.",
+    "ai_typing": "AI is typing…",
+    "input_placeholder": "Describe your question or issue…",
+    "send_aria": "Send",
+    "sender_ai": "AI support",
+    "sender_team": "Team",
+    "sender_system": "System",
+    "banner_escalated": "Handed off to the team — they'll join and reply here",
+    "banner_owner": "You're now chatting with a human from the team",
+    "banner_closed": "Ticket closed. A new message will open a new ticket."
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "subtitle": "We're improving our service for you",
+    "banner": "Service temporarily unavailable",
+    "body1": "Scheduled maintenance is currently underway to improve service quality.",
+    "body2": "We apologize for the temporary inconvenience.",
+    "ends_in": "Maintenance ends in:",
+    "expired_title": "Maintenance complete!",
+    "expired_body": "Please refresh the page to continue using the service.",
+    "stay_tuned": "Stay tuned for updates or contact us if you have questions",
+    "reload": "Refresh page",
+    "tagline": "Linkeon — a platform for finding kindred spirits",
+    "units": {
+      "day_one": "day",
+      "day_few": "days",
+      "day_many": "days",
+      "hour_one": "hour",
+      "hour_few": "hours",
+      "hour_many": "hours",
+      "minute_one": "minute",
+      "minute_few": "minutes",
+      "minute_many": "minutes",
+      "second_one": "second",
+      "second_few": "seconds",
+      "second_many": "seconds"
+    }
+  },
+  "payment": {
+    "verify_title": "Verifying payment",
+    "verifying": "Please wait...",
+    "success_title": "Payment successful!",
+    "success_body": "Your tokens have been credited",
+    "tokens_added": "tokens added",
+    "redirect_notice": "You'll be redirected to chat in a few seconds...",
+    "go_to_chat": "Go to chat",
+    "back_to_chat": "Back to chat",
+    "try_again": "Try again",
+    "error_title": "Payment error",
+    "error_default": "Something went wrong",
+    "error_missing_user_id": "Not enough data to verify payment (user_id missing)",
+    "error_not_completed": "Payment not completed or cancelled. If you paid, tokens will be credited automatically.",
+    "error_pending": "Payment is still processing. Please wait a few minutes and refresh the page.",
+    "error_failed": "Payment was not completed",
+    "error_verification": "Payment verification error",
+    "error_exception": "An error occurred while verifying the payment: {{error}}",
+    "error_unknown": "Unknown error"
+  },
+  "referral": {
+    "loading": "Loading referral program data...",
+    "load_error_status": "Loading error: {{status}}",
+    "load_error": "Failed to load partner program data",
+    "not_eligible_title": "Partner program",
+    "not_eligible_body_line1": "You are not a member of the partner program.",
+    "not_eligible_body_line2": "Contact the administrator to join.",
+    "title": "My referral program",
+    "leader_line": "{{name}} · level {{level}} · {{pct}}% commission",
+    "copy": "Copy",
+    "copied": "Copied",
+    "card_referees": "People referred",
+    "card_paid": "Referrals' spending",
+    "card_commission": "Your commission",
+    "card_pending": "Pending payout",
+    "breakdown_direct": "Direct ({{pct}}%): {{amount}}",
+    "breakdown_upstream": "Upstream ({{pct}}%): {{amount}}",
+    "paid_out": "Paid out: {{amount}}",
+    "history_title": "Commission history",
+    "history_date": "Date",
+    "history_phone": "Phone",
+    "history_payment": "Payment",
+    "history_commission": "Commission",
+    "history_status": "Status",
+    "history_paid_title": "Paid out",
+    "history_pending_title": "Awaiting payout",
+    "empty_history": "No commissions yet. Share your link — your commission will appear after the first payment from a referral."
   },
   "common": {
     "loading": "Loading...",
@@ -170,5 +534,73 @@
     "sort": "Sort",
     "today": "Today",
     "yesterday": "Yesterday"
+  },
+  "peer": {
+    "navTitle": "Chats",
+    "pageTitle": "Chats",
+    "loading": "Loading…",
+    "noMessagesYet": "No messages yet",
+    "emptyChats": "No chats yet",
+    "emptyChatsHint": "Find someone on the Networking tab",
+    "emptyRequests": "No active requests",
+    "tabs": {
+      "chats": "Chats",
+      "requests": "Requests"
+    },
+    "requests": {
+      "incoming": "Incoming",
+      "outgoing": "Sent",
+      "accept": "Accept",
+      "decline": "Decline",
+      "withdraw": "Withdraw",
+      "compatibility": "Compatibility",
+      "viewProfile": "View profile"
+    },
+    "time": {
+      "now": "now",
+      "min": "min",
+      "hr": "h",
+      "day": "d"
+    },
+    "profile": {
+      "title": "User profile",
+      "match": "Match",
+      "values": "Values",
+      "noValues": "No values listed",
+      "interests": "Interests",
+      "skills": "Skills",
+      "requestChat": "Request to chat",
+      "introLabel": "Short intro for them",
+      "introPlaceholder": "Why would you like to connect? (up to 500 chars)",
+      "sendRequest": "Send request",
+      "sentOk": "Request sent",
+      "requestSentAwaiting": "Request sent, awaiting response",
+      "hasSentYouRequest": "This user has sent you a request",
+      "openRequests": "Open requests",
+      "alreadyChatting": "You already have a chat",
+      "openChat": "Open chat"
+    },
+    "chat": {
+      "inputPlaceholder": "Write a message…",
+      "send": "Send",
+      "sendFailed": "Failed to send",
+      "emptyMessages": "Write the first message",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "notFound": "Chat not found",
+      "backToList": "Back to chats",
+      "report": "Report",
+      "block": "Block",
+      "confirmBlock": "Block this user? They won't be able to message you.",
+      "reportTitle": "Report user",
+      "reportHint": "Describe what concerns you. Moderators will review.",
+      "reportPlaceholder": "Reason…",
+      "reportSent": "Report submitted"
+    },
+    "errors": {
+      "introRequired": "Please write a short intro",
+      "rateLimited": "Too many requests, try again later",
+      "sendFailed": "Failed to send request"
+    }
   }
 }
