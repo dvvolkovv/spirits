@@ -200,6 +200,10 @@
     "title": "Management",
     "tabs": {
       "support": "Support",
+      "users": "Users",
+      "payments": "Payments",
+      "tokens": "Tokens",
+      "usage": "Usage",
       "assistants": "Assistants",
       "coupons": "Coupons",
       "referrals": "Referrals"
@@ -438,7 +442,10 @@
     "sender_system": "System",
     "banner_escalated": "Handed off to the team — they'll join and reply here",
     "banner_owner": "You're now chatting with a human from the team",
-    "banner_closed": "Ticket closed. A new message will open a new ticket."
+    "banner_closed": "Ticket closed. If you have a new question — open a new ticket.",
+    "open_new_ticket": "Open new ticket",
+    "new_ticket_placeholder": "Describe your new question…",
+    "new_ticket_divider": "New ticket"
   },
   "maintenance": {
     "title": "Maintenance",

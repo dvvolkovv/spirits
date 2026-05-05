@@ -7,14 +7,18 @@ import AdminAssistantsView from '../components/admin/AdminAssistantsView';
 import AdminCouponsView from '../components/admin/AdminCouponsView';
 import AdminReferralsView from '../components/admin/AdminReferralsView';
 import AdminSupportView from '../components/admin/AdminSupportView';
+import AdminPaymentsView from '../components/admin/AdminPaymentsView';
+import AdminTokensView from '../components/admin/AdminTokensView';
+import AdminUsageView from '../components/admin/AdminUsageView';
+import AdminUsersView from '../components/admin/AdminUsersView';
 
-type AdminTab = 'support' | 'assistants' | 'coupons' | 'referrals';
+type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals';
 
 const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t } = useTranslation();
   const [params] = useSearchParams();
-  const initialTab = (['support', 'assistants', 'coupons', 'referrals'] as AdminTab[])
+  const initialTab = (['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals'] as AdminTab[])
     .includes(params.get('tab') as AdminTab)
     ? (params.get('tab') as AdminTab)
     : 'support';
@@ -34,6 +38,10 @@ const AdminPage: React.FC = () => {
 
   const tabs: { id: AdminTab; label: string }[] = [
     { id: 'support', label: t('admin.tabs.support') },
+    { id: 'users', label: t('admin.tabs.users') },
+    { id: 'payments', label: t('admin.tabs.payments') },
+    { id: 'tokens', label: t('admin.tabs.tokens') },
+    { id: 'usage', label: t('admin.tabs.usage') },
     { id: 'assistants', label: t('admin.tabs.assistants') },
     { id: 'coupons', label: t('admin.tabs.coupons') },
     { id: 'referrals', label: t('admin.tabs.referrals') },
@@ -62,6 +70,10 @@ const AdminPage: React.FC = () => {
       </div>
       <div className="flex-1 overflow-hidden">
         {activeTab === 'support' && <AdminSupportView />}
+        {activeTab === 'users' && <AdminUsersView />}
+        {activeTab === 'payments' && <AdminPaymentsView />}
+        {activeTab === 'tokens' && <AdminTokensView />}
+        {activeTab === 'usage' && <AdminUsageView />}
         {activeTab === 'assistants' && <AdminAssistantsView />}
         {activeTab === 'coupons' && <AdminCouponsView />}
         {activeTab === 'referrals' && <AdminReferralsView />}
