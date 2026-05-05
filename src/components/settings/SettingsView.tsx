@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -7,9 +7,13 @@ import {
   Bell,
   Eye,
   EyeOff,
-  MessageCircle
+  MessageCircle,
+  UserCheck
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { apiClient } from '../../services/apiClient';
+
+type ContactVisibility = 'public' | 'matchOnly' | 'private';
 
 const SettingsView: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -25,6 +29,27 @@ const SettingsView: React.FC = () => {
       updates: false
     }
   });
+
+  const [contactVisibility, setContactVisibility] = useState<ContactVisibility>('matchOnly');
+  const [contactVisibilitySaving, setContactVisibilitySaving] = useState(false);
+  useEffect(() => {
+    apiClient.get('/webhook/contact-visibility')
+      .then(async (r) => { if (r.ok) { const d = await r.json(); if (d?.visibility) setContactVisibility(d.visibility); } })
+      .catch(() => {/* ignore */});
+  }, []);
+  const changeContactVisibility = async (v: ContactVisibility) => {
+    const prev = contactVisibility;
+    setContactVisibility(v);
+    setContactVisibilitySaving(true);
+    try {
+      const r = await apiClient.post('/webhook/contact-visibility', { visibility: v });
+      if (!r.ok) setContactVisibility(prev);
+    } catch {
+      setContactVisibility(prev);
+    } finally {
+      setContactVisibilitySaving(false);
+    }
+  };
 
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({
@@ -62,15 +87,46 @@ const SettingsView: React.FC = () => {
   );
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
-        <h1 className="text-xl font-bold text-gray-900">
-          {t('settings.title')}
-        </h1>
-      </div>
+    <div className="space-y-6">
+        {/* Contact Visibility — кто может получить твой контакт (phone) через поиск */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <UserCheck className="w-5 h-5 mr-2 text-forest-600" />
+              Видимость контакта
+            </h2>
+          </div>
+          <div className="p-6 space-y-3">
+            <p className="text-sm text-gray-600">
+              Кто может получить твой номер телефона, когда найдёт тебя через поиск единомышленников.
+            </p>
+            {([
+              { v: 'public',    title: 'Публичный',       desc: 'Любой авторизованный пользователь сразу видит твой телефон.' },
+              { v: 'matchOnly', title: 'По запросу',      desc: 'Телефон скрыт. Другие видят профиль и могут прислать запрос на контакт — ты сам решаешь, принимать или нет.' },
+              { v: 'private',   title: 'Закрытый',        desc: 'Телефон скрыт. Запросы на контакт автоматически не принимаются.' },
+            ] as Array<{ v: ContactVisibility; title: string; desc: string }>).map((opt) => (
+              <label key={opt.v} className={clsx(
+                'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
+                contactVisibility === opt.v ? 'border-forest-500 bg-forest-50' : 'border-gray-200 hover:bg-gray-50',
+                contactVisibilitySaving && 'opacity-60 cursor-wait',
+              )}>
+                <input
+                  type="radio"
+                  name="contactVisibility"
+                  value={opt.v}
+                  checked={contactVisibility === opt.v}
+                  onChange={() => !contactVisibilitySaving && changeContactVisibility(opt.v)}
+                  className="mt-1"
+                />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">{opt.title}</div>
+                  <div className="text-xs text-gray-600">{opt.desc}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4 space-y-6">
         {/* Privacy Settings */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -232,7 +288,6 @@ const SettingsView: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 };

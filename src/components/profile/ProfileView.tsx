@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, X, Coins } from 'lucide-react';
+import { CreditCard, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, X, Coins, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import { EntityItem, EntityRich } from './EntityItem';
+import SettingsView from '../settings/SettingsView';
 
 interface ProfileData {
   profile?: string[];
@@ -14,12 +16,25 @@ interface ProfileData {
   intents?: string[];
   interests?: string[];
   skills?: string[];
+  // Rich-формат: канонические группы с персональным gloss и aliases.
+  valuesRich?: EntityRich[];
+  beliefsRich?: EntityRich[];
+  desiresRich?: EntityRich[];
+  intentsRich?: EntityRich[];
+  interestsRich?: EntityRich[];
+  skillsRich?: EntityRich[];
   name?: string;
   family_name?: string;
   user_nickname?: string;
   completeness?: string;
   user_id?: string;
 }
+
+const toRich = (plain?: string[], rich?: EntityRich[]): EntityRich[] => {
+  if (Array.isArray(rich) && rich.length) return rich;
+  if (Array.isArray(plain)) return plain.map((name) => ({ name }));
+  return [];
+};
 
 const ProfileView: React.FC = () => {
   const { t } = useTranslation();
@@ -32,55 +47,23 @@ const ProfileView: React.FC = () => {
   });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [editedData, setEditedData] = useState<ProfileData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Используем только данные с сервера (или отредактированные данные в режиме редактирования)
-  const getProfileValues = () => {
-    const data = isEditing ? editedData : profileData;
-    if (Array.isArray(data?.values)) {
-      return data.values.map(value => ({
-        name: value,
-        confidence: 90,
-        private: false
-      }));
-    }
-    return [];
-  };
-
-  const getProfileBeliefs = () => {
-    const data = isEditing ? editedData : profileData;
-    return Array.isArray(data?.beliefs) ? data.beliefs : [];
-  };
-  const getProfileDesires = () => {
-    const data = isEditing ? editedData : profileData;
-    return Array.isArray(data?.desires) ? data.desires : [];
-  };
-  const getProfileIntentions = () => {
-    const data = isEditing ? editedData : profileData;
-    return Array.isArray(data?.intents) ? data.intents : [];
-  };
-  const getProfileInterests = () => {
-    const data = isEditing ? editedData : profileData;
-    return Array.isArray(data?.interests) ? data.interests : [];
-  };
-  const getProfileSkills = () => {
-    const data = isEditing ? editedData : profileData;
-    return Array.isArray(data?.skills) ? data.skills : [];
-  };
-  const getProfileParams = () => {
-    const data = isEditing ? editedData : profileData;
-    return Array.isArray(data?.profile) ? data.profile : [];
-  };
+  // Используем данные с сервера (или отредактированные в режиме редактирования).
+  // В edit-режиме — только plain (индексы должны совпадать с editedData.<field> для removeFromArray).
+  // В view-режиме — приоритет rich-полей (gloss/aliases для tooltip).
+  const data = isEditing ? editedData : profileData;
   const profile = {
-    values: getProfileValues(),
-    beliefs: getProfileBeliefs(),
-    desires: getProfileDesires(),
-    intentions: getProfileIntentions(),
-    interests: getProfileInterests(),
-    skills: getProfileSkills(),
-    params: getProfileParams(),
+    values:     isEditing ? toRich(data?.values)     : toRich(data?.values,     data?.valuesRich),
+    beliefs:    isEditing ? toRich(data?.beliefs)    : toRich(data?.beliefs,    data?.beliefsRich),
+    desires:    isEditing ? toRich(data?.desires)    : toRich(data?.desires,    data?.desiresRich),
+    intentions: isEditing ? toRich(data?.intents)    : toRich(data?.intents,    data?.intentsRich),
+    interests:  isEditing ? toRich(data?.interests)  : toRich(data?.interests,  data?.interestsRich),
+    skills:     isEditing ? toRich(data?.skills)     : toRich(data?.skills,     data?.skillsRich),
+    params:     Array.isArray(data?.profile) ? data.profile : [],
   };
 
   // Загрузка профиля с сервера
@@ -571,6 +554,30 @@ const ProfileView: React.FC = () => {
           )}
         </div>
 
+        {/* Settings — collapsible аккордеон сразу после личной информации */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowSettings((v) => !v)}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Settings2 className="w-5 h-5 mr-2 text-forest-600" />
+              {t('settings.title')}
+            </h2>
+            {showSettings
+              ? <ChevronUp className="w-5 h-5 text-gray-400" />
+              : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {showSettings && (
+            <div className="px-4 pb-4 border-t border-gray-100">
+              <div className="pt-4">
+                <SettingsView />
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Values */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
@@ -582,19 +589,13 @@ const ProfileView: React.FC = () => {
           {profile.values.length > 0 ? (
             <div className="space-y-2">
               {profile.values.map((value, index) => (
-                <div key={index} className="flex items-start space-x-2 group">
-                  <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700 flex-1">{typeof value === 'string' ? value : value.name}</p>
-                  {isEditing && (
-                    <button
-                      onClick={() => removeFromArray('values', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
-                      title="Удалить"
-                    >
-                      <X className="w-4 h-4 text-red-600" />
-                    </button>
-                  )}
-                </div>
+                <EntityItem
+                  key={index}
+                  item={value}
+                  dotColor="bg-forest-500"
+                  isEditing={isEditing}
+                  onRemove={() => removeFromArray('values', index)}
+                />
               ))}
             </div>
           ) : (
@@ -641,19 +642,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.beliefs.map((belief, index) => (
-                <div key={index} className="flex items-start space-x-2 group">
-                  <div className="w-2 h-2 bg-forest-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700 flex-1">{belief}</p>
-                  {isEditing && (
-                    <button
-                      onClick={() => removeFromArray('beliefs', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
-                      title="Удалить"
-                    >
-                      <X className="w-4 h-4 text-red-600" />
-                    </button>
-                  )}
-                </div>
+                <EntityItem
+                  key={index}
+                  item={belief}
+                  dotColor="bg-forest-500"
+                  isEditing={isEditing}
+                  onRemove={() => removeFromArray('beliefs', index)}
+                />
               ))}
             </div>
           </div>
@@ -667,19 +662,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.desires.map((desire, index) => (
-                <div key={index} className="flex items-start space-x-2 group">
-                  <div className="w-2 h-2 bg-warm-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700 flex-1">{desire}</p>
-                  {isEditing && (
-                    <button
-                      onClick={() => removeFromArray('desires', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
-                      title="Удалить"
-                    >
-                      <X className="w-4 h-4 text-red-600" />
-                    </button>
-                  )}
-                </div>
+                <EntityItem
+                  key={index}
+                  item={desire}
+                  dotColor="bg-warm-500"
+                  isEditing={isEditing}
+                  onRemove={() => removeFromArray('desires', index)}
+                />
               ))}
             </div>
           </div>
@@ -693,19 +682,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.intentions.map((intention, index) => (
-                <div key={index} className="flex items-start space-x-2 group">
-                  <div className="w-2 h-2 bg-earth-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700 flex-1">{intention}</p>
-                  {isEditing && (
-                    <button
-                      onClick={() => removeFromArray('intents', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
-                      title="Удалить"
-                    >
-                      <X className="w-4 h-4 text-red-600" />
-                    </button>
-                  )}
-                </div>
+                <EntityItem
+                  key={index}
+                  item={intention}
+                  dotColor="bg-earth-500"
+                  isEditing={isEditing}
+                  onRemove={() => removeFromArray('intents', index)}
+                />
               ))}
             </div>
           </div>
@@ -719,19 +702,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.interests.map((interest, index) => (
-                <div key={index} className="flex items-start space-x-2 group">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700 flex-1">{interest}</p>
-                  {isEditing && (
-                    <button
-                      onClick={() => removeFromArray('interests', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
-                      title="Удалить"
-                    >
-                      <X className="w-4 h-4 text-red-600" />
-                    </button>
-                  )}
-                </div>
+                <EntityItem
+                  key={index}
+                  item={interest}
+                  dotColor="bg-red-500"
+                  isEditing={isEditing}
+                  onRemove={() => removeFromArray('interests', index)}
+                />
               ))}
             </div>
           </div>
@@ -745,19 +722,13 @@ const ProfileView: React.FC = () => {
             </h2>
             <div className="space-y-2">
               {profile.skills.map((skill, index) => (
-                <div key={index} className="flex items-start space-x-2 group">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-gray-700 flex-1">{skill}</p>
-                  {isEditing && (
-                    <button
-                      onClick={() => removeFromArray('skills', index)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
-                      title="Удалить"
-                    >
-                      <X className="w-4 h-4 text-red-600" />
-                    </button>
-                  )}
-                </div>
+                <EntityItem
+                  key={index}
+                  item={skill}
+                  dotColor="bg-yellow-500"
+                  isEditing={isEditing}
+                  onRemove={() => removeFromArray('skills', index)}
+                />
               ))}
             </div>
           </div>

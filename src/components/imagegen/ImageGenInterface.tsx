@@ -11,6 +11,15 @@ import {
   Coins,
   ZoomIn,
   X,
+  Wand2,
+  Layers,
+  Maximize2,
+  Check,
+  Info,
+  Copy,
+  RotateCcw,
+  Calendar,
+  Upload,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,6 +31,19 @@ import {
   ImageSize,
 } from '../../types/imageGen';
 
+const PROMPT_EXAMPLES = [
+  { label: 'Портрет', text: 'Портретный снимок молодой женщины в кожаной куртке, мягкий студийный свет, 85mm, зерно плёнки, кинематографично' },
+  { label: 'Альпы на рассвете', text: 'Туманное утро в Альпах, золотой час, широкоугольный объектив, кинематографичный свет, высокая детализация' },
+  { label: 'Киберпанк', text: 'Ночной киберпанк-город, неоновые вывески, мокрый асфальт с отражениями, дождь, 3D-рендер в Octane, 8K' },
+  { label: 'Акварельный лисёнок', text: 'Милый лисёнок в волшебном лесу, акварельная иллюстрация в стиле детской книги, мягкие пастельные тона' },
+  { label: 'Аниме-Гибли', text: 'Девушка в кимоно под цветущей сакурой, закат, аниме-стиль Studio Ghibli, тёплые цвета' },
+  { label: 'Реклама парфюма', text: 'Флакон парфюма на мраморной подставке, минималистичная рекламная съёмка, мягкие тени, бежевый фон' },
+  { label: 'Эльф-маг', text: 'Древний эльфийский маг в длинной мантии, светящийся посох, готический храм, атмосферный туман, эпичный свет' },
+  { label: 'Крем-брюле', text: 'Крем-брюле с хрустящей карамельной корочкой, макросъёмка, тёплый свет, размытое боке, food photography' },
+  { label: 'Астронавт-ретро', text: 'Астронавт сидит на Луне и смотрит на Землю, винтажный постер NASA 70-х, плакатная стилистика, ограниченная палитра' },
+  { label: 'Акварельный Токио', text: 'Улочка старого Токио с красными фонарями, дождь, акварельная иллюстрация, мягкие размытия' },
+];
+
 const ImageGenInterface: React.FC = () => {
   const { user } = useAuth();
   const {
@@ -29,13 +51,56 @@ const ImageGenInterface: React.FC = () => {
     settings, setSettings,
     isGenerating, error, results, history,
     tokenCost, hasEnoughTokens,
-    handleGenerate, loadHistory, deleteImage,
+    handleGenerate, handleEdit, handleCompose, handleUpscale, handleUpload,
+    loadHistory, deleteImage,
   } = useImageGen();
 
   const [showSettings, setShowSettings] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [editModal, setEditModal] = useState<{ url: string } | null>(null);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editQuality, setEditQuality] = useState<'std' | 'hd'>('std');
+  const [composeModal, setComposeModal] = useState<{ firstUrl: string } | null>(null);
+  const [composePickUrls, setComposePickUrls] = useState<string[]>([]);
+  const [composePrompt, setComposePrompt] = useState('');
+  const [composeQuality, setComposeQuality] = useState<'std' | 'hd'>('std');
+  const [detailsItem, setDetailsItem] = useState<any | null>(null);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const onFilePicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await handleUpload(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const parseHistoryPrompt = (raw: string): { kind: 'generate' | 'edit' | 'compose' | 'upscale'; composeCount?: number; text: string } => {
+    if (!raw) return { kind: 'generate', text: '' };
+    const editMatch = raw.match(/^\[edit\]\s*(.*)$/s);
+    if (editMatch) return { kind: 'edit', text: editMatch[1] };
+    const composeMatch = raw.match(/^\[compose\s+(\d+)\]\s*(.*)$/s);
+    if (composeMatch) return { kind: 'compose', composeCount: parseInt(composeMatch[1], 10), text: composeMatch[2] };
+    const upscaleMatch = raw.match(/^Enhance this image to 4K/);
+    if (upscaleMatch) return { kind: 'upscale', text: raw };
+    return { kind: 'generate', text: raw };
+  };
+
+  const kindLabel: Record<string, { label: string; color: string }> = {
+    generate: { label: 'Генерация', color: 'bg-forest-100 text-forest-700' },
+    edit: { label: 'Редактирование', color: 'bg-blue-100 text-blue-700' },
+    compose: { label: 'Композиция', color: 'bg-purple-100 text-purple-700' },
+    upscale: { label: 'Апскейл 4K', color: 'bg-amber-100 text-amber-700' },
+  };
+
+  const copyToClipboard = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyStatus(key);
+      setTimeout(() => setCopyStatus(null), 1500);
+    } catch {}
+  };
 
   React.useEffect(() => { loadHistory(); }, []);
 
@@ -56,8 +121,301 @@ const ImageGenInterface: React.FC = () => {
     }
   };
 
+  const openEdit = (url: string) => {
+    setEditModal({ url });
+    setEditPrompt('');
+    setEditQuality('std');
+  };
+
+  const openCompose = (url: string) => {
+    setComposeModal({ firstUrl: url });
+    setComposePickUrls([]);
+    setComposePrompt('');
+    setComposeQuality('std');
+  };
+
+  const submitEdit = async () => {
+    if (!editModal || !editPrompt.trim()) return;
+    const modal = editModal;
+    setEditModal(null);
+    await handleEdit(modal.url, editPrompt.trim(), editQuality);
+  };
+
+  const submitCompose = async () => {
+    if (!composeModal || composePickUrls.length === 0 || !composePrompt.trim()) return;
+    const modal = composeModal;
+    const urls = [modal.firstUrl, ...composePickUrls].slice(0, 3);
+    setComposeModal(null);
+    await handleCompose(urls, composePrompt.trim(), composeQuality);
+  };
+
+  const toggleComposePick = (url: string) => {
+    setComposePickUrls(prev =>
+      prev.includes(url) ? prev.filter(u => u !== url) : prev.length < 2 ? [...prev, url] : prev
+    );
+  };
+
+  const allPickable = [
+    ...results.map(r => ({ url: r.url, prompt: '' })),
+    ...history.map(h => ({ url: h.image_url, prompt: h.prompt })),
+  ].filter((it, i, arr) => arr.findIndex(x => x.url === it.url) === i);
+
   return (
     <div className="flex flex-col h-full">
+      {/* Edit modal */}
+      {editModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setEditModal(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-5 h-5 text-forest-600" />
+                <h3 className="text-base font-semibold text-gray-900">Редактировать картинку</h3>
+              </div>
+              <button onClick={() => setEditModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <img src={editModal.url} className="w-full rounded-lg mb-3 max-h-64 object-contain bg-gray-50" alt="Editing" />
+            <textarea
+              value={editPrompt}
+              onChange={e => setEditPrompt(e.target.value)}
+              placeholder="Что изменить? Например: «сделай фон закатным», «убери человека», «поменяй цвет на красный»"
+              rows={3}
+              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
+              autoFocus
+            />
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={() => setEditQuality('std')}
+                className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
+                  editQuality === 'std' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
+              >
+                Обычное · 5 000
+              </button>
+              <button
+                onClick={() => setEditQuality('hd')}
+                className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
+                  editQuality === 'hd' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
+              >
+                HD (4K) · 10 000
+              </button>
+            </div>
+            <button
+              onClick={submitEdit}
+              disabled={!editPrompt.trim()}
+              className={clsx('w-full mt-3 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2',
+                editPrompt.trim() ? 'bg-forest-600 hover:bg-forest-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed')}
+            >
+              <Wand2 className="w-4 h-4" />
+              Применить
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Details modal */}
+      {detailsItem && (() => {
+        const parsed = parseHistoryPrompt(detailsItem.prompt || '');
+        const meta = kindLabel[parsed.kind];
+        const created = new Date(detailsItem.created_at);
+        return (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setDetailsItem(null)}>
+            <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Info className="w-5 h-5 text-forest-600" />
+                  <h3 className="text-base font-semibold text-gray-900">Детали изображения</h3>
+                </div>
+                <button onClick={() => setDetailsItem(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setLightboxImg(detailsItem.image_url)}
+                className="group relative w-full mb-4 rounded-lg overflow-hidden bg-gray-50 block cursor-zoom-in"
+                title="Нажмите, чтобы увеличить"
+              >
+                <img src={detailsItem.image_url} className="w-full max-h-64 object-contain" alt="preview" />
+                <span className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 text-gray-800 text-xs font-medium shadow-lg">
+                    <ZoomIn className="w-3.5 h-3.5" />
+                    Увеличить
+                  </span>
+                </span>
+              </button>
+
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={clsx('px-2 py-0.5 rounded-full text-xs font-medium', meta.color)}>{meta.label}</span>
+                  {parsed.kind === 'compose' && parsed.composeCount && (
+                    <span className="text-xs text-gray-500">из {parsed.composeCount} картинок</span>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-medium text-gray-500">Промпт</p>
+                    <button
+                      onClick={() => copyToClipboard(parsed.text, 'prompt')}
+                      className="text-xs text-forest-600 hover:text-forest-700 flex items-center gap-1"
+                    >
+                      {copyStatus === 'prompt' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copyStatus === 'prompt' ? 'Скопировано' : 'Копировать'}
+                    </button>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-800 whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
+                    {parsed.text || <span className="text-gray-400">Без текста</span>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+                      <Coins className="w-3 h-3" /> Потрачено токенов
+                    </p>
+                    <p className="text-sm text-gray-800 font-semibold">
+                      {detailsItem.tokens_spent != null ? Number(detailsItem.tokens_spent).toLocaleString('ru-RU') : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" /> Дата
+                    </p>
+                    <p className="text-sm text-gray-800">
+                      {created.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-medium text-gray-500">Ссылка на картинку</p>
+                    <button
+                      onClick={() => copyToClipboard(detailsItem.image_url, 'url')}
+                      className="text-xs text-forest-600 hover:text-forest-700 flex items-center gap-1"
+                    >
+                      {copyStatus === 'url' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copyStatus === 'url' ? 'Скопировано' : 'Копировать'}
+                    </button>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2 text-[11px] text-gray-600 break-all font-mono">
+                    {detailsItem.image_url}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1">ID записи</p>
+                  <p className="text-xs text-gray-500 font-mono">#{detailsItem.id}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-5">
+                <button
+                  onClick={() => {
+                    setPrompt(parsed.text);
+                    setDetailsItem(null);
+                    promptRef.current?.focus();
+                    promptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white text-sm font-medium flex items-center justify-center gap-2"
+                  disabled={!parsed.text}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Использовать промпт
+                </button>
+                <button
+                  onClick={() => handleDownload(detailsItem.image_url, detailsItem.id)}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Скачать
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Compose modal */}
+      {composeModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setComposeModal(null)}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-forest-600" />
+                <h3 className="text-base font-semibold text-gray-900">Объединить картинки</h3>
+              </div>
+              <button onClick={() => setComposeModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-2">Первая картинка уже выбрана. Выберите 1-2 дополнительные из ваших результатов и истории.</p>
+            <div className="grid grid-cols-4 gap-2 mb-3 max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-2">
+              <div className="relative aspect-square rounded overflow-hidden border-2 border-forest-400">
+                <img src={composeModal.firstUrl} className="w-full h-full object-cover" alt="first" />
+                <span className="absolute top-1 left-1 text-[10px] bg-forest-600 text-white px-1.5 py-0.5 rounded">1</span>
+              </div>
+              {allPickable.filter(it => it.url !== composeModal.firstUrl).slice(0, 19).map((it, i) => {
+                const picked = composePickUrls.includes(it.url);
+                const disabled = !picked && composePickUrls.length >= 2;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => toggleComposePick(it.url)}
+                    disabled={disabled}
+                    className={clsx('relative aspect-square rounded overflow-hidden border-2 transition-all',
+                      picked ? 'border-forest-500 ring-2 ring-forest-300' : 'border-transparent hover:border-gray-300',
+                      disabled && 'opacity-40 cursor-not-allowed')}
+                  >
+                    <img src={it.url} className="w-full h-full object-cover" alt="pick" />
+                    {picked && (
+                      <span className="absolute top-1 left-1 text-[10px] bg-forest-600 text-white px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                        <Check className="w-2.5 h-2.5" />
+                        {composePickUrls.indexOf(it.url) + 2}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <textarea
+              value={composePrompt}
+              onChange={e => setComposePrompt(e.target.value)}
+              placeholder="Как объединить? Например: «возьми кота из первой и посади на трон из второй»"
+              rows={2}
+              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
+            />
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={() => setComposeQuality('std')}
+                className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
+                  composeQuality === 'std' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
+              >
+                Обычное · 5 000
+              </button>
+              <button
+                onClick={() => setComposeQuality('hd')}
+                className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
+                  composeQuality === 'hd' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
+              >
+                HD (4K) · 10 000
+              </button>
+            </div>
+            <button
+              onClick={submitCompose}
+              disabled={composePickUrls.length === 0 || !composePrompt.trim()}
+              className={clsx('w-full mt-3 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2',
+                composePickUrls.length > 0 && composePrompt.trim() ? 'bg-forest-600 hover:bg-forest-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed')}
+            >
+              <Layers className="w-4 h-4" />
+              Объединить
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Lightbox */}
       {lightboxImg && (
         <div
@@ -106,6 +464,30 @@ const ImageGenInterface: React.FC = () => {
             rows={3}
             className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300 focus:border-transparent"
           />
+
+          {/* Prompt examples */}
+          <div>
+            <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Примеры — нажмите, чтобы подставить
+            </p>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+              {PROMPT_EXAMPLES.map((ex, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setPrompt(ex.text);
+                    promptRef.current?.focus();
+                  }}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-forest-400 hover:bg-forest-50 hover:text-forest-700 transition-colors whitespace-nowrap"
+                  title={ex.text}
+                >
+                  {ex.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Settings toggle */}
           <button
@@ -174,30 +556,53 @@ const ImageGenInterface: React.FC = () => {
             </div>
           )}
 
-          {/* Generate button */}
-          <button
-            onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating || !hasEnoughTokens}
-            className={clsx(
-              'w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all',
-              prompt.trim() && !isGenerating && hasEnoughTokens
-                ? 'bg-forest-600 hover:bg-forest-700 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            )}
-          >
-            {isGenerating ? (
-              <>
-                <Loader className="w-4 h-4 animate-spin" />
-                <span>Генерирую...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Сгенерировать</span>
-                <span className="text-xs opacity-70 ml-1">({tokenCost.toLocaleString('ru-RU')} токенов)</span>
-              </>
-            )}
-          </button>
+          {/* Generate + Upload buttons */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={onFilePicked}
+            className="hidden"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleGenerate}
+              disabled={!prompt.trim() || isGenerating || !hasEnoughTokens}
+              className={clsx(
+                'flex-1 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all',
+                prompt.trim() && !isGenerating && hasEnoughTokens
+                  ? 'bg-forest-600 hover:bg-forest-700 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              )}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span>Генерирую...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Сгенерировать</span>
+                  <span className="text-xs opacity-70 ml-1">({tokenCost.toLocaleString('ru-RU')})</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isGenerating}
+              className={clsx(
+                'px-4 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 border transition-colors',
+                isGenerating
+                  ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                  : 'bg-white text-forest-700 border-forest-200 hover:bg-forest-50'
+              )}
+              title="Загрузить свою картинку (затем можно редактировать / объединять / улучшать)"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Загрузить</span>
+            </button>
+          </div>
 
           {!hasEnoughTokens && !isGenerating && (
             <p className="text-xs text-red-500 text-center">
@@ -221,13 +626,34 @@ const ImageGenInterface: React.FC = () => {
                     className="w-full object-cover cursor-zoom-in"
                     onClick={() => setLightboxImg(img.url)}
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex flex-wrap items-center justify-center gap-2 opacity-0 group-hover:opacity-100 p-3">
                     <button
                       onClick={() => setLightboxImg(img.url)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
                       title="Увеличить"
                     >
                       <ZoomIn className="w-4 h-4 text-gray-800" />
+                    </button>
+                    <button
+                      onClick={() => openEdit(img.url)}
+                      className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                      title="Редактировать (5 000)"
+                    >
+                      <Wand2 className="w-4 h-4 text-forest-700" />
+                    </button>
+                    <button
+                      onClick={() => openCompose(img.url)}
+                      className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                      title="Объединить с другой (5 000)"
+                    >
+                      <Layers className="w-4 h-4 text-forest-700" />
+                    </button>
+                    <button
+                      onClick={() => handleUpscale(img.url)}
+                      className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                      title="Улучшить качество (10 000)"
+                    >
+                      <Maximize2 className="w-4 h-4 text-forest-700" />
                     </button>
                     <button
                       onClick={() => handleDownload(img.url, idx)}
@@ -270,13 +696,27 @@ const ImageGenInterface: React.FC = () => {
                 {history.map(h => (
                   <div key={h.id} className="relative group rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
                     <img src={h.image_url} alt={h.prompt} className="w-full aspect-square object-cover cursor-pointer" onClick={() => setLightboxImg(h.image_url)} loading="lazy" />
+                    <div className="absolute inset-x-0 top-0 p-2 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 bg-gradient-to-b from-black/50 to-transparent transition-opacity">
+                      <button onClick={() => setDetailsItem(h)} className="p-1.5 bg-white/90 rounded-full hover:bg-white" title="Детали">
+                        <Info className="w-3.5 h-3.5 text-forest-700" />
+                      </button>
+                      <button onClick={() => openEdit(h.image_url)} className="p-1.5 bg-white/90 rounded-full hover:bg-white" title="Редактировать">
+                        <Wand2 className="w-3.5 h-3.5 text-forest-700" />
+                      </button>
+                      <button onClick={() => openCompose(h.image_url)} className="p-1.5 bg-white/90 rounded-full hover:bg-white" title="Объединить">
+                        <Layers className="w-3.5 h-3.5 text-forest-700" />
+                      </button>
+                      <button onClick={() => handleUpscale(h.image_url)} className="p-1.5 bg-white/90 rounded-full hover:bg-white" title="Улучшить качество">
+                        <Maximize2 className="w-3.5 h-3.5 text-forest-700" />
+                      </button>
+                      <button onClick={() => deleteImage(h.id)} className="p-1.5 bg-red-500/90 text-white rounded-full hover:bg-red-600" title="Удалить">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                     <div className="p-2">
                       <p className="text-[10px] text-gray-500 line-clamp-2">{h.prompt}</p>
                       <p className="text-[10px] text-gray-400 mt-1">{new Date(h.created_at).toLocaleDateString('ru-RU')}</p>
                     </div>
-                    <button onClick={() => deleteImage(h.id)} className="absolute top-1 right-1 hidden group-hover:flex w-6 h-6 bg-red-500 text-white rounded-full items-center justify-center text-xs opacity-80 hover:opacity-100">
-                      <X className="w-3 h-3" />
-                    </button>
                   </div>
                 ))}
               </div>

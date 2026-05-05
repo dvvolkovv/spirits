@@ -8,7 +8,8 @@ import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 
 interface UserMatch {
-  id: string;
+  id: string;          // client-side key (stringified userId)
+  userId?: number;     // surrogate ID (ai_profiles_consolidated.id) — из backend search
   name: string;
   avatar?: string;
   values: string[];
@@ -16,7 +17,7 @@ interface UserMatch {
   interests?: string[];
   skills?: string[];
   corellation: number;
-  phone?: string;
+  matchReason?: string;
 }
 
 const SearchInterface: React.FC = () => {
@@ -263,32 +264,27 @@ const SearchInterface: React.FC = () => {
             }
           }
 
-          if (Array.isArray(searchResults)) {
-            const formattedResults: UserMatch[] = searchResults.map((result: any) => ({
-              id: result.id || result.userId || result.user_id || Math.random().toString(),
-              name: result.name || 'Неизвестный пользователь',
-              values: result.values || [],
-              intents: result.intents || [],
-              interests: result.interests || [],
-              skills: result.skills || [],
-              corellation: result.corellation || result.correlation || 0,
-              phone: result.id || result.userId || result.user_id || null
-            }));
+          const toMatch = (r: any): UserMatch => {
+            const uid = Number(r.userId ?? r.user_id ?? r.id);
+            return {
+              id: String(uid || r.id || Math.random()),
+              userId: Number.isFinite(uid) ? uid : undefined,
+              name: r.name || 'Неизвестный пользователь',
+              values: r.values || [],
+              intents: r.intents || [],
+              interests: r.interests || [],
+              skills: r.skills || [],
+              corellation: r.corellation || r.correlation || 0,
+              matchReason: r.matchReason,
+            };
+          };
 
+          if (Array.isArray(searchResults)) {
+            const formattedResults = searchResults.map(toMatch);
             console.log('Formatted results:', formattedResults);
             setResults(formattedResults);
           } else if (searchResults && typeof searchResults === 'object') {
-            // Handle single result object
-            const singleResult: UserMatch = {
-              id: searchResults.id || searchResults.userId || searchResults.user_id || Math.random().toString(),
-              name: searchResults.name || 'Неизвестный пользователь',
-              values: searchResults.values || [],
-              intents: searchResults.intents || [],
-              interests: searchResults.interests || [],
-              skills: searchResults.skills || [],
-              corellation: searchResults.corellation || searchResults.correlation || 0,
-              phone: searchResults.id || searchResults.userId || searchResults.user_id || null
-            };
+            const singleResult = toMatch(searchResults);
 
             console.log('Single result:', singleResult);
             setResults([singleResult]);
@@ -376,14 +372,8 @@ const SearchInterface: React.FC = () => {
   };
 
   const handleChatClick = (user: UserMatch) => {
-    if (user.phone) {
-      // Очищаем номер телефона от всех символов кроме цифр
-      const cleanPhone = user.phone.replace(/\D/g, '');
-      // Открываем Telegram с номером телефона
-      window.open(`https://t.me/+${cleanPhone}`, '_blank');
-    } else {
-      alert('Номер телефона пользователя недоступен');
-    }
+    // Прямой чат теперь через модалку профиля — там уже видно, раскрыт ли контакт или нужен запрос.
+    handleViewProfile(user);
   };
 
   const handleViewProfile = (user: UserMatch) => {

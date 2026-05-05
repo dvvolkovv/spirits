@@ -1,13 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Send, Loader2, Headphones, Bot, UserCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Headphones, Bot, UserCircle2, AlertTriangle, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useSupport, SupportMessage } from './useSupport';
+import { useSupport, SupportMessage, SupportTicket } from './useSupport';
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function formatDate(iso: string, locale: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  });
 }
 
 function SenderBadge({ type, t }: { type: SupportMessage['senderType']; t: (k: string) => string }) {
@@ -29,22 +36,55 @@ function SenderBadge({ type, t }: { type: SupportMessage['senderType']; t: (k: s
   return null;
 }
 
+function MessageBubble({ m, t }: { m: SupportMessage; t: (k: string) => string }) {
+  const isMine = m.senderType === 'user';
+  const bubbleStyle = isMine
+    ? 'bg-forest-600 text-white rounded-br-sm'
+    : m.senderType === 'owner'
+      ? 'bg-warm-50 text-gray-900 rounded-bl-sm border border-warm-200'
+      : m.senderType === 'system'
+        ? 'bg-gray-100 text-gray-600 text-xs italic'
+        : 'bg-white text-gray-900 rounded-bl-sm border border-gray-100';
+  return (
+    <div className={clsx('flex flex-col', isMine ? 'items-end' : 'items-start')}>
+      {!isMine && <div className="mb-1 px-1"><SenderBadge type={m.senderType} t={t} /></div>}
+      <div className={clsx('max-w-[85%] md:max-w-[75%] px-3 py-2 rounded-2xl shadow-sm', bubbleStyle)}>
+        <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+        <div className={clsx('text-[10px] mt-0.5 text-right', isMine ? 'text-white/70' : 'text-gray-400')}>
+          {formatTime(m.createdAt)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SupportView: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { ticket, messages, loading, sending, waitingForAi, sendMessage } = useSupport();
+  const {
+    tickets,
+    latestTicket,
+    isLatestActive,
+    composingNew,
+    startNewTicket,
+    loading, sending, waitingForAi,
+    sendMessage,
+  } = useSupport();
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastCountRef = useRef(0);
+  const totalMsgsRef = useRef(0);
+
+  // Total messages across all tickets — drives auto-scroll
+  const totalMsgs = tickets.reduce((sum, tk) => sum + tk.messages.length, 0);
 
   useEffect(() => {
-    if (messages.length !== lastCountRef.current) {
-      lastCountRef.current = messages.length;
+    if (totalMsgs !== totalMsgsRef.current) {
+      totalMsgsRef.current = totalMsgs;
       requestAnimationFrame(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
       });
     }
-  }, [messages.length, waitingForAi]);
+  }, [totalMsgs, waitingForAi]);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -60,22 +100,26 @@ const SupportView: React.FC = () => {
     }
   };
 
+  // Banner reflects status of the latest ticket
   const statusBanner = (() => {
-    if (!ticket) return null;
-    if (ticket.status === 'escalated') return {
+    if (!latestTicket) return null;
+    if (latestTicket.status === 'escalated') return {
       text: t('support.banner_escalated'),
       color: 'bg-warm-50 text-warm-800 border-warm-200',
     };
-    if (ticket.status === 'owner_handling') return {
+    if (latestTicket.status === 'owner_handling') return {
       text: t('support.banner_owner'),
       color: 'bg-forest-50 text-forest-800 border-forest-200',
     };
-    if (ticket.status === 'resolved' || ticket.status === 'closed') return {
+    if (latestTicket.status === 'resolved' || latestTicket.status === 'closed') return {
       text: t('support.banner_closed'),
       color: 'bg-gray-50 text-gray-600 border-gray-200',
     };
     return null;
   })();
+
+  // Lock input when latest ticket is closed AND user hasn't pressed "Open new ticket"
+  const lockInput = latestTicket && !isLatestActive && !composingNew;
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -111,7 +155,7 @@ const SupportView: React.FC = () => {
           <div className="flex justify-center py-10">
             <Loader2 className="w-6 h-6 animate-spin text-forest-600" />
           </div>
-        ) : messages.length === 0 ? (
+        ) : tickets.length === 0 ? (
           <div className="text-center py-10 px-4">
             <div className="w-14 h-14 mx-auto rounded-full bg-forest-50 flex items-center justify-center mb-3">
               <Headphones className="w-7 h-7 text-forest-600" />
@@ -122,27 +166,22 @@ const SupportView: React.FC = () => {
             </p>
           </div>
         ) : (
-          messages.map((m) => {
-            const isMine = m.senderType === 'user';
-            const bubbleStyle = isMine
-              ? 'bg-forest-600 text-white rounded-br-sm'
-              : m.senderType === 'owner'
-                ? 'bg-warm-50 text-gray-900 rounded-bl-sm border border-warm-200'
-                : m.senderType === 'system'
-                  ? 'bg-gray-100 text-gray-600 text-xs italic'
-                  : 'bg-white text-gray-900 rounded-bl-sm border border-gray-100';
-            return (
-              <div key={m.id} className={clsx('flex flex-col', isMine ? 'items-end' : 'items-start')}>
-                {!isMine && <div className="mb-1 px-1"><SenderBadge type={m.senderType} t={t} /></div>}
-                <div className={clsx('max-w-[85%] md:max-w-[75%] px-3 py-2 rounded-2xl shadow-sm', bubbleStyle)}>
-                  <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
-                  <div className={clsx('text-[10px] mt-0.5 text-right', isMine ? 'text-white/70' : 'text-gray-400')}>
-                    {formatTime(m.createdAt)}
-                  </div>
+          tickets.map((tk: SupportTicket, idx: number) => (
+            <React.Fragment key={tk.id}>
+              {idx > 0 && (
+                <div className="flex items-center gap-2 my-4">
+                  <div className="flex-1 h-px bg-gray-300" />
+                  <span className="text-[11px] uppercase tracking-wider text-gray-500 font-medium whitespace-nowrap">
+                    {t('support.new_ticket_divider')} · {formatDate(tk.createdAt, i18n.language)}
+                  </span>
+                  <div className="flex-1 h-px bg-gray-300" />
                 </div>
+              )}
+              <div className="space-y-3">
+                {tk.messages.map((m) => <MessageBubble key={m.id} m={m} t={t} />)}
               </div>
-            );
-          })
+            </React.Fragment>
+          ))
         )}
         {waitingForAi && (
           <div className="flex items-center gap-2 text-xs text-gray-500 px-1">
@@ -152,28 +191,40 @@ const SupportView: React.FC = () => {
         )}
       </div>
 
-      {/* Input */}
+      {/* Input or "open new ticket" button */}
       <div className="bg-white border-t border-gray-200 px-3 pt-2.5 pb-20 md:pb-2.5 flex-shrink-0">
-        <div className="flex items-end gap-2">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value.slice(0, 4000))}
-            onKeyDown={handleKey}
-            placeholder={t('support.input_placeholder')}
-            rows={1}
-            className="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent max-h-32"
-            style={{ minHeight: '40px' }}
-          />
+        {lockInput ? (
           <button
             type="button"
-            onClick={handleSend}
-            disabled={sending || !input.trim()}
-            className="p-2.5 bg-forest-600 hover:bg-forest-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full transition-colors flex-shrink-0"
-            aria-label={t('support.send_aria')}
+            onClick={startNewTicket}
+            className="w-full py-2.5 rounded-2xl border-2 border-dashed border-forest-300 text-forest-700 hover:bg-forest-50 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
           >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            <Plus className="w-4 h-4" />
+            {t('support.open_new_ticket')}
           </button>
-        </div>
+        ) : (
+          <div className="flex items-end gap-2">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value.slice(0, 4000))}
+              onKeyDown={handleKey}
+              placeholder={composingNew ? t('support.new_ticket_placeholder') : t('support.input_placeholder')}
+              rows={1}
+              autoFocus={composingNew}
+              className="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent max-h-32"
+              style={{ minHeight: '40px' }}
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={sending || !input.trim()}
+              className="p-2.5 bg-forest-600 hover:bg-forest-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full transition-colors flex-shrink-0"
+              aria-label={t('support.send_aria')}
+            >
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

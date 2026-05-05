@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import DozvonDashboard from '../components/dozvon/DozvonDashboard';
+import DozvonChatView from '../components/dozvon/DozvonChatView';
 
 const DozvonPage: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -18,7 +18,7 @@ const DozvonPage: React.FC = () => {
     return <Navigate to="/chat" replace />;
   }
 
-  return <DozvonDashboard />;
+  return <DozvonChatView />;
 };
 
 export default DozvonPage;

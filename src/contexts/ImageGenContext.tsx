@@ -28,6 +28,10 @@ interface ImageGenContextValue {
   tokenCost: number;
   hasEnoughTokens: boolean;
   handleGenerate: () => void;
+  handleEdit: (sourceImageUrl: string, editPrompt: string, quality?: 'std' | 'hd') => Promise<void>;
+  handleCompose: (sourceImageUrls: string[], composePrompt: string, quality?: 'std' | 'hd') => Promise<void>;
+  handleUpscale: (sourceImageUrl: string) => Promise<void>;
+  handleUpload: (file: File) => Promise<string | null>;
   loadHistory: () => void;
   deleteImage: (id: number) => void;
 }
@@ -95,13 +99,103 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const runMutation = async (endpoint: string, payload: any, costFromQuality: 'std' | 'hd') => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const resp = await apiClient.post(endpoint, payload);
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `Ошибка ${resp.status}`);
+      }
+      const data: ImageGenResponse = await resp.json();
+      const images = Array.isArray(data.images) ? data.images : [];
+      if (images.length === 0) throw new Error('Модель не вернула изображение');
+      setResults(prev => [...images, ...prev]);
+      if (data.tokensSpent) updateTokens((user?.tokens ?? 0) - data.tokensSpent);
+      loadHistory();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Операция не удалась');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleEdit = async (sourceImageUrl: string, editPrompt: string, quality: 'std' | 'hd' = 'std') => {
+    if (!editPrompt.trim()) return;
+    const cost = quality === 'hd' ? 10000 : 5000;
+    if ((user?.tokens ?? 0) < cost) {
+      setError(`Недостаточно токенов. Нужно ${cost.toLocaleString('ru-RU')}`);
+      return;
+    }
+    await runMutation('/webhook/imageedit', { prompt: editPrompt.trim(), sourceImageUrl, quality }, quality);
+  };
+
+  const handleCompose = async (sourceImageUrls: string[], composePrompt: string, quality: 'std' | 'hd' = 'std') => {
+    if (!composePrompt.trim()) return;
+    if (sourceImageUrls.length < 2) {
+      setError('Нужно минимум 2 картинки для композиции');
+      return;
+    }
+    const cost = quality === 'hd' ? 10000 : 5000;
+    if ((user?.tokens ?? 0) < cost) {
+      setError(`Недостаточно токенов. Нужно ${cost.toLocaleString('ru-RU')}`);
+      return;
+    }
+    await runMutation('/webhook/imagecompose', { prompt: composePrompt.trim(), sourceImageUrls, quality }, quality);
+  };
+
+  const handleUpload = async (file: File): Promise<string | null> => {
+    if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) {
+      setError('Поддерживаются только PNG, JPEG, WEBP');
+      return null;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Максимальный размер файла — 10 МБ');
+      return null;
+    }
+    setError(null);
+    setIsGenerating(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const resp = await apiClient.post('/webhook/imageupload', form);
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `Ошибка ${resp.status}`);
+      }
+      const data = await resp.json();
+      const url: string = data.url;
+      if (url) {
+        setResults(prev => [{ url } as any, ...prev]);
+        loadHistory();
+      }
+      return url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Загрузка не удалась');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleUpscale = async (sourceImageUrl: string) => {
+    if ((user?.tokens ?? 0) < 10000) {
+      setError('Недостаточно токенов. Апскейл стоит 10 000');
+      return;
+    }
+    await runMutation('/webhook/imageupscale', { sourceImageUrl }, 'hd');
+  };
+
   return (
     <ImageGenContext.Provider value={{
       prompt, setPrompt,
       settings, setSettings,
       isGenerating, error, results, history,
       tokenCost, hasEnoughTokens,
-      handleGenerate, loadHistory, deleteImage,
+      handleGenerate, handleEdit, handleCompose, handleUpscale, handleUpload,
+      loadHistory, deleteImage,
     }}>
       {children}
     </ImageGenContext.Provider>

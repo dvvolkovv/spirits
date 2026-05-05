@@ -18,7 +18,10 @@ export interface SupportTicket {
   topic: string | null;
   createdAt: string;
   lastMessageAt: string | null;
+  messages: SupportMessage[];
 }
+
+const ACTIVE_STATUSES: SupportStatus[] = ['ai_handling', 'escalated', 'owner_handling'];
 
 async function toJson<T = any>(resp: Response): Promise<T> {
   if (!resp.ok) {
@@ -33,36 +36,31 @@ async function toJson<T = any>(resp: Response): Promise<T> {
 }
 
 export function useSupport() {
-  const [ticket, setTicket] = useState<SupportTicket | null>(null);
-  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [waitingForAi, setWaitingForAi] = useState(false);
+  const [composingNew, setComposingNew] = useState(false);
   const waitDeadlineRef = useRef<number>(0);
+  const lastMessageCountRef = useRef<number>(0);
 
-  const fetchTicket = useCallback(async () => {
+  const fetchTickets = useCallback(async () => {
     try {
-      const t = await toJson<SupportTicket>(await apiClient.get('/webhook/support/ticket'));
-      setTicket(t);
-      return t;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const fetchMessages = useCallback(async (ticketId: string) => {
-    try {
-      const arr = await toJson<SupportMessage[]>(
-        await apiClient.get(`/webhook/support/ticket/${ticketId}/messages`),
+      const arr = await toJson<SupportTicket[]>(
+        await apiClient.get('/webhook/support/tickets?limit=10'),
       );
-      setMessages(Array.isArray(arr) ? arr : []);
-      // Clear "waiting for AI" once an AI/owner/system message arrives after user's last
-      if (waitingForAi && Array.isArray(arr) && arr.length > 0) {
-        const last = arr[arr.length - 1];
-        if (last.senderType !== 'user' || Date.now() > waitDeadlineRef.current) {
+      const list = Array.isArray(arr) ? arr : [];
+      setTickets(list);
+      const total = list.reduce((sum, t) => sum + t.messages.length, 0);
+      // Clear "waiting for AI" when a non-user message arrives or deadline hit
+      if (waitingForAi && total > lastMessageCountRef.current) {
+        const last = list[list.length - 1];
+        const lastMsg = last?.messages?.[last.messages.length - 1];
+        if (lastMsg && (lastMsg.senderType !== 'user' || Date.now() > waitDeadlineRef.current)) {
           setWaitingForAi(false);
         }
       }
+      lastMessageCountRef.current = total;
     } catch { /* silent */ }
   }, [waitingForAi]);
 
@@ -70,46 +68,68 @@ export function useSupport() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const t = await fetchTicket();
-      if (t) await fetchMessages(t.id);
+      await fetchTickets();
       setLoading(false);
     })();
-  }, [fetchTicket, fetchMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Polling — faster while waiting for AI
+  // Polling
   useEffect(() => {
-    if (!ticket) return;
     const interval = waitingForAi ? 2000 : 6000;
-    const id = setInterval(() => fetchMessages(ticket.id), interval);
+    const id = setInterval(fetchTickets, interval);
     return () => clearInterval(id);
-  }, [ticket, waitingForAi, fetchMessages]);
+  }, [waitingForAi, fetchTickets]);
+
+  // Latest ticket = last in list (chronologically newest)
+  const latestTicket: SupportTicket | null = tickets.length > 0 ? tickets[tickets.length - 1] : null;
+  const isLatestActive = latestTicket ? ACTIVE_STATUSES.includes(latestTicket.status) : false;
+
+  // Reset composing flag once a new active ticket appears
+  useEffect(() => {
+    if (isLatestActive) setComposingNew(false);
+  }, [latestTicket?.id, isLatestActive]);
+
+  const startNewTicket = useCallback(() => setComposingNew(true), []);
 
   const sendMessage = useCallback(async (content: string) => {
     const trimmed = content.trim();
     if (!trimmed || sending) return;
     setSending(true);
     try {
-      const r = await toJson<{ ticketId: string }>(
+      // Optimistic append: if latest is active, push to its messages array
+      if (latestTicket && isLatestActive) {
+        const optimistic: SupportMessage = {
+          id: `local-${Date.now()}`,
+          senderType: 'user',
+          content: trimmed,
+          createdAt: new Date().toISOString(),
+        };
+        setTickets((xs) => xs.map((t) =>
+          t.id === latestTicket.id ? { ...t, messages: [...t.messages, optimistic] } : t,
+        ));
+      }
+      await toJson<{ ticketId: string }>(
         await apiClient.post('/webhook/support/message', { content: trimmed }),
       );
-      if (!ticket) {
-        const t = await fetchTicket();
-        if (t) await fetchMessages(t.id);
-      } else {
-        // Optimistic append
-        setMessages((xs) => [
-          ...xs,
-          { id: `local-${Date.now()}`, senderType: 'user', content: trimmed, createdAt: new Date().toISOString() },
-        ]);
-        waitDeadlineRef.current = Date.now() + 30_000;
-        setWaitingForAi(true);
-        // Fetch real state soon
-        setTimeout(() => fetchMessages(r.ticketId), 1500);
-      }
+      waitDeadlineRef.current = Date.now() + 30_000;
+      setWaitingForAi(true);
+      // Refetch to get authoritative state (and any new ticket created server-side)
+      setTimeout(() => fetchTickets(), 1000);
     } finally {
       setSending(false);
     }
-  }, [sending, ticket, fetchTicket, fetchMessages]);
+  }, [sending, latestTicket, isLatestActive, fetchTickets]);
 
-  return { ticket, messages, loading, sending, waitingForAi, sendMessage, refetch: () => ticket && fetchMessages(ticket.id) };
+  return {
+    tickets,
+    latestTicket,
+    isLatestActive,
+    composingNew,
+    startNewTicket,
+    loading,
+    sending,
+    waitingForAi,
+    sendMessage,
+  };
 }

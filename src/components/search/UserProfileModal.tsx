@@ -7,6 +7,8 @@ import { fetchPeerState, sendPeerRequest, PeerState } from '../peer/usePeer';
 
 interface UserMatch {
   id: string;
+  userId?: number;     // surrogate id (ai_profiles_consolidated.id)
+  phone?: string;      // legacy: передаётся из peer-чата, где peerUserId — это phone
   name: string;
   avatar?: string;
   values: string[];
@@ -14,10 +16,11 @@ interface UserMatch {
   interests?: string[];
   skills?: string[];
   corellation: number;
-  phone?: string;
+  matchReason?: string;
 }
 
 interface FullProfile {
+  userId?: number;
   values?: string[];
   beliefs?: string[];
   desires?: string[];
@@ -28,6 +31,9 @@ interface FullProfile {
   family_name?: string;
   completeness?: string;
   avatar_url?: string;
+  phone?: string | null;          // раскрывается только если phoneDisclosed=true на бэке
+  phoneDisclosed?: boolean;
+  contactVisible?: 'public' | 'matchOnly' | 'private';
 }
 
 interface UserProfileModalProps {
@@ -107,10 +113,18 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
   const [sendError, setSendError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
-  const targetUserId = (user.phone || '').replace(/\D/g, '');
+  const [contactRequesting, setContactRequesting] = useState(false);
+  const [contactRequested, setContactRequested] = useState(false);
+  const [contactRequestMessage, setContactRequestMessage] = useState('');
+
+  // Источник идентификации: (a) явный userId (из поиска/compat), либо (b) phone
+  // (из peer-чата, где peerUserId — строка с номером). Если оба отсутствуют — модалка
+  // не знает кого открыть.
+  const phoneLookup = user.phone || (user.id && /^\d{10,15}$/.test(user.id) ? user.id : null);
+  const hasTarget = !!user.userId || !!phoneLookup;
 
   useEffect(() => {
-    if (!isOpen || !targetUserId) return;
+    if (!isOpen || !hasTarget) return;
 
     setFullProfile(null);
     setIsLoading(true);
@@ -119,40 +133,57 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
     setIntro('');
     setSendError(null);
     setSent(false);
+    setContactRequested(false);
+    setContactRequestMessage('');
 
-    apiClient.get(`/webhook/user-profile?userId=${targetUserId}`)
+    const url = user.userId
+      ? `/webhook/user-public/${user.userId}`
+      : `/webhook/user-public-by-phone/${phoneLookup}`;
+    apiClient.get(url)
       .then(async (response) => {
-        if (response.ok) {
-          const data = await response.json();
-          // Try legacy n8n params format first; fall back to direct profile_data / root.
-          let profile = parseProfileParams(data?.params);
-          if (!profile) profile = parseProfileParams(data?.profile_data);
-          const pd = data?.profile_data || data || {};
-          if (!profile && (pd.values || pd.interests || pd.skills || pd.name)) {
-            profile = {
-              values: Array.isArray(pd.values) ? pd.values : [],
-              beliefs: Array.isArray(pd.beliefs) ? pd.beliefs : [],
-              desires: Array.isArray(pd.desires) ? pd.desires : [],
-              intents: Array.isArray(pd.intents) ? pd.intents : [],
-              interests: Array.isArray(pd.interests) ? pd.interests : [],
-              skills: Array.isArray(pd.skills) ? pd.skills : [],
-              name: pd.name,
-              family_name: pd.family_name,
-              avatar_url: pd.avatar_url,
-            };
-          } else if (profile) {
-            if (!profile.interests && Array.isArray(pd.interests)) profile.interests = pd.interests;
-            if (!profile.skills && Array.isArray(pd.skills)) profile.skills = pd.skills;
-            if (!profile.avatar_url && pd.avatar_url) profile.avatar_url = pd.avatar_url;
-          }
-          setFullProfile(profile);
-        }
+        if (!response.ok) return;
+        const data = await response.json();
+        setFullProfile({
+          values: Array.isArray(data.values) ? data.values : [],
+          beliefs: Array.isArray(data.beliefs) ? data.beliefs : [],
+          desires: Array.isArray(data.desires) ? data.desires : [],
+          intents: Array.isArray(data.intents) ? data.intents : [],
+          interests: Array.isArray(data.interests) ? data.interests : [],
+          skills: Array.isArray(data.skills) ? data.skills : [],
+          name: data.name,
+          family_name: data.family_name,
+          avatar_url: data.avatar_url,
+          phone: data.phone ?? null,
+          phoneDisclosed: !!data.phoneDisclosed,
+          contactVisible: data.contactVisible,
+        });
+        // peer API оперирует phone'ом; доступен только когда контакт уже раскрыт.
+        // Если phone уже пришёл извне (peer-чат), peerState можно сразу запросить.
+        const peerPhone = data.phone || phoneLookup;
+        if (peerPhone) fetchPeerState(peerPhone).then(setPeerState);
+        // Backfill userId из API response, если юзер пришёл по phone.
+        if (data.userId && !user.userId) user.userId = data.userId;
       })
       .catch(() => {/* ignore */})
       .finally(() => setIsLoading(false));
+  }, [isOpen, user.userId, phoneLookup]);
 
-    fetchPeerState(targetUserId).then(setPeerState);
-  }, [isOpen, targetUserId]);
+  const requestContact = async () => {
+    const targetId = user.userId || fullProfile?.userId;
+    if (!targetId) return;
+    setContactRequesting(true);
+    try {
+      const resp = await apiClient.post('/webhook/contact-request', {
+        userId: targetId,
+        message: contactRequestMessage.trim() || undefined,
+      });
+      if (resp.ok) setContactRequested(true);
+    } catch {
+      // ignore
+    } finally {
+      setContactRequesting(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -176,7 +207,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
   const avatarUrl = user.avatar || fullProfile?.avatar_url || null;
 
   const handleSend = async () => {
-    if (!targetUserId) return;
+    // peer-запросы идут по phone; это работает только если контакт уже раскрыт.
+    const targetPhone = fullProfile?.phone;
+    if (!targetPhone) return;
     const trimmed = intro.trim();
     if (!trimmed) {
       setSendError(t('peer.errors.introRequired'));
@@ -185,7 +218,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
     setSendError(null);
     setSending(true);
     try {
-      const res = await sendPeerRequest(targetUserId, trimmed);
+      const res = await sendPeerRequest(targetPhone, trimmed);
       if (res.conversationId) {
         onClose();
         navigate(`/chats/${res.conversationId}`);
@@ -389,8 +422,69 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
             </div>
           )}
 
-          {/* State: no relationship — compose or initial */}
-          {!peerState?.conversationId && !peerState?.pendingRequest && !sent && (
+          {/* State: контакт ещё не раскрыт (target contactVisible != public и нет approved-request) */}
+          {!peerState?.conversationId && !peerState?.pendingRequest && !sent && fullProfile && fullProfile.phoneDisclosed === false && (
+            <>
+              {fullProfile.contactVisible === 'private' ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-gray-500">
+                    Пользователь не принимает запросы на контакт.
+                  </span>
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    {t('common.close', 'Закрыть')}
+                  </button>
+                </div>
+              ) : contactRequested ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Check className="w-4 h-4 text-green-600" />
+                    Запрос на контакт отправлен
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    {t('common.close', 'Закрыть')}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Короткое сообщение-представление (необязательно)
+                  </label>
+                  <textarea
+                    value={contactRequestMessage}
+                    onChange={(e) => setContactRequestMessage(e.target.value.slice(0, INTRO_MAX))}
+                    placeholder="Коротко — почему вам интересно познакомиться"
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent resize-none"
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={onClose}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      {t('common.close', 'Закрыть')}
+                    </button>
+                    <button
+                      onClick={requestContact}
+                      disabled={contactRequesting}
+                      className="px-4 py-2 bg-forest-600 hover:bg-forest-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {contactRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      Запросить контакт
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* State: контакт раскрыт, peer-отношений ещё нет — compose или initial */}
+          {!peerState?.conversationId && !peerState?.pendingRequest && !sent && fullProfile?.phoneDisclosed === true && (
             <>
               {!composing ? (
                 <div className="flex items-center justify-end gap-3">
@@ -402,7 +496,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
                   </button>
                   <button
                     onClick={() => setComposing(true)}
-                    disabled={!targetUserId}
+                    disabled={!fullProfile?.phone}
                     className="px-4 py-2 bg-forest-600 hover:bg-forest-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <MessageCircle className="w-4 h-4" />

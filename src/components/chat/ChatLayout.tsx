@@ -45,18 +45,18 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
           try { urls[a.id] = await avatarService.getAvatarUrl(a.id); } catch {}
         }));
         setAvatarUrls(urls);
-        // Restore selected
+        // Restore selected id из localStorage, но на мобилке sidebar оставляем открытым —
+        // юзер сам решит, продолжить с прошлым ассистентом или выбрать другого.
+        const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
         const saved = localStorage.getItem('selected_assistant');
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
             setSelectedId(parsed.id);
-            setShowSidebar(false);
+            if (!isMobile) setShowSidebar(false); // desktop показывает и sidebar, и chat одновременно — скрывать нечего
           } catch {}
-        } else {
-          // No saved assistant — show sidebar (assistant list)
-          setShowSidebar(true);
         }
+        // На мобилке без явного выбора sidebar остаётся видимым (state init true).
       }
     });
   }, []);

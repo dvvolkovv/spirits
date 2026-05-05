@@ -326,17 +326,17 @@ const ChatConversationView: React.FC<Props> = ({ chatId }) => {
         </div>
       </div>
 
-      {/* Profile modal */}
+      {/* Profile modal — загружаем полный профиль (values/beliefs/…) через /user-public-by-phone */}
       {profileOpen && conv && (
         <UserProfileModal
           user={{
             id: conv.peerUserId,
+            phone: conv.peerUserId,        // peerUserId в peer-чате — это phone
             name: conv.peerName,
             avatar: conv.peerAvatar ?? undefined,
             values: [],
             intents: [],
             corellation: 0,
-            phone: conv.peerUserId,
           }}
           isOpen={true}
           onClose={() => setProfileOpen(false)}

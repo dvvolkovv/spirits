@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Settings2, ChevronDown, ChevronUp, Loader, AlertCircle, Info } from 'lucide-react';
+import { Sparkles, Settings2, ChevronDown, ChevronUp, Loader, AlertCircle, Info, Image as ImageIcon, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
@@ -74,6 +74,30 @@ const MODE_HINTS: Record<Mode, string> = {
   lipsync: 'Синхронизирует движение губ готового видео с аудиодорожкой.',
 };
 
+const PROMPT_EXAMPLES_T2V = [
+  { label: 'Лошадь на пляже', text: 'Белая лошадь скачет по пляжу на закате, брызги воды в воздухе, замедленная съёмка, кинематографичный свет' },
+  { label: 'Токио под дождём', text: 'Ночной Токио под дождём, неоновые отражения на мокром асфальте, медленное движение камеры вперёд, кинематографично' },
+  { label: 'Дракон взлетает', text: 'Огромный дракон взлетает с вершины горы, мощно хлопая крыльями, облака расступаются, широкий эпичный кадр' },
+  { label: 'Астронавт', text: 'Астронавт парит в невесомости внутри космической станции, в иллюминаторе видна Земля, плавное движение камеры' },
+  { label: 'Колибри', text: 'Колибри зависает перед ярко-красным цветком, крылья размыты движением, макросъёмка, мягкое боке' },
+  { label: 'Шоколад-макро', text: 'Горячий шоколадный соус медленно льётся на бисквитный торт, замедленная съёмка, студийный свет, макро' },
+  { label: 'Танцовщица', text: 'Танцовщица в красном платье кружится на крыше на закате, ветер развевает ткань, тёплый контровой свет' },
+  { label: 'Кит', text: 'Огромный синий кит медленно всплывает из глубины, лучи солнца пробиваются сквозь воду, подводная съёмка' },
+  { label: 'Паркур', text: 'Паркурщик прыгает между крышами небоскрёбов, вид сверху с дрона, динамичное движение камеры' },
+  { label: 'Лаванда', text: 'Бесконечное поле лаванды на закате, лёгкий ветер колышет цветы, пролёт камеры вперёд, кинематографично' },
+];
+
+const PROMPT_EXAMPLES_I2V = [
+  { label: 'Оживить портрет', text: 'Человек на фото медленно улыбается и моргает, лёгкое движение волос от ветра, камера чуть приближается' },
+  { label: 'Пейзаж в движении', text: 'Облака в небе медленно плывут, листья деревьев шевелятся от ветра, солнечные блики мерцают' },
+  { label: 'Пролёт вперёд', text: 'Камера плавно движется вперёд в сцену, эффект погружения, кинематографичная глубина резкости' },
+  { label: 'Орбита', text: 'Камера медленно облетает главный объект по дуге, сохраняя фокус, студийный свет' },
+  { label: 'Взмах волос', text: 'Волосы персонажа развеваются от ветра, ткань одежды колышется, драматичное замедление' },
+  { label: 'Дождь начинается', text: 'Начинается дождь, появляются капли на поверхностях, атмосфера становится туманной' },
+  { label: 'Смена дня и ночи', text: 'Плавный переход от дня к ночи, зажигаются огни города, облака несутся быстрее' },
+  { label: 'Zoom-out', text: 'Камера медленно отъезжает, раскрывая всё больше окружения вокруг главного объекта' },
+];
+
 export default function VideoCreateForm({ onCreated, defaults }: Props) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -92,6 +116,30 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [pickerImages, setPickerImages] = useState<any[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerError, setPickerError] = useState<string | null>(null);
+
+  const toAbsoluteUrl = (url: string): string =>
+    url.startsWith('http://') || url.startsWith('https://') ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
+
+  const openImagePicker = async () => {
+    setShowImagePicker(true);
+    setPickerError(null);
+    if (pickerImages.length > 0) return;
+    setPickerLoading(true);
+    try {
+      const resp = await apiClient.get('/webhook/imagegen/history');
+      if (!resp.ok) throw new Error(`Ошибка ${resp.status}`);
+      const data = await resp.json();
+      setPickerImages(Array.isArray(data) ? data : []);
+    } catch (e: any) {
+      setPickerError(e?.message ?? 'Не удалось загрузить картинки');
+    } finally {
+      setPickerLoading(false);
+    }
+  };
 
   const cost = useMemo(() => costFor(s), [s]);
   const showPrompt = s.mode !== 'lipsync';
@@ -149,6 +197,29 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           value={s.prompt}
           onChange={e => setS({ ...s, prompt: e.target.value })}
         />
+      )}
+
+      {/* Prompt examples */}
+      {showPrompt && (s.mode === 'text2video' || s.mode === 'image2video') && (
+        <div>
+          <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            Примеры — нажмите, чтобы подставить
+          </p>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+            {(s.mode === 'text2video' ? PROMPT_EXAMPLES_T2V : PROMPT_EXAMPLES_I2V).map((ex, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setS(x => ({ ...x, prompt: ex.text }))}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-forest-400 hover:bg-forest-50 hover:text-forest-700 transition-colors whitespace-nowrap"
+                title={ex.text}
+              >
+                {ex.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Mode chips */}
@@ -337,22 +408,32 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.sourceImage.label')}
-                <Hint text="Загрузите первый кадр будущего видео. ИИ анимирует его в движение. Форматы: JPG, PNG, WebP." />
+                <Hint text="Загрузите первый кадр будущего видео или возьмите из ваших сгенерированных картинок. Форматы: JPG, PNG, WebP." />
               </p>
-              <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-forest-400 cursor-pointer transition-colors bg-white text-sm text-gray-500 hover:text-forest-600">
-                <span>Выбрать изображение</span>
-                <input
-                  type="file" accept="image/*" className="hidden"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    try {
-                      const url = await uploadFile('image', f);
-                      setS(x => ({ ...x, sourceImageUrl: url }));
-                    } catch (err: any) { setError(err?.message ?? 'image upload failed'); }
-                  }}
-                />
-              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-forest-400 cursor-pointer transition-colors bg-white text-sm text-gray-500 hover:text-forest-600">
+                  <span>Загрузить файл</span>
+                  <input
+                    type="file" accept="image/*" className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      try {
+                        const url = await uploadFile('image', f);
+                        setS(x => ({ ...x, sourceImageUrl: url }));
+                      } catch (err: any) { setError(err?.message ?? 'image upload failed'); }
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={openImagePicker}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:border-forest-400 hover:bg-forest-50 hover:text-forest-700 transition-colors bg-white text-sm text-gray-600"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Из моих картинок</span>
+                </button>
+              </div>
               {s.sourceImageUrl && (
                 <img src={s.sourceImageUrl} alt="preview" className="mt-2 max-h-40 rounded-lg object-cover" />
               )}
@@ -450,6 +531,71 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
       </button>
 
       <p className="text-xs text-gray-400 text-center">Генерация занимает 3–5 минут</p>
+
+      {/* Image picker modal */}
+      {showImagePicker && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowImagePicker(false)}>
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-forest-600" />
+                <h3 className="text-base font-semibold text-gray-900">Выбрать из моих картинок</h3>
+              </div>
+              <button onClick={() => setShowImagePicker(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {pickerLoading && (
+              <div className="flex-1 flex items-center justify-center py-8">
+                <Loader className="w-6 h-6 animate-spin text-forest-600" />
+              </div>
+            )}
+
+            {pickerError && (
+              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{pickerError}</span>
+              </div>
+            )}
+
+            {!pickerLoading && !pickerError && pickerImages.length === 0 && (
+              <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
+                <ImageIcon className="w-10 h-10 text-gray-200 mb-2" />
+                <p className="text-sm text-gray-500">У вас пока нет сгенерированных картинок.</p>
+                <a href="/imagegen" className="mt-3 text-sm text-forest-600 hover:text-forest-700 underline">Перейти к генератору картинок</a>
+              </div>
+            )}
+
+            {!pickerLoading && pickerImages.length > 0 && (
+              <div className="flex-1 overflow-y-auto -mx-1 px-1">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {pickerImages.map((it: any) => {
+                    const cleanPrompt = (it.prompt || '').replace(/^\[edit\]\s*|^\[compose\s+\d+\]\s*/, '');
+                    return (
+                      <button
+                        key={it.id}
+                        type="button"
+                        onClick={() => {
+                          setS(x => ({ ...x, sourceImageUrl: toAbsoluteUrl(it.image_url) }));
+                          setShowImagePicker(false);
+                        }}
+                        className="group relative aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-forest-400 hover:ring-2 hover:ring-forest-200 transition-all bg-gray-50"
+                        title={cleanPrompt}
+                      >
+                        <img src={it.image_url} className="w-full h-full object-cover" loading="lazy" alt="" />
+                        <span className="absolute inset-x-0 bottom-0 px-1.5 py-1 bg-gradient-to-t from-black/70 to-transparent text-[10px] text-white line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {cleanPrompt || 'Без описания'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
