@@ -250,6 +250,54 @@
       "reply_placeholder_user": "Ответ пользователю…",
       "internal_note_label": "Внутренняя заметка (не видна пользователю)",
       "tokens_unit": "токены: {{value}}"
+    },
+    "userActivity": {
+      "title": "Активность пользователя",
+      "registeredOn": "с",
+      "empty": "Нет данных за выбранный период",
+      "kpis": {
+        "balance": "Баланс",
+        "spentPeriod": "Списано за период",
+        "queries": "Запросов",
+        "images": "Изображений",
+        "videos": "Видео",
+        "calls": "Звонков",
+        "allTime": "всего",
+        "lastActive": "актив",
+        "noPayments": "без оплат"
+      },
+      "chart": {
+        "tokens": "Списание токенов",
+        "queries": "Запросы",
+        "byDay": "по дням",
+        "lastDays": "За последние {{days}} дн",
+        "metric": {
+          "tokens": "Токены",
+          "queries": "Запросы"
+        }
+      },
+      "sections": {
+        "byAssistant": "По ассистентам",
+        "transactions": "Транзакции",
+        "messages": "Последние сообщения",
+        "payments": "Платежи"
+      },
+      "col": {
+        "assistant": "Ассистент",
+        "queries": "Запросов",
+        "tokens": "Токенов",
+        "lastUsed": "Последний"
+      },
+      "role": {
+        "user": "Пользователь",
+        "assistant": "Ассистент"
+      },
+      "paymentStatus": {
+        "completed": "Оплачено",
+        "pending": "Ожидает",
+        "failed": "Ошибка",
+        "canceled": "Отменён"
+      }
     }
   },
   "chats": {

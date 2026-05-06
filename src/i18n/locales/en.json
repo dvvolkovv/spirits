@@ -251,6 +251,54 @@
       "reply_placeholder_user": "Reply to user…",
       "internal_note_label": "Internal note (hidden from user)",
       "tokens_unit": "tokens: {{value}}"
+    },
+    "userActivity": {
+      "title": "User activity",
+      "registeredOn": "since",
+      "empty": "No data for the selected period",
+      "kpis": {
+        "balance": "Balance",
+        "spentPeriod": "Spent in period",
+        "queries": "Queries",
+        "images": "Images",
+        "videos": "Videos",
+        "calls": "Calls",
+        "allTime": "all",
+        "lastActive": "active",
+        "noPayments": "no payments"
+      },
+      "chart": {
+        "tokens": "Token spend",
+        "queries": "Queries",
+        "byDay": "by day",
+        "lastDays": "Last {{days}} days",
+        "metric": {
+          "tokens": "Tokens",
+          "queries": "Queries"
+        }
+      },
+      "sections": {
+        "byAssistant": "By assistant",
+        "transactions": "Transactions",
+        "messages": "Recent messages",
+        "payments": "Payments"
+      },
+      "col": {
+        "assistant": "Assistant",
+        "queries": "Queries",
+        "tokens": "Tokens",
+        "lastUsed": "Last"
+      },
+      "role": {
+        "user": "User",
+        "assistant": "Assistant"
+      },
+      "paymentStatus": {
+        "completed": "Paid",
+        "pending": "Pending",
+        "failed": "Failed",
+        "canceled": "Canceled"
+      }
     }
   },
   "chats": {

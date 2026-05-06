@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Users, Loader, AlertCircle, RefreshCw, UserPlus, Activity, Calendar, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import UserActivityDrawer from './UserActivityDrawer';
 
 interface UserRow {
   phone: string;
@@ -99,6 +100,7 @@ const AdminUsersView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
 
   const load = async () => {
     setIsLoading(true);
@@ -402,7 +404,11 @@ const AdminUsersView: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredUsers.map((u, idx) => (
-                    <tr key={u.phone} className="hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={u.phone}
+                      onClick={() => setSelectedPhone(u.phone)}
+                      className="hover:bg-forest-50 transition-colors cursor-pointer"
+                    >
                       <td className="px-4 py-2.5 text-xs text-gray-400">{idx + 1}</td>
                       <td className="px-4 py-2.5 font-mono text-xs text-gray-800">{formatPhone(u.phone)}</td>
                       <td className="px-4 py-2.5 text-xs text-gray-600 whitespace-nowrap">{formatDateOnly(u.registered_at)}</td>
@@ -429,6 +435,11 @@ const AdminUsersView: React.FC = () => {
           )}
         </div>
       </div>
+
+      <UserActivityDrawer
+        phone={selectedPhone}
+        onClose={() => setSelectedPhone(null)}
+      />
     </div>
   );
 };
