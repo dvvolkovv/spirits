@@ -189,7 +189,9 @@ const InlineVideoCards = ({ ids }: { ids: string[] }) => {
         }
         const job = jobs.find((j) => j.id === id);
         if (!job) {
-          return <div key={id} className="aspect-video rounded-xl bg-gray-100" />;
+          // Either backend hasn't fetched yet, or this is a hallucinated UUID from Roman.
+          // Don't show a placeholder — VideoJobCard appears when jobs list catches up.
+          return null;
         }
         return <VideoJobCard key={id} job={job} compact />;
       })}
