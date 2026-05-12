@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useSearchParams } from 'react-router-dom';
@@ -23,6 +23,16 @@ const AdminPage: React.FC = () => {
     ? (params.get('tab') as AdminTab)
     : 'support';
   const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+    const activeBtn = container.querySelector<HTMLButtonElement>(`[data-testid="admin-tab-${activeTab}"]`);
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeTab]);
 
   if (isLoading) {
     return (
@@ -49,15 +59,19 @@ const AdminPage: React.FC = () => {
 
   return (
     <div data-testid="admin-root" className="h-screen flex flex-col bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-4 flex-shrink-0">
-        <div className="flex space-x-1">
+      <div className="bg-white border-b border-gray-200 flex-shrink-0">
+        <div
+          ref={tabsContainerRef}
+          className="flex space-x-1 px-4 overflow-x-auto scrollbar-hide"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {tabs.map((tab) => (
             <button
               key={tab.id}
               data-testid={`admin-tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={clsx(
-                'px-4 py-3 text-sm font-medium border-b-2 transition-colors',
+                'flex-shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 transition-colors',
                 activeTab === tab.id
                   ? 'border-forest-600 text-forest-600'
                   : 'border-transparent text-gray-600 hover:text-forest-600 hover:border-gray-300'
