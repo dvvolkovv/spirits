@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
@@ -33,6 +33,18 @@ const Navigation: React.FC = () => {
   const [showLegal, setShowLegal] = useState<'terms' | 'privacy' | null>(null);
   const unread = useUnreadSummary();
   const peerBadge = unread.incomingRequests + unread.unreadMessages;
+  const location = useLocation();
+  const mobileNavRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = mobileNavRef.current;
+    if (!container || window.innerWidth >= 768) return; // md breakpoint — only on mobile
+    const activePath = location.pathname.split('/')[1];
+    const activeEl = container.querySelector<HTMLElement>(`[data-testid="nav-item-${activePath}"]`);
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (user && user.tokens === undefined) {
@@ -212,7 +224,11 @@ const Navigation: React.FC = () => {
           </div>
         )}
 
-      <div className="flex justify-around md:flex-col md:space-y-2 md:p-4">
+      <div
+        ref={mobileNavRef}
+        className="flex gap-1 overflow-x-auto scrollbar-hide md:overflow-x-visible md:gap-0 md:flex-col md:space-y-2 md:p-4"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const navTestId = `nav-item-${item.to.replace('/', '')}`;
@@ -223,8 +239,8 @@ const Navigation: React.FC = () => {
               data-testid={navTestId}
               className={({ isActive }) =>
                 clsx(
-                  'flex flex-col items-center justify-center px-3 py-2 rounded-lg transition-colors duration-200',
-                  'md:flex-row md:justify-start md:px-4 md:py-3',
+                  'flex flex-col items-center justify-center px-3 py-2 rounded-lg transition-colors duration-200 flex-shrink-0 min-w-[60px]',
+                  'md:flex-row md:justify-start md:px-4 md:py-3 md:min-w-0 md:flex-shrink',
                   isActive
                     ? 'text-forest-600 bg-forest-50'
                     : 'text-gray-600 hover:text-forest-600 hover:bg-warm-50'
