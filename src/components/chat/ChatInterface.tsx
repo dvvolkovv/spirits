@@ -49,6 +49,19 @@ interface ChatInterfaceProps {
   allAssistants?: any[];
 }
 
+// Backend tags streamed text with `[VIDEO_JOB:<uuid>]` markers so the frontend
+// can attach inline video players. Hide these tokens from the user-visible text.
+const VIDEO_JOB_MARKER_RE = /\s*\[VIDEO_JOB:[0-9a-f-]{36}\]\s*/gi;
+const stripVideoJobMarkers = (text: string): string => text.replace(VIDEO_JOB_MARKER_RE, '');
+const extractVideoJobIds = (text: string): string[] => {
+  const ids: string[] = [];
+  const matches = text.matchAll(/\[VIDEO_JOB:([0-9a-f-]{36})\]/gi);
+  for (const m of matches) {
+    if (!ids.includes(m[1])) ids.push(m[1]);
+  }
+  return ids;
+};
+
 const StreamingMessage = React.memo(({
   content,
   components,
@@ -372,7 +385,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=0`);
         if (response.ok) {
           const data = await response.json();
-          const msgs = (data.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+          const msgs = (data.messages || []).map((m: any) => {
+            const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+            return {
+              ...m,
+              timestamp: new Date(m.timestamp),
+              inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+            };
+          });
           setMessages(msgs);
           setHasMoreHistory(data.hasMore || false);
           setHistoryOffset(30);
@@ -383,7 +403,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       } catch {
         const saved = localStorage.getItem(getChatStorageKey(selectedAssistant.id));
         if (saved) {
-          setMessages(JSON.parse(saved).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
+          setMessages(JSON.parse(saved).map((m: any) => {
+            const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+            return {
+              ...m,
+              timestamp: new Date(m.timestamp),
+              inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+            };
+          }));
         } else {
           setMessages([]);
           sendInitialGreeting();
@@ -418,7 +445,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=${historyOffset}`);
       if (response.ok) {
         const data = await response.json();
-        const older = (data.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+        const older = (data.messages || []).map((m: any) => {
+          const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+          return {
+            ...m,
+            timestamp: new Date(m.timestamp),
+            inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+          };
+        });
         if (older.length > 0) {
           const container = messagesContainerRef.current;
           const prevHeight = container?.scrollHeight || 0;
@@ -848,6 +882,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             }
             if (data.type === 'item' && data.content) {
               accumulatedContent += data.content;
+              // Parse [VIDEO_JOB:<uuid>] markers from full accumulated text (stream-safe:
+              // a marker may be split across chunks; matching the whole buffer is robust).
+              const matches = accumulatedContent.matchAll(/\[VIDEO_JOB:([0-9a-f-]{36})\]/gi);
+              for (const m of matches) {
+                const jobId = m[1];
+                if (!inlineJobIds.includes(jobId)) {
+                  inlineJobIds.push(jobId);
+                }
+              }
               const now = Date.now();
               if (now - lastUpdate >= updateInterval) {
                 setCurrentStreamingMessage(accumulatedContent);
@@ -1498,7 +1541,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               ) : message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
-                    const { content: parsedContent, buttons, links, videos } = parseCustomMarkdown(message.content);
+                    const contentForRender = stripVideoJobMarkers(message.content);
+                    const { content: parsedContent, buttons, links, videos } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
@@ -1565,7 +1609,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                     return parts.length > 0 ? parts : (
                       <ReactMarkdown components={markdownComponents}>
-                        {message.content}
+                        {contentForRender}
                       </ReactMarkdown>
                     );
                   })()}
@@ -1607,7 +1651,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           ) : (
             <StreamingMessage
-              content={currentStreamingMessage}
+              content={stripVideoJobMarkers(currentStreamingMessage)}
               components={markdownComponents}
               onButtonClick={handleButtonAction}
               onLinkClick={handleLinkNavigation}
