@@ -377,6 +377,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [preSelectedAssistant?.id]);
 
+  // Universal: any change of selectedAssistant.id aborts in-flight stream
+  // and clears typing/streaming UI state. Covers all paths that mutate
+  // selectedAssistant — external prop, storage event, server sync, internal
+  // handler — so the new assistant's view never inherits the old stream.
+  const prevSelectedAssistantIdRef = useRef<number | null>(null);
+  const selectedAssistantIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    selectedAssistantIdRef.current = selectedAssistant?.id ?? null;
+    const newId = selectedAssistant?.id ?? null;
+    const prevId = prevSelectedAssistantIdRef.current;
+    if (prevId !== null && newId !== prevId) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      setIsTyping(false);
+      setCurrentStreamingMessage('');
+      setStreamingMessageId(null);
+    }
+    prevSelectedAssistantIdRef.current = newId;
+  }, [selectedAssistant?.id]);
+
   useEffect(() => {
     if (initialShowTokens) {
       setShowTokenPackages(true);
@@ -890,6 +912,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     abortControllerRef.current = new AbortController();
 
+    // Capture assistant id at send time — if user switches assistants during
+    // streaming, callbacks must NOT write into the new chat's state.
+    const streamAssistantId = selectedAssistant?.id ?? null;
+
     // Extract phone number from user data and clean it for sessionId
     //const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
 
@@ -970,7 +996,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               }
               const now = Date.now();
               if (now - lastUpdate >= updateInterval) {
-                setCurrentStreamingMessage(accumulatedContent);
+                if (selectedAssistantIdRef.current === streamAssistantId) {
+                  setCurrentStreamingMessage(accumulatedContent);
+                }
                 lastUpdate = now;
               }
             }
@@ -1010,41 +1038,51 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
       }
 
-      setCurrentStreamingMessage(accumulatedContent);
-      const completedMessage: Message = {
-        id: assistantMessageId,
-        type: 'assistant',
-        content: accumulatedContent,
-        timestamp: new Date(),
-        isStreaming: false,
-        tokensUsed: lastUsage?.total || undefined,
-        inlineJobIds: inlineJobIds.length > 0 ? [...inlineJobIds] : undefined,
-      };
-      setMessages(prev => [...prev, completedMessage]);
-      setStreamingMessageId(null);
-      
+      // Only commit to UI state if user is still on the assistant that initiated the stream.
+      if (selectedAssistantIdRef.current === streamAssistantId) {
+        setCurrentStreamingMessage(accumulatedContent);
+        const completedMessage: Message = {
+          id: assistantMessageId,
+          type: 'assistant',
+          content: accumulatedContent,
+          timestamp: new Date(),
+          isStreaming: false,
+          tokensUsed: lastUsage?.total || undefined,
+          inlineJobIds: inlineJobIds.length > 0 ? [...inlineJobIds] : undefined,
+        };
+        setMessages(prev => [...prev, completedMessage]);
+        setStreamingMessageId(null);
+      }
+      // If user switched — backend has already saved to chat_history; polling
+      // on the original assistant's view will surface the response on return.
+
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Request was aborted');
         return;
       }
-      
+
       console.error('Error sending message to AI:', error);
-      
-      // Show error message
-      const errorMessage: Message = {
-        id: generateMessageId(),
-        type: 'assistant',
-        content: t('chat.ai_error_fallback'),
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
+
+      // Only show error in UI if user is still on the originating chat
+      if (selectedAssistantIdRef.current === streamAssistantId) {
+        const errorMessage: Message = {
+          id: generateMessageId(),
+          type: 'assistant',
+          content: t('chat.ai_error_fallback'),
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
     } finally {
-      setIsTyping(false);
-      setIsGeneratingImage(false);
-      setCurrentStreamingMessage('');
-      setStreamingMessageId(null);
+      // Only clear typing state if user is still on the originating chat;
+      // otherwise the universal-switch effect has already reset it for the new chat.
+      if (selectedAssistantIdRef.current === streamAssistantId) {
+        setIsTyping(false);
+        setIsGeneratingImage(false);
+        setCurrentStreamingMessage('');
+        setStreamingMessageId(null);
+      }
       abortControllerRef.current = null;
     }
   };
