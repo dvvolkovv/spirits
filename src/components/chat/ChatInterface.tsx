@@ -178,9 +178,11 @@ const generateMessageId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 };
 
-const InlineVideoCards = ({ ids }: { ids: string[] }) => {
+const InlineVideoCards = ({ ids, messageTimestamp }: { ids: string[]; messageTimestamp?: Date }) => {
   const { jobs } = useVideoJobs();
   if (!ids.length) return null;
+  const messageAgeSec = messageTimestamp ? (Date.now() - messageTimestamp.getTime()) / 1000 : Infinity;
+  const isRecent = messageAgeSec < 90;
   return (
     <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
       {ids.map((id, i) => {
@@ -189,8 +191,12 @@ const InlineVideoCards = ({ ids }: { ids: string[] }) => {
         }
         const job = jobs.find((j) => j.id === id);
         if (!job) {
-          // Either backend hasn't fetched yet, or this is a hallucinated UUID from Roman.
-          // Don't show a placeholder — VideoJobCard appears when jobs list catches up.
+          // Recent message — show pending placeholder until polling catches up (typical
+          // video render = 30-90 sec; useVideoJobs refetches on 'video-job-poll-bump').
+          // Old message — likely a hallucinated UUID, render nothing.
+          if (isRecent) {
+            return <div key={id} className="aspect-video rounded-xl bg-gray-200 animate-pulse" />;
+          }
           return null;
         }
         return <VideoJobCard key={id} job={job} compact />;
@@ -891,6 +897,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 const jobId = m[1];
                 if (!inlineJobIds.includes(jobId)) {
                   inlineJobIds.push(jobId);
+                  // Trigger immediate refetch in all <InlineVideoCards> via useVideoJobs hook
+                  // so the player appears within ~1s instead of waiting up to 60s.
+                  window.dispatchEvent(new CustomEvent('video-job-poll-bump'));
                 }
               }
               const now = Date.now();
@@ -1620,7 +1629,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <p className="text-sm leading-relaxed">{message.content}</p>
               )}
               {message.type === 'assistant' && message.inlineJobIds && message.inlineJobIds.length > 0 && (
-                <InlineVideoCards ids={message.inlineJobIds} />
+                <InlineVideoCards ids={message.inlineJobIds} messageTimestamp={message.timestamp} />
               )}
               {message.isStreaming && (
                 <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />

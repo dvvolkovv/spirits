@@ -51,6 +51,14 @@ export function useVideoJobs() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // Listen for external "bump" events (e.g. new [VIDEO_JOB:<uuid>] marker arrived
+  // in stream) and refetch immediately so the player appears within ~1s.
+  useEffect(() => {
+    const handler = () => { fetchAll(); };
+    window.addEventListener('video-job-poll-bump', handler);
+    return () => window.removeEventListener('video-job-poll-bump', handler);
+  }, [fetchAll]);
+
   useEffect(() => {
     const hasActive = jobs.some(j => j.status === 'pending' || j.status === 'processing');
     const interval = hasActive ? FAST_INTERVAL : SLOW_INTERVAL;
