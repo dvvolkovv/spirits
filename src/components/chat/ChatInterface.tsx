@@ -643,9 +643,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           // Проверяем, что это действительно другой ассистент
           if (selectedAssistant?.id !== newAssistant.id) {
-            // Не abort'им активный fetch — backend сам допишет ответ в БД.
-            // При возврате на этого ассистента initial-load + polling подхватят результат.
-            abortControllerRef.current = null;
+            // Abort активный fetch — UI чистится сразу, backend продолжит читать r.linkeon.io
+            // (clientDisconnected detection) и сохранит ответ в БД.
+            if (abortControllerRef.current) {
+              abortControllerRef.current.abort();
+              abortControllerRef.current = null;
+            }
 
             // Очищаем потоковое сообщение
             setCurrentStreamingMessage('');
@@ -710,8 +713,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             );
 
             if (matchingAssistant && selectedAssistant?.id !== matchingAssistant.id) {
-              // Не abort'им — backend дописывает ответ в БД; polling/initial-load его поднимут
-              abortControllerRef.current = null;
+              // Abort активный fetch — UI чистится сразу, backend продолжит читать r.linkeon.io
+              // (clientDisconnected detection) и сохранит ответ в БД.
+              if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+              }
 
               setCurrentStreamingMessage('');
               setStreamingMessageId(null);
@@ -1367,9 +1374,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return;
     }
 
-    // Не abort'им активный fetch — backend сам сохранит ответ в БД,
-    // при возврате на этого ассистента initial-load + polling поднимут результат.
-    abortControllerRef.current = null;
+    // Abort активный fetch — UI чистится сразу (isTyping=false), backend продолжит
+    // читать r.linkeon.io (clientDisconnected detection) и сохранит ответ в БД.
+    // При возврате на этого ассистента initial-load + polling поднимут результат.
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
 
     setCurrentStreamingMessage('');
     setStreamingMessageId(null);
