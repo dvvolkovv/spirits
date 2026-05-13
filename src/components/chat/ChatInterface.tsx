@@ -431,6 +431,69 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     load();
   }, [selectedAssistant?.id, hasUserSelectedAssistant]);
 
+  // Background polling: подхватывает ответы, которые backend дописал в БД,
+  // пока user был на другом ассистенте или закрыл вкладку.
+  // Запускается, когда ChatInterface смонтирован для конкретного ассистента
+  // и НЕТ активного локального стрима.
+  useEffect(() => {
+    if (!selectedAssistant || !hasUserSelectedAssistant) return;
+    if (isTyping) return; // активный локальный стрим — не дёргаем
+
+    let cancelled = false;
+    const assistantId = selectedAssistant.id;
+
+    const poll = async () => {
+      try {
+        const response = await apiClient.get(`/webhook/chat/history?assistantId=${assistantId}&limit=5&offset=0`);
+        if (cancelled || !response.ok) return;
+        const data = await response.json();
+        const fresh = (data?.messages || []) as any[];
+        if (!Array.isArray(fresh) || fresh.length === 0) return;
+
+        setMessages(prev => {
+          if (prev.length === 0) return prev; // initial-load обработает
+          // Если ассистент уже сменился пока fetch шёл — не вмешиваемся
+          if (selectedAssistant?.id !== assistantId) return prev;
+
+          const lastLocal = prev[prev.length - 1];
+          const lastLocalTime = lastLocal.timestamp instanceof Date
+            ? lastLocal.timestamp.getTime()
+            : new Date(lastLocal.timestamp as any).getTime();
+
+          // existingIds — для дедупа по id (если backend вернул то же сообщение)
+          const existingIds = new Set(prev.map(m => m.id));
+
+          const newer = fresh.filter((m: any) => {
+            const t = new Date(m.timestamp).getTime();
+            if (Number.isNaN(t)) return false;
+            if (m.id && existingIds.has(m.id)) return false;
+            return t > lastLocalTime;
+          });
+          if (newer.length === 0) return prev;
+
+          const newMsgs: Message[] = newer.map((m: any) => {
+            const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+            return {
+              ...m,
+              timestamp: new Date(m.timestamp),
+              inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+            };
+          });
+          return [...prev, ...newMsgs];
+        });
+      } catch { /* ignore network errors during background poll */ }
+    };
+
+    // Первый poll через 3с, затем каждые 8с
+    const t1 = setTimeout(poll, 3000);
+    const id = setInterval(poll, 8000);
+    return () => {
+      cancelled = true;
+      clearTimeout(t1);
+      clearInterval(id);
+    };
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping]);
+
   const sendInitialGreeting = async () => {
     if (!selectedAssistant) return;
 
@@ -580,11 +643,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           // Проверяем, что это действительно другой ассистент
           if (selectedAssistant?.id !== newAssistant.id) {
-            // Прерываем активные запросы
-            if (abortControllerRef.current) {
-              abortControllerRef.current.abort();
-              abortControllerRef.current = null;
-            }
+            // Не abort'им активный fetch — backend сам допишет ответ в БД.
+            // При возврате на этого ассистента initial-load + polling подхватят результат.
+            abortControllerRef.current = null;
 
             // Очищаем потоковое сообщение
             setCurrentStreamingMessage('');
@@ -649,10 +710,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             );
 
             if (matchingAssistant && selectedAssistant?.id !== matchingAssistant.id) {
-              if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-                abortControllerRef.current = null;
-              }
+              // Не abort'им — backend дописывает ответ в БД; polling/initial-load его поднимут
+              abortControllerRef.current = null;
 
               setCurrentStreamingMessage('');
               setStreamingMessageId(null);
@@ -986,9 +1045,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      // Intentionally NOT aborting on unmount — backend continues processing
+      // and saves the response to chat_history asynchronously. When user returns
+      // to this assistant, history reload + polling will surface the result.
+      abortControllerRef.current = null;
     };
   }, []);
 
@@ -1307,10 +1367,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return;
     }
 
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
+    // Не abort'им активный fetch — backend сам сохранит ответ в БД,
+    // при возврате на этого ассистента initial-load + polling поднимут результат.
+    abortControllerRef.current = null;
 
     setCurrentStreamingMessage('');
     setStreamingMessageId(null);
