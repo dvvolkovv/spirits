@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CreditCard, Loader, AlertCircle, RefreshCw, Users, TrendingUp } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import UserActivityDrawer from './UserActivityDrawer';
 
 interface ReferralLeader {
   id: string;
@@ -73,6 +74,7 @@ const AdminPaymentsView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
 
   const load = async () => {
     setIsLoading(true);
@@ -183,13 +185,13 @@ const AdminPaymentsView: React.FC = () => {
               const yMax = niceCeil(maxRevenue);
               const ticks = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0];
               return (
-                <div className="flex gap-2">
+                <div className="flex gap-2 min-w-0">
                   <div className="flex flex-col justify-between text-[10px] text-gray-400 h-56 pb-5 text-right shrink-0 w-14">
                     {ticks.map((t, i) => (
                       <span key={i} className="leading-none">{formatRub(t)}</span>
                     ))}
                   </div>
-                  <div className="flex-1 relative" onMouseLeave={() => setHoveredIdx(null)}>
+                  <div className="flex-1 min-w-0 relative" onMouseLeave={() => setHoveredIdx(null)}>
                     {hoveredIdx !== null && stats.daily[hoveredIdx] && (
                       <div className="absolute -top-1 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs whitespace-nowrap shadow-lg pointer-events-none z-20 -translate-y-full">
                         <div className="font-medium">{formatDayShort(stats.daily[hoveredIdx].day)}</div>
@@ -289,7 +291,11 @@ const AdminPaymentsView: React.FC = () => {
                   {payments.map(p => {
                     const meta = STATUS_LABEL[p.status] || { label: p.status, color: 'bg-gray-100 text-gray-600' };
                     return (
-                      <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                      <tr
+                        key={p.id}
+                        onClick={() => setSelectedPhone(p.phone)}
+                        className="hover:bg-forest-50 transition-colors cursor-pointer"
+                      >
                         <td className="px-4 py-2.5 font-mono text-xs text-gray-800">{formatPhone(p.phone)}</td>
                         <td className="px-4 py-2.5 text-right font-semibold text-gray-900">{formatRub(p.amount)}</td>
                         <td className="px-4 py-2.5 text-right text-gray-600 text-xs">{p.tokens.toLocaleString('ru-RU')}</td>
@@ -319,6 +325,11 @@ const AdminPaymentsView: React.FC = () => {
           )}
         </div>
       </div>
+
+      <UserActivityDrawer
+        phone={selectedPhone}
+        onClose={() => setSelectedPhone(null)}
+      />
     </div>
   );
 };

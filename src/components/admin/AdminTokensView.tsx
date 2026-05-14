@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Coins, Loader, AlertCircle, RefreshCw, TrendingDown, Users, Wallet } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import UserActivityDrawer from './UserActivityDrawer';
 
 interface UserTokenRow {
   phone: string;
@@ -77,6 +78,7 @@ const AdminTokensView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
 
   const periodHours = days * 24;
   const periodLabel =
@@ -211,13 +213,13 @@ const AdminTokensView: React.FC = () => {
               const yMax = niceCeil(maxSpent);
               const ticks = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0];
               return (
-                <div className="flex gap-2">
+                <div className="flex gap-2 min-w-0">
                   <div className="flex flex-col justify-between text-[10px] text-gray-400 h-56 pb-5 text-right shrink-0 w-16">
                     {ticks.map((t, i) => (
                       <span key={i} className="leading-none">{formatTokens(Math.round(t))}</span>
                     ))}
                   </div>
-                  <div className="flex-1 relative" onMouseLeave={() => setHoveredIdx(null)}>
+                  <div className="flex-1 min-w-0 relative" onMouseLeave={() => setHoveredIdx(null)}>
                     {hoveredIdx !== null && spendStats.series[hoveredIdx] && (
                       <div className="absolute -top-1 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs whitespace-nowrap shadow-lg pointer-events-none z-20 -translate-y-full">
                         <div className="font-medium">{formatBucket(spendStats.series[hoveredIdx].bucket, bucket)}</div>
@@ -323,7 +325,11 @@ const AdminTokensView: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {usersData.users.map((u, idx) => (
-                    <tr key={u.phone} className="hover:bg-gray-50 transition-colors">
+                    <tr
+                      key={u.phone}
+                      onClick={() => setSelectedPhone(u.phone)}
+                      className="hover:bg-forest-50 transition-colors cursor-pointer"
+                    >
                       <td className="px-4 py-2.5 text-xs text-gray-400">{idx + 1}</td>
                       <td className="px-4 py-2.5 font-mono text-xs text-gray-800">{formatPhone(u.phone)}</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-forest-700">{formatTokens(u.balance)}</td>
@@ -350,6 +356,11 @@ const AdminTokensView: React.FC = () => {
           )}
         </div>
       </div>
+
+      <UserActivityDrawer
+        phone={selectedPhone}
+        onClose={() => setSelectedPhone(null)}
+      />
     </div>
   );
 };

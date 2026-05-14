@@ -263,13 +263,13 @@ const AdminUsersView: React.FC = () => {
               const yMax = niceCeil(maxValue);
               const ticks = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0];
               return (
-                <div className="flex gap-2">
+                <div className="flex gap-2 min-w-0">
                   <div className="flex flex-col justify-between text-[10px] text-gray-400 h-56 pb-5 text-right shrink-0 w-12">
                     {ticks.map((t, i) => (
                       <span key={i} className="leading-none">{formatTokens(Math.round(t))}</span>
                     ))}
                   </div>
-                  <div className="flex-1 relative" onMouseLeave={() => setHoveredIdx(null)}>
+                  <div className="flex-1 min-w-0 relative" onMouseLeave={() => setHoveredIdx(null)}>
                     {hoveredIdx !== null && active.series[hoveredIdx] && (
                       <div className="absolute -top-1 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs whitespace-nowrap shadow-lg pointer-events-none z-20 -translate-y-full">
                         <div className="font-medium">{formatDay(active.series[hoveredIdx].day)}</div>
