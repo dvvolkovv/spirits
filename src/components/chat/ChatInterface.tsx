@@ -482,14 +482,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             ? lastLocal.timestamp.getTime()
             : new Date(lastLocal.timestamp as any).getTime();
 
-          // existingIds — для дедупа по id (если backend вернул то же сообщение)
+          // Дедуп: по id (если backend вернул тот же id, маловероятно но возможно)
+          // и по content — локальные сообщения создаются с uuid, в БД хранятся
+          // с serial id, поэтому совпадение по id почти не работает. Контентный
+          // дедуп берёт последние 8 локальных сообщений с тем же sender_type
+          // и сравнивает строки, чтобы не задвоить только что отправленную
+          // пару (timestamps локального и БД-копии расходятся на ~50-200мс из-за
+          // setImmediate-persist на бэке).
           const existingIds = new Set(prev.map(m => m.id));
+          const recentLocal = prev.slice(-8);
+          const localContentByRole = new Map<string, Set<string>>();
+          for (const m of recentLocal) {
+            const role = (m as any).type === 'user' ? 'human' : 'ai';
+            const c = (typeof m.content === 'string' ? m.content : '').trim();
+            if (!c) continue;
+            if (!localContentByRole.has(role)) localContentByRole.set(role, new Set());
+            localContentByRole.get(role)!.add(c);
+          }
 
           const newer = fresh.filter((m: any) => {
             const t = new Date(m.timestamp).getTime();
             if (Number.isNaN(t)) return false;
             if (m.id && existingIds.has(m.id)) return false;
-            return t > lastLocalTime;
+            if (t <= lastLocalTime) return false;
+            const role = m.type === 'user' ? 'human' : (m.type === 'assistant' ? 'ai' : (m.sender_type || 'ai'));
+            const content = (typeof m.content === 'string' ? m.content : '').trim();
+            if (content && localContentByRole.get(role)?.has(content)) return false;
+            return true;
           });
           if (newer.length === 0) return prev;
 
