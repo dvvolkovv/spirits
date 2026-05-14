@@ -40,11 +40,22 @@ VITE_MAINTENANCE_MODE=false               # переключает на Maintena
 
 ## Деплой фронта
 
+**Рекомендуемый путь — `scripts/deploy.sh` в spirits_back** — он строит фронт, синкает его, синкает бэк, рестартит PM2 и автоматически прогоняет smoke (unit + API/DB + Playwright):
+
+```bash
+bash ~/Downloads/spirits_back/scripts/deploy.sh
+```
+
+### Ручной деплой только фронта (без smoke)
 ```bash
 cd ~/Downloads/spirits_front
 echo "VITE_BACKEND_URL=https://my.linkeon.io" > .env
 pnpm build
 rsync -az --delete dist/ dvolkov@212.113.106.202:/home/dvolkov/spirits_front/
+```
+После ручного деплоя — прогнать smoke вручную:
+```bash
+bash ~/Downloads/spirits_back/tests/smoke/run.sh
 ```
 
 ## Архитектура
