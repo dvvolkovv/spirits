@@ -24,6 +24,7 @@ export function clearAppStorage(): void {
   // Удаляем известные ключи
   APP_STORAGE_KEYS.forEach((key) => {
     localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
   });
 
   // Удаляем ключи чатов по ассистентам (chat_messages_assistant_1, chat_messages_assistant_2, ...)

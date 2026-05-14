@@ -45,10 +45,10 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
           try { urls[a.id] = await avatarService.getAvatarUrl(a.id); } catch {}
         }));
         setAvatarUrls(urls);
-        // Restore selected id из localStorage, но на мобилке sidebar оставляем открытым —
+        // Restore selected id из sessionStorage (per-tab), но на мобилке sidebar оставляем открытым —
         // юзер сам решит, продолжить с прошлым ассистентом или выбрать другого.
         const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
-        const saved = localStorage.getItem('selected_assistant');
+        const saved = sessionStorage.getItem('selected_assistant');
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
@@ -66,7 +66,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   const handleSelect = (a: Assistant) => {
     setSelectedId(a.id);
     setShowSidebar(false);
-    localStorage.setItem('selected_assistant', JSON.stringify(a));
+    sessionStorage.setItem('selected_assistant', JSON.stringify(a));
   };
 
   const myAssistant = assistants.filter(a => a.category === 'assistant');

@@ -354,7 +354,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [isLoadingAssistants, setIsLoadingAssistants] = useState(true);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(() => {
-    const saved = localStorage.getItem('selected_assistant');
+    const saved = sessionStorage.getItem('selected_assistant');
     if (saved) {
       return JSON.parse(saved);
     }
@@ -362,7 +362,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   });
   const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
   const [hasUserSelectedAssistant, setHasUserSelectedAssistant] = useState<boolean>(() => {
-    return localStorage.getItem('selected_assistant') !== null;
+    return sessionStorage.getItem('selected_assistant') !== null;
   });
   const [showTokenPackages, setShowTokenPackages] = useState(initialShowTokens);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -644,8 +644,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (lastChangedAgentRef.current !== selectedAssistant.name) {
         isChangingAgentRef.current = true;
         lastChangedAgentRef.current = selectedAssistant.name;
-        localStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
-        
+        sessionStorage.setItem('selected_assistant', JSON.stringify(selectedAssistant));
+
         changeAgentOnServer(selectedAssistant.name).finally(() => {
           // Сбрасываем флаг после небольшой задержки, чтобы дать серверу время обновиться
           setTimeout(() => {
@@ -655,44 +655,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
     }
   }, [selectedAssistant, changeAgentOnServer]);
-
-  // Синхронизация выбора ассистента между окнами/вкладками
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'selected_assistant' && e.newValue) {
-        try {
-          const newAssistant = JSON.parse(e.newValue);
-
-          // Проверяем, что это действительно другой ассистент
-          if (selectedAssistant?.id !== newAssistant.id) {
-            // Abort активный fetch — UI чистится сразу, backend продолжит читать r.linkeon.io
-            // (clientDisconnected detection) и сохранит ответ в БД.
-            if (abortControllerRef.current) {
-              abortControllerRef.current.abort();
-              abortControllerRef.current = null;
-            }
-
-            // Очищаем потоковое сообщение
-            setCurrentStreamingMessage('');
-            setStreamingMessageId(null);
-            setIsTyping(false);
-
-            // Обновляем выбранного ассистента
-            setSelectedAssistant(newAssistant);
-
-            // Показываем уведомление
-            setAssistantSwitchNotification(t('chat.switched_to', { name: newAssistant.name }));
-            setTimeout(() => setAssistantSwitchNotification(null), 3000);
-          }
-        } catch (error) {
-          console.error('Error parsing selected assistant from storage:', error);
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [selectedAssistant]);
 
   // Закрытие дропдауна при клике вне его
   useEffect(() => {
@@ -706,97 +668,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Синхронизация выбранного ассистента с сервером каждые 10 секунд
-  const syncAssistantFromServer = useCallback(async () => {
-    // Не синхронизируем, если идет процесс изменения ассистента
-    if (document.hidden || !user?.phone || !assistants.length || isChangingAgentRef.current) return;
-
-    try {
-      const response = await apiClient.get(`/webhook/profile`);
-
-      if (response.ok) {
-        const responseData = await response.json();
-
-        let profileRecord;
-        if (Array.isArray(responseData) && responseData.length > 0) {
-          profileRecord = responseData[0];
-        } else if (responseData && typeof responseData === 'object') {
-          profileRecord = responseData;
-        }
-
-        if (profileRecord) {
-          const profileData = profileRecord.profileJson || profileRecord.profile_data || profileRecord;
-          const serverAgent = profileData?.preferred_agent || profileData?.agent;
-
-          // Синхронизируем только если ассистент действительно отличается
-          if (serverAgent && selectedAssistant?.name !== serverAgent) {
-            const matchingAssistant = assistants.find(
-              (a) => a.name === serverAgent
-            );
-
-            if (matchingAssistant && selectedAssistant?.id !== matchingAssistant.id) {
-              // Abort активный fetch — UI чистится сразу, backend продолжит читать r.linkeon.io
-              // (clientDisconnected detection) и сохранит ответ в БД.
-              if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-                abortControllerRef.current = null;
-              }
-
-              setCurrentStreamingMessage('');
-              setStreamingMessageId(null);
-              setIsTyping(false);
-
-              // Устанавливаем флаг перед изменением, чтобы предотвратить повторные вызовы
-              isChangingAgentRef.current = true;
-              lastChangedAgentRef.current = matchingAssistant.name;
-              
-              setSelectedAssistant(matchingAssistant);
-              localStorage.setItem('selected_assistant', JSON.stringify(matchingAssistant));
-              // changeAgentOnServer будет вызван автоматически через useEffect
-
-              setAssistantSwitchNotification(t('chat.switched_to', { name: matchingAssistant.name }));
-              setTimeout(() => setAssistantSwitchNotification(null), 3000);
-              
-              // Сбрасываем флаг после задержки, чтобы дать серверу время обновиться
-              setTimeout(() => {
-                isChangingAgentRef.current = false;
-              }, 5000); // Увеличена задержка, чтобы сервер успел обновиться
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error syncing assistant from server:', error);
-    }
-  }, [user?.phone, assistants, selectedAssistant]);
-
-  useEffect(() => {
-    if (!user?.phone || !assistants.length) return;
-
-    let intervalId: NodeJS.Timeout | null = null;
-    let isMounted = true;
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden && isMounted) {
-        syncAssistantFromServer();
-      }
-    };
-
-    intervalId = setInterval(() => {
-      if (isMounted) {
-        syncAssistantFromServer();
-      }
-    }, 10000);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    syncAssistantFromServer();
-
-    return () => {
-      isMounted = false;
-      if (intervalId) clearInterval(intervalId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user?.phone, assistants.length, syncAssistantFromServer]);
+  // Per-tab independence: вкладки больше НЕ синхронизируются через server polling
+  // и cross-tab storage event. Каждая вкладка хранит выбор в sessionStorage и
+  // живёт со своим ассистентом независимо. Server.preferred_agent обновляется
+  // последним выбором в любой вкладке — для дефолта при логине на новом устройстве.
 
   // Отдельный useEffect для прокрутки с throttling
   useEffect(() => {
@@ -919,15 +794,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Extract phone number from user data and clean it for sessionId
     //const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
 
-    // Получаем актуальный ID ассистента из localStorage для дополнительной проверки
+    // Получаем актуальный ID ассистента из sessionStorage (per-tab) для доп. проверки
     let currentAssistantId = selectedAssistant?.id || 1;
-    const savedAssistant = localStorage.getItem('selected_assistant');
+    const savedAssistant = sessionStorage.getItem('selected_assistant');
     if (savedAssistant) {
       try {
         const assistant = JSON.parse(savedAssistant);
         currentAssistantId = assistant.id;
       } catch (error) {
-        console.error('Error parsing assistant from localStorage:', error);
+        console.error('Error parsing assistant from sessionStorage:', error);
       }
     }
 
@@ -1100,8 +975,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
-    // Проверяем актуальность выбранного ассистента перед отправкой
-    const savedAssistant = localStorage.getItem('selected_assistant');
+    // Проверяем актуальность выбранного ассистента перед отправкой (per-tab)
+    const savedAssistant = sessionStorage.getItem('selected_assistant');
     if (savedAssistant) {
       try {
         const currentAssistant = JSON.parse(savedAssistant);
@@ -1230,7 +1105,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  const isUniversalAgent = selectedAssistant?.name === 'Роман';
+  // Маша (id=3) идёт через legacy chat.streamChat и НЕ имеет доступа к file-agent;
+  // для неё пока оставляем PDF→profile-scan flow. Все остальные ассистенты идут
+  // через r.linkeon.io (Claude Code + Python/Bash) и могут принимать любые файлы:
+  // транскрибация аудио (whisper), парсинг docx/xlsx (pandoc/openpyxl), картинки
+  // (vision), архивы, и т.д.
+  const supportsUniversalFiles = selectedAssistant?.id !== 3;
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1238,15 +1118,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     if (fileInputRef.current) fileInputRef.current.value = '';
 
-    if (isUniversalAgent) {
-      // For Роман — show task modal for any file type
+    if (supportsUniversalFiles) {
+      // Универсальный flow: для любого файла показываем модалку с заданием.
       setPendingFile(file);
       setFileTaskInput('');
       setShowFileTaskModal(true);
       return;
     }
 
-    // For other assistants — PDF only, scan-document flow
+    // Legacy PDF-only path для Маши: scan-document → extracted profile data.
     if (file.type !== 'application/pdf') {
       alert(t('chat.pdf_only'));
       return;
@@ -1401,7 +1281,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleSelectAssistant = async (assistant: Assistant) => {
     setSelectedAssistant(assistant);
     setHasUserSelectedAssistant(true);
-    localStorage.setItem('selected_assistant', JSON.stringify(assistant));
+    sessionStorage.setItem('selected_assistant', JSON.stringify(assistant));
 
     await sendInitialGreeting();
   };
@@ -1428,7 +1308,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     lastChangedAgentRef.current = assistant.name;
 
     setSelectedAssistant(assistant);
-    localStorage.setItem('selected_assistant', JSON.stringify(assistant));
+    sessionStorage.setItem('selected_assistant', JSON.stringify(assistant));
     setShowAssistantDropdown(false);
     // Sync with ChatLayout sidebar
     if (onAssistantSelected) onAssistantSelected(assistant);
@@ -1787,7 +1667,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept={isUniversalAgent ? '*/*' : '.pdf'}
+            accept={supportsUniversalFiles ? '*/*' : '.pdf'}
             onChange={handleFileUpload}
             className="hidden"
           />
@@ -1801,7 +1681,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
             )}
-            title={isUniversalAgent ? t('chat.upload_any_file') : t('chat.upload_file')}
+            title={supportsUniversalFiles ? t('chat.upload_any_file') : t('chat.upload_file')}
           >
             {isUploadingFile ? (
               <div className="w-5 h-5 border-2 border-gray-400 border-t-forest-600 rounded-full animate-spin" />
