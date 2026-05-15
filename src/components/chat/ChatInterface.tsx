@@ -8,6 +8,8 @@ import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
+import { ScenarioCard } from './smm/ScenarioCard';
+import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
 import { avatarService } from '../../services/avatarService';
 import { apiClient } from '../../services/apiClient';
 import { useVideoJobs } from '../video/useVideoJobs';
@@ -73,7 +75,7 @@ const StreamingMessage = React.memo(({
   onButtonClick: (action: string) => void;
   onLinkClick: (url: string) => void;
 }) => {
-  const { content: parsedContent, buttons, links, videos } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -81,8 +83,10 @@ const StreamingMessage = React.memo(({
     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
     const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
+    const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
+    const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...smmScenarioMatches, ...smmVideoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -124,6 +128,26 @@ const StreamingMessage = React.memo(({
             <span key={`video-${idx}`}>
               {createVideoComponent(videoSrc, `v-${idx}`)}
             </span>
+          );
+        }
+      } else if (match[0].startsWith('__SMM_SCENARIO_')) {
+        const key = match[1];
+        const scenarioId = smmScenarios.get(key);
+        if (scenarioId) {
+          parts.push(
+            <div key={`smm-scenario-${idx}`}>
+              <ScenarioCard scenarioId={scenarioId} />
+            </div>
+          );
+        }
+      } else if (match[0].startsWith('__SMM_VIDEO_')) {
+        const key = match[1];
+        const vid = smmVideos.get(key);
+        if (vid) {
+          parts.push(
+            <div key={`smm-video-${idx}`}>
+              <SmmVideoPlayer videoId={vid} />
+            </div>
           );
         }
       }
@@ -914,6 +938,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
               }
             }
+            if (data.type === 'tool_result' && data.tool === 'generate_scenarios') {
+              const scenarios = data.result?.scenarios as Array<{ id: string; title: string }> | undefined;
+              if (Array.isArray(scenarios)) {
+                for (const sc of scenarios) {
+                  accumulatedContent += `\n\n{{smm_scenario:id=${sc.id}}}`;
+                }
+              } else if (data.result?.error) {
+                accumulatedContent += `\n\n*Ошибка генерации сценариев: ${data.result.error}*`;
+              }
+            }
+            if (data.type === 'tool_result' && data.tool === 'approve_scenarios') {
+              const approved = data.result?.approved as Array<{ scenarioId: string; videoId: string }> | undefined;
+              const failed = data.result?.failed as Array<{ scenarioId: string; reason: string }> | undefined;
+              if (Array.isArray(approved)) {
+                for (const a of approved) {
+                  accumulatedContent += `\n\n{{smm_video:id=${a.videoId}}}`;
+                }
+              }
+              if (Array.isArray(failed) && failed.length > 0) {
+                for (const f of failed) {
+                  accumulatedContent += `\n\n*Не утверждено (${f.reason}): ${f.scenarioId.slice(0, 8)}…*`;
+                }
+              }
+            }
+            if (data.type === 'tool_result' && data.tool === 'regenerate_scenario') {
+              const sid = data.result?.scenarioId;
+              if (sid) {
+                accumulatedContent += `\n\n{{smm_scenario:id=${sid}}}`;
+              }
+            }
           } catch (e) {
             // Skip invalid JSON lines
           }
@@ -1560,14 +1614,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const contentForRender = stripVideoJobMarkers(message.content);
-                    const { content: parsedContent, buttons, links, videos } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
                     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
                     const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
+                    const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
+                    const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...smmScenarioMatches, ...smmVideoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -1609,6 +1665,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             <span key={`video-${idx}`}>
                               {createVideoComponent(videoSrc, `v-hist-${idx}`)}
                             </span>
+                          );
+                        }
+                      } else if (match[0].startsWith('__SMM_SCENARIO_')) {
+                        const key = match[1];
+                        const scenarioId = smmScenarios.get(key);
+                        if (scenarioId) {
+                          parts.push(
+                            <div key={`smm-scenario-${idx}`}>
+                              <ScenarioCard scenarioId={scenarioId} />
+                            </div>
+                          );
+                        }
+                      } else if (match[0].startsWith('__SMM_VIDEO_')) {
+                        const key = match[1];
+                        const vid = smmVideos.get(key);
+                        if (vid) {
+                          parts.push(
+                            <div key={`smm-video-${idx}`}>
+                              <SmmVideoPlayer videoId={vid} />
+                            </div>
                           );
                         }
                       }

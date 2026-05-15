@@ -18,15 +18,23 @@ const BUTTON_REGEX = /\{\{button:\s*([^|]+?)(?:\s*\|\s*action:\s*([^|]+?))?(?:\s
 const LINK_REGEX = /\{\{link:\s*([^|]+?)\s*\|\s*url:\s*([^}]+?)\}\}/g;
 const VIDEO_URL_REGEX = /https?:\/\/\S+?\.(?:mp4|webm)(?:\?\S*)?/gi;
 
+// SMM Producer inline blocks (Plan 3b)
+const SMM_SCENARIO_REGEX = /\{\{smm_scenario:id=([a-f0-9-]{36})\}\}/g;
+const SMM_VIDEO_REGEX = /\{\{smm_video:id=([a-f0-9-]{36})\}\}/g;
+
 export const parseCustomMarkdown = (content: string): {
   content: string;
   buttons: Map<string, ButtonConfig>;
   links: Map<string, LinkConfig>;
   videos: Map<string, string>;
+  smmScenarios: Map<string, string>;
+  smmVideos: Map<string, string>;
 } => {
   const buttons = new Map<string, ButtonConfig>();
   const links = new Map<string, LinkConfig>();
   const videos = new Map<string, string>();
+  const smmScenarios = new Map<string, string>();
+  const smmVideos = new Map<string, string>();
 
   let parsedContent = content;
 
@@ -58,7 +66,19 @@ export const parseCustomMarkdown = (content: string): {
     return `__VIDEO_${videoId}__`;
   });
 
-  return { content: parsedContent, buttons, links, videos };
+  parsedContent = parsedContent.replace(SMM_SCENARIO_REGEX, (_match, scenarioId) => {
+    const key = `smm_scenario_${scenarioId}`;
+    smmScenarios.set(key, scenarioId);
+    return `__SMM_SCENARIO_${key}__`;
+  });
+
+  parsedContent = parsedContent.replace(SMM_VIDEO_REGEX, (_match, videoId) => {
+    const key = `smm_video_${videoId}`;
+    smmVideos.set(key, videoId);
+    return `__SMM_VIDEO_${key}__`;
+  });
+
+  return { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos };
 };
 
 export const createVideoComponent = (src: string, key?: string): React.ReactNode => {
