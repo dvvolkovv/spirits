@@ -42,7 +42,13 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
     setLoading(true);
     setError(null);
     getScenario(scenarioId)
-      .then((s) => { if (alive) { setScenario(s); setLoading(false); } })
+      .then((s) => {
+        if (!alive) return;
+        setScenario(s);
+        // Restore videoId from backend so player shows after page reload too.
+        if (s.videoId) setRenderedVideoId(s.videoId);
+        setLoading(false);
+      })
       .catch((e) => { if (alive) { setError(e.message); setLoading(false); } });
     return () => { alive = false; };
   }, [scenarioId]);

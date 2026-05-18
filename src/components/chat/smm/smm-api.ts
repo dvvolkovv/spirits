@@ -25,6 +25,8 @@ export interface ScenarioDetail {
   ttsTier: 'economy' | 'premium';
   status: 'pending_review' | 'approved' | 'rejected' | 'regenerating';
   createdAt: string;
+  /** Latest rendered video for this scenario (null if not yet approved). */
+  videoId?: string | null;
 }
 
 export interface VideoDetail {
