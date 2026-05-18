@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -12,7 +13,7 @@ import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
 import SocialConnectButton from './SocialConnectButton';
 import TelegramConnectForm from './TelegramConnectForm';
-import { SmmPlatform } from '../../types/smm';
+import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
 import { avatarService } from '../../services/avatarService';
 import { apiClient } from '../../services/apiClient';
 import { useVideoJobs } from '../video/useVideoJobs';
@@ -1112,6 +1113,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMessage]);
     await sendMessageToAI(text);
   };
+
+  // OAuth callback handler — runs once on mount.
+  // Catches ?smm_oauth_success=<platform> or ?smm_oauth_error=<msg> from OAuth callback redirects.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('smm_oauth_success');
+    const error = params.get('smm_oauth_error');
+
+    if (!success && !error) return;
+
+    // Strip the query from URL so refresh doesn't repeat the effect.
+    window.history.replaceState({}, '', window.location.pathname);
+
+    if (success) {
+      const label = PLATFORM_LABELS[success as SmmPlatform] ?? success;
+      toast.success(`${label} подключён`);
+      // Resume the chat conversation
+      setTimeout(() => {
+        sendMessageText(`Подключил ${label}, продолжай.`);
+      }, 200);
+    } else if (error) {
+      toast.error(`Не удалось подключить: ${decodeURIComponent(error)}`);
+    }
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
