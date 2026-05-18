@@ -118,7 +118,6 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
     );
   }
 
-  const firstReply = scenario.dialog[0]?.text ?? '';
   const isActionable = scenario.status === 'pending_review' || scenario.status === 'regenerating';
 
   return (
@@ -136,10 +135,37 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
           <span>{scenario.ttsTier === 'premium' ? 'Премиум' : 'Эконом'}</span>
         </div>
       </div>
-      <div className="px-4 py-3">
-        <p className="text-sm italic text-gray-700">«{firstReply.slice(0, 200)}{firstReply.length > 200 ? '…' : ''}»</p>
-        {scenario.dialog.length > 1 && (
-          <p className="mt-1 text-xs text-gray-400">+ ещё {scenario.dialog.length - 1} реплик</p>
+      <div className="px-4 py-3 space-y-2">
+        {scenario.dialog.map((turn, i) => {
+          const isHero = turn.speaker === 'hero';
+          return (
+            <div key={i} className="flex items-start gap-2 text-sm">
+              <span className="shrink-0 text-base leading-5" title={isHero ? 'Герой' : 'Ассистент'}>
+                {isHero ? '👤' : '🤖'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className={isHero ? 'text-gray-800' : 'text-forest-800'}>
+                  {turn.text}
+                </p>
+                <span className="text-[10px] text-gray-400">{turn.tStart}–{turn.tEnd}s</span>
+              </div>
+            </div>
+          );
+        })}
+        {scenario.brollPrompts && scenario.brollPrompts.length > 0 && (
+          <details className="mt-2 pt-2 border-t border-gray-100">
+            <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-700">
+              Визуальные вставки ({scenario.brollPrompts.length})
+            </summary>
+            <ul className="mt-1 space-y-0.5 text-xs text-gray-500">
+              {scenario.brollPrompts.map((b, i) => (
+                <li key={i}>
+                  <span className="text-gray-400">{b.atSec}s · {b.type === 'ai_image' ? '🎨' : '🎞️'}</span>{' '}
+                  <span className="italic">{b.prompt}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </div>
       {isActionable && (

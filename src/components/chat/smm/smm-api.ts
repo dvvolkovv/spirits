@@ -8,12 +8,19 @@ export interface DialogTurn {
   tEnd: number;
 }
 
+export interface BrollPrompt {
+  atSec: number;
+  type: 'ai_image' | 'stock_video';
+  prompt: string;
+}
+
 export interface ScenarioDetail {
   id: string;
   campaignId: string;
   title: string;
   assistantRole: string;
   dialog: DialogTurn[];
+  brollPrompts?: BrollPrompt[];
   mood: 'dramatic' | 'inspiring' | 'calm' | 'uplifting' | 'tense' | 'neutral';
   ttsTier: 'economy' | 'premium';
   status: 'pending_review' | 'approved' | 'rejected' | 'regenerating';
