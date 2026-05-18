@@ -8,6 +8,7 @@ import {
   rejectScenario,
   ScenarioDetail,
 } from './smm-api';
+import { SmmVideoPlayer } from './SmmVideoPlayer';
 
 interface Props {
   scenarioId: string;
@@ -34,6 +35,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
   const [error, setError] = useState<string | null>(null);
   const [actionInflight, setActionInflight] = useState<'approve' | 'regenerate' | 'reject' | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [renderedVideoId, setRenderedVideoId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -54,7 +56,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
       if (r.failed.length > 0) {
         setActionMessage(`Не хватило токенов: ${r.failed[0].reason}`);
       } else {
-        setActionMessage(`Утверждено, рендерится. Видео id: ${r.approved[0].videoId.slice(0, 8)}…`);
+        setRenderedVideoId(r.approved[0].videoId);
         const updated = await getScenario(scenarioId);
         setScenario(updated);
       }
@@ -199,6 +201,11 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
       {actionMessage && (
         <div className="border-t border-forest-100 bg-forest-50 px-4 py-2 text-xs text-forest-700">
           {actionMessage}
+        </div>
+      )}
+      {renderedVideoId && (
+        <div className="border-t border-forest-100 px-4 py-3">
+          <SmmVideoPlayer videoId={renderedVideoId} />
         </div>
       )}
     </div>
