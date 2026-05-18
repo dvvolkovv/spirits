@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PhoneInput from '../components/onboarding/PhoneInput';
 import OTPInput from '../components/onboarding/OTPInput';
@@ -12,6 +12,7 @@ const REFERRAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
 const OnboardingPage: React.FC = () => {
   const { login } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const refSlug = searchParams.get('ref');
@@ -63,6 +64,10 @@ const OnboardingPage: React.FC = () => {
           await login(phone, 'legacy-token');
         }
         await authService.registerReferral();
+        // Сразу после логина — на список ассистентов, независимо от того,
+        // на каком URL открыли страницу (могли прийти с /profile, /admin
+        // или сохранённого PWA-ярлыка).
+        navigate('/chat', { replace: true });
       } else {
         if (result.error === 'Wrong code') {
           setOtpError('Неверный код. Попробуйте еще раз.');
