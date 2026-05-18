@@ -1464,17 +1464,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   if (!hasUserSelectedAssistant) {
-    // If ChatLayout provides sidebar, show empty state instead of cards
-    if (preSelectedAssistant !== undefined) {
-      return (
-        <div className="h-full flex items-center justify-center bg-gray-50">
-          <div className="text-center text-gray-400">
-            <p className="text-lg mb-2">{t('chat.select_assistant')}</p>
-            <p className="text-sm">{t('chat.select_assistant_hint')}</p>
-          </div>
-        </div>
-      );
-    }
+    // Сразу после логина показываем сетку карточек ассистентов — нагляднее
+    // чем пустой плейсхолдер. На десктопе ChatLayout слева оставит свой
+    // sidebar-список, а в main-area тут будет полноценный grid с категориями
+    // и описаниями (AssistantSelection). На мобиле — единственный экран.
     return (
       <div className="h-full flex flex-col overflow-hidden">
         <AssistantSelection
