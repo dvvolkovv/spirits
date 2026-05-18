@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
@@ -93,6 +94,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <AuthProvider>
         <ImageGenProvider>
           <Routes>
