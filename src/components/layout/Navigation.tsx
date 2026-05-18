@@ -18,7 +18,8 @@ import {
   HelpCircle,
   CreditCard,
   Phone,
-  Inbox
+  Inbox,
+  Share2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -106,6 +107,12 @@ const Navigation: React.FC = () => {
       to: '/video',
       icon: Film,
       label: t('video.navTitle'),
+      isLogo: false,
+    },
+    {
+      to: '/settings/social',
+      icon: Share2,
+      label: t('nav.socialAccounts'),
       isLogo: false,
     },
     {

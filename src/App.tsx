@@ -23,6 +23,7 @@ import TokenPurchasePage from './pages/TokenPurchasePage';
 import MaintenancePage from './pages/MaintenancePage';
 import DozvonPage from './pages/DozvonPage';
 import ContactRequestsPage from './pages/ContactRequestsPage';
+import SettingsSocialPage from './pages/SettingsSocialPage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -70,6 +71,7 @@ const AppContent: React.FC = () => {
             <Route path="/support" element={<SupportPage />} />
             <Route path="/contact-requests" element={<ContactRequestsPage />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
+            <Route path="/settings/social" element={<SettingsSocialPage />} />
             <Route path="/card" element={<CardPage />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
