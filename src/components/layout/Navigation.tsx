@@ -110,18 +110,19 @@ const Navigation: React.FC = () => {
       isLogo: false,
     },
     {
-      to: '/settings/social',
-      icon: Share2,
-      label: t('nav.socialAccounts'),
-      isLogo: false,
-    },
-    {
       to: '/profile',
       icon: User,
       label: t('profile.title'),
       isLogo: false,
     },
   ];
+
+  const socialAccountsNavItem = {
+    to: '/settings/social',
+    icon: Share2,
+    label: t('nav.socialAccounts'),
+    isLogo: false,
+  };
 
   const adminNavItem = {
     to: '/admin',
@@ -170,7 +171,7 @@ const Navigation: React.FC = () => {
     ...baseNavItems,
     contactRequestsNavItem,
     ...(isReferralLeader ? [referralNavItem] : []),
-    ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
+    ...(user?.isAdmin ? [socialAccountsNavItem, adminNavItem, dozvonNavItem, cardNavItem] : []),
     helpNavItem,
   ];
 
