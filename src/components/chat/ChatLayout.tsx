@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
 import { avatarService } from '../../services/avatarService';
+import { useAuth } from '../../contexts/AuthContext';
 import { clsx } from 'clsx';
 
 interface Assistant {
@@ -29,6 +30,8 @@ const getRoleBadge = (desc: string): string => {
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isAdmin = !!user?.isAdmin;
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
@@ -69,10 +72,14 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
     sessionStorage.setItem('selected_assistant', JSON.stringify(a));
   };
 
-  const myAssistant = assistants.filter(a => a.category === 'assistant');
-  const businessAssistants = assistants.filter(a => a.category === 'business');
-  const personalAssistants = assistants.filter(a => a.category === 'personal');
-  const otherAssistants = assistants.filter(a => !a.category);
+  const visibleAssistants = isAdmin
+    ? assistants
+    : assistants.filter(a => a.category !== 'smm');
+  const myAssistant = visibleAssistants.filter(a => a.category === 'assistant');
+  const businessAssistants = visibleAssistants.filter(a => a.category === 'business');
+  const personalAssistants = visibleAssistants.filter(a => a.category === 'personal');
+  const smmAssistants = visibleAssistants.filter(a => a.category === 'smm');
+  const otherAssistants = visibleAssistants.filter(a => !a.category);
 
   const renderAssistantItem = (a: Assistant) => (
     <button
@@ -129,6 +136,12 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
             <>
               <p className="text-xs font-bold text-gray-600 uppercase tracking-wide px-3 pt-3 pb-1">{t('chat.personal_growth')}</p>
               {personalAssistants.map(renderAssistantItem)}
+            </>
+          )}
+          {smmAssistants.length > 0 && (
+            <>
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide px-3 pt-3 pb-1">SMM</p>
+              {smmAssistants.map(renderAssistantItem)}
             </>
           )}
           {otherAssistants.length > 0 && otherAssistants.map(renderAssistantItem)}

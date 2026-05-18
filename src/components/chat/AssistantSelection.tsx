@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { avatarService } from '../../services/avatarService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Assistant {
   id: number;
@@ -60,6 +61,11 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
   onSelectAssistant,
   isLoading
 }) => {
+  const { user } = useAuth();
+  const isAdmin = !!user?.isAdmin;
+  const visibleAssistants = isAdmin
+    ? assistants
+    : assistants.filter(a => a.category !== 'smm');
   const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
 
   useEffect(() => {
@@ -113,13 +119,13 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         </div>
 
         {/* Личный ассистент */}
-        {assistants.some(a => a.category === 'assistant') && (
+        {visibleAssistants.some(a => a.category === 'assistant') && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
               <span className="text-xl">🤖</span> Личный ассистент
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {assistants.filter(a => a.category === 'assistant').map((assistant) => (
+              {visibleAssistants.filter(a => a.category === 'assistant').map((assistant) => (
                 <AssistantCard key={assistant.id} assistant={assistant} avatarUrl={avatarUrls[assistant.id]} onSelect={onSelectAssistant} />
               ))}
             </div>
@@ -127,13 +133,13 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         )}
 
         {/* Для роста бизнеса */}
-        {assistants.some(a => a.category === 'business') && (
+        {visibleAssistants.some(a => a.category === 'business') && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
               <span className="text-xl">💼</span> Для роста бизнеса
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {assistants.filter(a => a.category === 'business').map((assistant) => (
+              {visibleAssistants.filter(a => a.category === 'business').map((assistant) => (
                 <AssistantCard key={assistant.id} assistant={assistant} avatarUrl={avatarUrls[assistant.id]} onSelect={onSelectAssistant} />
               ))}
             </div>
@@ -141,13 +147,27 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         )}
 
         {/* Для личностного роста */}
-        {assistants.some(a => a.category === 'personal') && (
+        {visibleAssistants.some(a => a.category === 'personal') && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
               <span className="text-xl">🌱</span> Для личностного роста
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {assistants.filter(a => a.category === 'personal').map((assistant) => (
+              {visibleAssistants.filter(a => a.category === 'personal').map((assistant) => (
+                <AssistantCard key={assistant.id} assistant={assistant} avatarUrl={avatarUrls[assistant.id]} onSelect={onSelectAssistant} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SMM Producer (admin only) */}
+        {visibleAssistants.some(a => a.category === 'smm') && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="text-xl">🎬</span> SMM-продюсер
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {visibleAssistants.filter(a => a.category === 'smm').map((assistant) => (
                 <AssistantCard key={assistant.id} assistant={assistant} avatarUrl={avatarUrls[assistant.id]} onSelect={onSelectAssistant} />
               ))}
             </div>
@@ -155,9 +175,9 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         )}
 
         {/* Без категории (fallback) */}
-        {assistants.some(a => !a.category) && (
+        {visibleAssistants.some(a => !a.category) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {assistants.filter(a => !a.category).map((assistant) => (
+            {visibleAssistants.filter(a => !a.category).map((assistant) => (
               <AssistantCard key={assistant.id} assistant={assistant} avatarUrl={avatarUrls[assistant.id]} onSelect={onSelectAssistant} />
             ))}
           </div>
