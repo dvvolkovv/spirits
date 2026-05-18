@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -10,6 +11,9 @@ import { useNavigate } from 'react-router-dom';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
+import SocialConnectButton from './SocialConnectButton';
+import TelegramConnectForm from './TelegramConnectForm';
+import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
 import { avatarService } from '../../services/avatarService';
 import { apiClient } from '../../services/apiClient';
 import { useVideoJobs } from '../video/useVideoJobs';
@@ -68,14 +72,16 @@ const StreamingMessage = React.memo(({
   content,
   components,
   onButtonClick,
-  onLinkClick
+  onLinkClick,
+  onSendMessage,
 }: {
   content: string;
   components: any;
   onButtonClick: (action: string) => void;
   onLinkClick: (url: string) => void;
+  onSendMessage?: (text: string) => void;
 }) => {
-  const { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -85,8 +91,10 @@ const StreamingMessage = React.memo(({
     const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
+    const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
+    const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...smmScenarioMatches, ...smmVideoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...smmScenarioMatches, ...smmVideoMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -147,6 +155,27 @@ const StreamingMessage = React.memo(({
           parts.push(
             <div key={`smm-video-${idx}`}>
               <SmmVideoPlayer videoId={vid} />
+            </div>
+          );
+        }
+      } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
+        const key = match[1];
+        const cfg = socialButtons.get(key);
+        if (cfg) {
+          parts.push(
+            <div key={`social-btn-${idx}`}>
+              <SocialConnectButton platform={cfg.platform as SmmPlatform} authorizeUrl={cfg.authorizeUrl} />
+            </div>
+          );
+        }
+      } else if (match[0].startsWith('__SOCIAL_TELEGRAM_')) {
+        const key = match[1];
+        if (socialTelegrams.has(key)) {
+          parts.push(
+            <div key={`social-tg-${idx}`}>
+              <TelegramConnectForm onConnected={(displayName) => {
+                onSendMessage?.(`Telegram подключил (${displayName}), продолжай.`);
+              }} />
             </div>
           );
         }
@@ -968,6 +997,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 accumulatedContent += `\n\n{{smm_scenario:id=${sid}}}`;
               }
             }
+            if (data.type === 'tool_result' && data.tool === 'connect_social') {
+              const result = data.result as { platform?: string; method?: 'oauth' | 'manual'; authorizeUrl?: string } | undefined;
+              if (result?.method === 'oauth' && result.authorizeUrl) {
+                accumulatedContent += `\n\n{{smm_social_connect_button:platform=${result.platform},authorize_url=${result.authorizeUrl}}}`;
+              } else if (result?.method === 'manual' && result.platform === 'telegram') {
+                accumulatedContent += `\n\n{{smm_social_connect_telegram}}`;
+              }
+            }
           } catch (e) {
             // Skip invalid JSON lines
           }
@@ -1045,8 +1082,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
   }, []);
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+  const sendMessageText = async (text: string) => {
+    if (!text.trim() || isTyping) return;
 
     // Проверяем актуальность выбранного ассистента перед отправкой (per-tab)
     const savedAssistant = sessionStorage.getItem('selected_assistant');
@@ -1069,15 +1106,45 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const userMessage: Message = {
       id: generateMessageId(),
       type: 'user',
-      content: input,
+      content: text,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const messageText = input;
-    setInput('');
+    await sendMessageToAI(text);
+  };
 
-    await sendMessageToAI(messageText);
+  // OAuth callback handler — runs once on mount.
+  // Catches ?smm_oauth_success=<platform> or ?smm_oauth_error=<msg> from OAuth callback redirects.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('smm_oauth_success');
+    const error = params.get('smm_oauth_error');
+
+    if (!success && !error) return;
+
+    // Strip the query from URL so refresh doesn't repeat the effect.
+    window.history.replaceState({}, '', window.location.pathname);
+
+    if (success) {
+      const label = PLATFORM_LABELS[success as SmmPlatform] ?? success;
+      toast.success(`${label} подключён`);
+      // Resume the chat conversation
+      setTimeout(() => {
+        sendMessageText(`Подключил ${label}, продолжай.`);
+      }, 200);
+    } else if (error) {
+      toast.error(`Не удалось подключить: ${decodeURIComponent(error)}`);
+    }
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSend = async () => {
+    if (!input.trim() || isTyping) return;
+    const text = input;
+    setInput('');
+    await sendMessageText(text);
   };
 
   const handleClearChat = async () => {
@@ -1614,7 +1681,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const contentForRender = stripVideoJobMarkers(message.content);
-                    const { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
@@ -1622,8 +1689,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
                     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
                     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
+                    const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
+                    const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...smmScenarioMatches, ...smmVideoMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...smmScenarioMatches, ...smmVideoMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -1684,6 +1753,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           parts.push(
                             <div key={`smm-video-${idx}`}>
                               <SmmVideoPlayer videoId={vid} />
+                            </div>
+                          );
+                        }
+                      } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
+                        const key = match[1];
+                        const cfg = socialButtons.get(key);
+                        if (cfg) {
+                          parts.push(
+                            <div key={`social-btn-${idx}`}>
+                              <SocialConnectButton platform={cfg.platform as SmmPlatform} authorizeUrl={cfg.authorizeUrl} />
+                            </div>
+                          );
+                        }
+                      } else if (match[0].startsWith('__SOCIAL_TELEGRAM_')) {
+                        const key = match[1];
+                        if (socialTelegrams.has(key)) {
+                          parts.push(
+                            <div key={`social-tg-${idx}`}>
+                              <TelegramConnectForm onConnected={(displayName) => {
+                                sendMessageText(`Telegram подключил (${displayName}), продолжай.`);
+                              }} />
                             </div>
                           );
                         }
@@ -1749,6 +1839,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               components={markdownComponents}
               onButtonClick={handleButtonAction}
               onLinkClick={handleLinkNavigation}
+              onSendMessage={sendMessageText}
             />
           )
         )}

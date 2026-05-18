@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
@@ -22,6 +23,7 @@ import TokenPurchasePage from './pages/TokenPurchasePage';
 import MaintenancePage from './pages/MaintenancePage';
 import DozvonPage from './pages/DozvonPage';
 import ContactRequestsPage from './pages/ContactRequestsPage';
+import SettingsSocialPage from './pages/SettingsSocialPage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -69,6 +71,7 @@ const AppContent: React.FC = () => {
             <Route path="/support" element={<SupportPage />} />
             <Route path="/contact-requests" element={<ContactRequestsPage />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
+            <Route path="/settings/social" element={<SettingsSocialPage />} />
             <Route path="/card" element={<CardPage />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
@@ -93,6 +96,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <AuthProvider>
         <ImageGenProvider>
           <Routes>

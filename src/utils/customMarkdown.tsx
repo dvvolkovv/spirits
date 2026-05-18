@@ -22,6 +22,11 @@ const VIDEO_URL_REGEX = /https?:\/\/\S+?\.(?:mp4|webm)(?:\?\S*)?/gi;
 const SMM_SCENARIO_REGEX = /\{\{smm_scenario:id=([a-f0-9-]{36})\}\}/g;
 const SMM_VIDEO_REGEX = /\{\{smm_video:id=([a-f0-9-]{36})\}\}/g;
 
+// SMM Producer Plan 4d — social connect blocks
+const SMM_SOCIAL_BUTTON_REGEX =
+  /\{\{smm_social_connect_button:platform=([a-z]+),authorize_url=([^}]+)\}\}/g;
+const SMM_SOCIAL_TELEGRAM_REGEX = /\{\{smm_social_connect_telegram\}\}/g;
+
 export const parseCustomMarkdown = (content: string): {
   content: string;
   buttons: Map<string, ButtonConfig>;
@@ -29,12 +34,16 @@ export const parseCustomMarkdown = (content: string): {
   videos: Map<string, string>;
   smmScenarios: Map<string, string>;
   smmVideos: Map<string, string>;
+  socialButtons: Map<string, { platform: string; authorizeUrl: string }>;
+  socialTelegrams: Set<string>;
 } => {
   const buttons = new Map<string, ButtonConfig>();
   const links = new Map<string, LinkConfig>();
   const videos = new Map<string, string>();
   const smmScenarios = new Map<string, string>();
   const smmVideos = new Map<string, string>();
+  const socialButtons = new Map<string, { platform: string; authorizeUrl: string }>();
+  const socialTelegrams = new Set<string>();
 
   let parsedContent = content;
 
@@ -78,7 +87,19 @@ export const parseCustomMarkdown = (content: string): {
     return `__SMM_VIDEO_${key}__`;
   });
 
-  return { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos };
+  parsedContent = parsedContent.replace(SMM_SOCIAL_BUTTON_REGEX, (_m, platform, authorizeUrl) => {
+    const id = `socbtn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    socialButtons.set(id, { platform: platform.trim(), authorizeUrl: authorizeUrl.trim() });
+    return `__SOCIAL_BUTTON_${id}__`;
+  });
+
+  parsedContent = parsedContent.replace(SMM_SOCIAL_TELEGRAM_REGEX, () => {
+    const id = `soctg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    socialTelegrams.add(id);
+    return `__SOCIAL_TELEGRAM_${id}__`;
+  });
+
+  return { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos, socialButtons, socialTelegrams };
 };
 
 export const createVideoComponent = (src: string, key?: string): React.ReactNode => {
