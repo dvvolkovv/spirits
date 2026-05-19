@@ -1,12 +1,13 @@
 // src/components/chat/smm/SmmVideoPlayer.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, X, Loader2, AlertCircle, Film } from 'lucide-react';
+import { Check, X, Loader2, AlertCircle, Film, Send } from 'lucide-react';
 import {
   getVideo,
   approveVideo,
   rejectVideo,
   VideoDetail,
 } from './smm-api';
+import PublishModal from './PublishModal';
 
 interface Props {
   videoId: string;
@@ -19,6 +20,7 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
   const [error, setError] = useState<string | null>(null);
   const [actionInflight, setActionInflight] = useState<'approve' | 'reject' | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [publishOpen, setPublishOpen] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -145,14 +147,22 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
       )}
 
       {isReady && (
-        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2">
+        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2 flex-wrap">
           <button
             onClick={handleApprove}
             disabled={actionInflight !== null}
             className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
           >
             {actionInflight === 'approve' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-            Утвердить ролик
+            Утвердить
+          </button>
+          <button
+            onClick={() => setPublishOpen(true)}
+            disabled={actionInflight !== null}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            <Send className="h-3.5 w-3.5" />
+            Опубликовать
           </button>
           <button
             onClick={handleReject}
@@ -165,10 +175,34 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
         </div>
       )}
 
+      {/* "Approved" stays publishable — show publish button only */}
+      {video.status === 'approved' && (
+        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2">
+          <button
+            onClick={() => setPublishOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            <Send className="h-3.5 w-3.5" />
+            Опубликовать
+          </button>
+        </div>
+      )}
+
       {actionMessage && (
         <div className="border-t border-forest-100 bg-forest-50 px-4 py-2 text-xs text-forest-700">
           {actionMessage}
         </div>
+      )}
+
+      {publishOpen && (
+        <PublishModal
+          videoId={videoId}
+          onClose={() => setPublishOpen(false)}
+          onPublished={() => {
+            // Refresh video to show updated status
+            getVideo(videoId).then(setVideo).catch(() => {});
+          }}
+        />
       )}
     </div>
   );
