@@ -1,10 +1,11 @@
 // src/components/chat/smm/SmmVideoPlayer.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, X, Loader2, AlertCircle, Film, Send } from 'lucide-react';
+import { Check, X, Loader2, AlertCircle, Film, Send, RotateCcw } from 'lucide-react';
 import {
   getVideo,
   approveVideo,
   rejectVideo,
+  regenerateVideo,
   VideoDetail,
 } from './smm-api';
 import PublishModal from './PublishModal';
@@ -18,7 +19,7 @@ const POLL_INTERVAL_MS = 5000;
 export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
   const [video, setVideo] = useState<VideoDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [actionInflight, setActionInflight] = useState<'approve' | 'reject' | null>(null);
+  const [actionInflight, setActionInflight] = useState<'approve' | 'reject' | 'regenerate' | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,6 +58,23 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
       const updated = await getVideo(videoId);
       setVideo(updated);
       setActionMessage('Утверждён');
+    } catch (e) {
+      setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setActionInflight(null);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!video) return;
+    if (!window.confirm('Сделать ролик заново? Будут списаны токены повторно — старый файл сохранится в истории.')) return;
+    setActionInflight('regenerate');
+    setActionMessage(null);
+    try {
+      await regenerateVideo(videoId);
+      const updated = await getVideo(videoId);
+      setVideo(updated);
+      setActionMessage('Перерендериваем — около минуты.');
     } catch (e) {
       setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -165,6 +183,14 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
             Опубликовать
           </button>
           <button
+            onClick={handleRegenerate}
+            disabled={actionInflight !== null}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50 disabled:opacity-50"
+          >
+            {actionInflight === 'regenerate' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+            Сделать заново
+          </button>
+          <button
             onClick={handleReject}
             disabled={actionInflight !== null}
             className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
@@ -175,15 +201,37 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
         </div>
       )}
 
-      {/* "Approved" stays publishable — show publish button only */}
+      {/* "Approved" stays publishable — show publish + regenerate */}
       {video.status === 'approved' && (
-        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2">
+        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2 flex-wrap">
           <button
             onClick={() => setPublishOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
           >
             <Send className="h-3.5 w-3.5" />
             Опубликовать
+          </button>
+          <button
+            onClick={handleRegenerate}
+            disabled={actionInflight !== null}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50 disabled:opacity-50"
+          >
+            {actionInflight === 'regenerate' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+            Сделать заново
+          </button>
+        </div>
+      )}
+
+      {/* On render failure — only regen makes sense */}
+      {isFailed && (
+        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2">
+          <button
+            onClick={handleRegenerate}
+            disabled={actionInflight !== null}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
+          >
+            {actionInflight === 'regenerate' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+            Сделать заново
           </button>
         </div>
       )}

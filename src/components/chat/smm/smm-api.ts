@@ -90,3 +90,12 @@ export async function rejectVideo(id: string, reason?: string): Promise<{ ok: tr
   if (!r.ok) throw new Error(`rejectVideo ${id}: ${r.status}`);
   return r.json();
 }
+
+export async function regenerateVideo(id: string): Promise<{ ok: true; videoId: string; jobId: string }> {
+  const r = await apiClient.post(`/webhook/smm/videos/${id}/regenerate`, {});
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body?.message ?? `regenerateVideo ${id}: ${r.status}`);
+  }
+  return r.json();
+}
