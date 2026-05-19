@@ -1,10 +1,11 @@
 // src/components/chat/smm/PublishModal.tsx
 import React, { useEffect, useState } from 'react';
-import { Loader2, Send, X, Clock } from 'lucide-react';
+import { Loader2, Send, X, Clock, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiClient } from '../../../services/apiClient';
 import { socialAccountApi } from '../../../services/socialAccountApi';
 import { SmmPlatform, SocialAccount, PLATFORM_LABELS } from '../../../types/smm';
+import TelegramConnectForm from '../TelegramConnectForm';
 
 interface Props {
   videoId: string;
@@ -27,26 +28,50 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
   const [customTime, setCustomTime] = useState('');
   const [caption, setCaption] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [connectingPlatform, setConnectingPlatform] = useState<SmmPlatform | null>(null);
+  const [tgOpen, setTgOpen] = useState(false);
 
-  useEffect(() => {
-    socialAccountApi.list()
-      .then((list) => {
-        setAccounts(list);
-        const active = list.filter((a) => a.status === 'active');
-        // Pre-select the user's only connected platform (common case)
-        if (active.length === 1) {
-          setSelectedPlatforms(new Set([active[0].platform]));
-        }
-      })
-      .catch((e) => toast.error(`Не удалось загрузить аккаунты: ${e?.message ?? 'ошибка'}`))
-      .finally(() => setLoading(false));
-  }, []);
+  const refreshAccounts = async () => {
+    try {
+      const list = await socialAccountApi.list();
+      setAccounts(list);
+      const active = list.filter((a) => a.status === 'active');
+      if (active.length === 1 && selectedPlatforms.size === 0) {
+        setSelectedPlatforms(new Set([active[0].platform]));
+      }
+    } catch (e: any) {
+      toast.error(`Не удалось загрузить аккаунты: ${e?.message ?? 'ошибка'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { refreshAccounts(); }, []);
 
   const togglePlatform = (p: SmmPlatform) => {
     const next = new Set(selectedPlatforms);
     if (next.has(p)) next.delete(p);
     else next.add(p);
     setSelectedPlatforms(next);
+  };
+
+  const handleConnect = async (p: SmmPlatform) => {
+    if (p === 'telegram') {
+      setTgOpen(true);
+      return;
+    }
+    setConnectingPlatform(p);
+    try {
+      // OAuth redirects back to /chat where ChatInterface shows a toast.
+      const { authorizeUrl } = await socialAccountApi.getOAuthStartUrl(
+        p as Exclude<SmmPlatform, 'telegram'>,
+        '/chat',
+      );
+      window.location.href = authorizeUrl;
+    } catch (e: any) {
+      toast.error(`${PLATFORM_LABELS[p]}: ${e?.message ?? 'ошибка'}`);
+      setConnectingPlatform(null);
+    }
   };
 
   const buildScheduledTime = (): string | null => {
@@ -126,32 +151,42 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
                 {ALL_PLATFORMS.map((p) => {
                   const connected = hasAccountFor(p);
                   const checked = selectedPlatforms.has(p);
+                  if (connected) {
+                    return (
+                      <label
+                        key={p}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => togglePlatform(p)}
+                          className="h-4 w-4 accent-forest-600"
+                        />
+                        <span className="text-sm">{PLATFORM_LABELS[p]}</span>
+                      </label>
+                    );
+                  }
+                  // Not connected — show a "connect" affordance instead of greying out
                   return (
-                    <label
+                    <div
                       key={p}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded ${
-                        connected ? 'cursor-pointer hover:bg-gray-50' : 'opacity-40 cursor-not-allowed'
-                      }`}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded border border-dashed border-gray-200"
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={!connected}
-                        onChange={() => togglePlatform(p)}
-                        className="h-4 w-4 accent-forest-600"
-                      />
-                      <span className="text-sm">{PLATFORM_LABELS[p]}</span>
-                      {!connected && (
-                        <span className="text-xs text-gray-400 ml-auto">не подключено</span>
-                      )}
-                    </label>
+                      <span className="text-sm text-gray-500 flex-1">{PLATFORM_LABELS[p]}</span>
+                      <button
+                        onClick={() => handleConnect(p)}
+                        disabled={connectingPlatform === p}
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                      >
+                        {connectingPlatform === p
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : <Plus className="h-3 w-3" />}
+                        Подключить
+                      </button>
+                    </div>
                   );
                 })}
-                {activePlatforms.length === 0 && (
-                  <p className="text-xs text-orange-600 mt-1">
-                    Сначала подключи хотя бы одну соцсеть в <a href="/settings/social" className="underline">настройках</a>.
-                  </p>
-                )}
               </div>
             )}
           </div>
@@ -204,6 +239,30 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
             />
           </div>
         </div>
+
+        {/* Inline Telegram setup — only Telegram needs a multi-step form, others go via OAuth redirect */}
+        {tgOpen && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setTgOpen(false); }}
+          >
+            <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base font-semibold">Telegram-канал</h3>
+                <button onClick={() => setTgOpen(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <TelegramConnectForm
+                onConnected={() => {
+                  setTgOpen(false);
+                  refreshAccounts();
+                  toast.success('Telegram подключён');
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-5 py-3">
           <button

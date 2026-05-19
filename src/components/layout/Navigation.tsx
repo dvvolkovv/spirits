@@ -19,7 +19,6 @@ import {
   CreditCard,
   Phone,
   Inbox,
-  Share2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -117,13 +116,6 @@ const Navigation: React.FC = () => {
     },
   ];
 
-  const socialAccountsNavItem = {
-    to: '/settings/social',
-    icon: Share2,
-    label: t('nav.socialAccounts'),
-    isLogo: false,
-  };
-
   const adminNavItem = {
     to: '/admin',
     icon: Shield,
@@ -171,7 +163,7 @@ const Navigation: React.FC = () => {
     ...baseNavItems,
     contactRequestsNavItem,
     ...(isReferralLeader ? [referralNavItem] : []),
-    ...(user?.isAdmin ? [socialAccountsNavItem, adminNavItem, dozvonNavItem, cardNavItem] : []),
+    ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
     helpNavItem,
   ];
 
