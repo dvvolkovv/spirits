@@ -1,6 +1,6 @@
 // src/components/chat/smm/ScenarioCard.tsx
 import React, { useEffect, useState } from 'react';
-import { Check, RotateCcw, X, Loader2, AlertCircle } from 'lucide-react';
+import { Check, RotateCcw, X, Loader2, AlertCircle, Pencil } from 'lucide-react';
 import {
   getScenario,
   approveScenario,
@@ -9,6 +9,7 @@ import {
   ScenarioDetail,
 } from './smm-api';
 import { SmmVideoPlayer } from './SmmVideoPlayer';
+import ScenarioEditModal from './ScenarioEditModal';
 
 interface Props {
   scenarioId: string;
@@ -36,6 +37,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
   const [actionInflight, setActionInflight] = useState<'approve' | 'regenerate' | 'reject' | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [renderedVideoId, setRenderedVideoId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -176,8 +178,8 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
           </details>
         )}
       </div>
-      {isActionable && (
-        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2">
+      {isActionable ? (
+        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2 flex-wrap">
           <button
             onClick={handleApprove}
             disabled={actionInflight !== null}
@@ -185,6 +187,14 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
           >
             {actionInflight === 'approve' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             Утвердить
+          </button>
+          <button
+            onClick={() => setEditOpen(true)}
+            disabled={actionInflight !== null}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50 disabled:opacity-50"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Редактировать
           </button>
           <button
             onClick={handleRegenerate}
@@ -203,6 +213,18 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
             Отклонить
           </button>
         </div>
+      ) : (
+        // After approve — sole "Edit" button. Player below shows current mp4;
+        // changes here take effect when user clicks "Сделать заново" in the player.
+        <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2">
+          <button
+            onClick={() => setEditOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Редактировать сценарий
+          </button>
+        </div>
       )}
       {actionMessage && (
         <div className="border-t border-forest-100 bg-forest-50 px-4 py-2 text-xs text-forest-700">
@@ -213,6 +235,13 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
         <div className="border-t border-forest-100 px-4 py-3">
           <SmmVideoPlayer videoId={renderedVideoId} />
         </div>
+      )}
+      {editOpen && (
+        <ScenarioEditModal
+          scenario={scenario}
+          onClose={() => setEditOpen(false)}
+          onSaved={(updated) => setScenario(updated)}
+        />
       )}
     </div>
   );

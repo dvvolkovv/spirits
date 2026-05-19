@@ -192,6 +192,20 @@ class APIClient {
     });
   }
 
+  async patch<T = any>(url: string, data?: any, options?: RequestOptions): Promise<Response> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    };
+
+    return this.request<T>(url, {
+      ...options,
+      method: 'PATCH',
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
   async delete<T = any>(url: string, options?: RequestOptions): Promise<Response> {
     return this.request<T>(url, { ...options, method: 'DELETE' });
   }
