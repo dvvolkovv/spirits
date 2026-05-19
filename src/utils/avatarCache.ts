@@ -1,6 +1,9 @@
 const DB_NAME = 'KindredSpiritsCache';
 const STORE_NAME = 'avatars';
-const DB_VERSION = 1;
+// Bump DB_VERSION whenever an agent avatar needs to be force-refreshed for
+// all clients. onupgradeneeded wipes the old store, next page-load re-fetches.
+// 2 — Юлия (smm_producer) avatar replaced 2026-05-19.
+const DB_VERSION = 2;
 const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
 
 interface CachedAvatar {
@@ -35,10 +38,13 @@ class AvatarCache {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'agentId' });
-          objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+        // On any version bump — drop and recreate the avatar store so that
+        // all clients re-fetch fresh blobs from the server.
+        if (db.objectStoreNames.contains(STORE_NAME)) {
+          db.deleteObjectStore(STORE_NAME);
         }
+        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'agentId' });
+        objectStore.createIndex('timestamp', 'timestamp', { unique: false });
       };
     });
   }
