@@ -21,7 +21,10 @@ import VideoJobCard from '../video/VideoJobCard';
 
 interface Assistant {
   id: number;
+  /** Internal routing identifier (e.g. 'smm_producer'). Used by changeAgentOnServer. */
   name: string;
+  /** Human-friendly name shown in UI. Falls back to `name`. */
+  displayName?: string;
   description: string;
 }
 
@@ -1455,7 +1458,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     await changeAgentOnServer(assistant.name);
 
-    setAssistantSwitchNotification(t('chat.switched_to', { name: assistant.name }));
+    setAssistantSwitchNotification(t('chat.switched_to', { name: assistant.displayName ?? assistant.name }));
     setTimeout(() => setAssistantSwitchNotification(null), 3000);
 
     setTimeout(() => {
@@ -1519,7 +1522,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   {avatarUrls[selectedAssistant.id] ? (
                     <img
                       src={avatarUrls[selectedAssistant.id]}
-                      alt={selectedAssistant.name}
+                      alt={selectedAssistant.displayName ?? selectedAssistant.name}
                       className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -1532,7 +1535,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     </div>
                   )}
                   <div className="flex flex-col items-start">
-                    <span className="text-sm font-medium text-forest-900">{selectedAssistant.name}</span>
+                    <span className="text-sm font-medium text-forest-900">{selectedAssistant.displayName ?? selectedAssistant.name}</span>
                     <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description, t)}</span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-forest-700" />
@@ -1557,7 +1560,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             {avatarUrls[assistant.id] ? (
                               <img
                                 src={avatarUrls[assistant.id]}
-                                alt={assistant.name}
+                                alt={assistant.displayName ?? assistant.name}
                                 className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
@@ -1570,7 +1573,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                               </div>
                             )}
                             <div className="flex flex-col flex-1">
-                              <span className="text-sm font-medium text-gray-900">{assistant.name}</span>
+                              <span className="text-sm font-medium text-gray-900">{assistant.displayName ?? assistant.name}</span>
                               <span className="text-xs text-gray-500 mt-0.5">{assistant.description}</span>
                             </div>
                           </div>

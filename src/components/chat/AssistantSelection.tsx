@@ -5,7 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface Assistant {
   id: number;
+  /** Internal routing identifier (e.g. 'smm_producer'). Stable across UI changes. */
   name: string;
+  /** Human-friendly name shown to users. Falls back to `name` when missing. */
+  displayName?: string;
   description: string;
   category?: string;
 }
@@ -36,7 +39,7 @@ const AssistantCard: React.FC<{ assistant: Assistant; avatarUrl?: string; onSele
     <div className="flex flex-col items-center text-center">
       <div className="relative mb-3 md:mb-4">
         {avatarUrl ? (
-          <img src={avatarUrl} alt={assistant.name} className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <img src={avatarUrl} alt={assistant.displayName ?? assistant.name} className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         ) : (
           <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300 flex items-center justify-center">
             <span className="text-2xl md:text-3xl">👤</span>
@@ -46,7 +49,7 @@ const AssistantCard: React.FC<{ assistant: Assistant; avatarUrl?: string; onSele
           <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
         </div>
       </div>
-      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">{assistant.name}</h3>
+      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">{assistant.displayName ?? assistant.name}</h3>
       <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full mb-3">{getRoleForAssistant(assistant.description)}</span>
       <p className="text-xs md:text-sm text-gray-600 leading-relaxed line-clamp-3">{assistant.description}</p>
       <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100 w-full">

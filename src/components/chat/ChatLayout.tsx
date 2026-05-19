@@ -8,6 +8,7 @@ import { clsx } from 'clsx';
 interface Assistant {
   id: number;
   name: string;
+  displayName?: string;
   description: string;
   category?: string;
 }
@@ -93,14 +94,14 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
       )}
     >
       {avatarUrls[a.id] ? (
-        <img src={avatarUrls[a.id]} alt={a.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+        <img src={avatarUrls[a.id]} alt={a.displayName ?? a.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
       ) : (
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-forest-400 to-forest-600 flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-sm font-bold">{a.name[0]}</span>
+          <span className="text-white text-sm font-bold">{(a.displayName ?? a.name)[0]}</span>
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className={clsx('text-sm font-medium truncate', selectedId === a.id ? 'text-forest-700' : 'text-gray-900')}>{a.name}</p>
+        <p className={clsx('text-sm font-medium truncate', selectedId === a.id ? 'text-forest-700' : 'text-gray-900')}>{a.displayName ?? a.name}</p>
         <p className="text-xs text-gray-500 line-clamp-2 leading-tight">{a.description}</p>
       </div>
     </button>
