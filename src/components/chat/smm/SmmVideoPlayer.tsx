@@ -22,6 +22,7 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
   const [actionInflight, setActionInflight] = useState<'approve' | 'reject' | 'regenerate' | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [pollKey, setPollKey] = useState(0);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
       alive = false;
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     };
-  }, [videoId]);
+  }, [videoId, pollKey]);
 
   const handleApprove = async () => {
     if (!video) return;
@@ -75,6 +76,8 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
       const updated = await getVideo(videoId);
       setVideo(updated);
       setActionMessage('Перерендериваем — около минуты.');
+      // Restart polling: previous loop stopped on terminal status, force re-run.
+      setPollKey((k) => k + 1);
     } catch (e) {
       setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
