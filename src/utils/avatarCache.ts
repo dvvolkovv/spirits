@@ -3,7 +3,8 @@ const STORE_NAME = 'avatars';
 // Bump DB_VERSION whenever an agent avatar needs to be force-refreshed for
 // all clients. onupgradeneeded wipes the old store, next page-load re-fetches.
 // 2 — Юлия (smm_producer) avatar replaced 2026-05-19.
-const DB_VERSION = 2;
+// 3 — all agent + user avatars moved to MinIO bucket linkeon-assets 2026-05-20.
+const DB_VERSION = 3;
 const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
 
 interface CachedAvatar {
