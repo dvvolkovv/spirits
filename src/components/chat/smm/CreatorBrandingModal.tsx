@@ -19,6 +19,8 @@ interface Props {
 }
 
 export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onClose, onSaved }) => {
+  const [ctaHandle, setCtaHandle] = useState(initial.ctaHandle ?? '');
+  const [ctaLabel, setCtaLabel] = useState(initial.ctaLabel ?? 'Подписывайся');
   const [logoUrl, setLogoUrl] = useState<string | null>(initial.logoUrl);
   const [slogan, setSlogan] = useState(initial.ctaSlogan ?? '');
   const [caption, setCaption] = useState(initial.publishCaption ?? '');
@@ -94,9 +96,19 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
   };
 
   const handleSave = async () => {
+    if (!ctaHandle.trim()) {
+      toast.error('Куда вести аудиторию — обязательное поле');
+      return;
+    }
+    if (!ctaLabel.trim()) {
+      toast.error('Призыв (например «Подписывайся») не может быть пустым');
+      return;
+    }
     setSaving(true);
     try {
       const r = await updateCreatorBranding(campaignId, {
+        ctaHandle: ctaHandle.trim(),
+        ctaLabel: ctaLabel.trim(),
         ctaSlogan: slogan.trim() || null,
         publishCaption: caption.trim() || null,
         bgColor: bgColor.trim() || null,
@@ -125,6 +137,40 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
         </div>
 
         <div className="px-5 py-4 space-y-5">
+          {/* CTA — куда вести аудиторию (handle/url) и какой призыв */}
+          <div className="border border-forest-100 bg-forest-50/50 rounded-lg p-3 space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                Куда вести аудиторию <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={ctaHandle}
+                onChange={(e) => setCtaHandle(e.target.value.slice(0, 120))}
+                placeholder="@my_channel или t.me/my_channel или example.com"
+                className="w-full text-sm px-3 py-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Telegram-канал, сайт или соцсеть — появится крупным шрифтом в финале ролика.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                Призыв
+              </label>
+              <input
+                type="text"
+                value={ctaLabel}
+                onChange={(e) => setCtaLabel(e.target.value.slice(0, 60))}
+                placeholder="Подписывайся"
+                className="w-full text-sm px-3 py-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Например: «Подписывайся», «Жми», «Узнай больше», «Заходи». Выше handle'а на CTA-кадре.
+              </p>
+            </div>
+          </div>
+
           {/* Logo */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-2">Логотип</label>

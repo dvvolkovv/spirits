@@ -150,7 +150,13 @@ export async function clearCreatorLogo(
 
 export async function updateCreatorBranding(
   campaignId: string,
-  body: { ctaSlogan?: string | null; publishCaption?: string | null; bgColor?: string | null },
+  body: {
+    ctaHandle?: string;
+    ctaLabel?: string;
+    ctaSlogan?: string | null;
+    publishCaption?: string | null;
+    bgColor?: string | null;
+  },
 ): Promise<{ ok: true; settings: CreatorSettings }> {
   const r = await apiClient.patch(`/webhook/smm/campaigns/${campaignId}/branding`, body);
   if (!r.ok) {
