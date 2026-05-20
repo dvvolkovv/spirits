@@ -1,6 +1,6 @@
 // src/components/chat/smm/SmmVideoPlayer.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, X, Loader2, AlertCircle, Film, Send, RotateCcw } from 'lucide-react';
+import { Check, X, Loader2, AlertCircle, Film, Send, RotateCcw, Download } from 'lucide-react';
 import {
   getVideo,
   approveVideo,
@@ -159,11 +159,23 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
             className="w-full rounded-b-none"
             style={{ maxHeight: 600 }}
           />
-          {video.durationSec && (
-            <div className="px-4 py-1 text-xs text-gray-400">
-              {video.durationSec}с · {video.sizeBytes ? `${(video.sizeBytes / 1024 / 1024).toFixed(1)} MB` : ''}
-            </div>
-          )}
+          <div className="px-4 py-1.5 flex items-center gap-3 text-xs text-gray-400">
+            {video.durationSec && (
+              <span>
+                {video.durationSec}с
+                {video.sizeBytes ? ` · ${(video.sizeBytes / 1024 / 1024).toFixed(1)} MB` : ''}
+              </span>
+            )}
+            <a
+              href={video.mp4Url}
+              download={`linkeon-smm-${videoId.slice(0, 8)}.mp4`}
+              className="ml-auto inline-flex items-center gap-1 text-forest-700 hover:text-forest-800 hover:underline"
+              title="Скачать MP4"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Скачать
+            </a>
+          </div>
         </>
       )}
 
