@@ -23,6 +23,8 @@ export interface CreatorSettings {
   logoUrl: string | null;
   ctaSlogan: string | null;
   publishCaption: string | null;
+  bgColor: string | null;
+  bgImageUrl: string | null;
 }
 
 export interface ScenarioDetail {
@@ -148,12 +150,39 @@ export async function clearCreatorLogo(
 
 export async function updateCreatorBranding(
   campaignId: string,
-  body: { ctaSlogan?: string | null; publishCaption?: string | null },
+  body: { ctaSlogan?: string | null; publishCaption?: string | null; bgColor?: string | null },
 ): Promise<{ ok: true; settings: CreatorSettings }> {
   const r = await apiClient.patch(`/webhook/smm/campaigns/${campaignId}/branding`, body);
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
     throw new Error(err?.message ?? `updateCreatorBranding: ${r.status}`);
   }
+  return r.json();
+}
+
+export async function uploadCreatorBackground(
+  campaignId: string,
+  file: File,
+): Promise<{ ok: true; bgImageUrl: string; settings: CreatorSettings }> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const token = localStorage.getItem('jwt_access_token');
+  const r = await fetch(`${import.meta.env.VITE_BACKEND_URL ?? ''}/webhook/smm/campaigns/${campaignId}/background`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body?.error ?? `uploadCreatorBackground: ${r.status}`);
+  }
+  return r.json();
+}
+
+export async function clearCreatorBackground(
+  campaignId: string,
+): Promise<{ ok: true; settings: CreatorSettings }> {
+  const r = await apiClient.post(`/webhook/smm/campaigns/${campaignId}/background/clear`, {});
+  if (!r.ok) throw new Error(`clearCreatorBackground: ${r.status}`);
   return r.json();
 }

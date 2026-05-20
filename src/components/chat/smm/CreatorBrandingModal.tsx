@@ -7,6 +7,8 @@ import {
   uploadCreatorLogo,
   clearCreatorLogo,
   updateCreatorBranding,
+  uploadCreatorBackground,
+  clearCreatorBackground,
 } from './smm-api';
 
 interface Props {
@@ -20,9 +22,13 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
   const [logoUrl, setLogoUrl] = useState<string | null>(initial.logoUrl);
   const [slogan, setSlogan] = useState(initial.ctaSlogan ?? '');
   const [caption, setCaption] = useState(initial.publishCaption ?? '');
+  const [bgColor, setBgColor] = useState(initial.bgColor ?? '');
+  const [bgImageUrl, setBgImageUrl] = useState<string | null>(initial.bgImageUrl);
   const [uploading, setUploading] = useState(false);
+  const [bgUploading, setBgUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const bgFileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
@@ -56,12 +62,44 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
     }
   };
 
+  const handleBgFile = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Файл больше 2 MB');
+      return;
+    }
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast.error('Допустимы PNG, JPEG, WebP');
+      return;
+    }
+    setBgUploading(true);
+    try {
+      const r = await uploadCreatorBackground(campaignId, file);
+      setBgImageUrl(r.bgImageUrl);
+      toast.success('Фоновая картинка загружена');
+    } catch (e: any) {
+      toast.error(`Не удалось загрузить: ${e?.message ?? 'ошибка'}`);
+    } finally {
+      setBgUploading(false);
+    }
+  };
+
+  const handleClearBg = async () => {
+    try {
+      await clearCreatorBackground(campaignId);
+      setBgImageUrl(null);
+      toast.success('Фон убран');
+    } catch (e: any) {
+      toast.error(`Не удалось: ${e?.message ?? 'ошибка'}`);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
       const r = await updateCreatorBranding(campaignId, {
         ctaSlogan: slogan.trim() || null,
         publishCaption: caption.trim() || null,
+        bgColor: bgColor.trim() || null,
       });
       toast.success('Сохранено');
       onSaved(r.settings);
@@ -169,6 +207,98 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
             />
             <p className="text-xs text-gray-400 mt-1">
               Будет подставлен в окно «Опубликовать», но всегда можно изменить перед публикацией.
+            </p>
+          </div>
+
+          {/* Background image */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-2">Фоновая картинка</label>
+            {bgImageUrl ? (
+              <div className="flex items-center gap-3">
+                <img src={bgImageUrl} alt="bg" className="w-24 h-32 rounded-lg object-cover border border-gray-200" />
+                <div className="flex-1 space-y-1">
+                  <button
+                    onClick={() => bgFileRef.current?.click()}
+                    disabled={bgUploading}
+                    className="block w-full text-xs px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {bgUploading ? 'Загружаем…' : 'Заменить'}
+                  </button>
+                  <button
+                    onClick={handleClearBg}
+                    className="block w-full text-xs px-3 py-1.5 rounded border border-red-300 text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="inline h-3 w-3 mr-1" />
+                    Убрать
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => bgFileRef.current?.click()}
+                disabled={bgUploading}
+                className="w-full flex items-center justify-center gap-2 py-6 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:bg-blue-50 disabled:opacity-50"
+              >
+                {bgUploading
+                  ? <Loader2 className="h-5 w-5 animate-spin" />
+                  : <Upload className="h-5 w-5" />}
+                <span>{bgUploading ? 'Загружаем…' : 'Загрузить фон (PNG/JPG, до 2 MB)'}</span>
+              </button>
+            )}
+            <input
+              ref={bgFileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleBgFile(f);
+                if (bgFileRef.current) bgFileRef.current.value = '';
+              }}
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Вертикальное 9:16 (например, 1080×1920). Покрывает весь кадр под чат-пузырями.
+            </p>
+          </div>
+
+          {/* Background color (fallback when no image) */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
+              Цвет фона (если без картинки)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={/^#[0-9a-f]{6}$/i.test(bgColor) ? bgColor : '#1a1a2e'}
+                onChange={(e) => setBgColor(e.target.value)}
+                className="w-12 h-9 rounded border border-gray-300 cursor-pointer"
+              />
+              <input
+                type="text"
+                value={bgColor}
+                onChange={(e) => setBgColor(e.target.value.slice(0, 200))}
+                placeholder="#1a1a2e или linear-gradient(180deg, ...)"
+                className="flex-1 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none font-mono"
+              />
+              {bgColor && (
+                <button
+                  onClick={() => setBgColor('')}
+                  className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                  title="Очистить"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {bgColor && (
+              <div
+                className="mt-2 h-10 rounded border border-gray-200"
+                style={{ background: bgColor }}
+                title="Превью"
+              />
+            )}
+            <p className="text-xs text-gray-400 mt-1">
+              HEX-цвет (#RRGGBB) или валидный CSS-градиент. Используется только если фоновая картинка не загружена.
             </p>
           </div>
         </div>
