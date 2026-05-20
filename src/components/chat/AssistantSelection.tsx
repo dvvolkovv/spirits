@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { avatarService } from '../../services/avatarService';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface Assistant {
   id: number;
@@ -64,11 +63,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
   onSelectAssistant,
   isLoading
 }) => {
-  const { user } = useAuth();
-  const isAdmin = !!user?.isAdmin;
-  const visibleAssistants = isAdmin
-    ? assistants
-    : assistants.filter(a => a.category !== 'smm');
+  const visibleAssistants = assistants;
   const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
 
   useEffect(() => {
