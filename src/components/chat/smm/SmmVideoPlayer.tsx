@@ -152,7 +152,12 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
 
       {(isReady || isTerminal) && video.mp4Url && (
         <>
+          {/* key={mp4Url} forces React to recreate the <video> element when
+              the URL changes (cache-buster ?v=<ts> bumps on regenerate).
+              Otherwise the HTML5 player keeps the old buffered media even
+              after src attribute update. */}
           <video
+            key={video.mp4Url}
             src={video.mp4Url}
             controls
             playsInline
