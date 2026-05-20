@@ -6,6 +6,7 @@ import { apiClient } from '../../../services/apiClient';
 import { socialAccountApi } from '../../../services/socialAccountApi';
 import { SmmPlatform, SocialAccount, PLATFORM_LABELS } from '../../../types/smm';
 import TelegramConnectForm from '../TelegramConnectForm';
+import { getVideo, getScenario } from './smm-api';
 
 interface Props {
   videoId: string;
@@ -47,6 +48,20 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
   };
 
   useEffect(() => { refreshAccounts(); }, []);
+
+  // Pre-fill caption from creator's branding settings if available.
+  // video → scenario → scenario.creatorSettings.publishCaption.
+  useEffect(() => {
+    (async () => {
+      try {
+        const v = await getVideo(videoId);
+        const s = await getScenario(v.scenarioId);
+        if (s.creatorSettings?.publishCaption) {
+          setCaption((current) => current || s.creatorSettings!.publishCaption!);
+        }
+      } catch { /* non-fatal — user types caption themselves */ }
+    })();
+  }, [videoId]);
 
   const togglePlatform = (p: SmmPlatform) => {
     const next = new Set(selectedPlatforms);
