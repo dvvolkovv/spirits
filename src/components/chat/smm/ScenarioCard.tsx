@@ -7,10 +7,15 @@ import {
   regenerateScenario,
   rejectScenario,
   ScenarioDetail,
+  PremiumGenre,
+  PremiumPreview,
+  setScenarioPremiumGenre,
 } from './smm-api';
 import { SmmVideoPlayer } from './SmmVideoPlayer';
 import ScenarioEditModal from './ScenarioEditModal';
 import CreatorBrandingModal from './CreatorBrandingModal';
+import { PremiumGenreTabs } from './PremiumGenreTabs';
+import { PremiumPreviewBlock } from './PremiumPreviewBlock';
 
 interface Props {
   scenarioId: string;
@@ -40,6 +45,9 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
   const [renderedVideoId, setRenderedVideoId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
+  const [premiumGenre, setPremiumGenre] = useState<PremiumGenre | null>(null);
+  const [premiumPreview, setPremiumPreview] = useState<PremiumPreview | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -51,6 +59,8 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
         setScenario(s);
         // Restore videoId from backend so player shows after page reload too.
         if (s.videoId) setRenderedVideoId(s.videoId);
+        // Restore premium genre if already set on scenario.
+        if (s.premiumGenre) setPremiumGenre(s.premiumGenre);
         setLoading(false);
       })
       .catch((e) => { if (alive) { setError(e.message); setLoading(false); } });
@@ -111,6 +121,20 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
       setActionInflight(null);
     }
   };
+
+  async function handleGenreChange(g: PremiumGenre | null) {
+    setPremiumGenre(g);
+    if (g === null) { setPremiumPreview(null); return; }
+    setLoadingPreview(true);
+    try {
+      const result = await setScenarioPremiumGenre(scenarioId, g);
+      if (result.preview) setPremiumPreview(result.preview);
+    } catch (e: any) {
+      console.error('setScenarioPremiumGenre failed:', e.message);
+    } finally {
+      setLoadingPreview(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -178,6 +202,19 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
               ))}
             </ul>
           </details>
+        )}
+        <PremiumGenreTabs
+          selected={premiumGenre}
+          onChange={handleGenreChange}
+          disabled={loadingPreview || scenario.status !== 'pending_review'}
+        />
+        {premiumGenre && premiumPreview && (
+          <PremiumPreviewBlock
+            genre={premiumGenre}
+            preview={premiumPreview}
+            onGenerate={handleApprove}
+            generating={actionInflight === 'approve'}
+          />
         )}
       </div>
       {isActionable ? (

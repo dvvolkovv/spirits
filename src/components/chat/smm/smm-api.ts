@@ -1,6 +1,20 @@
 // src/components/chat/smm/smm-api.ts
 import { apiClient } from '../../../services/apiClient';
 
+export type PremiumGenre = 'surreal' | 'pov' | 'cinematic';
+
+export interface PremiumPreviewScene {
+  keyframe_prompt: string;
+  motion_prompt: string;
+}
+
+export interface PremiumPreview {
+  genre: PremiumGenre;
+  scenes: PremiumPreviewScene[];
+  tokensCost: number;
+  estimatedMinutes: number;
+}
+
 export interface DialogTurn {
   speaker: 'hero' | 'assistant';
   text: string;
@@ -44,12 +58,28 @@ export interface ScenarioDetail {
   isLinkeonOfficial?: boolean;
   /** Creator-mode branding settings; null in Linkeon-official mode. */
   creatorSettings?: CreatorSettings | null;
+  premiumGenre?: PremiumGenre | null;
+  klingSceneCount?: number;
+  /** Premium scenes (kling+imagen mix) — populated after Юля generates with premiumGenre. */
+  scenes?: Array<{
+    type: 'kling' | 'imagen';
+    keyframe_prompt?: string;
+    motion_prompt?: string;
+    image_prompt?: string;
+    duration?: number;
+  }> | null;
 }
 
 export interface VideoDetail {
   id: string;
   scenarioId: string;
-  status: 'queued' | 'rendering' | 'ready' | 'failed' | 'approved' | 'rejected';
+  status: 'queued' | 'rendering' | 'ready' | 'failed' | 'approved' | 'rejected'
+        | 'escape_hatch_offered' | 'cancelled';
+  /** Populated when status === 'escape_hatch_offered'. Lives in renderState.escape_hatch. */
+  renderState?: {
+    escape_hatch?: { sceneIdx: number; message: string };
+    [k: string]: any;
+  };
   mp4Url: string | null;
   durationSec: number | null;
   sizeBytes: number | null;
@@ -190,5 +220,35 @@ export async function clearCreatorBackground(
 ): Promise<{ ok: true; settings: CreatorSettings }> {
   const r = await apiClient.post(`/webhook/smm/campaigns/${campaignId}/background/clear`, {});
   if (!r.ok) throw new Error(`clearCreatorBackground: ${r.status}`);
+  return r.json();
+}
+
+/** Set/clear premium_genre on an existing scenario (admin-only on backend). */
+export async function setScenarioPremiumGenre(
+  scenarioId: string,
+  genre: PremiumGenre | null,
+): Promise<{ ok: true; scenario: ScenarioDetail; preview?: PremiumPreview }> {
+  const r = await apiClient.patch(`/webhook/smm/scenarios/${scenarioId}`, { premiumGenre: genre });
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body?.message ?? `setScenarioPremiumGenre: ${r.status}`);
+  }
+  return r.json();
+}
+
+/** Accept the worker's escape-hatch offer. Server applies refund + re-queue or cancel. */
+export async function acceptEscapeHatch(
+  videoId: string,
+  choice: 'refund' | 'keep_static' | 'switch_genre',
+  newGenre?: PremiumGenre,
+): Promise<{ ok: true; refunded?: number; requeued?: boolean; switched_to?: PremiumGenre }> {
+  const r = await apiClient.post(`/webhook/smm/videos/${videoId}/escape-hatch`, {
+    choice,
+    newGenre,
+  });
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body?.message ?? `acceptEscapeHatch: ${r.status}`);
+  }
   return r.json();
 }

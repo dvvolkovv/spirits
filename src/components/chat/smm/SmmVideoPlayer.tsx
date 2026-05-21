@@ -6,6 +6,7 @@ import {
   approveVideo,
   rejectVideo,
   regenerateVideo,
+  acceptEscapeHatch,
   VideoDetail,
 } from './smm-api';
 import PublishModal from './PublishModal';
@@ -33,7 +34,7 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
         if (!alive) return;
         setVideo(v);
         setError(null);
-        if (v.status === 'ready' || v.status === 'failed' || v.status === 'approved' || v.status === 'rejected') {
+        if (v.status === 'ready' || v.status === 'failed' || v.status === 'approved' || v.status === 'rejected' || v.status === 'escape_hatch_offered' || v.status === 'cancelled') {
           return;
         }
         pollTimerRef.current = setTimeout(fetchOnce, POLL_INTERVAL_MS);
@@ -126,6 +127,8 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
   const isReady = video.status === 'ready';
   const isFailed = video.status === 'failed';
   const isTerminal = video.status === 'approved' || video.status === 'rejected';
+  const isEscapeHatch = video.status === 'escape_hatch_offered';
+  const isCancelled = video.status === 'cancelled';
 
   return (
     <div className="my-3 max-w-md rounded-xl border border-forest-200 bg-white shadow-sm">
@@ -147,6 +150,69 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
           <p className="flex items-center gap-1.5 font-medium"><AlertCircle className="h-4 w-4" />Не получилось отрендерить.</p>
           {video.errorMessage && <p className="mt-1 text-xs text-red-600">{video.errorMessage}</p>}
           <p className="mt-2 text-xs text-gray-500">Токены возвращены на баланс.</p>
+        </div>
+      )}
+
+      {isCancelled && (
+        <div className="px-4 py-4 text-sm text-gray-600">
+          <p>Видео отменено по выбору пользователя. Токены возвращены.</p>
+        </div>
+      )}
+
+      {isEscapeHatch && (
+        <div className="p-4 bg-yellow-50 border border-yellow-300 rounded-lg mx-4 my-3">
+          <h4 className="font-semibold text-yellow-900 mb-2">⚠️ Юля сообщает:</h4>
+          <p className="text-sm text-gray-700 mb-3">
+            «Не получается оживить кадр{' '}
+            {(video.renderState?.escape_hatch?.sceneIdx ?? 0) + 1}{' '}
+            в этом стиле — что-то ломается каждую попытку. Варианты:»
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await acceptEscapeHatch(video.id, 'switch_genre', 'cinematic');
+                  setPollKey((k) => k + 1);
+                } catch (e) {
+                  setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+                }
+              }}
+              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm"
+            >
+              Попробовать Cinematic (реалистичнее)
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await acceptEscapeHatch(video.id, 'keep_static');
+                  const updated = await getVideo(videoId);
+                  setVideo(updated);
+                } catch (e) {
+                  setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+                }
+              }}
+              className="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+            >
+              Оставить статичный кадр (50% возврат)
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await acceptEscapeHatch(video.id, 'refund');
+                  const updated = await getVideo(videoId);
+                  setVideo(updated);
+                } catch (e) {
+                  setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+                }
+              }}
+              className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm"
+            >
+              Вернуть токены полностью
+            </button>
+          </div>
         </div>
       )}
 
@@ -284,6 +350,8 @@ const StatusBadge: React.FC<{ status: VideoDetail['status'] }> = ({ status }) =>
     failed: { label: 'Ошибка', cls: 'bg-red-100 text-red-700' },
     approved: { label: 'Утверждён', cls: 'bg-green-100 text-green-800' },
     rejected: { label: 'Отклонён', cls: 'bg-gray-200 text-gray-700' },
+    escape_hatch_offered: { label: 'Требует выбора', cls: 'bg-yellow-100 text-yellow-800' },
+    cancelled: { label: 'Отменён', cls: 'bg-gray-200 text-gray-700' },
   };
   const m = map[status] ?? { label: status, cls: 'bg-gray-100 text-gray-700' };
   return <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${m.cls}`}>{m.label}</span>;
