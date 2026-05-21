@@ -112,7 +112,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
         if (!(s.image_prompt ?? '').trim()) { toast.error('Imagen-сцена: image_prompt обязателен'); return; }
       }
     }
-    if (klingCount > 2) { toast.error('Не больше 2 kling-сцен на ролик'); return; }
+    if (klingCount > 12) { toast.error('Не больше 12 kling-сцен на ролик (60-сек макс)'); return; }
     setSaving(true);
     try {
       const body: any = {
@@ -287,7 +287,8 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
             </div>
           </div>
 
-          {/* B-roll */}
+          {/* B-roll — только для классики. В premium-режиме весь визуал — kling-сцены. */}
+          {!isPremium && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-medium text-gray-600">Визуальные вставки (B-roll)</label>
@@ -344,6 +345,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
               )}
             </div>
           </div>
+          )}
 
           {/* Premium scenes — only for premium scenarios */}
           {isPremium && (
@@ -360,8 +362,9 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                 </button>
               </div>
               <p className="text-xs text-gray-500 mb-2">
-                kling-сцены: nano-banana keyframe → kling 2.0 motion. Максимум 2 kling-сцены на ролик.
-                Imagen-сцены: статичная картинка, как обычный b-roll.
+                Каждая сцена = 5 сек kling-клипа. Сцены идут подряд и покрывают весь ролик.
+                Последний кадр предыдущей сцены автоматически становится стартовым следующей —
+                бесшовный переход. Для 30-сек ролика нужно 6 сцен, для 15-сек — 3.
               </p>
               <div className="space-y-2">
                 {scenes.map((s, i) => (
