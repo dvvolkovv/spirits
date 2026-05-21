@@ -168,7 +168,17 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
           <span>·</span>
           <span>{ROLE_LABEL[scenario.assistantRole] ?? scenario.assistantRole}</span>
           <span>·</span>
-          <span>{scenario.ttsTier === 'premium' ? 'Премиум' : 'Эконом'}</span>
+          <span>{scenario.ttsTier === 'premium' ? 'Голос: Премиум' : 'Голос: Эконом'}</span>
+          {scenario.premiumGenre && (
+            <>
+              <span>·</span>
+              <span className="text-purple-600 font-medium">
+                {scenario.premiumGenre === 'surreal' ? '✨ Surreal' :
+                 scenario.premiumGenre === 'pov' ? '👤 POV' :
+                 '🎬 Cinematic'}
+              </span>
+            </>
+          )}
         </div>
       </div>
       <div className="px-4 py-3 space-y-2">
