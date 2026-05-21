@@ -41,23 +41,21 @@ VITE_MAINTENANCE_MODE=false               # переключает на Maintena
 
 ## Деплой фронта
 
-**Рекомендуемый путь — `scripts/deploy.sh` в spirits_back** — он строит фронт, синкает его, синкает бэк, рестартит PM2 и автоматически прогоняет smoke (unit + API/DB + Playwright):
+**Единственный путь — `scripts/deploy.sh` в spirits_back**, двухфазный (test → smoke → prod → smoke):
 
 ```bash
 bash ~/Downloads/spirits_back/scripts/deploy.sh
 ```
 
-### Ручной деплой только фронта (без smoke)
-```bash
-cd ~/Downloads/spirits_front
-echo "VITE_BACKEND_URL=https://my.linkeon.io" > .env
-pnpm build
-rsync -az --delete dist/ dvolkov@212.113.106.202:/home/dvolkov/spirits_front/
-```
-После ручного деплоя — прогнать smoke вручную:
-```bash
-bash ~/Downloads/spirits_back/tests/smoke/run.sh
-```
+Сначала катит на `test.linkeon.io` (`dv@85.192.61.231`) и гонит там полный smoke. Только если зелёный — катит на прод `my.linkeon.io` и гонит smoke там. Если test красный — прод не трогается.
+
+Полезные флаги (full list — в шапке `~/Downloads/spirits_back/scripts/deploy.sh`):
+- `FRONT_ONLY=1` — пропустить backend в обеих фазах
+- `TEST_ONLY=1` — только test (проверить что test зелёный, прод не трогать)
+- `PROD_ONLY=1` — только прод (hotfix в обход test, осторожно)
+- `SKIP_SMOKE=1` / `SKIP_TEST_SMOKE=1` / `SKIP_PROD_SMOKE=1`
+
+Тестовый сервер `test.linkeon.io` защищён Basic Auth на уровне Nginx. Логин/пароль — в `~/Downloads/spirits_back/scripts/test-server.env.local` (gitignored), создаётся `scripts/provision-test.sh` при первоначальной настройке.
 
 ## Архитектура
 
@@ -234,5 +232,4 @@ const { t } = useTranslation();
 
 ## Деплой
 
-Проект деплоится как статический SPA. Сборка: `pnpm build` → `/dist`.
-Сервер должен отдавать `index.html` для всех маршрутов (SPA-режим).
+См. секцию **«Деплой фронта»** в начале файла. Двухфазный пайплайн через `~/Downloads/spirits_back/scripts/deploy.sh`. Проект — статический SPA, сборка `pnpm build → /dist`, Nginx отдаёт `index.html` для всех маршрутов.
