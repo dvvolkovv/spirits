@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { apiClient } from '../../../services/apiClient';
 import { ScenarioDetail, DialogTurn, BrollPrompt } from './smm-api';
 
+type PremiumScene = NonNullable<ScenarioDetail['scenes']>[number];
+
 interface Props {
   scenario: ScenarioDetail;
   onClose: () => void;
@@ -45,7 +47,11 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
   const [broll, setBroll] = useState<BrollPrompt[]>(() =>
     (scenario.brollPrompts ?? []).map((b) => ({ ...b })),
   );
+  const [scenes, setScenes] = useState<PremiumScene[]>(() =>
+    (scenario.scenes ?? []).map((s) => ({ ...s })),
+  );
   const [saving, setSaving] = useState(false);
+  const isPremium = !!scenario.premiumGenre;
 
   const updateTurn = (i: number, patch: Partial<DialogTurn>) => {
     setDialog((prev) => prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
@@ -70,6 +76,14 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
   };
   const removeBroll = (i: number) => setBroll(broll.filter((_, idx) => idx !== i));
 
+  const updateScene = (i: number, patch: Partial<PremiumScene>) => {
+    setScenes((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  };
+  const addScene = () => {
+    setScenes([...scenes, { type: 'kling', keyframe_prompt: '', motion_prompt: '', duration: 5 }]);
+  };
+  const removeScene = (i: number) => setScenes(scenes.filter((_, idx) => idx !== i));
+
   const handleSave = async () => {
     if (!title.trim()) { toast.error('Заголовок не может быть пустым'); return; }
     if (dialog.length === 0) { toast.error('Нужна хотя бы одна реплика'); return; }
@@ -80,9 +94,20 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
     for (const b of broll) {
       if (!b.prompt.trim()) { toast.error('B-roll промпт не может быть пустым'); return; }
     }
+    let klingCount = 0;
+    for (const s of scenes) {
+      if (s.type === 'kling') {
+        if (!(s.keyframe_prompt ?? '').trim()) { toast.error('Kling-сцена: keyframe_prompt обязателен'); return; }
+        if (!(s.motion_prompt ?? '').trim()) { toast.error('Kling-сцена: motion_prompt обязателен'); return; }
+        klingCount++;
+      } else {
+        if (!(s.image_prompt ?? '').trim()) { toast.error('Imagen-сцена: image_prompt обязателен'); return; }
+      }
+    }
+    if (klingCount > 2) { toast.error('Не больше 2 kling-сцен на ролик'); return; }
     setSaving(true);
     try {
-      const body = {
+      const body: any = {
         title: title.trim(),
         mood,
         assistant_role: role,
@@ -98,6 +123,16 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
           prompt: b.prompt.trim(),
         })),
       };
+      if (isPremium) {
+        body.scenes = scenes.map((s) => ({
+          type: s.type,
+          ...(s.type === 'kling'
+            ? { keyframe_prompt: (s.keyframe_prompt ?? '').trim(), motion_prompt: (s.motion_prompt ?? '').trim() }
+            : { image_prompt: (s.image_prompt ?? '').trim() }
+          ),
+          duration: s.duration ?? 5,
+        }));
+      }
       const r = await apiClient.patch(`/webhook/smm/scenarios/${scenario.id}`, body);
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
@@ -111,6 +146,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
         assistantRole: body.assistant_role,
         dialog: body.dialog,
         brollPrompts: body.broll_prompts,
+        ...(isPremium ? { scenes: body.scenes } : {}),
       });
       onClose();
     } catch (e: any) {
@@ -300,6 +336,93 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
               )}
             </div>
           </div>
+
+          {/* Premium scenes — only for premium scenarios */}
+          {isPremium && (
+            <div className="border-t border-purple-100 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-medium text-purple-700">
+                  🎬 Premium-сцены ({scenario.premiumGenre})
+                </label>
+                <button
+                  onClick={addScene}
+                  className="text-xs text-purple-700 hover:text-purple-800 inline-flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" /> Сцена
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mb-2">
+                kling-сцены: nano-banana keyframe → kling 2.0 motion. Максимум 2 kling-сцены на ролик.
+                Imagen-сцены: статичная картинка, как обычный b-roll.
+              </p>
+              <div className="space-y-2">
+                {scenes.map((s, i) => (
+                  <div key={i} className="border border-purple-200 rounded p-2 space-y-1.5 bg-purple-50">
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={s.type}
+                        onChange={(e) => updateScene(i, { type: e.target.value as PremiumScene['type'] })}
+                        className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
+                      >
+                        <option value="kling">✨ Kling (animated)</option>
+                        <option value="imagen">🎨 Imagen (static)</option>
+                      </select>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <span>длительность</span>
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={s.duration ?? 5}
+                          onChange={(e) => updateScene(i, { duration: parseFloat(e.target.value) || 5 })}
+                          className="w-14 px-1.5 py-1 border border-gray-300 rounded"
+                        />
+                        <span>с</span>
+                      </div>
+                      <button
+                        onClick={() => removeScene(i)}
+                        className="ml-auto text-red-500 hover:text-red-700"
+                        title="Удалить сцену"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {s.type === 'kling' ? (
+                      <>
+                        <textarea
+                          value={s.keyframe_prompt ?? ''}
+                          onChange={(e) => updateScene(i, { keyframe_prompt: e.target.value })}
+                          rows={2}
+                          className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
+                          placeholder="keyframe_prompt — стартовый кадр (что видно, освещение, стиль)"
+                        />
+                        <textarea
+                          value={s.motion_prompt ?? ''}
+                          onChange={(e) => updateScene(i, { motion_prompt: e.target.value })}
+                          rows={2}
+                          className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
+                          placeholder="motion_prompt — что происходит за 5 секунд (одно конкретное движение/превращение)"
+                        />
+                      </>
+                    ) : (
+                      <textarea
+                        value={s.image_prompt ?? ''}
+                        onChange={(e) => updateScene(i, { image_prompt: e.target.value })}
+                        rows={2}
+                        className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
+                        placeholder="image_prompt для Imagen — статичный кадр"
+                      />
+                    )}
+                  </div>
+                ))}
+                {scenes.length === 0 && (
+                  <p className="text-xs text-gray-500 text-center py-3">
+                    Сцен нет — премиум-сценарий рендерится как классика
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-3 flex items-center justify-end gap-2">
