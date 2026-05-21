@@ -32,7 +32,7 @@ export function PremiumGenreTabs({ selected, onChange, disabled }: Props) {
         onClick={() => onChange(null)}
         disabled={disabled}
       >
-        Классика (бесплатно)
+        Классика
       </button>
       {GENRES.map(({ id, label, subtitle, Icon }) => (
         <button
