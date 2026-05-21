@@ -152,6 +152,10 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [taskDetails, setTaskDetails] = useState<Record<string, TaskDetails | 'loading' | 'error'>>({});
 
   // Body scroll lock + ESC handler
   useEffect(() => {
@@ -191,6 +195,42 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
     })();
     return () => { cancelled = true; };
   }, [phone, days]);
+
+  // Fetch tasks for the user (independent of days filter)
+  useEffect(() => {
+    if (!phone) { setTasks(null); return; }
+    let cancelled = false;
+    (async () => {
+      setTasksLoading(true);
+      try {
+        const resp = await apiClient.get(`/webhook/admin/users/${encodeURIComponent(phone)}/tasks`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        if (!cancelled) setTasks(Array.isArray(json) ? json : []);
+      } catch {
+        if (!cancelled) setTasks([]);
+      } finally {
+        if (!cancelled) setTasksLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [phone]);
+
+  const toggleTask = async (taskId: string) => {
+    if (expandedTaskId === taskId) { setExpandedTaskId(null); return; }
+    setExpandedTaskId(taskId);
+    if (!taskDetails[taskId]) {
+      setTaskDetails(s => ({ ...s, [taskId]: 'loading' }));
+      try {
+        const resp = await apiClient.get(`/webhook/admin/tasks/${taskId}?limit=30`);
+        if (!resp.ok) throw new Error('fetch failed');
+        const json = await resp.json();
+        setTaskDetails(s => ({ ...s, [taskId]: json }));
+      } catch {
+        setTaskDetails(s => ({ ...s, [taskId]: 'error' }));
+      }
+    }
+  };
 
   const maxValue = useMemo(() => {
     if (!data) return 0;
@@ -523,6 +563,122 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                         </span>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tasks — cross-agent operational memory */}
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between gap-2">
+                  <div className="text-sm font-medium text-gray-900 inline-flex items-center gap-1.5">
+                    <ClipboardList className="w-4 h-4 text-forest-600" />
+                    Задачи (операционная память)
+                  </div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[11px] font-medium tabular-nums">
+                    {tasks?.length ?? 0}
+                  </span>
+                </div>
+                {tasksLoading && !tasks ? (
+                  <div className="py-6 flex items-center justify-center">
+                    <Loader className="w-4 h-4 animate-spin text-forest-600" />
+                  </div>
+                ) : !tasks || tasks.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-6 text-center">
+                    Задач нет. LLM-extractor создаёт их автоматически после операционных диалогов.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+                    {tasks.map(task => {
+                      const isExpanded = expandedTaskId === task.id;
+                      const details = taskDetails[task.id];
+                      return (
+                        <div key={task.id}>
+                          <button
+                            onClick={() => toggleTask(task.id)}
+                            className="w-full px-4 py-2.5 flex items-start gap-2 text-left hover:bg-gray-50 transition-colors"
+                          >
+                            {isExpanded
+                              ? <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                              : <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-gray-800 truncate">{task.title}</span>
+                                <span
+                                  className={clsx(
+                                    'inline-block px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                    task.status === 'active'
+                                      ? 'bg-forest-50 text-forest-700'
+                                      : task.status === 'archived'
+                                        ? 'bg-gray-100 text-gray-600'
+                                        : 'bg-amber-50 text-amber-700',
+                                  )}
+                                >
+                                  {task.status}
+                                </span>
+                                {task.claudemd_locked && (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700">
+                                    <Lock className="w-2.5 h-2.5" /> locked
+                                  </span>
+                                )}
+                              </div>
+                              {task.summary && (
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{task.summary}</p>
+                              )}
+                              <p className="text-[10px] text-gray-400 mt-1">
+                                {formatRelative(task.last_active_at)}
+                              </p>
+                            </div>
+                          </button>
+                          {isExpanded && (
+                            <div className="px-8 pb-3 bg-gray-50/50 border-t border-gray-100">
+                              {details === 'loading' && (
+                                <div className="py-3 flex items-center justify-center">
+                                  <Loader className="w-3 h-3 animate-spin text-gray-400" />
+                                </div>
+                              )}
+                              {details === 'error' && (
+                                <p className="text-xs text-red-600 py-2">не удалось загрузить детали</p>
+                              )}
+                              {details && details !== 'loading' && details !== 'error' && (
+                                <>
+                                  {details.task.claudemd && (
+                                    <div className="mt-2">
+                                      <p className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">CLAUDE.md (manual)</p>
+                                      <pre className="text-[11px] text-gray-700 bg-white border border-gray-200 rounded p-2 whitespace-pre-wrap font-mono leading-relaxed max-h-48 overflow-y-auto">
+                                        {details.task.claudemd}
+                                      </pre>
+                                    </div>
+                                  )}
+                                  <div className="mt-2">
+                                    <p className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
+                                      События ({details.events.length})
+                                    </p>
+                                    <div className="space-y-1">
+                                      {details.events.map(ev => (
+                                        <div key={ev.id} className="text-[11px] bg-white border border-gray-200 rounded p-2">
+                                          <div className="flex items-baseline gap-2 text-[10px] text-gray-400 mb-0.5">
+                                            <span className={clsx(
+                                              'inline-block px-1 py-0 rounded',
+                                              ev.kind === 'milestone' ? 'bg-amber-50 text-amber-700'
+                                                : ev.kind === 'decision' ? 'bg-purple-50 text-purple-700'
+                                                : ev.kind === 'status_change' ? 'bg-gray-100 text-gray-600'
+                                                : 'bg-blue-50 text-blue-700'
+                                            )}>{ev.kind}</span>
+                                            {ev.agent_id && <span>agent #{ev.agent_id}</span>}
+                                            <span className="ml-auto">{formatDateTime(ev.created_at)}</span>
+                                          </div>
+                                          <p className="text-gray-700 whitespace-pre-wrap">{ev.content}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
