@@ -380,15 +380,14 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                       </select>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
                         <span>длительность</span>
-                        <input
-                          type="number"
-                          min={1}
-                          step={1}
-                          value={s.duration ?? 5}
-                          onChange={(e) => updateScene(i, { duration: parseFloat(e.target.value) || 5 })}
-                          className="w-14 px-1.5 py-1 border border-gray-300 rounded"
-                        />
-                        <span>с</span>
+                        <select
+                          value={s.duration === 10 ? 10 : 5}
+                          onChange={(e) => updateScene(i, { duration: parseInt(e.target.value, 10) })}
+                          className="text-xs px-1.5 py-1 border border-gray-300 rounded bg-white"
+                        >
+                          <option value={5}>5 с</option>
+                          <option value={10}>10 с</option>
+                        </select>
                       </div>
                       <button
                         onClick={() => removeScene(i)}

@@ -18,6 +18,7 @@ import AdminPage from './pages/AdminPage';
 import ReferralPage from './pages/ReferralPage';
 import ImageGenPage from './pages/ImageGenPage';
 import VideoPage from './pages/VideoPage';
+import MyVideosPage from './pages/MyVideosPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import TokenPurchasePage from './pages/TokenPurchasePage';
 import MaintenancePage from './pages/MaintenancePage';
@@ -67,6 +68,7 @@ const AppContent: React.FC = () => {
             <Route path="/referral" element={<ReferralPage />} />
             <Route path="/image-gen" element={<ImageGenPage />} />
             <Route path="/video" element={<VideoPage />} />
+            <Route path="/my-videos" element={<MyVideosPage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/support" element={<SupportPage />} />
             <Route path="/contact-requests" element={<ContactRequestsPage />} />
