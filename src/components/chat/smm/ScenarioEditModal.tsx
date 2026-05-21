@@ -48,7 +48,15 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
     (scenario.brollPrompts ?? []).map((b) => ({ ...b })),
   );
   const [scenes, setScenes] = useState<PremiumScene[]>(() =>
-    (scenario.scenes ?? []).map((s) => ({ ...s })),
+    // Backward-compat: Юля сначала писала imagen-сцены с полем `prompt`,
+    // потом перешла на `image_prompt`. Нормализуем при загрузке.
+    (scenario.scenes ?? []).map((s) => {
+      const sx = s as any;
+      return {
+        ...s,
+        image_prompt: s.image_prompt ?? sx.prompt ?? undefined,
+      };
+    }),
   );
   const [saving, setSaving] = useState(false);
   const isPremium = !!scenario.premiumGenre;
