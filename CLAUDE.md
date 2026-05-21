@@ -9,6 +9,7 @@
 - **Frontend (этот репо):** `~/Downloads/spirits_front/`
 - **Backend (NestJS):** `~/Downloads/spirits_back/` → деплоится на `ssh dvolkov@212.113.106.202`
 - **Сервер (единый для API + статики фронта):** `ssh dvolkov@212.113.106.202`, PM2 процесс `linkeon-api` на порту 3001, статика фронта в `/home/dvolkov/spirits_front/` через Nginx
+- **Тестовый сервер (Linkeon-test):** `ssh dv@85.192.61.231` (Ubuntu 24.04, hostname `ugliest-salmon.ptr.network`). Пользователь `dv` имеет NOPASSWD sudo и доступ по SSH-ключу. Для тестовых развёртываний — не путать с продом.
 
 ## Стек
 
