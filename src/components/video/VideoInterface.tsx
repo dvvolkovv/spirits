@@ -40,6 +40,21 @@ export default function VideoInterface() {
     setTab('create');
   }
 
+  function onRepeat(j: VideoJob) {
+    // «Сделать заново» — копируем prompt + параметры в форму, юзер нажимает «Создать»
+    // (не auto-submit чтобы можно было что-то подкорректировать). Длительность
+    // должна быть 5 или 10 — приводим к ближайшему допустимому значению.
+    const duration: 5 | 10 = j.duration_sec >= 10 ? 10 : 5;
+    setPrefill({
+      mode: (j.mode as FormState['mode']) ?? 'text2video',
+      model: j.model as FormState['model'],
+      quality: j.quality as FormState['quality'],
+      duration,
+      prompt: j.prompt ?? '',
+    });
+    setTab('create');
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -87,7 +102,7 @@ export default function VideoInterface() {
           />
         )}
         {tab === 'gallery' && (
-          <VideoGallery jobs={jobs} loading={loading} onDelete={deleteJob} onExtend={onExtend} onLipsync={onLipsync} />
+          <VideoGallery jobs={jobs} loading={loading} onDelete={deleteJob} onExtend={onExtend} onLipsync={onLipsync} onRepeat={onRepeat} />
         )}
         {tab === 'smm' && <MyVideosList />}
       </div>

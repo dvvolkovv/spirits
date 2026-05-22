@@ -9,9 +9,10 @@ interface Props {
   onDelete: (id: string) => void;
   onExtend: (job: VideoJob) => void;
   onLipsync: (job: VideoJob) => void;
+  onRepeat?: (job: VideoJob) => void;
 }
 
-export default function VideoGallery({ jobs, loading, onDelete, onExtend, onLipsync }: Props) {
+export default function VideoGallery({ jobs, loading, onDelete, onExtend, onLipsync, onRepeat }: Props) {
   const { t } = useTranslation();
 
   if (loading) {
@@ -43,6 +44,7 @@ export default function VideoGallery({ jobs, loading, onDelete, onExtend, onLips
             onDelete={onDelete}
             onExtend={onExtend}
             onLipsync={onLipsync}
+            onRepeat={onRepeat}
           />
         ))}
       </div>

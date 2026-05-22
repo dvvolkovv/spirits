@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Download, Film, Mic, Trash2, AlertCircle, Loader2, X, Check } from 'lucide-react';
+import { Play, Download, Film, Mic, Trash2, AlertCircle, Loader2, X, Check, RotateCcw } from 'lucide-react';
 import { clsx } from 'clsx';
 import { VideoJob } from './useVideoJobs';
 
@@ -9,6 +9,7 @@ interface Props {
   onDelete?: (id: string) => void;
   onExtend?: (job: VideoJob) => void;
   onLipsync?: (job: VideoJob) => void;
+  onRepeat?: (job: VideoJob) => void;
   onSendToChat?: (job: VideoJob) => void;
   compact?: boolean;
 }
@@ -20,7 +21,7 @@ function formatElapsed(startIso: string) {
   return `${m}:${s}`;
 }
 
-export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSendToChat, compact }: Props) {
+export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onRepeat, onSendToChat, compact }: Props) {
   const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(() => formatElapsed(job.created_at));
   const [open, setOpen] = useState(false);
@@ -177,6 +178,16 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onSen
                       title={t('video.job.titles.lipsync')}
                     >
                       <Mic className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {onRepeat && (
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); onRepeat(job); }}
+                      className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
+                      title="Сделать заново — те же параметры, тот же промпт"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
