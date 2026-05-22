@@ -5,8 +5,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useVideoJobs, VideoJob } from './useVideoJobs';
 import VideoCreateForm, { FormState } from './VideoCreateForm';
 import VideoGallery from './VideoGallery';
+import { MyVideosList } from '../chat/smm/MyVideosList';
 
-type Tab = 'create' | 'gallery';
+type Tab = 'create' | 'gallery' | 'smm';
 
 export default function VideoInterface() {
   const { t } = useTranslation();
@@ -43,18 +44,22 @@ export default function VideoInterface() {
 
       {/* Tabs */}
       <div className="flex border-b border-gray-100 flex-shrink-0 bg-white px-4">
-        {(['create', 'gallery'] as const).map((x) => (
+        {([
+          { id: 'create', label: t('video.tabs.create') },
+          { id: 'gallery', label: t('video.tabs.gallery') },
+          { id: 'smm', label: 'SMM-ролики (Юля)' },
+        ] as const).map((x) => (
           <button
-            key={x}
+            key={x.id}
             type="button"
-            onClick={() => setTab(x)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
-              tab === x
+            onClick={() => setTab(x.id as Tab)}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap ${
+              tab === x.id
                 ? 'border-forest-600 text-forest-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            {t(`video.tabs.${x}`)}
+            {x.label}
           </button>
         ))}
       </div>
@@ -70,6 +75,7 @@ export default function VideoInterface() {
         {tab === 'gallery' && (
           <VideoGallery jobs={jobs} loading={loading} onDelete={deleteJob} onExtend={onExtend} onLipsync={onLipsync} />
         )}
+        {tab === 'smm' && <MyVideosList />}
       </div>
     </div>
   );
