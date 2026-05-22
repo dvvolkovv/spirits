@@ -20,7 +20,9 @@ import {
   RotateCcw,
   Calendar,
   Upload,
+  Film,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { useImageGen } from '../../contexts/ImageGenContext';
@@ -46,6 +48,7 @@ const PROMPT_EXAMPLES = [
 
 const ImageGenInterface: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const {
     prompt, setPrompt,
     settings, setSettings,
@@ -324,6 +327,21 @@ const ImageGenInterface: React.FC = () => {
                 >
                   <RotateCcw className="w-4 h-4" />
                   Использовать промпт
+                </button>
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      mode: 'image2video',
+                      sourceImageUrl: detailsItem.image_url,
+                    });
+                    setDetailsItem(null);
+                    navigate(`/video?${params.toString()}`);
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-forest-200 text-forest-700 hover:bg-forest-50 text-sm font-medium flex items-center justify-center gap-2"
+                  title="Создать видео из этой картинки"
+                >
+                  <Film className="w-4 h-4" />
+                  Сделать видео
                 </button>
                 <button
                   onClick={() => handleDownload(detailsItem.image_url, detailsItem.id)}

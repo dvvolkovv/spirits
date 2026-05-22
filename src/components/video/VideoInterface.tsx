@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Film, Coins } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useVideoJobs, VideoJob } from './useVideoJobs';
 import VideoCreateForm, { FormState } from './VideoCreateForm';
@@ -15,6 +16,19 @@ export default function VideoInterface() {
   const { jobs, loading, deleteJob, refetch } = useVideoJobs();
   const [tab, setTab] = useState<Tab>('create');
   const [prefill, setPrefill] = useState<Partial<FormState>>({});
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Принять prefill из ?mode=...&sourceImageUrl=... (приход с /image-gen «Сделать видео»).
+  // Очищаем query, чтобы reload и переключение вкладок не реактивировали prefill.
+  useEffect(() => {
+    const sourceImageUrl = searchParams.get('sourceImageUrl');
+    const mode = searchParams.get('mode') as FormState['mode'] | null;
+    if (sourceImageUrl && mode === 'image2video') {
+      setPrefill({ mode, sourceImageUrl });
+      setTab('create');
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   function onExtend(j: VideoJob) {
     setPrefill({ mode: 'extend', sourceVideoId: j.id, model: j.model as FormState['model'], quality: j.quality as FormState['quality'] });
