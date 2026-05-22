@@ -7,15 +7,10 @@ import {
   regenerateScenario,
   rejectScenario,
   ScenarioDetail,
-  PremiumGenre,
-  PremiumPreview,
-  setScenarioPremiumGenre,
 } from './smm-api';
 import { SmmVideoPlayer } from './SmmVideoPlayer';
 import ScenarioEditModal from './ScenarioEditModal';
 import CreatorBrandingModal from './CreatorBrandingModal';
-import { PremiumGenreTabs } from './PremiumGenreTabs';
-import { PremiumPreviewBlock } from './PremiumPreviewBlock';
 
 interface Props {
   scenarioId: string;
@@ -45,9 +40,6 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
   const [renderedVideoId, setRenderedVideoId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
-  const [premiumGenre, setPremiumGenre] = useState<PremiumGenre | null>(null);
-  const [premiumPreview, setPremiumPreview] = useState<PremiumPreview | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -59,8 +51,6 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
         setScenario(s);
         // Restore videoId from backend so player shows after page reload too.
         if (s.videoId) setRenderedVideoId(s.videoId);
-        // Restore premium genre if already set on scenario.
-        if (s.premiumGenre) setPremiumGenre(s.premiumGenre);
         setLoading(false);
       })
       .catch((e) => { if (alive) { setError(e.message); setLoading(false); } });
@@ -122,20 +112,6 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
     }
   };
 
-  async function handleGenreChange(g: PremiumGenre | null) {
-    setPremiumGenre(g);
-    if (g === null) { setPremiumPreview(null); return; }
-    setLoadingPreview(true);
-    try {
-      const result = await setScenarioPremiumGenre(scenarioId, g);
-      if (result.preview) setPremiumPreview(result.preview);
-    } catch (e: any) {
-      console.error('setScenarioPremiumGenre failed:', e.message);
-    } finally {
-      setLoadingPreview(false);
-    }
-  }
-
   if (loading) {
     return (
       <div className="my-3 inline-flex items-center space-x-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
@@ -169,16 +145,6 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
           <span>{ROLE_LABEL[scenario.assistantRole] ?? scenario.assistantRole}</span>
           <span>·</span>
           <span>{scenario.ttsTier === 'premium' ? 'Голос: Премиум' : 'Голос: Эконом'}</span>
-          {scenario.premiumGenre && (
-            <>
-              <span>·</span>
-              <span className="text-purple-600 font-medium">
-                {scenario.premiumGenre === 'surreal' ? '✨ Surreal' :
-                 scenario.premiumGenre === 'pov' ? '👤 POV' :
-                 '🎬 Cinematic'}
-              </span>
-            </>
-          )}
         </div>
       </div>
       <div className="px-4 py-3 space-y-2">
