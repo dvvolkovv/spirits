@@ -142,8 +142,6 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
         <div className="flex items-center gap-3 text-xs text-gray-500">
           <span>{MOOD_EMOJI[scenario.mood] ?? '◽'} {scenario.mood}</span>
           <span>·</span>
-          <span>{ROLE_LABEL[scenario.assistantRole] ?? scenario.assistantRole}</span>
-          <span>·</span>
           <span>{scenario.ttsTier === 'premium' ? 'Голос: Премиум' : 'Голос: Эконом'}</span>
         </div>
       </div>
