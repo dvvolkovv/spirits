@@ -804,9 +804,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [welcomeMessage, messages.length]);
 
+  // Скролл к низу — ТОЛЬКО при первой загрузке истории для каждого ассистента.
+  // Раньше этот эффект безусловно прыгал вниз на каждом изменении messages, из-за
+  // чего polling /webhook/chat/history (раз в 8с) перетягивал юзера обратно вниз
+  // когда тот листал вверх. Follow streaming уже обрабатывается условным эффектом
+  // выше (только если уже near-bottom).
+  const initialScrollDoneForAssistantRef = useRef<number | null>(null);
   useEffect(() => {
+    const aid = selectedAssistant?.id ?? null;
+    if (initialScrollDoneForAssistantRef.current === aid) return;
+    if (historyLoading) return;
+    if (messages.length === 0) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
-  }, [messages]);
+    initialScrollDoneForAssistantRef.current = aid;
+  }, [messages.length, selectedAssistant?.id, historyLoading]);
 
   // Initialize speech recognition
   useEffect(() => {
