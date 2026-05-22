@@ -46,6 +46,30 @@ const PROMPT_EXAMPLES = [
   { label: 'Акварельный Токио', text: 'Улочка старого Токио с красными фонарями, дождь, акварельная иллюстрация, мягкие размытия' },
 ];
 
+// Иконка-кнопка для action-панели на карточке картинки. Tailwind tooltip через
+// group-hover (group/btn — именованный, чтобы не конфликтовать с group самой карточки).
+const CardIconBtn: React.FC<{
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  danger?: boolean;
+}> = ({ onClick, icon: Icon, label, danger }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={label}
+    className={clsx(
+      'relative group/btn p-1.5 rounded-full transition-colors',
+      danger ? 'bg-red-500/90 hover:bg-red-600' : 'bg-white/90 hover:bg-white',
+    )}
+  >
+    <Icon className={clsx('w-3.5 h-3.5', danger ? 'text-white' : 'text-forest-700')} />
+    <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 rounded bg-gray-900 text-white text-[10px] font-medium whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity z-20 shadow-lg">
+      {label}
+    </span>
+  </button>
+);
+
 const ImageGenInterface: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -715,21 +739,19 @@ const ImageGenInterface: React.FC = () => {
                   <div key={h.id} className="relative group rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
                     <img src={h.image_url} alt={h.prompt} className="w-full aspect-square object-cover cursor-pointer" onClick={() => setLightboxImg(h.image_url)} loading="lazy" />
                     <div className="absolute inset-x-0 top-0 p-2 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 bg-gradient-to-b from-black/50 to-transparent transition-opacity">
-                      <button onClick={() => setDetailsItem(h)} className="p-1.5 bg-white/90 rounded-full hover:bg-white" title="Детали">
-                        <Info className="w-3.5 h-3.5 text-forest-700" />
-                      </button>
-                      <button onClick={() => openEdit(h.image_url)} className="p-1.5 bg-white/90 rounded-full hover:bg-white" title="Редактировать">
-                        <Wand2 className="w-3.5 h-3.5 text-forest-700" />
-                      </button>
-                      <button onClick={() => openCompose(h.image_url)} className="p-1.5 bg-white/90 rounded-full hover:bg-white" title="Объединить">
-                        <Layers className="w-3.5 h-3.5 text-forest-700" />
-                      </button>
-                      <button onClick={() => handleUpscale(h.image_url)} className="p-1.5 bg-white/90 rounded-full hover:bg-white" title="Улучшить качество">
-                        <Maximize2 className="w-3.5 h-3.5 text-forest-700" />
-                      </button>
-                      <button onClick={() => deleteImage(h.id)} className="p-1.5 bg-red-500/90 text-white rounded-full hover:bg-red-600" title="Удалить">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
+                      <CardIconBtn onClick={() => setDetailsItem(h)} icon={Info} label="Детали" />
+                      <CardIconBtn onClick={() => openEdit(h.image_url)} icon={Wand2} label="Редактировать" />
+                      <CardIconBtn onClick={() => openCompose(h.image_url)} icon={Layers} label="Объединить" />
+                      <CardIconBtn
+                        onClick={() => {
+                          const params = new URLSearchParams({ mode: 'image2video', sourceImageUrl: h.image_url });
+                          navigate(`/video?${params.toString()}`);
+                        }}
+                        icon={Film}
+                        label="Сделать видео"
+                      />
+                      <CardIconBtn onClick={() => handleUpscale(h.image_url)} icon={Maximize2} label="Улучшить качество" />
+                      <CardIconBtn onClick={() => deleteImage(h.id)} icon={X} label="Удалить" danger />
                     </div>
                     <div className="p-2">
                       <p className="text-[10px] text-gray-500 line-clamp-2">{h.prompt}</p>

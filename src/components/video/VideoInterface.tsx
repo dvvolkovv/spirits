@@ -14,20 +14,31 @@ export default function VideoInterface() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { jobs, loading, deleteJob, refetch } = useVideoJobs();
-  const [tab, setTab] = useState<Tab>('create');
-  const [prefill, setPrefill] = useState<Partial<FormState>>({});
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Принять prefill из ?mode=...&sourceImageUrl=... (приход с /image-gen «Сделать видео»).
-  // Очищаем query, чтобы reload и переключение вкладок не реактивировали prefill.
-  useEffect(() => {
+  // ВАЖНО: инициализируем СИНХРОННО (через ленивый initializer useState), потому что
+  // VideoCreateForm читает defaults один раз в своём useState — если выставлять prefill
+  // через useEffect ПОСЛЕ монтирования, форма уже инициализировалась с дефолтами и
+  // sourceImageUrl/mode не подхватит.
+  const initialPrefill = (): Partial<FormState> => {
     const sourceImageUrl = searchParams.get('sourceImageUrl');
     const mode = searchParams.get('mode') as FormState['mode'] | null;
     if (sourceImageUrl && mode === 'image2video') {
-      setPrefill({ mode, sourceImageUrl });
-      setTab('create');
+      return { mode, sourceImageUrl };
+    }
+    return {};
+  };
+
+  const [tab, setTab] = useState<Tab>('create');
+  const [prefill, setPrefill] = useState<Partial<FormState>>(initialPrefill);
+
+  // Чистим query после монтирования, чтобы reload и переключение вкладок не реактивировали prefill.
+  useEffect(() => {
+    if (searchParams.has('sourceImageUrl') || searchParams.has('mode')) {
       setSearchParams({}, { replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function onExtend(j: VideoJob) {
