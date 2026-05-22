@@ -39,6 +39,7 @@ const ProfileTasks: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, TaskDetails | 'loading' | 'error'>>({});
   const [mutatingId, setMutatingId] = useState<string | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -96,6 +97,7 @@ const ProfileTasks: React.FC = () => {
   };
 
   const activeCount = tasks?.filter(t => t.status === 'active').length ?? 0;
+  const inactiveCount = tasks?.filter(t => t.status !== 'active').length ?? 0;
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -108,6 +110,20 @@ const ProfileTasks: React.FC = () => {
           {activeCount}
         </span>
       </div>
+
+      {tasks && inactiveCount > 0 && (
+        <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50">
+          <label className="inline-flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="w-3 h-3"
+            />
+            {t('profile.tasks.showInactive', 'Показать завершённые и архив')} ({inactiveCount})
+          </label>
+        </div>
+      )}
 
       {mutateError && (
         <div className="px-4 py-2 text-xs text-red-700 bg-red-50 border-b border-red-100">
@@ -133,7 +149,7 @@ const ProfileTasks: React.FC = () => {
       ) : (
         <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
           {tasks
-            .filter(task => task.status === 'active')
+            .filter(task => showInactive ? true : task.status === 'active')
             .map(task => {
               const badge = statusBadge(task.status);
               return (
