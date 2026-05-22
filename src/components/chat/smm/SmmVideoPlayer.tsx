@@ -141,7 +141,9 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
       {isRendering && (
         <div className="px-4 py-6 text-center text-sm text-gray-500">
           <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-forest-500" />
-          <p>Рендерим… (~1 минута)</p>
+          <p>Рендерим… {(video as any).premiumGenre
+            ? `(~${(((video as any).klingSceneCount ?? 1) * 3 + 2)} мин — premium с kling)`
+            : '(~1 минута)'}</p>
         </div>
       )}
 
