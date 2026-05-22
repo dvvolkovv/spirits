@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import {
   X, Loader, AlertCircle, Coins, MessageSquare, Image as ImageIcon,
-  Video, Phone, ArrowDown, ArrowUp, Activity, CreditCard,
+  Video, Phone, ArrowDown, ArrowUp, Activity, CreditCard, ClipboardList,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
