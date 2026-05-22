@@ -100,6 +100,11 @@ const AdminUsageView: React.FC = () => {
     return Math.max(1, ...data.byAssistant.map(a => metric === 'tokens' ? a.tokens : a.queries));
   }, [data, metric]);
 
+  const totalRowValue = useMemo(() => {
+    if (!data) return 0;
+    return data.byAssistant.reduce((sum, a) => sum + (metric === 'tokens' ? a.tokens : a.queries), 0);
+  }, [data, metric]);
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
@@ -316,7 +321,11 @@ const AdminUsageView: React.FC = () => {
                 <tbody className="divide-y divide-gray-100">
                   {data.byAssistant.map((a, idx) => {
                     const v = metric === 'tokens' ? a.tokens : a.queries;
-                    const pct = maxRowValue > 0 ? (v / maxRowValue) * 100 : 0;
+                    // Доля юзера среди всех агентов (сумма всех долей = 100%).
+                    const pct = totalRowValue > 0 ? (v / totalRowValue) * 100 : 0;
+                    // Bar-ширина — относительно максимума, чтобы график визуально различался
+                    // между рядами (топ-агент = 100% полоса).
+                    const barPct = maxRowValue > 0 ? (v / maxRowValue) * 100 : 0;
                     const avg = a.queries > 0 ? Math.round(a.tokens / a.queries) : 0;
                     return (
                       <tr key={a.id} className="hover:bg-gray-50 transition-colors">
@@ -342,10 +351,10 @@ const AdminUsageView: React.FC = () => {
                             <div className="flex-1 max-w-[120px] h-1.5 bg-gray-100 rounded-full overflow-hidden">
                               <div
                                 className={clsx('h-full rounded-full', metric === 'tokens' ? 'bg-amber-500' : 'bg-forest-600')}
-                                style={{ width: `${pct}%` }}
+                                style={{ width: `${barPct}%` }}
                               />
                             </div>
-                            <span className="text-[10px] text-gray-400 w-9 text-right">{pct.toFixed(0)}%</span>
+                            <span className="text-[10px] text-gray-400 w-9 text-right">{pct.toFixed(pct < 10 ? 1 : 0)}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-2.5 text-right text-xs text-gray-500">
