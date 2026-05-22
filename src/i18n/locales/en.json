@@ -140,7 +140,22 @@
     "name_help_text": "First and last name help other users get to know you better",
     "complete_name_prompt": "Fill in your first and last name so other users can get to know you better",
     "delete_error_no_phone": "Phone number not found",
-    "delete_error_status": "Profile deletion error: {{status}}"
+    "delete_error_status": "Profile deletion error: {{status}}",
+    "tasks": {
+      "title": "Tasks",
+      "empty": "No tasks yet. They appear automatically as you discuss ongoing matters with assistants.",
+      "loadError": "Failed to load tasks",
+      "detailsError": "Failed to load details",
+      "mutateError": "Failed to update status",
+      "events": "Events",
+      "assistantFallback": "Assistant",
+      "showInactive": "Show completed and archived",
+      "actions": {
+        "close": "Close",
+        "archive": "Archive",
+        "reopen": "Reopen"
+      }
+    }
   },
   "search": {
     "title": "Networking",
