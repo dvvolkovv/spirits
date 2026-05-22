@@ -213,19 +213,9 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
             </ul>
           </details>
         )}
-        <PremiumGenreTabs
-          selected={premiumGenre}
-          onChange={handleGenreChange}
-          disabled={loadingPreview || scenario.status !== 'pending_review'}
-        />
-        {premiumGenre && premiumPreview && (
-          <PremiumPreviewBlock
-            genre={premiumGenre}
-            preview={premiumPreview}
-            onGenerate={handleApprove}
-            generating={actionInflight === 'approve'}
-          />
-        )}
+        {/* PremiumGenreTabs / PremiumPreviewBlock временно отключены —
+            premium-режим (kling) выведен из публичного оффера. Существующие
+            premium-сценарии в DB продолжают рендериться корректно. */}
       </div>
       {isActionable ? (
         <div className="flex items-center gap-2 border-t border-forest-100 bg-forest-50 px-4 py-2 flex-wrap">
