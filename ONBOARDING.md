@@ -4,13 +4,13 @@
 
 ## 1. Что запросить у владельца (Дмитрия)
 
-| Доступ | Что именно |
-|--------|------------|
-| GitHub | Collaborator в `dvvolkovv/spirits` (этот репо) и `dvvolkovv/spirits_back` (NestJS-бэк) |
-| Секреты фронта | `.env` с `VITE_BACKEND_URL=https://my.linkeon.io` (если работаешь только локально — этого достаточно) |
-| Секреты бэка | Содержимое `~/Downloads/spirits_back/.env` (DB, JWT, SMS Aero, YooKassa, OpenAI, Neo4j, Redis). **Только через 1Password / Bitwarden shared vault, не через мессенджеры** |
-| SSH на сервера | Передать публичный ключ владельцу — он добавит в `authorized_keys`. Прод: `dvolkov@212.113.106.202`. Тест: `dv@85.192.61.231` |
-| Тестовые аккаунты | Уже описаны в `CLAUDE.md` (раздел «Тестовые аккаунты»). OTP получать через `GET /webhook/debug/sms-code/:phone` |
+| Доступ | Что именно | Статус |
+|--------|------------|--------|
+| GitHub | Collaborator в `dvvolkovv/spirits` (этот репо) и `dvvolkovv/spirits_back` (NestJS-бэк) | ✅ выдан |
+| SSH на сервера | Прод: `dvolkov@212.113.106.202`. Тест: `dv@85.192.61.231`. Ключ добавлен в `authorized_keys` | ✅ выдан |
+| Секреты фронта | `.env` с `VITE_BACKEND_URL=https://my.linkeon.io` (если работаешь только локально — этого достаточно) | запросить |
+| Секреты бэка | Содержимое `~/Downloads/spirits_back/.env` (DB, JWT, SMS Aero, YooKassa, OpenAI, Neo4j, Redis). **Только через 1Password / Bitwarden shared vault, не через мессенджеры** | запросить |
+| Тестовые аккаунты | Уже описаны в `CLAUDE.md` (раздел «Тестовые аккаунты»). OTP получать через `GET /webhook/debug/sms-code/:phone` | — |
 
 После добавления ключа — для удобства добавь в `~/.ssh/config`:
 
