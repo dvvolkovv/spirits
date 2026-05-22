@@ -1,8 +1,10 @@
 // src/components/chat/smm/MyVideosList.tsx
 // Список всех SMM-видео текущего юзера. Источник: GET /webhook/smm/videos
 import { useEffect, useState } from 'react';
-import { Film, Loader2, Sparkles, User, Clock } from 'lucide-react';
+import { Film, Loader2, Sparkles, User, Clock, RotateCcw } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { apiClient } from '../../../services/apiClient';
+import { regenerateVideo } from './smm-api';
 
 interface MyVideo {
   id: string;
@@ -40,6 +42,23 @@ export function MyVideosList() {
   const [videos, setVideos] = useState<MyVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState<string | null>(null);
+
+  async function handleRegenerate(id: string) {
+    if (!confirm('Перерендерить с нуля? Спишутся токены ещё раз (предыдущий mp4 сохранится в render_state).')) return;
+    setRegenerating(id);
+    try {
+      await regenerateVideo(id);
+      toast.success('Перерендер запущен — обнови страницу через минуту');
+      // Refresh list
+      const r = await apiClient.get('/webhook/smm/videos');
+      if (r.ok) setVideos(await r.json());
+    } catch (e: any) {
+      toast.error(`Не удалось: ${e?.message ?? 'ошибка'}`);
+    } finally {
+      setRegenerating(null);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -119,15 +138,29 @@ export function MyVideosList() {
                   )}
                   <span>{new Date(v.createdAt).toLocaleDateString('ru-RU')}</span>
                 </div>
-                {v.mp4Url && (
-                  <a
-                    href={v.mp4Url}
-                    download={`linkeon-smm-${v.id.slice(0, 8)}.mp4`}
-                    className="block text-xs text-blue-600 hover:text-blue-700 mt-1"
-                  >
-                    Скачать
-                  </a>
-                )}
+                <div className="flex items-center gap-3 text-xs mt-1">
+                  {v.mp4Url && (
+                    <a
+                      href={v.mp4Url}
+                      download={`linkeon-smm-${v.id.slice(0, 8)}.mp4`}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      Скачать
+                    </a>
+                  )}
+                  {['ready', 'approved', 'failed', 'rejected'].includes(v.status) && (
+                    <button
+                      onClick={() => handleRegenerate(v.id)}
+                      disabled={regenerating === v.id}
+                      className="inline-flex items-center gap-1 text-forest-700 hover:text-forest-800 disabled:opacity-50"
+                    >
+                      {regenerating === v.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <RotateCcw className="w-3 h-3" />}
+                      Сделать заново
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );
