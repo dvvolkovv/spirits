@@ -103,16 +103,24 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
       if (!b.prompt.trim()) { toast.error('B-roll промпт не может быть пустым'); return; }
     }
     let klingCount = 0;
+    let isFirstKling = true;
     for (const s of scenes) {
       if (s.type === 'kling') {
-        if (!(s.keyframe_prompt ?? '').trim()) { toast.error('Kling-сцена: keyframe_prompt обязателен'); return; }
+        // keyframe_prompt обязателен ТОЛЬКО для первой kling-сцены — остальные получают
+        // keyframe автоматически из последнего кадра предыдущей сцены (chain).
+        if (isFirstKling && !(s.keyframe_prompt ?? '').trim()) {
+          toast.error('Первая kling-сцена: keyframe_prompt обязателен'); return;
+        }
         if (!(s.motion_prompt ?? '').trim()) { toast.error('Kling-сцена: motion_prompt обязателен'); return; }
         klingCount++;
+        isFirstKling = false;
       } else {
         if (!(s.image_prompt ?? '').trim()) { toast.error('Imagen-сцена: image_prompt обязателен'); return; }
+        // imagen-сцена разрывает chain — следующая kling снова требует keyframe_prompt
+        isFirstKling = true;
       }
     }
-    if (klingCount > 12) { toast.error('Не больше 12 kling-сцен на ролик (60-сек макс)'); return; }
+    if (klingCount > 6) { toast.error('Не больше 6 kling-сцен на ролик'); return; }
     setSaving(true);
     try {
       const body: any = {
@@ -367,7 +375,15 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                 бесшовный переход. Для 30-сек ролика нужно 6 сцен, для 15-сек — 3.
               </p>
               <div className="space-y-2">
-                {scenes.map((s, i) => (
+                {scenes.map((s, i) => {
+                  // Первая kling-сцена (с момента начала или после imagen) требует keyframe_prompt.
+                  // Все последующие kling в chain'е получают keyframe из last-frame предыдущей.
+                  let isFirstKlingHere = s.type === 'kling';
+                  for (let k = 0; k < i; k++) {
+                    if (scenes[k].type === 'imagen') isFirstKlingHere = true;
+                    else if (scenes[k].type === 'kling') isFirstKlingHere = false;
+                  }
+                  return (
                   <div key={i} className="border border-purple-200 rounded p-2 space-y-1.5 bg-purple-50">
                     <div className="flex items-center gap-2">
                       <select
@@ -399,13 +415,19 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                     </div>
                     {s.type === 'kling' ? (
                       <>
-                        <textarea
-                          value={s.keyframe_prompt ?? ''}
-                          onChange={(e) => updateScene(i, { keyframe_prompt: e.target.value })}
-                          rows={2}
-                          className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
-                          placeholder="keyframe_prompt — стартовый кадр (что видно, освещение, стиль)"
-                        />
+                        {isFirstKlingHere ? (
+                          <textarea
+                            value={s.keyframe_prompt ?? ''}
+                            onChange={(e) => updateScene(i, { keyframe_prompt: e.target.value })}
+                            rows={2}
+                            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
+                            placeholder="keyframe_prompt — СТАРТОВЫЙ кадр через nano-banana (только для первой kling-сцены)"
+                          />
+                        ) : (
+                          <div className="text-xs text-gray-500 italic px-2 py-1 bg-purple-100 rounded">
+                            ↳ keyframe = последний кадр предыдущей сцены (автоматически через ffmpeg)
+                          </div>
+                        )}
                         <textarea
                           value={s.motion_prompt ?? ''}
                           onChange={(e) => updateScene(i, { motion_prompt: e.target.value })}
@@ -424,7 +446,8 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                       />
                     )}
                   </div>
-                ))}
+                  );
+                })}
                 {scenes.length === 0 && (
                   <p className="text-xs text-gray-500 text-center py-3">
                     Сцен нет — премиум-сценарий рендерится как классика
