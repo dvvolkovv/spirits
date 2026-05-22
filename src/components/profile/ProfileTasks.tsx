@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ClipboardList, Loader, ChevronRight, ChevronDown } from 'lucide-react';
+import { ClipboardList, Loader, ChevronRight, ChevronDown, Check, Archive, RotateCcw } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import type { TaskListItem, TaskStatus, TaskDetails } from '../../types/tasks';
 
@@ -38,6 +38,7 @@ const ProfileTasks: React.FC = () => {
   const [mutateError, setMutateError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, TaskDetails | 'loading' | 'error'>>({});
+  const [mutatingId, setMutatingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -74,6 +75,23 @@ const ProfileTasks: React.FC = () => {
       setDetails(s => ({ ...s, [id]: data }));
     } catch {
       setDetails(s => ({ ...s, [id]: 'error' }));
+    }
+  };
+
+  const changeStatus = async (id: string, newStatus: TaskStatus) => {
+    if (!tasks) return;
+    setMutatingId(id);
+    const prev = tasks;
+    setTasks(tasks.map(tt => tt.id === id ? { ...tt, status: newStatus } : tt));
+    try {
+      const resp = await apiClient.patch(`/webhook/user/tasks/${id}`, { status: newStatus });
+      if (!resp.ok) throw new Error('patch failed');
+    } catch {
+      setTasks(prev);
+      setMutateError(t('profile.tasks.mutateError', 'Не удалось обновить статус'));
+      setTimeout(() => setMutateError(null), 4000);
+    } finally {
+      setMutatingId(null);
     }
   };
 
@@ -178,6 +196,44 @@ const ProfileTasks: React.FC = () => {
                                 </div>
                               </div>
                             )}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {(() => {
+                                const cur = tasks.find(tt => tt.id === task.id);
+                                const status = cur?.status || 'active';
+                                if (status === 'active') {
+                                  return (
+                                    <>
+                                      <button
+                                        disabled={mutatingId === task.id}
+                                        onClick={() => changeStatus(task.id, 'done')}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-white disabled:opacity-50"
+                                      >
+                                        <Check className="w-3 h-3" />
+                                        {t('profile.tasks.actions.close', 'Закрыть')}
+                                      </button>
+                                      <button
+                                        disabled={mutatingId === task.id}
+                                        onClick={() => changeStatus(task.id, 'archived')}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-white disabled:opacity-50"
+                                      >
+                                        <Archive className="w-3 h-3" />
+                                        {t('profile.tasks.actions.archive', 'Архивировать')}
+                                      </button>
+                                    </>
+                                  );
+                                }
+                                return (
+                                  <button
+                                    disabled={mutatingId === task.id}
+                                    onClick={() => changeStatus(task.id, 'active')}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-white disabled:opacity-50"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                    {t('profile.tasks.actions.reopen', 'Восстановить')}
+                                  </button>
+                                );
+                              })()}
+                            </div>
                           </>
                         );
                       })()}
