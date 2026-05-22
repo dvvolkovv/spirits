@@ -64,7 +64,10 @@ const CardIconBtn: React.FC<{
     )}
   >
     <Icon className={clsx('w-3.5 h-3.5', danger ? 'text-white' : 'text-forest-700')} />
-    <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 rounded bg-gray-900 text-white text-[10px] font-medium whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity z-20 shadow-lg">
+    {/* Тултип кладём ПОД иконку (top-full), потому что иконки сидят у самого верха
+        карточки, а у самой карточки overflow-hidden ради rounded-corners — поэтому
+        тултип над иконкой (bottom-full) был бы обрезан. */}
+    <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 rounded bg-gray-900 text-white text-[10px] font-medium whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity z-20 shadow-lg">
       {label}
     </span>
   </button>
