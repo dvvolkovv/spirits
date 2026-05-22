@@ -7,6 +7,7 @@ import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import { EntityItem, EntityRich } from './EntityItem';
 import SettingsView from '../settings/SettingsView';
+import ProfileTasks from './ProfileTasks';
 
 interface ProfileData {
   profile?: string[];
@@ -733,6 +734,9 @@ const ProfileView: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Tasks */}
+        <ProfileTasks />
 
         {/* Empty state when no data */}
         {!profileData && (
