@@ -9,7 +9,7 @@ const ProfileTasks: React.FC = () => {
   const [tasks, setTasks] = useState<TaskListItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [_mutateError, _setMutateError] = useState<string | null>(null);
+  const [mutateError, setMutateError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -44,6 +44,12 @@ const ProfileTasks: React.FC = () => {
           {activeCount}
         </span>
       </div>
+
+      {mutateError && (
+        <div className="px-4 py-2 text-xs text-red-700 bg-red-50 border-b border-red-100">
+          {mutateError}
+        </div>
+      )}
 
       {loading && !tasks ? (
         <div className="py-6 flex items-center justify-center">
