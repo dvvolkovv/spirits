@@ -156,8 +156,13 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
       )}
 
       {isCancelled && (
-        <div className="px-4 py-4 text-sm text-gray-600">
-          <p>Видео отменено по выбору пользователя. Токены возвращены.</p>
+        <div className="px-4 py-4 text-sm text-gray-600 space-y-2">
+          <p>Ролик отменён, токены возвращены 💸</p>
+          <p className="text-xs text-gray-500">
+            Чтобы сделать новый ролик в другом стиле — напиши Юле в чате
+            (например, «давай попробуем в стиле Cinematic про ту же тему»). Она
+            сгенерирует новый сценарий с нужной разметкой kling-сцен.
+          </p>
         </div>
       )}
 
