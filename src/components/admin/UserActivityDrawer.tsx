@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import {
   X, Loader, AlertCircle, Coins, MessageSquare, Image as ImageIcon,
   Video, Phone, ArrowDown, ArrowUp, Activity, CreditCard, ClipboardList,
+  ChevronDown, ChevronRight, Lock,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
