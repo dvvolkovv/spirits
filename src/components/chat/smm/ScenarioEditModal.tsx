@@ -197,36 +197,18 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
             />
           </div>
 
-          {/* Mood + role */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Настроение</label>
-              <select
-                value={mood}
-                onChange={(e) => setMood(e.target.value as ScenarioDetail['mood'])}
-                className="w-full text-sm px-3 py-2 border border-gray-300 rounded bg-white"
-              >
-                {MOODS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.emoji} {m.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">Роль ассистента</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full text-sm px-3 py-2 border border-gray-300 rounded bg-white"
-              >
-                {ROLES.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-                {/* If existing role is not in the list, render it so it's not silently changed */}
-                {!ROLES.some((r) => r.value === role) && (
-                  <option value={role}>{role} (нестандартная)</option>
-                )}
-              </select>
-            </div>
+          {/* Mood */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Настроение</label>
+            <select
+              value={mood}
+              onChange={(e) => setMood(e.target.value as ScenarioDetail['mood'])}
+              className="w-full text-sm px-3 py-2 border border-gray-300 rounded bg-white"
+            >
+              {MOODS.map((m) => (
+                <option key={m.value} value={m.value}>{m.emoji} {m.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Dialog */}
