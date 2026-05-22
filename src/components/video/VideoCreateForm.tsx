@@ -42,9 +42,13 @@ const PRICES: Record<string, number> = {
   'lipsync.kling-v1-6.std.5': 15000, 'lipsync.kling-v1-6.std.10': 15000,
 };
 
+const AUTO_STILL_TOKENS = 5000;
+
 function costFor(s: FormState): number {
   const key = `${s.mode}.${s.model}.${s.quality}.${s.duration}`;
-  return PRICES[key] ?? 0;
+  const base = PRICES[key] ?? 0;
+  if (s.mode === 'text2video' && !s.sourceImageUrl) return base + AUTO_STILL_TOKENS;
+  return base;
 }
 
 async function uploadFile(kind: 'image' | 'audio', file: File): Promise<string> {
@@ -68,7 +72,7 @@ function Hint({ text }: { text: string }) {
 }
 
 const MODE_HINTS: Record<Mode, string> = {
-  text2video: 'Опишите сцену текстом — ИИ создаст видео с нуля.',
+  text2video: 'Опишите сцену текстом — ИИ сначала создаст стартовый кадр (Nano Banana, +5000 токенов), затем анимирует его. Так композиция стабильнее, чем «голый» text→video.',
   image2video: 'Загрузите стартовый кадр, ИИ анимирует его в видео.',
   extend: 'Продолжает ваше уже готовое видео ещё на 5 секунд.',
   lipsync: 'Синхронизирует движение губ готового видео с аудиодорожкой.',
