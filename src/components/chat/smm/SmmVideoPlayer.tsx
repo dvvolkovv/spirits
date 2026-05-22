@@ -179,20 +179,6 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
               type="button"
               onClick={async () => {
                 try {
-                  await acceptEscapeHatch(video.id, 'switch_genre', 'cinematic');
-                  setPollKey((k) => k + 1);
-                } catch (e) {
-                  setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
-                }
-              }}
-              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm"
-            >
-              Попробовать Cinematic (реалистичнее)
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
                   await acceptEscapeHatch(video.id, 'keep_static');
                   const updated = await getVideo(videoId);
                   setVideo(updated);
@@ -220,6 +206,11 @@ export const SmmVideoPlayer: React.FC<Props> = ({ videoId }) => {
               Вернуть токены полностью
             </button>
           </div>
+          <p className="text-xs text-gray-500 mt-3 leading-snug">
+            Хочешь попробовать другой стиль (Cinematic / POV)? Верни токены и
+            напиши Юле в чате — например «давай тот же ролик в стиле Cinematic».
+            Она пересоберёт сценарий под новый жанр с правильной разметкой сцен.
+          </p>
         </div>
       )}
 
