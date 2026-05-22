@@ -1,8 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ClipboardList, Loader } from 'lucide-react';
+import { ClipboardList, Loader, ChevronRight } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
-import type { TaskListItem } from '../../types/tasks';
+import type { TaskListItem, TaskStatus } from '../../types/tasks';
+
+const formatRelative = (iso: string | null): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return 'только что';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} мин назад`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} ч назад`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day} дн назад`;
+  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+};
+
+const statusBadge = (status: TaskStatus): { cls: string; label: string } => {
+  if (status === 'active') return { cls: 'bg-forest-50 text-forest-700', label: 'активна' };
+  if (status === 'done')   return { cls: 'bg-gray-100 text-gray-600',     label: 'завершена' };
+  return { cls: 'bg-gray-100 text-gray-500', label: 'архив' };
+};
 
 const ProfileTasks: React.FC = () => {
   const { t } = useTranslation();
@@ -67,8 +88,31 @@ const ProfileTasks: React.FC = () => {
           {t('profile.tasks.empty', 'Задач пока нет. Они появляются автоматически, когда ты обсуждаешь с ассистентами текущие дела.')}
         </p>
       ) : (
-        <div className="px-4 py-3 text-xs text-gray-400">
-          {tasks.length} задач загружено (рендер карточек — следующая задача).
+        <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+          {tasks
+            .filter(task => task.status === 'active')
+            .map(task => {
+              const badge = statusBadge(task.status);
+              return (
+                <div key={task.id} className="w-full px-4 py-2.5 flex items-start gap-2">
+                  <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-gray-800 truncate">{task.title}</span>
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                    {task.summary && (
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{task.summary}</p>
+                    )}
+                    {task.last_active_at && (
+                      <p className="text-[10px] text-gray-400 mt-1">{formatRelative(task.last_active_at)}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
         </div>
       )}
     </div>
