@@ -1,6 +1,5 @@
 import React from 'react';
 import { PremiumGenre } from './smm-api';
-import { useAuth } from '../../../contexts/AuthContext';
 import { Sparkles, User, Film } from 'lucide-react';
 
 interface Props {
@@ -16,10 +15,6 @@ const GENRES: Array<{ id: PremiumGenre; label: string; subtitle: string; Icon: R
 ];
 
 export function PremiumGenreTabs({ selected, onChange, disabled }: Props) {
-  const { user } = useAuth();
-  // Phase 1 — admin only
-  if (!user?.isAdmin) return null;
-
   return (
     <div className="flex flex-wrap gap-2 mt-3">
       <button
