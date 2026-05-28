@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../services/apiClient';
+import { useAuth } from '../contexts/AuthContext';
 
 const AuthOAuthCallbackPage: React.FC = () => {
   const { provider } = useParams<{ provider: string }>();
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,16 +32,19 @@ const AuthOAuthCallbackPage: React.FC = () => {
           navigate('/settings?linked=1');
           return;
         }
+        // Refresh-token и tokenManager отдельно — apiClient его использует для авто-refresh
         localStorage.setItem('jwt_access_token', data['access-token']);
         localStorage.setItem('jwt_refresh_token', data['refresh-token']);
-        localStorage.setItem('authToken', data['access-token']);
-        window.location.replace('/chat');
+        // AuthContext.login сам кладёт authToken и userData, поэтому передаём пустой phone
+        // (OAuth-юзер может не иметь телефона; профиль подтянется через apiClient).
+        await login('', data['access-token']);
+        navigate('/chat', { replace: true });
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'failed';
         setError(msg);
       }
     })();
-  }, [provider, params, navigate]);
+  }, [provider, params, navigate, login]);
 
   if (error) {
     return (
