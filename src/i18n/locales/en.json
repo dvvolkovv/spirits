@@ -698,6 +698,14 @@
       "google": "Continue with Google",
       "yandex": "Continue with Yandex",
       "initFailed": "Failed to start provider login"
+    },
+    "consent": {
+      "ageAndPrefix": "I am 18 or older, I have read the ",
+      "servicesLink": "service description",
+      "and": " and ",
+      "paymentLink": "payment terms",
+      "suffix": " and accept them.",
+      "needToAccept": "Please accept the terms above first"
     }
   }
 }

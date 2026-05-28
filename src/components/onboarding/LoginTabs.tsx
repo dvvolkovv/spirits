@@ -4,6 +4,7 @@ import { Smartphone, Mail } from 'lucide-react';
 import SmsLoginPane from './SmsLoginPane';
 import EmailLoginPane from './EmailLoginPane';
 import OAuthButton from './OAuthButton';
+import LoginConsentBlock from './LoginConsentBlock';
 
 type TabKey = 'sms' | 'email' | 'google' | 'yandex';
 
@@ -14,6 +15,13 @@ const LoginTabs: React.FC = () => {
     return saved && ['sms','email','google','yandex'].includes(saved) ? saved : 'sms';
   });
   useEffect(() => { localStorage.setItem('lastLoginTab', tab); }, [tab]);
+
+  const [consentGiven, setConsentGiven] = useState<boolean>(() => {
+    return localStorage.getItem('loginConsent') === 'true';
+  });
+  useEffect(() => {
+    localStorage.setItem('loginConsent', consentGiven ? 'true' : 'false');
+  }, [consentGiven]);
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: 'sms',    label: t('auth.tabs.sms', 'SMS'),       icon: <Smartphone className="w-4 h-4" /> },
@@ -41,12 +49,23 @@ const LoginTabs: React.FC = () => {
         ))}
       </div>
 
-      <div>
+      <LoginConsentBlock checked={consentGiven} onChange={setConsentGiven} />
+
+      <div
+        className={consentGiven ? '' : 'opacity-40 pointer-events-none select-none'}
+        aria-disabled={!consentGiven}
+      >
         {tab === 'sms'    && <SmsLoginPane />}
         {tab === 'email'  && <EmailLoginPane />}
         {tab === 'google' && <OAuthButton provider="google" />}
         {tab === 'yandex' && <OAuthButton provider="yandex" />}
       </div>
+
+      {!consentGiven && (
+        <p className="text-xs text-gray-500 text-center mt-3">
+          {t('auth.consent.needToAccept', 'Сначала примите условия выше')}
+        </p>
+      )}
     </div>
   );
 };
