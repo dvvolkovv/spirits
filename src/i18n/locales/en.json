@@ -359,6 +359,15 @@
       "all": "All users",
       "matches": "Matches only",
       "none": "No one"
+    },
+    "linkedAccounts": {
+      "title": "Sign-in methods",
+      "unlink": "Unlink",
+      "link": "Link",
+      "lastMethod": "This is your only sign-in method",
+      "loadError": "Failed to load",
+      "unlinkError": "Failed to unlink",
+      "oauthError": "Failed to start linking"
     }
   },
   "video": {
@@ -672,6 +681,23 @@
       "introRequired": "Please write a short intro",
       "rateLimited": "Too many requests, try again later",
       "sendFailed": "Failed to send request"
+    }
+  },
+  "auth": {
+    "tabs": { "sms": "SMS", "email": "Email", "google": "Google", "yandex": "Yandex" },
+    "email": {
+      "label": "Email address",
+      "submit": "Get login link",
+      "sentTitle": "Check your inbox",
+      "sentBody": "We sent a login link to",
+      "tempmailBlocked": "Please use a permanent email",
+      "rateLimit": "Too many requests, wait a minute",
+      "requestError": "Failed to send link"
+    },
+    "oauth": {
+      "google": "Continue with Google",
+      "yandex": "Continue with Yandex",
+      "initFailed": "Failed to start provider login"
     }
   }
 }
