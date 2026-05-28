@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Smartphone, Mail } from 'lucide-react';
 import SmsLoginPane from './SmsLoginPane';
+import EmailLoginPane from './EmailLoginPane';
 
 type TabKey = 'sms' | 'email' | 'google' | 'yandex';
 
@@ -41,7 +42,7 @@ const LoginTabs: React.FC = () => {
 
       <div>
         {tab === 'sms'    && <SmsLoginPane />}
-        {tab === 'email'  && <div className="text-sm text-gray-400 text-center py-8">Email pane TBD (Task 18)</div>}
+        {tab === 'email'  && <EmailLoginPane />}
         {tab === 'google' && <div className="text-sm text-gray-400 text-center py-8">Google pane TBD (Task 19)</div>}
         {tab === 'yandex' && <div className="text-sm text-gray-400 text-center py-8">Yandex pane TBD (Task 19)</div>}
       </div>

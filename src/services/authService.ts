@@ -152,6 +152,21 @@ class AuthService {
     }
   }
 
+  async requestMagicLink(email: string): Promise<{ sent: boolean }> {
+    const resp = await apiClient.post('/webhook/auth/email/request', { email });
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => ({} as Record<string, unknown>));
+      throw new Error((body as Record<string, unknown>)?.error as string || 'request failed');
+    }
+    return await resp.json();
+  }
+
+  async oauthInit(provider: 'google' | 'yandex', intent: 'login' | 'link' = 'login'): Promise<{ authorizeUrl: string }> {
+    const resp = await apiClient.post('/webhook/auth/oauth/init', { provider, intent });
+    if (!resp.ok) throw new Error('oauth init failed');
+    return await resp.json();
+  }
+
   logout(): void {
     tokenManager.clearTokens();
   }
