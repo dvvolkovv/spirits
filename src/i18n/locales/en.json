@@ -222,7 +222,8 @@
       "usage": "Usage",
       "assistants": "Assistants",
       "coupons": "Coupons",
-      "referrals": "Referrals"
+      "referrals": "Referrals",
+      "monitoring": "Monitoring"
     },
     "support": {
       "filters": {

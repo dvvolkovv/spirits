@@ -11,14 +11,15 @@ import AdminPaymentsView from '../components/admin/AdminPaymentsView';
 import AdminTokensView from '../components/admin/AdminTokensView';
 import AdminUsageView from '../components/admin/AdminUsageView';
 import AdminUsersView from '../components/admin/AdminUsersView';
+import AdminMonitoringView from '../components/admin/AdminMonitoringView';
 
-type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals';
+type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals' | 'monitoring';
 
 const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t } = useTranslation();
   const [params] = useSearchParams();
-  const initialTab = (['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals'] as AdminTab[])
+  const initialTab = (['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals', 'monitoring'] as AdminTab[])
     .includes(params.get('tab') as AdminTab)
     ? (params.get('tab') as AdminTab)
     : 'support';
@@ -55,6 +56,7 @@ const AdminPage: React.FC = () => {
     { id: 'assistants', label: t('admin.tabs.assistants') },
     { id: 'coupons', label: t('admin.tabs.coupons') },
     { id: 'referrals', label: t('admin.tabs.referrals') },
+    { id: 'monitoring', label: t('admin.tabs.monitoring') },
   ];
 
   return (
@@ -91,6 +93,7 @@ const AdminPage: React.FC = () => {
         {activeTab === 'assistants' && <AdminAssistantsView />}
         {activeTab === 'coupons' && <AdminCouponsView />}
         {activeTab === 'referrals' && <AdminReferralsView />}
+        {activeTab === 'monitoring' && <AdminMonitoringView />}
       </div>
     </div>
   );
