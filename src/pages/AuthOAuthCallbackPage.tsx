@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Loader } from 'lucide-react';
 import { apiClient } from '../services/apiClient';
@@ -12,8 +12,12 @@ const AuthOAuthCallbackPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mergeState, setMergeState] = useState<{ mergeToken: string; conflictTokens: number } | null>(null);
   const [merging, setMerging] = useState(false);
+  const hasRun = useRef(false);
 
   useEffect(() => {
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     const code = params.get('code');
     const state = params.get('state');
     const errParam = params.get('error');
