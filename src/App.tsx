@@ -22,6 +22,8 @@ import MyVideosPage from './pages/MyVideosPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import TokenPurchasePage from './pages/TokenPurchasePage';
 import MaintenancePage from './pages/MaintenancePage';
+import AuthEmailConfirmPage from './pages/AuthEmailConfirmPage';
+import AuthOAuthCallbackPage from './pages/AuthOAuthCallbackPage';
 import DozvonPage from './pages/DozvonPage';
 import ContactRequestsPage from './pages/ContactRequestsPage';
 import SettingsSocialPage from './pages/SettingsSocialPage';
@@ -103,6 +105,8 @@ const App: React.FC = () => {
         <ImageGenProvider>
           <Routes>
             <Route path="/tokens" element={<TokenPurchasePage />} />
+            <Route path="/auth/:provider/callback" element={<AuthOAuthCallbackPage />} />
+            <Route path="/auth/email/confirm" element={<AuthEmailConfirmPage />} />
             <Route path="*" element={<AppContent />} />
           </Routes>
         </ImageGenProvider>
