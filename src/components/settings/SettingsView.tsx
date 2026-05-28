@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import LinkedAccountsView from './LinkedAccountsView';
 
 type ContactVisibility = 'public' | 'matchOnly' | 'private';
 
@@ -126,6 +127,9 @@ const SettingsView: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {/* Linked Accounts */}
+        <LinkedAccountsView />
 
         {/* Privacy Settings */}
         <div className="bg-white rounded-lg shadow-sm">

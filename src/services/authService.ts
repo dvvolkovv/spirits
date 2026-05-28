@@ -1,6 +1,7 @@
 import { tokenManager } from '../utils/tokenManager';
 import { apiClient } from './apiClient';
 import { AuthResponse, RefreshResponse, SMSResponse } from '../types/auth';
+import type { Identity } from '../types/auth';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -165,6 +166,17 @@ class AuthService {
     const resp = await apiClient.post('/webhook/auth/oauth/init', { provider, intent });
     if (!resp.ok) throw new Error('oauth init failed');
     return await resp.json();
+  }
+
+  async listIdentities(): Promise<Identity[]> {
+    const resp = await apiClient.get('/webhook/auth/identities');
+    if (!resp.ok) throw new Error('list identities failed');
+    return await resp.json();
+  }
+
+  async unlinkIdentity(id: string): Promise<{ ok: boolean }> {
+    const resp = await apiClient.delete(`/webhook/auth/identities/${id}`);
+    return { ok: resp.ok };
   }
 
   logout(): void {

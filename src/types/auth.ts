@@ -24,6 +24,16 @@ export interface SMSResponse {
   message?: string;
 }
 
+export interface Identity {
+  id: string;
+  provider: 'phone' | 'email' | 'google' | 'yandex';
+  providerSub: string;
+  email: string | null;
+  emailVerified: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
 export interface ReferralStats {
   leader: {
     name: string;
