@@ -411,7 +411,7 @@ const ProfileView: React.FC = () => {
               {profileData?.user_nickname && (
                 <p className="text-sm text-gray-500">@{profileData.user_nickname}</p>
               )}
-              <p data-testid="profile-phone" className="text-sm text-gray-600">{user?.phone}</p>
+              <p data-testid="profile-phone" className="text-sm text-gray-600">{user?.phone || user?.email}</p>
             </div>
             
             <label className="flex items-center space-x-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
@@ -530,10 +530,14 @@ const ProfileView: React.FC = () => {
                   <span className="text-sm text-gray-900">@{profileData.user_nickname}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">{t('profile.phone')}:</span>
-                <span className="text-sm text-gray-900">{user?.phone}</span>
-              </div>
+              {(user?.phone || user?.email) && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    {user?.phone ? t('profile.phone') : 'Email'}:
+                  </span>
+                  <span className="text-sm text-gray-900">{user?.phone || user?.email}</span>
+                </div>
+              )}
               {(!profileData?.name && !user?.firstName || !profileData?.family_name && !user?.lastName) && (
                 <div className="mt-3 p-3 bg-warm-50 border border-warm-200 rounded-lg">
                   <p className="text-sm text-warm-800">

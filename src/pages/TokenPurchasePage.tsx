@@ -70,37 +70,29 @@ const TokenPurchasePage: React.FC = () => {
 
   useEffect(() => {
     const fetchUserEmail = async () => {
-      if (!phone) {
-        setEmail('');
+      if (user?.email) {
+        setEmail(user.email);
         setIsLoadingEmail(false);
         return;
       }
-
       try {
-        const cleanPhone = phone.replace(/\D/g, '');
         const response = await apiClient.get(`/webhook/profile`);
-
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
             const profileData = data[0].profileJson || data[0];
             setEmail(profileData.email || '');
-          } else {
-            setEmail('');
           }
-        } else {
-          setEmail('');
         }
       } catch (error) {
         console.error('Error fetching user email:', error);
-        setEmail('');
       } finally {
         setIsLoadingEmail(false);
       }
     };
 
     fetchUserEmail();
-  }, [phone]);
+  }, [user?.id]);
 
   const formatTokens = (tokens: number) => {
     return tokens.toLocaleString('ru-RU');
@@ -114,11 +106,6 @@ const TokenPurchasePage: React.FC = () => {
   const handlePurchase = async (packageId: string) => {
     const selectedPkg = packages.find(pkg => pkg.id === packageId);
     if (!selectedPkg) return;
-
-    if (!phone) {
-      alert('Пожалуйста, укажите номер телефона');
-      return;
-    }
 
     if (!email.trim()) {
       setEmailError('Пожалуйста, укажите email для получения чека');
@@ -203,14 +190,6 @@ const TokenPurchasePage: React.FC = () => {
           </div>
 
           <div className="p-8">
-            {!phone && (
-              <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  <strong>Важно:</strong> Для покупки токенов необходим номер телефона. Пожалуйста, укажите его в параметре URL.
-                </p>
-              </div>
-            )}
-
             <div className="mb-8">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <div className="flex items-center space-x-2">
@@ -309,7 +288,7 @@ const TokenPurchasePage: React.FC = () => {
 
                   <button
                     onClick={() => handlePurchase(pkg.id)}
-                    disabled={isProcessing || !phone}
+                    disabled={isProcessing}
                     data-testid="token-buy-btn"
                     className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 ${
                       pkg.popular

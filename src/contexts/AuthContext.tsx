@@ -184,17 +184,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const profileJson = profileRecord.profileJson || profileRecord;
 
           setUser((currentUser) => {
-            if (currentUser?.phone) {
-              const updatedUser = {
-                ...currentUser,
-                isAdmin: profileJson.isadmin === true,
-                email: profileJson.email || currentUser.email,
-                referralSlug: profileJson.referral_slug || currentUser.referralSlug
-              };
-              persistUser(updatedUser);
-              return updatedUser;
-            }
-            return currentUser;
+            if (!currentUser) return currentUser;
+            const updatedUser = {
+              ...currentUser,
+              phone: profileJson.phone || currentUser.phone || '',
+              isAdmin: profileJson.isadmin === true,
+              email: profileJson.email || currentUser.email,
+              referralSlug: profileJson.referral_slug || currentUser.referralSlug,
+            };
+            persistUser(updatedUser);
+            return updatedUser;
           });
         }
       }
@@ -207,7 +206,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (user && !isLoading) {
       checkAdminStatus();
     }
-  }, [user?.phone, isLoading, checkAdminStatus]);
+  }, [user?.id, isLoading, checkAdminStatus]);
 
   const updateTokens = useCallback((tokens: number) => {
     setUser((currentUser) => {
@@ -234,7 +233,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [user?.phone, isLoading, fetchUserTokens, updateTokens]);
+  }, [user?.id, isLoading, fetchUserTokens, updateTokens]);
 
   const login = async (phone: string, token: string) => {
     const newUser: User = {

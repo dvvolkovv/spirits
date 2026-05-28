@@ -60,40 +60,34 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
 
   React.useEffect(() => {
     const fetchUserEmail = async () => {
-      if (!user?.phone) {
-        setEmail('');
+      // Pre-fill from context if already known
+      if (user?.email) {
+        setEmail(user.email);
         setIsLoadingEmail(false);
         return;
       }
-
       try {
         const response = await apiClient.get(`/webhook/profile`);
-
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
             const profileData = data[0].profileJson || data[0];
             setEmail(profileData.email || '');
-          } else {
-            setEmail('');
           }
-        } else {
-          setEmail('');
         }
       } catch (error) {
         console.error('Error fetching user email:', error);
-        setEmail('');
       } finally {
         setIsLoadingEmail(false);
       }
     };
 
     fetchUserEmail();
-  }, [user?.phone]);
+  }, [user?.id]);
 
   const handlePurchase = async (packageId: string) => {
     const selectedPkg = packages.find(pkg => pkg.id === packageId);
-    if (!selectedPkg || !user?.phone) return;
+    if (!selectedPkg) return;
 
     if (!email.trim()) {
       setEmailError('Пожалуйста, укажите email для получения чека');
