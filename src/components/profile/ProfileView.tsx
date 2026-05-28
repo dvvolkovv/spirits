@@ -166,11 +166,6 @@ const ProfileView: React.FC = () => {
   };
 
   const updateProfileOnServer = async () => {
-    if (!user?.phone) {
-      alert('Номер телефона не найден');
-      return;
-    }
-
     // Очищаем номер телефона от всех символов кроме цифр
     try {
       const payload: any = {
@@ -237,11 +232,6 @@ const ProfileView: React.FC = () => {
 
     if (file.size > 5 * 1024 * 1024) {
       alert('Размер файла не должен превышать 5MB');
-      return;
-    }
-
-    if (!user?.phone) {
-      alert('Номер телефона не найден');
       return;
     }
 

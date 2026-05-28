@@ -271,10 +271,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const deleteProfile = async () => {
-    if (!user?.phone) {
-      throw new Error('Номер телефона не найден');
-    }
-
     try {
       const response = await apiClient.delete(`/webhook/profile`);
 
