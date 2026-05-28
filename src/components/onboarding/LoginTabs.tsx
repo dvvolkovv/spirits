@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Smartphone, Mail } from 'lucide-react';
 import SmsLoginPane from './SmsLoginPane';
 import EmailLoginPane from './EmailLoginPane';
+import OAuthButton from './OAuthButton';
 
 type TabKey = 'sms' | 'email' | 'google' | 'yandex';
 
@@ -43,8 +44,8 @@ const LoginTabs: React.FC = () => {
       <div>
         {tab === 'sms'    && <SmsLoginPane />}
         {tab === 'email'  && <EmailLoginPane />}
-        {tab === 'google' && <div className="text-sm text-gray-400 text-center py-8">Google pane TBD (Task 19)</div>}
-        {tab === 'yandex' && <div className="text-sm text-gray-400 text-center py-8">Yandex pane TBD (Task 19)</div>}
+        {tab === 'google' && <OAuthButton provider="google" />}
+        {tab === 'yandex' && <OAuthButton provider="yandex" />}
       </div>
     </div>
   );
