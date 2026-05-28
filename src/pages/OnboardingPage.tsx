@@ -1,18 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import PhoneInput from '../components/onboarding/PhoneInput';
-import OTPInput from '../components/onboarding/OTPInput';
-import { authService } from '../services/authService';
-
-type OnboardingStep = 'phone' | 'otp' | 'consent';
+import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import LoginTabs from '../components/onboarding/LoginTabs';
 
 const REFERRAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
 
 const OnboardingPage: React.FC = () => {
-  const { login } = useAuth();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const refSlug = searchParams.get('ref');
@@ -20,113 +13,13 @@ const OnboardingPage: React.FC = () => {
       localStorage.setItem('referral_slug', refSlug);
       localStorage.setItem('referral_slug_expires', String(Date.now() + REFERRAL_TTL_MS));
     }
-  }, []);
-  const [step, setStep] = useState<OnboardingStep>('phone');
-  const [phone, setPhone] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [otpError, setOtpError] = useState<string>('');
+  }, [searchParams]);
 
-  const handlePhoneSubmit = async (phoneNumber: string) => {
-    setIsLoading(true);
-    setPhone(phoneNumber);
-
-    try {
-      const result = await authService.requestSMSCode(phoneNumber);
-
-      if (result.success) {
-        setStep('otp');
-      } else {
-        if (result.message === 'User blocked') {
-          alert('Ваш аккаунт заблокирован. Пожалуйста, свяжитесь с поддержкой.');
-        } else {
-          alert('Ошибка отправки СМС. Попробуйте еще раз.');
-        }
-      }
-    } catch (error) {
-      console.error('Error sending SMS:', error);
-      alert('Ошибка отправки СМС. Попробуйте еще раз.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOTPSubmit = async (code: string) => {
-    setIsLoading(true);
-    setOtpError('');
-
-    try {
-      const result = await authService.verifyCode(phone, code);
-
-      if (result.success) {
-        if (result.tokens) {
-          await login(phone, result.tokens['access-token']);
-        } else {
-          await login(phone, 'legacy-token');
-        }
-        await authService.registerReferral();
-        // Сразу после логина — на список ассистентов, независимо от того,
-        // на каком URL открыли страницу (могли прийти с /profile, /admin
-        // или сохранённого PWA-ярлыка).
-        navigate('/chat', { replace: true });
-      } else {
-        if (result.error === 'Wrong code') {
-          setOtpError('Неверный код. Попробуйте еще раз.');
-        } else if (result.error === 'Code not found') {
-          setOtpError('Код не найден. Запросите новый код.');
-        } else if (result.error === 'User disable') {
-          setOtpError('Ваш аккаунт отключен. Обратитесь в поддержку.');
-        } else {
-          setOtpError('Ошибка проверки кода. Попробуйте еще раз.');
-        }
-      }
-    } catch (error) {
-      console.error('Error verifying code:', error);
-      setOtpError('Ошибка проверки кода. Попробуйте еще раз.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    try {
-      const result = await authService.requestSMSCode(phone);
-
-      if (!result.success) {
-        alert('Ошибка повторной отправки СМС. Попробуйте еще раз.');
-      }
-    } catch (error) {
-      console.error('Error resending SMS:', error);
-      alert('Ошибка повторной отправки СМС. Попробуйте еще раз.');
-    }
-  };
-
-  const handleBack = () => {
-    setStep('phone');
-  };
-
-  switch (step) {
-    case 'phone':
-      return (
-        <PhoneInput
-          onSubmit={handlePhoneSubmit}
-          isLoading={isLoading}
-        />
-      );
-    case 'otp':
-      return (
-        <OTPInput
-          phone={phone}
-          onSubmit={handleOTPSubmit}
-          onBack={handleBack}
-          isLoading={isLoading}
-          onResend={handleResendOTP}
-          error={otpError}
-          onErrorClear={() => setOtpError('')}
-        />
-      );
-    default:
-      return null;
-  }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-forest-50 to-white py-12 px-4">
+      <LoginTabs />
+    </div>
+  );
 };
 
 export default OnboardingPage;
