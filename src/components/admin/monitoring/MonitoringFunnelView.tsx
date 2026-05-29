@@ -38,12 +38,12 @@ const WINDOW_LABEL: Record<Window, string> = {
 };
 
 // Key conversions surfaced as big numbers above the funnel.
-// Both endpoints are user-keyed so the ratio is honest. Visitor→user
-// is intentionally omitted: it would mix session_id with user_id.
+// Both endpoints are user-keyed so the ratio is honest.
+// (Visitor→user is intentionally omitted — would mix session_id with user_id.)
 const KEY_PAIRS: Array<{ from: string; to: string; label: string }> = [
-  { from: 'otp_request',          to: 'otp_verified',           label: 'SMS отправлен → введён' },
-  { from: 'signup_completed',     to: 'first_response_received',label: 'Регистрация → первый ответ' },
-  { from: 'first_payment_success',to: 'second_payment_success', label: 'Первая → вторая оплата' },
+  { from: 'auth_succeeded',        to: 'first_response_received',label: 'Авторизация → первый ответ' },
+  { from: 'first_response_received',to: 'first_payment_success', label: 'Первый ответ → первая оплата' },
+  { from: 'first_payment_success', to: 'second_payment_success', label: 'Первая → вторая оплата' },
 ];
 
 const dropColor = (ratioPct: number | null): string => {
