@@ -7,14 +7,16 @@ interface FunnelStep {
   key: string;
   label: string;
   count: number;
-  ratioToFirst: number;
+  ratioToFirst: number | null;
   ratioToPrev: number | null;
+  identity: 'session' | 'user';
 }
 
 interface FunnelResponse {
   from: string;
   to: string;
   source: string | null;
+  excludedUsers: string[];
   steps: FunnelStep[];
   generatedAt: string;
 }
@@ -35,9 +37,11 @@ const WINDOW_LABEL: Record<Window, string> = {
   '90d': '90 дней',
 };
 
-// Key conversions we surface as big numbers above the funnel bars.
+// Key conversions surfaced as big numbers above the funnel.
+// Both endpoints are user-keyed so the ratio is honest. Visitor→user
+// is intentionally omitted: it would mix session_id with user_id.
 const KEY_PAIRS: Array<{ from: string; to: string; label: string }> = [
-  { from: 'landing_view',         to: 'signup_completed',       label: 'Посетитель → регистрация' },
+  { from: 'otp_request',          to: 'otp_verified',           label: 'SMS отправлен → введён' },
   { from: 'signup_completed',     to: 'first_response_received',label: 'Регистрация → первый ответ' },
   { from: 'first_payment_success',to: 'second_payment_success', label: 'Первая → вторая оплата' },
 ];
@@ -156,29 +160,43 @@ const MonitoringFunnelView: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-gray-700">Воронка ({WINDOW_LABEL[windowKey]})</h3>
               <span className="text-xs text-gray-500">
-                Обновлено: {new Date(data.generatedAt).toLocaleTimeString('ru-RU')}
+                Окно: {new Date(data.from).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                {' → '}
+                {new Date(data.to).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <div className="space-y-2">
                 {data.steps.map((step, i) => {
                   const barPct = (step.count / maxCount) * 100;
+                  const prevIdentity = i > 0 ? data.steps[i - 1].identity : null;
+                  const identityChanged = prevIdentity !== null && prevIdentity !== step.identity;
                   return (
                     <div key={step.key}>
                       <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="font-medium text-gray-700">
-                          <span className="text-gray-400 mr-2 font-mono">{String(i + 1).padStart(2, '0')}</span>
+                        <span className="font-medium text-gray-700 flex items-center gap-2">
+                          <span className="text-gray-400 font-mono">{String(i + 1).padStart(2, '0')}</span>
                           {step.label}
+                          {step.identity === 'session' && (
+                            <span className="text-[10px] uppercase tracking-wide text-gray-400 border border-gray-200 rounded px-1 py-0.5">
+                              сессии
+                            </span>
+                          )}
+                          {identityChanged && (
+                            <span className="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1 py-0.5">
+                              ↓ переход на user_id
+                            </span>
+                          )}
                         </span>
                         <span className="flex items-center gap-3">
-                          {step.ratioToPrev !== null && i > 0 && (
+                          {step.ratioToPrev !== null && (
                             <span className={clsx('inline-flex items-center gap-1 text-xs', dropColor(step.ratioToPrev))}>
                               {step.ratioToPrev < 100 && <TrendingDown className="w-3 h-3" />}
                               {step.ratioToPrev.toFixed(1)}%
                             </span>
                           )}
                           <span className="text-xs text-gray-500 w-12 text-right">
-                            {step.ratioToFirst.toFixed(0)}%
+                            {step.ratioToFirst === null ? '—' : `${step.ratioToFirst.toFixed(0)}%`}
                           </span>
                           <span className="font-semibold text-gray-900 w-12 text-right">{step.count}</span>
                         </span>
@@ -195,7 +213,12 @@ const MonitoringFunnelView: React.FC = () => {
               </div>
               {data.steps.every((s) => s.count === 0) && (
                 <div className="text-sm text-gray-500 text-center py-4">
-                  Данных пока нет — события начнут собираться после деплоя
+                  Данных за выбранный период нет
+                </div>
+              )}
+              {data.excludedUsers.length > 0 && (
+                <div className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
+                  Исключены тестовые пользователи: {data.excludedUsers.join(', ')}
                 </div>
               )}
             </div>
