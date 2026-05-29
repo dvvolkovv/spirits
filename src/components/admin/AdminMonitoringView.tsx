@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { clsx } from 'clsx';
 import MonitoringInfraView from './monitoring/MonitoringInfraView';
 import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
+import MonitoringEconomyView from './monitoring/MonitoringEconomyView';
 import MonitoringStubView from './monitoring/MonitoringStubView';
 
 type Section = 'overview' | 'infra' | 'funnel' | 'product' | 'logs';
@@ -10,7 +11,7 @@ const SECTIONS: Array<{ id: Section; label: string }> = [
   { id: 'overview', label: 'Сводка' },
   { id: 'infra',    label: 'Инфра' },
   { id: 'funnel',   label: 'Воронка' },
-  { id: 'product',  label: 'Продукт' },
+  { id: 'product',  label: 'Экономика' },
   { id: 'logs',     label: 'Логи' },
 ];
 
@@ -49,12 +50,7 @@ const AdminMonitoringView: React.FC = () => {
         )}
         {section === 'infra' && <MonitoringInfraView />}
         {section === 'funnel' && <MonitoringFunnelView />}
-        {section === 'product' && (
-          <MonitoringStubView
-            title="Продуктовые метрики"
-            description="Активация / TTV, качество ответов ассистентов, глубина профиля, нетворкинг, экономика и токены, поддержка, контент-генерации, персоны, churn. В разработке."
-          />
-        )}
+        {section === 'product' && <MonitoringEconomyView />}
         {section === 'logs' && (
           <MonitoringStubView
             title="Логи"
