@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Activity, Cpu, MemoryStick, HardDrive, Globe, Lock, AlertCircle, Loader, RefreshCw } from 'lucide-react';
+import { Activity, Cpu, MemoryStick, HardDrive, Globe, Lock, AlertCircle, Loader, RefreshCw, Database, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
 
@@ -22,9 +22,35 @@ interface ProbeRow {
   tlsSecLeft: number | null;
 }
 
+interface PgRow {
+  instance: string;
+  up: boolean;
+  dbSizeBytes: number | null;
+  connections: number | null;
+  tps: number | null;
+  cacheHitRatio: number | null;
+  deadlocks: number | null;
+}
+
+interface RedisRow {
+  instance: string;
+  up: boolean;
+  memoryUsedBytes: number | null;
+  connectedClients: number | null;
+  opsPerSec: number | null;
+  keyspaceHitRatio: number | null;
+  evictedKeys: number | null;
+}
+
 interface Overview {
   nodes: NodeRow[];
   probes: ProbeRow[];
+  generatedAt: string;
+}
+
+interface DbOverview {
+  postgres: PgRow[];
+  redis: RedisRow[];
   generatedAt: string;
 }
 
@@ -57,6 +83,27 @@ const tlsDaysColor = (sec: number | null): string => {
   return 'text-emerald-600';
 };
 
+const formatBytes = (n: number | null): string => {
+  if (n === null) return '—';
+  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`;
+  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  if (n >= 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${n} B`;
+};
+
+const formatRatio = (r: number | null): string =>
+  r === null ? '—' : `${(r * 100).toFixed(1)}%`;
+
+const formatNum = (n: number | null, digits = 0): string =>
+  n === null ? '—' : n.toFixed(digits);
+
+const hitRatioColor = (r: number | null): string => {
+  if (r === null) return 'text-gray-400';
+  if (r < 0.9) return 'text-rose-600';
+  if (r < 0.98) return 'text-amber-600';
+  return 'text-emerald-600';
+};
+
 const Metric: React.FC<{ icon: React.ReactNode; label: string; value: string; valueClass?: string }> = ({ icon, label, value, valueClass }) => (
   <div className="flex items-center justify-between py-2">
     <span className="flex items-center gap-2 text-sm text-gray-600">{icon}{label}</span>
@@ -85,6 +132,50 @@ const NodeCard: React.FC<{ row: NodeRow }> = ({ row }) => (
   </div>
 );
 
+const PgCard: React.FC<{ row: PgRow }> = ({ row }) => (
+  <div className={clsx('rounded-lg border bg-white p-4 shadow-sm', row.up ? 'border-gray-200' : 'border-rose-300 bg-rose-50')}>
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <Database className="w-4 h-4 text-forest-600" />
+        <div className="font-semibold text-gray-900">PostgreSQL · {row.instance}</div>
+      </div>
+      <span className={clsx('text-xs font-medium px-2 py-1 rounded', row.up ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+        {row.up ? 'UP' : 'DOWN'}
+      </span>
+    </div>
+    <div className="divide-y divide-gray-100">
+      <Metric icon={<HardDrive className="w-4 h-4" />} label="Размер БД linkeon" value={formatBytes(row.dbSizeBytes)} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="Активных коннектов" value={formatNum(row.connections)} />
+      <Metric icon={<Zap className="w-4 h-4" />} label="Commits/sec" value={formatNum(row.tps, 2)} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="Cache hit ratio" value={formatRatio(row.cacheHitRatio)} valueClass={hitRatioColor(row.cacheHitRatio)} />
+      <Metric icon={<AlertCircle className="w-4 h-4" />} label="Deadlocks" value={formatNum(row.deadlocks)}
+        valueClass={(row.deadlocks ?? 0) > 0 ? 'text-amber-600' : undefined} />
+    </div>
+  </div>
+);
+
+const RedisCard: React.FC<{ row: RedisRow }> = ({ row }) => (
+  <div className={clsx('rounded-lg border bg-white p-4 shadow-sm', row.up ? 'border-gray-200' : 'border-rose-300 bg-rose-50')}>
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <Database className="w-4 h-4 text-rose-500" />
+        <div className="font-semibold text-gray-900">Redis · {row.instance}</div>
+      </div>
+      <span className={clsx('text-xs font-medium px-2 py-1 rounded', row.up ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+        {row.up ? 'UP' : 'DOWN'}
+      </span>
+    </div>
+    <div className="divide-y divide-gray-100">
+      <Metric icon={<MemoryStick className="w-4 h-4" />} label="Память" value={formatBytes(row.memoryUsedBytes)} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="Клиентов" value={formatNum(row.connectedClients)} />
+      <Metric icon={<Zap className="w-4 h-4" />} label="Ops/sec" value={formatNum(row.opsPerSec, 1)} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="Keyspace hit ratio" value={formatRatio(row.keyspaceHitRatio)} valueClass={hitRatioColor(row.keyspaceHitRatio)} />
+      <Metric icon={<AlertCircle className="w-4 h-4" />} label="Evicted keys" value={formatNum(row.evictedKeys)}
+        valueClass={(row.evictedKeys ?? 0) > 0 ? 'text-amber-600' : undefined} />
+    </div>
+  </div>
+);
+
 const ProbeCard: React.FC<{ row: ProbeRow }> = ({ row }) => (
   <div className={clsx('rounded-lg border bg-white p-4 shadow-sm', row.success ? 'border-gray-200' : 'border-rose-300 bg-rose-50')}>
     <div className="flex items-center justify-between mb-3">
@@ -107,6 +198,7 @@ const ProbeCard: React.FC<{ row: ProbeRow }> = ({ row }) => (
 
 const MonitoringInfraView: React.FC = () => {
   const [data, setData] = useState<Overview | null>(null);
+  const [dbData, setDbData] = useState<DbOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,12 +206,16 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get('/webhook/admin/monitoring/tech/overview');
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || `HTTP ${res.status}`);
+      const [resOverview, resDb] = await Promise.all([
+        apiClient.get('/webhook/admin/monitoring/tech/overview'),
+        apiClient.get('/webhook/admin/monitoring/tech/databases'),
+      ]);
+      if (!resOverview.ok) {
+        const body = await resOverview.json().catch(() => ({}));
+        throw new Error(body.message || `HTTP ${resOverview.status}`);
       }
-      setData(await res.json());
+      setData(await resOverview.json());
+      if (resDb.ok) setDbData(await resDb.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -174,6 +270,17 @@ const MonitoringInfraView: React.FC = () => {
           {data?.probes.map((p) => <ProbeCard key={p.target} row={p} />)}
         </div>
         {data && data.probes.length === 0 && <div className="text-sm text-gray-500">Нет данных</div>}
+      </section>
+
+      <section>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Базы данных</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {dbData?.postgres.map((r) => <PgCard key={`pg-${r.instance}`} row={r} />)}
+          {dbData?.redis.map((r) => <RedisCard key={`r-${r.instance}`} row={r} />)}
+        </div>
+        {dbData && dbData.postgres.length === 0 && dbData.redis.length === 0 && (
+          <div className="text-sm text-gray-500">Экспортёры баз ещё не подключены</div>
+        )}
       </section>
     </div>
   );
