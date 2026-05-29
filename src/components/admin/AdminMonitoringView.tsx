@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import MonitoringInfraView from './monitoring/MonitoringInfraView';
 import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
 import MonitoringEconomyView from './monitoring/MonitoringEconomyView';
+import MonitoringLogsView from './monitoring/MonitoringLogsView';
 import MonitoringStubView from './monitoring/MonitoringStubView';
 
 type Section = 'overview' | 'infra' | 'funnel' | 'product' | 'logs';
@@ -51,12 +52,7 @@ const AdminMonitoringView: React.FC = () => {
         {section === 'infra' && <MonitoringInfraView />}
         {section === 'funnel' && <MonitoringFunnelView />}
         {section === 'product' && <MonitoringEconomyView />}
-        {section === 'logs' && (
-          <MonitoringStubView
-            title="Логи"
-            description="Поиск по логам Loki (поток systemd-journal и /var/log с node-3, скоро добавим прод и тест). В разработке."
-          />
-        )}
+        {section === 'logs' && <MonitoringLogsView />}
       </div>
     </div>
   );
