@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Activity, Cpu, MemoryStick, HardDrive, Globe, Lock, AlertCircle, Loader, RefreshCw, Database, Zap } from 'lucide-react';
+import { Activity, Cpu, MemoryStick, HardDrive, Globe, Lock, AlertCircle, Loader, RefreshCw, Database, Zap, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
 
@@ -42,6 +42,16 @@ interface RedisRow {
   evictedKeys: number | null;
 }
 
+interface MinioRow {
+  instance: string;
+  up: boolean;
+  buckets: number | null;
+  objects: number | null;
+  usedBytes: number | null;
+  freeBytes: number | null;
+  totalBytes: number | null;
+}
+
 interface Overview {
   nodes: NodeRow[];
   probes: ProbeRow[];
@@ -51,8 +61,36 @@ interface Overview {
 interface DbOverview {
   postgres: PgRow[];
   redis: RedisRow[];
+  minio: MinioRow[];
   generatedAt: string;
 }
+
+interface SynthScenario {
+  scenario: string;
+  latestSuccess: boolean | null;
+  latestTs: string | null;
+  latestDurationMs: number | null;
+  latestMessage: string | null;
+  runs24h: number;
+  successes24h: number;
+  successRate24hPct: number | null;
+}
+
+interface SynthOverview {
+  generatedAt: string;
+  scenarios: SynthScenario[];
+}
+
+const SCENARIO_LABEL: Record<string, string> = {
+  agents_endpoint:           'Каталог ассистентов',
+  auth_flow_sms:             'SMS → OTP → JWT',
+  profile_with_jwt:          'Профиль (JWT)',
+  tokens_balance:            'Баланс токенов',
+  chat_streaming:            'Стриминг чата',
+  agent_avatar:              'Аватар ассистента',
+  admin_monitoring_overview: 'Админ: мониторинг',
+  funnel_endpoint:           'Админ: воронка',
+};
 
 const REFRESH_MS = 30_000;
 
@@ -154,6 +192,31 @@ const PgCard: React.FC<{ row: PgRow }> = ({ row }) => (
   </div>
 );
 
+const MinioCard: React.FC<{ row: MinioRow }> = ({ row }) => {
+  const usedPct = row.usedBytes !== null && row.totalBytes && row.totalBytes > 0
+    ? (row.usedBytes / row.totalBytes) * 100 : null;
+  return (
+    <div className={clsx('rounded-lg border bg-white p-4 shadow-sm', row.up ? 'border-gray-200' : 'border-rose-300 bg-rose-50')}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Database className="w-4 h-4 text-amber-600" />
+          <div className="font-semibold text-gray-900">MinIO · {row.instance}</div>
+        </div>
+        <span className={clsx('text-xs font-medium px-2 py-1 rounded', row.up ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+          {row.up ? 'UP' : 'DOWN'}
+        </span>
+      </div>
+      <div className="divide-y divide-gray-100">
+        <Metric icon={<HardDrive className="w-4 h-4" />} label="Использовано" value={formatBytes(row.usedBytes)}
+          valueClass={usedPct !== null && usedPct > 85 ? 'text-rose-600' : usedPct !== null && usedPct > 70 ? 'text-amber-600' : undefined} />
+        <Metric icon={<HardDrive className="w-4 h-4" />} label="Свободно" value={formatBytes(row.freeBytes)} />
+        <Metric icon={<Database className="w-4 h-4" />} label="Бакетов" value={formatNum(row.buckets)} />
+        <Metric icon={<Database className="w-4 h-4" />} label="Объектов" value={formatNum(row.objects)} />
+      </div>
+    </div>
+  );
+};
+
 const RedisCard: React.FC<{ row: RedisRow }> = ({ row }) => (
   <div className={clsx('rounded-lg border bg-white p-4 shadow-sm', row.up ? 'border-gray-200' : 'border-rose-300 bg-rose-50')}>
     <div className="flex items-center justify-between mb-3">
@@ -196,9 +259,58 @@ const ProbeCard: React.FC<{ row: ProbeRow }> = ({ row }) => (
   </div>
 );
 
+const formatAgo = (iso: string | null): string => {
+  if (!iso) return '—';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  if (diffMs < 0) return 'только что';
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return 'только что';
+  if (min < 60) return `${min} мин назад`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} ч назад`;
+  return `${Math.floor(h / 24)} дн назад`;
+};
+
+const SynthCard: React.FC<{ row: SynthScenario }> = ({ row }) => {
+  const success = row.latestSuccess === true;
+  const failed = row.latestSuccess === false;
+  return (
+    <div className={clsx(
+      'rounded-lg border bg-white p-3 shadow-sm',
+      success && 'border-emerald-200',
+      failed && 'border-rose-300 bg-rose-50',
+      !success && !failed && 'border-gray-200',
+    )}>
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-sm font-medium text-gray-900 truncate" title={row.scenario}>
+          {SCENARIO_LABEL[row.scenario] || row.scenario}
+        </div>
+        {success ? <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+         : failed ? <XCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+         : <Clock className="w-5 h-5 text-gray-400 flex-shrink-0" />}
+      </div>
+      <div className="text-xs text-gray-500 flex items-center justify-between">
+        <span>{formatAgo(row.latestTs)}</span>
+        {row.latestDurationMs !== null && (
+          <span>{row.latestDurationMs >= 1000 ? `${(row.latestDurationMs / 1000).toFixed(1)} с` : `${row.latestDurationMs} мс`}</span>
+        )}
+      </div>
+      {row.successRate24hPct !== null && (
+        <div className="text-xs text-gray-400 mt-1">
+          24ч: {row.successes24h}/{row.runs24h} ({row.successRate24hPct.toFixed(0)}%)
+        </div>
+      )}
+      {failed && row.latestMessage && (
+        <div className="text-xs text-rose-700 mt-1 truncate" title={row.latestMessage}>{row.latestMessage}</div>
+      )}
+    </div>
+  );
+};
+
 const MonitoringInfraView: React.FC = () => {
   const [data, setData] = useState<Overview | null>(null);
   const [dbData, setDbData] = useState<DbOverview | null>(null);
+  const [synthData, setSynthData] = useState<SynthOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -206,9 +318,10 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb] = await Promise.all([
+      const [resOverview, resDb, resSynth] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
+        apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -216,6 +329,7 @@ const MonitoringInfraView: React.FC = () => {
       }
       setData(await resOverview.json());
       if (resDb.ok) setDbData(await resDb.json());
+      if (resSynth.ok) setSynthData(await resSynth.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -257,6 +371,17 @@ const MonitoringInfraView: React.FC = () => {
       )}
 
       <section>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Synthetic E2E (каждые 5 мин)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {synthData?.scenarios.map((s) => <SynthCard key={s.scenario} row={s} />)}
+        </div>
+        {synthData && synthData.scenarios.length === 0 && (
+          <div className="text-sm text-gray-500">Runner ещё не отправил ни одного результата.
+            На node-3 ожидается cron <code>synthetic-runner.js</code>.</div>
+        )}
+      </section>
+
+      <section>
         <h3 className="text-sm font-medium text-gray-700 mb-3">Узлы</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {data?.nodes.map((n) => <NodeCard key={n.instance} row={n} />)}
@@ -277,8 +402,9 @@ const MonitoringInfraView: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {dbData?.postgres.map((r) => <PgCard key={`pg-${r.instance}`} row={r} />)}
           {dbData?.redis.map((r) => <RedisCard key={`r-${r.instance}`} row={r} />)}
+          {dbData?.minio.map((r) => <MinioCard key={`m-${r.instance}`} row={r} />)}
         </div>
-        {dbData && dbData.postgres.length === 0 && dbData.redis.length === 0 && (
+        {dbData && dbData.postgres.length === 0 && dbData.redis.length === 0 && dbData.minio.length === 0 && (
           <div className="text-sm text-gray-500">Экспортёры баз ещё не подключены</div>
         )}
       </section>
