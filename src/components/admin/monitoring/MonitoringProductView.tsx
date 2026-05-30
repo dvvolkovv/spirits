@@ -5,6 +5,8 @@ import MonitoringQualityView from './MonitoringQualityView';
 import MonitoringProfileView from './MonitoringProfileView';
 import MonitoringNetworkingView from './MonitoringNetworkingView';
 import MonitoringChurnView from './MonitoringChurnView';
+import MonitoringSupportView from './MonitoringSupportView';
+import MonitoringContentView from './MonitoringContentView';
 import MonitoringStubView from './MonitoringStubView';
 
 type Sub = 'economy' | 'quality' | 'profile' | 'networking' | 'support' | 'content' | 'churn' | 'personas';
@@ -14,9 +16,9 @@ const SUBS: Array<{ id: Sub; label: string; ready: boolean }> = [
   { id: 'quality',    label: 'Качество',   ready: true  },
   { id: 'profile',    label: 'Профиль',    ready: true  },
   { id: 'networking', label: 'Нетворкинг', ready: true  },
+  { id: 'support',    label: 'Поддержка',  ready: true  },
+  { id: 'content',    label: 'Контент',    ready: true  },
   { id: 'churn',      label: 'Churn',      ready: true  },
-  { id: 'support',    label: 'Поддержка',  ready: false },
-  { id: 'content',    label: 'Контент',    ready: false },
   { id: 'personas',   label: 'Персоны',    ready: false },
 ];
 
@@ -41,9 +43,9 @@ const MonitoringProductView: React.FC = () => {
       {sub === 'quality' && <MonitoringQualityView />}
       {sub === 'profile' && <MonitoringProfileView />}
       {sub === 'networking' && <MonitoringNetworkingView />}
+      {sub === 'support'    && <MonitoringSupportView />}
+      {sub === 'content'    && <MonitoringContentView />}
       {sub === 'churn'      && <MonitoringChurnView />}
-      {sub === 'support'    && <MonitoringStubView title="Поддержка"  description="AI-share, TTFR, CSAT, преждевременные эскалации. В разработке." />}
-      {sub === 'content'    && <MonitoringStubView title="Контент"    description="% успешных генераций, re-generation rate, доля скачанных. В разработке." />}
       {sub === 'personas'   && <MonitoringStubView title="Персоны"    description="Кластеры пользователей по top-ассистентам, интентам, профилю. Пересчёт ежемесячно. В разработке." />}
     </div>
   );
