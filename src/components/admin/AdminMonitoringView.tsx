@@ -4,7 +4,7 @@ import MonitoringInfraView from './monitoring/MonitoringInfraView';
 import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
 import MonitoringProductView from './monitoring/MonitoringProductView';
 import MonitoringLogsView from './monitoring/MonitoringLogsView';
-import MonitoringStubView from './monitoring/MonitoringStubView';
+import MonitoringSummaryView from './monitoring/MonitoringSummaryView';
 
 type Section = 'overview' | 'infra' | 'funnel' | 'product' | 'logs';
 
@@ -17,7 +17,7 @@ const SECTIONS: Array<{ id: Section; label: string }> = [
 ];
 
 const AdminMonitoringView: React.FC = () => {
-  const [section, setSection] = useState<Section>('funnel');
+  const [section, setSection] = useState<Section>('overview');
 
   return (
     <div className="h-full flex flex-col">
@@ -43,12 +43,7 @@ const AdminMonitoringView: React.FC = () => {
 
       {/* Section body */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        {section === 'overview' && (
-          <MonitoringStubView
-            title="Сводка"
-            description="Топ-10 индикаторов здоровья продукта (Profile Depth Score, Request Accept rate, TTV, AI-share поддержки, Margin, два вороночных, два churn, Feature health). В разработке."
-          />
-        )}
+        {section === 'overview' && <MonitoringSummaryView />}
         {section === 'infra' && <MonitoringInfraView />}
         {section === 'funnel' && <MonitoringFunnelView />}
         {section === 'product' && <MonitoringProductView />}
