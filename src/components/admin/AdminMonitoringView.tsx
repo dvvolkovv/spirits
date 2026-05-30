@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { clsx } from 'clsx';
 import MonitoringInfraView from './monitoring/MonitoringInfraView';
 import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
-import MonitoringEconomyView from './monitoring/MonitoringEconomyView';
+import MonitoringProductView from './monitoring/MonitoringProductView';
 import MonitoringLogsView from './monitoring/MonitoringLogsView';
 import MonitoringStubView from './monitoring/MonitoringStubView';
 
@@ -12,7 +12,7 @@ const SECTIONS: Array<{ id: Section; label: string }> = [
   { id: 'overview', label: 'Сводка' },
   { id: 'infra',    label: 'Инфра' },
   { id: 'funnel',   label: 'Воронка' },
-  { id: 'product',  label: 'Экономика' },
+  { id: 'product',  label: 'Продукт' },
   { id: 'logs',     label: 'Логи' },
 ];
 
@@ -51,7 +51,7 @@ const AdminMonitoringView: React.FC = () => {
         )}
         {section === 'infra' && <MonitoringInfraView />}
         {section === 'funnel' && <MonitoringFunnelView />}
-        {section === 'product' && <MonitoringEconomyView />}
+        {section === 'product' && <MonitoringProductView />}
         {section === 'logs' && <MonitoringLogsView />}
       </div>
     </div>
