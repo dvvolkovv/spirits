@@ -3,6 +3,8 @@ import { clsx } from 'clsx';
 import MonitoringEconomyView from './MonitoringEconomyView';
 import MonitoringQualityView from './MonitoringQualityView';
 import MonitoringProfileView from './MonitoringProfileView';
+import MonitoringNetworkingView from './MonitoringNetworkingView';
+import MonitoringChurnView from './MonitoringChurnView';
 import MonitoringStubView from './MonitoringStubView';
 
 type Sub = 'economy' | 'quality' | 'profile' | 'networking' | 'support' | 'content' | 'churn' | 'personas';
@@ -11,10 +13,10 @@ const SUBS: Array<{ id: Sub; label: string; ready: boolean }> = [
   { id: 'economy',    label: 'Экономика',  ready: true  },
   { id: 'quality',    label: 'Качество',   ready: true  },
   { id: 'profile',    label: 'Профиль',    ready: true  },
-  { id: 'networking', label: 'Нетворкинг', ready: false },
+  { id: 'networking', label: 'Нетворкинг', ready: true  },
+  { id: 'churn',      label: 'Churn',      ready: true  },
   { id: 'support',    label: 'Поддержка',  ready: false },
   { id: 'content',    label: 'Контент',    ready: false },
-  { id: 'churn',      label: 'Churn',      ready: false },
   { id: 'personas',   label: 'Персоны',    ready: false },
 ];
 
@@ -38,10 +40,10 @@ const MonitoringProductView: React.FC = () => {
       {sub === 'economy' && <MonitoringEconomyView />}
       {sub === 'quality' && <MonitoringQualityView />}
       {sub === 'profile' && <MonitoringProfileView />}
-      {sub === 'networking' && <MonitoringStubView title="Нетворкинг" description="Search → Request → Accept воронка, reciprocity, жалобы/блокировки. В разработке." />}
+      {sub === 'networking' && <MonitoringNetworkingView />}
+      {sub === 'churn'      && <MonitoringChurnView />}
       {sub === 'support'    && <MonitoringStubView title="Поддержка"  description="AI-share, TTFR, CSAT, преждевременные эскалации. В разработке." />}
       {sub === 'content'    && <MonitoringStubView title="Контент"    description="% успешных генераций, re-generation rate, доля скачанных. В разработке." />}
-      {sub === 'churn'      && <MonitoringStubView title="Churn"      description="D30/D90 churn, dormant, resurrection, exit-analysis. В разработке." />}
       {sub === 'personas'   && <MonitoringStubView title="Персоны"    description="Кластеры пользователей по top-ассистентам, интентам, профилю. Пересчёт ежемесячно. В разработке." />}
     </div>
   );
