@@ -19,6 +19,9 @@ export interface FormState {
   model: Model;
   quality: Quality;
   duration: 5 | 10;
+  // For long-form video (> 10s). When set, backend chains base+extend and
+  // ffmpeg-concats to this exact duration.
+  targetDurationSec?: number;
   prompt: string;
   negativePrompt: string;
   cfgScale: number;
@@ -27,6 +30,9 @@ export interface FormState {
   audioUrl?: string;
   cameraType?: string;
 }
+
+const COMPOSABLE_DURATIONS = [5, 10, 15, 20, 24, 30, 45, 60] as const;
+type ComposableDuration = typeof COMPOSABLE_DURATIONS[number];
 
 const PRICES: Record<string, number> = {
   'text2video.kling-v1-6.std.5': 25000,      'text2video.kling-v1-6.std.10': 50000,
@@ -45,10 +51,26 @@ const PRICES: Record<string, number> = {
 const AUTO_STILL_TOKENS = 5000;
 
 function costFor(s: FormState): number {
+  // Composed long video: base 10s + N × extend 5s.
+  if (s.targetDurationSec && s.targetDurationSec > 10) {
+    const baseKey = `${s.mode}.${s.model}.${s.quality}.10`;
+    const extendKey = `extend.${s.model}.${s.quality}.5`;
+    const baseCost = PRICES[baseKey] ?? 0;
+    const extendCost = PRICES[extendKey] ?? 0;
+    const extendCount = Math.ceil((s.targetDurationSec - 10) / 5);
+    let total = baseCost + extendCount * extendCost;
+    if (s.mode === 'text2video' && !s.sourceImageUrl) total += AUTO_STILL_TOKENS;
+    return total;
+  }
   const key = `${s.mode}.${s.model}.${s.quality}.${s.duration}`;
   const base = PRICES[key] ?? 0;
   if (s.mode === 'text2video' && !s.sourceImageUrl) return base + AUTO_STILL_TOKENS;
   return base;
+}
+
+// Effective video duration to display (target if composed, else per-segment).
+function effectiveDuration(s: FormState): number {
+  return s.targetDurationSec && s.targetDurationSec > 10 ? s.targetDurationSec : s.duration;
 }
 
 async function uploadFile(kind: 'image' | 'audio', file: File): Promise<string> {
@@ -158,7 +180,12 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
   useEffect(() => {
     if (s.mode === 'lipsync' && s.model !== 'kling-v1-6') setS(x => ({ ...x, model: 'kling-v1-6' }));
     if (s.mode === 'extend' && s.duration !== 5) setS(x => ({ ...x, duration: 5 }));
-  }, [s.mode, s.model, s.duration]);
+    // Long-form video is only valid for text2video / image2video. If user
+    // had 24/30/60 selected and then switched to extend/lipsync, reset.
+    if ((s.mode === 'extend' || s.mode === 'lipsync') && s.targetDurationSec) {
+      setS(x => ({ ...x, targetDurationSec: undefined }));
+    }
+  }, [s.mode, s.model, s.duration, s.targetDurationSec]);
 
   const insufficient = balance < cost;
   const canSubmit = !submitting && !insufficient && (s.mode !== 'image2video' || !!s.sourceImageUrl);
@@ -176,6 +203,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
         sourceVideoId: showSourceVideo ? s.sourceVideoId : undefined,
         audioUrl: showAudio ? s.audioUrl : undefined,
         cameraType: showCamera ? s.cameraType : undefined,
+        // Long-form video: pass target duration when user picked > 10s.
+        targetDurationSec: s.targetDurationSec && s.targetDurationSec > 10 ? s.targetDurationSec : undefined,
       };
       const resp = await apiClient.post('/webhook/video/jobs', body);
       const data = await resp.json();
@@ -326,25 +355,39 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.duration.label')}
-                <Hint text="Длина итогового видео. 10 секунд стоит вдвое дороже 5." />
+                <Hint text="Длина итогового видео. Свыше 10 секунд — это автоматически склеенные сегменты, считается дороже (база 10 с + по 5 с за каждый дополнительный кусок)." />
               </p>
-              <div className="flex gap-2">
-                {([5, 10] as const).map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setS({ ...s, duration: d })}
-                    className={clsx(
-                      'flex-1 py-2 rounded-lg border text-xs font-medium transition-colors',
-                      s.duration === d
-                        ? 'border-forest-400 bg-forest-50 text-forest-700'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                    )}
-                  >
-                    {t(`video.duration.${d}s`)}
-                  </button>
-                ))}
+              <div className="grid grid-cols-4 gap-2">
+                {COMPOSABLE_DURATIONS.map((d) => {
+                  const selected = d <= 10
+                    ? !s.targetDurationSec && s.duration === d
+                    : s.targetDurationSec === d;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() =>
+                        d <= 10
+                          ? setS({ ...s, duration: d as 5 | 10, targetDurationSec: undefined })
+                          : setS({ ...s, duration: 10, targetDurationSec: d })
+                      }
+                      className={clsx(
+                        'py-2 rounded-lg border text-xs font-medium transition-colors',
+                        selected
+                          ? 'border-forest-400 bg-forest-50 text-forest-700'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                      )}
+                    >
+                      {d} с
+                    </button>
+                  );
+                })}
               </div>
+              {s.targetDurationSec && s.targetDurationSec > 10 && (
+                <p className="text-[11px] text-gray-500 mt-1.5">
+                  Соберём из {Math.ceil((s.targetDurationSec - 10) / 5) + 1} сегментов и склеим в один ролик автоматически.
+                </p>
+              )}
             </div>
           )}
 
