@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Activity, Cpu, MemoryStick, HardDrive, Globe, Lock, AlertCircle, Loader, RefreshCw, Database, Zap, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Activity, Cpu, MemoryStick, HardDrive, Globe, Lock, AlertCircle, Loader, RefreshCw, Database, Zap, CheckCircle2, XCircle, Clock, MessageSquare, Wallet } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
 
@@ -79,6 +79,18 @@ interface SynthScenario {
 interface SynthOverview {
   generatedAt: string;
   scenarios: SynthScenario[];
+}
+
+interface SmsOverview {
+  generatedAt: string;
+  balance: { rub: number | null; fetchedAt: string; error: string | null };
+  alertThresholdRub: number;
+  success24h: number;
+  failure24h: number;
+  failureRatePct24h: number | null;
+  lastFailureAt: string | null;
+  lastFailureReason: string | null;
+  topFailureReasons: Array<{ reason: string; count: number }>;
 }
 
 const SCENARIO_LABEL: Record<string, string> = {
@@ -311,6 +323,7 @@ const MonitoringInfraView: React.FC = () => {
   const [data, setData] = useState<Overview | null>(null);
   const [dbData, setDbData] = useState<DbOverview | null>(null);
   const [synthData, setSynthData] = useState<SynthOverview | null>(null);
+  const [smsData, setSmsData] = useState<SmsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -318,10 +331,11 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
+        apiClient.get('/webhook/admin/monitoring/tech/sms'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -330,6 +344,7 @@ const MonitoringInfraView: React.FC = () => {
       setData(await resOverview.json());
       if (resDb.ok) setDbData(await resDb.json());
       if (resSynth.ok) setSynthData(await resSynth.json());
+      if (resSms.ok) setSmsData(await resSms.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -368,6 +383,68 @@ const MonitoringInfraView: React.FC = () => {
           <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-rose-700">{error}</div>
         </div>
+      )}
+
+      {smsData && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">SMS Aero (пассивный мониторинг)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className={clsx(
+              'rounded-lg border bg-white p-4 shadow-sm',
+              smsData.balance.rub !== null && smsData.balance.rub <= smsData.alertThresholdRub
+                ? 'border-rose-300 bg-rose-50'
+                : smsData.balance.rub !== null && smsData.balance.rub <= smsData.alertThresholdRub * 2
+                  ? 'border-amber-200'
+                  : 'border-gray-200',
+            )}>
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Wallet className="w-3.5 h-3.5" />Баланс</div>
+              <div className={clsx(
+                'text-2xl font-semibold',
+                smsData.balance.rub === null ? 'text-gray-500'
+                  : smsData.balance.rub <= smsData.alertThresholdRub ? 'text-rose-600'
+                  : smsData.balance.rub <= smsData.alertThresholdRub * 2 ? 'text-amber-600'
+                  : 'text-emerald-600',
+              )}>
+                {smsData.balance.rub === null ? '—' : `${smsData.balance.rub.toFixed(2)} ₽`}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                порог алерта: {smsData.alertThresholdRub} ₽ · обновлено {new Date(smsData.balance.fetchedAt).toLocaleTimeString('ru-RU')}
+              </div>
+              {smsData.balance.error && (
+                <div className="text-xs text-rose-700 mt-1 truncate" title={smsData.balance.error}>{smsData.balance.error}</div>
+              )}
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><CheckCircle2 className="w-3.5 h-3.5" />Успехов за 24 ч</div>
+              <div className="text-2xl font-semibold text-emerald-700">{smsData.success24h}</div>
+              <div className="text-xs text-gray-400 mt-1">всего попыток: {smsData.success24h + smsData.failure24h}</div>
+            </div>
+            <div className={clsx(
+              'rounded-lg border bg-white p-4 shadow-sm',
+              smsData.failure24h > 0 ? 'border-amber-200' : 'border-gray-200',
+            )}>
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><XCircle className="w-3.5 h-3.5" />Ошибок за 24 ч</div>
+              <div className={clsx('text-2xl font-semibold', smsData.failure24h > 0 ? 'text-amber-700' : 'text-gray-700')}>
+                {smsData.failure24h}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                rate: {smsData.failureRatePct24h === null ? '—' : `${smsData.failureRatePct24h.toFixed(1)}%`}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><MessageSquare className="w-3.5 h-3.5" />Топ-причины ошибок (7 дн)</div>
+              {smsData.topFailureReasons.length === 0 ? (
+                <div className="text-sm text-gray-500 mt-1">— нет ошибок</div>
+              ) : (
+                <ul className="text-xs text-gray-600 mt-1 space-y-0.5">
+                  {smsData.topFailureReasons.slice(0, 3).map((r, i) => (
+                    <li key={i} className="truncate" title={r.reason}>{r.count} × {r.reason}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
       )}
 
       <section>
