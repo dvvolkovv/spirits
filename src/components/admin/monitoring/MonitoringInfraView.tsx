@@ -70,11 +70,24 @@ interface NginxRow {
   waiting: number | null;
 }
 
+interface Neo4jRow {
+  instance: string;
+  up: boolean;
+  heapUsedBytes: number | null;
+  heapMaxBytes: number | null;
+  heapUsedPct: number | null;
+  threads: number | null;
+  gcTimeSecTotal: number | null;
+  nodes: number | null;
+  relationships: number | null;
+}
+
 interface DbOverview {
   postgres: PgRow[];
   redis: RedisRow[];
   minio: MinioRow[];
   nginx: NginxRow[];
+  neo4j: Neo4jRow[];
   generatedAt: string;
 }
 
@@ -213,6 +226,34 @@ const PgCard: React.FC<{ row: PgRow }> = ({ row }) => (
       <Metric icon={<Activity className="w-4 h-4" />} label="Cache hit ratio" value={formatRatio(row.cacheHitRatio)} valueClass={hitRatioColor(row.cacheHitRatio)} />
       <Metric icon={<AlertCircle className="w-4 h-4" />} label="Deadlocks" value={formatNum(row.deadlocks)}
         valueClass={(row.deadlocks ?? 0) > 0 ? 'text-amber-600' : undefined} />
+    </div>
+  </div>
+);
+
+const Neo4jCard: React.FC<{ row: Neo4jRow }> = ({ row }) => (
+  <div className={clsx('rounded-lg border bg-white p-4 shadow-sm', row.up ? 'border-gray-200' : 'border-rose-300 bg-rose-50')}>
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <Database className="w-4 h-4 text-violet-600" />
+        <div className="font-semibold text-gray-900">Neo4j · {row.instance}</div>
+      </div>
+      <span className={clsx('text-xs font-medium px-2 py-1 rounded', row.up ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+        {row.up ? 'UP' : 'DOWN'}
+      </span>
+    </div>
+    <div className="divide-y divide-gray-100">
+      <Metric icon={<MemoryStick className="w-4 h-4" />} label="JVM heap"
+        value={`${formatBytes(row.heapUsedBytes)} / ${formatBytes(row.heapMaxBytes)}`}
+        valueClass={pctColor(row.heapUsedPct, 70, 90)} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="Heap %"
+        value={row.heapUsedPct !== null ? `${row.heapUsedPct.toFixed(0)}%` : '—'}
+        valueClass={pctColor(row.heapUsedPct, 70, 90)} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="GC time (total)"
+        value={row.gcTimeSecTotal !== null ? `${row.gcTimeSecTotal.toFixed(1)} с` : '—'} />
+      <Metric icon={<Database className="w-4 h-4" />} label="Узлов"
+        value={formatNum(row.nodes)} />
+      <Metric icon={<Database className="w-4 h-4" />} label="Связей"
+        value={formatNum(row.relationships)} />
     </div>
   </div>
 );
@@ -514,6 +555,7 @@ const MonitoringInfraView: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {dbData?.postgres.map((r) => <PgCard key={`pg-${r.instance}`} row={r} />)}
           {dbData?.redis.map((r) => <RedisCard key={`r-${r.instance}`} row={r} />)}
+          {dbData?.neo4j?.map((r) => <Neo4jCard key={`n4-${r.instance}`} row={r} />)}
           {dbData?.minio.map((r) => <MinioCard key={`m-${r.instance}`} row={r} />)}
           {dbData?.nginx.map((r) => <NginxCard key={`n-${r.instance}`} row={r} />)}
         </div>
