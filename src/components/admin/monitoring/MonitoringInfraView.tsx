@@ -58,10 +58,23 @@ interface Overview {
   generatedAt: string;
 }
 
+interface NginxRow {
+  instance: string;
+  up: boolean;
+  activeConnections: number | null;
+  reqPerSec: number | null;
+  acceptedTotal: number | null;
+  handledTotal: number | null;
+  reading: number | null;
+  writing: number | null;
+  waiting: number | null;
+}
+
 interface DbOverview {
   postgres: PgRow[];
   redis: RedisRow[];
   minio: MinioRow[];
+  nginx: NginxRow[];
   generatedAt: string;
 }
 
@@ -200,6 +213,28 @@ const PgCard: React.FC<{ row: PgRow }> = ({ row }) => (
       <Metric icon={<Activity className="w-4 h-4" />} label="Cache hit ratio" value={formatRatio(row.cacheHitRatio)} valueClass={hitRatioColor(row.cacheHitRatio)} />
       <Metric icon={<AlertCircle className="w-4 h-4" />} label="Deadlocks" value={formatNum(row.deadlocks)}
         valueClass={(row.deadlocks ?? 0) > 0 ? 'text-amber-600' : undefined} />
+    </div>
+  </div>
+);
+
+const NginxCard: React.FC<{ row: NginxRow }> = ({ row }) => (
+  <div className={clsx('rounded-lg border bg-white p-4 shadow-sm', row.up ? 'border-gray-200' : 'border-rose-300 bg-rose-50')}>
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <Globe className="w-4 h-4 text-emerald-600" />
+        <div className="font-semibold text-gray-900">Nginx · {row.instance}</div>
+      </div>
+      <span className={clsx('text-xs font-medium px-2 py-1 rounded', row.up ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+        {row.up ? 'UP' : 'DOWN'}
+      </span>
+    </div>
+    <div className="divide-y divide-gray-100">
+      <Metric icon={<Zap className="w-4 h-4" />} label="Req/sec (5м)"
+        value={row.reqPerSec === null ? '—' : row.reqPerSec.toFixed(1)} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="Активных коннектов" value={formatNum(row.activeConnections)} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="Reading / Writing / Waiting"
+        value={`${row.reading ?? '—'} / ${row.writing ?? '—'} / ${row.waiting ?? '—'}`} />
+      <Metric icon={<Activity className="w-4 h-4" />} label="Всего принято" value={formatNum(row.acceptedTotal)} />
     </div>
   </div>
 );
@@ -480,8 +515,9 @@ const MonitoringInfraView: React.FC = () => {
           {dbData?.postgres.map((r) => <PgCard key={`pg-${r.instance}`} row={r} />)}
           {dbData?.redis.map((r) => <RedisCard key={`r-${r.instance}`} row={r} />)}
           {dbData?.minio.map((r) => <MinioCard key={`m-${r.instance}`} row={r} />)}
+          {dbData?.nginx.map((r) => <NginxCard key={`n-${r.instance}`} row={r} />)}
         </div>
-        {dbData && dbData.postgres.length === 0 && dbData.redis.length === 0 && dbData.minio.length === 0 && (
+        {dbData && dbData.postgres.length === 0 && dbData.redis.length === 0 && dbData.minio.length === 0 && dbData.nginx?.length === 0 && (
           <div className="text-sm text-gray-500">Экспортёры баз ещё не подключены</div>
         )}
       </section>
