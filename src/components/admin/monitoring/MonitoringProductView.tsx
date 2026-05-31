@@ -7,7 +7,7 @@ import MonitoringNetworkingView from './MonitoringNetworkingView';
 import MonitoringChurnView from './MonitoringChurnView';
 import MonitoringSupportView from './MonitoringSupportView';
 import MonitoringContentView from './MonitoringContentView';
-import MonitoringStubView from './MonitoringStubView';
+import MonitoringPersonasView from './MonitoringPersonasView';
 
 type Sub = 'economy' | 'quality' | 'profile' | 'networking' | 'support' | 'content' | 'churn' | 'personas';
 
@@ -19,7 +19,7 @@ const SUBS: Array<{ id: Sub; label: string; ready: boolean }> = [
   { id: 'support',    label: 'Поддержка',  ready: true  },
   { id: 'content',    label: 'Контент',    ready: true  },
   { id: 'churn',      label: 'Churn',      ready: true  },
-  { id: 'personas',   label: 'Персоны',    ready: false },
+  { id: 'personas',   label: 'Персоны',    ready: true  },
 ];
 
 const MonitoringProductView: React.FC = () => {
@@ -46,7 +46,7 @@ const MonitoringProductView: React.FC = () => {
       {sub === 'support'    && <MonitoringSupportView />}
       {sub === 'content'    && <MonitoringContentView />}
       {sub === 'churn'      && <MonitoringChurnView />}
-      {sub === 'personas'   && <MonitoringStubView title="Персоны"    description="Кластеры пользователей по top-ассистентам, интентам, профилю. Пересчёт ежемесячно. В разработке." />}
+      {sub === 'personas'   && <MonitoringPersonasView />}
     </div>
   );
 };
