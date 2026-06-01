@@ -177,6 +177,28 @@ interface BackupOverview {
   error: string | null;
 }
 
+interface ModelStatus {
+  provider: string;
+  model: string;
+  kind: string;
+  purpose: string;
+  caller: string;
+  via: string;
+  calls_30d: number;
+  cost_usd_30d: number;
+  calls_24h: number;
+  last_seen: string | null;
+}
+interface ModelsOverview {
+  generatedAt: string;
+  expected: ModelStatus[];
+  unexpected: Array<{ model: string; source: string; calls_30d: number; last_seen: string | null }>;
+  totals: {
+    by_provider: Array<{ provider: string; calls_30d: number; cost_usd_30d: number }>;
+    by_kind: Array<{ kind: string; calls_30d: number; cost_usd_30d: number }>;
+  };
+}
+
 interface ClaudeOverview {
   generatedAt: string;
   usage: {
@@ -480,6 +502,7 @@ const MonitoringInfraView: React.FC = () => {
   const [elevenlabsData, setElevenlabsData] = useState<ElevenLabsOverview | null>(null);
   const [claudeData, setClaudeData] = useState<ClaudeOverview | null>(null);
   const [backupsData, setBackupsData] = useState<BackupOverview | null>(null);
+  const [modelsData, setModelsData] = useState<ModelsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -487,7 +510,7 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
@@ -496,6 +519,7 @@ const MonitoringInfraView: React.FC = () => {
         apiClient.get('/webhook/admin/monitoring/tech/elevenlabs'),
         apiClient.get('/webhook/admin/monitoring/tech/claude'),
         apiClient.get('/webhook/admin/monitoring/tech/backups'),
+        apiClient.get('/webhook/admin/monitoring/tech/models'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -509,6 +533,7 @@ const MonitoringInfraView: React.FC = () => {
       if (resElevenLabs.ok) setElevenlabsData(await resElevenLabs.json());
       if (resClaude.ok) setClaudeData(await resClaude.json());
       if (resBackups.ok) setBackupsData(await resBackups.json());
+      if (resModels.ok) setModelsData(await resModels.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -865,6 +890,67 @@ const MonitoringInfraView: React.FC = () => {
               </table>
             </div>
           )}
+        </section>
+      )}
+
+      {modelsData && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-700">Используемые модели</h3>
+            {modelsData.totals.by_provider.length > 0 && (
+              <div className="text-xs text-gray-500 flex items-center gap-2 flex-wrap">
+                {modelsData.totals.by_provider.slice(0, 5).map((p) => (
+                  <span key={p.provider} className="px-2 py-0.5 rounded bg-gray-100 border border-gray-200">
+                    {p.provider}: {p.calls_30d} / ${p.cost_usd_30d.toFixed(2)}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">Провайдер</th>
+                  <th className="text-left px-3 py-2 font-medium">Модель</th>
+                  <th className="text-left px-3 py-2 font-medium">Тип</th>
+                  <th className="text-left px-3 py-2 font-medium">Назначение</th>
+                  <th className="text-right px-3 py-2 font-medium">24ч</th>
+                  <th className="text-right px-3 py-2 font-medium">30д</th>
+                  <th className="text-right px-3 py-2 font-medium">$ за 30д</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {modelsData.expected.map((m) => (
+                  <tr key={`${m.provider}-${m.model}`} className={clsx(m.calls_30d === 0 && 'opacity-60')}>
+                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{m.provider}</td>
+                    <td className="px-3 py-2 font-mono text-gray-800 whitespace-nowrap" title={`${m.caller} · via ${m.via}`}>
+                      {m.model}
+                    </td>
+                    <td className="px-3 py-2 text-gray-500">{m.kind}</td>
+                    <td className="px-3 py-2 text-gray-500 max-w-md truncate" title={m.purpose}>{m.purpose}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{m.calls_24h || '—'}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{m.calls_30d || '—'}</td>
+                    <td className="px-3 py-2 text-right text-gray-700">{m.cost_usd_30d > 0 ? `$${m.cost_usd_30d.toFixed(4)}` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {modelsData.unexpected.length > 0 && (
+              <div className="px-3 py-2 border-t border-gray-200 bg-amber-50">
+                <div className="text-xs text-amber-800">
+                  Замечены неизвестные модели в `events` (нет в каталоге):
+                </div>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {modelsData.unexpected.map((u) => (
+                    <span key={u.model} className="text-xs px-2 py-0.5 rounded bg-white border border-amber-300 text-amber-800" title={`${u.calls_30d} вызовов за 30д · ${u.source}`}>
+                      {u.model} ({u.calls_30d})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </section>
       )}
 
