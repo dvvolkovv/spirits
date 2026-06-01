@@ -223,7 +223,61 @@
       "assistants": "Assistants",
       "coupons": "Coupons",
       "referrals": "Referrals",
-      "monitoring": "Monitoring"
+      "monitoring": "Monitoring",
+      "backlog": "Backlog"
+    },
+    "backlog": {
+      "add": "Add feature",
+      "loading": "Loading…",
+      "empty": "Nothing here yet. Add the first feature.",
+      "no_analysis": "Analysis not written yet.",
+      "change_status": "Status",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "discussion": "Discussion",
+      "no_comments": "No comments yet.",
+      "post_comment": "Send",
+      "delete_comment": "Delete comment",
+      "confirm_delete": "Remove this feature from backlog?",
+      "confirm_delete_comment": "Delete comment?",
+      "filters": {
+        "all": "All",
+        "proposed": "Proposed",
+        "approved": "Approved",
+        "in_progress": "In progress",
+        "done": "Done",
+        "rejected": "Rejected"
+      },
+      "status": {
+        "proposed": "Proposed",
+        "approved": "Approved",
+        "in_progress": "In progress",
+        "done": "Done",
+        "rejected": "Rejected"
+      },
+      "complexity": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "placeholders": {
+        "title": "Feature name",
+        "analysis": "Feature analysis in Markdown: problem, what to do, risks, alternatives…",
+        "effort": "Effort (e.g. \"1–2 weeks\")",
+        "complexity_none": "Complexity not set",
+        "costs": "Additional costs (e.g. \"$3.60 per 24s on Veo Fast\")",
+        "comment": "Write a comment…"
+      },
+      "errors": {
+        "load": "Load error",
+        "save": "Save error",
+        "update": "Update error",
+        "delete": "Delete error",
+        "title_required": "Enter a feature name",
+        "unknown": "Unknown error"
+      }
     },
     "support": {
       "filters": {
