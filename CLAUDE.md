@@ -1,5 +1,7 @@
 # My.Linkeon (Kindred Spirits) — CLAUDE.md
 
+> **🤖 Автономия Claude**: правила «когда действовать сам, когда уточнять» — в шапке `spirits_back/CLAUDE.md`. Применяются ко всем сессиям в обоих репозиториях.
+
 > ## ⚠️ DEPLOY POLICY — ЧИТАТЬ ПЕРВЫМ
 >
 > **Единственный способ выкатить фронт — `bash ~/Downloads/spirits_back/scripts/deploy.sh`** (двухфазный: `test.linkeon.io → smoke → my.linkeon.io → smoke`).
