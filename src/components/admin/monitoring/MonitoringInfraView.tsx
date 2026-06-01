@@ -119,6 +119,19 @@ interface SmsOverview {
   topFailureReasons: Array<{ reason: string; count: number }>;
 }
 
+interface OpenRouterOverview {
+  generatedAt: string;
+  balance: {
+    usd: number | null;
+    totalCredits: number | null;
+    totalUsage: number | null;
+    fetchedAt: string;
+    error: string | null;
+  };
+  alertThresholdUsd: number;
+  configured: boolean;
+}
+
 const SCENARIO_LABEL: Record<string, string> = {
   agents_endpoint:           'Каталог ассистентов',
   auth_flow_sms:             'SMS → OTP → JWT',
@@ -400,6 +413,7 @@ const MonitoringInfraView: React.FC = () => {
   const [dbData, setDbData] = useState<DbOverview | null>(null);
   const [synthData, setSynthData] = useState<SynthOverview | null>(null);
   const [smsData, setSmsData] = useState<SmsOverview | null>(null);
+  const [openrouterData, setOpenrouterData] = useState<OpenRouterOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -407,11 +421,12 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resOpenRouter] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
         apiClient.get('/webhook/admin/monitoring/tech/sms'),
+        apiClient.get('/webhook/admin/monitoring/tech/openrouter'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -421,6 +436,7 @@ const MonitoringInfraView: React.FC = () => {
       if (resDb.ok) setDbData(await resDb.json());
       if (resSynth.ok) setSynthData(await resSynth.json());
       if (resSms.ok) setSmsData(await resSms.json());
+      if (resOpenRouter.ok) setOpenrouterData(await resOpenRouter.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -518,6 +534,61 @@ const MonitoringInfraView: React.FC = () => {
                   ))}
                 </ul>
               )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {openrouterData && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">OpenRouter (LLM-провайдер)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className={clsx(
+              'rounded-lg border bg-white p-4 shadow-sm',
+              !openrouterData.configured
+                ? 'border-gray-300 bg-gray-50'
+                : openrouterData.balance.usd !== null && openrouterData.balance.usd <= openrouterData.alertThresholdUsd
+                  ? 'border-rose-300 bg-rose-50'
+                  : openrouterData.balance.usd !== null && openrouterData.balance.usd <= openrouterData.alertThresholdUsd * 2
+                    ? 'border-amber-200'
+                    : 'border-gray-200',
+            )}>
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Wallet className="w-3.5 h-3.5" />Баланс</div>
+              <div className={clsx(
+                'text-2xl font-semibold',
+                !openrouterData.configured ? 'text-gray-500'
+                  : openrouterData.balance.usd === null ? 'text-gray-500'
+                  : openrouterData.balance.usd <= openrouterData.alertThresholdUsd ? 'text-rose-600'
+                  : openrouterData.balance.usd <= openrouterData.alertThresholdUsd * 2 ? 'text-amber-600'
+                  : 'text-emerald-600',
+              )}>
+                {openrouterData.balance.usd === null ? '—' : `$${openrouterData.balance.usd.toFixed(2)}`}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                порог: ${openrouterData.alertThresholdUsd} · обновлено {new Date(openrouterData.balance.fetchedAt).toLocaleTimeString('ru-RU')}
+              </div>
+              {!openrouterData.configured && (
+                <div className="text-xs text-amber-700 mt-1">OPENROUTER_API_KEY не задан в .env</div>
+              )}
+              {openrouterData.balance.error && openrouterData.configured && (
+                <div className="text-xs text-rose-700 mt-1 truncate" title={openrouterData.balance.error}>
+                  {openrouterData.balance.error}
+                </div>
+              )}
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Куплено всего</div>
+              <div className="text-2xl font-semibold text-gray-800">
+                {openrouterData.balance.totalCredits === null ? '—' : `$${openrouterData.balance.totalCredits.toFixed(2)}`}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">total_credits</div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Потрачено всего</div>
+              <div className="text-2xl font-semibold text-gray-800">
+                {openrouterData.balance.totalUsage === null ? '—' : `$${openrouterData.balance.totalUsage.toFixed(2)}`}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">total_usage</div>
             </div>
           </div>
         </section>
