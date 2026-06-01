@@ -5,6 +5,20 @@ import { ChevronDown, ChevronUp, MessageCircle, Search, Heart, Image, User, Coin
 
 const guideIcons = [MessageCircle, Search, Heart, Inbox, Users, Image, Film, User, Coins];
 
+// Maps a guide index → in-app route. Order matches help.guides[] in i18n.
+// null means "no destination" (the card stays informational only).
+const guideRoutes: (string | null)[] = [
+  '/chat',           // Чат с ассистентом
+  '/search',         // Поиск партнёров
+  '/compatibility',  // Проверка совместимости
+  '/chats',          // Запросы на общение
+  '/chats',          // Чаты между пользователями
+  '/chat',           // Генерация картинок (entry via chat: "нарисуй…")
+  '/chat?view=video', // Генерация видео
+  '/profile',        // Профиль
+  '/chat?view=tokens', // Токены — открывает модал покупки
+];
+
 const HelpPage: React.FC = () => {
   const { t } = useTranslation();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -48,17 +62,33 @@ const HelpPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {guides.map((g, i) => {
               const Icon = guideIcons[i] ?? MessageCircle;
+              const route = guideRoutes[i] ?? null;
+              const commonInner = (
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-forest-50 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 text-forest-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-1">{g.title}</h3>
+                    <p className="text-xs text-gray-500 leading-relaxed">{g.desc}</p>
+                  </div>
+                </div>
+              );
+              if (route) {
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => navigate(route)}
+                    className="text-left bg-white rounded-lg p-4 border border-gray-100 shadow-sm hover:border-forest-300 hover:shadow-md transition"
+                  >
+                    {commonInner}
+                  </button>
+                );
+              }
               return (
                 <div key={i} className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-forest-50 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-4 h-4 text-forest-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-1">{g.title}</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">{g.desc}</p>
-                    </div>
-                  </div>
+                  {commonInner}
                 </div>
               );
             })}
