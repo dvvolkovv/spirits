@@ -199,6 +199,36 @@ interface ModelsOverview {
   };
 }
 
+interface ReplicationOverview {
+  generatedAt: string;
+  standbys: Array<{
+    pid: number;
+    client_addr: string;
+    application_name: string;
+    state: string;
+    sync_state: string;
+    write_lag_sec: number | null;
+    flush_lag_sec: number | null;
+    replay_lag_sec: number | null;
+    sent_lsn: string | null;
+    replay_lsn: string | null;
+    reply_time: string | null;
+  }>;
+  slots: Array<{
+    slot_name: string;
+    slot_type: string;
+    active: boolean;
+    active_pid: number | null;
+    wal_status: string;
+    restart_lsn: string | null;
+    safe_wal_size_bytes: number | null;
+  }>;
+  healthy: boolean;
+  maxReplayLagSec: number | null;
+  thresholdSec: number;
+  error: string | null;
+}
+
 interface JobsOverview {
   generatedAt: string;
   video: {
@@ -537,6 +567,7 @@ const MonitoringInfraView: React.FC = () => {
   const [backupsData, setBackupsData] = useState<BackupOverview | null>(null);
   const [modelsData, setModelsData] = useState<ModelsOverview | null>(null);
   const [jobsData, setJobsData] = useState<JobsOverview | null>(null);
+  const [replData, setReplData] = useState<ReplicationOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -544,7 +575,7 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels, resJobs] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels, resJobs, resRepl] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
@@ -555,6 +586,7 @@ const MonitoringInfraView: React.FC = () => {
         apiClient.get('/webhook/admin/monitoring/tech/backups'),
         apiClient.get('/webhook/admin/monitoring/tech/models'),
         apiClient.get('/webhook/admin/monitoring/tech/jobs'),
+        apiClient.get('/webhook/admin/monitoring/tech/replication'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -570,6 +602,7 @@ const MonitoringInfraView: React.FC = () => {
       if (resBackups.ok) setBackupsData(await resBackups.json());
       if (resModels.ok) setModelsData(await resModels.json());
       if (resJobs.ok) setJobsData(await resJobs.json());
+      if (resRepl.ok) setReplData(await resRepl.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -924,6 +957,127 @@ const MonitoringInfraView: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {replData && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Репликация PostgreSQL</h3>
+          {replData.error ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{replData.error}</div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className={clsx(
+                  'rounded-lg border bg-white p-3 shadow-sm',
+                  replData.healthy ? 'border-emerald-200' : 'border-rose-300 bg-rose-50',
+                )}>
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Состояние</div>
+                  <div className={clsx('text-2xl font-semibold', replData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
+                    {replData.healthy ? '✓ healthy' : '✗ problem'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {replData.standbys.length} standby · порог лага {replData.thresholdSec}с
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Replay lag</div>
+                  <div className="text-2xl font-semibold text-gray-800">
+                    {replData.maxReplayLagSec === null ? '—' : `${replData.maxReplayLagSec.toFixed(2)} с`}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">max по standby'ям</div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Слоты</div>
+                  <div className="text-2xl font-semibold text-gray-800">
+                    {replData.slots.filter((s) => s.active).length} / {replData.slots.length}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">активны / всего</div>
+                </div>
+              </div>
+
+              {replData.standbys.length > 0 && (
+                <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 text-gray-500">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium">Адрес</th>
+                        <th className="text-left px-3 py-2 font-medium">App</th>
+                        <th className="text-left px-3 py-2 font-medium">State</th>
+                        <th className="text-left px-3 py-2 font-medium">Sync</th>
+                        <th className="text-right px-3 py-2 font-medium">write</th>
+                        <th className="text-right px-3 py-2 font-medium">flush</th>
+                        <th className="text-right px-3 py-2 font-medium">replay</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {replData.standbys.map((sb) => (
+                        <tr key={sb.pid}>
+                          <td className="px-3 py-1.5 font-mono">{sb.client_addr}</td>
+                          <td className="px-3 py-1.5">{sb.application_name}</td>
+                          <td className="px-3 py-1.5">
+                            <span className={clsx(
+                              'px-1.5 py-0.5 rounded text-[10px]',
+                              sb.state === 'streaming' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
+                            )}>{sb.state}</span>
+                          </td>
+                          <td className="px-3 py-1.5 text-gray-500">{sb.sync_state}</td>
+                          <td className="px-3 py-1.5 text-right">{sb.write_lag_sec === null ? '—' : `${sb.write_lag_sec.toFixed(2)}с`}</td>
+                          <td className="px-3 py-1.5 text-right">{sb.flush_lag_sec === null ? '—' : `${sb.flush_lag_sec.toFixed(2)}с`}</td>
+                          <td className={clsx(
+                            'px-3 py-1.5 text-right',
+                            sb.replay_lag_sec !== null && sb.replay_lag_sec > replData.thresholdSec && 'text-rose-700 font-medium',
+                          )}>{sb.replay_lag_sec === null ? '—' : `${sb.replay_lag_sec.toFixed(2)}с`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {replData.slots.length > 0 && (
+                <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 text-gray-500">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium">Слот</th>
+                        <th className="text-left px-3 py-2 font-medium">Тип</th>
+                        <th className="text-left px-3 py-2 font-medium">Active</th>
+                        <th className="text-left px-3 py-2 font-medium">WAL status</th>
+                        <th className="text-left px-3 py-2 font-medium">restart_lsn</th>
+                        <th className="text-right px-3 py-2 font-medium">safe_wal</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {replData.slots.map((s) => (
+                        <tr key={s.slot_name} className={clsx(s.wal_status === 'lost' && 'bg-rose-50')}>
+                          <td className="px-3 py-1.5 font-mono">{s.slot_name}</td>
+                          <td className="px-3 py-1.5 text-gray-500">{s.slot_type}</td>
+                          <td className="px-3 py-1.5">
+                            {s.active
+                              ? <span className="text-emerald-700">✓</span>
+                              : <span className="text-amber-700">—</span>}
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <span className={clsx(
+                              'px-1.5 py-0.5 rounded text-[10px]',
+                              s.wal_status === 'reserved' || s.wal_status === 'extended' ? 'bg-emerald-100 text-emerald-700'
+                                : s.wal_status === 'unreserved' ? 'bg-amber-100 text-amber-700'
+                                : 'bg-rose-100 text-rose-700',
+                            )}>{s.wal_status}</span>
+                          </td>
+                          <td className="px-3 py-1.5 font-mono text-gray-500 truncate max-w-[200px]">{s.restart_lsn ?? '—'}</td>
+                          <td className="px-3 py-1.5 text-right text-gray-500">
+                            {s.safe_wal_size_bytes === null ? '—' : `${(s.safe_wal_size_bytes / 1024 / 1024).toFixed(0)} МБ`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </section>
