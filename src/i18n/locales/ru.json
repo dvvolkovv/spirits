@@ -228,6 +228,8 @@
     },
     "product": {
       "tabs": {
+        "overview": "Сводка",
+        "funnel": "Воронка",
         "metrics": "Метрики",
         "backlog": "Бэклог",
         "vpm": "Виртуальный PM"

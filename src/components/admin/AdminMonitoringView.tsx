@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { clsx } from 'clsx';
 import MonitoringInfraView from './monitoring/MonitoringInfraView';
-import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
 import MonitoringLogsView from './monitoring/MonitoringLogsView';
 import MonitoringSummaryView from './monitoring/MonitoringSummaryView';
 
-// Продукт-под-вкладка переехала в новый top-level раздел «Управление продуктом»
-// (AdminProductManagementView). Мониторинг теперь только про техническое здоровье.
-type Section = 'overview' | 'infra' | 'funnel' | 'logs';
+// Продукт и Воронка переехали в Управление продуктом
+// (AdminProductManagementView). Мониторинг теперь только техническое здоровье,
+// и Сводка показывает только risk + infra группы (компактно, чтобы умещалось
+// на один экран).
+type Section = 'overview' | 'infra' | 'logs';
 
 const SECTIONS: Array<{ id: Section; label: string }> = [
   { id: 'overview', label: 'Сводка' },
   { id: 'infra',    label: 'Инфра' },
-  { id: 'funnel',   label: 'Воронка' },
   { id: 'logs',     label: 'Логи' },
 ];
 
@@ -45,7 +45,6 @@ const AdminMonitoringView: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         {section === 'overview' && <MonitoringSummaryView />}
         {section === 'infra' && <MonitoringInfraView />}
-        {section === 'funnel' && <MonitoringFunnelView />}
         {section === 'logs' && <MonitoringLogsView />}
       </div>
     </div>

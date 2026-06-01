@@ -3,18 +3,22 @@ import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
 import MonitoringProductView from './monitoring/MonitoringProductView';
+import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
+import { ProductSummaryView } from './monitoring/MonitoringSummaryView';
 import AdminBacklogView from './AdminBacklogView';
 
-type Section = 'metrics' | 'backlog' | 'vpm';
+type Section = 'overview' | 'funnel' | 'metrics' | 'backlog' | 'vpm';
 
 const AdminProductManagementView: React.FC = () => {
   const { t } = useTranslation();
-  const [section, setSection] = useState<Section>('metrics');
+  const [section, setSection] = useState<Section>('overview');
 
   const SECTIONS: Array<{ id: Section; label: string; ready: boolean }> = [
-    { id: 'metrics', label: t('admin.product.tabs.metrics'), ready: true },
-    { id: 'backlog', label: t('admin.product.tabs.backlog'), ready: true },
-    { id: 'vpm',     label: t('admin.product.tabs.vpm'),     ready: false },
+    { id: 'overview', label: t('admin.product.tabs.overview'), ready: true  },
+    { id: 'funnel',   label: t('admin.product.tabs.funnel'),   ready: true  },
+    { id: 'metrics',  label: t('admin.product.tabs.metrics'),  ready: true  },
+    { id: 'backlog',  label: t('admin.product.tabs.backlog'),  ready: true  },
+    { id: 'vpm',      label: t('admin.product.tabs.vpm'),      ready: false },
   ];
 
   return (
@@ -43,6 +47,16 @@ const AdminProductManagementView: React.FC = () => {
         </div>
       </div>
 
+      {section === 'overview' && (
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <ProductSummaryView />
+        </div>
+      )}
+      {section === 'funnel' && (
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <MonitoringFunnelView />
+        </div>
+      )}
       {section === 'metrics' && (
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           <MonitoringProductView />
