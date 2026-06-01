@@ -224,7 +224,18 @@
       "coupons": "Coupons",
       "referrals": "Referrals",
       "monitoring": "Monitoring",
-      "backlog": "Backlog"
+      "backlog": "Backlog",
+      "product": "Product"
+    },
+    "product": {
+      "tabs": {
+        "metrics": "Metrics",
+        "backlog": "Backlog",
+        "vpm": "Virtual PM"
+      },
+      "coming_soon": "soon",
+      "vpm_title": "Virtual product manager",
+      "vpm_placeholder": "An AI assistant will periodically review product metrics, the backlog and support tickets and propose product decisions. The feature is in design — tracked as a separate backlog item (Virtual product manager, complexity=high)."
     },
     "backlog": {
       "add": "Add feature",

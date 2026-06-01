@@ -12,18 +12,24 @@ import AdminTokensView from '../components/admin/AdminTokensView';
 import AdminUsageView from '../components/admin/AdminUsageView';
 import AdminUsersView from '../components/admin/AdminUsersView';
 import AdminMonitoringView from '../components/admin/AdminMonitoringView';
-import AdminBacklogView from '../components/admin/AdminBacklogView';
+import AdminProductManagementView from '../components/admin/AdminProductManagementView';
 
-type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals' | 'monitoring' | 'backlog';
+type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals' | 'monitoring' | 'product';
+
+// `?tab=backlog` used to point at a standalone Бэклог tab.
+// We folded backlog into Управление продуктом — keep the URL working.
+const TAB_ALIASES: Record<string, AdminTab> = {
+  backlog: 'product',
+};
 
 const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t } = useTranslation();
   const [params] = useSearchParams();
-  const initialTab = (['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals', 'monitoring', 'backlog'] as AdminTab[])
-    .includes(params.get('tab') as AdminTab)
-    ? (params.get('tab') as AdminTab)
-    : 'support';
+  const KNOWN_TABS: AdminTab[] = ['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals', 'monitoring', 'product'];
+  const rawTab = params.get('tab') || '';
+  const aliasResolved = TAB_ALIASES[rawTab] ?? (rawTab as AdminTab);
+  const initialTab: AdminTab = KNOWN_TABS.includes(aliasResolved) ? aliasResolved : 'support';
   const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +64,7 @@ const AdminPage: React.FC = () => {
     { id: 'coupons', label: t('admin.tabs.coupons') },
     { id: 'referrals', label: t('admin.tabs.referrals') },
     { id: 'monitoring', label: t('admin.tabs.monitoring') },
-    { id: 'backlog', label: t('admin.tabs.backlog') },
+    { id: 'product', label: t('admin.tabs.product') },
   ];
 
   return (
@@ -96,7 +102,7 @@ const AdminPage: React.FC = () => {
         {activeTab === 'coupons' && <AdminCouponsView />}
         {activeTab === 'referrals' && <AdminReferralsView />}
         {activeTab === 'monitoring' && <AdminMonitoringView />}
-        {activeTab === 'backlog' && <AdminBacklogView />}
+        {activeTab === 'product' && <AdminProductManagementView />}
       </div>
     </div>
   );
