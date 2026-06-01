@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Plus, ChevronDown, ChevronRight, Loader, MessageSquare, Trash2, Save, X, Pencil } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
@@ -245,7 +246,7 @@ const AdminBacklogView: React.FC = () => {
                   <div className="border-t border-gray-100 px-4 py-4 bg-gray-50 space-y-4">
                     {item.analysis_md.trim() ? (
                       <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-h1:text-base prose-h2:text-sm prose-h3:text-sm prose-pre:bg-gray-900 prose-pre:text-gray-100">
-                        <ReactMarkdown>{item.analysis_md}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.analysis_md}</ReactMarkdown>
                       </div>
                     ) : (
                       <div className="text-sm text-gray-500 italic">{t('admin.backlog.no_analysis')}</div>

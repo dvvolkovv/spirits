@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
@@ -105,7 +106,7 @@ const StreamingMessage = React.memo(({
       if (lastIndex < matchIndex) {
         const textBefore = parsedContent.slice(lastIndex, matchIndex);
         parts.push(
-          <ReactMarkdown key={`text-${idx}`} components={components}>
+          <ReactMarkdown key={`text-${idx}`} remarkPlugins={[remarkGfm]} components={components}>
             {textBefore}
           </ReactMarkdown>
         );
@@ -190,14 +191,14 @@ const StreamingMessage = React.memo(({
     if (lastIndex < parsedContent.length) {
       const textAfter = parsedContent.slice(lastIndex);
       parts.push(
-        <ReactMarkdown key="text-last" components={components}>
+        <ReactMarkdown key="text-last" remarkPlugins={[remarkGfm]} components={components}>
           {textAfter}
         </ReactMarkdown>
       );
     }
 
     return parts.length > 0 ? parts : (
-      <ReactMarkdown components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {content}
       </ReactMarkdown>
     );
@@ -338,6 +339,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     h2: ({ children }: any) => <h2 className="text-base font-bold mb-2">{children}</h2>,
     h3: ({ children }: any) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
     br: () => <br />,
+    table: ({ children }: any) => (
+      <div className="my-2 -mx-1 overflow-x-auto">
+        <table className="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
+          {children}
+        </table>
+      </div>
+    ),
+    thead: ({ children }: any) => <thead className="bg-gray-50">{children}</thead>,
+    tbody: ({ children }: any) => <tbody className="divide-y divide-gray-100">{children}</tbody>,
+    tr: ({ children }: any) => <tr>{children}</tr>,
+    th: ({ children }: any) => <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b border-gray-200">{children}</th>,
+    td: ({ children }: any) => <td className="px-2 py-1.5 align-top">{children}</td>,
     a: ({ href, children }: any) => {
       return (
         <a
@@ -1707,7 +1720,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       if (lastIndex < matchIndex) {
                         const textBefore = parsedContent.slice(lastIndex, matchIndex);
                         parts.push(
-                          <ReactMarkdown key={`text-${idx}`} components={markdownComponents}>
+                          <ReactMarkdown key={`text-${idx}`} remarkPlugins={[remarkGfm]} components={markdownComponents}>
                             {textBefore}
                           </ReactMarkdown>
                         );
@@ -1792,14 +1805,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     if (lastIndex < parsedContent.length) {
                       const textAfter = parsedContent.slice(lastIndex);
                       parts.push(
-                        <ReactMarkdown key="text-last" components={markdownComponents}>
+                        <ReactMarkdown key="text-last" remarkPlugins={[remarkGfm]} components={markdownComponents}>
                           {textAfter}
                         </ReactMarkdown>
                       );
                     }
 
                     return parts.length > 0 ? parts : (
-                      <ReactMarkdown components={markdownComponents}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                         {contentForRender}
                       </ReactMarkdown>
                     );

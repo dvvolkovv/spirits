@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useAuth } from '../../contexts/AuthContext';
 import { Heart, X, Plus, Users, Info } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
@@ -373,7 +374,7 @@ const CompatibilityInterface: React.FC = () => {
               {t('compatibility.result')}
             </h2>
             <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>{analysisResult}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysisResult}</ReactMarkdown>
             </div>
           </div>
         )}

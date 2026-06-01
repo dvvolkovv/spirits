@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useAuth } from '../../contexts/AuthContext';
 import UserProfileModal from './UserProfileModal';
 import { Search, Users, MessageCircle, Heart, X, Plus } from 'lucide-react';
@@ -514,6 +515,7 @@ const SearchInterface: React.FC = () => {
                     <p>Ищем подходящих людей...</p>
                   ) : (
                     <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
                       components={{
                         p: ({ children }) => <p className="mb-2 last:mb-0 break-words">{children}</p>,
                         strong: ({ children }) => <strong className="font-semibold text-blue-900">{children}</strong>,
