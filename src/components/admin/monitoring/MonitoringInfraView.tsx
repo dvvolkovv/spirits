@@ -199,6 +199,39 @@ interface ModelsOverview {
   };
 }
 
+interface JobsOverview {
+  generatedAt: string;
+  video: {
+    status_counts: Record<string, number>;
+    pending_total: number;
+    oldest_pending_age_min: number | null;
+    stuck: boolean;
+    threshold_min: number;
+  };
+  tokens: {
+    status_counts: Record<string, number>;
+    pending_total: number;
+    oldest_pending_age_sec: number | null;
+    stuck: boolean;
+    threshold_sec: number;
+  };
+  vpm_recent: Array<{
+    id: string;
+    trigger: string;
+    cost_usd: number | null;
+    duration_ms: number | null;
+    ok: boolean;
+    rec_count: number;
+    created_at: string;
+  }>;
+  compaction: {
+    schedule_human: string;
+    next_run_in_h: number | null;
+    last_run_at: string | null;
+    active_profiles: number;
+  };
+}
+
 interface ClaudeOverview {
   generatedAt: string;
   usage: {
@@ -503,6 +536,7 @@ const MonitoringInfraView: React.FC = () => {
   const [claudeData, setClaudeData] = useState<ClaudeOverview | null>(null);
   const [backupsData, setBackupsData] = useState<BackupOverview | null>(null);
   const [modelsData, setModelsData] = useState<ModelsOverview | null>(null);
+  const [jobsData, setJobsData] = useState<JobsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -510,7 +544,7 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels, resJobs] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
@@ -520,6 +554,7 @@ const MonitoringInfraView: React.FC = () => {
         apiClient.get('/webhook/admin/monitoring/tech/claude'),
         apiClient.get('/webhook/admin/monitoring/tech/backups'),
         apiClient.get('/webhook/admin/monitoring/tech/models'),
+        apiClient.get('/webhook/admin/monitoring/tech/jobs'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -534,6 +569,7 @@ const MonitoringInfraView: React.FC = () => {
       if (resClaude.ok) setClaudeData(await resClaude.json());
       if (resBackups.ok) setBackupsData(await resBackups.json());
       if (resModels.ok) setModelsData(await resModels.json());
+      if (resJobs.ok) setJobsData(await resJobs.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -890,6 +926,94 @@ const MonitoringInfraView: React.FC = () => {
               </table>
             </div>
           )}
+        </section>
+      )}
+
+      {jobsData && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Фоновые задачи</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Video jobs card */}
+            <div className={clsx(
+              'rounded-lg border bg-white p-3 shadow-sm',
+              jobsData.video.stuck ? 'border-rose-300 bg-rose-50' : jobsData.video.pending_total > 0 ? 'border-amber-200' : 'border-gray-200',
+            )}>
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Видео-задачи</div>
+              <div className={clsx(
+                'text-2xl font-semibold',
+                jobsData.video.stuck ? 'text-rose-600' : jobsData.video.pending_total > 0 ? 'text-amber-600' : 'text-gray-800',
+              )}>
+                {jobsData.video.pending_total} <span className="text-base text-gray-400 font-normal">в работе</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {jobsData.video.oldest_pending_age_min === null
+                  ? 'очередь пуста'
+                  : `старейшее: ${jobsData.video.oldest_pending_age_min} мин${jobsData.video.stuck ? ` (порог ${jobsData.video.threshold_min})` : ''}`}
+              </div>
+              <div className="text-[10px] text-gray-400 mt-1.5 flex flex-wrap gap-1.5">
+                {Object.entries(jobsData.video.status_counts).map(([s, n]) => (
+                  <span key={s} className="px-1.5 py-0.5 rounded bg-gray-100">{s}: {n}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Token consumption card */}
+            <div className={clsx(
+              'rounded-lg border bg-white p-3 shadow-sm',
+              jobsData.tokens.stuck ? 'border-rose-300 bg-rose-50' : 'border-gray-200',
+            )}>
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Списание токенов</div>
+              <div className={clsx(
+                'text-2xl font-semibold',
+                jobsData.tokens.stuck ? 'text-rose-600' : 'text-gray-800',
+              )}>
+                {jobsData.tokens.pending_total} <span className="text-base text-gray-400 font-normal">pending</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {jobsData.tokens.oldest_pending_age_sec === null
+                  ? 'очередь чиста'
+                  : `старейшее: ${jobsData.tokens.oldest_pending_age_sec}с (порог ${jobsData.tokens.threshold_sec}с)`}
+              </div>
+              <div className="text-[10px] text-gray-400 mt-1.5 flex flex-wrap gap-1.5">
+                {Object.entries(jobsData.tokens.status_counts).slice(0, 4).map(([s, n]) => (
+                  <span key={s} className="px-1.5 py-0.5 rounded bg-gray-100">{s}: {n}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Profile compaction card */}
+            <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Сжатие профилей</div>
+              <div className="text-2xl font-semibold text-gray-800">
+                {jobsData.compaction.active_profiles}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">{jobsData.compaction.schedule_human}</div>
+              <div className="text-[10px] text-gray-400 mt-1.5">
+                {jobsData.compaction.next_run_in_h != null && `следующий запуск через ${jobsData.compaction.next_run_in_h.toFixed(1)}ч`}
+              </div>
+            </div>
+
+            {/* VPM runs card */}
+            <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Виртуальный PM</div>
+              <div className="text-2xl font-semibold text-gray-800">
+                {jobsData.vpm_recent.length}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">генераций (показано 5 последних)</div>
+              <div className="mt-1.5 space-y-0.5 max-h-[60px] overflow-hidden">
+                {jobsData.vpm_recent.slice(0, 3).map((r) => (
+                  <div key={r.id} className="text-[10px] text-gray-500 flex items-center gap-1">
+                    <span className={clsx('inline-block w-1.5 h-1.5 rounded-full', r.ok ? 'bg-emerald-500' : 'bg-rose-500')} />
+                    <span>{new Date(r.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-gray-400">·</span>
+                    <span>{r.rec_count} рек.</span>
+                    {r.cost_usd != null && <><span className="text-gray-400">·</span><span>${r.cost_usd.toFixed(3)}</span></>}
+                  </div>
+                ))}
+                {jobsData.vpm_recent.length === 0 && <div className="text-[10px] text-gray-400">пока ни одного</div>}
+              </div>
+            </div>
+          </div>
         </section>
       )}
 
