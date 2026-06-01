@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { Sparkles } from 'lucide-react';
 import MonitoringProductView from './monitoring/MonitoringProductView';
 import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
 import { ProductSummaryView } from './monitoring/MonitoringSummaryView';
 import AdminBacklogView from './AdminBacklogView';
+import VpmView from './VpmView';
 
 type Section = 'overview' | 'funnel' | 'metrics' | 'backlog' | 'vpm';
 
@@ -18,7 +18,7 @@ const AdminProductManagementView: React.FC = () => {
     { id: 'funnel',   label: t('admin.product.tabs.funnel'),   ready: true  },
     { id: 'metrics',  label: t('admin.product.tabs.metrics'),  ready: true  },
     { id: 'backlog',  label: t('admin.product.tabs.backlog'),  ready: true  },
-    { id: 'vpm',      label: t('admin.product.tabs.vpm'),      ready: false },
+    { id: 'vpm',      label: t('admin.product.tabs.vpm'),      ready: true  },
   ];
 
   return (
@@ -67,24 +67,11 @@ const AdminProductManagementView: React.FC = () => {
           <AdminBacklogView />
         </div>
       )}
-      {section === 'vpm' && <VpmPlaceholder />}
-    </div>
-  );
-};
-
-const VpmPlaceholder: React.FC = () => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <div className="max-w-md text-center">
-        <div className="inline-flex w-14 h-14 rounded-full bg-forest-50 items-center justify-center mb-4">
-          <Sparkles className="w-7 h-7 text-forest-600" />
+      {section === 'vpm' && (
+        <div className="flex-1 overflow-hidden">
+          <VpmView />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('admin.product.vpm_title')}</h3>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          {t('admin.product.vpm_placeholder')}
-        </p>
-      </div>
+      )}
     </div>
   );
 };

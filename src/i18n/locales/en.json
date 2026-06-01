@@ -237,7 +237,47 @@
       },
       "coming_soon": "soon",
       "vpm_title": "Virtual product manager",
-      "vpm_placeholder": "An AI assistant will periodically review product metrics, the backlog and support tickets and propose product decisions. The feature is in design — tracked as a separate backlog item (Virtual product manager, complexity=high)."
+      "vpm_placeholder": "An AI assistant will periodically review product metrics, the backlog and support tickets and propose product decisions. The feature is in design — tracked as a separate backlog item (Virtual product manager, complexity=high).",
+      "vpm": {
+        "generate": "Generate recommendations",
+        "generating": "Thinking…",
+        "last_run": "Last run",
+        "cost": "cost",
+        "recs_count": "{{count}} recommendations",
+        "error_in_run": "error",
+        "error_load": "Failed to load",
+        "error_generate": "Failed to generate",
+        "empty_first_run": "No recommendations yet. Click \"Generate recommendations\" — Claude will look at a snapshot of the product (metrics, backlog, tickets) and propose 3–7 next steps.",
+        "empty": "Nothing here.",
+        "section_rationale": "Why now",
+        "section_action": "What to do",
+        "section_metrics": "Related metrics and signals",
+        "to_backlog": "To backlog",
+        "mark_done": "Done",
+        "dismiss": "Dismiss",
+        "confirm_to_backlog": "Create a product backlog item from this recommendation?",
+        "open_product": "Item \"{{title}}\" created. Open the backlog?",
+        "in_backlog_note": "This recommendation is already a backlog item — follow it there.",
+        "priority": {
+          "critical": "critical",
+          "high": "high",
+          "medium": "medium",
+          "low": "low"
+        },
+        "status": {
+          "pending": "pending",
+          "in_backlog": "in backlog",
+          "done": "done",
+          "dismissed": "dismissed"
+        },
+        "filters": {
+          "all": "All",
+          "pending": "Pending",
+          "in_backlog": "In backlog",
+          "done": "Done",
+          "dismissed": "Dismissed"
+        }
+      }
     },
     "backlog": {
       "add": "Add feature",
