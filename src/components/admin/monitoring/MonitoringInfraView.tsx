@@ -147,6 +147,36 @@ interface ElevenLabsOverview {
   configured: boolean;
 }
 
+interface BackupArtifact {
+  name: string;
+  expected: boolean;
+  present: boolean;
+  sizeBytes: number | null;
+  integrityOk: boolean | null;
+  error: string | null;
+}
+
+interface BackupSnapshot {
+  dir: string;
+  ts: string;
+  ageHours: number;
+  totalBytes: number;
+  artifacts: BackupArtifact[];
+  fresh: boolean;
+  complete: boolean;
+  healthy: boolean;
+}
+
+interface BackupOverview {
+  generatedAt: string;
+  backupRoot: string;
+  freshHours: number;
+  latest: BackupSnapshot | null;
+  weekTotalGB: number | null;
+  weekSnapshotCount: number;
+  error: string | null;
+}
+
 interface ClaudeOverview {
   generatedAt: string;
   usage: {
@@ -449,6 +479,7 @@ const MonitoringInfraView: React.FC = () => {
   const [openrouterData, setOpenrouterData] = useState<OpenRouterOverview | null>(null);
   const [elevenlabsData, setElevenlabsData] = useState<ElevenLabsOverview | null>(null);
   const [claudeData, setClaudeData] = useState<ClaudeOverview | null>(null);
+  const [backupsData, setBackupsData] = useState<BackupOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -456,7 +487,7 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
@@ -464,6 +495,7 @@ const MonitoringInfraView: React.FC = () => {
         apiClient.get('/webhook/admin/monitoring/tech/openrouter'),
         apiClient.get('/webhook/admin/monitoring/tech/elevenlabs'),
         apiClient.get('/webhook/admin/monitoring/tech/claude'),
+        apiClient.get('/webhook/admin/monitoring/tech/backups'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -476,6 +508,7 @@ const MonitoringInfraView: React.FC = () => {
       if (resOpenRouter.ok) setOpenrouterData(await resOpenRouter.json());
       if (resElevenLabs.ok) setElevenlabsData(await resElevenLabs.json());
       if (resClaude.ok) setClaudeData(await resClaude.json());
+      if (resBackups.ok) setBackupsData(await resBackups.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -630,6 +663,116 @@ const MonitoringInfraView: React.FC = () => {
               <div className="text-xs text-gray-400 mt-1">total_usage</div>
             </div>
           </div>
+        </section>
+      )}
+
+      {backupsData && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Резервные копии (ежедневный cron 03:00 UTC)</h3>
+          {backupsData.error ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              {backupsData.error}
+            </div>
+          ) : !backupsData.latest ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Нет ни одного снапшота в {backupsData.backupRoot}.
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className={clsx(
+                  'rounded-lg border bg-white p-4 shadow-sm',
+                  backupsData.latest.healthy ? 'border-emerald-200'
+                    : backupsData.latest.fresh ? 'border-amber-300 bg-amber-50'
+                    : 'border-rose-300 bg-rose-50',
+                )}>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><CheckCircle2 className="w-3.5 h-3.5" />Состояние</div>
+                  <div className={clsx(
+                    'text-2xl font-semibold',
+                    backupsData.latest.healthy ? 'text-emerald-600'
+                      : backupsData.latest.fresh ? 'text-amber-600'
+                      : 'text-rose-600',
+                  )}>
+                    {backupsData.latest.healthy ? '✓ OK'
+                      : backupsData.latest.fresh ? '⚠ проблема'
+                      : '✗ протух'}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {backupsData.latest.fresh
+                      ? `свежий (порог ${backupsData.freshHours}ч)`
+                      : `просрочен (порог ${backupsData.freshHours}ч)`}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Возраст</div>
+                  <div className="text-2xl font-semibold text-gray-800">
+                    {backupsData.latest.ageHours < 1
+                      ? `${Math.round(backupsData.latest.ageHours * 60)} мин`
+                      : `${backupsData.latest.ageHours.toFixed(1)} ч`}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {new Date(backupsData.latest.ts).toLocaleString('ru-RU')}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Размер последнего</div>
+                  <div className="text-2xl font-semibold text-gray-800">
+                    {(backupsData.latest.totalBytes / 1024 / 1024).toFixed(1)} МБ
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {backupsData.latest.artifacts.filter((a) => a.present).length} из {backupsData.latest.artifacts.filter((a) => a.expected).length} файлов
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">7-дневное окно</div>
+                  <div className="text-2xl font-semibold text-gray-800">
+                    {backupsData.weekSnapshotCount} / 7
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    суммарно {backupsData.weekTotalGB === null ? '—' : `${backupsData.weekTotalGB} ГБ`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="text-xs text-gray-500 mb-2">Артефакты последнего снапшота</div>
+                <table className="w-full text-xs">
+                  <thead className="text-gray-500">
+                    <tr>
+                      <th className="text-left py-1">Файл</th>
+                      <th className="text-right py-1">Размер</th>
+                      <th className="text-center py-1">Целостность</th>
+                      <th className="text-left py-1 pl-3">Заметка</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {backupsData.latest.artifacts.map((a) => (
+                      <tr key={a.name} className={clsx(
+                        a.expected && !a.present ? 'bg-rose-50'
+                          : a.integrityOk === false ? 'bg-rose-50'
+                          : '',
+                      )}>
+                        <td className="py-1.5 font-mono">{a.name}</td>
+                        <td className="py-1.5 text-right text-gray-600">
+                          {a.sizeBytes === null ? '—' : `${(a.sizeBytes / 1024).toFixed(0)} КБ`}
+                        </td>
+                        <td className="py-1.5 text-center">
+                          {!a.present && a.expected ? <span className="text-rose-600">✗ нет</span>
+                            : !a.present ? <span className="text-gray-400">—</span>
+                            : a.integrityOk === true ? <span className="text-emerald-600">✓</span>
+                            : a.integrityOk === false ? <span className="text-rose-600">✗</span>
+                            : <span className="text-gray-400">—</span>}
+                        </td>
+                        <td className="py-1.5 pl-3 text-gray-500 truncate max-w-md" title={a.error || ''}>
+                          {a.error || ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </section>
       )}
 
