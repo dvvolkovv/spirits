@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Send, AlertTriangle, CheckCircle, Inbox, Clock, Bot, UserCircle2, Headphones, ArrowLeft } from 'lucide-react';
+import { Loader2, Send, AlertTriangle, CheckCircle, Inbox, Clock, Bot, UserCircle2, Headphones, ArrowLeft, ListPlus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 
@@ -195,6 +195,31 @@ const AdminSupportView: React.FC = () => {
     }
   };
 
+  const [creatingBacklog, setCreatingBacklog] = useState(false);
+  const handleToBacklog = async () => {
+    if (!selectedId || creatingBacklog) return;
+    if (!confirm(t('admin.support.to_backlog_confirm'))) return;
+    setCreatingBacklog(true);
+    try {
+      const r = await apiClient.post('/webhook/admin/backlog', {
+        action: 'create_from_ticket',
+        ticket_id: selectedId,
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const item = await r.json();
+      const linkText = t('admin.support.to_backlog_success', { title: item.title });
+      // Toast-ish: we don't have a toast lib wired in here; use a quick
+      // confirm-style window with a deep link to the created item.
+      if (confirm(`${linkText}\n\n${t('admin.support.to_backlog_open')}`)) {
+        window.location.href = `/admin?tab=product`;
+      }
+    } catch (e: any) {
+      setError(e?.message || 'create from ticket failed');
+    } finally {
+      setCreatingBacklog(false);
+    }
+  };
+
   const selected = detail;
 
   const formatSec = (s: number | null): string => {
@@ -345,6 +370,15 @@ const AdminSupportView: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-1.5">
+                <button
+                  onClick={handleToBacklog}
+                  disabled={creatingBacklog}
+                  className="px-2.5 py-1.5 rounded-md bg-forest-50 hover:bg-forest-100 text-forest-700 text-xs font-medium flex items-center gap-1 disabled:opacity-60"
+                  title={t('admin.support.to_backlog_hint')}
+                >
+                  {creatingBacklog ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ListPlus className="w-3.5 h-3.5" />}
+                  {t('admin.support.to_backlog')}
+                </button>
                 {selected?.ticket?.status !== 'resolved' && (
                   <button
                     onClick={() => handleStatus('resolved')}
