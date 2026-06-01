@@ -147,6 +147,24 @@ interface ElevenLabsOverview {
   configured: boolean;
 }
 
+interface ClaudeOverview {
+  generatedAt: string;
+  usage: {
+    cost24hUsd: number | null;
+    cost30dUsd: number | null;
+    calls24h: number | null;
+    calls30d: number | null;
+    topModels30d: Array<{ model: string; calls: number; cost_usd: number }>;
+    subscriptionType: string | null;
+    subscriptionExpiresAt: string | null;
+    apiKeyValid: boolean | null;
+    apiKeyError: string | null;
+    fetchedAt: string;
+  };
+  alertThreshold30dUsd: number;
+  configured: { apiKey: boolean; cliCredentials: boolean };
+}
+
 const SCENARIO_LABEL: Record<string, string> = {
   agents_endpoint:           'Каталог ассистентов',
   auth_flow_sms:             'SMS → OTP → JWT',
@@ -430,6 +448,7 @@ const MonitoringInfraView: React.FC = () => {
   const [smsData, setSmsData] = useState<SmsOverview | null>(null);
   const [openrouterData, setOpenrouterData] = useState<OpenRouterOverview | null>(null);
   const [elevenlabsData, setElevenlabsData] = useState<ElevenLabsOverview | null>(null);
+  const [claudeData, setClaudeData] = useState<ClaudeOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -437,13 +456,14 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
         apiClient.get('/webhook/admin/monitoring/tech/sms'),
         apiClient.get('/webhook/admin/monitoring/tech/openrouter'),
         apiClient.get('/webhook/admin/monitoring/tech/elevenlabs'),
+        apiClient.get('/webhook/admin/monitoring/tech/claude'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -455,6 +475,7 @@ const MonitoringInfraView: React.FC = () => {
       if (resSms.ok) setSmsData(await resSms.json());
       if (resOpenRouter.ok) setOpenrouterData(await resOpenRouter.json());
       if (resElevenLabs.ok) setElevenlabsData(await resElevenLabs.json());
+      if (resClaude.ok) setClaudeData(await resClaude.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -609,6 +630,98 @@ const MonitoringInfraView: React.FC = () => {
               <div className="text-xs text-gray-400 mt-1">total_usage</div>
             </div>
           </div>
+        </section>
+      )}
+
+      {claudeData && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Claude (Anthropic)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className={clsx(
+              'rounded-lg border bg-white p-4 shadow-sm',
+              claudeData.usage.cost30dUsd !== null && claudeData.usage.cost30dUsd >= claudeData.alertThreshold30dUsd
+                ? 'border-rose-300 bg-rose-50'
+                : claudeData.usage.cost30dUsd !== null && claudeData.usage.cost30dUsd >= claudeData.alertThreshold30dUsd * 0.7
+                  ? 'border-amber-200'
+                  : 'border-gray-200',
+            )}>
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Wallet className="w-3.5 h-3.5" />Расход за 30 дней</div>
+              <div className={clsx(
+                'text-2xl font-semibold',
+                claudeData.usage.cost30dUsd === null ? 'text-gray-500'
+                  : claudeData.usage.cost30dUsd >= claudeData.alertThreshold30dUsd ? 'text-rose-600'
+                  : claudeData.usage.cost30dUsd >= claudeData.alertThreshold30dUsd * 0.7 ? 'text-amber-600'
+                  : 'text-emerald-600',
+              )}>
+                {claudeData.usage.cost30dUsd === null ? '—' : `$${claudeData.usage.cost30dUsd.toFixed(2)}`}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                порог алерта: ${claudeData.alertThreshold30dUsd} · {claudeData.usage.calls30d ?? 0} вызовов
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Расход за 24 ч</div>
+              <div className="text-2xl font-semibold text-gray-800">
+                {claudeData.usage.cost24hUsd === null ? '—' : `$${claudeData.usage.cost24hUsd.toFixed(2)}`}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">{claudeData.usage.calls24h ?? 0} вызовов</div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Подписка CLI</div>
+              <div className="text-2xl font-semibold text-gray-800 capitalize">
+                {claudeData.usage.subscriptionType || '—'}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                {claudeData.usage.subscriptionExpiresAt
+                  ? `до ${new Date(claudeData.usage.subscriptionExpiresAt).toLocaleDateString('ru-RU')}`
+                  : claudeData.usage.subscriptionType
+                    ? 'без срока'
+                    : 'OAuth не найден'}
+              </div>
+            </div>
+            <div className={clsx(
+              'rounded-lg border bg-white p-4 shadow-sm',
+              claudeData.usage.apiKeyValid === false ? 'border-rose-300 bg-rose-50' : 'border-gray-200',
+            )}>
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Anthropic API key</div>
+              <div className={clsx(
+                'text-2xl font-semibold',
+                claudeData.usage.apiKeyValid === true ? 'text-emerald-600'
+                  : claudeData.usage.apiKeyValid === false ? 'text-rose-600'
+                  : 'text-gray-500',
+              )}>
+                {claudeData.usage.apiKeyValid === true ? '✓ valid'
+                  : claudeData.usage.apiKeyValid === false ? '✗ invalid'
+                  : '—'}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                {!claudeData.configured.apiKey
+                  ? 'ANTHROPIC_API_KEY не задан'
+                  : claudeData.usage.apiKeyError
+                    ? <span className="text-rose-700">{claudeData.usage.apiKeyError.slice(0, 60)}</span>
+                    : 'probe /v1/models раз в час'}
+              </div>
+            </div>
+          </div>
+          {claudeData.usage.topModels30d.length > 0 && (
+            <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="text-xs text-gray-500 mb-2">Модели по расходу (30 дней)</div>
+              <table className="w-full text-xs">
+                <thead className="text-gray-500">
+                  <tr><th className="text-left py-1">Модель</th><th className="text-right py-1">Вызовов</th><th className="text-right py-1">Расход</th></tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {claudeData.usage.topModels30d.map((m) => (
+                    <tr key={m.model}>
+                      <td className="py-1 font-mono">{m.model}</td>
+                      <td className="py-1 text-right">{m.calls}</td>
+                      <td className="py-1 text-right">${m.cost_usd.toFixed(4)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       )}
 
