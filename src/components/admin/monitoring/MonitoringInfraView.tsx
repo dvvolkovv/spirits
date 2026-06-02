@@ -278,6 +278,32 @@ interface NeoSnapshotOverview {
   error: string | null;
 }
 
+interface MinioMirrorOverview {
+  generatedAt: string;
+  configured: boolean;
+  statusPresent: boolean;
+  lastRunAt: string | null;
+  ageMin: number | null;
+  durationSec: number | null;
+  drEndpoint: string | null;
+  buckets: Array<{
+    bucket: string;
+    srcObjects: number;
+    srcBytes: number;
+    dstObjects: number;
+    dstBytes: number;
+    inSync: boolean;
+  }>;
+  totalSrcObjects: number | null;
+  totalDstObjects: number | null;
+  totalSrcBytes: number | null;
+  totalDstBytes: number | null;
+  errors: string[];
+  freshMin: number;
+  healthy: boolean;
+  error: string | null;
+}
+
 interface JobsOverview {
   generatedAt: string;
   video: {
@@ -618,6 +644,7 @@ const MonitoringInfraView: React.FC = () => {
   const [jobsData, setJobsData] = useState<JobsOverview | null>(null);
   const [replData, setReplData] = useState<ReplicationOverview | null>(null);
   const [neoDrData, setNeoDrData] = useState<NeoSnapshotOverview | null>(null);
+  const [minioDrData, setMinioDrData] = useState<MinioMirrorOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -625,7 +652,7 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels, resJobs, resRepl, resNeoDr] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels, resJobs, resRepl, resNeoDr, resMinioDr] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
@@ -638,6 +665,7 @@ const MonitoringInfraView: React.FC = () => {
         apiClient.get('/webhook/admin/monitoring/tech/jobs'),
         apiClient.get('/webhook/admin/monitoring/tech/replication'),
         apiClient.get('/webhook/admin/monitoring/tech/neo4j-dr'),
+        apiClient.get('/webhook/admin/monitoring/tech/minio-dr'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -655,6 +683,7 @@ const MonitoringInfraView: React.FC = () => {
       if (resJobs.ok) setJobsData(await resJobs.json());
       if (resRepl.ok) setReplData(await resRepl.json());
       if (resNeoDr.ok) setNeoDrData(await resNeoDr.json());
+      if (resMinioDr.ok) setMinioDrData(await resMinioDr.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -1305,6 +1334,93 @@ const MonitoringInfraView: React.FC = () => {
               </div>
               <div className="text-[10px] text-gray-400">
                 Цель: {neoDrData.host}:{neoDrData.dir} · md5 совпадает ⇒ копия байт-в-байт (прод-дамп уже прошёл gunzip-проверку)
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {minioDrData && minioDrData.configured && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">MinIO DR-зеркало (node-3)</h3>
+          {minioDrData.error ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{minioDrData.error}</div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className={clsx(
+                  'rounded-lg border bg-white p-3 shadow-sm',
+                  minioDrData.healthy ? 'border-emerald-200' : 'border-rose-300 bg-rose-50',
+                )}>
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Состояние</div>
+                  <div className={clsx('text-2xl font-semibold', minioDrData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
+                    {minioDrData.healthy ? '✓ покрыто' : '✗ проблема'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    ежечасный mc mirror · порог {(minioDrData.freshMin / 60).toFixed(0)}ч
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Последний sync</div>
+                  <div className={clsx(
+                    'text-2xl font-semibold',
+                    minioDrData.ageMin != null && minioDrData.ageMin > minioDrData.freshMin ? 'text-rose-600' : 'text-gray-800',
+                  )}>
+                    {minioDrData.ageMin == null ? '—' : minioDrData.ageMin >= 60 ? `${(minioDrData.ageMin / 60).toFixed(1)} ч` : `${minioDrData.ageMin.toFixed(0)} мин`}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    назад{minioDrData.durationSec != null ? ` · длился ${minioDrData.durationSec}с` : ''}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Объекты (node-3 / прод)</div>
+                  <div className="text-2xl font-semibold text-gray-800">
+                    {minioDrData.totalDstObjects ?? '—'} / {minioDrData.totalSrcObjects ?? '—'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {minioDrData.totalDstBytes == null || minioDrData.totalSrcBytes == null
+                      ? '—'
+                      : `${formatBytes(minioDrData.totalDstBytes)} / ${formatBytes(minioDrData.totalSrcBytes)}`}
+                  </div>
+                </div>
+              </div>
+
+              {minioDrData.errors.length > 0 && (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                  <div className="font-medium mb-1">Ошибки mc ({minioDrData.errors.length}):</div>
+                  {minioDrData.errors.map((e, i) => <div key={i} className="font-mono truncate" title={e}>• {e}</div>)}
+                </div>
+              )}
+
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">Бакет</th>
+                      <th className="text-right px-3 py-2 font-medium">объекты (node-3/прод)</th>
+                      <th className="text-right px-3 py-2 font-medium">размер (node-3/прод)</th>
+                      <th className="text-left px-3 py-2 font-medium">покрытие</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {minioDrData.buckets.map((b) => (
+                      <tr key={b.bucket}>
+                        <td className="px-3 py-1.5 font-mono">{b.bucket}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-600">{b.dstObjects} / {b.srcObjects}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-600">{formatBytes(b.dstBytes)} / {formatBytes(b.srcBytes)}</td>
+                        <td className="px-3 py-1.5">
+                          <span className={clsx(
+                            'px-1.5 py-0.5 rounded text-[10px]',
+                            b.inSync ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
+                          )}>{b.inSync ? 'покрыт' : 'отстаёт'}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="text-[10px] text-gray-400">
+                {minioDrData.drEndpoint} · mirror без --remove ⇒ прод-удаления не каскадятся в DR (покрытие = node-3 содержит всё, что на проде)
               </div>
             </div>
           )}
