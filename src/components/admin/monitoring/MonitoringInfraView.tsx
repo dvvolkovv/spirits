@@ -223,6 +223,29 @@ interface ReplicationOverview {
     restart_lsn: string | null;
     safe_wal_size_bytes: number | null;
   }>;
+  standby: {
+    configured: boolean;
+    reachable: boolean;
+    inRecovery: boolean | null;
+    replayPaused: boolean | null;
+    receiveLsn: string | null;
+    replayLsn: string | null;
+    applyBacklogBytes: number | null;
+    lastXactReplayAgeSec: number | null;
+    receiver: {
+      status: string | null;
+      senderHost: string | null;
+      senderPort: number | null;
+      slotName: string | null;
+      writtenLsn: string | null;
+      flushedLsn: string | null;
+      latestEndLsn: string | null;
+      lastMsgReceiptTime: string | null;
+      sinceLastMsgSec: number | null;
+    } | null;
+    healthy: boolean;
+    error: string | null;
+  };
   healthy: boolean;
   maxReplayLagSec: number | null;
   thresholdSec: number;
@@ -1034,6 +1057,79 @@ const MonitoringInfraView: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {replData.standby.configured && (
+                <div className={clsx(
+                  'rounded-lg border bg-white p-3 shadow-sm',
+                  replData.standby.error || !replData.standby.healthy ? 'border-rose-300 bg-rose-50' : 'border-emerald-200',
+                )}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Standby node-3 (со стороны реплики)
+                    </div>
+                    <span className={clsx(
+                      'px-1.5 py-0.5 rounded text-[10px]',
+                      replData.standby.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700',
+                    )}>
+                      {replData.standby.healthy ? '✓ healthy' : replData.standby.reachable ? '✗ problem' : '✗ unreachable'}
+                    </span>
+                  </div>
+                  {replData.standby.error ? (
+                    <div className="text-xs text-rose-700">{replData.standby.error}</div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-xs">
+                      <div>
+                        <div className="text-gray-400">in_recovery</div>
+                        <div className="font-medium">{replData.standby.inRecovery ? 'да' : 'нет'}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400">wal receiver</div>
+                        <div className={clsx('font-medium', replData.standby.receiver?.status === 'streaming' ? 'text-emerald-700' : 'text-amber-700')}>
+                          {replData.standby.receiver?.status ?? '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400">apply backlog</div>
+                        <div className="font-medium font-mono">
+                          {replData.standby.applyBacklogBytes === null ? '—' : formatBytes(replData.standby.applyBacklogBytes)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400">replay paused</div>
+                        <div className={clsx('font-medium', replData.standby.replayPaused && 'text-rose-700')}>
+                          {replData.standby.replayPaused ? 'да' : 'нет'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400">receive lsn</div>
+                        <div className="font-medium font-mono">{replData.standby.receiveLsn ?? '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400">replay lsn</div>
+                        <div className="font-medium font-mono">{replData.standby.replayLsn ?? '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400">slot / sender</div>
+                        <div className="font-medium font-mono">
+                          {replData.standby.receiver?.slotName ?? '—'}
+                          {replData.standby.receiver?.senderHost ? ` @ ${replData.standby.receiver.senderHost}` : ''}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400" title="now() − last_xact_replay_timestamp; растёт в простое — справочно">
+                          last replay age*
+                        </div>
+                        <div className="font-medium">
+                          {replData.standby.lastXactReplayAgeSec === null ? '—' : `${replData.standby.lastXactReplayAgeSec.toFixed(0)} с`}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-[10px] text-gray-400 mt-2">
+                    * растёт во время простоя записи — справочно, не влияет на health
+                  </div>
                 </div>
               )}
 
