@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Plus, ChevronDown, ChevronRight, Loader, MessageSquare, Trash2, Save, X, Pencil } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Loader, MessageSquare, Trash2, Save, X, Pencil, RefreshCw } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
 type Status = 'proposed' | 'approved' | 'in_progress' | 'done' | 'rejected';
@@ -168,13 +168,24 @@ const AdminBacklogView: React.FC = () => {
               </button>
             ))}
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            {t('admin.backlog.add')}
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => load()}
+              disabled={loading}
+              title={t('admin.backlog.refresh')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-sm font-medium rounded-md border border-gray-200 hover:border-forest-300 hover:text-forest-700 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={clsx('w-4 h-4', loading && 'animate-spin')} />
+              <span className="hidden sm:inline">{t('admin.backlog.refresh')}</span>
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              {t('admin.backlog.add')}
+            </button>
+          </div>
         </div>
       </div>
 

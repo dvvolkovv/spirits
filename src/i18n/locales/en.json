@@ -281,6 +281,7 @@
     },
     "backlog": {
       "add": "Add feature",
+      "refresh": "Refresh",
       "loading": "Loading…",
       "empty": "Nothing here yet. Add the first feature.",
       "no_analysis": "Analysis not written yet.",
