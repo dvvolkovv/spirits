@@ -109,14 +109,11 @@ const VpmView: React.FC = () => {
     if (r.ok) updateOne(await r.json());
   };
   const toBacklog = async (id: string) => {
-    if (!confirm(t('admin.product.vpm.confirm_to_backlog'))) return;
+    // One click → move to backlog, no confirmation / navigation prompts.
     const r = await apiClient.post('/webhook/admin/vpm', { action: 'to_backlog', id });
     if (!r.ok) { alert(await r.text()); return; }
     const data = await r.json();
     updateOne(data.recommendation);
-    if (confirm(t('admin.product.vpm.open_product', { title: data.backlogItem.title }))) {
-      window.location.href = `/admin?tab=product`;
-    }
   };
 
   const filtered = useMemo(

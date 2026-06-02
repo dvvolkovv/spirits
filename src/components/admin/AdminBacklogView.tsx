@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Plus, ChevronDown, ChevronRight, Loader, MessageSquare, Trash2, Save, X, Pencil, RefreshCw } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Loader, MessageSquare, Trash2, Save, X, Pencil, RefreshCw, Check } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
 type Status = 'proposed' | 'approved' | 'in_progress' | 'done' | 'rejected';
@@ -220,9 +220,10 @@ const AdminBacklogView: React.FC = () => {
               />
             ) : (
               <>
+                <div className="flex items-center">
                 <button
                   onClick={() => expand(item.id)}
-                  className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors"
+                  className="flex-1 min-w-0 text-left px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors"
                 >
                   {expandedId === item.id
                     ? <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
@@ -252,6 +253,17 @@ const AdminBacklogView: React.FC = () => {
                     </div>
                   </div>
                 </button>
+                {item.status === 'proposed' && (
+                  <button
+                    onClick={() => changeStatus(item.id, 'approved')}
+                    title={t('admin.backlog.approve')}
+                    className="flex-shrink-0 mr-3 flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t('admin.backlog.approve')}</span>
+                  </button>
+                )}
+                </div>
 
                 {expandedId === item.id && (
                   <div className="border-t border-gray-100 px-4 py-4 bg-gray-50 space-y-4">
