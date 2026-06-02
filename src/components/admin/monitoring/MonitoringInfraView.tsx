@@ -252,6 +252,32 @@ interface ReplicationOverview {
   error: string | null;
 }
 
+interface NeoSnapshotOverview {
+  generatedAt: string;
+  configured: boolean;
+  reachable: boolean;
+  host: string | null;
+  dir: string | null;
+  files: Array<{
+    name: string;
+    localPresent: boolean;
+    localSizeBytes: number | null;
+    localMtime: string | null;
+    localMd5: string | null;
+    remotePresent: boolean;
+    remoteSizeBytes: number | null;
+    remoteMtime: string | null;
+    remoteMd5: string | null;
+    inSync: boolean;
+    remoteAgeHours: number | null;
+  }>;
+  dumpSizeBytes: number | null;
+  prevDumpSizeBytes: number | null;
+  freshHours: number;
+  healthy: boolean;
+  error: string | null;
+}
+
 interface JobsOverview {
   generatedAt: string;
   video: {
@@ -591,6 +617,7 @@ const MonitoringInfraView: React.FC = () => {
   const [modelsData, setModelsData] = useState<ModelsOverview | null>(null);
   const [jobsData, setJobsData] = useState<JobsOverview | null>(null);
   const [replData, setReplData] = useState<ReplicationOverview | null>(null);
+  const [neoDrData, setNeoDrData] = useState<NeoSnapshotOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -598,7 +625,7 @@ const MonitoringInfraView: React.FC = () => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels, resJobs, resRepl] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels, resJobs, resRepl, resNeoDr] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
@@ -610,6 +637,7 @@ const MonitoringInfraView: React.FC = () => {
         apiClient.get('/webhook/admin/monitoring/tech/models'),
         apiClient.get('/webhook/admin/monitoring/tech/jobs'),
         apiClient.get('/webhook/admin/monitoring/tech/replication'),
+        apiClient.get('/webhook/admin/monitoring/tech/neo4j-dr'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -626,6 +654,7 @@ const MonitoringInfraView: React.FC = () => {
       if (resModels.ok) setModelsData(await resModels.json());
       if (resJobs.ok) setJobsData(await resJobs.json());
       if (resRepl.ok) setReplData(await resRepl.json());
+      if (resNeoDr.ok) setNeoDrData(await resNeoDr.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -1174,6 +1203,109 @@ const MonitoringInfraView: React.FC = () => {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {neoDrData && neoDrData.configured && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Neo4j DR-снапшот (node-3)</h3>
+          {!neoDrData.reachable ? (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              node-3 недоступен: {neoDrData.error || 'unknown'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className={clsx(
+                  'rounded-lg border bg-white p-3 shadow-sm',
+                  neoDrData.healthy ? 'border-emerald-200' : 'border-rose-300 bg-rose-50',
+                )}>
+                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Состояние</div>
+                  <div className={clsx('text-2xl font-semibold', neoDrData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
+                    {neoDrData.healthy ? '✓ в синхроне' : '✗ проблема'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    порог свежести {neoDrData.freshHours}ч · ежедневный rsync
+                  </div>
+                </div>
+                {(() => {
+                  const dump = neoDrData.files.find((f) => f.name === 'neo4j.dump.gz');
+                  return (
+                    <>
+                      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                        <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Возраст копии</div>
+                        <div className={clsx(
+                          'text-2xl font-semibold',
+                          dump?.remoteAgeHours != null && dump.remoteAgeHours > neoDrData.freshHours ? 'text-rose-600' : 'text-gray-800',
+                        )}>
+                          {dump?.remoteAgeHours == null ? '—' : `${dump.remoteAgeHours.toFixed(1)} ч`}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">на node-3 (mtime дампа)</div>
+                      </div>
+                      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                        <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Размер дампа</div>
+                        <div className="text-2xl font-semibold text-gray-800">
+                          {neoDrData.dumpSizeBytes === null ? '—' : formatBytes(neoDrData.dumpSizeBytes)}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {neoDrData.prevDumpSizeBytes === null
+                            ? 'нет предыдущего'
+                            : (() => {
+                                const d = (neoDrData.dumpSizeBytes ?? 0) - neoDrData.prevDumpSizeBytes;
+                                const pct = neoDrData.prevDumpSizeBytes ? (d / neoDrData.prevDumpSizeBytes) * 100 : 0;
+                                return `пред.: ${formatBytes(neoDrData.prevDumpSizeBytes)} (${d >= 0 ? '+' : ''}${pct.toFixed(1)}%)`;
+                              })()}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">Файл</th>
+                      <th className="text-left px-3 py-2 font-medium">прод</th>
+                      <th className="text-left px-3 py-2 font-medium">node-3</th>
+                      <th className="text-right px-3 py-2 font-medium">размер</th>
+                      <th className="text-right px-3 py-2 font-medium">возраст</th>
+                      <th className="text-left px-3 py-2 font-medium">md5</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {neoDrData.files.map((f) => (
+                      <tr key={f.name}>
+                        <td className="px-3 py-1.5 font-mono">{f.name}</td>
+                        <td className="px-3 py-1.5">{f.localPresent
+                          ? <span className="text-emerald-700">✓</span>
+                          : <span className="text-rose-700">—</span>}</td>
+                        <td className="px-3 py-1.5">{f.remotePresent
+                          ? <span className="text-emerald-700">✓</span>
+                          : <span className="text-rose-700">—</span>}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-500">
+                          {f.remoteSizeBytes === null ? '—' : formatBytes(f.remoteSizeBytes)}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-gray-500">
+                          {f.remoteAgeHours === null ? '—' : `${f.remoteAgeHours.toFixed(1)} ч`}
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <span className={clsx(
+                            'px-1.5 py-0.5 rounded text-[10px]',
+                            f.inSync ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700',
+                          )}>{f.inSync ? 'совпадает' : 'рассинхрон'}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="text-[10px] text-gray-400">
+                Цель: {neoDrData.host}:{neoDrData.dir} · md5 совпадает ⇒ копия байт-в-байт (прод-дамп уже прошёл gunzip-проверку)
+              </div>
             </div>
           )}
         </section>
