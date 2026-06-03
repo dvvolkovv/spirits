@@ -22,9 +22,22 @@ const getSource = (): string | null => {
   let src = sessionStorage.getItem(KEY);
   if (src) return src;
   const params = new URLSearchParams(window.location.search);
-  if (params.get('ref')) src = `referral:${params.get('ref')}`;
-  else if (params.get('utm_campaign')) src = `utm:${params.get('utm_campaign')}`;
-  else src = 'organic';
+  if (params.get('ref')) {
+    src = `referral:${params.get('ref')}`;
+  } else if (params.get('utm_source') || params.get('utm_campaign')) {
+    // Prefer utm_source/medium (channel attribution) over campaign name.
+    src = `utm:${params.get('utm_source') || params.get('utm_campaign')}`;
+    const med = params.get('utm_medium');
+    if (med) src += `/${med}`;
+  } else if (document.referrer) {
+    // Organic external referrer — capture the originating host (e.g. instagram.com).
+    try {
+      const host = new URL(document.referrer).hostname.replace(/^www\./, '');
+      src = host && host !== window.location.hostname ? `ref-site:${host}` : 'direct';
+    } catch { src = 'direct'; }
+  } else {
+    src = 'direct';
+  }
   sessionStorage.setItem(KEY, src);
   return src;
 };
