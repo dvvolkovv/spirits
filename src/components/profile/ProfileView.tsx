@@ -8,6 +8,7 @@ import { apiClient } from '../../services/apiClient';
 import { EntityItem, EntityRich } from './EntityItem';
 import SettingsView from '../settings/SettingsView';
 import ProfileTasks from './ProfileTasks';
+import InviteFriendBlock from './InviteFriendBlock';
 
 interface ProfileData {
   profile?: string[];
@@ -466,6 +467,9 @@ const ProfileView: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Invite a friend (referral entry point) */}
+        <InviteFriendBlock />
 
         {/* Personal Information */}
         <div className="bg-white rounded-lg shadow-sm p-6">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Toaster } from 'react-hot-toast';
@@ -27,11 +27,23 @@ import AuthOAuthCallbackPage from './pages/AuthOAuthCallbackPage';
 import DozvonPage from './pages/DozvonPage';
 import ContactRequestsPage from './pages/ContactRequestsPage';
 import SettingsSocialPage from './pages/SettingsSocialPage';
+import { track } from './services/eventsClient';
 import './i18n';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const { t } = useTranslation();
+
+  // Fire a referral_click once per session when someone lands via ?ref=<slug>
+  // (feeds snapshot.referral.referral_clicks_7d).
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (!ref) return;
+    const key = `referral_click_fired_${ref}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    track('referral_click', { slug: ref });
+  }, []);
 
   if (isLoading) {
     return (
