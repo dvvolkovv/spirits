@@ -13,12 +13,22 @@ interface Props {
 type Mode = 'text2video' | 'image2video' | 'extend' | 'lipsync';
 type Model = 'kling-v1-6' | 'kling-v2-master';
 type Quality = 'std' | 'pro';
+type Engine = 'kling' | 'veo';
+type VeoTier = 'fast' | 'standard';
+
+// Veo length steps (base 8s + 7s native extends). Trimmed to the exact value.
+const VEO_LENGTHS = [8, 12, 16, 24, 32, 48, 60] as const;
 
 export interface FormState {
   mode: Mode;
   model: Model;
   quality: Quality;
   duration: 5 | 10;
+  // Engine selector: Kling (default, existing controls) vs Veo 3.1 (long-form
+  // talking-head, native audio, portrait). Veo uses veoTier + veoLengthSec.
+  engine?: Engine;
+  veoTier?: VeoTier;
+  veoLengthSec?: number;
   // For long-form video (> 10s). When set, backend chains base+extend and
   // ffmpeg-concats to this exact duration.
   targetDurationSec?: number;
@@ -50,7 +60,19 @@ const PRICES: Record<string, number> = {
 
 const AUTO_STILL_TOKENS = 5000;
 
+// Veo token pricing — mirrors backend video.dto.ts (owner-approved ~2x cost).
+const VEO_PRICES: Record<VeoTier, { base: number; ext: number }> = {
+  fast: { base: 90000, ext: 63000 },
+  standard: { base: 240000, ext: 170000 },
+};
+function veoCostFor(tier: VeoTier, lengthSec: number): number {
+  const p = VEO_PRICES[tier];
+  const extendCount = Math.ceil(Math.max(0, lengthSec - 8) / 7);
+  return p.base + extendCount * p.ext;
+}
+
 function costFor(s: FormState): number {
+  if (s.engine === 'veo') return veoCostFor(s.veoTier ?? 'fast', s.veoLengthSec ?? 24);
   // Composed long video: base 10s + N × extend 5s.
   if (s.targetDurationSec && s.targetDurationSec > 10) {
     const baseKey = `${s.mode}.${s.model}.${s.quality}.10`;
@@ -188,12 +210,31 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
   }, [s.mode, s.model, s.duration, s.targetDurationSec]);
 
   const insufficient = balance < cost;
-  const canSubmit = !submitting && !insufficient && (s.mode !== 'image2video' || !!s.sourceImageUrl);
+  const canSubmit = !submitting && !insufficient && (
+    s.engine === 'veo'
+      ? s.prompt.trim().length > 0
+      : (s.mode !== 'image2video' || !!s.sourceImageUrl)
+  );
 
   async function onSubmit() {
     setSubmitting(true);
     setError(null);
     try {
+      if (s.engine === 'veo') {
+        const body: any = {
+          model: (s.veoTier ?? 'fast') === 'standard' ? 'veo-3.1' : 'veo-3.1-fast',
+          mode: s.sourceImageUrl ? 'image2video' : 'text2video',
+          prompt: s.prompt,
+          sourceImageUrl: s.sourceImageUrl || undefined,
+          negativePrompt: s.negativePrompt || undefined,
+          targetDurationSec: s.veoLengthSec ?? 24,
+        };
+        const resp = await apiClient.post('/webhook/video/jobs', body);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data?.error ?? 'create failed');
+        onCreated(data.jobId);
+        return;
+      }
       const body: any = {
         mode: s.mode, model: s.model, quality: s.quality, duration: s.duration,
         prompt: showPrompt ? s.prompt : undefined,
@@ -255,6 +296,32 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
         </div>
       )}
 
+      {/* Engine selector */}
+      <div>
+        <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+          Движок
+          <Hint text="Kling — универсальная генерация. Veo 3.1 — длинные ролики «говорящая голова» с нативной озвучкой и портретом." />
+        </p>
+        <div className="flex gap-2">
+          {(['kling', 'veo'] as const).map(en => (
+            <button
+              key={en}
+              type="button"
+              onClick={() => setS({ ...s, engine: en })}
+              className={clsx(
+                'flex-1 py-2 rounded-lg border text-xs font-medium transition-colors',
+                (s.engine ?? 'kling') === en
+                  ? 'border-forest-400 bg-forest-50 text-forest-700'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+              )}
+            >
+              {en === 'kling' ? 'Kling' : 'Veo 3.1 · говорящая голова'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {s.engine !== 'veo' && (<>
       {/* Mode chips */}
       <div>
         <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
@@ -532,6 +599,117 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
               {s.audioUrl && <p className="text-xs text-green-600 mt-1">Аудио загружено</p>}
             </div>
           )}
+        </div>
+      )}
+      </>)}
+
+      {/* Veo 3.1 panel */}
+      {s.engine === 'veo' && (
+        <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+          <p className="text-[11px] text-gray-500 -mb-1">
+            Реплику/речь пишите прямо в промпт — Veo озвучит её сам (нативный lipsync). Портрет ниже — опционально, для «говорящей головы».
+          </p>
+
+          {/* Talking-head preset */}
+          <button
+            type="button"
+            onClick={() => setS(x => ({
+              ...x,
+              engine: 'veo', veoTier: 'fast', veoLengthSec: 24,
+              prompt: x.prompt || 'Девушка дружелюбно смотрит в камеру и говорит: «Привет! Рада видеть тебя в Linkeon — здесь ты найдёшь близких по духу людей.» Мягкий дневной свет, тёплый тон, естественные жесты.',
+            }))}
+            className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border border-forest-300 bg-forest-50 text-forest-700 hover:bg-forest-100 transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Пресет «Говорящая голова»
+          </button>
+
+          {/* Tier */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+              Качество
+              <Hint text="Fast — быстрее и дешевле. Standard — выше детализация, дороже (~2.7×)." />
+            </p>
+            <div className="flex gap-2">
+              {(['fast', 'standard'] as const).map(tier => (
+                <button
+                  key={tier}
+                  type="button"
+                  onClick={() => setS({ ...s, veoTier: tier })}
+                  className={clsx(
+                    'flex-1 py-2 rounded-lg border text-xs font-medium transition-colors',
+                    (s.veoTier ?? 'fast') === tier
+                      ? 'border-forest-400 bg-forest-50 text-forest-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                  )}
+                >
+                  {tier === 'fast' ? 'Fast' : 'Standard'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Length */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+              Длина
+              <Hint text="Veo собирает одно непрерывное видео: база 8с + расширения по 7с, обрезается до выбранной длины." />
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {VEO_LENGTHS.map(len => (
+                <button
+                  key={len}
+                  type="button"
+                  onClick={() => setS({ ...s, veoLengthSec: len })}
+                  className={clsx(
+                    'py-2 rounded-lg border text-xs font-medium transition-colors',
+                    (s.veoLengthSec ?? 24) === len
+                      ? 'border-forest-400 bg-forest-50 text-forest-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                  )}
+                >
+                  {len} с
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Portrait (optional) */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+              Портрет (опционально)
+              <Hint text="Фронтальный портрет хорошего качества — Veo сделает говорящую голову с этим лицом. Без портрета — сцена по описанию." />
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-forest-400 cursor-pointer transition-colors bg-white text-sm text-gray-500 hover:text-forest-600">
+                <span>Загрузить файл</span>
+                <input
+                  type="file" accept="image/*" className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    try {
+                      const url = await uploadFile('image', f);
+                      setS(x => ({ ...x, sourceImageUrl: url }));
+                    } catch (err: any) { setError(err?.message ?? 'image upload failed'); }
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={openImagePicker}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:border-forest-400 hover:bg-forest-50 hover:text-forest-700 transition-colors bg-white text-sm text-gray-600"
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span>Из моих картинок</span>
+              </button>
+            </div>
+            {s.sourceImageUrl && (
+              <div className="mt-2 flex items-start gap-2">
+                <img src={s.sourceImageUrl} alt="portrait" className="max-h-40 rounded-lg object-cover" />
+                <button type="button" onClick={() => setS(x => ({ ...x, sourceImageUrl: undefined }))} className="text-xs text-gray-400 hover:text-red-500">убрать</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
