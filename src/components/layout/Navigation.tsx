@@ -29,7 +29,6 @@ const Navigation: React.FC = () => {
   const { t } = useTranslation();
   const { user, updateTokens, checkAdminStatus } = useAuth();
   const [showTokenPackages, setShowTokenPackages] = useState(false);
-  const [isReferralLeader, setIsReferralLeader] = useState(false);
   const [showLegal, setShowLegal] = useState<'terms' | 'privacy' | null>(null);
   const unread = useUnreadSummary();
   const peerBadge = unread.incomingRequests + unread.unreadMessages;
@@ -58,12 +57,6 @@ const Navigation: React.FC = () => {
     }
   }, [user?.phone]);
 
-  useEffect(() => {
-    if (!user?.phone) return;
-    apiClient.get('/webhook/referral/stats').then(r => {
-      setIsReferralLeader(r.status === 200);
-    }).catch(() => {});
-  }, [user?.phone]);
 
   const [pendingContactRequests, setPendingContactRequests] = useState(0);
   useEffect(() => {
@@ -162,7 +155,7 @@ const Navigation: React.FC = () => {
   const navItems = [
     ...baseNavItems,
     contactRequestsNavItem,
-    ...(isReferralLeader ? [referralNavItem] : []),
+    referralNavItem,
     ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
     helpNavItem,
   ];
