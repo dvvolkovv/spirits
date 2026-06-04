@@ -368,10 +368,12 @@ const SCENARIO_LABEL: Record<string, string> = {
 
 const REFRESH_MS = 30_000;
 
-// Инфра-страница раньше была одним длинным скроллом (14 секций). Делим её на
-// тематические под-вкладки, чтобы каждая умещалась примерно на один экран.
-type InfraTab = 'host' | 'integrations' | 'dr' | 'tasks';
-const INFRA_TABS: Array<{ id: InfraTab; label: string }> = [
+// Инфра-страница раньше была одним длинным скроллом (14 секций). Разнесена на
+// несколько вкладок ВТОРОГО уровня (рядом со «Сводка»/«Логи» в AdminMonitoringView):
+// «Инфра» заменена на Хост / Интеграции / Резервы и DR / Задачи. Эта вьюха
+// получает активную группу пропом `tab` и рендерит только её секции.
+export type InfraTab = 'host' | 'integrations' | 'dr' | 'tasks';
+export const INFRA_TABS: Array<{ id: InfraTab; label: string }> = [
   { id: 'host',         label: 'Хост' },
   { id: 'integrations', label: 'Интеграции' },
   { id: 'dr',           label: 'Резервы и DR' },
@@ -641,7 +643,7 @@ const SynthCard: React.FC<{ row: SynthScenario }> = ({ row }) => {
   );
 };
 
-const MonitoringInfraView: React.FC = () => {
+const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
   const [data, setData] = useState<Overview | null>(null);
   const [dbData, setDbData] = useState<DbOverview | null>(null);
   const [synthData, setSynthData] = useState<SynthOverview | null>(null);
@@ -657,7 +659,6 @@ const MonitoringInfraView: React.FC = () => {
   const [minioDrData, setMinioDrData] = useState<MinioMirrorOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<InfraTab>('host');
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -734,24 +735,6 @@ const MonitoringInfraView: React.FC = () => {
           <div className="text-sm text-rose-700">{error}</div>
         </div>
       )}
-
-      {/* Тематические под-вкладки — каждая группа умещается на один экран */}
-      <div className="flex gap-1 overflow-x-auto scrollbar-hide -mt-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {INFRA_TABS.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => setTab(s.id)}
-            className={clsx(
-              'flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 text-sm font-medium rounded-full border transition-colors',
-              tab === s.id
-                ? 'border-forest-600 bg-forest-50 text-forest-700'
-                : 'border-gray-200 text-gray-500 hover:text-forest-600 hover:border-gray-300',
-            )}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
 
       {tab === 'integrations' && smsData && (
         <section>
