@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, ToggleLeft, ToggleRight, Copy, ChevronDown, ChevronUp, ChevronRight, CheckCircle, Loader } from 'lucide-react';
+import { Users, Plus, ToggleLeft, ToggleRight, Copy, ChevronDown, ChevronUp, ChevronRight, CheckCircle, Loader, Send } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 
@@ -40,6 +40,27 @@ interface AdminStats {
   leaders: Leader[];
 }
 
+// Аутрич лидерам (backlog 82cda5af) — персональный пинг по SMS
+interface OutreachDraft {
+  leader_id: string;
+  name: string;
+  phone: string;
+  slug: string;
+  link: string;
+  total_referees: number;
+  total_commission_rub: number;
+  pending_rub: number;
+  message: string;
+  already_sent_at: string | null;
+}
+interface OutreachPreview {
+  channel: string;
+  campaign: string;
+  count: number;
+  drafts: OutreachDraft[];
+  skipped_no_phone: Array<{ leader_id: string; name: string }>;
+}
+
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
 
 const AdminReferralsView: React.FC = () => {
@@ -55,6 +76,13 @@ const AdminReferralsView: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+
+  // Аутрич лидерам (82cda5af)
+  const [outreach, setOutreach] = useState<OutreachPreview | null>(null);
+  const [outreachOpen, setOutreachOpen] = useState(false);
+  const [outreachLoading, setOutreachLoading] = useState(false);
+  const [outreachSending, setOutreachSending] = useState<string | null>(null); // leader_id | 'all'
+  const [outreachResult, setOutreachResult] = useState<string | null>(null);
 
   const [newLeader, setNewLeader] = useState({
     name: '',
@@ -81,6 +109,45 @@ const AdminReferralsView: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadOutreach = async () => {
+    setOutreachLoading(true);
+    setOutreachResult(null);
+    setError(null);
+    try {
+      const r = await apiClient.post('/webhook/admin/referral', { action: 'outreach_preview' });
+      if (!r.ok) throw new Error(`Ошибка: ${r.status}`);
+      setOutreach(await r.json());
+      setOutreachOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось построить черновики');
+    } finally {
+      setOutreachLoading(false);
+    }
+  };
+
+  // Реальная отправка наружу — за подтверждением. resend=true для уже отправленных.
+  const sendOutreach = async (leaderIds?: string[], resend = false) => {
+    const newCount = outreach?.drafts.filter((d) => !d.already_sent_at).length || 0;
+    const who = leaderIds ? 'выбранному лидеру' : `${newCount} лидерам (которым ещё не слали)`;
+    if (!window.confirm(`Отправить SMS ${who}? Это реальная отправка сообщений людям.`)) return;
+    setOutreachSending(leaderIds && leaderIds.length === 1 ? leaderIds[0] : 'all');
+    setOutreachResult(null);
+    setError(null);
+    try {
+      const r = await apiClient.post('/webhook/admin/referral', {
+        action: 'outreach_send', confirm: true, leader_ids: leaderIds, resend,
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || `Ошибка: ${r.status}`);
+      setOutreachResult(`Отправлено: ${data.sent} · ошибок: ${data.failed} · пропущено (уже слали): ${data.skipped_already_sent}`);
+      await loadOutreach();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка отправки');
+    } finally {
+      setOutreachSending(null);
     }
   };
 
@@ -357,6 +424,77 @@ const AdminReferralsView: React.FC = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">{error}</div>
         )}
+
+        {/* Аутрич лидерам (82cda5af) — персональный пинг по SMS */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-4 flex items-center justify-between border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+              <Send className="w-5 h-5 text-forest-600" />
+              Аутрич лидерам
+              <span className="text-xs font-normal text-gray-400 hidden sm:inline">персональный пинг по SMS</span>
+            </h2>
+            <button
+              onClick={() => (outreach ? setOutreachOpen(v => !v) : loadOutreach())}
+              disabled={outreachLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm disabled:opacity-50"
+            >
+              {outreachLoading && <Loader className="w-4 h-4 animate-spin" />}
+              {outreach ? (outreachOpen ? 'Скрыть' : 'Показать черновики') : 'Подготовить черновики'}
+            </button>
+          </div>
+
+          {outreachOpen && outreach && (
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="text-xs text-gray-500">
+                  {outreach.count} активных лидеров с телефоном · канал SMS · тексты ниже, проверьте перед отправкой
+                  {outreach.skipped_no_phone.length > 0 && ` · без телефона пропущено: ${outreach.skipped_no_phone.length}`}
+                </p>
+                <button
+                  onClick={() => sendOutreach()}
+                  disabled={outreachSending !== null || outreach.drafts.every(d => d.already_sent_at)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-warm-600 text-white rounded-lg hover:bg-warm-700 transition-colors text-sm disabled:opacity-50"
+                >
+                  {outreachSending === 'all' ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Отправить всем (новым)
+                </button>
+              </div>
+              {outreachResult && (
+                <div className="bg-green-50 border border-green-200 rounded p-2 text-green-700 text-xs">{outreachResult}</div>
+              )}
+              <div className="space-y-2">
+                {outreach.drafts.map(d => (
+                  <div key={d.leader_id} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="text-sm font-medium text-gray-800">
+                        {d.name} <span className="text-gray-400 font-normal">· {d.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {d.already_sent_at && (
+                          <span className="text-[10px] text-gray-400">
+                            отправлено {new Date(d.already_sent_at).toLocaleDateString('ru-RU')}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => sendOutreach([d.leader_id], !!d.already_sent_at)}
+                          disabled={outreachSending !== null}
+                          className="flex items-center gap-1 px-2 py-1 text-xs rounded border border-forest-300 text-forest-700 hover:bg-forest-50 disabled:opacity-50"
+                        >
+                          {outreachSending === d.leader_id ? <Loader className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                          {d.already_sent_at ? 'Повторить' : 'Отправить'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-gray-400 mb-1.5">
+                      {d.total_referees} реф. · {formatRub(d.total_commission_rub)} начислено · {formatRub(d.pending_rub)} к выплате
+                    </div>
+                    <p className="text-xs text-gray-600 bg-gray-50 rounded p-2 whitespace-pre-wrap">{d.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Кнопка + форма создания */}
         <div className="bg-white rounded-lg shadow-sm">
