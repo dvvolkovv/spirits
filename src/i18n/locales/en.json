@@ -39,6 +39,11 @@
       "theme_unsure": "Not sure yet / just looking"
     }
   },
+  "offer": {
+    "text": "You've had a real conversation — keep going with full access. Your first pack comes with 50% more tokens 🎁",
+    "cta": "Choose a pack",
+    "badge": "🎁 +50% on your first pack"
+  },
   "nav": {
     "networking": "Networking",
     "image_gen": "Image generator",

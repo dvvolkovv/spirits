@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
+import OfferBanner from '../tokens/OfferBanner';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
@@ -1925,6 +1926,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         <div ref={messagesEndRef} />
       </div>
+
+      <OfferBanner />
 
       {/* Input */}
       <div className="bg-white border-t px-4 py-2 pb-2 md:pb-2 flex-shrink-0">

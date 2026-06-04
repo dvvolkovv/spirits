@@ -45,6 +45,9 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   const { user } = useAuth();
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  // Пришли из оффера (?offer=1) — показываем бейдж «+50% к первому пакету».
+  // Реальный бонус всё равно начисляет бэкенд по факту первой оплаты вовлечённого.
+  const isOffer = new URLSearchParams(window.location.search).get('offer') === '1';
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isLoadingEmail, setIsLoadingEmail] = useState(true);
@@ -223,6 +226,14 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <span className="bg-gradient-to-r from-forest-600 to-warm-600 text-white px-4 py-1 rounded-full text-xs font-semibold">
                       Популярный
+                    </span>
+                  </div>
+                )}
+
+                {isOffer && (
+                  <div className="absolute -top-3 left-4">
+                    <span className="bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      🎁 +50%
                     </span>
                   </div>
                 )}
