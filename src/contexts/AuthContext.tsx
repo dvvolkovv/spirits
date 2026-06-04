@@ -16,6 +16,7 @@ interface User {
   email?: string;
   preferredAgent?: string;
   referralSlug?: string;
+  onboarded?: boolean;
   profile?: {
     values: Array<{ name: string; confidence: number; private: boolean }>;
     beliefs: string[];
@@ -36,6 +37,7 @@ interface AuthContextType {
   updateUserInfo: (info: { firstName?: string; lastName?: string }) => void;
   updateAvatar: (avatar: string) => void;
   checkAdminStatus: () => Promise<void>;
+  completeOnboarding: () => Promise<void>;
   updateTokens: (tokens: number) => void;
   consumeTokens: (amount: number) => void;
   refreshTokens: () => Promise<void>;
@@ -189,6 +191,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               ...currentUser,
               phone: profileJson.phone || currentUser.phone || '',
               isAdmin: profileJson.isadmin === true,
+              onboarded: profileJson.onboarded === true,
               email: profileJson.email || currentUser.email,
               referralSlug: profileJson.referral_slug || currentUser.referralSlug,
             };
@@ -353,6 +356,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [fetchUserTokens, updateTokens]);
 
+  // Onboarding: оптимистично помечаем пройденным локально, шлём на сервер
+  // в фоне. Если запрос упадёт — не блокируем UX, флаг до-проставится при
+  // следующем заходе (показ экрана повторно — приемлемая деградация).
+  const completeOnboarding = useCallback(async () => {
+    setUser((u) => {
+      if (!u) return u;
+      const nu = { ...u, onboarded: true };
+      persistUser(nu);
+      return nu;
+    });
+    try {
+      await apiClient.post('/webhook/onboarding/complete', {});
+    } catch (e) {
+      console.warn('[onboarding] complete failed', e);
+    }
+  }, []);
+
   const isAuthenticated = !!user;
 
   return (
@@ -368,6 +388,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updateUserInfo,
         updateAvatar,
         checkAdminStatus,
+        completeOnboarding,
         updateTokens,
         consumeTokens,
         refreshTokens,

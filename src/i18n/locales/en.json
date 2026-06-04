@@ -24,7 +24,20 @@
     "legal_privacy_link": "Privacy Policy",
     "payment_info_link": "Services description and payment terms",
     "sms_sent": "Code sent via SMS",
-    "paste_from_clipboard": "Paste code from clipboard"
+    "paste_from_clipboard": "Paste code from clipboard",
+    "match": {
+      "title": "Where shall we start?",
+      "subtitle": "Pick what's closest right now — we'll match you with a specialist and start the conversation",
+      "show_all": "Show all specialists →",
+      "greeting": "Hello! I'm {{name}} — {{role}}. Where shall we start?",
+      "reopen": "Find a specialist",
+      "theme_self": "Understand myself, emotions",
+      "theme_growth": "Goals and personal growth",
+      "theme_career": "Career and work",
+      "theme_biz": "Business and money",
+      "theme_practices": "Self-discovery practices",
+      "theme_unsure": "Not sure yet / just looking"
+    }
   },
   "nav": {
     "networking": "Networking",

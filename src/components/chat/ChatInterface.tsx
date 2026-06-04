@@ -57,6 +57,7 @@ interface ChatInterfaceProps {
   preSelectedAssistant?: { id: number; name: string; description: string } | null;
   onAssistantSelected?: (a: any) => void;
   allAssistants?: any[];
+  onOpenMatch?: () => void;
 }
 
 // Backend tags streamed text with `[VIDEO_JOB:<uuid>]` markers so the frontend
@@ -285,6 +286,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   preSelectedAssistant,
   onAssistantSelected,
   allAssistants,
+  onOpenMatch,
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -1546,7 +1548,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed md:relative top-0 left-0 right-0 z-40">
         <div className="flex items-center justify-between max-w-full">
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative flex items-center gap-2" ref={dropdownRef}>
             {isLoadingAssistants ? (
               <div className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 rounded-lg">
                 <div className="w-4 h-4 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
@@ -1580,6 +1582,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   </div>
                   <ChevronDown className="w-4 h-4 text-forest-700" />
                 </button>
+
+                {onOpenMatch && (
+                  <button
+                    onClick={onOpenMatch}
+                    data-testid="reopen-match"
+                    className="text-xs text-gray-500 hover:text-forest-700 underline whitespace-nowrap"
+                  >
+                    {t('onboarding.match.reopen')}
+                  </button>
+                )}
 
                 {showAssistantDropdown && (
                   <div data-testid="assistant-dropdown-list" className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
