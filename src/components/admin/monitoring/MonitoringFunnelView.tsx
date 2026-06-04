@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Loader, RefreshCw, AlertCircle, TrendingDown } from 'lucide-react';
+import { Loader, RefreshCw, AlertCircle, TrendingDown, Info } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
 
 interface FunnelStep {
   key: string;
   label: string;
+  hint?: string;
   count: number;
   ratioToFirst: number | null;
   ratioToPrev: number | null;
@@ -177,6 +178,11 @@ const MonitoringFunnelView: React.FC = () => {
                         <span className="font-medium text-gray-700 flex items-center gap-2">
                           <span className="text-gray-400 font-mono">{String(i + 1).padStart(2, '0')}</span>
                           {step.label}
+                          {step.hint && (
+                            <span title={step.hint} className="text-gray-300 hover:text-forest-500 cursor-help">
+                              <Info className="w-3.5 h-3.5" />
+                            </span>
+                          )}
                           {step.identity === 'session' && (
                             <span className="text-[10px] uppercase tracking-wide text-gray-400 border border-gray-200 rounded px-1 py-0.5">
                               сессии
@@ -201,9 +207,12 @@ const MonitoringFunnelView: React.FC = () => {
                           <span className="font-semibold text-gray-900 w-12 text-right">{step.count}</span>
                         </span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-forest-500 rounded-full transition-all"
+                          className={clsx(
+                            'h-full rounded-full transition-all',
+                            step.identity === 'session' ? 'bg-gray-300' : 'bg-gradient-to-r from-forest-400 to-forest-600',
+                          )}
                           style={{ width: `${barPct}%` }}
                         />
                       </div>
