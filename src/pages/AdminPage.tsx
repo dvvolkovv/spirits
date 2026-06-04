@@ -13,8 +13,9 @@ import AdminUsageView from '../components/admin/AdminUsageView';
 import AdminUsersView from '../components/admin/AdminUsersView';
 import AdminMonitoringView from '../components/admin/AdminMonitoringView';
 import AdminProductManagementView from '../components/admin/AdminProductManagementView';
+import AdminRetentionView from '../components/admin/AdminRetentionView';
 
-type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals' | 'monitoring' | 'product';
+type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals' | 'retention' | 'monitoring' | 'product';
 
 // `?tab=backlog` used to point at a standalone Бэклог tab.
 // We folded backlog into Управление продуктом — keep the URL working.
@@ -26,7 +27,7 @@ const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t } = useTranslation();
   const [params] = useSearchParams();
-  const KNOWN_TABS: AdminTab[] = ['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals', 'monitoring', 'product'];
+  const KNOWN_TABS: AdminTab[] = ['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals', 'retention', 'monitoring', 'product'];
   const rawTab = params.get('tab') || '';
   const aliasResolved = TAB_ALIASES[rawTab] ?? (rawTab as AdminTab);
   const initialTab: AdminTab = KNOWN_TABS.includes(aliasResolved) ? aliasResolved : 'support';
@@ -63,6 +64,7 @@ const AdminPage: React.FC = () => {
     { id: 'assistants', label: t('admin.tabs.assistants') },
     { id: 'coupons', label: t('admin.tabs.coupons') },
     { id: 'referrals', label: t('admin.tabs.referrals') },
+    { id: 'retention', label: t('admin.tabs.retention') },
     { id: 'monitoring', label: t('admin.tabs.monitoring') },
     { id: 'product', label: t('admin.tabs.product') },
   ];
@@ -101,6 +103,7 @@ const AdminPage: React.FC = () => {
         {activeTab === 'assistants' && <AdminAssistantsView />}
         {activeTab === 'coupons' && <AdminCouponsView />}
         {activeTab === 'referrals' && <AdminReferralsView />}
+        {activeTab === 'retention' && <AdminRetentionView />}
         {activeTab === 'monitoring' && <AdminMonitoringView />}
         {activeTab === 'product' && <AdminProductManagementView />}
       </div>
