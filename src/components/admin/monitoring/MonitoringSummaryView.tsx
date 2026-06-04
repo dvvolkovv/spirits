@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle, Loader, RefreshCw, CheckCircle2, AlertTriangle, XCircle, HelpCircle,
-  Wallet, Archive, Server, Globe,
+  Wallet, Archive, Server, Globe, Database,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
@@ -185,6 +185,26 @@ interface NodesTech {
   nodes: Array<{ instance: string; up: boolean; cpuPct: number | null; memPct: number | null; diskPct: number | null }>;
   probes: Array<{ target: string; success: boolean; httpStatus: number | null; latencySec: number | null }>;
 }
+interface ReplTech { healthy: boolean; maxReplayLagSec: number | null; thresholdSec: number; error: string | null }
+interface NeoDrTech {
+  configured: boolean; reachable: boolean; healthy: boolean; freshHours: number;
+  files: Array<{ name: string; remoteAgeHours: number | null }>;
+}
+interface MinioDrTech { configured: boolean; healthy: boolean; ageMin: number | null; freshMin: number }
+interface JobsTech {
+  video: { pending_total: number; stuck: boolean };
+  tokens: { pending_total: number; stuck: boolean };
+}
+interface SynthTech {
+  scenarios: Array<{ latestSuccess: boolean | null }>;
+}
+interface DbTech {
+  postgres: Array<{ up: boolean }>;
+  redis: Array<{ up: boolean }>;
+  neo4j?: Array<{ up: boolean }>;
+  minio: Array<{ up: boolean }>;
+  nginx: Array<{ up: boolean }>;
+}
 
 const MonitoringSummaryView: React.FC = () => {
   const [sms, setSms] = useState<SmsTech | null>(null);
@@ -193,6 +213,12 @@ const MonitoringSummaryView: React.FC = () => {
   const [cl, setCl] = useState<ClaudeTech | null>(null);
   const [bk, setBk] = useState<BackupsTech | null>(null);
   const [overview, setOverview] = useState<NodesTech | null>(null);
+  const [repl, setRepl] = useState<ReplTech | null>(null);
+  const [neoDr, setNeoDr] = useState<NeoDrTech | null>(null);
+  const [minioDr, setMinioDr] = useState<MinioDrTech | null>(null);
+  const [jobs, setJobs] = useState<JobsTech | null>(null);
+  const [synth, setSynth] = useState<SynthTech | null>(null);
+  const [db, setDb] = useState<DbTech | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -200,13 +226,19 @@ const MonitoringSummaryView: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [rSms, rOr, rEl, rCl, rBk, rOv] = await Promise.all([
+      const [rSms, rOr, rEl, rCl, rBk, rOv, rRepl, rNeoDr, rMinioDr, rJobs, rSynth, rDb] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/sms'),
         apiClient.get('/webhook/admin/monitoring/tech/openrouter'),
         apiClient.get('/webhook/admin/monitoring/tech/elevenlabs'),
         apiClient.get('/webhook/admin/monitoring/tech/claude'),
         apiClient.get('/webhook/admin/monitoring/tech/backups'),
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
+        apiClient.get('/webhook/admin/monitoring/tech/replication'),
+        apiClient.get('/webhook/admin/monitoring/tech/neo4j-dr'),
+        apiClient.get('/webhook/admin/monitoring/tech/minio-dr'),
+        apiClient.get('/webhook/admin/monitoring/tech/jobs'),
+        apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
+        apiClient.get('/webhook/admin/monitoring/tech/databases'),
       ]);
       if (rSms.ok) setSms(await rSms.json());
       if (rOr.ok)  setOr(await rOr.json());
@@ -214,6 +246,12 @@ const MonitoringSummaryView: React.FC = () => {
       if (rCl.ok)  setCl(await rCl.json());
       if (rBk.ok)  setBk(await rBk.json());
       if (rOv.ok)  setOverview(await rOv.json());
+      if (rRepl.ok)    setRepl(await rRepl.json());
+      if (rNeoDr.ok)   setNeoDr(await rNeoDr.json());
+      if (rMinioDr.ok) setMinioDr(await rMinioDr.json());
+      if (rJobs.ok)    setJobs(await rJobs.json());
+      if (rSynth.ok)   setSynth(await rSynth.json());
+      if (rDb.ok)      setDb(await rDb.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить сводку');
     } finally {
@@ -360,12 +398,125 @@ const MonitoringSummaryView: React.FC = () => {
         </section>
       </div>
 
+      {/* Репликация и DR — по одному ключевому показателю на источник */}
+      <section>
+        <h3 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider flex items-center gap-1.5">
+          <Database className="w-3.5 h-3.5" /> Репликация и аварийное восстановление
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <BalanceTile
+            label="PG-репликация"
+            value={repl
+              ? (repl.error ? 'ошибка'
+                : repl.healthy ? `✓ ${repl.maxReplayLagSec == null ? '0' : repl.maxReplayLagSec.toFixed(1)}с`
+                : '✗ проблема')
+              : '—'}
+            tone={!repl ? 'gray' : repl.error || !repl.healthy ? 'bad' : 'good'}
+          />
+          <BalanceTile
+            label="Neo4j DR (node-3)"
+            value={drValue(neoDr?.configured, neoDr?.reachable, dumpAgeHours(neoDr), 'ч')}
+            tone={drTone(neoDr?.configured, neoDr?.healthy, neoDr?.reachable)}
+          />
+          <BalanceTile
+            label="MinIO DR (node-3)"
+            value={drValue(minioDr?.configured, true, minioDr?.ageMin == null ? null : minioDr.ageMin / 60, 'ч')}
+            tone={drTone(minioDr?.configured, minioDr?.healthy, true)}
+          />
+          <BalanceTile
+            label="Базы данных"
+            value={db ? `${dbUp(db).up}/${dbUp(db).total} up` : '—'}
+            tone={!db ? 'gray' : dbUp(db).up < dbUp(db).total ? 'bad' : 'good'}
+          />
+        </div>
+      </section>
+
+      {/* Фоновые задачи и synthetic E2E */}
+      <section>
+        <h3 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider flex items-center gap-1.5">
+          <Server className="w-3.5 h-3.5" /> Задачи и E2E
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <BalanceTile
+            label="Видео-задачи"
+            value={jobs ? `${jobs.video.pending_total} в работе` : '—'}
+            tone={!jobs ? 'gray' : jobs.video.stuck ? 'bad' : jobs.video.pending_total > 0 ? 'warn' : 'good'}
+          />
+          <BalanceTile
+            label="Списание токенов"
+            value={jobs ? `${jobs.tokens.pending_total} pending` : '—'}
+            tone={!jobs ? 'gray' : jobs.tokens.stuck ? 'bad' : 'good'}
+          />
+          <BalanceTile
+            label="Synthetic E2E"
+            value={synth && synth.scenarios.length > 0
+              ? `${synthPass(synth).ok}/${synthPass(synth).total}`
+              : (synth ? 'нет прогонов' : '—')}
+            tone={!synth || synth.scenarios.length === 0 ? 'gray'
+              : synthPass(synth).ok === synthPass(synth).total ? 'good'
+              : synthPass(synth).ok === 0 ? 'bad' : 'warn'}
+          />
+          <BalanceTile
+            label="Бэкап"
+            value={bk?.latest ? (bk.latest.healthy ? '✓ OK' : bk.latest.fresh ? '⚠ проблема' : '✗ протух') : '—'}
+            tone={!bk?.latest ? 'gray' : bk.latest.healthy ? 'good' : bk.latest.fresh ? 'warn' : 'bad'}
+          />
+        </div>
+      </section>
+
       <div className="text-xs text-gray-400 pt-1">
         автообновление 60 с
       </div>
     </div>
   );
 };
+
+// ---- DR/jobs summary helpers ----
+
+const dumpAgeHours = (neo: NeoDrTech | null | undefined): number | null => {
+  if (!neo) return null;
+  const dump = neo.files?.find((f) => f.name === 'neo4j.dump.gz');
+  return dump?.remoteAgeHours ?? null;
+};
+
+const drValue = (
+  configured: boolean | undefined,
+  reachable: boolean | undefined,
+  age: number | null | undefined,
+  unit: string,
+): string => {
+  if (configured === false) return 'выкл';
+  if (reachable === false) return 'недоступен';
+  if (age == null) return '—';
+  return `${age.toFixed(1)} ${unit}`;
+};
+
+const drTone = (
+  configured: boolean | undefined,
+  healthy: boolean | undefined,
+  reachable: boolean | undefined,
+): Tone => {
+  if (configured === false) return 'gray';
+  if (reachable === false) return 'bad';
+  if (healthy === undefined) return 'gray';
+  return healthy ? 'good' : 'bad';
+};
+
+const dbUp = (db: DbTech): { up: number; total: number } => {
+  const all = [
+    ...(db.postgres || []),
+    ...(db.redis || []),
+    ...(db.neo4j || []),
+    ...(db.minio || []),
+    ...(db.nginx || []),
+  ];
+  return { up: all.filter((r) => r.up).length, total: all.length };
+};
+
+const synthPass = (s: SynthTech): { ok: number; total: number } => ({
+  ok: s.scenarios.filter((x) => x.latestSuccess === true).length,
+  total: s.scenarios.length,
+});
 
 // ---- helpers ----
 

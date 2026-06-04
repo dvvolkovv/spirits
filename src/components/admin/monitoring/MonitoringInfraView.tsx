@@ -368,6 +368,16 @@ const SCENARIO_LABEL: Record<string, string> = {
 
 const REFRESH_MS = 30_000;
 
+// Инфра-страница раньше была одним длинным скроллом (14 секций). Делим её на
+// тематические под-вкладки, чтобы каждая умещалась примерно на один экран.
+type InfraTab = 'host' | 'integrations' | 'dr' | 'tasks';
+const INFRA_TABS: Array<{ id: InfraTab; label: string }> = [
+  { id: 'host',         label: 'Хост' },
+  { id: 'integrations', label: 'Интеграции' },
+  { id: 'dr',           label: 'Резервы и DR' },
+  { id: 'tasks',        label: 'Задачи' },
+];
+
 const formatUptime = (sec: number | null): string => {
   if (sec === null || !isFinite(sec)) return '—';
   const d = Math.floor(sec / 86400);
@@ -647,6 +657,7 @@ const MonitoringInfraView: React.FC = () => {
   const [minioDrData, setMinioDrData] = useState<MinioMirrorOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<InfraTab>('host');
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -724,7 +735,25 @@ const MonitoringInfraView: React.FC = () => {
         </div>
       )}
 
-      {smsData && (
+      {/* Тематические под-вкладки — каждая группа умещается на один экран */}
+      <div className="flex gap-1 overflow-x-auto scrollbar-hide -mt-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {INFRA_TABS.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setTab(s.id)}
+            className={clsx(
+              'flex-shrink-0 whitespace-nowrap px-3.5 py-1.5 text-sm font-medium rounded-full border transition-colors',
+              tab === s.id
+                ? 'border-forest-600 bg-forest-50 text-forest-700'
+                : 'border-gray-200 text-gray-500 hover:text-forest-600 hover:border-gray-300',
+            )}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'integrations' && smsData && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">SMS Aero (пассивный мониторинг)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -786,7 +815,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {openrouterData && (
+      {tab === 'integrations' && openrouterData && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">OpenRouter (LLM-провайдер)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -841,7 +870,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {backupsData && (
+      {tab === 'dr' && backupsData && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Резервные копии (ежедневный cron 03:00 UTC)</h3>
           {backupsData.error ? (
@@ -951,7 +980,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {claudeData && (
+      {tab === 'integrations' && claudeData && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Claude (Anthropic)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1043,7 +1072,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {replData && (
+      {tab === 'dr' && replData && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Репликация PostgreSQL</h3>
           {replData.error ? (
@@ -1237,7 +1266,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {neoDrData && neoDrData.configured && (
+      {tab === 'dr' && neoDrData && neoDrData.configured && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Neo4j DR-снапшот (node-3)</h3>
           {!neoDrData.reachable ? (
@@ -1340,7 +1369,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {minioDrData && minioDrData.configured && (
+      {tab === 'dr' && minioDrData && minioDrData.configured && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">MinIO DR-зеркало (node-3)</h3>
           {minioDrData.error ? (
@@ -1427,7 +1456,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {jobsData && (
+      {tab === 'tasks' && jobsData && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Фоновые задачи</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1515,7 +1544,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {modelsData && (
+      {tab === 'integrations' && modelsData && (
         <section>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-gray-700">Используемые модели</h3>
@@ -1576,7 +1605,7 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      {elevenlabsData && (
+      {tab === 'integrations' && elevenlabsData && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">ElevenLabs (TTS)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1643,46 +1672,54 @@ const MonitoringInfraView: React.FC = () => {
         </section>
       )}
 
-      <section>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Synthetic E2E (каждые 5 мин)</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {synthData?.scenarios.map((s) => <SynthCard key={s.scenario} row={s} />)}
-        </div>
-        {synthData && synthData.scenarios.length === 0 && (
-          <div className="text-sm text-gray-500">Runner ещё не отправил ни одного результата.
-            На node-3 ожидается cron <code>synthetic-runner.js</code>.</div>
-        )}
-      </section>
+      {tab === 'tasks' && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Synthetic E2E (каждые 5 мин)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {synthData?.scenarios.map((s) => <SynthCard key={s.scenario} row={s} />)}
+          </div>
+          {synthData && synthData.scenarios.length === 0 && (
+            <div className="text-sm text-gray-500">Runner ещё не отправил ни одного результата.
+              На node-3 ожидается cron <code>synthetic-runner.js</code>.</div>
+          )}
+        </section>
+      )}
 
-      <section>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Узлы</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data?.nodes.map((n) => <NodeCard key={n.instance} row={n} />)}
-        </div>
-        {data && data.nodes.length === 0 && <div className="text-sm text-gray-500">Нет данных</div>}
-      </section>
+      {tab === 'host' && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Узлы</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data?.nodes.map((n) => <NodeCard key={n.instance} row={n} />)}
+          </div>
+          {data && data.nodes.length === 0 && <div className="text-sm text-gray-500">Нет данных</div>}
+        </section>
+      )}
 
-      <section>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Доступность сервисов</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data?.probes.map((p) => <ProbeCard key={p.target} row={p} />)}
-        </div>
-        {data && data.probes.length === 0 && <div className="text-sm text-gray-500">Нет данных</div>}
-      </section>
+      {tab === 'host' && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Доступность сервисов</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data?.probes.map((p) => <ProbeCard key={p.target} row={p} />)}
+          </div>
+          {data && data.probes.length === 0 && <div className="text-sm text-gray-500">Нет данных</div>}
+        </section>
+      )}
 
-      <section>
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Базы данных</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {dbData?.postgres.map((r) => <PgCard key={`pg-${r.instance}`} row={r} />)}
-          {dbData?.redis.map((r) => <RedisCard key={`r-${r.instance}`} row={r} />)}
-          {dbData?.neo4j?.map((r) => <Neo4jCard key={`n4-${r.instance}`} row={r} />)}
-          {dbData?.minio.map((r) => <MinioCard key={`m-${r.instance}`} row={r} />)}
-          {dbData?.nginx.map((r) => <NginxCard key={`n-${r.instance}`} row={r} />)}
-        </div>
-        {dbData && dbData.postgres.length === 0 && dbData.redis.length === 0 && dbData.minio.length === 0 && dbData.nginx?.length === 0 && (
-          <div className="text-sm text-gray-500">Экспортёры баз ещё не подключены</div>
-        )}
-      </section>
+      {tab === 'host' && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Базы данных</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {dbData?.postgres.map((r) => <PgCard key={`pg-${r.instance}`} row={r} />)}
+            {dbData?.redis.map((r) => <RedisCard key={`r-${r.instance}`} row={r} />)}
+            {dbData?.neo4j?.map((r) => <Neo4jCard key={`n4-${r.instance}`} row={r} />)}
+            {dbData?.minio.map((r) => <MinioCard key={`m-${r.instance}`} row={r} />)}
+            {dbData?.nginx.map((r) => <NginxCard key={`n-${r.instance}`} row={r} />)}
+          </div>
+          {dbData && dbData.postgres.length === 0 && dbData.redis.length === 0 && dbData.minio.length === 0 && dbData.nginx?.length === 0 && (
+            <div className="text-sm text-gray-500">Экспортёры баз ещё не подключены</div>
+          )}
+        </section>
+      )}
     </div>
   );
 };
