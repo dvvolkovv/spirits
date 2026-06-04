@@ -2,43 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { Send, Loader, RefreshCw, Clock } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
-// Retention re-engagement (backlog 72cfc486). Возврат «уснувших» пользователей
-// персональным вежливым пингом. preview строит черновики (ничего не шлёт);
-// отправка наружу — через confirm-диалог (реальная рассылка людям).
-interface RetentionDraft {
+// Activation outreach (backlog c45c71df). Нудж новичкам, которые
+// зарегистрировались, но ни разу не написали. preview строит черновики
+// (ничего не шлёт); отправка наружу — через confirm-диалог (реальная рассылка).
+interface ActivationDraft {
   phone: string;
-  assistant_id: string;
+  preferred_agent: string | null;
   assistant_name: string | null;
-  last_at: string;
-  days_inactive: number;
+  created_at: string;
+  hours_since_reg: number;
   message: string;
   last_sent_at: string | null;
   in_cooldown: boolean;
 }
-interface RetentionPreview {
+interface ActivationPreview {
   channel: string;
   campaign: string;
-  window: { min_days: number; max_days: number };
+  window: { min_hours: number; max_days: number };
   cooldown_days: number;
   count: number;
-  drafts: RetentionDraft[];
+  drafts: ActivationDraft[];
 }
 
-const AdminRetentionView: React.FC = () => {
-  const [preview, setPreview] = useState<RetentionPreview | null>(null);
+const AdminActivationView: React.FC = () => {
+  const [preview, setPreview] = useState<ActivationPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState<string | null>(null); // phone | 'all'
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Окно инактива; дефолт включает 48ч (minDays:2) — backlog 959a1ae5.
-  const [win, setWin] = useState<{ minDays: number; maxDays: number }>({ minDays: 2, maxDays: 30 });
 
   const load = async () => {
     setLoading(true);
     setResult(null);
     setError(null);
     try {
-      const r = await apiClient.post('/webhook/admin/retention', { action: 'preview', minDays: win.minDays, maxDays: win.maxDays });
+      const r = await apiClient.post('/webhook/admin/activation', { action: 'preview' });
       if (!r.ok) throw new Error(`Ошибка: ${r.status}`);
       setPreview(await r.json());
     } catch (err) {
@@ -48,7 +46,7 @@ const AdminRetentionView: React.FC = () => {
     }
   };
 
-  useEffect(() => { load(); }, [win]);
+  useEffect(() => { load(); }, []);
 
   const send = async (phones?: string[], resend = false) => {
     const newCount = preview?.drafts.filter((d) => !d.in_cooldown).length || 0;
@@ -58,7 +56,7 @@ const AdminRetentionView: React.FC = () => {
     setResult(null);
     setError(null);
     try {
-      const r = await apiClient.post('/webhook/admin/retention', { action: 'send', confirm: true, phones, resend, minDays: win.minDays, maxDays: win.maxDays });
+      const r = await apiClient.post('/webhook/admin/activation', { action: 'send', confirm: true, phones, resend });
       const data = await r.json();
       if (!r.ok) throw new Error(data.message || `Ошибка: ${r.status}`);
       setResult(`Отправлено: ${data.sent} · ошибок: ${data.failed} · пропущено (cooldown): ${data.skipped_cooldown}`);
@@ -78,31 +76,20 @@ const AdminRetentionView: React.FC = () => {
             <div>
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                 <Send className="w-5 h-5 text-forest-600" />
-                Retention-аутрич
+                Активация
               </h2>
               <p className="text-xs text-gray-400 mt-0.5">
-                «уснувшие» пользователи · вежливый пинг по SMS · отправка наружу — по подтверждению
+                новички без первого чата · вежливый нудж по SMS · отправка наружу — по подтверждению
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {([{ l: '48ч+', m: 2 }, { l: '3–30 дн', m: 3 }] as const).map((p) => (
-                <button
-                  key={p.m}
-                  onClick={() => setWin({ minDays: p.m, maxDays: 30 })}
-                  className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${win.minDays === p.m ? 'bg-forest-50 border-forest-300 text-forest-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                >
-                  {p.l}
-                </button>
-              ))}
-              <button
-                onClick={load}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-forest-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={loading ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
-                Обновить
-              </button>
-            </div>
+            <button
+              onClick={load}
+              disabled={loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-forest-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={loading ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
+              Обновить
+            </button>
           </div>
 
           <div className="p-4 space-y-3">
@@ -118,7 +105,7 @@ const AdminRetentionView: React.FC = () => {
               <>
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="text-xs text-gray-500">
-                    {preview.count} пользователей без активности {preview.window.min_days}–{preview.window.max_days} дн ·
+                    {preview.count} новичков без первого чата · рег ≥{preview.window.min_hours}ч, ≤{preview.window.max_days}д ·
                     канал SMS · cooldown {preview.cooldown_days} дн · проверьте тексты перед отправкой
                   </p>
                   <button
@@ -134,7 +121,7 @@ const AdminRetentionView: React.FC = () => {
                   <div className="bg-green-50 border border-green-200 rounded p-2 text-green-700 text-xs">{result}</div>
                 )}
                 {preview.count === 0 && (
-                  <p className="text-sm text-gray-500 py-6 text-center">Сейчас «уснувших» пользователей в окне нет.</p>
+                  <p className="text-sm text-gray-500 py-6 text-center">Сейчас новичков без первого чата в окне нет.</p>
                 )}
                 <div className="space-y-2">
                   {preview.drafts.map((d) => (
@@ -146,7 +133,7 @@ const AdminRetentionView: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />{d.days_inactive} дн
+                            <Clock className="w-3 h-3" />{d.hours_since_reg} ч
                           </span>
                           {d.in_cooldown && (
                             <span className="text-[10px] text-amber-600" title={d.last_sent_at || ''}>cooldown</span>
@@ -174,4 +161,4 @@ const AdminRetentionView: React.FC = () => {
   );
 };
 
-export default AdminRetentionView;
+export default AdminActivationView;
