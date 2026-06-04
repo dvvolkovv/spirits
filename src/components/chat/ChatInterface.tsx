@@ -63,6 +63,22 @@ interface ChatInterfaceProps {
 // can attach inline video players. Hide these tokens from the user-visible text.
 const VIDEO_JOB_MARKER_RE = /\s*\[VIDEO_JOB:[0-9a-f-]{36}\]\s*/gi;
 const stripVideoJobMarkers = (text: string): string => text.replace(VIDEO_JOB_MARKER_RE, '');
+
+// Suggested-prompt chips for Роман (assistant id=12) — backlog 8ebe8593.
+// Роман — главный персональный ассистент-координатор, роутящий к специалистам.
+// Curious-персона у него имеет максимальный retention, но avg_messages=2: люди
+// возвращаются, но не знают, что ещё спросить. Чипы показываются после первого
+// ответа Романа и подталкивают углубить сессию (цель — поднять глубину к 5+).
+// Список намеренно держим в коде (быстрая правка через деплой); при желании
+// редактора Романа его можно вынести в БД/конфиг.
+const ROMAN_ASSISTANT_ID = 12;
+const ROMAN_SUGGESTIONS: string[] = [
+  'Помоги разобраться, с чего начать в моей ситуации',
+  'Разбери мою задачу по шагам',
+  'Какие специалисты платформы могут мне помочь?',
+  'Задай мне вопросы, чтобы лучше понять мой запрос',
+  'Дай конкретный план действий на неделю',
+];
 const extractVideoJobIds = (text: string): string[] => {
   const ids: string[] = [];
   const matches = text.matchAll(/\[VIDEO_JOB:([0-9a-f-]{36})\]/gi);
@@ -1842,6 +1858,37 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
         ))}
+
+        {/* Suggested-prompt chips for Роман — nudge to deepen the session (8ebe8593).
+            Shown after his reply, while the session is still shallow (< 3 user msgs). */}
+        {(() => {
+          const last = messages[messages.length - 1];
+          const userMsgCount = messages.filter((m) => m.type === 'user').length;
+          const show =
+            selectedAssistant?.id === ROMAN_ASSISTANT_ID &&
+            !!last && last.type === 'assistant' && !last.isStreaming &&
+            !streamingMessageId && !isTyping && !historyLoading &&
+            userMsgCount < 3;
+          if (!show) return null;
+          return (
+            <div className="flex justify-start">
+              <div className="max-w-lg">
+                <p className="text-xs text-gray-400 mb-1.5 px-1">{t('chat.suggestions_hint')}</p>
+                <div className="flex flex-wrap gap-2">
+                  {ROMAN_SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => sendMessageText(s)}
+                      className="text-sm text-forest-700 bg-white border border-forest-300 hover:border-forest-400 hover:bg-forest-50 rounded-full px-3 py-1.5 transition-colors text-left"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {streamingMessageId && !historyLoading && (
           isGeneratingImage ? (

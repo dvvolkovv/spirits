@@ -84,6 +84,7 @@
     "clear_title": "Clear chat",
     "clear_confirm": "Clear chat history? This action cannot be undone.",
     "loading_history": "Loading history...",
+    "suggestions_hint": "Where to go next:",
     "load_more": "↑ Load more",
     "generating_image": "Generating image...",
     "generating_image_error": "Failed to generate image",
