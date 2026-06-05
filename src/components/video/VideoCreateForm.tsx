@@ -29,6 +29,8 @@ export interface FormState {
   engine?: Engine;
   veoTier?: VeoTier;
   veoLengthSec?: number;
+  veoAspectRatio?: '16:9' | '9:16';   // формат: 9:16 для соцсетей (фидбэк katya)
+  veoResolution?: '720p' | '1080p';   // 1080p — детализация кожи/пор
   // For long-form video (> 10s). When set, backend chains base+extend and
   // ffmpeg-concats to this exact duration.
   targetDurationSec?: number;
@@ -228,6 +230,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           sourceImageUrl: s.sourceImageUrl || undefined,
           negativePrompt: s.negativePrompt || undefined,
           targetDurationSec: s.veoLengthSec ?? 24,
+          aspectRatio: s.veoAspectRatio ?? '9:16',
+          resolution: s.veoResolution ?? '1080p',
         };
         const resp = await apiClient.post('/webhook/video/jobs', body);
         const data = await resp.json();
@@ -643,6 +647,56 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                   )}
                 >
                   {tier === 'fast' ? 'Fast' : 'Standard'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Format (aspect ratio) */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+              Формат
+              <Hint text="9:16 — вертикаль для соцсетей (Reels, Shorts, Stories, TikTok). 16:9 — горизонталь. Для портрета лучше 9:16." />
+            </p>
+            <div className="flex gap-2">
+              {([['9:16', '9:16 · вертикаль'], ['16:9', '16:9 · горизонталь']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setS({ ...s, veoAspectRatio: val })}
+                  className={clsx(
+                    'flex-1 py-2 rounded-lg border text-xs font-medium transition-colors',
+                    (s.veoAspectRatio ?? '9:16') === val
+                      ? 'border-forest-400 bg-forest-50 text-forest-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Resolution */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+              Разрешение
+              <Hint text="1080p — выше детализация (кожа, поры). 720p — быстрее. Extend-сегменты у Veo всегда 720p, поэтому 1080p заметнее на роликах до 8с." />
+            </p>
+            <div className="flex gap-2">
+              {(['1080p', '720p'] as const).map(res => (
+                <button
+                  key={res}
+                  type="button"
+                  onClick={() => setS({ ...s, veoResolution: res })}
+                  className={clsx(
+                    'flex-1 py-2 rounded-lg border text-xs font-medium transition-colors',
+                    (s.veoResolution ?? '1080p') === res
+                      ? 'border-forest-400 bg-forest-50 text-forest-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                  )}
+                >
+                  {res}
                 </button>
               ))}
             </div>
