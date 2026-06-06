@@ -68,14 +68,20 @@ const VEO_PRICES: Record<VeoTier, { base: number; ext: number }> = {
   fast: { base: 90000, ext: 63000 },
   standard: { base: 240000, ext: 170000 },
 };
-function veoCostFor(tier: VeoTier, lengthSec: number): number {
+function veoCostFor(tier: VeoTier, lengthSec: number, aspect: '16:9' | '9:16' = '9:16'): number {
   const p = VEO_PRICES[tier];
+  // 9:16 длиннее 8с: Veo extend умеет только 16:9, поэтому вертикаль собирается
+  // как concat N независимых 8с-клипов — каждый клип это полная база (N×base).
+  // 16:9 и короткая вертикаль (≤8с) — база + native extend по 7с.
+  if (aspect === '9:16' && lengthSec > 8) {
+    return Math.ceil(lengthSec / 8) * p.base;
+  }
   const extendCount = Math.ceil(Math.max(0, lengthSec - 8) / 7);
   return p.base + extendCount * p.ext;
 }
 
 function costFor(s: FormState): number {
-  if (s.engine === 'veo') return veoCostFor(s.veoTier ?? 'fast', s.veoLengthSec ?? 24);
+  if (s.engine === 'veo') return veoCostFor(s.veoTier ?? 'fast', s.veoLengthSec ?? 24, s.veoAspectRatio ?? '9:16');
   // Composed long video: base 10s + N × extend 5s.
   if (s.targetDurationSec && s.targetDurationSec > 10) {
     const baseKey = `${s.mode}.${s.model}.${s.quality}.10`;
@@ -684,7 +690,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           <div>
             <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
               Разрешение
-              <Hint text="1080p — выше детализация (кожа, поры). 720p — быстрее. Extend-сегменты у Veo всегда 720p, поэтому 1080p заметнее на роликах до 8с." />
+              <Hint text="1080p — выше детализация (кожа, поры). 720p — быстрее. В горизонтали (16:9) длиннее 8с extend-сегменты Veo всегда 720p, поэтому 1080p заметнее на коротких роликах. Вертикаль (9:16) собирается из независимых клипов — там 1080p работает на любой длине." />
             </p>
             <div className="flex gap-2">
               {(['1080p', '720p'] as const).map(res => (
@@ -709,7 +715,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           <div>
             <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
               Длина
-              <Hint text="Veo собирает одно непрерывное видео: база 8с + расширения по 7с, обрезается до выбранной длины." />
+              <Hint text="16:9 (горизонталь): одно непрерывное видео — база 8с + расширения по 7с. 9:16 (вертикаль): Veo не умеет бесшовно удлинять вертикаль, поэтому длиннее 8с мы автоматически собираем ролик из нескольких 8с-клипов (на стыках возможны лёгкие склейки) — реплика распределяется по клипам." />
             </p>
             <div className="grid grid-cols-4 gap-2">
               {VEO_LENGTHS.map(len => (
@@ -728,6 +734,11 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                 </button>
               ))}
             </div>
+            {(s.veoAspectRatio ?? '9:16') === '9:16' && (s.veoLengthSec ?? 24) > 8 && (
+              <p className="mt-2 text-xs text-gray-500">
+                Вертикаль {s.veoLengthSec ?? 24}с — соберём из {Math.ceil((s.veoLengthSec ?? 24) / 8)} клипов по 8с и склеим в один ролик автоматически.
+              </p>
+            )}
           </div>
 
           {/* Portrait (optional) */}
