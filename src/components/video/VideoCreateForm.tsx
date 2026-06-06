@@ -38,6 +38,7 @@ export interface FormState {
   negativePrompt: string;
   cfgScale: number;
   sourceImageUrl?: string;
+  sourceImageUrls?: string[];   // Veo: до 3 референс-фото (Ingredients) для сходства
   sourceVideoId?: string;
   audioUrl?: string;
   cameraType?: string;
@@ -223,11 +224,13 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
     setError(null);
     try {
       if (s.engine === 'veo') {
+        const veoImgs = (s.sourceImageUrls ?? []).slice(0, 3);
         const body: any = {
           model: (s.veoTier ?? 'fast') === 'standard' ? 'veo-3.1' : 'veo-3.1-fast',
-          mode: s.sourceImageUrl ? 'image2video' : 'text2video',
+          mode: veoImgs.length ? 'image2video' : 'text2video',
           prompt: s.prompt,
-          sourceImageUrl: s.sourceImageUrl || undefined,
+          sourceImageUrls: veoImgs.length ? veoImgs : undefined,
+          sourceImageUrl: veoImgs[0] || undefined,
           negativePrompt: s.negativePrompt || undefined,
           targetDurationSec: s.veoLengthSec ?? 24,
           aspectRatio: s.veoAspectRatio ?? '9:16',
@@ -729,38 +732,54 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
 
           {/* Portrait (optional) */}
           <div>
-            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
-              Портрет (опционально)
-              <Hint text="Фронтальный портрет хорошего качества — Veo сделает говорящую голову с этим лицом. Без портрета — сцена по описанию." />
+            <p className="text-xs font-medium text-gray-500 mb-1 flex items-center">
+              Фото для портрета (до 3)
+              <Hint text="Для «говорящей головы» из лица человека. Лучше всего — 3 фронтальных фото в разных ракурсах/освещении: Veo даёт заметно более точное сходство, чем по одному фото. Без фото — сцена по описанию." />
             </p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-forest-400 cursor-pointer transition-colors bg-white text-sm text-gray-500 hover:text-forest-600">
-                <span>Загрузить файл</span>
-                <input
-                  type="file" accept="image/*" className="hidden"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (!f) return;
-                    try {
-                      const url = await uploadFile('image', f);
-                      setS(x => ({ ...x, sourceImageUrl: url }));
-                    } catch (err: any) { setError(err?.message ?? 'image upload failed'); }
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={openImagePicker}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:border-forest-400 hover:bg-forest-50 hover:text-forest-700 transition-colors bg-white text-sm text-gray-600"
-              >
-                <ImageIcon className="w-4 h-4" />
-                <span>Из моих картинок</span>
-              </button>
-            </div>
-            {s.sourceImageUrl && (
-              <div className="mt-2 flex items-start gap-2">
-                <img src={s.sourceImageUrl} alt="portrait" className="max-h-40 rounded-lg object-cover" />
-                <button type="button" onClick={() => setS(x => ({ ...x, sourceImageUrl: undefined }))} className="text-xs text-gray-400 hover:text-red-500">убрать</button>
+            <p className="text-[11px] text-forest-600 mb-2">
+              💡 Рекомендуем загрузить <b>3 фотографии</b> (разные ракурсы) — так сходство лица заметно лучше.
+            </p>
+            {(s.sourceImageUrls?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(s.sourceImageUrls ?? []).map((u) => (
+                  <div key={u} className="relative">
+                    <img src={u} alt="ref" className="h-24 w-20 rounded-lg object-cover border border-gray-200" />
+                    <button
+                      type="button"
+                      onClick={() => setS(x => ({ ...x, sourceImageUrls: (x.sourceImageUrls ?? []).filter(v => v !== u) }))}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-gray-300 text-gray-500 hover:text-red-500 text-xs leading-none"
+                      aria-label="remove"
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {(s.sourceImageUrls?.length ?? 0) < 3 && (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-forest-400 cursor-pointer transition-colors bg-white text-sm text-gray-500 hover:text-forest-600">
+                  <span>Добавить фото ({s.sourceImageUrls?.length ?? 0}/3)</span>
+                  <input
+                    type="file" accept="image/*" multiple className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      if (!files.length) return;
+                      const slots = 3 - (s.sourceImageUrls?.length ?? 0);
+                      try {
+                        const urls: string[] = [];
+                        for (const f of files.slice(0, slots)) urls.push(await uploadFile('image', f));
+                        setS(x => ({ ...x, sourceImageUrls: [...(x.sourceImageUrls ?? []), ...urls].slice(0, 3) }));
+                      } catch (err: any) { setError(err?.message ?? 'image upload failed'); }
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={openImagePicker}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:border-forest-400 hover:bg-forest-50 hover:text-forest-700 transition-colors bg-white text-sm text-gray-600"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Из моих картинок</span>
+                </button>
               </div>
             )}
           </div>
@@ -856,7 +875,10 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                         key={it.id}
                         type="button"
                         onClick={() => {
-                          setS(x => ({ ...x, sourceImageUrl: toAbsoluteUrl(it.image_url) }));
+                          const url = toAbsoluteUrl(it.image_url);
+                          setS(x => x.engine === 'veo'
+                            ? { ...x, sourceImageUrls: [...(x.sourceImageUrls ?? []), url].slice(0, 3) }
+                            : { ...x, sourceImageUrl: url });
                           setShowImagePicker(false);
                         }}
                         className="group relative aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-forest-400 hover:ring-2 hover:ring-forest-200 transition-all bg-gray-50"
