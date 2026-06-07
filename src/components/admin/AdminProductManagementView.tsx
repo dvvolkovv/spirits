@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import MonitoringProductView from './monitoring/MonitoringProductView';
 import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
+import MonitoringAttributionView from './monitoring/MonitoringAttributionView';
 import { ProductSummaryView } from './monitoring/MonitoringSummaryView';
 import AdminBacklogView from './AdminBacklogView';
 import VpmView from './VpmView';
@@ -57,6 +58,7 @@ const AdminProductManagementView: React.FC = () => {
       {section === 'funnel' && (
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           <MonitoringFunnelView />
+          <MonitoringAttributionView />
         </div>
       )}
       {section === 'metrics' && (
