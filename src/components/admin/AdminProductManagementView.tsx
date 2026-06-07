@@ -6,8 +6,9 @@ import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
 import { ProductSummaryView } from './monitoring/MonitoringSummaryView';
 import AdminBacklogView from './AdminBacklogView';
 import VpmView from './VpmView';
+import VmmView from './VmmView';
 
-type Section = 'overview' | 'funnel' | 'metrics' | 'backlog' | 'vpm';
+type Section = 'overview' | 'funnel' | 'metrics' | 'backlog' | 'vpm' | 'vmm';
 
 const AdminProductManagementView: React.FC = () => {
   const { t } = useTranslation();
@@ -19,6 +20,7 @@ const AdminProductManagementView: React.FC = () => {
     { id: 'metrics',  label: t('admin.product.tabs.metrics'),  ready: true  },
     { id: 'backlog',  label: t('admin.product.tabs.backlog'),  ready: true  },
     { id: 'vpm',      label: t('admin.product.tabs.vpm'),      ready: true  },
+    { id: 'vmm',      label: t('admin.product.tabs.vmm'),      ready: true  },
   ];
 
   return (
@@ -70,6 +72,11 @@ const AdminProductManagementView: React.FC = () => {
       {section === 'vpm' && (
         <div className="flex-1 overflow-hidden">
           <VpmView />
+        </div>
+      )}
+      {section === 'vmm' && (
+        <div className="flex-1 overflow-hidden">
+          <VmmView />
         </div>
       )}
     </div>
