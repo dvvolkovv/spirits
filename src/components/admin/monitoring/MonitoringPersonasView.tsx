@@ -18,11 +18,22 @@ interface PersonaBucket {
   topAssistants: Array<{ name: string; displayName: string | null; share: number }>;
 }
 
+interface PersonaRunMeta {
+  createdAt: string;
+  triggeredBy: string | null;
+  trigger: 'manual' | 'cron' | 'auto';
+  durationMs: number | null;
+  totalUsers: number;
+  tokensSpent: number;
+  error: string | null;
+}
+
 interface PersonasOverview {
   generatedAt: string;
   excludedUsers: string[];
   totalUsers: number;
   buckets: PersonaBucket[];
+  lastRun?: PersonaRunMeta;
 }
 
 const PERSONA_ICON: Record<PersonaKey, React.ReactNode> = {
@@ -112,11 +123,16 @@ const PersonaCard: React.FC<{ bucket: PersonaBucket }> = ({ bucket }) => {
   );
 };
 
+const fmtRunDate = (iso: string | null | undefined): string =>
+  iso ? new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+
 const MonitoringPersonasView: React.FC = () => {
   const [data, setData] = useState<PersonasOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recomputing, setRecomputing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Первичная загрузка — последний сохранённый снапшот (мгновенно).
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -134,6 +150,26 @@ const MonitoringPersonasView: React.FC = () => {
     }
   }, []);
 
+  // Кнопка «Обновить» — реальный пересчёт (POST), фиксируется в persona_runs.
+  const recompute = useCallback(async () => {
+    setRecomputing(true);
+    setError(null);
+    try {
+      const res = await apiClient.post('/webhook/admin/monitoring/product/personas/recompute', {});
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || `HTTP ${res.status}`);
+      }
+      const fresh = await res.json();
+      setData(fresh);
+      if (fresh?.lastRun?.error) setError(fresh.lastRun.error);
+    } catch (e: any) {
+      setError(e?.message || 'Не удалось пересчитать персон');
+    } finally {
+      setRecomputing(false);
+    }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
 
   return (
@@ -145,10 +181,26 @@ const MonitoringPersonasView: React.FC = () => {
             Всего активных юзеров: <span className="font-semibold text-gray-900">{data.totalUsers}</span>
           </div>
         )}
-        <button onClick={load} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-forest-600 hover:bg-gray-50 rounded-md transition-colors">
-          <RefreshCw className={clsx('w-4 h-4', loading && 'animate-spin')} />Обновить
+        <button
+          onClick={recompute}
+          disabled={recomputing}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-forest-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-60"
+        >
+          <RefreshCw className={clsx('w-4 h-4', recomputing && 'animate-spin')} />
+          {recomputing ? 'Пересчёт…' : 'Обновить'}
         </button>
       </div>
+
+      {/* Last-run meta — как у «виртуального PM» */}
+      {data?.lastRun && (
+        <div className="text-xs text-gray-500 flex items-center gap-3 flex-wrap">
+          <span>Последний пересчёт: <span className="text-gray-700">{fmtRunDate(data.lastRun.createdAt)}</span></span>
+          {data.lastRun.durationMs != null && <span>· за {(data.lastRun.durationMs / 1000).toFixed(1)}с</span>}
+          <span>· токены: {data.lastRun.tokensSpent} <span className="text-gray-400">(правило-ориентированный, без LLM)</span></span>
+          <span>· триггер: {data.lastRun.trigger === 'manual' ? 'вручную' : data.lastRun.trigger === 'cron' ? 'по расписанию' : 'авто'}</span>
+          {data.lastRun.error && <span className="text-rose-700">· ошибка: {data.lastRun.error.slice(0, 80)}</span>}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 flex items-start gap-2">
@@ -170,16 +222,16 @@ const MonitoringPersonasView: React.FC = () => {
           </div>
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-            <strong>Метод:</strong> правило-ориентированная разметка (не ML).
-            Признаки: топ-3 ассистента по категориям (business / personal / smm),
-            суммарное число генераций (картинки + видео), общая активность.
-            Пересчёт при каждом запросе — будет ок до ~500 активных юзеров,
-            дальше нужна persisted-таблица + ночной cron.
+            <strong>Метод:</strong> правило-ориентированная разметка (не ML, без LLM —
+            поэтому токены не тратятся). Признаки: топ-3 ассистента по категориям
+            (business / personal / smm), суммарное число генераций (картинки + видео),
+            общая активность. «Обновить» делает реальный пересчёт и сохраняет снапшот;
+            до ~500 активных юзеров этого достаточно, дальше — ночной cron.
           </div>
 
           <div className="text-xs text-gray-400">
-            Обновлено: {new Date(data.generatedAt).toLocaleString('ru-RU')}{' · '}
-            Исключены тестовые пользователи: {data.excludedUsers.join(', ')}
+            Из расчёта исключены все админ-аккаунты (включая владельца) и тестовые
+            номера: {data.excludedUsers.join(', ')}
           </div>
         </>
       )}
