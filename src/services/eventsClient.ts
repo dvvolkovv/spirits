@@ -17,19 +17,32 @@ const getSessionId = (): string => {
 };
 
 const getSource = (): string | null => {
-  // Persist source from first landing; downstream events inherit it.
   const KEY = 'linkeon_source';
-  let src = sessionStorage.getItem(KEY);
-  if (src) return src;
   const params = new URLSearchParams(window.location.search);
+
+  // Явная метка привлечения в URL ВСЕГДА побеждает кэш: клик по UTM/реф-ссылке
+  // должен атрибутироваться, даже если в этой сессии уже был direct/organic
+  // (иначе ручная проверка UTM и поздний клик по рекламе теряются).
+  let explicit: string | null = null;
   if (params.get('ref')) {
-    src = `referral:${params.get('ref')}`;
+    explicit = `referral:${params.get('ref')}`;
   } else if (params.get('utm_source') || params.get('utm_campaign')) {
     // Prefer utm_source/medium (channel attribution) over campaign name.
-    src = `utm:${params.get('utm_source') || params.get('utm_campaign')}`;
+    explicit = `utm:${params.get('utm_source') || params.get('utm_campaign')}`;
     const med = params.get('utm_medium');
-    if (med) src += `/${med}`;
-  } else if (document.referrer) {
+    if (med) explicit += `/${med}`;
+  }
+  if (explicit) {
+    sessionStorage.setItem(KEY, explicit);
+    return explicit;
+  }
+
+  // Иначе — первый сохранённый источник за сессию (first-touch для непомеченного).
+  const cached = sessionStorage.getItem(KEY);
+  if (cached) return cached;
+
+  let src: string;
+  if (document.referrer) {
     // Organic external referrer — capture the originating host (e.g. instagram.com).
     try {
       const host = new URL(document.referrer).hostname.replace(/^www\./, '');
