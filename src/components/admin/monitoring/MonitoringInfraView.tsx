@@ -349,6 +349,11 @@ interface ClaudeOverview {
     subscriptionExpiresAt: string | null;
     apiKeyValid: boolean | null;
     apiKeyError: string | null;
+    llmStatus: 'ok' | 'down' | null;
+    llmOutageKind: string | null;
+    llmError: string | null;
+    llmCheckedAt: string | null;
+    llmLatencyMs: number | null;
     fetchedAt: string;
   };
   alertThreshold30dUsd: number;
@@ -966,6 +971,36 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
       {tab === 'integrations' && claudeData && (
         <section>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Claude (Anthropic)</h3>
+
+          {/* Статус «жив ли AI» — активная liveness-проба. Весь AI платформы на
+              этой подписке, поэтому это статус продукта в целом. */}
+          <div className={clsx(
+            'rounded-lg border p-3 mb-3 flex items-start gap-2',
+            claudeData.usage.llmStatus === 'down' ? 'border-rose-300 bg-rose-50'
+              : claudeData.usage.llmStatus === 'ok' ? 'border-emerald-200 bg-emerald-50'
+              : 'border-gray-200 bg-gray-50',
+          )}>
+            <span className="text-lg leading-none mt-0.5">
+              {claudeData.usage.llmStatus === 'down' ? '🔴' : claudeData.usage.llmStatus === 'ok' ? '🟢' : '⚪'}
+            </span>
+            <div className="text-sm">
+              <div className={clsx('font-semibold',
+                claudeData.usage.llmStatus === 'down' ? 'text-rose-700'
+                  : claudeData.usage.llmStatus === 'ok' ? 'text-emerald-700' : 'text-gray-600')}>
+                {claudeData.usage.llmStatus === 'down' ? 'AI недоступен — деградация продукта'
+                  : claudeData.usage.llmStatus === 'ok' ? 'AI отвечает'
+                  : 'AI: статус ещё не проверялся'}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                {claudeData.usage.llmStatus === 'down' && claudeData.usage.llmError
+                  ? <span className="text-rose-600">{claudeData.usage.llmError} · </span> : null}
+                Живая проба LLM-пути (все ассистенты, Юля, Маша, Виртуальный PM/маркетолог).
+                {claudeData.usage.llmCheckedAt ? ` Проверка: ${new Date(claudeData.usage.llmCheckedAt).toLocaleString('ru-RU')}` : ''}
+                {claudeData.usage.llmLatencyMs != null ? ` · ${claudeData.usage.llmLatencyMs}мс` : ''}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className={clsx(
               'rounded-lg border bg-white p-4 shadow-sm',
