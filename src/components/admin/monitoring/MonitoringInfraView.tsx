@@ -1061,7 +1061,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
               </div>
               <div className="text-xs text-gray-400 mt-1">
                 {!claudeData.configured.apiKey
-                  ? 'ANTHROPIC_API_KEY не задан'
+                  ? 'не используется — OAuth-режим (весь AI через подписку)'
                   : claudeData.usage.apiKeyError
                     ? <span className="text-rose-700">{claudeData.usage.apiKeyError.slice(0, 60)}</span>
                     : 'probe /v1/models раз в час'}
