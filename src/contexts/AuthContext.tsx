@@ -238,7 +238,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => clearInterval(interval);
   }, [user?.id, isLoading, fetchUserTokens, updateTokens]);
 
-  const login = async (phone: string, token: string) => {
+  const login = useCallback(async (phone: string, token: string) => {
     const newUser: User = {
       id: Math.random().toString(36).substring(2, 11),
       phone,
@@ -262,7 +262,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(newUser);
 
     await checkAdminStatus();
-  };
+  }, [fetchUserTokens, checkAdminStatus]);
 
 
   const logout = () => {
