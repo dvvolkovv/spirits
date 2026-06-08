@@ -19,6 +19,7 @@ import {
   CreditCard,
   Phone,
   Inbox,
+  Bot,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -105,6 +106,12 @@ const Navigation: React.FC = () => {
       to: '/profile',
       icon: User,
       label: t('profile.title'),
+      isLogo: false,
+    },
+    {
+      to: '/my-agents',
+      icon: Bot,
+      label: t('customAgents.nav'),
       isLogo: false,
     },
   ];

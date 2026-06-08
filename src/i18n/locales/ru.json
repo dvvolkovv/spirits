@@ -857,6 +857,14 @@
       "sendFailed": "Не удалось отправить запрос"
     }
   },
+  "customAgents": {
+    "title": "Мои агенты",
+    "subtitle": "Личные AI-ассистенты с собственными ролями — доступны в /chat",
+    "createButton": "Создать",
+    "empty": "У тебя пока нет кастомных агентов.",
+    "createFirst": "Создать первого",
+    "nav": "Мои агенты"
+  },
   "auth": {
     "tabs": { "sms": "SMS", "email": "Email", "google": "Google", "yandex": "Yandex" },
     "email": {

@@ -28,6 +28,7 @@ import DozvonPage from './pages/DozvonPage';
 import ContactRequestsPage from './pages/ContactRequestsPage';
 import SettingsSocialPage from './pages/SettingsSocialPage';
 import { track } from './services/eventsClient';
+import MyAgentsPage from './pages/MyAgentsPage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -75,6 +76,7 @@ const AppContent: React.FC = () => {
             <Route path="/chats" element={<Navigate to="/search?tab=chats" replace />} />
             <Route path="/chats/:chatId" element={<ChatConversationPage />} />
             <Route path="/profile" element={<ProfileView />} />
+            <Route path="/my-agents" element={<MyAgentsPage />} />
             <Route path="/search" element={<NetworkingPage />} />
             <Route path="/compatibility" element={<Navigate to="/search" replace />} />
             <Route path="/admin" element={<AdminPage />} />
