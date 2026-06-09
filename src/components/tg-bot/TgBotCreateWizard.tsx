@@ -57,6 +57,7 @@ export const TgBotCreateWizard: React.FC = () => {
   };
 
   return (
+    <div className="h-full overflow-y-auto">
     <div className="max-w-2xl mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Создать Telegram-бота</h1>
 
@@ -69,7 +70,7 @@ export const TgBotCreateWizard: React.FC = () => {
           {!identityDeepLink ? (
             <button
               onClick={generateIdentityLink}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              className="px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
             >
               Сгенерировать ссылку
             </button>
@@ -79,7 +80,7 @@ export const TgBotCreateWizard: React.FC = () => {
                 href={identityDeepLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
               >
                 <ExternalLink size={16} /> Открыть в Telegram
               </a>
@@ -158,7 +159,7 @@ export const TgBotCreateWizard: React.FC = () => {
 
           <button
             onClick={submitConfig}
-            className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium flex items-center justify-center gap-2"
           >
             Создать и получить ссылку для группы <ArrowRight size={16} />
           </button>
@@ -186,7 +187,7 @@ export const TgBotCreateWizard: React.FC = () => {
               href={claimDeepLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
             >
               <ExternalLink size={16} /> Открыть в Telegram
             </a>
@@ -199,6 +200,7 @@ export const TgBotCreateWizard: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

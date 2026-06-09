@@ -41,9 +41,9 @@ export const RolePickerField: React.FC<Props> = ({ value, onChange }) => {
                   key={c.id}
                   type="button"
                   onClick={() => onChange({ type: 'custom', id: c.id })}
-                  className={`flex items-center gap-3 p-3 rounded-xl border text-left ${selected ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                  className={`flex items-center gap-3 p-3 rounded-xl border text-left ${selected ? 'border-forest-600 bg-forest-50' : 'border-gray-200 hover:border-forest-300'}`}
                 >
-                  <Sparkles size={18} className="text-blue-600 shrink-0" />
+                  <Sparkles size={18} className="text-forest-600 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{c.name}</div>
                     {c.description && <div className="text-xs text-gray-600 truncate">{c.description}</div>}
@@ -65,7 +65,7 @@ export const RolePickerField: React.FC<Props> = ({ value, onChange }) => {
                 key={p.id}
                 type="button"
                 onClick={() => onChange({ type: 'preset', id: p.id })}
-                className={`flex items-center gap-3 p-3 rounded-xl border text-left ${selected ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                className={`flex items-center gap-3 p-3 rounded-xl border text-left ${selected ? 'border-forest-600 bg-forest-50' : 'border-gray-200 hover:border-forest-300'}`}
               >
                 <Bot size={18} className="text-gray-600 shrink-0" />
                 <div className="flex-1 min-w-0">

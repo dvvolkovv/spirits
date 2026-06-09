@@ -37,30 +37,35 @@ export const CustomAgentsListView: React.FC = () => {
   };
 
   return (
+    <div className="h-full overflow-y-auto">
     <div className="max-w-4xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Мои ассистенты</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Личные AI-ассистенты с собственными ролями — доступны в /chat
           </p>
         </div>
         <button
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
         >
           <Plus size={16} /> Создать
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center text-gray-500 py-12">Загрузка...</div>
+        <div className="text-center text-gray-400 py-12">Загрузка...</div>
       ) : agents.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
-          <p className="text-gray-600 mb-3">У тебя пока нет кастомных ассистентов.</p>
+        <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-forest-600 to-forest-800 flex items-center justify-center mx-auto mb-4 shadow-md">
+            <Plus size={24} className="text-white" />
+          </div>
+          <p className="text-gray-600 font-medium mb-1">Нет кастомных ассистентов</p>
+          <p className="text-sm text-gray-400 mb-4">Создай первого — он появится в /chat</p>
           <button
             onClick={() => setCreateOpen(true)}
-            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm"
+            className="px-5 py-2.5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
           >
             Создать первого
           </button>
@@ -91,6 +96,7 @@ export const CustomAgentsListView: React.FC = () => {
           onSaved={() => { setEditing(null); reload(); }}
         />
       )}
+    </div>
     </div>
   );
 };
