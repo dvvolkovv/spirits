@@ -443,12 +443,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
   const [isLoadingAssistants, setIsLoadingAssistants] = useState(true);
-
-  // Initial load + refetch когда открывается дропдаун (пользователь мог
-  // создать кастомного ассистента в /my-agents и тут же вернуться).
-  useEffect(() => {
-    customAgentsApi.list().then(setCustomAgents).catch(() => {});
-  }, [showAssistantDropdown]);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(() => {
     const saved = sessionStorage.getItem('selected_assistant');
     if (saved) {
@@ -457,6 +451,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return null;
   });
   const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
+
+  // Initial load + refetch когда открывается дропдаун (пользователь мог
+  // создать кастомного ассистента в /my-agents и тут же вернуться).
+  // ВАЖНО: должно идти ПОСЛЕ объявления showAssistantDropdown — иначе TDZ
+  // в минифицированном бандле (ReferenceError: Cannot access 'X' before initialization).
+  useEffect(() => {
+    customAgentsApi.list().then(setCustomAgents).catch(() => {});
+  }, [showAssistantDropdown]);
   const [hasUserSelectedAssistant, setHasUserSelectedAssistant] = useState<boolean>(() => {
     return sessionStorage.getItem('selected_assistant') !== null;
   });
