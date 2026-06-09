@@ -859,12 +859,12 @@
     }
   },
   "customAgents": {
-    "title": "My Agents",
+    "title": "My Assistants",
     "subtitle": "Personal AI assistants with custom roles — available in /chat",
     "createButton": "Create",
-    "empty": "You don't have custom agents yet.",
+    "empty": "You don't have custom assistants yet.",
     "createFirst": "Create first",
-    "nav": "My Agents"
+    "nav": "My Assistants"
   },
   "auth": {
     "tabs": { "sms": "SMS", "email": "Email", "google": "Google", "yandex": "Yandex" },

@@ -7,6 +7,7 @@ import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
+import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
@@ -440,7 +441,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [fileTaskInput, setFileTaskInput] = useState('');
   const [showFileTaskModal, setShowFileTaskModal] = useState(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
   const [isLoadingAssistants, setIsLoadingAssistants] = useState(true);
+
+  // Initial load + refetch когда открывается дропдаун (пользователь мог
+  // создать кастомного ассистента в /my-agents и тут же вернуться).
+  useEffect(() => {
+    customAgentsApi.list().then(setCustomAgents).catch(() => {});
+  }, [showAssistantDropdown]);
   const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(() => {
     const saved = sessionStorage.getItem('selected_assistant');
     if (saved) {
@@ -1597,6 +1605,46 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {showAssistantDropdown && (
                   <div data-testid="assistant-dropdown-list" className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
                     <div className="py-1">
+                      {/* Кастомные ассистенты (Мои) — сверху, перед пресетами */}
+                      {customAgents.length > 0 && (
+                        <>
+                          <div className="px-4 py-1.5 text-[10px] uppercase tracking-wide font-semibold text-gray-500 bg-gray-50">
+                            ✨ Мои
+                          </div>
+                          {customAgents.map((c) => {
+                            const synthetic: Assistant = {
+                              id: `custom:${c.id}` as unknown as number,
+                              name: `custom:${c.id}`,
+                              displayName: c.name,
+                              description: c.description ?? '',
+                              category: 'custom' as any,
+                            };
+                            return (
+                              <button
+                                key={`custom-${c.id}`}
+                                onClick={() => handleSwitchAssistant(synthetic)}
+                                className={clsx(
+                                  'w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors',
+                                  String(selectedAssistant.id) === synthetic.name && 'bg-forest-50'
+                                )}
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
+                                    ✨
+                                  </div>
+                                  <div className="flex flex-col flex-1">
+                                    <span className="text-sm font-medium text-gray-900">{c.name}</span>
+                                    {c.description && (
+                                      <span className="text-xs text-gray-500 mt-0.5 line-clamp-1">{c.description}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                          <div className="border-t border-gray-100 my-1" />
+                        </>
+                      )}
                       {[...assistants].sort((a, b) => {
                         const order = { assistant: 0, business: 1, personal: 2 };
                         return (order[(a as any).category] ?? 3) - (order[(b as any).category] ?? 3);

@@ -17,7 +17,7 @@ export const CustomAgentsListView: React.FC = () => {
     try {
       setAgents(await customAgentsApi.list());
     } catch (e: unknown) {
-      toast.error((e as Error)?.message ?? 'Не удалось загрузить агентов');
+      toast.error((e as Error)?.message ?? 'Не удалось загрузить ассистентов');
     } finally {
       setLoading(false);
     }
@@ -26,7 +26,7 @@ export const CustomAgentsListView: React.FC = () => {
   useEffect(() => { reload(); }, []);
 
   const handleDelete = async (a: CustomAgent) => {
-    if (!confirm(`Удалить агента "${a.name}"?`)) return;
+    if (!confirm(`Удалить ассистента "${a.name}"?`)) return;
     try {
       await customAgentsApi.remove(a.id);
       toast.success('Удалён');
@@ -40,7 +40,7 @@ export const CustomAgentsListView: React.FC = () => {
     <div className="max-w-4xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Мои агенты</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Мои ассистенты</h1>
           <p className="text-sm text-gray-600 mt-1">
             Личные AI-ассистенты с собственными ролями — доступны в /chat
           </p>
@@ -57,7 +57,7 @@ export const CustomAgentsListView: React.FC = () => {
         <div className="text-center text-gray-500 py-12">Загрузка...</div>
       ) : agents.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-gray-300">
-          <p className="text-gray-600 mb-3">У тебя пока нет кастомных агентов.</p>
+          <p className="text-gray-600 mb-3">У тебя пока нет кастомных ассистентов.</p>
           <button
             onClick={() => setCreateOpen(true)}
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm"
