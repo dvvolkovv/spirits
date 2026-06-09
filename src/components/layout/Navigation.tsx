@@ -18,6 +18,7 @@ import {
   CreditCard,
   Phone,
   Bot,
+  Send,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -93,6 +94,12 @@ const Navigation: React.FC = () => {
       to: '/my-agents',
       icon: Bot,
       label: t('customAgents.nav'),
+      isLogo: false,
+    },
+    {
+      to: '/telegram-bots',
+      icon: Send,
+      label: t('tgBot.nav'),
       isLogo: false,
     },
   ];

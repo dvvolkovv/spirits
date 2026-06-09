@@ -890,5 +890,9 @@
       "suffix": " and accept them.",
       "needToAccept": "Please accept the terms above first"
     }
+  },
+  "tgBot": {
+    "nav": "My Bots",
+    "title": "My Telegram Bots"
   }
 }
