@@ -477,31 +477,33 @@ const ProfileView: React.FC = () => {
         {/* Invite a friend (referral entry point) */}
         <InviteFriendBlock />
 
-        {/* Telegram identity */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <Send className="w-5 h-5 text-blue-500" />
-            Telegram
-          </h2>
-          {tgIdentity?.bound ? (
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-              Привязан
-              {tgIdentity.tgUsername && <span className="text-blue-600 font-medium">@{tgIdentity.tgUsername}</span>}
-              {!tgIdentity.tgUsername && tgIdentity.tgFirstName && <span className="text-gray-600">{tgIdentity.tgFirstName}</span>}
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500">Не привязан</span>
-              <button
-                onClick={() => navigate('/telegram-bots/new')}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Привязать →
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Telegram identity — admin only */}
+        {user?.isAdmin && (
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Send className="w-5 h-5 text-blue-500" />
+              Telegram
+            </h2>
+            {tgIdentity?.bound ? (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                Привязан
+                {tgIdentity.tgUsername && <span className="text-blue-600 font-medium">@{tgIdentity.tgUsername}</span>}
+                {!tgIdentity.tgUsername && tgIdentity.tgFirstName && <span className="text-gray-600">{tgIdentity.tgFirstName}</span>}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500">Не привязан</span>
+                <button
+                  onClick={() => navigate('/telegram-bots/new')}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Привязать →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Personal Information */}
         <div className="bg-white rounded-lg shadow-sm p-6">

@@ -90,24 +90,26 @@ const Navigation: React.FC = () => {
       label: t('profile.title'),
       isLogo: false,
     },
-    {
-      to: '/my-agents',
-      icon: Bot,
-      label: t('customAgents.nav'),
-      isLogo: false,
-    },
-    {
-      to: '/telegram-bots',
-      icon: Send,
-      label: t('tgBot.nav'),
-      isLogo: false,
-    },
   ];
 
   const adminNavItem = {
     to: '/admin',
     icon: Shield,
     label: t('admin.title'),
+    isLogo: false,
+  };
+
+  const myAgentsNavItem = {
+    to: '/my-agents',
+    icon: Bot,
+    label: t('customAgents.nav'),
+    isLogo: false,
+  };
+
+  const telegramBotsNavItem = {
+    to: '/telegram-bots',
+    icon: Send,
+    label: t('tgBot.nav'),
     isLogo: false,
   };
 
@@ -142,7 +144,7 @@ const Navigation: React.FC = () => {
   const navItems = [
     ...baseNavItems,
     referralNavItem,
-    ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
+    ...(user?.isAdmin ? [adminNavItem, myAgentsNavItem, telegramBotsNavItem, dozvonNavItem, cardNavItem] : []),
     helpNavItem,
   ];
 
