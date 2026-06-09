@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
 import { avatarService } from '../../services/avatarService';
+import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 
 interface Assistant {
   id: number;
@@ -65,6 +66,11 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
 }) => {
   const visibleAssistants = assistants;
   const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
+  const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
+
+  useEffect(() => {
+    customAgentsApi.list().then(setCustomAgents).catch(() => {/* ignore if not authed */});
+  }, []);
 
   useEffect(() => {
     if (assistants.length > 0) {
@@ -115,6 +121,33 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
             С кем вы хотите начать общение?
           </p>
         </div>
+
+        {/* Мои (пользовательские агенты) */}
+        {customAgents.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="text-xl">✨</span> Мои
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {customAgents.map((c) => {
+                const synthetic: Assistant = {
+                  id: `custom:${c.id}` as unknown as number,
+                  name: `custom:${c.id}`,
+                  displayName: c.name,
+                  description: c.description ?? '',
+                  category: 'custom',
+                };
+                return (
+                  <AssistantCard
+                    key={c.id}
+                    assistant={synthetic}
+                    onSelect={onSelectAssistant}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Личный ассистент */}
         {visibleAssistants.some(a => a.category === 'assistant') && (
