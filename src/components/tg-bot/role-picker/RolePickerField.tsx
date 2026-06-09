@@ -40,7 +40,7 @@ export const RolePickerField: React.FC<Props> = ({ value, onChange }) => {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => onChange({ type: 'custom', id: c.id })}
+                  onClick={() => onChange({ type: 'custom', id: String(c.id) })}
                   className={`flex items-center gap-3 p-3 rounded-xl border text-left ${selected ? 'border-forest-600 bg-forest-50' : 'border-gray-200 hover:border-forest-300'}`}
                 >
                   <Sparkles size={18} className="text-forest-600 shrink-0" />
@@ -64,7 +64,7 @@ export const RolePickerField: React.FC<Props> = ({ value, onChange }) => {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => onChange({ type: 'preset', id: p.id })}
+                onClick={() => onChange({ type: 'preset', id: String(p.id) })}
                 className={`flex items-center gap-3 p-3 rounded-xl border text-left ${selected ? 'border-forest-600 bg-forest-50' : 'border-gray-200 hover:border-forest-300'}`}
               >
                 <Bot size={18} className="text-gray-600 shrink-0" />
