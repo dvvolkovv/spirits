@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
 import { avatarService } from '../../services/avatarService';
+import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { clsx } from 'clsx';
 
 interface Assistant {
@@ -31,9 +32,15 @@ const getRoleBadge = (desc: string): string => {
 const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   const { t } = useTranslation();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
+  const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
   const [showSidebar, setShowSidebar] = useState(true);
+
+  // Подтягиваем кастомных ассистентов — рендерим секцию «Мои» в sidebar.
+  useEffect(() => {
+    customAgentsApi.list().then(setCustomAgents).catch(() => {});
+  }, []);
 
   useEffect(() => {
     apiClient.get('/webhook/agents').then(async r => {
@@ -62,7 +69,28 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
     });
   }, []);
 
-  const selected = assistants.find(a => a.id === selectedId) || null;
+  // selected ищем сначала среди пресетов, потом — синтезируем из customAgents
+  // (для синтетических id вида "custom:<uuid>")
+  const selected: Assistant | null = (() => {
+    if (selectedId === null) return null;
+    const preset = assistants.find(a => a.id === selectedId);
+    if (preset) return preset;
+    const idStr = String(selectedId);
+    if (idStr.startsWith('custom:')) {
+      const customId = idStr.substring('custom:'.length);
+      const custom = customAgents.find(c => c.id === customId);
+      if (custom) {
+        return {
+          id: idStr as unknown as number,
+          name: idStr,
+          displayName: custom.name,
+          description: custom.description ?? '',
+          category: 'custom',
+        };
+      }
+    }
+    return null;
+  })();
 
   const handleSelect = (a: Assistant) => {
     setSelectedId(a.id);
@@ -116,6 +144,21 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
 
         {/* Assistant list */}
         <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+          {customAgents.length > 0 && (
+            <>
+              <p className="text-xs font-bold text-blue-700 uppercase tracking-wide px-3 pt-2 pb-1">✨ Мои</p>
+              {customAgents.map(c => {
+                const synthetic: Assistant = {
+                  id: `custom:${c.id}` as unknown as number,
+                  name: `custom:${c.id}`,
+                  displayName: c.name,
+                  description: c.description ?? '',
+                  category: 'custom',
+                };
+                return renderAssistantItem(synthetic);
+              })}
+            </>
+          )}
           {myAssistant.length > 0 && (
             <>
               <p className="text-xs font-bold text-gray-600 uppercase tracking-wide px-3 pt-2 pb-1">{t('chat.personal_assistant')}</p>
