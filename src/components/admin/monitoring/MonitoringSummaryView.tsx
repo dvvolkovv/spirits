@@ -171,8 +171,6 @@ export const ProductSummaryView: React.FC = () => {
 //    - service availability probes (my.linkeon.io / test.linkeon.io)
 
 interface SmsTech { balance: { rub: number | null }; alertThresholdRub: number }
-interface OpenRouterTech { balance: { usd: number | null }; alertThresholdUsd: number; configured: boolean }
-interface ElevenLabsTech { balance: { charactersLeft: number | null }; alertThresholdChars: number; configured: boolean }
 interface ClaudeTech {
   usage: { cost30dUsd: number | null; subscriptionType: string | null; apiKeyValid: boolean | null };
   alertThreshold30dUsd: number;
@@ -208,8 +206,6 @@ interface DbTech {
 
 const MonitoringSummaryView: React.FC = () => {
   const [sms, setSms] = useState<SmsTech | null>(null);
-  const [or, setOr] = useState<OpenRouterTech | null>(null);
-  const [el, setEl] = useState<ElevenLabsTech | null>(null);
   const [cl, setCl] = useState<ClaudeTech | null>(null);
   const [bk, setBk] = useState<BackupsTech | null>(null);
   const [overview, setOverview] = useState<NodesTech | null>(null);
@@ -226,10 +222,8 @@ const MonitoringSummaryView: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [rSms, rOr, rEl, rCl, rBk, rOv, rRepl, rNeoDr, rMinioDr, rJobs, rSynth, rDb] = await Promise.all([
+      const [rSms, rCl, rBk, rOv, rRepl, rNeoDr, rMinioDr, rJobs, rSynth, rDb] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/sms'),
-        apiClient.get('/webhook/admin/monitoring/tech/openrouter'),
-        apiClient.get('/webhook/admin/monitoring/tech/elevenlabs'),
         apiClient.get('/webhook/admin/monitoring/tech/claude'),
         apiClient.get('/webhook/admin/monitoring/tech/backups'),
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
@@ -241,8 +235,6 @@ const MonitoringSummaryView: React.FC = () => {
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
       ]);
       if (rSms.ok) setSms(await rSms.json());
-      if (rOr.ok)  setOr(await rOr.json());
-      if (rEl.ok)  setEl(await rEl.json());
       if (rCl.ok)  setCl(await rCl.json());
       if (rBk.ok)  setBk(await rBk.json());
       if (rOv.ok)  setOverview(await rOv.json());
@@ -290,20 +282,6 @@ const MonitoringSummaryView: React.FC = () => {
             label="SMS Aero"
             value={sms?.balance.rub === null || sms?.balance.rub === undefined ? '—' : `${sms.balance.rub.toFixed(0)} ₽`}
             tone={balanceTone(sms?.balance.rub ?? null, sms?.alertThresholdRub ?? 500)}
-          />
-          <BalanceTile
-            label="OpenRouter"
-            value={or?.balance.usd === null || or?.balance.usd === undefined
-              ? (or?.configured === false ? 'нет ключа' : '—')
-              : `$${or.balance.usd.toFixed(2)}`}
-            tone={or?.configured === false ? 'gray' : balanceTone(or?.balance.usd ?? null, or?.alertThresholdUsd ?? 5)}
-          />
-          <BalanceTile
-            label="ElevenLabs"
-            value={el?.balance.charactersLeft === null || el?.balance.charactersLeft === undefined
-              ? (el?.configured === false ? 'нет ключа' : '—')
-              : el.balance.charactersLeft.toLocaleString('ru-RU')}
-            tone={el?.configured === false ? 'gray' : balanceTone(el?.balance.charactersLeft ?? null, el?.alertThresholdChars ?? 50000)}
           />
           <BalanceTile
             label="Claude 30д"

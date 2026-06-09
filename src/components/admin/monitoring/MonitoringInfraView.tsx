@@ -119,34 +119,6 @@ interface SmsOverview {
   topFailureReasons: Array<{ reason: string; count: number }>;
 }
 
-interface OpenRouterOverview {
-  generatedAt: string;
-  balance: {
-    usd: number | null;
-    totalCredits: number | null;
-    totalUsage: number | null;
-    fetchedAt: string;
-    error: string | null;
-  };
-  alertThresholdUsd: number;
-  configured: boolean;
-}
-
-interface ElevenLabsOverview {
-  generatedAt: string;
-  balance: {
-    charactersLeft: number | null;
-    charactersUsed: number | null;
-    charactersLimit: number | null;
-    tier: string | null;
-    nextResetUnix: number | null;
-    fetchedAt: string;
-    error: string | null;
-  };
-  alertThresholdChars: number;
-  configured: boolean;
-}
-
 interface BackupArtifact {
   name: string;
   expected: boolean;
@@ -653,8 +625,6 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
   const [dbData, setDbData] = useState<DbOverview | null>(null);
   const [synthData, setSynthData] = useState<SynthOverview | null>(null);
   const [smsData, setSmsData] = useState<SmsOverview | null>(null);
-  const [openrouterData, setOpenrouterData] = useState<OpenRouterOverview | null>(null);
-  const [elevenlabsData, setElevenlabsData] = useState<ElevenLabsOverview | null>(null);
   const [claudeData, setClaudeData] = useState<ClaudeOverview | null>(null);
   const [backupsData, setBackupsData] = useState<BackupOverview | null>(null);
   const [modelsData, setModelsData] = useState<ModelsOverview | null>(null);
@@ -669,13 +639,11 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resOpenRouter, resElevenLabs, resClaude, resBackups, resModels, resJobs, resRepl, resNeoDr, resMinioDr] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resClaude, resBackups, resModels, resJobs, resRepl, resNeoDr, resMinioDr] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
         apiClient.get('/webhook/admin/monitoring/tech/sms'),
-        apiClient.get('/webhook/admin/monitoring/tech/openrouter'),
-        apiClient.get('/webhook/admin/monitoring/tech/elevenlabs'),
         apiClient.get('/webhook/admin/monitoring/tech/claude'),
         apiClient.get('/webhook/admin/monitoring/tech/backups'),
         apiClient.get('/webhook/admin/monitoring/tech/models'),
@@ -692,8 +660,6 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
       if (resDb.ok) setDbData(await resDb.json());
       if (resSynth.ok) setSynthData(await resSynth.json());
       if (resSms.ok) setSmsData(await resSms.json());
-      if (resOpenRouter.ok) setOpenrouterData(await resOpenRouter.json());
-      if (resElevenLabs.ok) setElevenlabsData(await resElevenLabs.json());
       if (resClaude.ok) setClaudeData(await resClaude.json());
       if (resBackups.ok) setBackupsData(await resBackups.json());
       if (resModels.ok) setModelsData(await resModels.json());
@@ -798,61 +764,6 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                   ))}
                 </ul>
               )}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {tab === 'integrations' && openrouterData && (
-        <section>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">OpenRouter (LLM-провайдер)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className={clsx(
-              'rounded-lg border bg-white p-4 shadow-sm',
-              !openrouterData.configured
-                ? 'border-gray-300 bg-gray-50'
-                : openrouterData.balance.usd !== null && openrouterData.balance.usd <= openrouterData.alertThresholdUsd
-                  ? 'border-rose-300 bg-rose-50'
-                  : openrouterData.balance.usd !== null && openrouterData.balance.usd <= openrouterData.alertThresholdUsd * 2
-                    ? 'border-amber-200'
-                    : 'border-gray-200',
-            )}>
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Wallet className="w-3.5 h-3.5" />Баланс</div>
-              <div className={clsx(
-                'text-2xl font-semibold',
-                !openrouterData.configured ? 'text-gray-500'
-                  : openrouterData.balance.usd === null ? 'text-gray-500'
-                  : openrouterData.balance.usd <= openrouterData.alertThresholdUsd ? 'text-rose-600'
-                  : openrouterData.balance.usd <= openrouterData.alertThresholdUsd * 2 ? 'text-amber-600'
-                  : 'text-emerald-600',
-              )}>
-                {openrouterData.balance.usd === null ? '—' : `$${openrouterData.balance.usd.toFixed(2)}`}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                порог: ${openrouterData.alertThresholdUsd} · обновлено {new Date(openrouterData.balance.fetchedAt).toLocaleTimeString('ru-RU')}
-              </div>
-              {!openrouterData.configured && (
-                <div className="text-xs text-amber-700 mt-1">OPENROUTER_API_KEY не задан в .env</div>
-              )}
-              {openrouterData.balance.error && openrouterData.configured && (
-                <div className="text-xs text-rose-700 mt-1 truncate" title={openrouterData.balance.error}>
-                  {openrouterData.balance.error}
-                </div>
-              )}
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Куплено всего</div>
-              <div className="text-2xl font-semibold text-gray-800">
-                {openrouterData.balance.totalCredits === null ? '—' : `$${openrouterData.balance.totalCredits.toFixed(2)}`}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">total_credits</div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Потрачено всего</div>
-              <div className="text-2xl font-semibold text-gray-800">
-                {openrouterData.balance.totalUsage === null ? '—' : `$${openrouterData.balance.totalUsage.toFixed(2)}`}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">total_usage</div>
             </div>
           </div>
         </section>
@@ -1619,73 +1530,6 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 </div>
               </div>
             )}
-          </div>
-        </section>
-      )}
-
-      {tab === 'integrations' && elevenlabsData && (
-        <section>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">ElevenLabs (TTS)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className={clsx(
-              'rounded-lg border bg-white p-4 shadow-sm',
-              !elevenlabsData.configured
-                ? 'border-gray-300 bg-gray-50'
-                : elevenlabsData.balance.charactersLeft !== null && elevenlabsData.balance.charactersLeft <= elevenlabsData.alertThresholdChars
-                  ? 'border-rose-300 bg-rose-50'
-                  : elevenlabsData.balance.charactersLeft !== null && elevenlabsData.balance.charactersLeft <= elevenlabsData.alertThresholdChars * 2
-                    ? 'border-amber-200'
-                    : 'border-gray-200',
-            )}>
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Wallet className="w-3.5 h-3.5" />Символов осталось</div>
-              <div className={clsx(
-                'text-2xl font-semibold',
-                !elevenlabsData.configured ? 'text-gray-500'
-                  : elevenlabsData.balance.charactersLeft === null ? 'text-gray-500'
-                  : elevenlabsData.balance.charactersLeft <= elevenlabsData.alertThresholdChars ? 'text-rose-600'
-                  : elevenlabsData.balance.charactersLeft <= elevenlabsData.alertThresholdChars * 2 ? 'text-amber-600'
-                  : 'text-emerald-600',
-              )}>
-                {elevenlabsData.balance.charactersLeft === null
-                  ? '—'
-                  : elevenlabsData.balance.charactersLeft.toLocaleString('ru-RU')}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                порог: {elevenlabsData.alertThresholdChars.toLocaleString('ru-RU')} · обновлено {new Date(elevenlabsData.balance.fetchedAt).toLocaleTimeString('ru-RU')}
-              </div>
-              {!elevenlabsData.configured && (
-                <div className="text-xs text-amber-700 mt-1">ELEVENLABS_API_KEY не задан в .env</div>
-              )}
-              {elevenlabsData.balance.error && elevenlabsData.configured && (
-                <div className="text-xs text-rose-700 mt-1" title={elevenlabsData.balance.error}>
-                  {elevenlabsData.balance.error}
-                </div>
-              )}
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Использовано в этом цикле</div>
-              <div className="text-2xl font-semibold text-gray-800">
-                {elevenlabsData.balance.charactersUsed === null
-                  ? '—'
-                  : elevenlabsData.balance.charactersUsed.toLocaleString('ru-RU')}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                лимит: {elevenlabsData.balance.charactersLimit === null
-                  ? '—'
-                  : elevenlabsData.balance.charactersLimit.toLocaleString('ru-RU')}
-              </div>
-            </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">План / сброс</div>
-              <div className="text-2xl font-semibold text-gray-800">
-                {elevenlabsData.balance.tier || '—'}
-              </div>
-              <div className="text-xs text-gray-400 mt-1">
-                {elevenlabsData.balance.nextResetUnix
-                  ? `обнуление: ${new Date(elevenlabsData.balance.nextResetUnix * 1000).toLocaleDateString('ru-RU')}`
-                  : 'дата обнуления неизвестна'}
-              </div>
-            </div>
           </div>
         </section>
       )}
