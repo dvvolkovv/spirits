@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiClient } from '../../services/apiClient';
 import {
   MessageCircle,
   User,
@@ -18,7 +17,6 @@ import {
   HelpCircle,
   CreditCard,
   Phone,
-  Inbox,
   Bot,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -58,23 +56,6 @@ const Navigation: React.FC = () => {
     }
   }, [user?.phone]);
 
-
-  const [pendingContactRequests, setPendingContactRequests] = useState(0);
-  useEffect(() => {
-    if (!user?.phone) return;
-    let cancelled = false;
-    const fetchPending = async () => {
-      try {
-        const r = await apiClient.get('/webhook/contact-requests');
-        if (!r.ok) return;
-        const rows: Array<{ status: string }> = await r.json();
-        if (!cancelled) setPendingContactRequests(rows.filter((x) => x.status === 'pending').length);
-      } catch { /* ignore */ }
-    };
-    fetchPending();
-    const id = setInterval(fetchPending, 10_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [user?.phone]);
 
   const baseNavItems = [
     {
@@ -151,17 +132,8 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
-  const contactRequestsNavItem = {
-    to: '/contact-requests',
-    icon: Inbox,
-    label: 'Запросы',
-    isLogo: false,
-    badge: pendingContactRequests,
-  };
-
   const navItems = [
     ...baseNavItems,
-    contactRequestsNavItem,
     referralNavItem,
     ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
     helpNavItem,
