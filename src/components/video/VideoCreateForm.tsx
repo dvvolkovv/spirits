@@ -631,21 +631,26 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
               Видео, где человек с вашего фото смотрит в камеру и произносит текст из промпта —
               с синхронизацией губ и живым голосом. Подходит для приветствий, видеовизиток, Reels и Stories.
             </p>
+            {/* Анимированная подсказка: шаги по очереди «подсвечиваются» (бегущая
+                волна), на результате пульсирует play. */}
             <div className="flex items-center justify-center gap-2 sm:gap-3 text-center">
               <div className="flex flex-col items-center gap-1">
-                <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-2xl" aria-hidden="true">🖼️</div>
+                <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-2xl animate-pulse [animation-duration:2.4s] [animation-delay:0ms]" aria-hidden="true">🖼️</div>
                 <span className="text-[10px] text-gray-400 leading-tight">1–3 фото<br />лица</span>
               </div>
-              <span className="text-gray-300 text-lg" aria-hidden="true">→</span>
+              <span className="text-gray-300 text-lg animate-pulse [animation-duration:2.4s] [animation-delay:300ms]" aria-hidden="true">→</span>
               <div className="flex flex-col items-center gap-1">
-                <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-2xl" aria-hidden="true">📝</div>
+                <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-2xl animate-pulse [animation-duration:2.4s] [animation-delay:600ms]" aria-hidden="true">📝</div>
                 <span className="text-[10px] text-gray-400 leading-tight">текст<br />в промпте</span>
               </div>
-              <span className="text-gray-300 text-lg" aria-hidden="true">→</span>
+              <span className="text-gray-300 text-lg animate-pulse [animation-duration:2.4s] [animation-delay:900ms]" aria-hidden="true">→</span>
               <div className="flex flex-col items-center gap-1">
-                <div className="w-16 h-16 rounded-lg bg-forest-50 border border-forest-200 flex items-center justify-center text-2xl relative" aria-hidden="true">
+                <div className="w-16 h-16 rounded-lg bg-forest-50 border border-forest-200 flex items-center justify-center text-2xl relative animate-pulse [animation-duration:2.4s] [animation-delay:1200ms]" aria-hidden="true">
                   🗣️
-                  <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-forest-600 text-white text-[10px] flex items-center justify-center">▶</span>
+                  <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-forest-600 text-white text-[10px] flex items-center justify-center">
+                    ▶
+                    <span className="absolute inset-0 rounded-full bg-forest-500 opacity-60 animate-ping" />
+                  </span>
                 </div>
                 <span className="text-[10px] text-forest-600 font-medium leading-tight">видео<br />с речью</span>
               </div>
