@@ -898,14 +898,14 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
               <div className={clsx('font-semibold',
                 claudeData.usage.llmStatus === 'down' ? 'text-rose-700'
                   : claudeData.usage.llmStatus === 'ok' ? 'text-emerald-700' : 'text-gray-600')}>
-                {claudeData.usage.llmStatus === 'down' ? 'AI недоступен — деградация продукта'
-                  : claudeData.usage.llmStatus === 'ok' ? 'AI отвечает'
-                  : 'AI: статус ещё не проверялся'}
+                {claudeData.usage.llmStatus === 'down' ? 'Claude CLI недоступен (Маша / VPM / маркетолог)'
+                  : claudeData.usage.llmStatus === 'ok' ? 'Claude CLI отвечает'
+                  : 'Claude CLI: статус ещё не проверялся'}
               </div>
               <div className="text-xs text-gray-500 mt-0.5">
                 {claudeData.usage.llmStatus === 'down' && claudeData.usage.llmError
                   ? <span className="text-rose-600">{claudeData.usage.llmError} · </span> : null}
-                Живая проба LLM-пути (все ассистенты, Юля, Маша, Виртуальный PM/маркетолог).
+                Живая проба локального claude CLI (Маша, Виртуальный PM, маркетолог). Чат-ассистенты идут через r.linkeon.io — см. synthetic chat_streaming во вкладке «Задачи».
                 {claudeData.usage.llmCheckedAt ? ` Проверка: ${new Date(claudeData.usage.llmCheckedAt).toLocaleString('ru-RU')}` : ''}
                 {claudeData.usage.llmLatencyMs != null ? ` · ${claudeData.usage.llmLatencyMs}мс` : ''}
               </div>
