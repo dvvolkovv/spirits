@@ -15,10 +15,18 @@ interface AttributionRow {
   payers: number;
   revenueRub: number;
 }
+interface CampaignRow {
+  campaign: string;
+  registrations: number;
+  activated: number;
+  payers: number;
+  revenueRub: number;
+}
 interface AttributionOverview {
   generatedAt: string;
   windowDays: number;
   rows: AttributionRow[];
+  byCampaign?: CampaignRow[];
   totals: { landings: number; registrations: number; activated: number; payers: number; revenueRub: number };
   note: string;
 }
@@ -146,6 +154,40 @@ const MonitoringAttributionView: React.FC = () => {
               </tfoot>
             )}
           </table>
+        </div>
+      )}
+
+      {data && data.byCampaign && data.byCampaign.length > 0 && (
+        <div className="mt-5">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">A/B по кампаниям и креативам</h4>
+          <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
+                  <th className="px-3 py-2 font-medium">Кампания / креатив</th>
+                  <th className="px-3 py-2 font-medium text-right">Регистрации</th>
+                  <th className="px-3 py-2 font-medium text-right">Активация</th>
+                  <th className="px-3 py-2 font-medium text-right">Платящие</th>
+                  <th className="px-3 py-2 font-medium text-right">Выручка</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.byCampaign.map((c) => (
+                  <tr key={c.campaign} className="border-b border-gray-50 last:border-0">
+                    <td className="px-3 py-2 font-medium text-gray-800">{c.campaign}</td>
+                    <td className="px-3 py-2 text-right text-gray-800 font-medium">{fmt(c.registrations)}</td>
+                    <td className="px-3 py-2 text-right text-gray-600">
+                      {fmt(c.activated)}
+                      {c.registrations > 0 && <span className="text-gray-400 text-xs"> ({Math.round((100 * c.activated) / c.registrations)}%)</span>}
+                    </td>
+                    <td className="px-3 py-2 text-right text-gray-600">{fmt(c.payers)}</td>
+                    <td className="px-3 py-2 text-right text-gray-800">{c.revenueRub > 0 ? `${fmt(c.revenueRub)} ₽` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="text-xs text-gray-400 mt-1.5">Разрез по utm_campaign/utm_content (напр. biz_jun26/cr_A vs biz_jun26/cr_B). Какой креатив даёт регистрации/оплаты, а не только клики.</div>
         </div>
       )}
 

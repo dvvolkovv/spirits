@@ -58,6 +58,22 @@ export const getSource = (): string | null => {
   return src;
 };
 
+// Кампания + креатив для A/B-разреза (utm_campaign/utm_content). source хранит
+// только канал (utm:vk/cpc) — без этого не различить cr_A vs cr_B по регистрациям.
+// Тоже first-touch в localStorage, тоже перезаписывается явной меткой из URL.
+export const getCampaign = (): string | null => {
+  const KEY = 'linkeon_campaign';
+  const params = new URLSearchParams(window.location.search);
+  const camp = params.get('utm_campaign');
+  const content = params.get('utm_content');
+  if (camp || content) {
+    const v = [camp, content].filter(Boolean).join('/');
+    localStorage.setItem(KEY, v);
+    return v;
+  }
+  return localStorage.getItem(KEY);
+};
+
 export const track = (name: string, props: Record<string, unknown> = {}): void => {
   if (!name) return;
   const backend = import.meta.env.VITE_BACKEND_URL || '';
@@ -99,12 +115,13 @@ export const trackLandingOnce = (): void => {
 export const attributeSource = (accessToken: string): void => {
   const source = getSource();
   if (!source || !accessToken) return;
+  const campaign = getCampaign();
   const backend = import.meta.env.VITE_BACKEND_URL || '';
   try {
     void fetch(`${backend}/webhook/events/attribute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ source }),
+      body: JSON.stringify({ source, campaign }),
       keepalive: true,
     }).catch(() => {});
   } catch { /* ignore */ }
