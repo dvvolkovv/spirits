@@ -865,6 +865,14 @@
     "createFirst": "Создать первого",
     "nav": "Мои ассистенты"
   },
+  "studio": {
+    "nav": "Студия",
+    "title": "Студия",
+    "tabs": {
+      "agents": "Ассистенты",
+      "bots": "Telegram-боты"
+    }
+  },
   "auth": {
     "tabs": { "sms": "SMS", "email": "Email", "google": "Google", "yandex": "Yandex" },
     "email": {

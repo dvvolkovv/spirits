@@ -17,8 +17,7 @@ import {
   HelpCircle,
   CreditCard,
   Phone,
-  Bot,
-  Send,
+  Sparkles,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -99,17 +98,10 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
-  const myAgentsNavItem = {
-    to: '/my-agents',
-    icon: Bot,
-    label: t('customAgents.nav'),
-    isLogo: false,
-  };
-
-  const telegramBotsNavItem = {
-    to: '/telegram-bots',
-    icon: Send,
-    label: t('tgBot.nav'),
+  const studioNavItem = {
+    to: '/studio',
+    icon: Sparkles,
+    label: t('studio.nav'),
     isLogo: false,
   };
 
@@ -144,7 +136,7 @@ const Navigation: React.FC = () => {
   const navItems = [
     ...baseNavItems,
     referralNavItem,
-    ...(user?.isAdmin ? [adminNavItem, myAgentsNavItem, telegramBotsNavItem, dozvonNavItem, cardNavItem] : []),
+    ...(user?.isAdmin ? [adminNavItem, studioNavItem, dozvonNavItem, cardNavItem] : []),
     helpNavItem,
   ];
 

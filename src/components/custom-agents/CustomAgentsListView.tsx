@@ -6,7 +6,13 @@ import { CustomAgentCard } from './CustomAgentCard';
 import { CustomAgentCreateModal } from './CustomAgentCreateModal';
 import { CustomAgentEditModal } from './CustomAgentEditModal';
 
-export const CustomAgentsListView: React.FC = () => {
+interface Props {
+  /** Если true — без внешней h-full overflow-y-auto обёртки и без заголовка
+   *  страницы. Используется когда вью встроена в StudioPage. */
+  embedded?: boolean;
+}
+
+export const CustomAgentsListView: React.FC<Props> = ({ embedded = false }) => {
   const [agents, setAgents] = useState<CustomAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
@@ -36,9 +42,18 @@ export const CustomAgentsListView: React.FC = () => {
     }
   };
 
+  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+    embedded ? (
+      <div className="max-w-4xl mx-auto px-4 pt-4 pb-6">{children}</div>
+    ) : (
+      <div className="h-full overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-6">{children}</div>
+      </div>
+    );
+
   return (
-    <div className="h-full overflow-y-auto">
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <Wrapper>
+      {!embedded && (
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Мои ассистенты</h1>
@@ -53,6 +68,18 @@ export const CustomAgentsListView: React.FC = () => {
           <Plus size={16} /> Создать
         </button>
       </div>
+      )}
+
+      {embedded && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            <Plus size={16} /> Создать
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center text-gray-400 py-12">Загрузка...</div>
@@ -96,7 +123,6 @@ export const CustomAgentsListView: React.FC = () => {
           onSaved={() => { setEditing(null); reload(); }}
         />
       )}
-    </div>
-    </div>
+    </Wrapper>
   );
 };

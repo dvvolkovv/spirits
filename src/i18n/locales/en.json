@@ -866,6 +866,14 @@
     "createFirst": "Create first",
     "nav": "My Assistants"
   },
+  "studio": {
+    "nav": "Studio",
+    "title": "Studio",
+    "tabs": {
+      "agents": "Assistants",
+      "bots": "Telegram bots"
+    }
+  },
   "auth": {
     "tabs": { "sms": "SMS", "email": "Email", "google": "Google", "yandex": "Yandex" },
     "email": {
