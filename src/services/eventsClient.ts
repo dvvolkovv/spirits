@@ -16,7 +16,10 @@ const getSessionId = (): string => {
   return sid;
 };
 
-const getSource = (): string | null => {
+export const getSource = (): string | null => {
+  // localStorage (не sessionStorage): источник привлечения должен пережить уход
+  // и повторный заход — между анонимным визитом и регистрацией sessionStorage
+  // обнуляется, из-за чего атрибуция терялась.
   const KEY = 'linkeon_source';
   const params = new URLSearchParams(window.location.search);
 
@@ -33,12 +36,12 @@ const getSource = (): string | null => {
     if (med) explicit += `/${med}`;
   }
   if (explicit) {
-    sessionStorage.setItem(KEY, explicit);
+    localStorage.setItem(KEY, explicit);
     return explicit;
   }
 
-  // Иначе — первый сохранённый источник за сессию (first-touch для непомеченного).
-  const cached = sessionStorage.getItem(KEY);
+  // Иначе — первый сохранённый источник (first-touch для непомеченного трафика).
+  const cached = localStorage.getItem(KEY);
   if (cached) return cached;
 
   let src: string;
@@ -51,7 +54,7 @@ const getSource = (): string | null => {
   } else {
     src = 'direct';
   }
-  sessionStorage.setItem(KEY, src);
+  localStorage.setItem(KEY, src);
   return src;
 };
 
@@ -88,4 +91,21 @@ export const trackLandingOnce = (): void => {
   if (sessionStorage.getItem(KEY)) return;
   sessionStorage.setItem(KEY, '1');
   track('landing_view', { referrer: document.referrer || null });
+};
+
+// Привязать источник привлечения к авторизованному юзеру (надёжная атрибуция:
+// session_id между анонимным заходом и регистрацией не доживает). Вызывать
+// после логина с Bearer-токеном. Идемпотентно на бэке (пишет только если пусто).
+export const attributeSource = (accessToken: string): void => {
+  const source = getSource();
+  if (!source || !accessToken) return;
+  const backend = import.meta.env.VITE_BACKEND_URL || '';
+  try {
+    void fetch(`${backend}/webhook/events/attribute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ source }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch { /* ignore */ }
 };

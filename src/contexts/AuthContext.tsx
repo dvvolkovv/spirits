@@ -3,6 +3,7 @@ import { tokenManager } from '../utils/tokenManager';
 import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
 import { clearAppStorage } from '../utils/clearAppStorage';
+import { attributeSource } from '../services/eventsClient';
 
 
 interface User {
@@ -252,6 +253,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     localStorage.setItem('authToken', token);
+
+    // Привязать источник привлечения к юзеру (надёжная атрибуция рекламы:
+    // session_id анонимного захода не доживает до регистрации). first-touch,
+    // пишется на бэке один раз.
+    attributeSource(token);
 
     const tokens = await fetchUserTokens();
     if (tokens !== undefined) {
