@@ -11,7 +11,6 @@ import {
   Shield,
   Coins,
   Plus,
-  Handshake,
   ImageIcon,
   Film,
   HelpCircle,
@@ -112,12 +111,7 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
-  const referralNavItem = {
-    to: '/referral',
-    icon: Handshake,
-    label: t('nav.referral'),
-    isLogo: false,
-  };
+  // Реферальная программа переехала в аккордеон Профиля — пункт из nav убран.
 
   const cardNavItem = {
     to: '/card',
@@ -135,7 +129,6 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     ...baseNavItems,
-    referralNavItem,
     ...(user?.isAdmin ? [adminNavItem, studioNavItem, dozvonNavItem, cardNavItem] : []),
     helpNavItem,
   ];
