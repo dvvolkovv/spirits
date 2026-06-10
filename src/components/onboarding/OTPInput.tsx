@@ -152,102 +152,93 @@ const OTPInput: React.FC<OTPInputProps> = ({
   const maskedPhone = phone.replace(/(\+7)(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 ($2) ***-**-$5');
 
   return (
-    <div data-testid="otp-root" className="min-h-screen bg-gradient-to-br from-warm-50 via-white to-forest-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Back Button */}
-        <button
-          onClick={onBack}
-          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">{t('common.back')}</span>
-        </button>
+    <div data-testid="otp-root" className="w-full">
+      <button
+        onClick={onBack}
+        className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span className="text-sm">{t('common.back')}</span>
+      </button>
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-forest-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {t('onboarding.enter_code')}
-          </h1>
-          <p className="text-gray-600 mb-3">
-            {t('onboarding.code_sent')} {maskedPhone}
+      <div className="text-center mb-6">
+        <div className="w-14 h-14 bg-forest-600 rounded-full flex items-center justify-center mx-auto mb-3">
+          <Shield className="w-7 h-7 text-white" />
+        </div>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">
+          {t('onboarding.enter_code')}
+        </h1>
+        <p className="text-gray-600 mb-3 text-sm">
+          {t('onboarding.code_sent')} {maskedPhone}
+        </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
+          <p>
+            <span className="font-medium">{t('onboarding.sms_sent')}</span>
           </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
-            <p>
-              <span className="font-medium">{t('onboarding.sms_sent')}</span>
-            </p>
-          </div>
         </div>
+      </div>
 
-        {/* OTP Input */}
-        <div className="space-y-6">
-          <div className="flex justify-center space-x-3">
-            {code.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleInputChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                onPaste={handlePaste}
-                data-testid={`otp-input-${index}`}
-                className="w-12 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-colors"
-                disabled={isLoading}
-                autoComplete={index === 0 ? 'one-time-code' : 'off'}
-              />
-            ))}
-          </div>
-
-          {/* Paste Button for Mobile */}
-          <div className="flex justify-center">
-            <button
-              onClick={handleClipboardPaste}
+      <div className="space-y-6">
+        <div className="flex justify-center space-x-2">
+          {code.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => (inputRefs.current[index] = el)}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleInputChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              onPaste={handlePaste}
+              data-testid={`otp-input-${index}`}
+              className="w-11 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-colors"
               disabled={isLoading}
-              className="flex items-center space-x-2 px-4 py-2 text-forest-600 hover:text-forest-700 hover:bg-forest-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              autoComplete={index === 0 ? 'one-time-code' : 'off'}
+            />
+          ))}
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            onClick={handleClipboardPaste}
+            disabled={isLoading}
+            className="flex items-center space-x-2 px-4 py-2 text-forest-600 hover:text-forest-700 hover:bg-forest-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Clipboard className="w-4 h-4" />
+            <span className="text-sm font-medium">{t('onboarding.paste_from_clipboard')}</span>
+          </button>
+        </div>
+
+        <div className="text-center">
+          {resendTimer > 0 ? (
+            <p className="text-gray-500 text-sm">
+              {t('onboarding.resend_in', { time: formatTime(resendTimer) })}
+            </p>
+          ) : (
+            <button
+              onClick={handleResend}
+              className="text-forest-600 hover:text-forest-700 text-sm font-medium hover:underline"
             >
-              <Clipboard className="w-4 h-4" />
-              <span className="text-sm font-medium">{t('onboarding.paste_from_clipboard')}</span>
+              {t('onboarding.resend_code')}
             </button>
-          </div>
-
-          {/* Resend */}
-          <div className="text-center">
-            {resendTimer > 0 ? (
-              <p className="text-gray-500 text-sm">
-                {t('onboarding.resend_in', { time: formatTime(resendTimer) })}
-              </p>
-            ) : (
-              <button
-                onClick={handleResend}
-                className="text-forest-600 hover:text-forest-700 text-sm font-medium hover:underline"
-              >
-                {t('onboarding.resend_code')}
-              </button>
-            )}
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="text-center">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {isLoading && (
-            <div className="text-center">
-              <div className="inline-flex items-center space-x-2 text-gray-600">
-                <div className="w-4 h-4 border-2 border-gray-300 border-t-forest-600 rounded-full animate-spin" />
-                <span className="text-sm">{t('common.loading')}</span>
-              </div>
-            </div>
           )}
         </div>
+
+        {error && (
+          <div className="text-center">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="text-center">
+            <div className="inline-flex items-center space-x-2 text-gray-600">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-forest-600 rounded-full animate-spin" />
+              <span className="text-sm">{t('common.loading')}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

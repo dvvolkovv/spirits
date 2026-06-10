@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { CreditCard, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, X, Coins, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
+import { CreditCard, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, X, Coins, Settings2, ChevronDown, ChevronUp, Send, Handshake } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import { EntityItem, EntityRich } from './EntityItem';
 import SettingsView from '../settings/SettingsView';
+import ReferralDashboard from './ReferralDashboard';
 import ProfileTasks from './ProfileTasks';
 import InviteFriendBlock from './InviteFriendBlock';
+import { tgBotApi, type IdentityStatus } from '../../services/tgBotApi';
 
 interface ProfileData {
   profile?: string[];
@@ -50,9 +52,11 @@ const ProfileView: React.FC = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [editedData, setEditedData] = useState<ProfileData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [tgIdentity, setTgIdentity] = useState<IdentityStatus | null>(null);
 
   // Используем данные с сервера (или отредактированные в режиме редактирования).
   // В edit-режиме — только plain (индексы должны совпадать с editedData.<field> для removeFromArray).
@@ -127,6 +131,10 @@ const ProfileView: React.FC = () => {
     loadProfileFromServer();
     loadAvatarFromServer();
   }, [user?.phone]);
+
+  useEffect(() => {
+    tgBotApi.identityStatus().then(setTgIdentity).catch(() => {});
+  }, []);
 
   // Загрузка аватара с сервера
   const loadAvatarFromServer = async (bypassCache = false) => {
@@ -471,6 +479,32 @@ const ProfileView: React.FC = () => {
         {/* Invite a friend (referral entry point) */}
         <InviteFriendBlock />
 
+        {/* Telegram identity — для привязки своего TG к Студии (создание ботов) */}
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Send className="w-5 h-5 text-blue-500" />
+            Telegram
+          </h2>
+            {tgIdentity?.bound ? (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                Привязан
+                {tgIdentity.tgUsername && <span className="text-blue-600 font-medium">@{tgIdentity.tgUsername}</span>}
+                {!tgIdentity.tgUsername && tgIdentity.tgFirstName && <span className="text-gray-600">{tgIdentity.tgFirstName}</span>}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500">Не привязан</span>
+                <button
+                  onClick={() => navigate('/telegram-bots/new')}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Привязать →
+                </button>
+              </div>
+          )}
+        </div>
+
         {/* Personal Information */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -572,6 +606,30 @@ const ProfileView: React.FC = () => {
             <div className="px-4 pb-4 border-t border-gray-100">
               <div className="pt-4">
                 <SettingsView />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Referral — collapsible аккордеон по тому же паттерну что и Settings. */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowReferral((v) => !v)}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Handshake className="w-5 h-5 mr-2 text-forest-600" />
+              {t('nav.referral')}
+            </h2>
+            {showReferral
+              ? <ChevronUp className="w-5 h-5 text-gray-400" />
+              : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {showReferral && (
+            <div className="px-4 pb-4 border-t border-gray-100">
+              <div className="pt-4">
+                <ReferralDashboard />
               </div>
             </div>
           )}

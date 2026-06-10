@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiClient } from '../../services/apiClient';
 import {
   MessageCircle,
   User,
@@ -12,14 +11,12 @@ import {
   Shield,
   Coins,
   Plus,
-  Handshake,
   ImageIcon,
   Film,
   HelpCircle,
   CreditCard,
   Phone,
-  Inbox,
-  Bot,
+  Sparkles,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -59,23 +56,6 @@ const Navigation: React.FC = () => {
   }, [user?.phone]);
 
 
-  const [pendingContactRequests, setPendingContactRequests] = useState(0);
-  useEffect(() => {
-    if (!user?.phone) return;
-    let cancelled = false;
-    const fetchPending = async () => {
-      try {
-        const r = await apiClient.get('/webhook/contact-requests');
-        if (!r.ok) return;
-        const rows: Array<{ status: string }> = await r.json();
-        if (!cancelled) setPendingContactRequests(rows.filter((x) => x.status === 'pending').length);
-      } catch { /* ignore */ }
-    };
-    fetchPending();
-    const id = setInterval(fetchPending, 10_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [user?.phone]);
-
   const baseNavItems = [
     {
       to: '/chat',
@@ -102,24 +82,28 @@ const Navigation: React.FC = () => {
       label: t('video.navTitle'),
       isLogo: false,
     },
-    {
-      to: '/profile',
-      icon: User,
-      label: t('profile.title'),
-      isLogo: false,
-    },
-    {
-      to: '/my-agents',
-      icon: Bot,
-      label: t('customAgents.nav'),
-      isLogo: false,
-    },
   ];
+
+  // Профиль отдельно — чтобы можно было вставить «Студию» (и другие админские
+  // пункты) до него.
+  const profileNavItem = {
+    to: '/profile',
+    icon: User,
+    label: t('profile.title'),
+    isLogo: false,
+  };
 
   const adminNavItem = {
     to: '/admin',
     icon: Shield,
     label: t('admin.title'),
+    isLogo: false,
+  };
+
+  const studioNavItem = {
+    to: '/studio',
+    icon: Sparkles,
+    label: t('studio.nav'),
     isLogo: false,
   };
 
@@ -130,12 +114,7 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
-  const referralNavItem = {
-    to: '/referral',
-    icon: Handshake,
-    label: t('nav.referral'),
-    isLogo: false,
-  };
+  // Реферальная программа переехала в аккордеон Профиля — пункт из nav убран.
 
   const cardNavItem = {
     to: '/card',
@@ -151,19 +130,13 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
-  const contactRequestsNavItem = {
-    to: '/contact-requests',
-    icon: Inbox,
-    label: 'Запросы',
-    isLogo: false,
-    badge: pendingContactRequests,
-  };
-
   const navItems = [
     ...baseNavItems,
-    contactRequestsNavItem,
-    referralNavItem,
+    // Студия доступна всем (создание агентов и Telegram-ботов).
+    studioNavItem,
+    // Админ-инструменты — только для админов.
     ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
+    profileNavItem,
     helpNavItem,
   ];
 

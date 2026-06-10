@@ -15,7 +15,6 @@ import NetworkingPage from './pages/NetworkingPage';
 import HelpPage from './pages/HelpPage';
 import CardPage from './pages/CardPage';
 import AdminPage from './pages/AdminPage';
-import ReferralPage from './pages/ReferralPage';
 import ImageGenPage from './pages/ImageGenPage';
 import VideoPage from './pages/VideoPage';
 import MyVideosPage from './pages/MyVideosPage';
@@ -28,7 +27,8 @@ import DozvonPage from './pages/DozvonPage';
 import ContactRequestsPage from './pages/ContactRequestsPage';
 import SettingsSocialPage from './pages/SettingsSocialPage';
 import { track } from './services/eventsClient';
-import MyAgentsPage from './pages/MyAgentsPage';
+import { TelegramBotsNewPage } from './pages/TelegramBotsPage';
+import StudioPage from './pages/StudioPage';
 import './i18n';
 
 const AppContent: React.FC = () => {
@@ -76,12 +76,16 @@ const AppContent: React.FC = () => {
             <Route path="/chats" element={<Navigate to="/search?tab=chats" replace />} />
             <Route path="/chats/:chatId" element={<ChatConversationPage />} />
             <Route path="/profile" element={<ProfileView />} />
-            <Route path="/my-agents" element={<MyAgentsPage />} />
+            <Route path="/studio" element={<StudioPage />} />
+            {/* Старые URL — редиректим на Студию для бэк-совместимости bookmark-ов. */}
+            <Route path="/my-agents" element={<Navigate to="/studio" replace />} />
+            <Route path="/telegram-bots" element={<Navigate to="/studio?tab=bots" replace />} />
+            <Route path="/telegram-bots/new" element={<TelegramBotsNewPage />} />
             <Route path="/search" element={<NetworkingPage />} />
             <Route path="/compatibility" element={<Navigate to="/search" replace />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/dozvon" element={<DozvonPage />} />
-            <Route path="/referral" element={<ReferralPage />} />
+            <Route path="/referral" element={<Navigate to="/profile" replace />} />
             <Route path="/image-gen" element={<ImageGenPage />} />
             <Route path="/video" element={<VideoPage />} />
             <Route path="/my-videos" element={<MyVideosPage />} />
