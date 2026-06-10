@@ -82,13 +82,16 @@ const Navigation: React.FC = () => {
       label: t('video.navTitle'),
       isLogo: false,
     },
-    {
-      to: '/profile',
-      icon: User,
-      label: t('profile.title'),
-      isLogo: false,
-    },
   ];
+
+  // Профиль отдельно — чтобы можно было вставить «Студию» (и другие админские
+  // пункты) до него.
+  const profileNavItem = {
+    to: '/profile',
+    icon: User,
+    label: t('profile.title'),
+    isLogo: false,
+  };
 
   const adminNavItem = {
     to: '/admin',
@@ -129,7 +132,9 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     ...baseNavItems,
-    ...(user?.isAdmin ? [adminNavItem, studioNavItem, dozvonNavItem, cardNavItem] : []),
+    // Студия и админ-инструменты идут ДО Профиля
+    ...(user?.isAdmin ? [studioNavItem, adminNavItem, dozvonNavItem, cardNavItem] : []),
+    profileNavItem,
     helpNavItem,
   ];
 
