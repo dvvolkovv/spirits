@@ -42,17 +42,11 @@ export const CustomAgentsListView: React.FC<Props> = ({ embedded = false }) => {
     }
   };
 
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-    embedded ? (
-      <div className="max-w-4xl mx-auto px-4 pt-4 pb-6">{children}</div>
-    ) : (
-      <div className="h-full overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 py-6">{children}</div>
-      </div>
-    );
-
-  return (
-    <Wrapper>
+  // ВАЖНО: контент строится прямо в JSX. Inline-Wrapper-FC создавался
+  // на каждом ре-рендере и вызывал ре-маунт детей (см. комментарий в
+  // TgBotsListView).
+  const content = (
+    <>
       {!embedded && (
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -123,6 +117,14 @@ export const CustomAgentsListView: React.FC<Props> = ({ embedded = false }) => {
           onSaved={() => { setEditing(null); reload(); }}
         />
       )}
-    </Wrapper>
+    </>
+  );
+
+  return embedded ? (
+    <div className="max-w-4xl mx-auto px-4 pt-4 pb-6">{content}</div>
+  ) : (
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-4xl mx-auto px-4 py-6">{content}</div>
+    </div>
   );
 };

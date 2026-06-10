@@ -40,17 +40,13 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
     } catch (e: any) { toast.error(e?.message ?? 'Ошибка'); }
   };
 
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-    embedded ? (
-      <div className="max-w-4xl mx-auto px-4 pt-4 pb-6">{children}</div>
-    ) : (
-      <div className="h-full overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 py-6">{children}</div>
-      </div>
-    );
-
-  return (
-    <Wrapper>
+  // ВАЖНО: контентная часть и обёртка строятся напрямую через JSX, БЕЗ
+  // inline-компонента Wrapper. Inline-FC создавался заново на каждом ре-рендере
+  // (а они идут из-за token-poll в AuthContext раз в 5 сек) — React видел
+  // другой тип и ре-маунтил всё содержимое, включая модалку «История», которая
+  // на каждом ре-маунте заново фетчила сообщения и моргала.
+  const content = (
+    <>
       {!embedded && (
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -136,6 +132,14 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
           onClose={() => setViewingMessages(null)}
         />
       )}
-    </Wrapper>
+    </>
+  );
+
+  return embedded ? (
+    <div className="max-w-4xl mx-auto px-4 pt-4 pb-6">{content}</div>
+  ) : (
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-4xl mx-auto px-4 py-6">{content}</div>
+    </div>
   );
 };
