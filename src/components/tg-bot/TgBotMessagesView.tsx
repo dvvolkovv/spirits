@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { tgBotApi, type TgBotConfig } from '../../services/tgBotApi';
@@ -22,6 +22,7 @@ interface MessageRow {
 export const TgBotMessagesView: React.FC<Props> = ({ config, onClose }) => {
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     tgBotApi.messages(config.id)
@@ -29,17 +30,26 @@ export const TgBotMessagesView: React.FC<Props> = ({ config, onClose }) => {
       .catch((e) => { toast.error(e?.message ?? 'Не удалось загрузить'); setLoading(false); });
   }, [config.id]);
 
+  // После того как сообщения отрендерились — сразу скроллим к низу (на свежак).
+  // dvh + flex-col гарантирует что overflow-y работает на iOS Safari (vh ломался
+  // из-за URL-бара: 90vh > видимая высота → внутренний скролл не активировался).
+  useEffect(() => {
+    if (!loading && messages.length > 0 && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [loading, messages.length]);
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-t-2xl md:rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between z-10">
+    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 md:p-4">
+      <div className="bg-white rounded-t-2xl md:rounded-2xl max-w-2xl w-full h-[90dvh] md:h-auto md:max-h-[90dvh] flex flex-col overflow-hidden">
+        <div className="bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">История</h2>
             <p className="text-xs text-gray-500">{config.displayName} · {config.tgChatTitle ?? '—'}</p>
           </div>
           <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-700"><X size={20} /></button>
         </div>
-        <div className="p-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5">
           {loading ? (
             <div className="text-center text-gray-500 py-8">Загрузка...</div>
           ) : messages.length === 0 ? (
