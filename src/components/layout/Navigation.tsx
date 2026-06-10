@@ -132,8 +132,10 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     ...baseNavItems,
-    // Студия и админ-инструменты идут ДО Профиля
-    ...(user?.isAdmin ? [studioNavItem, adminNavItem, dozvonNavItem, cardNavItem] : []),
+    // Студия доступна всем (создание агентов и Telegram-ботов).
+    studioNavItem,
+    // Админ-инструменты — только для админов.
+    ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
     profileNavItem,
     helpNavItem,
   ];

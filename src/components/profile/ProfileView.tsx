@@ -479,13 +479,12 @@ const ProfileView: React.FC = () => {
         {/* Invite a friend (referral entry point) */}
         <InviteFriendBlock />
 
-        {/* Telegram identity — admin only */}
-        {user?.isAdmin && (
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <Send className="w-5 h-5 text-blue-500" />
-              Telegram
-            </h2>
+        {/* Telegram identity — для привязки своего TG к Студии (создание ботов) */}
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Send className="w-5 h-5 text-blue-500" />
+            Telegram
+          </h2>
             {tgIdentity?.bound ? (
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
@@ -503,9 +502,8 @@ const ProfileView: React.FC = () => {
                   Привязать →
                 </button>
               </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Personal Information */}
         <div className="bg-white rounded-lg shadow-sm p-6">
