@@ -46,7 +46,7 @@ export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) =>
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-50 md:p-4 pb-[env(safe-area-inset-bottom)] md:pb-4">
+    <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-[60] md:p-4 pb-[env(safe-area-inset-bottom)] md:pb-4">
       <div className="bg-white rounded-t-2xl md:rounded-2xl max-w-2xl w-full h-[85dvh] md:h-auto md:max-h-[90dvh] flex flex-col overflow-hidden">
         <div className="bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between shrink-0">
           <h2 className="text-lg font-semibold text-gray-900">Редактировать бота</h2>
