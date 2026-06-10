@@ -49,7 +49,7 @@ export const TgBotMessagesView: React.FC<Props> = ({ config, onClose }) => {
               {messages.map(m => (
                 <div
                   key={m.id}
-                  className={`p-3 rounded-lg text-sm ${m.role === 'assistant' ? 'bg-blue-50 ml-6' : 'bg-gray-50 mr-6'}`}
+                  className={`p-3 rounded-xl text-sm ${m.role === 'assistant' ? 'bg-forest-50 ml-6' : 'bg-gray-50 mr-6'}`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-xs font-semibold text-gray-700">

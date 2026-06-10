@@ -108,7 +108,7 @@ export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) =>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50"
+              className="flex-1 py-3 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50"
             >
               {saving ? 'Сохраняю...' : 'Сохранить'}
             </button>

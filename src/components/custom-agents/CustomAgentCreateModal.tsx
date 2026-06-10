@@ -84,7 +84,7 @@ export const CustomAgentCreateModal: React.FC<Props> = ({ onClose, onCreated }) 
               <button
                 onClick={handleGenerate}
                 disabled={generating || description.trim().length < 3}
-                className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generating ? (
                   <><Loader2 size={16} className="animate-spin" /> Генерирую...</>
@@ -130,7 +130,7 @@ export const CustomAgentCreateModal: React.FC<Props> = ({ onClose, onCreated }) 
                 <button
                   onClick={handleSave}
                   disabled={step === 'saving'}
-                  className="flex-1 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50"
                 >
                   {step === 'saving' ? 'Сохраняю...' : 'Сохранить'}
                 </button>
