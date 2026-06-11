@@ -7,12 +7,13 @@ import MonitoringFunnelView from './monitoring/MonitoringFunnelView';
 import MonitoringAttributionView from './monitoring/MonitoringAttributionView';
 import { ProductSummaryView } from './monitoring/MonitoringSummaryView';
 import AdminBacklogView from './AdminBacklogView';
+import AdsView from './AdsView';
 import VpmView from './VpmView';
 import VmmView from './VmmView';
 
-type Section = 'overview' | 'funnel' | 'metrics' | 'backlog' | 'vpm' | 'vmm';
+type Section = 'overview' | 'funnel' | 'metrics' | 'backlog' | 'ads' | 'vpm' | 'vmm';
 
-const SUB_SECTIONS: Section[] = ['overview', 'funnel', 'metrics', 'backlog', 'vpm', 'vmm'];
+const SUB_SECTIONS: Section[] = ['overview', 'funnel', 'metrics', 'backlog', 'ads', 'vpm', 'vmm'];
 
 const AdminProductManagementView: React.FC = () => {
   const { t } = useTranslation();
@@ -42,6 +43,7 @@ const AdminProductManagementView: React.FC = () => {
     { id: 'funnel',   label: t('admin.product.tabs.funnel'),   ready: true  },
     { id: 'metrics',  label: t('admin.product.tabs.metrics'),  ready: true  },
     { id: 'backlog',  label: t('admin.product.tabs.backlog'),  ready: true  },
+    { id: 'ads',      label: t('admin.product.tabs.ads'),      ready: true  },
     { id: 'vpm',      label: t('admin.product.tabs.vpm'),      ready: true  },
     { id: 'vmm',      label: t('admin.product.tabs.vmm'),      ready: true  },
   ];
@@ -91,6 +93,11 @@ const AdminProductManagementView: React.FC = () => {
       {section === 'backlog' && (
         <div className="flex-1 overflow-hidden">
           <AdminBacklogView />
+        </div>
+      )}
+      {section === 'ads' && (
+        <div className="flex-1 overflow-hidden">
+          <AdsView />
         </div>
       )}
       {section === 'vpm' && (
