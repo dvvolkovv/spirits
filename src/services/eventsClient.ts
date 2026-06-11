@@ -77,11 +77,17 @@ export const getCampaign = (): string | null => {
 export const track = (name: string, props: Record<string, unknown> = {}): void => {
   if (!name) return;
   const backend = import.meta.env.VITE_BACKEND_URL || '';
+  // Захватываем И source, И campaign при ЛЮБОМ событии (особенно первом
+  // landing_view): иначе utm_campaign/utm_content (A/B cr_A/cr_B) терялись —
+  // getCampaign() звался только при логине, когда URL уже без utm. Теперь оба
+  // персистятся в localStorage сразу при заходе.
+  const source = getSource();
+  getCampaign();
   // useBeacon when page is unloading; fetch otherwise.
   const payload = JSON.stringify({
     name,
     sessionId: getSessionId(),
-    source: getSource(),
+    source,
     props,
   });
   try {
