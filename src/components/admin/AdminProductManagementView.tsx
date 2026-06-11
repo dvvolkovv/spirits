@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import MonitoringProductView from './monitoring/MonitoringProductView';
@@ -11,9 +12,30 @@ import VmmView from './VmmView';
 
 type Section = 'overview' | 'funnel' | 'metrics' | 'backlog' | 'vpm' | 'vmm';
 
+const SUB_SECTIONS: Section[] = ['overview', 'funnel', 'metrics', 'backlog', 'vpm', 'vmm'];
+
 const AdminProductManagementView: React.FC = () => {
   const { t } = useTranslation();
-  const [section, setSection] = useState<Section>('overview');
+  const [params, setSearchParams] = useSearchParams();
+  // Под-раздел тоже в URL (?sub=funnel) — переживает F5 и back/forward,
+  // как и верхний ?tab (задача 748eb4b0).
+  const rawSub = params.get('sub') || '';
+  const initialSection: Section = (SUB_SECTIONS as string[]).includes(rawSub) ? (rawSub as Section) : 'overview';
+  const [section, setSection] = useState<Section>(initialSection);
+
+  const selectSection = (id: Section) => {
+    setSection(id);
+    const next = new URLSearchParams(params);
+    next.set('sub', id);
+    setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    if ((SUB_SECTIONS as string[]).includes(rawSub) && rawSub !== section) {
+      setSection(rawSub as Section);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawSub]);
 
   const SECTIONS: Array<{ id: Section; label: string; ready: boolean }> = [
     { id: 'overview', label: t('admin.product.tabs.overview'), ready: true  },
@@ -31,7 +53,7 @@ const AdminProductManagementView: React.FC = () => {
           {SECTIONS.map((s) => (
             <button
               key={s.id}
-              onClick={() => setSection(s.id)}
+              onClick={() => selectSection(s.id)}
               className={clsx(
                 'flex-shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5',
                 section === s.id

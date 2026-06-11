@@ -27,13 +27,32 @@ const TAB_ALIASES: Record<string, AdminTab> = {
 const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t } = useTranslation();
-  const [params] = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
   const KNOWN_TABS: AdminTab[] = ['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals', 'retention', 'activation', 'monitoring', 'product'];
   const rawTab = params.get('tab') || '';
   const aliasResolved = TAB_ALIASES[rawTab] ?? (rawTab as AdminTab);
   const initialTab: AdminTab = KNOWN_TABS.includes(aliasResolved) ? aliasResolved : 'support';
   const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Переключение раздела пишет ?tab=<id> в URL → раздел переживает F5 и
+  // ложится в историю браузера (back/forward). replace, чтобы каждый клик не
+  // плодил запись в истории (задача 748eb4b0).
+  const selectTab = (id: AdminTab) => {
+    setActiveTab(id);
+    const next = new URLSearchParams(params);
+    next.set('tab', id);
+    setSearchParams(next, { replace: true });
+  };
+
+  // Синхронизация в обратную сторону: навигация браузера (back/forward) меняет
+  // ?tab — подхватываем активный раздел из URL.
+  useEffect(() => {
+    if (KNOWN_TABS.includes(aliasResolved) && aliasResolved !== activeTab) {
+      setActiveTab(aliasResolved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawTab]);
 
   useEffect(() => {
     const container = tabsContainerRef.current;
@@ -83,7 +102,7 @@ const AdminPage: React.FC = () => {
             <button
               key={tab.id}
               data-testid={`admin-tab-${tab.id}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => selectTab(tab.id)}
               className={clsx(
                 'flex-shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium border-b-2 transition-colors',
                 activeTab === tab.id
