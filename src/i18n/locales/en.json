@@ -404,6 +404,7 @@
         "proposed": "Proposed",
         "approved": "Approved",
         "in_progress": "In progress",
+        "waiting": "Waiting",
         "done": "Done",
         "rejected": "Rejected"
       },
@@ -411,6 +412,7 @@
         "proposed": "Proposed",
         "approved": "Approved",
         "in_progress": "In progress",
+        "waiting": "Waiting",
         "done": "Done",
         "rejected": "Rejected"
       },

@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { Plus, ChevronDown, ChevronRight, Loader, MessageSquare, Trash2, Save, X, Pencil, RefreshCw, Check } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
-type Status = 'proposed' | 'approved' | 'in_progress' | 'done' | 'rejected';
+type Status = 'proposed' | 'approved' | 'in_progress' | 'waiting' | 'done' | 'rejected';
 type Complexity = 'low' | 'medium' | 'high';
 
 interface BacklogItem {
@@ -35,6 +35,7 @@ const STATUS_PILL: Record<Status, string> = {
   proposed:    'bg-gray-100 text-gray-700 border-gray-300',
   approved:    'bg-blue-50 text-blue-700 border-blue-300',
   in_progress: 'bg-amber-50 text-amber-800 border-amber-300',
+  waiting:     'bg-violet-50 text-violet-700 border-violet-300',
   done:        'bg-emerald-50 text-emerald-700 border-emerald-300',
   rejected:    'bg-rose-50 text-rose-700 border-rose-300',
 };
@@ -46,7 +47,7 @@ const COMPLEXITY_PILL: Record<Complexity, string> = {
 };
 
 const STATUS_FILTERS: Array<{ id: 'all' | Status; }> = [
-  { id: 'all' }, { id: 'proposed' }, { id: 'approved' }, { id: 'in_progress' }, { id: 'done' }, { id: 'rejected' },
+  { id: 'all' }, { id: 'proposed' }, { id: 'approved' }, { id: 'in_progress' }, { id: 'waiting' }, { id: 'done' }, { id: 'rejected' },
 ];
 
 const formatDate = (iso: string) => {
@@ -87,7 +88,7 @@ const AdminBacklogView: React.FC = () => {
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: items.length };
-    for (const s of ['proposed', 'approved', 'in_progress', 'done', 'rejected'] as Status[]) {
+    for (const s of ['proposed', 'approved', 'in_progress', 'waiting', 'done', 'rejected'] as Status[]) {
       c[s] = items.filter((i) => i.status === s).length;
     }
     return c;
@@ -282,7 +283,7 @@ const AdminBacklogView: React.FC = () => {
                         onChange={(e) => changeStatus(item.id, e.target.value as Status)}
                         className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
                       >
-                        {(['proposed', 'approved', 'in_progress', 'done', 'rejected'] as Status[]).map((s) => (
+                        {(['proposed', 'approved', 'in_progress', 'waiting', 'done', 'rejected'] as Status[]).map((s) => (
                           <option key={s} value={s}>{t(`admin.backlog.status.${s}`)}</option>
                         ))}
                       </select>
@@ -405,7 +406,7 @@ const ItemEditor: React.FC<{
           onChange={(e) => setStatus(e.target.value as Status)}
           className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"
         >
-          {(['proposed', 'approved', 'in_progress', 'done', 'rejected'] as Status[]).map((s) => (
+          {(['proposed', 'approved', 'in_progress', 'waiting', 'done', 'rejected'] as Status[]).map((s) => (
             <option key={s} value={s}>{t(`admin.backlog.status.${s}`)}</option>
           ))}
         </select>

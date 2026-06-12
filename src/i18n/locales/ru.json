@@ -403,6 +403,7 @@
         "proposed": "Предложены",
         "approved": "Одобрены",
         "in_progress": "В работе",
+        "waiting": "Ожидают",
         "done": "Сделано",
         "rejected": "Отклонены"
       },
@@ -410,6 +411,7 @@
         "proposed": "Предложена",
         "approved": "Одобрена",
         "in_progress": "В работе",
+        "waiting": "Ожидание",
         "done": "Сделано",
         "rejected": "Отклонена"
       },
