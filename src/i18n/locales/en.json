@@ -42,7 +42,9 @@
   "offer": {
     "text": "You've had a real conversation — keep going with full access. Your first pack comes with 50% more tokens 🎁",
     "cta": "Choose a pack",
-    "badge": "🎁 +50% on your first pack"
+    "badge": "🎁 +50% on your first pack",
+    "nudge_text": "Enjoying the conversation? Unlock full access — pick a token pack and keep going without limits.",
+    "nudge_cta": "Choose a pack"
   },
   "nav": {
     "networking": "Networking",

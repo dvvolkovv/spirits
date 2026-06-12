@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { X, Gift } from 'lucide-react';
+import { X, Gift, Sparkles } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { track } from '../../services/eventsClient';
 
 const SESSION_KEY = 'offer_banner_shown';
+
+type Variant = 'offer' | 'nudge';
 
 /**
  * Неблокирующий баннер оффера вовлечённому неплатящему (+50% к первой покупке).
@@ -16,6 +18,7 @@ const OfferBanner: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
+  const [variant, setVariant] = useState<Variant>('offer');
 
   useEffect(() => {
     let alive = true;
@@ -26,10 +29,13 @@ const OfferBanner: React.FC = () => {
         const res = await apiClient.get('/webhook/offer/status');
         if (!res.ok || !alive) return;
         const data = await res.json();
-        if (data?.eligible) {
+        // Приоритет у +50%-оффера; иначе лёгкий нудж после первого чата (c732734f).
+        const v: Variant | null = data?.eligible ? 'offer' : (data?.first_chat_nudge ? 'nudge' : null);
+        if (v) {
           sessionStorage.setItem(SESSION_KEY, '1');
+          setVariant(v);
           setVisible(true);
-          track('offer_shown', { message_count: data.message_count });
+          track('offer_shown', { message_count: data.message_count, kind: v });
         }
       } catch {
         // fail-closed — баннер просто не появляется
@@ -41,7 +47,7 @@ const OfferBanner: React.FC = () => {
   if (!visible) return null;
 
   const onCta = () => {
-    track('offer_clicked', {});
+    track('offer_clicked', { kind: variant });
     navigate('/chat?view=tokens&offer=1');
   };
 
@@ -55,14 +61,16 @@ const OfferBanner: React.FC = () => {
       data-testid="offer-banner"
       className="mx-3 mb-2 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 shadow-sm"
     >
-      <Gift className="w-5 h-5 text-amber-600 flex-shrink-0" />
-      <p className="text-sm text-amber-900 flex-1 leading-snug">{t('offer.text')}</p>
+      {variant === 'offer'
+        ? <Gift className="w-5 h-5 text-amber-600 flex-shrink-0" />
+        : <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0" />}
+      <p className="text-sm text-amber-900 flex-1 leading-snug">{variant === 'offer' ? t('offer.text') : t('offer.nudge_text')}</p>
       <button
         onClick={onCta}
         data-testid="offer-cta"
         className="text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg px-3 py-1.5 whitespace-nowrap transition-colors"
       >
-        {t('offer.cta')}
+        {variant === 'offer' ? t('offer.cta') : t('offer.nudge_cta')}
       </button>
       <button
         onClick={onClose}
