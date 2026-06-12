@@ -11,11 +11,15 @@ import { apiClient } from '../../services/apiClient';
 // эффективности. Данные тянутся в БД по cron (каждые 3ч), здесь же есть
 // кнопка ручного обновления. Источник правды — vk_ads_stats на бэке.
 
+type AdState = 'delivering' | 'active_idle' | 'moderation' | 'paused' | 'finished' | 'rejected' | 'idle' | 'unknown';
+
 interface Creative {
   content: string;
   bannerId: number | null;
-  dateFrom: string;
-  dateTo: string;
+  state: AdState;
+  status: string | null;
+  moderationStatus: string | null;
+  delivery: string | null;
   shows: number;
   clicks: number;
   goals: number;
@@ -29,9 +33,15 @@ interface Creative {
 
 interface Campaign {
   campaign: string;
+  planId: number | null;
+  planName: string | null;
   channel: string;
-  dateFrom: string;
-  dateTo: string;
+  state: AdState;
+  status: string | null;
+  delivery: string | null;
+  dateFrom: string | null;
+  dateTo: string | null;
+  budgetDay: number | null;
   shows: number;
   clicks: number;
   goals: number;
@@ -48,10 +58,30 @@ interface Dashboard {
   configured: boolean;
   lastFetchedAt: string | null;
   windowDays: number;
+  liveMeta?: boolean;
   campaigns: Campaign[];
   totals: { shows: number; clicks: number; spent: number; registrations: number; payers: number };
   error?: string;
 }
+
+// Цвет/подпись статуса берём по state из бэка (реальный статус VK, не «есть ли стата»).
+const STATE_STYLE: Record<AdState, string> = {
+  delivering:  'bg-emerald-100 text-emerald-800 border-emerald-200',
+  active_idle: 'bg-sky-100 text-sky-800 border-sky-200',
+  moderation:  'bg-amber-100 text-amber-800 border-amber-200',
+  paused:      'bg-gray-100 text-gray-600 border-gray-200',
+  finished:    'bg-slate-100 text-slate-500 border-slate-200',
+  rejected:    'bg-rose-100 text-rose-700 border-rose-200',
+  idle:        'bg-gray-100 text-gray-500 border-gray-200',
+  unknown:     'bg-gray-100 text-gray-500 border-gray-200',
+};
+
+const StatusBadge: React.FC<{ state: AdState; label: string }> = ({ state, label }) => (
+  <span className={clsx('inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border', STATE_STYLE[state] || STATE_STYLE.unknown)}>
+    {state === 'delivering' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+    {label}
+  </span>
+);
 
 const fmtDate = (d: string | null): string => {
   if (!d) return '—';
@@ -190,17 +220,26 @@ const AdsView: React.FC = () => {
 
         {/* Кампании */}
         {data?.campaigns?.map((c) => (
-          <div key={c.campaign} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div key={c.planId ?? c.campaign} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2 flex-wrap mb-2">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
                   {c.channel}
                 </span>
-                <h3 className="font-semibold text-gray-900">{c.campaign}</h3>
-                <span className="flex items-center gap-1 text-xs text-gray-500">
+                <h3 className="font-semibold text-gray-900">{c.planName || c.campaign}</h3>
+                <StatusBadge state={c.state} label={t(`admin.product.ads.state.${c.state}`)} />
+              </div>
+              <div className="flex items-center gap-3 flex-wrap mb-2 text-xs text-gray-500">
+                {c.planName && c.campaign && c.campaign !== c.planName && (
+                  <span className="font-mono">utm: {c.campaign}</span>
+                )}
+                <span className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
                   {t('admin.product.ads.period')}: {fmtDate(c.dateFrom)} – {fmtDate(c.dateTo)}
                 </span>
+                {c.budgetDay != null && (
+                  <span>{t('admin.product.ads.budget_day')}: {fmtRub(c.budgetDay)}</span>
+                )}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
                 <Metric label={t('admin.product.ads.spent')} value={fmtRub(c.spent)} accent />
@@ -219,6 +258,7 @@ const AdsView: React.FC = () => {
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-100">
                     <th className="px-4 py-2 font-medium">{t('admin.product.ads.creative')}</th>
+                    <th className="px-3 py-2 font-medium">{t('admin.product.ads.status')}</th>
                     <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.shows')}</th>
                     <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.clicks')}</th>
                     <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.ctr')}</th>
@@ -233,6 +273,7 @@ const AdsView: React.FC = () => {
                   {c.creatives.map((cr) => (
                     <tr key={cr.content} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-2 font-medium text-gray-900">{cr.content}</td>
+                      <td className="px-3 py-2"><StatusBadge state={cr.state} label={t(`admin.product.ads.state.${cr.state}`)} /></td>
                       <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.shows)}</td>
                       <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.clicks)}</td>
                       <td className="px-3 py-2 text-right text-gray-700">{cr.ctr != null ? `${cr.ctr}%` : '—'}</td>

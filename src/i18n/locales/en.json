@@ -284,6 +284,18 @@
         "goals": "Goals",
         "creatives": "Ads",
         "creative": "Ad",
+        "status": "Status",
+        "budget_day": "Budget/day",
+        "state": {
+          "delivering": "Delivering",
+          "active_idle": "Active, no impressions",
+          "moderation": "On moderation",
+          "paused": "Paused",
+          "finished": "Finished",
+          "rejected": "Rejected",
+          "idle": "Not showing",
+          "unknown": "—"
+        },
         "totals": "All campaigns total",
         "attribution_warn": "Registrations/payers are attributed via utm tags. Some ad clicks may have lost their tag and not been linked — actual attribution may be higher than shown."
       },
