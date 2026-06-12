@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Users, TrendingUp, CheckCircle, Clock, Loader, AlertCircle } from 'lucide-react';
+import { Copy, Users, TrendingUp, CheckCircle, Clock, Loader, AlertCircle, Coins } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { ReferralStats } from '../../types/auth';
+
+// Курс/порог вывода комиссий токенами (совпадает с бэком).
+const PAYOUT_RATE = 600;
+const PAYOUT_MIN_RUB = 100;
 
 const ReferralDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -11,6 +15,10 @@ const ReferralDashboard: React.FC = () => {
   const [isNotLeader, setIsNotLeader] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showPayout, setShowPayout] = useState(false);
+  const [payoutBusy, setPayoutBusy] = useState(false);
+  const [payoutDone, setPayoutDone] = useState<{ rub: number; tokens: number } | null>(null);
+  const [payoutError, setPayoutError] = useState<string | null>(null);
 
   useEffect(() => {
     loadStats();
@@ -37,6 +45,23 @@ const ReferralDashboard: React.FC = () => {
       setError(err instanceof Error ? err.message : t('referral.load_error'));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const doPayout = async () => {
+    setPayoutBusy(true);
+    setPayoutError(null);
+    try {
+      const r = await apiClient.post('/webhook/referral/payout', { method: 'tokens' });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error || t('referral.payout_error'));
+      setPayoutDone({ rub: data.rub, tokens: data.tokens });
+      setShowPayout(false);
+      await loadStats();
+    } catch (e) {
+      setPayoutError(e instanceof Error ? e.message : t('referral.payout_error'));
+    } finally {
+      setPayoutBusy(false);
     }
   };
 
@@ -133,6 +158,43 @@ const ReferralDashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Вывод комиссий токенами */}
+        {(() => {
+          const withdrawable = Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0));
+          const withdrawable2 = Math.round(withdrawable * 100) / 100;
+          if (withdrawable2 <= 0 && !payoutDone) return null;
+          return (
+            <div className="rounded-lg border border-forest-200 bg-forest-50 p-4">
+              {payoutDone ? (
+                <div className="flex items-center gap-2 text-sm text-forest-800">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{t('referral.payout_success', { rub: formatRub(payoutDone.rub), tokens: payoutDone.tokens.toLocaleString(i18n.language) })}</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-xs text-forest-700 mb-0.5">{t('referral.payout_available')}</p>
+                    <p className="text-lg font-bold text-forest-800">
+                      {formatRub(withdrawable2)} <span className="text-sm font-normal text-forest-600">→ {Math.round(withdrawable2 * PAYOUT_RATE).toLocaleString(i18n.language)} {t('referral.payout_tokens_word')}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setPayoutError(null); setShowPayout(true); }}
+                    disabled={withdrawable2 < PAYOUT_MIN_RUB}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-forest-600 text-white text-sm font-medium rounded-lg hover:bg-forest-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title={withdrawable2 < PAYOUT_MIN_RUB ? t('referral.payout_min_hint', { min: PAYOUT_MIN_RUB }) : undefined}
+                  >
+                    <Coins className="w-4 h-4" /> {t('referral.payout_button')}
+                  </button>
+                </div>
+              )}
+              {withdrawable2 < PAYOUT_MIN_RUB && !payoutDone && (
+                <p className="text-xs text-forest-600 mt-1.5">{t('referral.payout_min_hint', { min: PAYOUT_MIN_RUB })}</p>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Breakdown */}
         {(stats.commission_breakdown.direct_commission_rub > 0 || stats.commission_breakdown.upstream_commission_rub > 0) && (
           <div className="flex gap-4 text-sm">
@@ -200,6 +262,38 @@ const ReferralDashboard: React.FC = () => {
           </p>
         )}
       </div>
+
+      {showPayout && stats && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !payoutBusy && setShowPayout(false)}>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <Coins className="w-5 h-5 text-forest-600" /> {t('referral.payout_confirm_title')}
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {t('referral.payout_confirm_body', {
+                rub: formatRub(Math.round(Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0)) * 100) / 100),
+                tokens: Math.round(Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0)) * PAYOUT_RATE).toLocaleString(i18n.language),
+              })}
+            </p>
+            {payoutError && (
+              <div className="text-sm text-rose-600 mb-3 flex items-start gap-1.5">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />{payoutError}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={() => setShowPayout(false)} disabled={payoutBusy}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-600 text-sm rounded-lg hover:bg-gray-50 disabled:opacity-60">
+                {t('referral.payout_cancel')}
+              </button>
+              <button onClick={doPayout} disabled={payoutBusy}
+                className="flex-1 px-4 py-2 bg-forest-600 text-white text-sm font-medium rounded-lg hover:bg-forest-700 disabled:opacity-60 flex items-center justify-center gap-1.5">
+                {payoutBusy ? <Loader className="w-4 h-4 animate-spin" /> : <Coins className="w-4 h-4" />}
+                {t('referral.payout_confirm_button')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
