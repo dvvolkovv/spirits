@@ -4,6 +4,7 @@ import { Sparkles, Settings2, ChevronDown, ChevronUp, Loader, AlertCircle, Info,
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
+import VideoExamples from './VideoExamples';
 
 interface Props {
   onCreated: (jobId: string) => void;
@@ -275,6 +276,17 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
 
   return (
     <div className="p-4 space-y-3 border-b border-gray-100">
+      {/* Готовые видео-примеры (вдохновить + подставить промпт) */}
+      <VideoExamples
+        onUse={(ex) => setS((x) => ({
+          ...x,
+          prompt: ex.prompt,
+          engine: ex.engine,
+          mode: 'text2video',
+          ...(ex.engine === 'veo' ? { veoAspectRatio: ex.aspect } : {}),
+        }))}
+      />
+
       {/* Prompt — top and prominent */}
       {showPrompt && (
         <textarea
