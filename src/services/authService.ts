@@ -1,5 +1,6 @@
 import { tokenManager } from '../utils/tokenManager';
 import { apiClient } from './apiClient';
+import { vkReachGoal } from './vkPixel';
 import { AuthResponse, RefreshResponse, SMSResponse } from '../types/auth';
 import type { Identity } from '../types/auth';
 
@@ -42,6 +43,9 @@ class AuthService {
 
           if (data['access-token'] && data['refresh-token']) {
             tokenManager.saveTokens(data['access-token'], data['refresh-token']);
+            // Новый пользователь → фиксируем регистрацию в VK-пикселе (цель для
+            // оптимизации рекламных кампаний на реальные регистрации).
+            if (data['is-new-user']) vkReachGoal('registration');
             return {
               success: true,
               tokens: {
