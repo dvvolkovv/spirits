@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import {
   Megaphone, RefreshCw, Loader, AlertCircle, Info, Calendar,
+  ChevronDown, ChevronRight, ExternalLink, Film,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
@@ -29,6 +30,10 @@ interface Creative {
   registrations: number;
   payers: number;
   cpr: number | null;
+  landingUrl?: string | null;
+  texts?: { title: string | null; text90: string | null; textLong: string | null };
+  images?: { slot: string; url: string }[];
+  video?: string | null;
 }
 
 interface Campaign {
@@ -115,6 +120,7 @@ const AdsView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openBanner, setOpenBanner] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -270,9 +276,23 @@ const AdsView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {c.creatives.map((cr) => (
-                    <tr key={cr.content} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-2 font-medium text-gray-900">{cr.content}</td>
+                  {c.creatives.map((cr) => {
+                    const hasContent = !!(cr.images?.length || cr.video || cr.texts?.title || cr.texts?.text90 || cr.landingUrl);
+                    const open = cr.bannerId != null && openBanner === cr.bannerId;
+                    return (
+                    <React.Fragment key={cr.bannerId ?? cr.content}>
+                    <tr className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="px-4 py-2 font-medium text-gray-900">
+                        {hasContent ? (
+                          <button
+                            onClick={() => setOpenBanner(open ? null : (cr.bannerId ?? null))}
+                            className="inline-flex items-center gap-1 hover:text-forest-700"
+                          >
+                            {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                            {cr.content}
+                          </button>
+                        ) : cr.content}
+                      </td>
                       <td className="px-3 py-2"><StatusBadge state={cr.state} label={t(`admin.product.ads.state.${cr.state}`)} /></td>
                       <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.shows)}</td>
                       <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.clicks)}</td>
@@ -283,7 +303,45 @@ const AdsView: React.FC = () => {
                       <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.payers)}</td>
                       <td className="px-3 py-2 text-right text-gray-700">{fmtRub(cr.cpr)}</td>
                     </tr>
-                  ))}
+                    {open && (
+                      <tr className="border-b border-gray-100 bg-gray-50/60">
+                        <td colSpan={10} className="px-4 py-3">
+                          <div className="flex flex-col lg:flex-row gap-4">
+                            {/* Картинки + видео */}
+                            <div className="flex flex-wrap gap-2">
+                              {cr.images?.map((im) => (
+                                <a key={im.slot} href={im.url} target="_blank" rel="noopener noreferrer"
+                                   title={im.slot} className="block">
+                                  <img src={im.url} alt={im.slot}
+                                       className="h-24 w-auto rounded border border-gray-200 object-cover hover:ring-2 hover:ring-forest-400" />
+                                </a>
+                              ))}
+                              {cr.video && (
+                                <a href={cr.video} target="_blank" rel="noopener noreferrer"
+                                   className="h-24 px-3 flex items-center gap-1.5 rounded border border-gray-200 bg-white text-sm text-forest-700 hover:ring-2 hover:ring-forest-400">
+                                  <Film className="w-4 h-4" /> {t('admin.product.ads.video')}
+                                </a>
+                              )}
+                            </div>
+                            {/* Тексты + ссылка */}
+                            <div className="flex-1 min-w-0 space-y-1.5 text-sm">
+                              {cr.texts?.title && <div className="font-semibold text-gray-900">{cr.texts.title}</div>}
+                              {cr.texts?.text90 && <div className="text-gray-700">{cr.texts.text90}</div>}
+                              {cr.texts?.textLong && <div className="text-gray-500 text-xs">{cr.texts.textLong}</div>}
+                              {cr.landingUrl && (
+                                <a href={cr.landingUrl} target="_blank" rel="noopener noreferrer"
+                                   className="inline-flex items-center gap-1 text-xs text-forest-700 hover:underline break-all">
+                                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" /> {cr.landingUrl}
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

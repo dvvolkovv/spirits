@@ -284,6 +284,7 @@
         "goals": "Goals",
         "creatives": "Ads",
         "creative": "Ad",
+        "video": "Video",
         "status": "Status",
         "budget_day": "Budget/day",
         "state": {
