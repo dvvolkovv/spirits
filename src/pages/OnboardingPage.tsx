@@ -17,6 +17,16 @@ const OnboardingPage: React.FC = () => {
     }
   }, [searchParams]);
 
+  // Message-match: пришёл с рекламы под персону (?seg=biz/creator) — показываем
+  // подзаголовок под ту же персону, что в объявлении/лендинге, чтобы обещание не
+  // рвалось на экране регистрации (выше конверсия в регистрацию).
+  const seg = searchParams.get('seg');
+  const segSubtitle = seg === 'biz'
+    ? t('onboarding.seg_biz')
+    : seg === 'creator'
+      ? t('onboarding.seg_creator')
+      : t('onboarding.subtitle');
+
   return (
     <div
       data-testid="onboarding-root"
@@ -28,7 +38,8 @@ const OnboardingPage: React.FC = () => {
             <img src="/logo-Photoroom.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('onboarding.welcome')}</h1>
-          <p className="text-gray-600">{t('onboarding.subtitle')}</p>
+          <p className="text-gray-600">{segSubtitle}</p>
+          <p className="mt-3 text-sm font-medium text-forest-700">{t('onboarding.trust')}</p>
         </div>
         <LoginTabs />
       </div>

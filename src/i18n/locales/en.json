@@ -2,6 +2,9 @@
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "AI for growing and scaling your business",
+    "seg_biz": "An AI team for business: a lawyer, accountant and marketer in one chat",
+    "seg_creator": "An AI studio: copy, images and video in minutes",
+    "trust": "🎁 25,000 tokens free · no card · 2 minutes",
     "enter_phone": "Enter phone number",
     "phone_placeholder": "+1 (555) 123-4567",
     "send_code": "Send code",
