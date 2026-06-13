@@ -259,6 +259,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // пишется на бэке один раз.
     attributeSource(token);
 
+    // Зарегистрировать реферала ЦЕНТРАЛЬНО — на любом способе входа (SMS, OAuth,
+    // email), а не только в SMS-пане (b1ee61fd: рефералы через OAuth/email
+    // терялись). Идемпотентно: slug снимается после использования, бэк не
+    // двоит уже зарегистрированных.
+    authService.registerReferral();
+
     const tokens = await fetchUserTokens();
     if (tokens !== undefined) {
       newUser.tokens = tokens;

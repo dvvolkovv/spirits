@@ -48,7 +48,8 @@ const SmsLoginPane: React.FC = () => {
         } else {
           await login(phone, 'legacy-token');
         }
-        await authService.registerReferral();
+        // registerReferral теперь вызывается централизованно в AuthContext.login()
+        // (покрывает SMS/OAuth/email) — здесь дублировать не нужно.
         navigate('/chat', { replace: true });
       } else {
         if (result.error === 'Wrong code') {
