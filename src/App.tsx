@@ -1,35 +1,47 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
-import OnboardingPage from './pages/OnboardingPage';
+import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
 import { ErrorBoundary } from './components/ErrorBoundary';
-import ChatPage from './pages/ChatPage';
-import ChatConversationPage from './pages/ChatConversationPage';
-import SupportPage from './pages/SupportPage';
-import ProfileView from './components/profile/ProfileView';
-import NetworkingPage from './pages/NetworkingPage';
-import HelpPage from './pages/HelpPage';
-import CardPage from './pages/CardPage';
-import AdminPage from './pages/AdminPage';
-import ImageGenPage from './pages/ImageGenPage';
-import VideoPage from './pages/VideoPage';
-import MyVideosPage from './pages/MyVideosPage';
-import PaymentSuccessPage from './pages/PaymentSuccessPage';
-import TokenPurchasePage from './pages/TokenPurchasePage';
-import MaintenancePage from './pages/MaintenancePage';
-import AuthEmailConfirmPage from './pages/AuthEmailConfirmPage';
-import AuthOAuthCallbackPage from './pages/AuthOAuthCallbackPage';
-import DozvonPage from './pages/DozvonPage';
-import ContactRequestsPage from './pages/ContactRequestsPage';
-import SettingsSocialPage from './pages/SettingsSocialPage';
+import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track } from './services/eventsClient';
-import { TelegramBotsNewPage } from './pages/TelegramBotsPage';
-import StudioPage from './pages/StudioPage';
 import './i18n';
+
+// Ленивые маршруты — грузятся ПО ТРЕБОВАНИЮ (code-split), а не одним монолитом.
+// Холодный новый юзер для регистрации качает только онбординг; чат/админка/видео/
+// студия/картинки и пр. — отдельные чанки, подгружаются при первом заходе в раздел
+// (кешируются после). Это срезает первый экран с ~1.7МБ до малого старта.
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const ChatConversationPage = lazy(() => import('./pages/ChatConversationPage'));
+const SupportPage = lazy(() => import('./pages/SupportPage'));
+const ProfileView = lazy(() => import('./components/profile/ProfileView'));
+const NetworkingPage = lazy(() => import('./pages/NetworkingPage'));
+const HelpPage = lazy(() => import('./pages/HelpPage'));
+const CardPage = lazy(() => import('./pages/CardPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ImageGenPage = lazy(() => import('./pages/ImageGenPage'));
+const VideoPage = lazy(() => import('./pages/VideoPage'));
+const MyVideosPage = lazy(() => import('./pages/MyVideosPage'));
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
+const TokenPurchasePage = lazy(() => import('./pages/TokenPurchasePage'));
+const AuthEmailConfirmPage = lazy(() => import('./pages/AuthEmailConfirmPage'));
+const AuthOAuthCallbackPage = lazy(() => import('./pages/AuthOAuthCallbackPage'));
+const DozvonPage = lazy(() => import('./pages/DozvonPage'));
+const ContactRequestsPage = lazy(() => import('./pages/ContactRequestsPage'));
+const SettingsSocialPage = lazy(() => import('./pages/SettingsSocialPage'));
+const StudioPage = lazy(() => import('./pages/StudioPage'));
+const TelegramBotsNewPage = lazy(() => import('./pages/TelegramBotsPage').then((m) => ({ default: m.TelegramBotsNewPage })));
+
+// Лёгкий fallback, пока подгружается ленивый чанк раздела.
+const RouteFallback: React.FC = () => (
+  <div className="flex-1 flex items-center justify-center py-20">
+    <div className="w-8 h-8 border-2 border-forest-300 border-t-forest-600 rounded-full animate-spin" />
+  </div>
+);
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -71,6 +83,7 @@ const AppContent: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-hidden flex flex-col pb-20 md:pb-0">
         <ErrorBoundary>
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/chats" element={<Navigate to="/search?tab=chats" replace />} />
@@ -98,6 +111,7 @@ const AppContent: React.FC = () => {
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
           </Routes>
+          </Suspense>
         </ErrorBoundary>
       </div>
 
@@ -121,12 +135,14 @@ const App: React.FC = () => {
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <AuthProvider>
         <ImageGenProvider>
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/tokens" element={<TokenPurchasePage />} />
             <Route path="/auth/:provider/callback" element={<AuthOAuthCallbackPage />} />
             <Route path="/auth/email/confirm" element={<AuthEmailConfirmPage />} />
             <Route path="*" element={<AppContent />} />
           </Routes>
+          </Suspense>
         </ImageGenProvider>
       </AuthProvider>
     </Router>
