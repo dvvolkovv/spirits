@@ -1,16 +1,34 @@
 import { tokenManager } from '../utils/tokenManager';
 import { apiClient } from './apiClient';
 import { vkReachGoal } from './vkPixel';
+import { getSource } from './eventsClient';
 import { AuthResponse, RefreshResponse, SMSResponse } from '../types/auth';
 import type { Identity } from '../types/auth';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
+// Атрибуция шага регистрации: прокидываем сессию и источник (utm:vk/cpc и пр.)
+// в otp_request/otp_verified, чтобы воронка ПОСЛЕ клика по рекламе перестала
+// быть слепой (видеть, где обрывается путь: телефон-стена vs SMS vs дальше).
+function attribQuery(): string {
+  try {
+    const sid = sessionStorage.getItem('linkeon_session_id') || '';
+    const src = getSource() || '';
+    const p = new URLSearchParams();
+    if (sid) p.set('sid', sid);
+    if (src) p.set('src', src);
+    const s = p.toString();
+    return s ? `?${s}` : '';
+  } catch {
+    return '';
+  }
+}
+
 class AuthService {
   async requestSMSCode(phone: string): Promise<SMSResponse> {
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`${BASE_URL}/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}`, {
+      const response = await fetch(`${BASE_URL}/webhook/898c938d-f094-455c-86af-969617e62f7a/sms/${cleanPhone}${attribQuery()}`, {
         method: 'GET',
       });
 
@@ -31,7 +49,7 @@ class AuthService {
   async verifyCode(phone: string, code: string): Promise<AuthResponse> {
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`${BASE_URL}/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}`, {
+      const response = await fetch(`${BASE_URL}/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}${attribQuery()}`, {
         method: 'GET',
       });
 
