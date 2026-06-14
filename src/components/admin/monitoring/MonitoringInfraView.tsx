@@ -1328,11 +1328,22 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
 
       {tab === 'dr' && minioDrData && minioDrData.configured && (
         <section>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">MinIO DR-зеркало (node-3)</h3>
+          <h3 className="text-sm font-medium text-gray-700 mb-1">MinIO — репликация в DR</h3>
           {minioDrData.error ? (
             <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{minioDrData.error}</div>
           ) : (
             <div className="space-y-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="flex items-center gap-2 text-sm flex-wrap">
+                  <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 font-medium">прод · источник</span>
+                  <span className="text-gray-400 font-mono">— mc mirror →</span>
+                  <span className="px-2 py-1 rounded-md bg-sky-100 text-sky-800 font-medium">node-3 · реплика (DR)</span>
+                </div>
+                <div className="text-[11px] text-gray-500 mt-2">
+                  Это <b>двухузловое DR-зеркало</b>: прод — единственный боевой MinIO (источник истины), node-3 хранит ежечасную копию на случай потери прода.
+                  Это <b>не распределённый кластер</b> (данные не шардируются по узлам). node-3 показан как единственная цель репликации — так и задумано.
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className={clsx(
                   'rounded-lg border bg-white p-3 shadow-sm',
