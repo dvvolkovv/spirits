@@ -632,6 +632,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
   const [replData, setReplData] = useState<ReplicationOverview | null>(null);
   const [neoDrData, setNeoDrData] = useState<NeoSnapshotOverview | null>(null);
   const [minioDrData, setMinioDrData] = useState<MinioMirrorOverview | null>(null);
+  const [geoData, setGeoData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -639,7 +640,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [resOverview, resDb, resSynth, resSms, resClaude, resBackups, resModels, resJobs, resRepl, resNeoDr, resMinioDr] = await Promise.all([
+      const [resOverview, resDb, resSynth, resSms, resClaude, resBackups, resModels, resJobs, resRepl, resNeoDr, resMinioDr, resGeo] = await Promise.all([
         apiClient.get('/webhook/admin/monitoring/tech/overview'),
         apiClient.get('/webhook/admin/monitoring/tech/databases'),
         apiClient.get('/webhook/admin/monitoring/tech/synthetic'),
@@ -651,6 +652,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
         apiClient.get('/webhook/admin/monitoring/tech/replication'),
         apiClient.get('/webhook/admin/monitoring/tech/neo4j-dr'),
         apiClient.get('/webhook/admin/monitoring/tech/minio-dr'),
+        apiClient.get('/webhook/admin/monitoring/tech/geo'),
       ]);
       if (!resOverview.ok) {
         const body = await resOverview.json().catch(() => ({}));
@@ -667,6 +669,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
       if (resRepl.ok) setReplData(await resRepl.json());
       if (resNeoDr.ok) setNeoDrData(await resNeoDr.json());
       if (resMinioDr.ok) setMinioDrData(await resMinioDr.json());
+      if (resGeo.ok) setGeoData(await resGeo.json());
     } catch (e: any) {
       setError(e?.message || 'Не удалось получить метрики');
     } finally {
@@ -705,6 +708,31 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
           <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-rose-700">{error}</div>
         </div>
+      )}
+
+      {tab === 'integrations' && geoData && (
+        <section>
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Гео-доступность лендинга (linkeon.io из РФ · Globalping, каждые 15 мин)</h3>
+          <div className={clsx('rounded-lg border bg-white p-4 shadow-sm', geoData.region_down ? 'border-rose-300 bg-rose-50' : 'border-emerald-200')}>
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className={clsx('w-2.5 h-2.5 rounded-full', geoData.region_down ? 'bg-rose-500' : 'bg-emerald-500')} />
+              <span className="text-sm font-semibold text-gray-900">{geoData.region_down ? 'Недоступен из РФ' : 'Доступен из РФ'}</span>
+              <span className="text-xs text-gray-500">
+                · RU {geoData.ru_ok}/{geoData.ru_total} OK · baseline {geoData.baseline_ok === false ? '🔴 down' : 'ok'}
+                {geoData.checked_at && ` · ${new Date(geoData.checked_at).toLocaleTimeString('ru-RU')}`}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(geoData.probes || []).map((p: any, i: number) => (
+                <span key={i}
+                  className={clsx('text-xs px-2 py-0.5 rounded border', p.ok ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200')}
+                  title={`${p.network || ''} ASN${p.asn || '?'}${p.reason ? ' · ' + p.reason : ''}`}>
+                  {p.city || '?'}: {p.ok ? 'OK' : (p.reason || 'fail')}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {tab === 'integrations' && smsData && (
