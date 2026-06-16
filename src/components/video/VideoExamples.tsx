@@ -17,6 +17,14 @@ export interface VideoExample {
 
 export const VIDEO_EXAMPLES: VideoExample[] = [
   {
+    key: 'veo_talkinghead',
+    label: 'Говорящая голова',
+    engine: 'veo',
+    aspect: '9:16',
+    videoUrl: 'https://my.linkeon.io/static/videos/ca424799-ad2b-4eb0-8927-98962df1073a.mp4',
+    prompt: 'Вертикальное видео 9:16, говорящая голова: дружелюбный эксперт 30–40 лет смотрит прямо в камеру и говорит на русском с естественной синхронизацией губ: «Привет! Сегодня расскажу, как…». Мягкий студийный свет, тёплый фон с лёгким боке, спокойная уверенная подача, фотореалистично, чистый голос без фоновой музыки.',
+  },
+  {
     key: 'veo_nature',
     label: 'Горы на рассвете',
     engine: 'veo',
@@ -51,17 +59,24 @@ export default function VideoExamples({ onUse }: Props) {
 
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
-        <Sparkles className="w-3 h-3" />
-        Примеры — что можно сгенерировать
+      <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+        <Sparkles className="w-4 h-4 text-forest-600" />
+        Примеры — наведи посмотреть, нажми «Взять промпт»
       </p>
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+      {/* Единая ВЫСОТА видео-бокса, ширина = по реальному соотношению сторон —
+          поэтому ряд выровнен (раньше карточки были одной ширины, но разной
+          высоты: 9:16 — высокая, 16:9 — низкие → «криво»). object-cover без
+          обрезки, т.к. бокс совпадает с aspect видео. */}
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 items-start">
         {VIDEO_EXAMPLES.map((ex) => (
           <div
             key={ex.key}
-            className="flex-shrink-0 w-40 rounded-xl border border-gray-200 bg-white overflow-hidden hover:border-forest-300 transition-colors"
+            className="flex-shrink-0 rounded-xl border border-gray-200 bg-white overflow-hidden hover:border-forest-300 transition-colors flex flex-col"
           >
-            <div className={ex.aspect === '9:16' ? 'aspect-[9/16] bg-black' : 'aspect-video bg-black'}>
+            <div
+              className="h-48 bg-black relative"
+              style={{ aspectRatio: ex.aspect === '9:16' ? '9 / 16' : '16 / 9' }}
+            >
               <video
                 src={ex.videoUrl}
                 className="w-full h-full object-cover"
@@ -74,14 +89,12 @@ export default function VideoExamples({ onUse }: Props) {
                 onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); }}
                 onClick={() => setActive(ex.key)}
               />
+              <span className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-black/55 text-white backdrop-blur-sm">
+                {ex.engine}
+              </span>
             </div>
-            <div className="p-2">
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <span className="text-xs font-medium text-gray-800 truncate">{ex.label}</span>
-                <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-indigo-50 text-indigo-600 flex-shrink-0">
-                  {ex.engine}
-                </span>
-              </div>
+            <div className="p-2 flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-800 truncate">{ex.label}</span>
               <button
                 type="button"
                 onClick={() => onUse(ex)}
