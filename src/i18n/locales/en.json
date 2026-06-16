@@ -626,7 +626,7 @@
     },
     "prompt": {
       "label": "Prompt",
-      "placeholder": "Describe what should happen in the video"
+      "placeholder": "E.g.: an expert talks to camera about a product launch, warm light, vertical 9:16"
     },
     "negativePrompt": {
       "label": "Negative prompt"

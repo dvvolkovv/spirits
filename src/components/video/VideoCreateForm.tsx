@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Settings2, ChevronDown, ChevronUp, Loader, AlertCircle, Info, Image as ImageIcon, X } from 'lucide-react';
+import { Sparkles, Settings2, ChevronDown, ChevronUp, Loader, AlertCircle, Info, Image as ImageIcon, X, Wand2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
@@ -287,15 +287,23 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
         }))}
       />
 
-      {/* Prompt — top and prominent */}
+      {/* Prompt — главное целевое действие, визуально выделено */}
       {showPrompt && (
-        <textarea
-          rows={4}
-          className={`${inputClass} resize-none`}
-          placeholder={t('video.prompt.placeholder') as string}
-          value={s.prompt}
-          onChange={e => setS({ ...s, prompt: e.target.value })}
-        />
+        <div>
+          <label htmlFor="video-prompt" className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-1.5">
+            <Wand2 className="w-4 h-4 text-forest-600" />
+            Опишите, что должно быть в видео
+          </label>
+          <textarea
+            id="video-prompt"
+            rows={4}
+            className="w-full rounded-xl border-2 border-forest-300 bg-forest-50/40 px-4 py-3 text-base text-gray-900 placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-forest-400/60 focus:border-forest-400 resize-none transition-colors"
+            placeholder={t('video.prompt.placeholder') as string}
+            value={s.prompt}
+            onChange={e => setS({ ...s, prompt: e.target.value })}
+          />
+          <p className="text-xs text-gray-400 mt-1">Чем подробнее сцена — действие, свет, формат — тем точнее результат.</p>
+        </div>
       )}
 
       {/* Prompt examples */}
