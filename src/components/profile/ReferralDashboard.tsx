@@ -164,6 +164,13 @@ const ReferralDashboard: React.FC = () => {
           </button>
         </div>
 
+        {/* Питч двустороннего бонуса — усиливает мотив поделиться */}
+        {!!stats.referee_bonus_tokens && stats.referee_bonus_tokens > 0 && (
+          <p className="text-sm text-forest-700 bg-forest-50 border border-forest-100 rounded-lg px-3 py-2 flex items-center gap-2">
+            🎁 <span>Друзья получают <b>{stats.referee_bonus_tokens.toLocaleString(i18n.language)}</b> токенов на старт по вашей ссылке — а вы {stats.leader.commission_pct}% с их оплат.</span>
+          </p>
+        )}
+
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-gray-50 rounded-lg p-4 text-center">

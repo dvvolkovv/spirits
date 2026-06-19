@@ -42,6 +42,7 @@ export interface ReferralStats {
     commission_pct: number;
   };
   referral_link: string;
+  referee_bonus_tokens?: number;
   total_referees: number;
   total_paid_rub: number;
   total_commission_rub: number;
