@@ -1906,18 +1906,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               {message.isStreaming && (
                 <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
               )}
-              <p className={clsx(
-                'text-xs mt-1',
+              <div className={clsx(
+                'flex items-center gap-2 text-xs mt-1',
                 message.type === 'user' ? 'text-forest-100' : 'text-gray-500'
               )}>
-                {message.timestamp.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-                {message.type === 'assistant' && message.tokensUsed ? (
-                  <span className="ml-2 text-gray-400">• {message.tokensUsed.toLocaleString()} {t('chat.tokens_suffix')}</span>
-                ) : null}
-              </p>
+                <span>
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {message.type === 'assistant' && message.tokensUsed ? (
+                    <span className="ml-2 text-gray-400">• {message.tokensUsed.toLocaleString()} {t('chat.tokens_suffix')}</span>
+                  ) : null}
+                </span>
+                {/* Копировать весь ответ целиком (из отзыва: оффер не копировался) */}
+                {message.type === 'assistant' && !message.isStreaming && message.content && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyMessage(parseCustomMarkdown(stripVideoJobMarkers(message.content)).content || message.content, message.id)}
+                    className="inline-flex items-center gap-1 text-gray-400 hover:text-forest-600 transition-colors"
+                    title={t('chat.copy_message', 'Скопировать ответ')}
+                  >
+                    {copiedMessageId === message.id
+                      ? <><Check className="w-3.5 h-3.5" /> {t('chat.copied', 'Скопировано')}</>
+                      : <><Copy className="w-3.5 h-3.5" /> {t('chat.copy', 'Копировать')}</>}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -2016,8 +2028,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onKeyPress={handleKeyPress}
               placeholder={t('chat.placeholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-              rows={1}
-              style={{ minHeight: '40px', maxHeight: '200px' }}
+              rows={2}
+              style={{ minHeight: '72px', maxHeight: '240px' }}
               data-testid="chat-input"
             />
           </div>
