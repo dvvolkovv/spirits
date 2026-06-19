@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Download, Film, Mic, Trash2, AlertCircle, Loader2, X, Check, RotateCcw } from 'lucide-react';
+import { Play, Download, Film, Mic, Trash2, AlertCircle, Loader2, X, Check, RotateCcw, Share2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { VideoJob } from './useVideoJobs';
+import { shareWithReferral } from '../../services/shareReferral';
 
 interface Props {
   job: VideoJob;
@@ -159,6 +160,16 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onRep
                     >
                       <Download className="w-3.5 h-3.5" />
                     </a>
+                  )}
+                  {job.video_url && (
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); shareWithReferral('Сделал(а) это видео в Linkeon — нейросеть сама создаёт контент для соцсетей. Попробуй, по моей ссылке дадут бонус на старт 🎁'); }}
+                      className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
+                      title="Поделиться с реф-ссылкой"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </button>
                   )}
                   {onExtend && (
                     <button
