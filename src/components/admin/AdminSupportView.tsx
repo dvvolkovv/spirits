@@ -443,7 +443,7 @@ const AdminSupportView: React.FC = () => {
                         {isAi && <><Bot className="w-3 h-3 text-forest-600" /> AI</>}
                         {isOwner && <><UserCircle2 className="w-3 h-3" /> {t('admin.support.sender_team')}</>}
                         {isUser && <>{t('admin.support.sender_user')}</>}
-                        <span className="text-gray-400">· {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-gray-400">· {new Date(m.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className={clsx('max-w-[80%] px-3 py-2 rounded-2xl shadow-sm', bubble)}>
                         <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
