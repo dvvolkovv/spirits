@@ -191,6 +191,18 @@ const ReferralDashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Вывод вознаграждения — всегда видимое пояснение (даже при нулевом
+            балансе), чтобы меню «токенами или деньгами» было обнаружимо. */}
+        {(() => {
+          const w = Math.round(Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0)) * 100) / 100;
+          if (w > 0 || payoutDone || withdrawDone) return null;
+          return (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+              💸 <b>Вывод вознаграждения</b> — токенами (от {PAYOUT_MIN_RUB}&nbsp;₽) или деньгами на карту/СБП (от {WITHDRAW_MIN_RUB}&nbsp;₽). Кнопки появятся здесь, как только накопится комиссия с приглашённых.
+            </div>
+          );
+        })()}
+
         {/* Вывод комиссий токенами */}
         {(() => {
           const withdrawable = Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0));
