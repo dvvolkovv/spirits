@@ -7,6 +7,8 @@ import { ReferralStats } from '../../types/auth';
 // Курс/порог вывода комиссий токенами (совпадает с бэком).
 const PAYOUT_RATE = 600;
 const PAYOUT_MIN_RUB = 100;
+// Порог вывода ДЕНЬГАМИ (совпадает с WITHDRAW_MIN_RUB на бэке).
+const WITHDRAW_MIN_RUB = 1000;
 
 const ReferralDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -19,6 +21,13 @@ const ReferralDashboard: React.FC = () => {
   const [payoutBusy, setPayoutBusy] = useState(false);
   const [payoutDone, setPayoutDone] = useState<{ rub: number; tokens: number } | null>(null);
   const [payoutError, setPayoutError] = useState<string | null>(null);
+  // Вывод деньгами (DEV-3): заявка на ручную выплату командой.
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [wMethod, setWMethod] = useState<'sbp' | 'card'>('sbp');
+  const [wReq, setWReq] = useState('');
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [withdrawDone, setWithdrawDone] = useState<{ amount_rub: number } | null>(null);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   useEffect(() => {
     loadStats();
@@ -62,6 +71,23 @@ const ReferralDashboard: React.FC = () => {
       setPayoutError(e instanceof Error ? e.message : t('referral.payout_error'));
     } finally {
       setPayoutBusy(false);
+    }
+  };
+
+  const doWithdraw = async () => {
+    setWithdrawBusy(true);
+    setWithdrawError(null);
+    try {
+      const r = await apiClient.post('/webhook/referral/withdraw', { method: wMethod, requisites: wReq.trim() });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error || 'Не удалось создать заявку');
+      setWithdrawDone({ amount_rub: data.amount_rub });
+      setShowWithdraw(false);
+      await loadStats();
+    } catch (e) {
+      setWithdrawError(e instanceof Error ? e.message : 'Ошибка');
+    } finally {
+      setWithdrawBusy(false);
     }
   };
 
@@ -190,6 +216,74 @@ const ReferralDashboard: React.FC = () => {
               )}
               {withdrawable2 < PAYOUT_MIN_RUB && !payoutDone && (
                 <p className="text-xs text-forest-600 mt-1.5">{t('referral.payout_min_hint', { min: PAYOUT_MIN_RUB })}</p>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Вывод комиссий ДЕНЬГАМИ (DEV-3) */}
+        {(() => {
+          const withdrawable = Math.round(Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0)) * 100) / 100;
+          if (withdrawable <= 0 && !withdrawDone) return null;
+          return (
+            <div className="rounded-lg border border-warm-200 bg-warm-50 p-4">
+              {withdrawDone ? (
+                <div className="flex items-center gap-2 text-sm text-warm-800">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>Заявка на вывод {formatRub(withdrawDone.amount_rub)} создана — обработаем в ближайшее время.</span>
+                </div>
+              ) : !showWithdraw ? (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-xs text-warm-700 mb-0.5">Вывести деньгами на карту или по СБП</p>
+                    <p className="text-lg font-bold text-warm-800">{formatRub(withdrawable)}</p>
+                  </div>
+                  <button
+                    onClick={() => { setWithdrawError(null); setShowWithdraw(true); }}
+                    disabled={withdrawable < WITHDRAW_MIN_RUB}
+                    className="px-4 py-2 bg-warm-600 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title={withdrawable < WITHDRAW_MIN_RUB ? `Минимум — ${WITHDRAW_MIN_RUB} ₽` : undefined}
+                  >
+                    Вывести деньгами
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <p className="text-sm font-medium text-warm-800">Заявка на вывод {formatRub(withdrawable)}</p>
+                  <div className="flex gap-2">
+                    {(['sbp', 'card'] as const).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setWMethod(m)}
+                        className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${wMethod === m ? 'border-warm-500 bg-warm-100 text-warm-800 font-medium' : 'border-gray-200 bg-white text-gray-600'}`}
+                      >
+                        {m === 'sbp' ? 'СБП' : 'Карта'}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    value={wReq}
+                    onChange={(e) => setWReq(e.target.value)}
+                    placeholder={wMethod === 'sbp' ? 'Телефон для СБП (+7…)' : 'Номер карты'}
+                    inputMode={wMethod === 'sbp' ? 'tel' : 'numeric'}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-300"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={doWithdraw}
+                      disabled={withdrawBusy || wReq.trim().length < 4}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-warm-600 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {withdrawBusy ? <Loader className="w-4 h-4 animate-spin" /> : null}
+                      Отправить заявку
+                    </button>
+                    <button onClick={() => setShowWithdraw(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Отмена</button>
+                  </div>
+                  {withdrawError && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{withdrawError}</p>}
+                </div>
+              )}
+              {withdrawable < WITHDRAW_MIN_RUB && !withdrawDone && (
+                <p className="text-xs text-warm-600 mt-1.5">Минимум для вывода деньгами — {WITHDRAW_MIN_RUB} ₽</p>
               )}
             </div>
           );
