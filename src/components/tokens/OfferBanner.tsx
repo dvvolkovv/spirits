@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { X, Gift, Sparkles } from 'lucide-react';
+import { X, Gift, Sparkles, Users } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { track } from '../../services/eventsClient';
 
 const SESSION_KEY = 'offer_banner_shown';
 
-type Variant = 'offer' | 'nudge';
+type Variant = 'offer' | 'nudge' | 'referral';
 
 /**
  * Неблокирующий баннер оффера вовлечённому неплатящему (+50% к первой покупке).
@@ -29,8 +29,8 @@ const OfferBanner: React.FC = () => {
         const res = await apiClient.get('/webhook/offer/status');
         if (!res.ok || !alive) return;
         const data = await res.json();
-        // Приоритет у +50%-оффера; иначе лёгкий нудж после первого чата (c732734f).
-        const v: Variant | null = data?.eligible ? 'offer' : (data?.first_chat_nudge ? 'nudge' : null);
+        // Приоритет: +50%-оффер → нудж после первого чата → реф-надж (DEV-4).
+        const v: Variant | null = data?.eligible ? 'offer' : (data?.first_chat_nudge ? 'nudge' : (data?.referral_nudge ? 'referral' : null));
         if (v) {
           sessionStorage.setItem(SESSION_KEY, '1');
           setVariant(v);
@@ -48,12 +48,13 @@ const OfferBanner: React.FC = () => {
 
   const onCta = () => {
     track('offer_clicked', { kind: variant });
-    navigate('/chat?view=tokens&offer=1');
+    navigate(variant === 'referral' ? '/profile' : '/chat?view=tokens&offer=1');
   };
 
   const onClose = () => {
     setVisible(false);
-    apiClient.post('/webhook/offer/dismiss', {}).catch(() => {});
+    const qs = variant === 'referral' ? '?kind=referral' : '';
+    apiClient.post(`/webhook/offer/dismiss${qs}`, {}).catch(() => {});
   };
 
   return (
@@ -63,14 +64,26 @@ const OfferBanner: React.FC = () => {
     >
       {variant === 'offer'
         ? <Gift className="w-5 h-5 text-amber-600 flex-shrink-0" />
-        : <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0" />}
-      <p className="text-sm text-amber-900 flex-1 leading-snug">{variant === 'offer' ? t('offer.text') : t('offer.nudge_text')}</p>
+        : variant === 'referral'
+          ? <Users className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          : <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0" />}
+      <p className="text-sm text-amber-900 flex-1 leading-snug">
+        {variant === 'offer'
+          ? t('offer.text')
+          : variant === 'referral'
+            ? t('offer.referral_text', 'Приглашайте друзей в Linkeon — получайте до 10% с их оплат и выводите деньги.')
+            : t('offer.nudge_text')}
+      </p>
       <button
         onClick={onCta}
         data-testid="offer-cta"
         className="text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg px-3 py-1.5 whitespace-nowrap transition-colors"
       >
-        {variant === 'offer' ? t('offer.cta') : t('offer.nudge_cta')}
+        {variant === 'offer'
+          ? t('offer.cta')
+          : variant === 'referral'
+            ? t('offer.referral_cta', 'Пригласить')
+            : t('offer.nudge_cta')}
       </button>
       <button
         onClick={onClose}
