@@ -16,11 +16,29 @@ const DEFAULT_SETTINGS: ImageGenSettings = {
   negativePrompt: '',
 };
 
+export type GenMode = 'image' | 'banner';
+export interface BannerFields {
+  title: string;
+  subtitle: string;
+  cta: string;
+  position: 'top' | 'center' | 'bottom';
+  theme: 'dark' | 'light';
+  accent: string;
+}
+
+const DEFAULT_BANNER: BannerFields = {
+  title: '', subtitle: '', cta: '', position: 'bottom', theme: 'dark', accent: '#2f8f4e',
+};
+
 interface ImageGenContextValue {
   prompt: string;
   setPrompt: (p: string) => void;
   settings: ImageGenSettings;
   setSettings: React.Dispatch<React.SetStateAction<ImageGenSettings>>;
+  mode: GenMode;
+  setMode: (m: GenMode) => void;
+  banner: BannerFields;
+  setBanner: React.Dispatch<React.SetStateAction<BannerFields>>;
   isGenerating: boolean;
   error: string | null;
   results: GeneratedImage[];
@@ -28,6 +46,7 @@ interface ImageGenContextValue {
   tokenCost: number;
   hasEnoughTokens: boolean;
   handleGenerate: () => void;
+  handleGenerateBanner: () => void;
   handleEdit: (sourceImageUrl: string, editPrompt: string, quality?: 'std' | 'hd') => Promise<void>;
   handleCompose: (sourceImageUrls: string[], composePrompt: string, quality?: 'std' | 'hd') => Promise<void>;
   handleUpscale: (sourceImageUrl: string) => Promise<void>;
@@ -42,6 +61,8 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { user, updateTokens } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [settings, setSettings] = useState<ImageGenSettings>(DEFAULT_SETTINGS);
+  const [mode, setMode] = useState<GenMode>('image');
+  const [banner, setBanner] = useState<BannerFields>(DEFAULT_BANNER);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<GeneratedImage[]>([]);
@@ -94,6 +115,42 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось сгенерировать изображение');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const sizeToAspect: Record<string, string> = { '1024x1024': '1:1', '1792x1024': '16:9', '1024x1792': '9:16' };
+
+  const handleGenerateBanner = async () => {
+    const hasText = banner.title.trim() || banner.subtitle.trim() || banner.cta.trim();
+    if (!prompt.trim() || !hasText || isGenerating || !hasEnoughTokens) return;
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await apiClient.post('/webhook/bannergen', {
+        prompt: prompt.trim(),
+        title: banner.title.trim(),
+        subtitle: banner.subtitle.trim(),
+        cta: banner.cta.trim(),
+        position: banner.position,
+        theme: banner.theme,
+        accent: banner.accent,
+        quality: settings.quality,
+        aspect_ratio: sizeToAspect[settings.size] || '1:1',
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Ошибка ${response.status}`);
+      }
+      const data: ImageGenResponse = await response.json();
+      const images = Array.isArray(data.images) ? data.images : [];
+      if (images.length === 0) throw new Error('Не удалось сгенерировать баннер. Попробуйте ещё раз.');
+      setResults(prev => [...images, ...prev]);
+      if (data.tokensSpent) updateTokens((user?.tokens ?? 0) - data.tokensSpent);
+      loadHistory();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось сгенерировать баннер');
     } finally {
       setIsGenerating(false);
     }
@@ -192,9 +249,11 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <ImageGenContext.Provider value={{
       prompt, setPrompt,
       settings, setSettings,
+      mode, setMode,
+      banner, setBanner,
       isGenerating, error, results, history,
       tokenCost, hasEnoughTokens,
-      handleGenerate, handleEdit, handleCompose, handleUpscale, handleUpload,
+      handleGenerate, handleGenerateBanner, handleEdit, handleCompose, handleUpscale, handleUpload,
       loadHistory, deleteImage,
     }}>
       {children}

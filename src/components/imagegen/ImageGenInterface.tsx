@@ -21,6 +21,7 @@ import {
   Calendar,
   Upload,
   Film,
+  Type,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
@@ -79,11 +80,21 @@ const ImageGenInterface: React.FC = () => {
   const {
     prompt, setPrompt,
     settings, setSettings,
+    mode, setMode,
+    banner, setBanner,
     isGenerating, error, results, history,
     tokenCost, hasEnoughTokens,
-    handleGenerate, handleEdit, handleCompose, handleUpscale, handleUpload,
+    handleGenerate, handleGenerateBanner, handleEdit, handleCompose, handleUpscale, handleUpload,
     loadHistory, deleteImage,
   } = useImageGen();
+
+  const bannerHasText = !!(banner.title.trim() || banner.subtitle.trim() || banner.cta.trim());
+  const setB = <K extends keyof typeof banner>(key: K, value: (typeof banner)[K]) =>
+    setBanner(prev => ({ ...prev, [key]: value }));
+  const canSubmit = mode === 'banner'
+    ? prompt.trim() && bannerHasText && !isGenerating && hasEnoughTokens
+    : prompt.trim() && !isGenerating && hasEnoughTokens;
+  const submit = () => (mode === 'banner' ? handleGenerateBanner() : handleGenerate());
 
   const [showSettings, setShowSettings] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
@@ -147,7 +158,7 @@ const ImageGenInterface: React.FC = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      handleGenerate();
+      submit();
     }
   };
 
@@ -499,18 +510,116 @@ const ImageGenInterface: React.FC = () => {
       <div className="flex-1 overflow-y-auto">
         {/* Input area */}
         <div className="p-4 space-y-3 border-b border-gray-100">
+          {/* Mode toggle: картинка / баннер с текстом */}
+          <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setMode('image')}
+              className={clsx('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
+                mode === 'image' ? 'bg-white text-forest-700 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
+            >
+              <Image className="w-4 h-4" /> Картинка
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('banner')}
+              className={clsx('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
+                mode === 'banner' ? 'bg-white text-forest-700 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
+            >
+              <Type className="w-4 h-4" /> Баннер с текстом
+            </button>
+          </div>
+
+          {mode === 'banner' && (
+            <p className="text-xs text-gray-500 bg-forest-50 border border-forest-100 rounded-lg px-3 py-2">
+              Фон генерируется <b>без текста</b>, а заголовок и кнопку мы накладываем поверх программно —
+              буквы (включая кириллицу) получаются идеально ровными.
+            </p>
+          )}
+
           {/* Prompt */}
           <textarea
             ref={promptRef}
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Опишите изображение, которое хотите создать..."
+            placeholder={mode === 'banner'
+              ? 'Опишите ТОЛЬКО фон (без текста). Напр.: «тёплое летнее побережье на закате, мягкое боке»'
+              : 'Опишите изображение, которое хотите создать...'}
             rows={3}
             className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300 focus:border-transparent"
           />
 
+          {/* Banner text fields */}
+          {mode === 'banner' && (
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={banner.title}
+                onChange={e => setB('title', e.target.value)}
+                placeholder="Заголовок (крупно)"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
+              />
+              <input
+                type="text"
+                value={banner.subtitle}
+                onChange={e => setB('subtitle', e.target.value)}
+                placeholder="Подзаголовок (опционально)"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
+              />
+              <input
+                type="text"
+                value={banner.cta}
+                onChange={e => setB('cta', e.target.value)}
+                placeholder="Кнопка / призыв (опционально). Напр.: «Записаться»"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1">Позиция текста</p>
+                  <div className="flex gap-1">
+                    {([['top', 'Сверху'], ['center', 'Центр'], ['bottom', 'Снизу']] as const).map(([val, lbl]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setB('position', val)}
+                        className={clsx('flex-1 py-1.5 rounded-lg text-xs font-medium border',
+                          banner.position === val ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1">Тема / акцент</p>
+                  <div className="flex gap-1 items-center">
+                    {([['dark', 'Тёмная'], ['light', 'Светлая']] as const).map(([val, lbl]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setB('theme', val)}
+                        className={clsx('flex-1 py-1.5 rounded-lg text-xs font-medium border',
+                          banner.theme === val ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
+                    <input
+                      type="color"
+                      value={banner.accent}
+                      onChange={e => setB('accent', e.target.value)}
+                      title="Цвет кнопки"
+                      className="w-9 h-8 rounded-lg border border-gray-200 cursor-pointer bg-white p-0.5"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Prompt examples */}
+          {mode === 'image' && (
           <div>
             <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
@@ -533,6 +642,7 @@ const ImageGenInterface: React.FC = () => {
               ))}
             </div>
           </div>
+          )}
 
           {/* Settings toggle */}
           <button
@@ -611,11 +721,11 @@ const ImageGenInterface: React.FC = () => {
           />
           <div className="flex gap-2">
             <button
-              onClick={handleGenerate}
-              disabled={!prompt.trim() || isGenerating || !hasEnoughTokens}
+              onClick={submit}
+              disabled={!canSubmit}
               className={clsx(
                 'flex-1 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all',
-                prompt.trim() && !isGenerating && hasEnoughTokens
+                canSubmit
                   ? 'bg-forest-600 hover:bg-forest-700 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               )}
@@ -628,7 +738,7 @@ const ImageGenInterface: React.FC = () => {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>Сгенерировать</span>
+                  <span>{mode === 'banner' ? 'Создать баннер' : 'Сгенерировать'}</span>
                   <span className="text-xs opacity-70 ml-1">({tokenCost.toLocaleString('ru-RU')})</span>
                 </>
               )}
