@@ -178,7 +178,23 @@ const SupportView: React.FC = () => {
                 </div>
               )}
               <div className="space-y-3">
-                {tk.messages.map((m) => <MessageBubble key={m.id} m={m} t={t} />)}
+                {tk.messages.map((m, i) => {
+                  const prev = tk.messages[i - 1];
+                  const showDay =
+                    !prev || new Date(prev.createdAt).toDateString() !== new Date(m.createdAt).toDateString();
+                  return (
+                    <React.Fragment key={m.id}>
+                      {showDay && (
+                        <div className="flex justify-center my-2">
+                          <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-[11px] text-gray-500 font-medium">
+                            {formatDate(m.createdAt, i18n.language)}
+                          </span>
+                        </div>
+                      )}
+                      <MessageBubble m={m} t={t} />
+                    </React.Fragment>
+                  );
+                })}
               </div>
             </React.Fragment>
           ))
