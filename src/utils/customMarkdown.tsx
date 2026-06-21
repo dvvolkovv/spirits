@@ -17,6 +17,11 @@ export interface LinkConfig {
 const BUTTON_REGEX = /\{\{button:\s*([^|]+?)(?:\s*\|\s*action:\s*([^|]+?))?(?:\s*\|\s*variant:\s*([^|]+?))?(?:\s*\|\s*icon:\s*([^}]+?))?\}\}/g;
 const LINK_REGEX = /\{\{link:\s*([^|]+?)\s*\|\s*url:\s*([^}]+?)\}\}/g;
 const VIDEO_URL_REGEX = /https?:\/\/\S+?\.(?:mp4|webm)(?:\?\S*)?/gi;
+// Авто-рендер сгенерированных картинок/баннеров: прямая ссылка на изображение
+// (наш MinIO/статик) превращается в инлайн-<img>. Зеркалит VIDEO_URL_REGEX.
+// (?<!\() — НЕ трогаем URL внутри markdown ![alt](url)/[text](url) (напр.
+// метафорические карты приходят как ![...](url) и рендерятся через ReactMarkdown).
+const IMAGE_URL_REGEX = /(?<!\()https?:\/\/\S+?\.(?:png|jpe?g|webp|gif)(?:\?\S*)?/gi;
 
 // SMM Producer inline blocks (Plan 3b)
 const SMM_SCENARIO_REGEX = /\{\{smm_scenario:id=([a-f0-9-]{36})\}\}/g;
@@ -32,6 +37,7 @@ export const parseCustomMarkdown = (content: string): {
   buttons: Map<string, ButtonConfig>;
   links: Map<string, LinkConfig>;
   videos: Map<string, string>;
+  images: Map<string, string>;
   smmScenarios: Map<string, string>;
   smmVideos: Map<string, string>;
   socialButtons: Map<string, { platform: string; authorizeUrl: string }>;
@@ -40,6 +46,7 @@ export const parseCustomMarkdown = (content: string): {
   const buttons = new Map<string, ButtonConfig>();
   const links = new Map<string, LinkConfig>();
   const videos = new Map<string, string>();
+  const images = new Map<string, string>();
   const smmScenarios = new Map<string, string>();
   const smmVideos = new Map<string, string>();
   const socialButtons = new Map<string, { platform: string; authorizeUrl: string }>();
@@ -75,6 +82,12 @@ export const parseCustomMarkdown = (content: string): {
     return `__VIDEO_${videoId}__`;
   });
 
+  parsedContent = parsedContent.replace(IMAGE_URL_REGEX, (match) => {
+    const imageId = `image_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    images.set(imageId, match);
+    return `__IMAGE_${imageId}__`;
+  });
+
   parsedContent = parsedContent.replace(SMM_SCENARIO_REGEX, (_match, scenarioId) => {
     const key = `smm_scenario_${scenarioId}`;
     smmScenarios.set(key, scenarioId);
@@ -99,7 +112,7 @@ export const parseCustomMarkdown = (content: string): {
     return `__SOCIAL_TELEGRAM_${id}__`;
   });
 
-  return { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos, socialButtons, socialTelegrams };
+  return { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, socialButtons, socialTelegrams };
 };
 
 export const createVideoComponent = (src: string, key?: string): React.ReactNode => {
@@ -110,6 +123,14 @@ export const createVideoComponent = (src: string, key?: string): React.ReactNode
       controls
       className="my-2 max-w-full rounded-lg"
     />
+  );
+};
+
+export const createImageComponent = (src: string, key?: string): React.ReactNode => {
+  return (
+    <a key={key} href={src} target="_blank" rel="noopener noreferrer" className="block my-2">
+      <img src={src} alt="" loading="lazy" className="max-w-full sm:max-w-sm rounded-lg border border-gray-100" />
+    </a>
   );
 };
 

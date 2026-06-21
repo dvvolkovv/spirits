@@ -11,7 +11,7 @@ import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
-import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
+import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
 import SocialConnectButton from './SocialConnectButton';
@@ -104,7 +104,7 @@ const StreamingMessage = React.memo(({
   onLinkClick: (url: string) => void;
   onSendMessage?: (text: string) => void;
 }) => {
-  const { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -112,12 +112,13 @@ const StreamingMessage = React.memo(({
     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
     const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
+    const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+)__/g)];
     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
     const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...smmScenarioMatches, ...smmVideoMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -158,6 +159,16 @@ const StreamingMessage = React.memo(({
           parts.push(
             <span key={`video-${idx}`}>
               {createVideoComponent(videoSrc, `v-${idx}`)}
+            </span>
+          );
+        }
+      } else if (match[0].startsWith('__IMAGE_')) {
+        const imageId = match[1];
+        const imageSrc = images.get(`image_${imageId}`);
+        if (imageSrc) {
+          parts.push(
+            <span key={`image-${idx}`}>
+              {createImageComponent(imageSrc, `img-${idx}`)}
             </span>
           );
         }
@@ -1061,6 +1072,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 accumulatedContent += `\n\n{{smm_social_connect_telegram}}`;
               }
             }
+            if (data.type === 'tool_result' && data.tool === 'generate_banner') {
+              if (data.result?.ok && data.result?.imageUrl) {
+                accumulatedContent += `\n\n${data.result.imageUrl}`;
+              } else if (data.result?.error) {
+                accumulatedContent += `\n\n*Не удалось сделать баннер: ${data.result.error}*`;
+              }
+            }
           } catch (e) {
             // Skip invalid JSON lines
           }
@@ -1780,18 +1798,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const contentForRender = stripVideoJobMarkers(message.content);
-                    const { content: parsedContent, buttons, links, videos, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
                     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
                     const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
+                    const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+)__/g)];
                     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
                     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
                     const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
                     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...smmScenarioMatches, ...smmVideoMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -1832,6 +1851,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           parts.push(
                             <span key={`video-${idx}`}>
                               {createVideoComponent(videoSrc, `v-hist-${idx}`)}
+                            </span>
+                          );
+                        }
+                      } else if (match[0].startsWith('__IMAGE_')) {
+                        const imageId = match[1];
+                        const imageSrc = images.get(`image_${imageId}`);
+                        if (imageSrc) {
+                          parts.push(
+                            <span key={`image-${idx}`}>
+                              {createImageComponent(imageSrc, `img-hist-${idx}`)}
                             </span>
                           );
                         }
