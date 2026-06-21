@@ -1074,7 +1074,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             }
             if (data.type === 'tool_result' && data.tool === 'generate_banner') {
               if (data.result?.ok && data.result?.imageUrl) {
-                accumulatedContent += `\n\n${data.result.imageUrl}`;
+                accumulatedContent += `\n\n${data.result.imageUrl}\n\n`;
               } else if (data.result?.error) {
                 accumulatedContent += `\n\n*Не удалось сделать баннер: ${data.result.error}*`;
               }
