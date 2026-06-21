@@ -164,7 +164,7 @@ const StreamingMessage = React.memo(({
         }
       } else if (match[0].startsWith('__IMAGE_')) {
         const imageId = match[1];
-        const imageSrc = images.get(`image_${imageId}`);
+        const imageSrc = images.get(imageId);
         if (imageSrc) {
           parts.push(
             <span key={`image-${idx}`}>
@@ -1856,7 +1856,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         }
                       } else if (match[0].startsWith('__IMAGE_')) {
                         const imageId = match[1];
-                        const imageSrc = images.get(`image_${imageId}`);
+                        const imageSrc = images.get(imageId);
                         if (imageSrc) {
                           parts.push(
                             <span key={`image-${idx}`}>
