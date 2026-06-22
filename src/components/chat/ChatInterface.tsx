@@ -12,6 +12,7 @@ import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
+import { VoiceDictation } from '../../services/voiceDictation';
 import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
 import SocialConnectButton from './SocialConnectButton';
@@ -444,7 +445,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const voiceRef = useRef<VoiceDictation | null>(null);
+  const voiceCommittedRef = useRef<string>('');
   const [isVoiceSupported, setIsVoiceSupported] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -872,43 +874,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     initialScrollDoneForAssistantRef.current = aid;
   }, [messages.length, selectedAssistant?.id, historyLoading]);
 
-  // Initialize speech recognition
+  // Голосовой ввод: потоковая диктовка через сервер (SpeechKit), работает на iOS.
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
-
-      recognitionInstance.continuous = false;
-      recognitionInstance.interimResults = false;
-      recognitionInstance.lang = 'ru-RU';
-
-      recognitionInstance.onstart = () => {
-        setIsRecording(true);
-      };
-
-      recognitionInstance.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(prev => prev + (prev ? ' ' : '') + transcript);
-        adjustTextareaHeight();
-      };
-
-      recognitionInstance.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsRecording(false);
-        if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          alert(t('chat.voice_error', { error: event.error }));
-        }
-      };
-
-      recognitionInstance.onend = () => {
-        setIsRecording(false);
-      };
-
-      setRecognition(recognitionInstance);
-      setIsVoiceSupported(true);
-    } else {
-      setIsVoiceSupported(false);
-    }
+    setIsVoiceSupported(VoiceDictation.supported);
+    return () => { try { voiceRef.current?.stop(); } catch {} };
   }, []);
 
   const sendMessageToAI = async (userMessage: string) => {
@@ -1306,17 +1275,41 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     adjustTextareaHeight();
   };
 
-  const handleVoiceInput = () => {
-    if (!recognition || !isVoiceSupported) {
+  const handleVoiceInput = async () => {
+    if (!isVoiceSupported) {
       alert(t('chat.voice_not_supported'));
       return;
     }
 
     if (isRecording) {
-      recognition.stop();
-    } else {
-      recognition.start();
+      voiceRef.current?.stop();
+      return;
     }
+
+    // База — то, что уже набрано; диктовка дописывает к ней.
+    voiceCommittedRef.current = input ? input.trimEnd() : '';
+    const vd = new VoiceDictation();
+    voiceRef.current = vd;
+    setIsRecording(true);
+    await vd.start({
+      onPartial: (text) => {
+        const base = voiceCommittedRef.current;
+        setInput((base ? base + ' ' : '') + text);
+        adjustTextareaHeight();
+      },
+      onFinal: (text) => {
+        const base = voiceCommittedRef.current;
+        voiceCommittedRef.current = (base ? base + ' ' : '') + text;
+        setInput(voiceCommittedRef.current);
+        adjustTextareaHeight();
+      },
+      onError: (msg) => {
+        setIsRecording(false);
+        if (msg === 'mic_denied') alert('Нет доступа к микрофону. Разреши доступ в настройках браузера.');
+        else if (msg !== 'ws_error' && msg !== 'no_auth') console.warn('voice:', msg);
+      },
+      onClose: () => { setIsRecording(false); },
+    });
   };
 
   // Маша (id=3) идёт через legacy chat.streamChat и НЕ имеет доступа к file-agent;
