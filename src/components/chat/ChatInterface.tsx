@@ -716,19 +716,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           const data = await response.json();
           setAssistants(data);
 
-          const urls: Record<number, string> = {};
-          await Promise.all(
-            data.map(async (assistant: Assistant) => {
-              try {
-                const url = await avatarService.getAvatarUrl(assistant.id);
-                urls[assistant.id] = url;
-              } catch (error) {
-                console.error(`Failed to load avatar for ${assistant.name}:`, error);
-              }
-            })
-          );
-          setAvatarUrls(urls);
-
           if (user?.preferredAgent && !hasUserSelectedAssistant) {
             const preferredAssistant = data.find((a: Assistant) => a.name === user.preferredAgent);
             if (preferredAssistant) {
@@ -736,14 +723,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               setHasUserSelectedAssistant(true);
             }
           }
+
+          // Header может рендерить ассистента уже сейчас — буквенный fallback
+          // заменится картинкой по мере загрузки. Не блокируем UI на 16 avatar-fetches:
+          // при медленной сети/нестабильном CDN один зависший запрос замораживал
+          // хедер на «Loading…» и ронял onboarding-смок (reopen-match не появлялся).
+          setIsLoadingAssistants(false);
+
+          Promise.all(
+            data.map(async (assistant: Assistant) => {
+              try {
+                const url = await avatarService.getAvatarUrl(assistant.id);
+                setAvatarUrls(prev => ({ ...prev, [assistant.id]: url }));
+              } catch (error) {
+                console.error(`Failed to load avatar for ${assistant.name}:`, error);
+              }
+            })
+          );
+          return;
         } else {
           console.error('Failed to fetch assistants');
         }
       } catch (error) {
         console.error('Error fetching assistants:', error);
-      } finally {
-        setIsLoadingAssistants(false);
       }
+      setIsLoadingAssistants(false);
     };
 
     fetchAssistants();

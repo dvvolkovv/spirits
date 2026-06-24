@@ -47,14 +47,9 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
       if (r.ok) {
         const data = await r.json();
         setAssistants(data);
-        // Load avatars
-        const urls: Record<number, string> = {};
-        await Promise.all(data.map(async (a: Assistant) => {
-          try { urls[a.id] = await avatarService.getAvatarUrl(a.id); } catch {}
-        }));
-        setAvatarUrls(urls);
-        // Restore selected id из sessionStorage (per-tab), но на мобилке sidebar оставляем открытым —
-        // юзер сам решит, продолжить с прошлым ассистентом или выбрать другого.
+        // Restore selected id из sessionStorage (per-tab) ДО подгрузки аватарок —
+        // иначе при медленном/нестабильном CDN заголовок чата зависал на «Loading…»,
+        // потому что один зависший аватар замораживал весь Promise.all.
         const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
         const saved = sessionStorage.getItem('selected_assistant');
         if (saved) {
@@ -64,6 +59,12 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
             if (!isMobile) setShowSidebar(false); // desktop показывает и sidebar, и chat одновременно — скрывать нечего
           } catch {}
         }
+        // Аватары грузим в фоне — инкрементально обновляем мапу.
+        data.forEach((a: Assistant) => {
+          avatarService.getAvatarUrl(a.id)
+            .then(url => setAvatarUrls(prev => ({ ...prev, [a.id]: url })))
+            .catch(() => {});
+        });
         // На мобилке без явного выбора sidebar остаётся видимым (state init true).
       }
     });
