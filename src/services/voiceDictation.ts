@@ -16,6 +16,7 @@ export class VoiceDictation {
   private ctx: AudioContext | null = null;
   private node: AudioWorkletNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
+  private sink: GainNode | null = null;   // тихий сток (gain 0) — чтобы iOS «тянул» граф
   private ws: WebSocket | null = null;
   private stopped = false;
 
@@ -43,6 +44,10 @@ export class VoiceDictation {
     }
 
     this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // iOS Safari: AudioContext стартует в 'suspended' — без res() worklet не
+    // обрабатывает звук (главная причина «не работает на iOS»). resume в рамках
+    // пользовательского жеста (клик по микрофону) iOS разрешает.
+    try { if (this.ctx.state === 'suspended') await this.ctx.resume(); } catch {}
     try {
       await this.ctx.audioWorklet.addModule('/pcm-recorder-worklet.js');
     } catch (e) {
@@ -72,8 +77,14 @@ export class VoiceDictation {
     this.node.port.onmessage = (ev: MessageEvent) => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(ev.data);
     };
-    // источник → ворклет; на выход (динамики) НЕ подключаем, чтобы не было эха
+    // источник → ворклет → тихий gain(0) → выход. iOS Safari вызывает process()
+    // только если граф доходит до destination; gain=0 убирает эхо. (На десктопе
+    // работало и без стока, но iOS без него молчит.)
+    this.sink = this.ctx.createGain();
+    this.sink.gain.value = 0;
     this.source.connect(this.node);
+    this.node.connect(this.sink);
+    this.sink.connect(this.ctx.destination);
   }
 
   /** Завершить речь: попросить сервер отдать финал, затем закрыть. */
@@ -93,8 +104,9 @@ export class VoiceDictation {
   private async cleanup(): Promise<void> {
     try { this.source?.disconnect(); } catch {}
     try { this.node?.disconnect(); } catch {}
+    try { this.sink?.disconnect(); } catch {}
     try { this.stream?.getTracks().forEach((t) => t.stop()); } catch {}
     try { if (this.ctx && this.ctx.state !== 'closed') await this.ctx.close(); } catch {}
-    this.source = null; this.node = null; this.stream = null; this.ctx = null; this.ws = null;
+    this.source = null; this.node = null; this.sink = null; this.stream = null; this.ctx = null; this.ws = null;
   }
 }
