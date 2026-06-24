@@ -21,7 +21,6 @@ const SupportPage = lazy(() => import('./pages/SupportPage'));
 const ProfileView = lazy(() => import('./components/profile/ProfileView'));
 const NetworkingPage = lazy(() => import('./pages/NetworkingPage'));
 const HelpPage = lazy(() => import('./pages/HelpPage'));
-const CardPage = lazy(() => import('./pages/CardPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ImageGenPage = lazy(() => import('./pages/ImageGenPage'));
 const VideoPage = lazy(() => import('./pages/VideoPage'));
@@ -30,7 +29,6 @@ const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 const TokenPurchasePage = lazy(() => import('./pages/TokenPurchasePage'));
 const AuthEmailConfirmPage = lazy(() => import('./pages/AuthEmailConfirmPage'));
 const AuthOAuthCallbackPage = lazy(() => import('./pages/AuthOAuthCallbackPage'));
-const DozvonPage = lazy(() => import('./pages/DozvonPage'));
 const ContactRequestsPage = lazy(() => import('./pages/ContactRequestsPage'));
 const SettingsSocialPage = lazy(() => import('./pages/SettingsSocialPage'));
 const StudioPage = lazy(() => import('./pages/StudioPage'));
@@ -112,7 +110,6 @@ const AppContent: React.FC = () => {
             <Route path="/search" element={<NetworkingPage />} />
             <Route path="/compatibility" element={<Navigate to="/search" replace />} />
             <Route path="/admin" element={<AdminPage />} />
-            <Route path="/dozvon" element={<DozvonPage />} />
             <Route path="/referral" element={<Navigate to="/profile" replace />} />
             <Route path="/image-gen" element={<ImageGenPage />} />
             <Route path="/video" element={<VideoPage />} />
@@ -122,7 +119,6 @@ const AppContent: React.FC = () => {
             <Route path="/contact-requests" element={<ContactRequestsPage />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
             <Route path="/settings/social" element={<SettingsSocialPage />} />
-            <Route path="/card" element={<CardPage />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
           </Routes>

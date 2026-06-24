@@ -14,8 +14,6 @@ import {
   ImageIcon,
   Film,
   HelpCircle,
-  CreditCard,
-  Phone,
   Sparkles,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -107,21 +105,7 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
-  const dozvonNavItem = {
-    to: '/dozvon',
-    icon: Phone,
-    label: t('nav.dozvon'),
-    isLogo: false,
-  };
-
   // Реферальная программа переехала в аккордеон Профиля — пункт из nav убран.
-
-  const cardNavItem = {
-    to: '/card',
-    icon: CreditCard,
-    label: t('nav.card'),
-    isLogo: false,
-  };
 
   const helpNavItem = {
     to: '/help',
@@ -135,7 +119,7 @@ const Navigation: React.FC = () => {
     // Студия доступна всем (создание агентов и Telegram-ботов).
     studioNavItem,
     // Админ-инструменты — только для админов.
-    ...(user?.isAdmin ? [adminNavItem, dozvonNavItem, cardNavItem] : []),
+    ...(user?.isAdmin ? [adminNavItem] : []),
     profileNavItem,
     helpNavItem,
   ];
