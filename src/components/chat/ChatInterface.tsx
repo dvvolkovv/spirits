@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Paperclip, Mic, MicOff, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins } from 'lucide-react';
+import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -2068,7 +2068,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             onClick={handleVoiceInput}
             disabled={!isVoiceSupported}
             className={clsx(
-              'p-2 transition-colors rounded-lg',
+              'relative p-2 transition-colors rounded-lg',
               isRecording
                 ? 'text-red-600 bg-red-50 hover:bg-red-100'
                 : isVoiceSupported
@@ -2083,7 +2083,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   : t('chat.voice_start')
             }
           >
-            {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {/* Запись = пульсирующий красный микрофон («идёт запись, нажми чтобы
+                остановить»), а не перечёркнутый MicOff — тот читался как «выключен». */}
+            <Mic className={clsx('w-5 h-5', isRecording && 'animate-pulse')} />
+            {isRecording && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            )}
           </button>
 
           <button
