@@ -7,10 +7,11 @@ import { apiClient } from '../../services/apiClient';
 // отправка наружу — через confirm-диалог (реальная рассылка людям).
 interface RetentionDraft {
   phone: string;
-  assistant_id: string;
-  assistant_name: string | null;
+  assistant_id?: string;
+  assistant_name?: string | null;
   last_at: string;
-  days_inactive: number;
+  days_inactive?: number;
+  hours_inactive?: number;   // Curious-вариант (окно 24–48ч)
   message: string;
   last_sent_at: string | null;
   in_cooldown: boolean;
@@ -18,11 +19,13 @@ interface RetentionDraft {
 interface RetentionPreview {
   channel: string;
   campaign: string;
-  window: { min_days: number; max_days: number };
+  window: { min_days?: number; max_days?: number; min_hours?: number; max_hours?: number };
   cooldown_days: number;
   count: number;
   drafts: RetentionDraft[];
 }
+
+type Mode = 'general' | 'curious';
 
 const AdminRetentionView: React.FC = () => {
   const [preview, setPreview] = useState<RetentionPreview | null>(null);
@@ -32,13 +35,18 @@ const AdminRetentionView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   // Окно инактива; дефолт включает 48ч (minDays:2) — backlog 959a1ae5.
   const [win, setWin] = useState<{ minDays: number; maxDays: number }>({ minDays: 2, maxDays: 30 });
+  // Режим: общий retention (по дням) или Curious-возврат 24–48ч (3a54efe4).
+  const [mode, setMode] = useState<Mode>('general');
 
   const load = async () => {
     setLoading(true);
     setResult(null);
     setError(null);
     try {
-      const r = await apiClient.post('/webhook/admin/retention', { action: 'preview', minDays: win.minDays, maxDays: win.maxDays });
+      const body = mode === 'curious'
+        ? { action: 'curious_preview' }
+        : { action: 'preview', minDays: win.minDays, maxDays: win.maxDays };
+      const r = await apiClient.post('/webhook/admin/retention', body);
       if (!r.ok) throw new Error(`Ошибка: ${r.status}`);
       setPreview(await r.json());
     } catch (err) {
@@ -48,7 +56,7 @@ const AdminRetentionView: React.FC = () => {
     }
   };
 
-  useEffect(() => { load(); }, [win]);
+  useEffect(() => { load(); }, [win, mode]);
 
   const send = async (phones?: string[], resend = false) => {
     const newCount = preview?.drafts.filter((d) => !d.in_cooldown).length || 0;
@@ -58,7 +66,10 @@ const AdminRetentionView: React.FC = () => {
     setResult(null);
     setError(null);
     try {
-      const r = await apiClient.post('/webhook/admin/retention', { action: 'send', confirm: true, phones, resend, minDays: win.minDays, maxDays: win.maxDays });
+      const body = mode === 'curious'
+        ? { action: 'curious_send', confirm: true, phones, resend }
+        : { action: 'send', confirm: true, phones, resend, minDays: win.minDays, maxDays: win.maxDays };
+      const r = await apiClient.post('/webhook/admin/retention', body);
       const data = await r.json();
       if (!r.ok) throw new Error(data.message || `Ошибка: ${r.status}`);
       setResult(`Отправлено: ${data.sent} · ошибок: ${data.failed} · пропущено (cooldown): ${data.skipped_cooldown}`);
@@ -85,7 +96,17 @@ const AdminRetentionView: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {([{ l: '48ч+', m: 2 }, { l: '3–30 дн', m: 3 }] as const).map((p) => (
+              {/* Режим: общий retention vs Curious-возврат 24–48ч (3a54efe4) */}
+              {([{ l: 'Общий', v: 'general' }, { l: 'Curious 24–48ч', v: 'curious' }] as const).map((p) => (
+                <button
+                  key={p.v}
+                  onClick={() => setMode(p.v as Mode)}
+                  className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${mode === p.v ? 'bg-warm-50 border-warm-300 text-warm-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                >
+                  {p.l}
+                </button>
+              ))}
+              {mode === 'general' && ([{ l: '48ч+', m: 2 }, { l: '3–30 дн', m: 3 }] as const).map((p) => (
                 <button
                   key={p.m}
                   onClick={() => setWin({ minDays: p.m, maxDays: 30 })}
@@ -118,7 +139,10 @@ const AdminRetentionView: React.FC = () => {
               <>
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="text-xs text-gray-500">
-                    {preview.count} пользователей без активности {preview.window.min_days}–{preview.window.max_days} дн ·
+                    {preview.count} {mode === 'curious' ? 'Curious-пользователей' : 'пользователей'} без активности{' '}
+                    {mode === 'curious'
+                      ? `${preview.window.min_hours ?? 24}–${preview.window.max_hours ?? 48}ч`
+                      : `${preview.window.min_days}–${preview.window.max_days} дн`} ·
                     канал SMS · cooldown {preview.cooldown_days} дн · проверьте тексты перед отправкой
                   </p>
                   <button
@@ -146,7 +170,7 @@ const AdminRetentionView: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />{d.days_inactive} дн
+                            <Clock className="w-3 h-3" />{d.hours_inactive != null ? `${d.hours_inactive}ч` : `${d.days_inactive} дн`}
                           </span>
                           {d.in_cooldown && (
                             <span className="text-[10px] text-amber-600" title={d.last_sent_at || ''}>cooldown</span>
