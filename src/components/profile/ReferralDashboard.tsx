@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Copy, Users, TrendingUp, CheckCircle, Clock, Loader, AlertCircle, Coins } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { ReferralStats } from '../../types/auth';
+import { track } from '../../services/eventsClient';
+import { withTouch } from '../../services/shareReferral';
 
 // Курс/порог вывода комиссий токенами (совпадает с бэком).
 const PAYOUT_RATE = 600;
@@ -93,7 +95,8 @@ const ReferralDashboard: React.FC = () => {
 
   const copyLink = () => {
     if (!stats) return;
-    navigator.clipboard.writeText(stats.referral_link);
+    navigator.clipboard.writeText(withTouch(stats.referral_link, 'dashboard_cta'));
+    track('referral_link_copied', { source: 'dashboard', referral_touch: 'dashboard_cta' });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Gift, Copy, Check } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { track } from '../../services/eventsClient';
+import { withTouch } from '../../services/shareReferral';
 
 /**
  * "Пригласи друга" — referral entry point in the profile (tasks a7dd3d63 /
@@ -28,8 +29,8 @@ const InviteFriendBlock: React.FC = () => {
 
   const copy = () => {
     if (!link) return;
-    navigator.clipboard.writeText(link).catch(() => {});
-    track('referral_link_copied', { source: 'profile' });
+    navigator.clipboard.writeText(withTouch(link, 'profile_share')).catch(() => {});
+    track('referral_link_copied', { source: 'profile', referral_touch: 'profile_share' });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

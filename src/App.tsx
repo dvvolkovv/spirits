@@ -50,12 +50,16 @@ const AppContent: React.FC = () => {
   // Fire a referral_click once per session when someone lands via ?ref=<slug>
   // (feeds snapshot.referral.referral_clicks_7d).
   useEffect(() => {
-    const ref = new URLSearchParams(window.location.search).get('ref');
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
     if (!ref) return;
     const key = `referral_click_fired_${ref}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, '1');
-    track('referral_click', { slug: ref });
+    // rt = точка касания, встроенная в ссылку поверхностью шеринга (71afe7f7):
+    // dashboard_cta | notification_link | in_chat_share | profile_share | manual_copy.
+    const rt = params.get('rt');
+    track('referral_click', { slug: ref, referral_touch: rt || 'direct' });
   }, []);
 
   if (isLoading) {
