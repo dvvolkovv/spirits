@@ -8,7 +8,7 @@ import Navigation from './components/layout/Navigation';
 import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
-import { track } from './services/eventsClient';
+import { track, trackAuthed } from './services/eventsClient';
 import './i18n';
 
 // Ленивые маршруты — грузятся ПО ТРЕБОВАНИЮ (code-split), а не одним монолитом.
@@ -44,8 +44,19 @@ const RouteFallback: React.FC = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { t } = useTranslation();
+
+  // app_open: открытие приложения авторизованным юзером, раз на сессию браузера
+  // (71afe7f7). С user_id → snapshot считает app_opens_7d по персонам и ratio
+  // chat_sessions/app_opens (барьер discovery vs re-engagement у Mixed).
+  useEffect(() => {
+    if (!isAuthenticated || !user?.phone) return;
+    const key = 'app_open_fired';
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    trackAuthed('app_open', user.phone);
+  }, [isAuthenticated, user?.phone]);
 
   // Fire a referral_click once per session when someone lands via ?ref=<slug>
   // (feeds snapshot.referral.referral_clicks_7d).

@@ -107,6 +107,20 @@ export const track = (name: string, props: Record<string, unknown> = {}): void =
   }
 };
 
+// Трекинг события ОТ ИМЕНИ авторизованного юзера (с user_id). Обычный track()
+// шлёт анонимно (user_id=null) — для метрик по персонам/юзерам нужен userId
+// (эндпоинт events/track принимает body.userId). Используется для app_open (71afe7f7).
+export const trackAuthed = (name: string, userId: string, props: Record<string, unknown> = {}): void => {
+  if (!name || !userId) return;
+  const backend = import.meta.env.VITE_BACKEND_URL || '';
+  const payload = JSON.stringify({ name, userId, sessionId: getSessionId(), source: getSource(), props });
+  try {
+    void fetch(`${backend}${ENDPOINT}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true,
+    }).catch(() => {});
+  } catch { /* ignore */ }
+};
+
 // Idempotent within a session: landing_view fires once per browser tab.
 export const trackLandingOnce = (): void => {
   const KEY = 'linkeon_landing_tracked';
