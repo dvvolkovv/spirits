@@ -11,6 +11,7 @@ import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
+import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { VoiceDictation } from '../../services/voiceDictation';
 import { ScenarioCard } from './smm/ScenarioCard';
@@ -2007,6 +2008,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             />
           )
         )}
+
+        {/* Session-peak soft-paywall для Романа (d6b733de): ≥15 сообщений в текущей
+            сессии с Романом → мягкая карточка в ленте, раз на сессию. */}
+        <SessionPaywallNudge
+          assistantId={selectedAssistant?.id ?? null}
+          sessionUserMsgCount={messages.filter((m) => m.type === 'user').length}
+        />
 
         <div ref={messagesEndRef} />
       </div>
