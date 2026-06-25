@@ -97,7 +97,9 @@ export interface ApproveScenariosResult {
 // apiClient returns Promise<Response> (Variant A): r.ok / r.status / r.json()
 
 export async function getScenario(id: string): Promise<ScenarioDetail> {
-  const r = await apiClient.get(`/webhook/smm/scenarios/${id}`);
+  // _ts cache-buster: после reload браузер мог отдать stale-копию из cache —
+  // юзер не видел свежие правки сценария (фикс E2E reload-persistence теста).
+  const r = await apiClient.get(`/webhook/smm/scenarios/${id}?_ts=${Date.now()}`);
   if (!r.ok) throw new Error(`getScenario ${id}: ${r.status}`);
   return r.json();
 }

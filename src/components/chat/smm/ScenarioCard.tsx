@@ -45,15 +45,27 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
     let alive = true;
     setLoading(true);
     setError(null);
-    getScenario(scenarioId)
-      .then((s) => {
+    // Ретраим до 3 раз с backoff'ом: при slow network в чате после reload
+    // одиночный «Failed to fetch» из chromium убивал карточку — пользователь
+    // видел красное «ошибка» вместо сценария. Для GET-запроса retry безопасен.
+    const attempt = async (n: number) => {
+      try {
+        const s = await getScenario(scenarioId);
         if (!alive) return;
         setScenario(s);
-        // Restore videoId from backend so player shows after page reload too.
         if (s.videoId) setRenderedVideoId(s.videoId);
         setLoading(false);
-      })
-      .catch((e) => { if (alive) { setError(e.message); setLoading(false); } });
+      } catch (e: any) {
+        if (!alive) return;
+        if (n < 2) {
+          setTimeout(() => alive && attempt(n + 1), 600 * (n + 1));
+        } else {
+          setError(e?.message ?? 'ошибка');
+          setLoading(false);
+        }
+      }
+    };
+    attempt(0);
     return () => { alive = false; };
   }, [scenarioId]);
 
