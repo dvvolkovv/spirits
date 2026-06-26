@@ -3,6 +3,7 @@ import { CreditCard, Loader, AlertCircle, RefreshCw, Users, TrendingUp } from 'l
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import UserActivityDrawer from './UserActivityDrawer';
+import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
 
 interface ReferralLeader {
   id: string;
@@ -103,6 +104,16 @@ const AdminPaymentsView: React.FC = () => {
     if (!stats) return 0;
     return Math.max(1, ...stats.daily.map(d => d.revenue));
   }, [stats]);
+
+  type PaymentSortKey = 'amount' | 'tokens' | 'status' | 'created_at';
+  const [sort, setSort] = useState<SortState<PaymentSortKey>>({ key: 'created_at', dir: 'desc' });
+
+  const sortedPayments = useTableSort(payments, sort, {
+    amount: cmp.num<PaymentItem>(p => p.amount),
+    tokens: cmp.num<PaymentItem>(p => p.tokens),
+    status: cmp.str<PaymentItem>(p => p.status),
+    created_at: cmp.date<PaymentItem>(p => p.completed_at || p.created_at),
+  });
 
   return (
     <div className="h-full overflow-y-auto">
@@ -280,15 +291,15 @@ const AdminPaymentsView: React.FC = () => {
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
                     <th className="text-left px-4 py-2.5 font-medium">Телефон</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Сумма</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Токены</th>
+                    <SortableTh sortKey="amount" state={sort} onSort={setSort} align="right">Сумма</SortableTh>
+                    <SortableTh sortKey="tokens" state={sort} onSort={setSort} align="right">Токены</SortableTh>
                     <th className="text-left px-4 py-2.5 font-medium">Реферал</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Статус</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Дата</th>
+                    <SortableTh sortKey="status" state={sort} onSort={setSort} defaultDir="asc">Статус</SortableTh>
+                    <SortableTh sortKey="created_at" state={sort} onSort={setSort}>Дата</SortableTh>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {payments.map(p => {
+                  {sortedPayments.map(p => {
                     const meta = STATUS_LABEL[p.status] || { label: p.status, color: 'bg-gray-100 text-gray-600' };
                     return (
                       <tr
