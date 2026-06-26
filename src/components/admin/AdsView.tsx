@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import {
@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronRight, ExternalLink, Film,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
+import { SortableTh, useTableSort, cmp, SortState, Comparator } from './shared/sortableTable';
 
 // Вкладка «Реклама» в управлении продуктом. Показывает платные кампании
 // (сейчас — VK Реклама), их период, объявления, расход и метрики
@@ -121,6 +122,92 @@ const AdsView: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openBanner, setOpenBanner] = useState<number | null>(null);
+
+  type AdSortKey = 'shows' | 'clicks' | 'ctr' | 'cpc' | 'spent' | 'registrations' | 'payers' | 'cpr';
+  const [sort, setSort] = useState<SortState<AdSortKey>>({ key: 'spent', dir: 'desc' });
+
+  const adComparators = useMemo<Record<AdSortKey, Comparator<Creative>>>(() => ({
+    shows: cmp.num<Creative>(c => c.shows),
+    clicks: cmp.num<Creative>(c => c.clicks),
+    ctr: cmp.num<Creative>(c => c.ctr),
+    cpc: cmp.num<Creative>(c => c.cpc),
+    spent: cmp.num<Creative>(c => c.spent),
+    registrations: cmp.num<Creative>(c => c.registrations),
+    payers: cmp.num<Creative>(c => c.payers),
+    cpr: cmp.num<Creative>(c => c.cpr),
+  }), []);
+
+  const CreativeRows: React.FC<{ creatives: Creative[] }> = ({ creatives }) => {
+    const sorted = useTableSort(creatives, sort, adComparators);
+    return (
+      <>
+        {sorted.map((cr) => {
+          const hasContent = !!(cr.images?.length || cr.video || cr.texts?.title || cr.texts?.text90 || cr.landingUrl);
+          const open = cr.bannerId != null && openBanner === cr.bannerId;
+          return (
+            <React.Fragment key={cr.bannerId ?? cr.content}>
+              <tr className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="px-4 py-2 font-medium text-gray-900">
+                  {hasContent ? (
+                    <button
+                      onClick={() => setOpenBanner(open ? null : (cr.bannerId ?? null))}
+                      className="inline-flex items-center gap-1 hover:text-forest-700"
+                    >
+                      {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                      {cr.content}
+                    </button>
+                  ) : cr.content}
+                </td>
+                <td className="px-3 py-2"><StatusBadge state={cr.state} label={t(`admin.product.ads.state.${cr.state}`)} /></td>
+                <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.shows)}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.clicks)}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{cr.ctr != null ? `${cr.ctr}%` : '—'}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{fmtRub(cr.cpc)}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{fmtRub(cr.spent)}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.registrations)}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.payers)}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{fmtRub(cr.cpr)}</td>
+              </tr>
+              {open && (
+                <tr className="border-b border-gray-100 bg-gray-50/60">
+                  <td colSpan={10} className="px-4 py-3">
+                    <div className="flex flex-col lg:flex-row gap-4">
+                      <div className="flex flex-wrap gap-2">
+                        {cr.images?.map((im) => (
+                          <a key={im.slot} href={im.url} target="_blank" rel="noopener noreferrer"
+                             title={im.slot} className="block">
+                            <img src={im.url} alt={im.slot}
+                                 className="h-24 w-auto rounded border border-gray-200 object-cover hover:ring-2 hover:ring-forest-400" />
+                          </a>
+                        ))}
+                        {cr.video && (
+                          <a href={cr.video} target="_blank" rel="noopener noreferrer"
+                             className="h-24 px-3 flex items-center gap-1.5 rounded border border-gray-200 bg-white text-sm text-forest-700 hover:ring-2 hover:ring-forest-400">
+                            <Film className="w-4 h-4" /> {t('admin.product.ads.video')}
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1.5 text-sm">
+                        {cr.texts?.title && <div className="font-semibold text-gray-900">{cr.texts.title}</div>}
+                        {cr.texts?.text90 && <div className="text-gray-700">{cr.texts.text90}</div>}
+                        {cr.texts?.textLong && <div className="text-gray-500 text-xs">{cr.texts.textLong}</div>}
+                        {cr.landingUrl && (
+                          <a href={cr.landingUrl} target="_blank" rel="noopener noreferrer"
+                             className="inline-flex items-center gap-1 text-xs text-forest-700 hover:underline break-all">
+                            <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" /> {cr.landingUrl}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </>
+    );
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -265,83 +352,18 @@ const AdsView: React.FC = () => {
                   <tr className="text-left text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-100">
                     <th className="px-4 py-2 font-medium">{t('admin.product.ads.creative')}</th>
                     <th className="px-3 py-2 font-medium">{t('admin.product.ads.status')}</th>
-                    <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.shows')}</th>
-                    <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.clicks')}</th>
-                    <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.ctr')}</th>
-                    <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.cpc')}</th>
-                    <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.spent')}</th>
-                    <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.registrations')}</th>
-                    <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.payers')}</th>
-                    <th className="px-3 py-2 font-medium text-right">{t('admin.product.ads.cpr')}</th>
+                    <SortableTh sortKey="shows" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.shows')}</SortableTh>
+                    <SortableTh sortKey="clicks" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.clicks')}</SortableTh>
+                    <SortableTh sortKey="ctr" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.ctr')}</SortableTh>
+                    <SortableTh sortKey="cpc" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.cpc')}</SortableTh>
+                    <SortableTh sortKey="spent" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.spent')}</SortableTh>
+                    <SortableTh sortKey="registrations" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.registrations')}</SortableTh>
+                    <SortableTh sortKey="payers" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.payers')}</SortableTh>
+                    <SortableTh sortKey="cpr" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.cpr')}</SortableTh>
                   </tr>
                 </thead>
                 <tbody>
-                  {c.creatives.map((cr) => {
-                    const hasContent = !!(cr.images?.length || cr.video || cr.texts?.title || cr.texts?.text90 || cr.landingUrl);
-                    const open = cr.bannerId != null && openBanner === cr.bannerId;
-                    return (
-                    <React.Fragment key={cr.bannerId ?? cr.content}>
-                    <tr className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="px-4 py-2 font-medium text-gray-900">
-                        {hasContent ? (
-                          <button
-                            onClick={() => setOpenBanner(open ? null : (cr.bannerId ?? null))}
-                            className="inline-flex items-center gap-1 hover:text-forest-700"
-                          >
-                            {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                            {cr.content}
-                          </button>
-                        ) : cr.content}
-                      </td>
-                      <td className="px-3 py-2"><StatusBadge state={cr.state} label={t(`admin.product.ads.state.${cr.state}`)} /></td>
-                      <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.shows)}</td>
-                      <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.clicks)}</td>
-                      <td className="px-3 py-2 text-right text-gray-700">{cr.ctr != null ? `${cr.ctr}%` : '—'}</td>
-                      <td className="px-3 py-2 text-right text-gray-700">{fmtRub(cr.cpc)}</td>
-                      <td className="px-3 py-2 text-right text-gray-700">{fmtRub(cr.spent)}</td>
-                      <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.registrations)}</td>
-                      <td className="px-3 py-2 text-right text-gray-700">{fmtNum(cr.payers)}</td>
-                      <td className="px-3 py-2 text-right text-gray-700">{fmtRub(cr.cpr)}</td>
-                    </tr>
-                    {open && (
-                      <tr className="border-b border-gray-100 bg-gray-50/60">
-                        <td colSpan={10} className="px-4 py-3">
-                          <div className="flex flex-col lg:flex-row gap-4">
-                            {/* Картинки + видео */}
-                            <div className="flex flex-wrap gap-2">
-                              {cr.images?.map((im) => (
-                                <a key={im.slot} href={im.url} target="_blank" rel="noopener noreferrer"
-                                   title={im.slot} className="block">
-                                  <img src={im.url} alt={im.slot}
-                                       className="h-24 w-auto rounded border border-gray-200 object-cover hover:ring-2 hover:ring-forest-400" />
-                                </a>
-                              ))}
-                              {cr.video && (
-                                <a href={cr.video} target="_blank" rel="noopener noreferrer"
-                                   className="h-24 px-3 flex items-center gap-1.5 rounded border border-gray-200 bg-white text-sm text-forest-700 hover:ring-2 hover:ring-forest-400">
-                                  <Film className="w-4 h-4" /> {t('admin.product.ads.video')}
-                                </a>
-                              )}
-                            </div>
-                            {/* Тексты + ссылка */}
-                            <div className="flex-1 min-w-0 space-y-1.5 text-sm">
-                              {cr.texts?.title && <div className="font-semibold text-gray-900">{cr.texts.title}</div>}
-                              {cr.texts?.text90 && <div className="text-gray-700">{cr.texts.text90}</div>}
-                              {cr.texts?.textLong && <div className="text-gray-500 text-xs">{cr.texts.textLong}</div>}
-                              {cr.landingUrl && (
-                                <a href={cr.landingUrl} target="_blank" rel="noopener noreferrer"
-                                   className="inline-flex items-center gap-1 text-xs text-forest-700 hover:underline break-all">
-                                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" /> {cr.landingUrl}
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    </React.Fragment>
-                    );
-                  })}
+                  <CreativeRows creatives={c.creatives} />
                 </tbody>
               </table>
             </div>
