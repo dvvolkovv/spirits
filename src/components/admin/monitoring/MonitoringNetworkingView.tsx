@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Loader, RefreshCw, Users, UserPlus, UserMinus, Clock, ShieldOff } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
+import { SortableTh, useTableSort, cmp, SortState } from '../shared/sortableTable';
 
 type Window = '24h' | '7d' | '30d' | '90d' | 'all';
 const WINDOW_LABEL: Record<Window, string> = {
@@ -51,6 +52,24 @@ const MonitoringNetworkingView: React.FC = () => {
   const [data, setData] = useState<NetworkingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  type SenderSortKey = 'sent' | 'accepted';
+  type ReceiverSortKey = 'received' | 'accepted';
+
+  const [senderSort, setSenderSort] = useState<SortState<SenderSortKey>>({ key: 'sent', dir: 'desc' });
+  const [receiverSort, setReceiverSort] = useState<SortState<ReceiverSortKey>>({ key: 'received', dir: 'desc' });
+
+  type SenderRow = { userId: string; sent: number; accepted: number };
+  type ReceiverRow = { userId: string; received: number; accepted: number };
+
+  const sortedSenders = useTableSort<SenderRow, SenderSortKey>(data?.topRequesters ?? [], senderSort, {
+    sent: cmp.num<SenderRow>(r => r.sent),
+    accepted: cmp.num<SenderRow>(r => r.accepted),
+  });
+  const sortedReceivers = useTableSort<ReceiverRow, ReceiverSortKey>(data?.topTargets ?? [], receiverSort, {
+    received: cmp.num<ReceiverRow>(r => r.received),
+    accepted: cmp.num<ReceiverRow>(r => r.accepted),
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,12 +157,14 @@ const MonitoringNetworkingView: React.FC = () => {
               <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-                    <tr><th className="text-left px-3 py-2 font-medium">user_id</th>
-                        <th className="text-right px-3 py-2 font-medium">Отправил</th>
-                        <th className="text-right px-3 py-2 font-medium">Принято</th></tr>
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">user_id</th>
+                      <SortableTh sortKey="sent" state={senderSort} onSort={setSenderSort} align="right" className="!px-3 !py-2">Отправил</SortableTh>
+                      <SortableTh sortKey="accepted" state={senderSort} onSort={setSenderSort} align="right" className="!px-3 !py-2">Принято</SortableTh>
+                    </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {data.topRequesters.map((r) => (
+                    {sortedSenders.map((r) => (
                       <tr key={r.userId}>
                         <td className="px-3 py-2 font-mono text-xs">{r.userId}</td>
                         <td className="px-3 py-2 text-right">{r.sent}</td>
@@ -162,12 +183,14 @@ const MonitoringNetworkingView: React.FC = () => {
               <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-                    <tr><th className="text-left px-3 py-2 font-medium">user_id</th>
-                        <th className="text-right px-3 py-2 font-medium">Получил</th>
-                        <th className="text-right px-3 py-2 font-medium">Принял</th></tr>
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">user_id</th>
+                      <SortableTh sortKey="received" state={receiverSort} onSort={setReceiverSort} align="right" className="!px-3 !py-2">Получил</SortableTh>
+                      <SortableTh sortKey="accepted" state={receiverSort} onSort={setReceiverSort} align="right" className="!px-3 !py-2">Принял</SortableTh>
+                    </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {data.topTargets.map((r) => (
+                    {sortedReceivers.map((r) => (
                       <tr key={r.userId}>
                         <td className="px-3 py-2 font-mono text-xs">{r.userId}</td>
                         <td className="px-3 py-2 text-right">{r.received}</td>
