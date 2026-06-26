@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Loader, RefreshCw, TrendingDown, UserX, Trash2, AlertTriangle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
+import { SortableTh, useTableSort, cmp, SortState } from '../shared/sortableTable';
 
 interface ChurnOverview {
   generatedAt: string;
@@ -57,6 +58,19 @@ const MonitoringChurnView: React.FC = () => {
   const [data, setData] = useState<ChurnOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  type ChurnSortKey = 'week' | 'signups' | 'retainedD7' | 'retentionD7Pct' | 'retainedD30' | 'retentionD30Pct';
+  const [sort, setSort] = useState<SortState<ChurnSortKey>>({ key: 'week', dir: 'desc' });
+
+  type CohortRow = { week: string; signups: number; retainedD7: number; retainedD30: number; retentionD7Pct: number | null; retentionD30Pct: number | null };
+  const sortedCohorts = useTableSort<CohortRow, ChurnSortKey>(data?.cohorts ?? [], sort, {
+    week: cmp.str<CohortRow>(c => c.week),
+    signups: cmp.num<CohortRow>(c => c.signups),
+    retainedD7: cmp.num<CohortRow>(c => c.retainedD7),
+    retentionD7Pct: cmp.num<CohortRow>(c => c.retentionD7Pct),
+    retainedD30: cmp.num<CohortRow>(c => c.retainedD30),
+    retentionD30Pct: cmp.num<CohortRow>(c => c.retentionD30Pct),
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -145,16 +159,16 @@ const MonitoringChurnView: React.FC = () => {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
                   <tr>
-                    <th className="text-left px-3 py-2 font-medium">Неделя</th>
-                    <th className="text-right px-3 py-2 font-medium">Signups</th>
-                    <th className="text-right px-3 py-2 font-medium">D7 удержано</th>
-                    <th className="text-right px-3 py-2 font-medium">D7 retention</th>
-                    <th className="text-right px-3 py-2 font-medium">D30 удержано</th>
-                    <th className="text-right px-3 py-2 font-medium">D30 retention</th>
+                    <SortableTh sortKey="week" state={sort} onSort={setSort} defaultDir="desc" className="!px-3 !py-2">Неделя</SortableTh>
+                    <SortableTh sortKey="signups" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">Signups</SortableTh>
+                    <SortableTh sortKey="retainedD7" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">D7 удержано</SortableTh>
+                    <SortableTh sortKey="retentionD7Pct" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">D7 retention</SortableTh>
+                    <SortableTh sortKey="retainedD30" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">D30 удержано</SortableTh>
+                    <SortableTh sortKey="retentionD30Pct" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">D30 retention</SortableTh>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {data.cohorts.map((c) => (
+                  {sortedCohorts.map((c) => (
                     <tr key={c.week} className="hover:bg-gray-50">
                       <td className="px-3 py-2 font-mono text-xs">{c.week}</td>
                       <td className="px-3 py-2 text-right">{fmtNum(c.signups)}</td>
