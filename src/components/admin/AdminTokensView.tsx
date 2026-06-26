@@ -3,6 +3,7 @@ import { Coins, Loader, AlertCircle, RefreshCw, TrendingDown, Users, Wallet } fr
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import UserActivityDrawer from './UserActivityDrawer';
+import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
 
 interface UserTokenRow {
   phone: string;
@@ -66,13 +67,13 @@ const formatBucket = (iso: string, bucket: 'day' | 'hour') => {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
-type SortBy = 'balance' | 'spent_period';
+type TokenSortKey = 'balance' | 'spent_period' | 'last_active' | 'paid_count';
 type Bucket = 'day' | 'hour';
 
 const AdminTokensView: React.FC = () => {
   const [usersData, setUsersData] = useState<UsersResp | null>(null);
   const [spendStats, setSpendStats] = useState<SpendStats | null>(null);
-  const [sortBy, setSortBy] = useState<SortBy>('balance');
+  const [sort, setSort] = useState<SortState<TokenSortKey>>({ key: 'spent_period', dir: 'desc' });
   const [bucket, setBucket] = useState<Bucket>('day');
   const [days, setDays] = useState<number>(30);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +92,7 @@ const AdminTokensView: React.FC = () => {
     setError(null);
     try {
       const [uResp, sResp] = await Promise.all([
-        apiClient.get(`/webhook/admin/users/tokens?sort=${sortBy}&hours=${periodHours}&limit=200`),
+        apiClient.get(`/webhook/admin/users/tokens?hours=${periodHours}&limit=200`),
         apiClient.get(`/webhook/admin/tokens/stats?bucket=${bucket}&days=${days}`),
       ]);
       if (!uResp.ok) throw new Error(`Пользователи: ${uResp.status}`);
@@ -105,12 +106,19 @@ const AdminTokensView: React.FC = () => {
     }
   };
 
-  useEffect(() => { load(); }, [sortBy, bucket, days]); // eslint-disable-line
+  useEffect(() => { load(); }, [bucket, days]); // eslint-disable-line
 
   const maxSpent = useMemo(() => {
     if (!spendStats) return 0;
     return Math.max(1, ...spendStats.series.map(s => s.spent));
   }, [spendStats]);
+
+  const sortedUsers = useTableSort(usersData?.users ?? [], sort, {
+    balance: cmp.num<UserTokenRow>(u => u.balance),
+    spent_period: cmp.num<UserTokenRow>(u => u.spent_period),
+    last_active: cmp.date<UserTokenRow>(u => u.last_active),
+    paid_count: cmp.num<UserTokenRow>(u => u.paid_count),
+  });
 
   return (
     <div className="h-full overflow-y-auto">
@@ -273,28 +281,10 @@ const AdminTokensView: React.FC = () => {
           </div>
         )}
 
-        {/* Sort tabs */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-500">Сортировка:</span>
-          {([
-            { id: 'balance', label: 'По балансу' },
-            { id: 'spent_period', label: `По расходу ${periodLabel}` },
-          ] as { id: SortBy; label: string }[]).map(o => (
-            <button
-              key={o.id}
-              onClick={() => setSortBy(o.id)}
-              className={clsx(
-                'px-3 py-1 text-xs rounded-full border transition-colors',
-                sortBy === o.id
-                  ? 'border-forest-400 bg-forest-50 text-forest-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300',
-              )}
-            >
-              {o.label}
-            </button>
-          ))}
-          <span className="text-xs text-gray-400 ml-auto">
-            {usersData?.users.length ?? 0} пользователей{sortBy === 'spent_period' ? ` активных ${periodLabel}` : ''}
+        {/* Users counter */}
+        <div className="flex items-center justify-end">
+          <span className="text-xs text-gray-400">
+            {usersData?.users.length ?? 0} пользователей
           </span>
         </div>
 
@@ -315,16 +305,16 @@ const AdminTokensView: React.FC = () => {
                   <tr>
                     <th className="text-left px-4 py-2.5 font-medium">#</th>
                     <th className="text-left px-4 py-2.5 font-medium">Телефон</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Баланс</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Списано {periodLabel}</th>
-                    <th className="text-left px-4 py-2.5 font-medium">Последняя активность</th>
+                    <SortableTh sortKey="balance" state={sort} onSort={setSort} align="right">Баланс</SortableTh>
+                    <SortableTh sortKey="spent_period" state={sort} onSort={setSort} align="right">Списано {periodLabel}</SortableTh>
+                    <SortableTh sortKey="last_active" state={sort} onSort={setSort}>Последняя активность</SortableTh>
                     <th className="text-right px-4 py-2.5 font-medium">Списано всего</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Платежей</th>
+                    <SortableTh sortKey="paid_count" state={sort} onSort={setSort} align="right">Платежей</SortableTh>
                     <th className="text-left px-4 py-2.5 font-medium">Реферал</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {usersData.users.map((u, idx) => (
+                  {sortedUsers.map((u, idx) => (
                     <tr
                       key={u.phone}
                       onClick={() => setSelectedPhone(u.phone)}
