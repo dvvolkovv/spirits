@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Loader, RefreshCw, MessageSquare, Zap, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
+import { SortableTh, useTableSort, cmp, SortState } from '../shared/sortableTable';
 
 type Window = '24h' | '7d' | '30d' | 'all';
 const WINDOW_LABEL: Record<Window, string> = {
@@ -103,6 +104,18 @@ const MonitoringQualityView: React.FC = () => {
     return Math.max(...data.perAssistant.map((a) => a.messages), 1);
   }, [data]);
 
+  type QualitySortKey = 'messages' | 'uniqueUsers' | 'avgRespMs' | 'p95RespMs' | 'avgPerSession' | 'failureRatePct';
+  const [sort, setSort] = useState<SortState<QualitySortKey>>({ key: 'messages', dir: 'desc' });
+
+  const sortedAssistants = useTableSort(data?.perAssistant ?? [], sort, {
+    messages: cmp.num<AssistantRow>(a => a.messages),
+    uniqueUsers: cmp.num<AssistantRow>(a => a.uniqueUsers),
+    avgRespMs: cmp.num<AssistantRow>(a => a.avgRespMs),
+    p95RespMs: cmp.num<AssistantRow>(a => a.p95RespMs),
+    avgPerSession: cmp.num<AssistantRow>(a => a.avgPerSession),
+    failureRatePct: cmp.num<AssistantRow>(a => a.failureRatePct),
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -157,16 +170,16 @@ const MonitoringQualityView: React.FC = () => {
                   <tr>
                     <th className="text-left px-3 py-2 font-medium">Ассистент</th>
                     <th className="text-left px-3 py-2 font-medium">Категория</th>
-                    <th className="text-right px-3 py-2 font-medium">Сообщений</th>
-                    <th className="text-right px-3 py-2 font-medium">Юзеров</th>
-                    <th className="text-right px-3 py-2 font-medium">Средн. ответ</th>
-                    <th className="text-right px-3 py-2 font-medium">p95</th>
-                    <th className="text-right px-3 py-2 font-medium">Ср. на сессию</th>
-                    <th className="text-right px-3 py-2 font-medium">% ошибок</th>
+                    <SortableTh sortKey="messages" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">Сообщений</SortableTh>
+                    <SortableTh sortKey="uniqueUsers" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">Юзеров</SortableTh>
+                    <SortableTh sortKey="avgRespMs" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">Средн. ответ</SortableTh>
+                    <SortableTh sortKey="p95RespMs" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">p95</SortableTh>
+                    <SortableTh sortKey="avgPerSession" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">Ср. на сессию</SortableTh>
+                    <SortableTh sortKey="failureRatePct" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">% ошибок</SortableTh>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {data.perAssistant.map((a) => {
+                  {sortedAssistants.map((a) => {
                     const barPct = (a.messages / maxMsg) * 100;
                     return (
                       <tr key={a.assistantId} className="hover:bg-gray-50">
