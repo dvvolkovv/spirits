@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Loader, RefreshCw, AlertCircle, Radar } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
+import { SortableTh, useTableSort, cmp, SortState } from '../shared/sortableTable';
 
 // Атрибуция по источникам привлечения (UTM/referral/referrer): воронка
 // лендинги → регистрации → активация → платящие/выручка. Закрывает critical-
@@ -50,6 +51,12 @@ const MonitoringAttributionView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  type SourceSortKey = 'landings' | 'registrations' | 'activated' | 'payers' | 'revenueRub';
+  type CampaignSortKey = 'registrations' | 'activated' | 'payers' | 'revenueRub';
+
+  const [sourceSort, setSourceSort] = useState<SortState<SourceSortKey>>({ key: 'revenueRub', dir: 'desc' });
+  const [campaignSort, setCampaignSort] = useState<SortState<CampaignSortKey>>({ key: 'revenueRub', dir: 'desc' });
+
   const load = useCallback(async (wd: number) => {
     setLoading(true);
     setError(null);
@@ -68,6 +75,20 @@ const MonitoringAttributionView: React.FC = () => {
   }, []);
 
   useEffect(() => { load(windowDays); }, [load, windowDays]);
+
+  const sortedSources = useTableSort<AttributionRow, SourceSortKey>(data?.rows ?? [], sourceSort, {
+    landings: cmp.num<AttributionRow>(r => r.landings),
+    registrations: cmp.num<AttributionRow>(r => r.registrations),
+    activated: cmp.num<AttributionRow>(r => r.activated),
+    payers: cmp.num<AttributionRow>(r => r.payers),
+    revenueRub: cmp.num<AttributionRow>(r => r.revenueRub),
+  });
+  const sortedCampaigns = useTableSort<CampaignRow, CampaignSortKey>(data?.byCampaign ?? [], campaignSort, {
+    registrations: cmp.num<CampaignRow>(r => r.registrations),
+    activated: cmp.num<CampaignRow>(r => r.activated),
+    payers: cmp.num<CampaignRow>(r => r.payers),
+    revenueRub: cmp.num<CampaignRow>(r => r.revenueRub),
+  });
 
   return (
     <section className="mt-6">
@@ -111,18 +132,18 @@ const MonitoringAttributionView: React.FC = () => {
             <thead>
               <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
                 <th className="px-3 py-2 font-medium">Источник</th>
-                <th className="px-3 py-2 font-medium text-right">Лендинги</th>
-                <th className="px-3 py-2 font-medium text-right">Регистрации</th>
-                <th className="px-3 py-2 font-medium text-right">Активация</th>
-                <th className="px-3 py-2 font-medium text-right">Платящие</th>
-                <th className="px-3 py-2 font-medium text-right">Выручка</th>
+                <SortableTh sortKey="landings" state={sourceSort} onSort={setSourceSort} align="right" className="!px-3 !py-2">Лендинги</SortableTh>
+                <SortableTh sortKey="registrations" state={sourceSort} onSort={setSourceSort} align="right" className="!px-3 !py-2">Регистрации</SortableTh>
+                <SortableTh sortKey="activated" state={sourceSort} onSort={setSourceSort} align="right" className="!px-3 !py-2">Активация</SortableTh>
+                <SortableTh sortKey="payers" state={sourceSort} onSort={setSourceSort} align="right" className="!px-3 !py-2">Платящие</SortableTh>
+                <SortableTh sortKey="revenueRub" state={sourceSort} onSort={setSourceSort} align="right" className="!px-3 !py-2">Выручка</SortableTh>
               </tr>
             </thead>
             <tbody>
               {data.rows.length === 0 && (
                 <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-500">Данных за период нет</td></tr>
               )}
-              {data.rows.map((r) => {
+              {sortedSources.map((r) => {
                 const isUtm = r.source.startsWith('utm:') || r.source.startsWith('referral:');
                 return (
                   <tr key={r.source} className={clsx('border-b border-gray-50 last:border-0', isUtm && 'bg-forest-50/40')}>
@@ -165,14 +186,14 @@ const MonitoringAttributionView: React.FC = () => {
               <thead>
                 <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
                   <th className="px-3 py-2 font-medium">Кампания / креатив</th>
-                  <th className="px-3 py-2 font-medium text-right">Регистрации</th>
-                  <th className="px-3 py-2 font-medium text-right">Активация</th>
-                  <th className="px-3 py-2 font-medium text-right">Платящие</th>
-                  <th className="px-3 py-2 font-medium text-right">Выручка</th>
+                  <SortableTh sortKey="registrations" state={campaignSort} onSort={setCampaignSort} align="right" className="!px-3 !py-2">Регистрации</SortableTh>
+                  <SortableTh sortKey="activated" state={campaignSort} onSort={setCampaignSort} align="right" className="!px-3 !py-2">Активация</SortableTh>
+                  <SortableTh sortKey="payers" state={campaignSort} onSort={setCampaignSort} align="right" className="!px-3 !py-2">Платящие</SortableTh>
+                  <SortableTh sortKey="revenueRub" state={campaignSort} onSort={setCampaignSort} align="right" className="!px-3 !py-2">Выручка</SortableTh>
                 </tr>
               </thead>
               <tbody>
-                {data.byCampaign.map((c) => (
+                {sortedCampaigns.map((c) => (
                   <tr key={c.campaign} className="border-b border-gray-50 last:border-0">
                     <td className="px-3 py-2 font-medium text-gray-800">{c.campaign}</td>
                     <td className="px-3 py-2 text-right text-gray-800 font-medium">{fmt(c.registrations)}</td>
