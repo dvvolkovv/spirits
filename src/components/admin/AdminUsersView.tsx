@@ -3,6 +3,7 @@ import { Users, Loader, AlertCircle, RefreshCw, UserPlus, Activity, Calendar, Se
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import UserActivityDrawer from './UserActivityDrawer';
+import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
 
 interface UserRow {
   phone: string;
@@ -86,7 +87,7 @@ const formatRelative = (iso: string | null) => {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 };
 
-type SortBy = 'spent_period' | 'balance' | 'registered_at';
+type UserSortKey = 'registered_at' | 'last_active' | 'spent_period' | 'balance' | 'paid_count';
 type Metric = 'unique_users' | 'new_users';
 const PERIODS: number[] = [7, 30, 90];
 
@@ -95,7 +96,7 @@ const AdminUsersView: React.FC = () => {
   const [users, setUsers] = useState<UsersResp | null>(null);
   const [days, setDays] = useState<number>(30);
   const [metric, setMetric] = useState<Metric>('unique_users');
-  const [sortBy, setSortBy] = useState<SortBy>('spent_period');
+  const [sort, setSort] = useState<SortState<UserSortKey>>({ key: 'spent_period', dir: 'desc' });
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,21 +132,17 @@ const AdminUsersView: React.FC = () => {
   const filteredUsers = useMemo(() => {
     if (!users) return [] as UserRow[];
     const q = search.trim().replace(/\D/g, '');
-    let arr = users.users;
-    if (q.length > 0) {
-      arr = arr.filter(u => (u.phone || '').replace(/\D/g, '').includes(q));
-    }
-    arr = [...arr].sort((a, b) => {
-      if (sortBy === 'balance') return b.balance - a.balance;
-      if (sortBy === 'registered_at') {
-        const ta = a.registered_at ? new Date(a.registered_at).getTime() : 0;
-        const tb = b.registered_at ? new Date(b.registered_at).getTime() : 0;
-        return tb - ta;
-      }
-      return b.spent_period - a.spent_period;
-    });
-    return arr;
-  }, [users, search, sortBy]);
+    if (q.length === 0) return users.users;
+    return users.users.filter(u => (u.phone || '').replace(/\D/g, '').includes(q));
+  }, [users, search]);
+
+  const sortedUsers = useTableSort(filteredUsers, sort, {
+    registered_at: cmp.date<UserRow>(u => u.registered_at),
+    last_active: cmp.date<UserRow>(u => u.last_active),
+    spent_period: cmp.num<UserRow>(u => u.spent_period),
+    balance: cmp.num<UserRow>(u => u.balance),
+    paid_count: cmp.num<UserRow>(u => u.paid_count),
+  });
 
   return (
     <div className="h-full overflow-y-auto">
@@ -346,29 +343,8 @@ const AdminUsersView: React.FC = () => {
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-forest-400 focus:ring-1 focus:ring-forest-200 outline-none"
             />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-500">Сортировка:</span>
-            {([
-              { id: 'spent_period', label: 'По расходу за 30 дн' },
-              { id: 'balance', label: 'По балансу' },
-              { id: 'registered_at', label: 'По дате регистрации' },
-            ] as { id: SortBy; label: string }[]).map(o => (
-              <button
-                key={o.id}
-                onClick={() => setSortBy(o.id)}
-                className={clsx(
-                  'px-3 py-1 text-xs rounded-full border transition-colors',
-                  sortBy === o.id
-                    ? 'border-forest-400 bg-forest-50 text-forest-700'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300',
-                )}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
           <span className="text-xs text-gray-400 sm:ml-auto">
-            {filteredUsers.length} из {users?.users.length ?? 0}
+            {sortedUsers.length} из {users?.users.length ?? 0}
           </span>
         </div>
 
@@ -379,31 +355,31 @@ const AdminUsersView: React.FC = () => {
               <Loader className="w-6 h-6 animate-spin text-forest-600" />
             </div>
           )}
-          {users && filteredUsers.length === 0 && !error && (
+          {users && sortedUsers.length === 0 && !error && (
             <p className="text-sm text-gray-400 py-12 text-center">Нет пользователей</p>
           )}
-          {users && filteredUsers.length > 0 && (
+          {users && sortedUsers.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
                     <th className="text-left px-4 py-2.5 font-medium">#</th>
                     <th className="text-left px-4 py-2.5 font-medium">Телефон</th>
-                    <th className="text-left px-4 py-2.5 font-medium">
+                    <SortableTh sortKey="registered_at" state={sort} onSort={setSort}>
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         Зарегистрирован
                       </span>
-                    </th>
-                    <th className="text-left px-4 py-2.5 font-medium">Последняя активность</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Списано за 30 дн</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Баланс</th>
-                    <th className="text-right px-4 py-2.5 font-medium">Платежей</th>
+                    </SortableTh>
+                    <SortableTh sortKey="last_active" state={sort} onSort={setSort}>Последняя активность</SortableTh>
+                    <SortableTh sortKey="spent_period" state={sort} onSort={setSort} align="right">Списано за 30 дн</SortableTh>
+                    <SortableTh sortKey="balance" state={sort} onSort={setSort} align="right">Баланс</SortableTh>
+                    <SortableTh sortKey="paid_count" state={sort} onSort={setSort} align="right">Платежей</SortableTh>
                     <th className="text-left px-4 py-2.5 font-medium">Реферал</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredUsers.map((u, idx) => (
+                  {sortedUsers.map((u, idx) => (
                     <tr
                       key={u.phone}
                       onClick={() => setSelectedPhone(u.phone)}
