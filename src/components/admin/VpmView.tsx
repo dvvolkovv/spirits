@@ -7,6 +7,7 @@ import {
   Sparkles, Loader, ListPlus, X as XIcon, CheckCircle2, AlertCircle, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
+import { SortSelect, useTableSort, cmp, SortState } from './shared/sortableTable';
 
 type Priority = 'critical' | 'high' | 'medium' | 'low';
 type Status   = 'pending' | 'in_backlog' | 'dismissed' | 'done';
@@ -37,12 +38,14 @@ interface Run {
   rec_count: number;
 }
 
-const PRIORITY_STYLE: Record<Priority, { card: string; pill: string; rank: number }> = {
-  critical: { card: 'border-rose-300 bg-rose-50',  pill: 'bg-rose-100 text-rose-800',     rank: 0 },
-  high:     { card: 'border-amber-300 bg-amber-50',pill: 'bg-amber-100 text-amber-800',   rank: 1 },
-  medium:   { card: 'border-gray-200',             pill: 'bg-blue-100 text-blue-700',     rank: 2 },
-  low:      { card: 'border-gray-200',             pill: 'bg-gray-100 text-gray-600',     rank: 3 },
+const PRIORITY_STYLE: Record<Priority, { card: string; pill: string }> = {
+  critical: { card: 'border-rose-300 bg-rose-50',  pill: 'bg-rose-100 text-rose-800' },
+  high:     { card: 'border-amber-300 bg-amber-50',pill: 'bg-amber-100 text-amber-800' },
+  medium:   { card: 'border-gray-200',             pill: 'bg-blue-100 text-blue-700' },
+  low:      { card: 'border-gray-200',             pill: 'bg-gray-100 text-gray-600' },
 };
+
+const PRIORITY_RANK: Record<Priority, number> = { critical: 4, high: 3, medium: 2, low: 1 };
 
 const STATUS_FILTERS: Status[] = ['pending', 'in_backlog', 'done', 'dismissed'];
 
@@ -121,6 +124,14 @@ const VpmView: React.FC = () => {
     [recs, filter],
   );
 
+  type RecSortKey = 'priority' | 'created_at';
+  const [sort, setSort] = useState<SortState<RecSortKey>>({ key: 'priority', dir: 'desc' });
+
+  const sortedFiltered = useTableSort<Recommendation, RecSortKey>(filtered, sort, {
+    priority: cmp.num<Recommendation>(r => PRIORITY_RANK[r.priority]),
+    created_at: cmp.date<Recommendation>(r => r.created_at),
+  });
+
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: recs.length };
     for (const s of STATUS_FILTERS) c[s] = recs.filter((r) => r.status === s).length;
@@ -147,14 +158,25 @@ const VpmView: React.FC = () => {
               </button>
             ))}
           </div>
-          <button
-            onClick={generate}
-            disabled={generating}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 disabled:opacity-60 transition-colors"
-          >
-            {generating ? <Loader className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {generating ? t('admin.product.vpm.generating') : t('admin.product.vpm.generate')}
-          </button>
+          <div className="flex items-center gap-2">
+            <SortSelect
+              state={sort}
+              onSort={setSort}
+              options={[
+                { key: 'priority', dir: 'desc', label: 'Приоритет ↓' },
+                { key: 'created_at', dir: 'desc', label: 'Дата ↓' },
+                { key: 'created_at', dir: 'asc', label: 'Дата ↑' },
+              ]}
+            />
+            <button
+              onClick={generate}
+              disabled={generating}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 disabled:opacity-60 transition-colors"
+            >
+              {generating ? <Loader className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {generating ? t('admin.product.vpm.generating') : t('admin.product.vpm.generate')}
+            </button>
+          </div>
         </div>
         {lastRun && (
           <div className="px-4 sm:px-6 pb-2 text-xs text-gray-500 flex items-center gap-3 flex-wrap">
@@ -189,7 +211,7 @@ const VpmView: React.FC = () => {
           </div>
         )}
 
-        {filtered.map((rec) => {
+        {sortedFiltered.map((rec) => {
           const st = PRIORITY_STYLE[rec.priority];
           const expanded = expandedId === rec.id;
           return (
