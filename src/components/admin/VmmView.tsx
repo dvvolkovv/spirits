@@ -7,6 +7,7 @@ import {
   Megaphone, Loader, ListPlus, X as XIcon, CheckCircle2, AlertCircle, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
+import { SortSelect, useTableSort, cmp, SortState } from './shared/sortableTable';
 
 // Виртуальный маркетолог — близнец VpmView, но ходит в /admin/vmm и говорит про
 // маркетинг. Тот же workflow карточек-рекомендаций: одобрить → бэклог / отклонить.
@@ -46,6 +47,8 @@ const PRIORITY_STYLE: Record<Priority, { card: string; pill: string }> = {
   medium:   { card: 'border-gray-200',             pill: 'bg-blue-100 text-blue-700' },
   low:      { card: 'border-gray-200',             pill: 'bg-gray-100 text-gray-600' },
 };
+
+const PRIORITY_RANK: Record<Priority, number> = { critical: 4, high: 3, medium: 2, low: 1 };
 
 const STATUS_FILTERS: Status[] = ['pending', 'in_backlog', 'done', 'dismissed'];
 
@@ -123,6 +126,14 @@ const VmmView: React.FC = () => {
     [recs, filter],
   );
 
+  type RecSortKey = 'priority' | 'created_at';
+  const [sort, setSort] = useState<SortState<RecSortKey>>({ key: 'priority', dir: 'desc' });
+
+  const sortedFiltered = useTableSort<Recommendation, RecSortKey>(filtered, sort, {
+    priority: cmp.num<Recommendation>(r => PRIORITY_RANK[r.priority]),
+    created_at: cmp.date<Recommendation>(r => r.created_at),
+  });
+
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: recs.length };
     for (const s of STATUS_FILTERS) c[s] = recs.filter((r) => r.status === s).length;
@@ -149,14 +160,25 @@ const VmmView: React.FC = () => {
               </button>
             ))}
           </div>
-          <button
-            onClick={generate}
-            disabled={generating}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 disabled:opacity-60 transition-colors"
-          >
-            {generating ? <Loader className="w-4 h-4 animate-spin" /> : <Megaphone className="w-4 h-4" />}
-            {generating ? t('admin.product.vmm.generating') : t('admin.product.vmm.generate')}
-          </button>
+          <div className="flex items-center gap-2">
+            <SortSelect
+              state={sort}
+              onSort={setSort}
+              options={[
+                { key: 'priority', dir: 'desc', label: 'Приоритет ↓' },
+                { key: 'created_at', dir: 'desc', label: 'Дата ↓' },
+                { key: 'created_at', dir: 'asc', label: 'Дата ↑' },
+              ]}
+            />
+            <button
+              onClick={generate}
+              disabled={generating}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 disabled:opacity-60 transition-colors"
+            >
+              {generating ? <Loader className="w-4 h-4 animate-spin" /> : <Megaphone className="w-4 h-4" />}
+              {generating ? t('admin.product.vmm.generating') : t('admin.product.vmm.generate')}
+            </button>
+          </div>
         </div>
         {lastRun && (
           <div className="px-4 sm:px-6 pb-2 text-xs text-gray-500 flex items-center gap-3 flex-wrap">
@@ -191,7 +213,7 @@ const VmmView: React.FC = () => {
           </div>
         )}
 
-        {filtered.map((rec) => {
+        {sortedFiltered.map((rec) => {
           const st = PRIORITY_STYLE[rec.priority];
           const expanded = expandedId === rec.id;
           return (
