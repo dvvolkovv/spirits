@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronRight, Lock,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
+import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
 
 interface ActivityResp {
   user: {
@@ -157,6 +158,15 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [taskDetails, setTaskDetails] = useState<Record<string, TaskDetails | 'loading' | 'error'>>({});
+
+  type AssistantSortKey = 'queries' | 'tokens' | 'last_used';
+  const [assistantSort, setAssistantSort] = useState<SortState<AssistantSortKey>>({ key: 'tokens', dir: 'desc' });
+  type AssistantRow = { id: number; name: string; queries: number; tokens: number; last_used: string | null };
+  const sortedByAssistant = useTableSort<AssistantRow, AssistantSortKey>(data?.byAssistant ?? [], assistantSort, {
+    queries: cmp.num<AssistantRow>(a => a.queries),
+    tokens: cmp.num<AssistantRow>(a => a.tokens),
+    last_used: cmp.date<AssistantRow>(a => a.last_used),
+  });
 
   // Body scroll lock + ESC handler
   useEffect(() => {
@@ -497,13 +507,13 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                       <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                         <tr>
                           <th className="text-left px-4 py-2 font-medium">{t('admin.userActivity.col.assistant', 'Ассистент')}</th>
-                          <th className="text-right px-4 py-2 font-medium">{t('admin.userActivity.col.queries', 'Запросов')}</th>
-                          <th className="text-right px-4 py-2 font-medium">{t('admin.userActivity.col.tokens', 'Токенов')}</th>
-                          <th className="text-left px-4 py-2 font-medium">{t('admin.userActivity.col.lastUsed', 'Последний')}</th>
+                          <SortableTh sortKey="queries" state={assistantSort} onSort={setAssistantSort} align="right" className="!py-2">{t('admin.userActivity.col.queries', 'Запросов')}</SortableTh>
+                          <SortableTh sortKey="tokens" state={assistantSort} onSort={setAssistantSort} align="right" className="!py-2">{t('admin.userActivity.col.tokens', 'Токенов')}</SortableTh>
+                          <SortableTh sortKey="last_used" state={assistantSort} onSort={setAssistantSort} className="!py-2">{t('admin.userActivity.col.lastUsed', 'Последний')}</SortableTh>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {data.byAssistant.map(a => (
+                        {sortedByAssistant.map(a => (
                           <tr key={a.id} className="hover:bg-gray-50">
                             <td className="px-4 py-2 text-gray-800">{a.name}</td>
                             <td className="px-4 py-2 text-right text-gray-700 font-medium">{formatTokens(a.queries)}</td>
