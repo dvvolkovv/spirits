@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Settings2, ChevronDown, ChevronUp, Loader, AlertCircle, Info, Image as ImageIcon, X, Wand2 } from 'lucide-react';
+import { Sparkles, Settings2, ChevronDown, ChevronUp, Loader, AlertCircle, Info, Image as ImageIcon, X, Wand2, Mic } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
 import VideoExamples from './VideoExamples';
+import { useVoiceProfile } from './useVoiceProfile';
+import VoiceSamplePanel from './VoiceSamplePanel';
 
 interface Props {
   onCreated: (jobId: string) => void;
@@ -43,6 +45,7 @@ export interface FormState {
   sourceVideoId?: string;
   audioUrl?: string;
   cameraType?: string;
+  useOwnVoice?: boolean;   // Veo: озвучить голосом пользователя (96cba3f7)
 }
 
 const COMPOSABLE_DURATIONS = [5, 10, 15, 20, 24, 30, 45, 60] as const;
@@ -81,8 +84,19 @@ function veoCostFor(tier: VeoTier, lengthSec: number, aspect: '16:9' | '9:16' = 
   return p.base + extendCount * p.ext;
 }
 
+// Надбавка за «голосом оригинала» — зеркало backend computeOwnVoiceSurcharge:
+// ElevenLabs STS (~15 симв/с × $0.30/1k) × Veo markup 75000 ток/$ ≈ 338 ток/сек.
+function ownVoiceSurcharge(sec: number): number {
+  const s = Math.max(1, Math.round(sec || 0));
+  return Math.ceil((s * 15 / 1000) * 0.30 * 75000);
+}
+
 function costFor(s: FormState): number {
-  if (s.engine === 'veo') return veoCostFor(s.veoTier ?? 'fast', s.veoLengthSec ?? 24, s.veoAspectRatio ?? '9:16');
+  if (s.engine === 'veo') {
+    let c = veoCostFor(s.veoTier ?? 'fast', s.veoLengthSec ?? 24, s.veoAspectRatio ?? '9:16');
+    if (s.useOwnVoice) c += ownVoiceSurcharge(s.veoLengthSec ?? 24);
+    return c;
+  }
   // Composed long video: base 10s + N × extend 5s.
   if (s.targetDurationSec && s.targetDurationSec > 10) {
     const baseKey = `${s.mode}.${s.model}.${s.quality}.10`;
@@ -160,6 +174,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const balance = user?.tokens ?? 0;
+  const voice = useVoiceProfile();   // клон голоса пользователя (96cba3f7)
   const [showSettings, setShowSettings] = useState(false);
 
   const [s, setS] = useState<FormState>({
@@ -220,7 +235,9 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
   }, [s.mode, s.model, s.duration, s.targetDurationSec]);
 
   const insufficient = balance < cost;
-  const canSubmit = !submitting && !insufficient && (
+  // «Голосом оригинала» включено, но клон ещё не готов → сначала загрузить голос.
+  const ownVoiceBlocks = s.engine === 'veo' && !!s.useOwnVoice && !voice.hasVoice;
+  const canSubmit = !submitting && !insufficient && !ownVoiceBlocks && (
     s.engine === 'veo'
       ? s.prompt.trim().length > 0
       : (s.mode !== 'image2video' || !!s.sourceImageUrl)
@@ -242,6 +259,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           targetDurationSec: s.veoLengthSec ?? 24,
           aspectRatio: s.veoAspectRatio ?? '9:16',
           resolution: s.veoResolution ?? '1080p',
+          ownVoice: !!(s.useOwnVoice && voice.hasVoice) || undefined,
         };
         const resp = await apiClient.post('/webhook/video/jobs', body);
         const data = await resp.json();
@@ -689,6 +707,36 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           >
             <Sparkles className="w-3.5 h-3.5" /> Пресет «Говорящая голова»
           </button>
+
+          {/* Озвучить моим голосом (96cba3f7) */}
+          <div className="rounded-lg border border-gray-200 bg-white p-3">
+            <label className="flex items-center justify-between gap-2 cursor-pointer">
+              <span className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+                <Mic className="w-4 h-4 text-forest-600" /> Озвучить моим голосом
+                <Hint text="Veo сгенерит видео, затем озвучит его вашим голосом (клон из вашего образца). Качество картинки не меняется, губы остаются синхронны." />
+              </span>
+              <input
+                type="checkbox"
+                checked={!!s.useOwnVoice}
+                onChange={(e) => setS(x => ({ ...x, useOwnVoice: e.target.checked }))}
+              />
+            </label>
+            {s.useOwnVoice && (
+              <div className="mt-2 space-y-1">
+                <VoiceSamplePanel
+                  status={voice.status}
+                  hasVoice={voice.hasVoice}
+                  descriptor={voice.descriptor}
+                  error={voice.error}
+                  onUpload={voice.uploadSample}
+                  onDelete={voice.deleteVoice}
+                />
+                <p className="text-[11px] text-gray-400">
+                  Надбавка ~{ownVoiceSurcharge(s.veoLengthSec ?? 24).toLocaleString('ru')} токенов к стоимости видео.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Tier */}
           <div>
