@@ -22,10 +22,12 @@ import {
   Upload,
   Film,
   Type,
+  Share2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
+import { shareWithReferral } from '../../services/shareReferral';
 import { useImageGen } from '../../contexts/ImageGenContext';
 import {
   IMAGE_MODELS,
@@ -816,6 +818,13 @@ const ImageGenInterface: React.FC = () => {
                       title="Скачать"
                     >
                       <Download className="w-4 h-4 text-gray-800" />
+                    </button>
+                    <button
+                      onClick={() => shareWithReferral('Сделал(а) эту картинку в Linkeon — нейросеть рисует по описанию. Попробуй, по моей ссылке дадут бонус на старт 🎁', 'image_share')}
+                      className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
+                      title="Поделиться"
+                    >
+                      <Share2 className="w-4 h-4 text-forest-700" />
                     </button>
                   </div>
                   {img.revisedPrompt && img.revisedPrompt !== prompt && (

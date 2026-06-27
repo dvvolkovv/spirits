@@ -30,9 +30,17 @@ const ReferralDashboard: React.FC = () => {
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [withdrawDone, setWithdrawDone] = useState<{ amount_rub: number } | null>(null);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  // ④ in-app лента активности: присоединился / заработал.
+  const [activity, setActivity] = useState<Array<{ type: string; at: string; who?: string; rub?: number; level?: number }>>([]);
 
   useEffect(() => {
     loadStats();
+    (async () => {
+      try {
+        const r = await apiClient.get('/webhook/referral/activity');
+        if (r.ok) { const d = await r.json(); setActivity(Array.isArray(d?.items) ? d.items : []); }
+      } catch { /* лента не критична */ }
+    })();
   }, []);
 
   const loadStats = async () => {
@@ -333,6 +341,28 @@ const ReferralDashboard: React.FC = () => {
           <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg px-4 py-2">
             <CheckCircle className="w-4 h-4 flex-shrink-0" />
             <span>{t('referral.paid_out', { amount: formatRub(stats.paid_out_rub) })}</span>
+          </div>
+        )}
+
+        {/* ④ Лента активности (in-app уведомления) */}
+        {activity.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Активность</h3>
+            <ul className="space-y-1.5">
+              {activity.map((a, i) => (
+                <li key={i} className="flex items-center justify-between gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-gray-700">
+                    {a.type === 'joined'
+                      ? <>👋 Друг {a.who} присоединился по вашей ссылке</>
+                      : <>💰 Начисление с оплаты друга {a.who}{a.level === 2 ? ' (2-й уровень)' : ''}</>}
+                  </span>
+                  <span className="text-xs text-gray-400 flex items-center gap-2 flex-shrink-0">
+                    {a.type === 'earned' && a.rub != null && <b className="text-forest-700">{formatRub(a.rub)}</b>}
+                    {formatDate(a.at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

@@ -166,7 +166,16 @@ class AuthService {
       return;
     }
     try {
-      await apiClient.post('/webhook/referral/register', { slug });
+      const r = await apiClient.post('/webhook/referral/register', { slug });
+      const d = await r.json().catch(() => null);
+      // ③ CONVERT: запоминаем приветствие рефери (кто пригласил + бонус) для
+      // one-time баннера message-match (ReferralWelcomeBanner).
+      if (r.ok && d?.success) {
+        localStorage.setItem('ll_referral_welcome', JSON.stringify({
+          name: d.leader_name || null,
+          bonus: d.bonus_tokens || 0,
+        }));
+      }
     } catch (error) {
       console.error('Error registering referral:', error);
     } finally {

@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
+import ReferralWelcomeBanner from './components/referral/ReferralWelcomeBanner';
 import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
@@ -88,6 +89,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      <ReferralWelcomeBanner />
       {/* Navigation - hidden on mobile for main content */}
       <div className="hidden md:block">
         <Navigation />

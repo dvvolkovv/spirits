@@ -9,7 +9,8 @@ let cachedLink: string | null = null;
 // Встраивается в ссылку как &rt=<touch>; на приходе App.tsx кладёт его в
 // referral_click.props.referral_touch, снапшот VPM агрегирует топ-3 за 7d (71afe7f7).
 export type ReferralTouch =
-  | 'dashboard_cta' | 'notification_link' | 'in_chat_share' | 'profile_share' | 'manual_copy';
+  | 'dashboard_cta' | 'notification_link' | 'in_chat_share' | 'profile_share' | 'manual_copy'
+  | 'result_prompt' | 'image_share';
 
 // Добавляет тег точки касания к реферальной ссылке (?ref=... уже есть → &rt=).
 export function withTouch(link: string, touch: ReferralTouch): string {

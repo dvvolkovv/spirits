@@ -1,6 +1,7 @@
 import { Film } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import VideoJobCard from './VideoJobCard';
+import ResultSharePrompt from './ResultSharePrompt';
 import type { VideoJob } from './useVideoJobs';
 
 interface Props {
@@ -34,8 +35,13 @@ export default function VideoGallery({ jobs, loading, onDelete, onExtend, onLips
     );
   }
 
+  const hasReady = jobs.some((j) => j.status === 'ready');
+
   return (
     <div className="p-4">
+      {hasReady && (
+        <ResultSharePrompt text="Сделал(а) это видео в Linkeon — нейросеть сама создаёт контент для соцсетей. Попробуй, по моей ссылке дадут бонус на старт 🎁" />
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {jobs.map((j) => (
           <VideoJobCard
