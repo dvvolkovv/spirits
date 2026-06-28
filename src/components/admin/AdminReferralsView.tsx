@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Users, Plus, ToggleLeft, ToggleRight, Copy, ChevronDown, ChevronUp, ChevronRight, CheckCircle, Loader, Send } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import { SortSelect, useTableSort, cmp, SortState } from './shared/sortableTable';
+
+type LeaderSortKey = 'referees' | 'pending' | 'commission' | 'name';
 
 interface Leader {
   id: string;
@@ -83,6 +86,9 @@ const AdminReferralsView: React.FC = () => {
   const [outreachLoading, setOutreachLoading] = useState(false);
   const [outreachSending, setOutreachSending] = useState<string | null>(null); // leader_id | 'all'
   const [outreachResult, setOutreachResult] = useState<string | null>(null);
+
+  // Сортировка таблицы лидеров. Дефолт — по числу рефералов (больше сверху).
+  const [leaderSort, setLeaderSort] = useState<SortState<LeaderSortKey>>({ key: 'referees', dir: 'desc' });
 
   const [newLeader, setNewLeader] = useState({
     name: '',
@@ -232,6 +238,12 @@ const AdminReferralsView: React.FC = () => {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
   const level1Leaders = stats?.leaders.filter(l => l.level === 1) ?? [];
+  const sortedL1 = useTableSort<Leader, LeaderSortKey>(level1Leaders, leaderSort, {
+    referees: cmp.num<Leader>(l => l.total_referees),
+    pending: cmp.num<Leader>(l => l.pending_rub),
+    commission: cmp.num<Leader>(l => l.total_commission_rub),
+    name: cmp.str<Leader>(l => l.name),
+  });
   const level1Ids = new Set(level1Leaders.map(l => String(l.id)));
   const orphanL2Leaders = stats?.leaders.filter(l => l.level === 2 && (l.parent_leader_id === null || !level1Ids.has(String(l.parent_leader_id)))) ?? [];
 
@@ -619,6 +631,21 @@ const AdminReferralsView: React.FC = () => {
           )}
 
           {/* Иерархия лидеров */}
+          {!isLoading && level1Leaders.length > 0 && (
+            <div className="flex items-center justify-end px-1 pb-2">
+              <SortSelect
+                state={leaderSort}
+                onSort={setLeaderSort}
+                options={[
+                  { key: 'referees', dir: 'desc', label: 'Рефералов ↓' },
+                  { key: 'referees', dir: 'asc', label: 'Рефералов ↑' },
+                  { key: 'pending', dir: 'desc', label: 'К выплате ↓' },
+                  { key: 'commission', dir: 'desc', label: 'Комиссия всего ↓' },
+                  { key: 'name', dir: 'asc', label: 'Имя А-Я' },
+                ]}
+              />
+            </div>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader className="w-6 h-6 animate-spin text-forest-600" />
@@ -629,7 +656,7 @@ const AdminReferralsView: React.FC = () => {
                 <p className="text-center text-gray-500 py-8 text-sm">Лидеры не найдены</p>
               )}
 
-              {level1Leaders.map(l1 => {
+              {sortedL1.map(l1 => {
                 const isL1Expanded = expandedL1 === l1.id;
                 const children = stats?.leaders.filter(l => l.level === 2 && String(l.parent_leader_id) === String(l1.id)) ?? [];
                 const isL1CommExpanded = expandedL1Commissions === l1.id;
