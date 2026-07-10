@@ -97,15 +97,22 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
     setSelectedId(a.id);
     setShowSidebar(false);
     sessionStorage.setItem('selected_assistant', JSON.stringify(a));
+    // Долговременная память последнего ассистента (переживает закрытие приложения,
+    // в отличие от sessionStorage) — для «умного» шортката «Продолжить» (?resume=1).
+    try { localStorage.setItem('linkeon_last_assistant', JSON.stringify(a)); } catch {}
   };
 
-  // Deep-link предвыбор ассистента: /chat?assistant=<name|id> (шорткаты, шеринг).
-  // Заодно снимает барьер активации молчунов — сразу в разговор с нужным
-  // ассистентом, минуя пикер. Применяем один раз после загрузки списка агентов.
+  // Deep-link предвыбор ассистента (шорткаты, шеринг). Применяем один раз после
+  // загрузки списка агентов.
+  //  • ?assistant=<name|id> — конкретный ассистент (заодно снимает барьер
+  //    активации молчунов: сразу в разговор, минуя пикер).
+  //  • ?resume=1 — «умный» шорткат «Продолжить»: открывает последнего ассистента
+  //    из localStorage (лейбл один на всех, назначение персональное).
   const assistantParamApplied = useRef(false);
   useEffect(() => {
     if (assistantParamApplied.current || assistants.length === 0) return;
-    const q = new URLSearchParams(window.location.search).get('assistant');
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('assistant');
     if (q) {
       // Латинские алиасы для человекочитаемых шорткат-URL → к именам агентов.
       const ALIASES: Record<string, string> = {
@@ -119,6 +126,19 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
         (a.displayName || '').toLowerCase() === norm,
       );
       if (match) handleSelect(match);
+    } else if (params.get('resume') === '1') {
+      try {
+        const last = localStorage.getItem('linkeon_last_assistant');
+        if (last) {
+          const a = JSON.parse(last) as Assistant;
+          if (a && a.id != null) {
+            // Предпочитаем свежую запись из списка (актуальные поля), иначе —
+            // сохранённый объект (напр. кастомный ассистент custom:<uuid>).
+            const fresh = assistants.find(x => String(x.id) === String(a.id));
+            handleSelect(fresh || a);
+          }
+        }
+      } catch { /* нет сохранённого — просто останется пикер */ }
     }
     assistantParamApplied.current = true;
   }, [assistants]);
