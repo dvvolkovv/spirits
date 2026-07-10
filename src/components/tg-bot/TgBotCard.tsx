@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, Send, MessageSquare } from 'lucide-react';
+import { Edit2, Trash2, Send, MessageSquare, RefreshCw } from 'lucide-react';
 import type { TgBotConfig } from '../../services/tgBotApi';
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
   onEdit: (c: TgBotConfig) => void;
   onDelete: (c: TgBotConfig) => void;
   onMessages: (c: TgBotConfig) => void;
+  onReconnect?: (c: TgBotConfig) => void;
 }
 
 const modeLabel: Record<string, string> = {
@@ -22,8 +23,9 @@ const statusBadge: Record<string, { text: string; cls: string }> = {
   archived: { text: 'Архив', cls: 'bg-gray-100 text-gray-500' },
 };
 
-export const TgBotCard: React.FC<Props> = ({ config, onEdit, onDelete, onMessages }) => {
+export const TgBotCard: React.FC<Props> = ({ config, onEdit, onDelete, onMessages, onReconnect }) => {
   const badge = statusBadge[config.status] ?? statusBadge.archived;
+  const canReconnect = onReconnect && (config.status === 'archived' || config.status === 'pending');
   return (
     <div className="group bg-white rounded-2xl p-4 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-forest-400 flex flex-col gap-3">
       <div className="flex items-start gap-3">
@@ -44,11 +46,23 @@ export const TgBotCard: React.FC<Props> = ({ config, onEdit, onDelete, onMessage
         </div>
       </div>
       <div className="flex gap-2 mt-auto pt-2 border-t border-gray-100">
+        {canReconnect && (
+          <button
+            onClick={() => onReconnect!(config)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-forest-600 hover:bg-forest-700 text-white text-sm font-medium transition-colors"
+          >
+            <RefreshCw size={14} /> Переподключить
+          </button>
+        )}
         <button
           onClick={() => onEdit(config)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-forest-50 hover:bg-forest-100 text-forest-700 text-sm font-medium transition-colors"
+          className={canReconnect
+            ? 'py-2 px-3 rounded-xl text-forest-700 hover:bg-forest-50 transition-colors'
+            : 'flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-forest-50 hover:bg-forest-100 text-forest-700 text-sm font-medium transition-colors'}
+          aria-label="Изменить"
+          title="Изменить"
         >
-          <Edit2 size={14} /> Изменить
+          <Edit2 size={14} />{!canReconnect && ' Изменить'}
         </button>
         <button
           onClick={() => onMessages(config)}
