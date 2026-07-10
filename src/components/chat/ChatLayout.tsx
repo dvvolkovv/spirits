@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
 import { avatarService } from '../../services/avatarService';
@@ -98,6 +98,30 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
     setShowSidebar(false);
     sessionStorage.setItem('selected_assistant', JSON.stringify(a));
   };
+
+  // Deep-link предвыбор ассистента: /chat?assistant=<name|id> (шорткаты, шеринг).
+  // Заодно снимает барьер активации молчунов — сразу в разговор с нужным
+  // ассистентом, минуя пикер. Применяем один раз после загрузки списка агентов.
+  const assistantParamApplied = useRef(false);
+  useEffect(() => {
+    if (assistantParamApplied.current || assistants.length === 0) return;
+    const q = new URLSearchParams(window.location.search).get('assistant');
+    if (q) {
+      // Латинские алиасы для человекочитаемых шорткат-URL → к именам агентов.
+      const ALIASES: Record<string, string> = {
+        roman: 'роман', raya: 'райя', misha: 'миша', masha: 'маша',
+        yulia: 'юля', julia: 'юля', yulya: 'юля',
+      };
+      const norm = (ALIASES[q.toLowerCase()] || q).toLowerCase();
+      const match = assistants.find(a =>
+        String(a.id) === q ||
+        (a.name || '').toLowerCase() === norm ||
+        (a.displayName || '').toLowerCase() === norm,
+      );
+      if (match) handleSelect(match);
+    }
+    assistantParamApplied.current = true;
+  }, [assistants]);
 
   const visibleAssistants = assistants;
   const myAssistant = visibleAssistants.filter(a => a.category === 'assistant');

@@ -1280,9 +1280,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     adjustTextareaHeight();
   };
 
-  const handleVoiceInput = async () => {
+  const handleVoiceInput = async (auto = false) => {
     if (!isVoiceSupported) {
-      alert(t('chat.voice_not_supported'));
+      if (!auto) alert(t('chat.voice_not_supported'));
       return;
     }
 
@@ -1310,12 +1310,80 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       },
       onError: (msg) => {
         setIsRecording(false);
-        if (msg === 'mic_denied') alert('Нет доступа к микрофону. Разреши доступ в настройках браузера.');
+        // При авто-старте (шорткат «Голосом») не пугаем алертом — на Android без
+        // жеста-активации mic может не стартовать; юзер просто тапнет микрофон.
+        if (msg === 'mic_denied') { if (!auto) alert('Нет доступа к микрофону. Разреши доступ в настройках браузера.'); }
         else if (msg !== 'ws_error' && msg !== 'no_auth') console.warn('voice:', msg);
       },
       onClose: () => { setIsRecording(false); },
     });
   };
+
+  // ── Слой 4: deep-link точки входа (шорткаты + Web Share Target) ──────────────
+  // Убираем обработанные query-параметры из URL, сохраняя остальные, чтобы
+  // рефреш не повторял действие и адрес был чистым.
+  const stripQueryParams = (keys: string[]) => {
+    const params = new URLSearchParams(window.location.search);
+    keys.forEach(k => params.delete(k));
+    const qs = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+  };
+
+  // Один раз на маунт: преднабор из шеринга текста/картинки + голосовой шорткат.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    // Шеринг текста/URL → преднабор в поле ввода (не отправляем автоматически).
+    const shareText = params.get('share_text');
+    if (shareText) {
+      setInput(shareText);
+      setTimeout(() => adjustTextareaHeight(), 0);
+      stripQueryParams(['share_text']);
+    }
+
+    // Шеринг картинки → достаём blob из Cache Storage (положил SW) и заводим в
+    // существующий pending-file flow (модалка «что сделать с файлом»).
+    if (params.get('shared_image') === '1') {
+      stripQueryParams(['shared_image']);
+      (async () => {
+        try {
+          const cache = await caches.open('linkeon-share');
+          const res = await cache.match('/__shared_image');
+          if (!res) return;
+          const blob = await res.blob();
+          const nameEnc = res.headers.get('X-Share-Filename');
+          const fname = nameEnc ? decodeURIComponent(nameEnc) : 'shared-image.jpg';
+          await cache.delete('/__shared_image');
+          const file = new File([blob], fname, { type: blob.type || 'image/jpeg' });
+          setPendingFile(file);
+          setFileTaskInput('');
+          setShowFileTaskModal(true);
+        } catch { /* тихо: шеринг не критичен */ }
+      })();
+    }
+
+    // Голосовой шорткат → авто-старт диктовки (best-effort; на Android без
+    // жеста-активации может не стартовать — тогда юзер тапнет микрофон сам).
+    if (params.get('voice') === '1') {
+      stripQueryParams(['voice']);
+      setTimeout(() => { handleVoiceInput(true); }, 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ?say=<text> → автоотправка первого сообщения. Ждём, пока ассистент выбран
+  // (шорткат «Энергия дня» даёт ?assistant=raya&say=...), чтобы уйти к нужному.
+  const sayApplied = useRef(false);
+  useEffect(() => {
+    if (sayApplied.current) return;
+    const say = new URLSearchParams(window.location.search).get('say');
+    if (!say) return;
+    if (!selectedAssistant) return; // ждём резолва ассистента из ?assistant=
+    sayApplied.current = true;
+    stripQueryParams(['say', 'assistant', 'src']);
+    setTimeout(() => { sendMessageText(say); }, 300);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAssistant?.id]);
 
   // Маша (id=3) идёт через legacy chat.streamChat и НЕ имеет доступа к file-agent;
   // для неё пока оставляем PDF→profile-scan flow. Все остальные ассистенты идут
@@ -2069,7 +2137,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
 
           <button
-            onClick={handleVoiceInput}
+            onClick={() => handleVoiceInput()}
             disabled={!isVoiceSupported}
             className={clsx(
               'relative p-2 transition-colors rounded-lg',
