@@ -109,7 +109,10 @@ const AdminUsersView: React.FC = () => {
     try {
       const [aResp, uResp] = await Promise.all([
         apiClient.get(`/webhook/admin/users/active?days=${days}`),
-        apiClient.get(`/webhook/admin/users/tokens?sort=spent_period&hours=720&limit=500`),
+        // sort=balance (не spent_period!) — бэк при spent_period выкидывает юзеров
+        // с нулевым расходом, из-за чего свежие регистрации пропадали из списка.
+        // Клиентская сортировка по колонкам работает поверх полного списка.
+        apiClient.get(`/webhook/admin/users/tokens?sort=balance&hours=720&limit=500`),
       ]);
       if (!aResp.ok) throw new Error(`Активность: ${aResp.status}`);
       if (!uResp.ok) throw new Error(`Пользователи: ${uResp.status}`);
@@ -127,6 +130,14 @@ const AdminUsersView: React.FC = () => {
   const maxValue = useMemo(() => {
     if (!active) return 0;
     return Math.max(1, ...active.series.map(s => metric === 'unique_users' ? s.unique_users : s.new_users));
+  }, [active, metric]);
+
+  // «Есть ли данные» отдельно от maxValue: maxValue клампится к 1 для шкалы,
+  // из-за чего проверка maxValue <= 1 прятала график, когда максимум = ровно
+  // 1 регистрация в день (реальный кейс маленького трафика).
+  const hasChartData = useMemo(() => {
+    if (!active) return false;
+    return active.series.some(s => (metric === 'unique_users' ? s.unique_users : s.new_users) > 0);
   }, [active, metric]);
 
   const filteredUsers = useMemo(() => {
@@ -254,7 +265,7 @@ const AdminUsersView: React.FC = () => {
               </div>
             </div>
 
-            {active.series.length === 0 || maxValue <= 1 ? (
+            {active.series.length === 0 || !hasChartData ? (
               <p className="text-sm text-gray-400 py-8 text-center">Нет данных за выбранный период</p>
             ) : (() => {
               const yMax = niceCeil(maxValue);
