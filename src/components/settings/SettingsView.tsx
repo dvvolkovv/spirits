@@ -95,6 +95,55 @@ const SettingsView: React.FC = () => {
     }
   };
 
+  // «Энергия дня» — проактивный утренний пуш от Райи (Слой 3).
+  const [routine, setRoutine] = useState<{ enabled: boolean; sendHour: number } | null>(null);
+  const [routineBusy, setRoutineBusy] = useState(false);
+  const [routineMsg, setRoutineMsg] = useState<string | null>(null);
+  const routineTz = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Moscow'; } catch { return 'Europe/Moscow'; }
+  })();
+  useEffect(() => {
+    apiClient.get('/webhook/routines')
+      .then(async r => {
+        if (r.ok) {
+          const d = await r.json();
+          setRoutine(d?.energyOfDay ? { enabled: !!d.energyOfDay.enabled, sendHour: d.energyOfDay.sendHour ?? 8 } : { enabled: false, sendHour: 8 });
+        } else setRoutine({ enabled: false, sendHour: 8 });
+      })
+      .catch(() => setRoutine({ enabled: false, sendHour: 8 }));
+  }, []);
+  const saveRoutine = async (enabled: boolean, sendHour: number) => {
+    setRoutine({ enabled, sendHour });
+    setRoutineBusy(true);
+    setRoutineMsg(null);
+    try {
+      const r = await apiClient.post('/webhook/routines', { enabled, sendHour, tz: routineTz });
+      if (r.ok) {
+        const d = await r.json();
+        if (d?.energyOfDay) setRoutine({ enabled: !!d.energyOfDay.enabled, sendHour: d.energyOfDay.sendHour ?? sendHour });
+      }
+    } finally {
+      setRoutineBusy(false);
+    }
+  };
+  const testRoutine = async () => {
+    setRoutineBusy(true);
+    setRoutineMsg(null);
+    try {
+      const r = await apiClient.post('/webhook/routines/test', {});
+      if (r.ok) {
+        const d = await r.json();
+        setRoutineMsg(d?.delivered > 0
+          ? 'Отправили — проверь уведомление 🌅'
+          : 'Сгенерировали, но пуш не доставлен. Включи push-уведомления выше на этом устройстве.');
+      } else setRoutineMsg('Не получилось, попробуй ещё раз.');
+    } catch {
+      setRoutineMsg('Не получилось, попробуй ещё раз.');
+    } finally {
+      setRoutineBusy(false);
+    }
+  };
+
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({
       ...prev,
@@ -166,6 +215,56 @@ const SettingsView: React.FC = () => {
               </p>
             )}
             {pushMsg && <p className="text-xs text-gray-600">{pushMsg}</p>}
+          </div>
+        </div>
+
+        {/* Энергия дня — проактивный утренний пуш от Райи (Слой 3) */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Bell className="w-5 h-5 mr-2 text-warm-600" />
+              Энергия дня от Райи
+            </h2>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="pr-4">
+                <h3 className="text-sm font-medium text-gray-900">Присылать каждое утро</h3>
+                <p className="text-sm text-gray-600">
+                  Райя сама пришлёт тёплое послание и мягкий фокус на день. Нужно, чтобы push-уведомления на этом устройстве (выше) были включены.
+                </p>
+              </div>
+              <ToggleSwitch
+                enabled={!!routine?.enabled}
+                onChange={(v) => saveRoutine(v, routine?.sendHour ?? 8)}
+                disabled={routineBusy || !routine}
+              />
+            </div>
+            {routine?.enabled && (
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-900">Время</h3>
+                <select
+                  value={routine.sendHour}
+                  onChange={(e) => saveRoutine(true, Number(e.target.value))}
+                  disabled={routineBusy}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                >
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {routine?.enabled && (
+              <button
+                onClick={testRoutine}
+                disabled={routineBusy}
+                className="text-sm text-forest-600 hover:text-forest-700 font-medium disabled:opacity-50"
+              >
+                Проверить сейчас
+              </button>
+            )}
+            {routineMsg && <p className="text-xs text-gray-600">{routineMsg}</p>}
           </div>
         </div>
 
