@@ -1,11 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Plus } from 'lucide-react';
+import { Plus, Copy, ExternalLink, X } from 'lucide-react';
 import { tgBotApi, type TgBotConfig } from '../../services/tgBotApi';
 import { TgBotCard } from './TgBotCard';
 import { TgBotEditModal } from './TgBotEditModal';
 import { TgBotMessagesView } from './TgBotMessagesView';
+
+// Модалка с новой claim-ссылкой после «Переподключить». Module-scope —
+// inline-FC внутри рендера ре-маунтится из-за token-poll (см. комментарий ниже).
+const ReconnectLinkModal: React.FC<{ displayName: string; deepLink: string; onClose: () => void }> =
+({ displayName, deepLink, onClose }) => (
+  <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="bg-white rounded-2xl p-5 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-gray-900">Переподключение «{displayName}»</h2>
+        <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:bg-gray-100" aria-label="Закрыть">
+          <X size={18} />
+        </button>
+      </div>
+      <p className="text-sm text-gray-600 mb-4">
+        Открой ссылку — Telegram предложит выбрать группу. После добавления бот сам активируется.
+        Ссылка работает 15 минут.
+      </p>
+      <div className="flex items-center gap-2 mb-4">
+        <input type="text" value={deepLink} readOnly className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono" />
+        <button
+          onClick={() => { navigator.clipboard.writeText(deepLink); toast.success('Скопировано'); }}
+          className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+          aria-label="Скопировать"
+        >
+          <Copy size={16} />
+        </button>
+      </div>
+      <a
+        href={deepLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
+      >
+        <ExternalLink size={16} /> Открыть в Telegram
+      </a>
+    </div>
+  </div>
+);
 
 interface Props {
   /** Если true — без внешней h-full обёртки и без заголовка страницы. */
@@ -19,6 +57,7 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
   const [tab, setTab] = useState<'active' | 'archived'>('active');
   const [editing, setEditing] = useState<TgBotConfig | null>(null);
   const [viewingMessages, setViewingMessages] = useState<TgBotConfig | null>(null);
+  const [reconnect, setReconnect] = useState<{ displayName: string; deepLink: string } | null>(null);
 
   const reload = async () => {
     setLoading(true);
@@ -30,6 +69,15 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
   useEffect(() => { reload(); }, []);
 
   const filtered = configs.filter(c => tab === 'active' ? c.status !== 'archived' : c.status === 'archived');
+
+  const handleReconnect = async (c: TgBotConfig) => {
+    try {
+      const r = await tgBotApi.reissueClaim(c.id);
+      setReconnect({ displayName: c.displayName, deepLink: r.deepLink });
+      setTab('active'); // конфиг разархивирован → переехал во вкладку «Активные»
+      reload();
+    } catch (e: any) { toast.error(e?.message ?? 'Не удалось переподключить'); }
+  };
 
   const handleDelete = async (c: TgBotConfig) => {
     if (!confirm(`Архивировать «${c.displayName}»?\nБот выйдет из группы. Конфиг можно восстановить.`)) return;
@@ -114,6 +162,7 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
               onEdit={setEditing}
               onDelete={handleDelete}
               onMessages={setViewingMessages}
+              onReconnect={handleReconnect}
             />
           ))}
         </div>
@@ -130,6 +179,13 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
         <TgBotMessagesView
           config={viewingMessages}
           onClose={() => setViewingMessages(null)}
+        />
+      )}
+      {reconnect && (
+        <ReconnectLinkModal
+          displayName={reconnect.displayName}
+          deepLink={reconnect.deepLink}
+          onClose={() => setReconnect(null)}
         />
       )}
     </>

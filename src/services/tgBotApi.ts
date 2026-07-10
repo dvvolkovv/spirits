@@ -69,6 +69,12 @@ export const tgBotApi = {
     const r = await apiClient.patch(`/webhook/tg-bot/configs/${id}`, body);
     return parseOrThrow(r);
   },
+  // Перевыпуск claim-ссылки для archived/pending конфига: бэк разархивирует
+  // конфиг и возвращает свежий deepLink (тот же формат, что при создании).
+  async reissueClaim(id: string): Promise<ConfigCreateResponse> {
+    const r = await apiClient.post(`/webhook/tg-bot/configs/${id}/reissue-claim`, {});
+    return parseOrThrow(r);
+  },
   async remove(id: string): Promise<{ ok: boolean }> {
     const r = await apiClient.delete(`/webhook/tg-bot/configs/${id}`);
     return parseOrThrow(r);
