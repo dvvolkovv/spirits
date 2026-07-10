@@ -13,6 +13,13 @@ import {
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import LinkedAccountsView from './LinkedAccountsView';
+import {
+  pushSupported,
+  isPushSubscribed,
+  enablePush,
+  disablePush,
+  sendTestPush,
+} from '../../services/pushClient';
 
 type ContactVisibility = 'public' | 'matchOnly' | 'private';
 
@@ -49,6 +56,42 @@ const SettingsView: React.FC = () => {
       setContactVisibility(prev);
     } finally {
       setContactVisibilitySaving(false);
+    }
+  };
+
+  // Push-уведомления на это устройство (PWA / браузер). Реальный опт-ин через
+  // PushManager + бэкенд, в отличие от локальных тумблеров ниже.
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMsg, setPushMsg] = useState<string | null>(null);
+  const canPush = pushSupported();
+  useEffect(() => {
+    if (canPush) isPushSubscribed().then(setPushOn).catch(() => {});
+  }, [canPush]);
+  const togglePush = async () => {
+    setPushBusy(true);
+    setPushMsg(null);
+    try {
+      if (pushOn) {
+        await disablePush();
+        setPushOn(false);
+      } else {
+        const ok = await enablePush();
+        setPushOn(ok);
+        if (!ok) setPushMsg('Не удалось включить. Проверь, что уведомления разрешены в браузере.');
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  };
+  const testPush = async () => {
+    setPushBusy(true);
+    setPushMsg(null);
+    try {
+      const ok = await sendTestPush();
+      setPushMsg(ok ? 'Отправили тестовое уведомление ✅' : 'Не получилось отправить.');
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -89,6 +132,43 @@ const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+        {/* Push на это устройство — реальный опт-ин (PWA / браузер) */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Bell className="w-5 h-5 mr-2 text-forest-600" />
+              Уведомления на этом устройстве
+            </h2>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="pr-4">
+                <h3 className="text-sm font-medium text-gray-900">Push-уведомления</h3>
+                <p className="text-sm text-gray-600">
+                  Ответы ассистентов, готовое видео и напоминания будут приходить, даже когда вкладка закрыта.
+                  {' '}Установи Linkeon на домашний экран — и это будет как обычное приложение.
+                </p>
+              </div>
+              <ToggleSwitch enabled={pushOn} onChange={togglePush} disabled={!canPush || pushBusy} />
+            </div>
+            {pushOn && (
+              <button
+                onClick={testPush}
+                disabled={pushBusy}
+                className="text-sm text-forest-600 hover:text-forest-700 font-medium disabled:opacity-50"
+              >
+                Отправить тестовое уведомление
+              </button>
+            )}
+            {!canPush && (
+              <p className="text-xs text-gray-500">
+                Этот браузер не поддерживает push. На iPhone: открой в Safari, «Поделиться» → «На экран Домой», затем включи здесь.
+              </p>
+            )}
+            {pushMsg && <p className="text-xs text-gray-600">{pushMsg}</p>}
+          </div>
+        </div>
+
         {/* Contact Visibility — кто может получить твой контакт (phone) через поиск */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="px-6 py-4 border-b border-gray-200">
