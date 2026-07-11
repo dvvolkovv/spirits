@@ -109,6 +109,43 @@ export const isPushSubscribed = async (): Promise<boolean> => {
   }
 };
 
+// Авто-переподписка при старте приложения. Если пользователь УЖЕ разрешил
+// уведомления (permission==='granted') и залогинен, но подписки нет или бэкенд
+// о ней не знает — тихо (пере)подписываемся. Лечит «молчаливую» потерю push
+// после переустановки PWA (новый WebAPK → подписка сбрасывается) и чистку
+// протухших подписок на бэке (410). Ничего не спрашивает: при уже выданном
+// разрешении requestPermission/subscribe проходят без промпта. Не логинен или
+// разрешение не выдано → no-op (не навязываемся). Инцидент 2026-07-11.
+export const maybeResubscribe = async (): Promise<void> => {
+  if (!pushSupported()) return;
+  if (Notification.permission !== 'granted') return;
+  if (!tokenManager.getAccessToken()) return;
+  try {
+    const reg = await ensureServiceWorker();
+    if (!reg) return;
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const keyRes = await fetch(`${BACKEND}/webhook/push/public-key`);
+      const { publicKey } = await keyRes.json();
+      if (!publicKey) return;
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    }
+    // Ресинк с бэкендом идемпотентен (upsert по endpoint) — восстанавливает
+    // и подписку, вычищенную на сервере.
+    await fetch(`${BACKEND}/webhook/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    }).catch(() => {});
+  } catch {
+    /* тихо: переподписка не критична */
+  }
+};
+
 // Тестовый пуш самому себе (для кнопки «проверить»).
 export const sendTestPush = async (): Promise<boolean> => {
   try {
