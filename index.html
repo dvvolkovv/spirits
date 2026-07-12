@@ -8,7 +8,10 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- interactive-widget=resizes-content: при появлении экранной клавиатуры
+         layout viewport (и 100vh/100dvh) УМЕНЬШАЕТСЯ, а не перекрывается — поле
+         ввода чата поднимается над клавиатурой (баг f558a535, Android/Chrome). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#16a34a" />
 
     <!-- PWA: установка на домашний экран + standalone-запуск -->

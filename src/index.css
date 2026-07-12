@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Клавиатура не перекрывает поле ввода (баг f558a535): апгрейдим h-screen с
+   100vh на 100dvh там, где dvh поддерживается. dvh отражает ДИНАМИЧЕСКИЙ
+   viewport, а вместе с interactive-widget=resizes-content он ещё и сжимается
+   при открытии клавиатуры → низ приложения (поле ввода) поднимается над ней.
+   Фолбэк на 100vh для старых браузеров (правило просто не применится). */
+@supports (height: 100dvh) {
+  .h-screen { height: 100dvh; }
+  .min-h-screen { min-height: 100dvh; }
+}
+
 @keyframes slide-down {
   from {
     opacity: 0;
