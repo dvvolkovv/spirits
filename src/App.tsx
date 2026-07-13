@@ -11,6 +11,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track, trackAuthed } from './services/eventsClient';
 import { refreshWidget, initWidgetNavigation, onAppResume } from './services/widgetClient';
+import { registerNativePush } from './services/pushClient';
 import './i18n';
 
 // Ленивые маршруты — грузятся ПО ТРЕБОВАНИЮ (code-split), а не одним монолитом.
@@ -59,6 +60,8 @@ const AppContent: React.FC = () => {
       widgetInit.current = true;
       initWidgetNavigation((path) => navigate(path));
       onAppResume(() => refreshWidget());
+      // Нативные пуши [Натив 3]: запрос разрешения + регистрация FCM-токена (натив; на вебе no-op).
+      registerNativePush();
     }
   }, [isAuthenticated]);
 

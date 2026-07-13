@@ -146,6 +146,42 @@ export const maybeResubscribe = async (): Promise<void> => {
   }
 };
 
+// Нативные пуши [Натив 3] (Capacitor push-notifications, через глобальный мост —
+// без npm-зависимости в вебе). На вебе window.Capacitor отсутствует → no-op.
+// Запрашивает системное разрешение, регистрирует FCM-токен и шлёт его на бэкенд.
+let nativePushInit = false;
+export const registerNativePush = async (): Promise<void> => {
+  const PN = (window as any).Capacitor?.Plugins?.PushNotifications;
+  if (!PN || nativePushInit) return;
+  if (!tokenManager.getAccessToken()) return;
+  nativePushInit = true;
+  try {
+    let perm = await PN.checkPermissions().catch(() => null);
+    if (!perm || perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
+      perm = await PN.requestPermissions();
+    }
+    if (perm?.receive !== 'granted') { nativePushInit = false; return; }
+
+    // Слушатели ставим ДО register(), чтобы не пропустить событие токена.
+    await PN.addListener('registration', (t: any) => {
+      const token = t?.value;
+      if (!token) return;
+      fetch(`${BACKEND}/webhook/push/register-native`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ token }),
+      }).catch(() => {});
+    });
+    await PN.addListener('pushNotificationActionPerformed', (ev: any) => {
+      const url = ev?.notification?.data?.url;
+      if (url) { try { window.location.assign(url); } catch {} }
+    });
+    await PN.register();
+  } catch {
+    nativePushInit = false;
+  }
+};
+
 // Тестовый пуш самому себе (для кнопки «проверить»).
 export const sendTestPush = async (): Promise<boolean> => {
   try {
