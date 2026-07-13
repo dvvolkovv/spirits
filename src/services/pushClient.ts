@@ -2,6 +2,8 @@
 // в браузере и синхронизирует её с бэкендом (/webhook/push/*). Всё best-effort:
 // на неподдерживающих браузерах (iOS < 16.4, отсутствие SW) тихо возвращает false.
 
+import React from 'react';
+import toast from 'react-hot-toast';
 import { tokenManager } from '../utils/tokenManager';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
@@ -175,6 +177,26 @@ export const registerNativePush = async (): Promise<void> => {
     await PN.addListener('pushNotificationActionPerformed', (ev: any) => {
       const url = ev?.notification?.data?.url;
       if (url) { try { window.location.assign(url); } catch {} }
+    });
+    // Foreground: система НЕ рисует пуш, когда приложение открыто → показываем
+    // in-app баннер (кликабельный: открывает нужный чат). [ffae1314]
+    await PN.addListener('pushNotificationReceived', (notif: any) => {
+      const title = notif?.title || 'Linkeon';
+      const body = notif?.body || '';
+      const url = notif?.data?.url;
+      toast(
+        (tt) =>
+          React.createElement(
+            'div',
+            {
+              style: { cursor: url ? 'pointer' : 'default', lineHeight: 1.35 },
+              onClick: () => { toast.dismiss(tt.id); if (url) { try { window.location.assign(url); } catch {} } },
+            },
+            React.createElement('div', { style: { fontWeight: 700, marginBottom: body ? 2 : 0 } }, title),
+            body ? React.createElement('div', { style: { fontSize: 13, opacity: 0.85 } }, body) : null,
+          ),
+        { icon: '🔔', duration: 6000 },
+      );
     });
     await PN.register();
   } catch {

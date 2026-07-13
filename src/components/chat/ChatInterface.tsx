@@ -21,6 +21,7 @@ import TelegramConnectForm from './TelegramConnectForm';
 import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
 import { avatarService } from '../../services/avatarService';
 import { apiClient } from '../../services/apiClient';
+import { refreshWidget } from '../../services/widgetClient';
 import { useVideoJobs } from '../video/useVideoJobs';
 import VideoJobCard from '../video/VideoJobCard';
 
@@ -1202,6 +1203,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const text = input;
     setInput('');
     await sendMessageText(text);
+    // Обновляем контент домашнего виджета последней репликой (натив; на вебе no-op),
+    // чтобы «последний разговор» в виджете был свежим, когда юзер свернёт приложение.
+    try { refreshWidget(); } catch {}
   };
 
   const handleClearChat = async () => {
