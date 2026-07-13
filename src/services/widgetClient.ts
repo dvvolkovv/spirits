@@ -22,6 +22,7 @@ export async function refreshWidget(): Promise<void> {
     await bridge.update({
       assistantName: d.assistantName || '',
       assistantId: d.assistantId || '',
+      avatarUrl: d.avatarUrl || '',
       contextLine: d.contextLine || '',
       energyLine: d.energyLine || '',
       hasEnergy: !!d.hasEnergy,
