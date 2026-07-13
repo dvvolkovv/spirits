@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
 import { avatarService } from '../../services/avatarService';
@@ -108,11 +109,21 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   //    активации молчунов: сразу в разговор, минуя пикер).
   //  • ?resume=1 — «умный» шорткат «Продолжить»: открывает последнего ассистента
   //    из localStorage (лейбл один на всех, назначение персональное).
-  const assistantParamApplied = useRef(false);
+  // Реагируем на КАЖДУЮ навигацию с deep-link параметрами (location.key меняется
+  // при любом переходе, даже на тот же путь /chat) — иначе повторный тап «Продолжить»
+  // из виджета/шортката, когда мы уже на экране списка (/chat), не срабатывал:
+  // путь тот же, а прежний эффект был one-shot по ref + deps [assistants].
+  const location = useLocation();
+  const lastAppliedNav = useRef<string>('');
   useEffect(() => {
-    if (assistantParamApplied.current || assistants.length === 0) return;
-    const params = new URLSearchParams(window.location.search);
+    if (assistants.length === 0) return;
+    const params = new URLSearchParams(location.search);
     const q = params.get('assistant');
+    const resume = params.get('resume') === '1';
+    if (!q && !resume) return;
+    const navKey = location.key + '|' + location.search;
+    if (lastAppliedNav.current === navKey) return;
+    lastAppliedNav.current = navKey;
     if (q) {
       // Латинские алиасы для человекочитаемых шорткат-URL → к именам агентов.
       const ALIASES: Record<string, string> = {
@@ -126,7 +137,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
         (a.displayName || '').toLowerCase() === norm,
       );
       if (match) handleSelect(match);
-    } else if (params.get('resume') === '1') {
+    } else if (resume) {
       try {
         const last = localStorage.getItem('linkeon_last_assistant');
         if (last) {
@@ -140,8 +151,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
         }
       } catch { /* нет сохранённого — просто останется пикер */ }
     }
-    assistantParamApplied.current = true;
-  }, [assistants]);
+  }, [assistants, location.key, location.search]);
 
   const visibleAssistants = assistants;
   const myAssistant = visibleAssistants.filter(a => a.category === 'assistant');
