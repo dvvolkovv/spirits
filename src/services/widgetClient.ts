@@ -27,6 +27,35 @@ export async function refreshWidget(): Promise<void> {
       energyLine: d.energyLine || '',
       hasEnergy: !!d.hasEnergy,
     });
+
+    // Динамические персональные ярлыки (долгий тап по иконке) [Натив 5]:
+    // «Продолжить с <последним>», недавний ассистент, Картинка, Голос.
+    if (bridge.setShortcuts) {
+      const items: Array<{ id: string; shortLabel: string; longLabel: string; path: string }> = [];
+      items.push({
+        id: 'resume',
+        shortLabel: 'Продолжить',
+        longLabel: d.assistantName ? `Продолжить с ${d.assistantName}` : 'Продолжить',
+        path: '/chat?resume=1&src=shortcut',
+      });
+      // Недавний ассистент, отличный от последнего (последний уже покрыт «Продолжить»).
+      const recents = (d.recentAssistants || []).filter(
+        (a: any) => String(a.id) !== String(d.assistantId),
+      );
+      if (recents[0]) {
+        items.push({
+          id: 'a' + recents[0].id,
+          shortLabel: recents[0].name,
+          longLabel: `Открыть: ${recents[0].name}`,
+          path: `/chat?assistant=${encodeURIComponent(recents[0].id)}&src=shortcut`,
+        });
+      }
+      items.push({ id: 'image', shortLabel: 'Картинка', longLabel: 'Создать картинку', path: '/image-gen?src=shortcut' });
+      items.push({ id: 'voice', shortLabel: 'Голос', longLabel: 'Сказать голосом', path: '/chat?voice=1&resume=1&src=shortcut' });
+      try {
+        await bridge.setShortcuts({ items: items.slice(0, 4) });
+      } catch { /* ignore */ }
+    }
   } catch {
     /* сеть/мост недоступны — тихо игнорируем */
   }
