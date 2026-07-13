@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -10,6 +10,7 @@ import OnboardingPage from './pages/OnboardingPage';            // eager: пер
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track, trackAuthed } from './services/eventsClient';
+import { refreshWidget, initWidgetNavigation, onAppResume } from './services/widgetClient';
 import './i18n';
 
 // Ленивые маршруты — грузятся ПО ТРЕБОВАНИЮ (code-split), а не одним монолитом.
@@ -45,6 +46,21 @@ const RouteFallback: React.FC = () => (
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const widgetInit = React.useRef(false);
+
+  // Домашний виджет [Натив 4] (натив-приложение; на вебе — no-op): обновляем
+  // контент виджета при входе и возврате на передний план; обрабатываем
+  // deep-link, с которым открыли из виджета (Продолжить/Картинка/Голос).
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    refreshWidget();
+    if (!widgetInit.current) {
+      widgetInit.current = true;
+      initWidgetNavigation((path) => navigate(path));
+      onAppResume(() => refreshWidget());
+    }
+  }, [isAuthenticated]);
 
   // app_open: открытие приложения авторизованным юзером, раз на сессию браузера
   // (71afe7f7). С user_id → snapshot считает app_opens_7d по персонам и ratio
