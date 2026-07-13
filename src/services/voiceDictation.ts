@@ -3,6 +3,8 @@
 // (getUserMedia + AudioWorklet + WebSocket), в отличие от Web Speech API.
 import { tokenManager } from '../utils/tokenManager';
 
+const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
+
 export interface VoiceDictationCallbacks {
   onPartial?: (text: string) => void;
   onFinal?: (text: string) => void;
@@ -56,8 +58,18 @@ export class VoiceDictation {
       return;
     }
 
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    this.ws = new WebSocket(`${proto}://${location.host}/voice/stream?token=${encodeURIComponent(token)}`);
+    // WS-адрес строим из VITE_BACKEND_URL, а НЕ из location.host: в нативном
+    // приложении (Capacitor) location.host = 'localhost' → wss://localhost/... шёл
+    // на localhost устройства, мгновенно падал (onclose) → диктовка «моргала» и
+    // гасла. В вебе BACKEND = тот же origin, поведение не меняется.
+    let wsBase: string;
+    if (BACKEND) {
+      wsBase = BACKEND.replace(/^http/i, 'ws'); // https→wss, http→ws
+    } else {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      wsBase = `${proto}://${location.host}`;
+    }
+    this.ws = new WebSocket(`${wsBase}/voice/stream?token=${encodeURIComponent(token)}`);
     this.ws.binaryType = 'arraybuffer';
 
     this.ws.onmessage = (ev) => {
