@@ -1,4 +1,7 @@
 import { apiClient } from './apiClient';
+import { tokenManager } from '../utils/tokenManager';
+
+const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
 
 // Мост к нативному домашнему виджету [Натив 4]. Всё через глобальный
 // Capacitor-мост — на вебе window.Capacitor отсутствует, все функции no-op.
@@ -26,6 +29,11 @@ export async function refreshWidget(): Promise<void> {
       contextLine: d.contextLine || '',
       energyLine: d.energyLine || '',
       hasEnergy: !!d.hasEnergy,
+      // Токены + бэкенд — чтобы фоновый WorkManager обновлял виджет при закрытом
+      // приложении (сам рефрешит access по refresh при 401). Хранятся в app-private prefs.
+      accessToken: tokenManager.getAccessToken() || '',
+      refreshToken: tokenManager.getRefreshToken() || '',
+      backendUrl: BACKEND,
     });
 
     // Динамические персональные ярлыки (долгий тап по иконке) [Натив 5]:
