@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
+import { APP_BUILD } from '../../buildInfo';
 import {
   Shield,
   Globe,
@@ -366,6 +367,10 @@ const SettingsView: React.FC = () => {
             </div>
           </div>
         </div>
+
+        <p className="mt-8 text-center text-xs text-gray-400">
+          Linkeon · сборка {APP_BUILD}
+        </p>
 
     </div>
   );
