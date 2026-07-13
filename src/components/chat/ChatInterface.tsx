@@ -1190,6 +1190,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
+    // Если идёт диктовка — глушим микрофон и отвязываем инстанс, чтобы поздние
+    // partial/final (см. guard в onPartial/onFinal) не возвращали текст в поле.
+    if (voiceRef.current) {
+      const vd = voiceRef.current;
+      voiceRef.current = null;
+      try { vd.stop(); } catch {}
+      setIsRecording(false);
+    }
+    voiceCommittedRef.current = '';
     const text = input;
     setInput('');
     await sendMessageText(text);
@@ -1298,11 +1307,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setIsRecording(true);
     await vd.start({
       onPartial: (text) => {
+        if (voiceRef.current !== vd) return; // отправили/переключили — игнорируем поздние результаты
         const base = voiceCommittedRef.current;
         setInput((base ? base + ' ' : '') + text);
         adjustTextareaHeight();
       },
       onFinal: (text) => {
+        if (voiceRef.current !== vd) return;
         const base = voiceCommittedRef.current;
         voiceCommittedRef.current = (base ? base + ' ' : '') + text;
         setInput(voiceCommittedRef.current);
