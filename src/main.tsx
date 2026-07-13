@@ -25,3 +25,18 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>
 );
+
+// OTA (нативное приложение, @capgo/capacitor-updater): как только бандл
+// поднялся и отрендерился — подтверждаем плагину, что он рабочий
+// (notifyAppReady). Без этого capgo через таймаут откатит только что
+// применённый OTA-бандл (safety-rollback). Вызываем ЧЕРЕЗ глобальный
+// Capacitor-мост, без npm-зависимости в вебе — на вебе window.Capacitor
+// отсутствует → no-op, деплой фронта не затрагивается.
+try {
+  const cap = (window as any).Capacitor;
+  const updater = cap?.Plugins?.CapacitorUpdater;
+  if (updater?.notifyAppReady) {
+    // небольшой отложенный вызов — дать React смонтировать дерево
+    setTimeout(() => { updater.notifyAppReady().catch(() => {}); }, 300);
+  }
+} catch { /* веб / плагин недоступен — игнорируем */ }
