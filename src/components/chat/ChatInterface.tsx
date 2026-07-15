@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { TokenPackages } from '../tokens/TokenPackages';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
@@ -307,6 +307,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleButtonAction = useCallback((action: string) => {
     switch(action) {
@@ -1377,14 +1378,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       })();
     }
 
-    // Голосовой шорткат → авто-старт диктовки (best-effort; на Android без
-    // жеста-активации может не стартовать — тогда юзер тапнет микрофон сам).
-    if (params.get('voice') === '1') {
-      stripQueryParams(['voice']);
-      setTimeout(() => { handleVoiceInput(true); }, 500);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Голосовой deep-link/шорткат (?voice=1) → авто-старт диктовки. Реактивно к
+  // навигации (location.key меняется при каждом открытии из лаунчера/шортката),
+  // т.к. при уже смонтированном ChatInterface прежний mount-эффект не перезапускался
+  // → микрофон открывался «по дефолту». Гард по navKey от повторов на ре-рендер.
+  const voiceNavRef = useRef('');
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('voice') !== '1') return;
+    const navKey = location.key + location.search;
+    if (voiceNavRef.current === navKey) return;
+    voiceNavRef.current = navKey;
+    stripQueryParams(['voice']);
+    setTimeout(() => { handleVoiceInput(true); }, 600);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key, location.search]);
 
   // ?say=<text> → автоотправка первого сообщения. Ждём, пока ассистент выбран
   // (шорткат «Энергия дня» даёт ?assistant=raya&say=...), чтобы уйти к нужному.
