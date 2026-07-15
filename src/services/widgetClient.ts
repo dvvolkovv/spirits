@@ -85,6 +85,26 @@ export async function initWidgetNavigation(onNavigate: (path: string) => void): 
   }
 }
 
+// Deep-link из лаунчера Линкеона [Фаза 1]: linkeon://chat?voice=1 / ?say=...
+// Открывает приложение (отдельный APK io.linkeon.launcher шлёт этот intent) →
+// Capacitor App-plugin отдаёт URL в appUrlOpen → навигируем роутером в /chat с query.
+// На вебе window.Capacitor отсутствует → no-op.
+export function initDeepLinks(onNavigate: (path: string) => void): void {
+  const app = (window as any).Capacitor?.Plugins?.App;
+  if (!app?.addListener) return;
+  const handle = (url: string) => {
+    if (!url || url.indexOf('linkeon://') !== 0) return;
+    const m = url.match(/^linkeon:\/\/([^?]*)(\?.*)?$/i);
+    if (!m) return;
+    const path = '/' + (m[1] || 'chat').replace(/^\/+/, '');
+    onNavigate(path + (m[2] || ''));
+  };
+  // cold start: приложение открыли по linkeon:// из закрытого состояния
+  try { app.getLaunchUrl?.().then((r: any) => { if (r && r.url) handle(r.url); }).catch(() => {}); } catch {}
+  // warm: пришёл новый intent
+  app.addListener('appUrlOpen', (ev: any) => { if (ev && ev.url) handle(ev.url); });
+}
+
 // Подписка на возврат приложения на передний план (обновляем виджет свежими данными).
 export function onAppResume(cb: () => void): void {
   const app = (window as any).Capacitor?.Plugins?.App;

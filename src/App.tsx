@@ -10,7 +10,7 @@ import OnboardingPage from './pages/OnboardingPage';            // eager: пер
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track, trackAuthed } from './services/eventsClient';
-import { refreshWidget, initWidgetNavigation, onAppResume } from './services/widgetClient';
+import { refreshWidget, initWidgetNavigation, onAppResume, initDeepLinks } from './services/widgetClient';
 import { registerNativePush } from './services/pushClient';
 import './i18n';
 
@@ -59,6 +59,7 @@ const AppContent: React.FC = () => {
     if (!widgetInit.current) {
       widgetInit.current = true;
       initWidgetNavigation((path) => navigate(path));
+      initDeepLinks((path) => navigate(path));
       onAppResume(() => refreshWidget());
       // Нативные пуши [Натив 3]: запрос разрешения + регистрация FCM-токена (натив; на вебе no-op).
       registerNativePush();
