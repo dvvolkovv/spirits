@@ -23,7 +23,6 @@ export default function MessagesPage() {
       if (!hasSmsBridge()) { setGranted(false); return; }
       const g = await smsHasPermission();
       setGranted(g);
-      if (g) load(tab);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -40,6 +39,10 @@ export default function MessagesPage() {
     await smsMark(s.sender, spam);
     setItems((prev) => prev.filter((x) => x !== s));
   };
+
+  if (granted === null) {
+    return <div className="max-w-xl mx-auto p-5 text-gray-400 text-sm">Загрузка…</div>;
+  }
 
   if (granted === false) {
     return (
@@ -80,7 +83,7 @@ export default function MessagesPage() {
 
       <ul className="space-y-2">
         {items.map((s, i) => (
-          <li key={i} className="bg-white rounded-2xl p-3 shadow-sm">
+          <li key={`${s.sender}-${s.date}-${i}`} className="bg-white rounded-2xl p-3 shadow-sm">
             <div className="flex justify-between items-baseline">
               <span className="font-semibold text-sm">{s.sender || 'Без номера'}</span>
               <span className="text-xs text-gray-400">{new Date(s.date).toLocaleDateString()}</span>
