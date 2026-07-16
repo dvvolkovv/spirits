@@ -96,6 +96,13 @@ export function initDeepLinks(onNavigate: (path: string) => void): void {
     if (!url || url.indexOf('linkeon://') !== 0) return;
     const m = url.match(/^linkeon:\/\/([^?]*)(\?.*)?$/i);
     if (!m) return;
+    // linkeon://messages?tab=spam → /messages?tab=spam [Фаза 3a]
+    if (m[1] === 'messages') {
+      const params = new URLSearchParams((m[2] || '').replace(/^\?/, ''));
+      const tab = params.get('tab');
+      onNavigate('/messages' + (tab ? `?tab=${encodeURIComponent(tab)}` : ''));
+      return;
+    }
     const path = '/' + (m[1] || 'chat').replace(/^\/+/, '');
     onNavigate(path + (m[2] || ''));
   };

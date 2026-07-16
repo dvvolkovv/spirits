@@ -7,7 +7,9 @@ import {
 type Tab = 'important' | 'spam';
 
 export default function MessagesPage() {
-  const [tab, setTab] = useState<Tab>('important');
+  const initialTab: Tab =
+    new URLSearchParams(window.location.search).get('tab') === 'spam' ? 'spam' : 'important';
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [granted, setGranted] = useState<boolean | null>(null);
   const [items, setItems] = useState<Sms[]>([]);
   const [loading, setLoading] = useState(false);
