@@ -15,11 +15,13 @@ import {
   Film,
   HelpCircle,
   Sparkles,
+  Inbox,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
 import LegalModal from '../onboarding/LegalModal';
 import { useUnreadSummary } from '../peer/usePeer';
+import { hasSmsBridge } from '../../services/smsClient';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
@@ -82,6 +84,16 @@ const Navigation: React.FC = () => {
     },
   ];
 
+  // SMS-линза [Фаза 3a] — только в нативном приложении (плагин SmsBridge есть
+  // лишь там). На вебе плагина нет → пункт не показывается. Даёт точку входа на
+  // экран «Сообщения», где доступ к SMS запрашивается в контексте.
+  const messagesNavItem = {
+    to: '/messages',
+    icon: Inbox,
+    label: t('nav.messages', 'Сообщения'),
+    isLogo: false,
+  };
+
   // Профиль отдельно — чтобы можно было вставить «Студию» (и другие админские
   // пункты) до него.
   const profileNavItem = {
@@ -116,6 +128,8 @@ const Navigation: React.FC = () => {
 
   const navItems = [
     ...baseNavItems,
+    // «Сообщения» (SMS-линза) — только в нативном приложении.
+    ...(hasSmsBridge() ? [messagesNavItem] : []),
     // Студия доступна всем (создание агентов и Telegram-ботов).
     studioNavItem,
     // Админ-инструменты — только для админов.
