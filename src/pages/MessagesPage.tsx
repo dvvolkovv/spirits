@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AlertTriangle, ShieldCheck, ExternalLink } from 'lucide-react';
 import {
   hasSmsBridge, smsHasPermission, smsRequestPermission, smsList, smsMark, type Sms,
@@ -13,6 +14,7 @@ export default function MessagesPage() {
   const [granted, setGranted] = useState<boolean | null>(null);
   const [items, setItems] = useState<Sms[]>([]);
   const [loading, setLoading] = useState(false);
+  const location = useLocation();
 
   const load = useCallback(async (t: Tab) => {
     setLoading(true);
@@ -28,6 +30,11 @@ export default function MessagesPage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const t = new URLSearchParams(location.search).get('tab');
+    setTab(t === 'spam' ? 'spam' : 'important');
+  }, [location.search]);
 
   useEffect(() => { if (granted) load(tab); }, [tab, granted, load]);
 
