@@ -36,6 +36,7 @@ const ContactRequestsPage = lazy(() => import('./pages/ContactRequestsPage'));
 const SettingsSocialPage = lazy(() => import('./pages/SettingsSocialPage'));
 const StudioPage = lazy(() => import('./pages/StudioPage'));
 const TelegramBotsNewPage = lazy(() => import('./pages/TelegramBotsPage').then((m) => ({ default: m.TelegramBotsNewPage })));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 
 // Лёгкий fallback, пока подгружается ленивый чанк раздела.
 const RouteFallback: React.FC = () => (
@@ -135,6 +136,7 @@ const AppContent: React.FC = () => {
             <Route path="/referral" element={<Navigate to="/profile" replace />} />
             <Route path="/image-gen" element={<ImageGenPage />} />
             <Route path="/video" element={<VideoPage />} />
+            <Route path="/messages" element={<MessagesPage />} />
             <Route path="/my-videos" element={<MyVideosPage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/support" element={<SupportPage />} />
