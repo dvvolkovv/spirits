@@ -899,8 +899,49 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Одного мгновенного scrollIntoView мало: картинки (loading="lazy"),
   // видео-эмбеды и карты догружаются ПОСЛЕ прыжка, раздувают высоту выше
   // вьюпорта — и юзер оказывается в середине диалога. Поэтому после загрузки
-  // истории держим скролл прижатым к низу коротким окном, пока высота контента
-  // «дышит». Отпускаем при первом взаимодействии юзера или по таймауту.
+  // истории «пин»: независимый rAF-наблюдатель дожимает scrollTop при каждом
+  // росте scrollHeight, пока юзер не взаимодействует со скроллом (или потолок
+  // 15с). Пин живёт в ref'ах, а не в эффекте с deps: любой setMessages
+  // (поллинг/greeting) пере-запускал бы эффект и убивал пин через cleanup
+  // задолго до загрузки тяжёлых картинок.
+  const pinToBottomRef = useRef(false);
+  const pinStartedAtRef = useRef(0);
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const releasePin = () => { pinToBottomRef.current = false; };
+    container.addEventListener('wheel', releasePin, { passive: true });
+    container.addEventListener('touchstart', releasePin, { passive: true });
+    container.addEventListener('mousedown', releasePin, { passive: true }); // drag скроллбара
+
+    const PIN_MAX_MS = 15000;
+    let lastHeight = 0;
+    let rafId = 0;
+    const tick = () => {
+      if (pinToBottomRef.current) {
+        if (performance.now() - pinStartedAtRef.current > PIN_MAX_MS) {
+          pinToBottomRef.current = false;
+        } else {
+          const h = container.scrollHeight;
+          if (h !== lastHeight) {
+            container.scrollTop = h;
+            lastHeight = h;
+          }
+        }
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      container.removeEventListener('wheel', releasePin);
+      container.removeEventListener('touchstart', releasePin);
+      container.removeEventListener('mousedown', releasePin);
+    };
+  }, []);
+
   const initialScrollDoneForAssistantRef = useRef<number | null>(null);
   useEffect(() => {
     const aid = selectedAssistant?.id ?? null;
@@ -908,37 +949,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (historyLoading) return;
     if (messages.length === 0) return;
     initialScrollDoneForAssistantRef.current = aid;
-
-    const container = messagesContainerRef.current;
     messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
-    if (!container) return;
-
-    let stopped = false;
-    const stop = () => { stopped = true; };
-    container.addEventListener('wheel', stop, { once: true, passive: true });
-    container.addEventListener('touchstart', stop, { once: true, passive: true });
-
-    const startedAt = performance.now();
-    const PIN_WINDOW_MS = 2000;
-    let lastHeight = container.scrollHeight;
-    let rafId = 0;
-    const tick = () => {
-      if (stopped || performance.now() - startedAt > PIN_WINDOW_MS) return;
-      const h = container.scrollHeight;
-      if (h !== lastHeight) {
-        container.scrollTop = h;
-        lastHeight = h;
-      }
-      rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-
-    return () => {
-      stopped = true;
-      if (rafId) cancelAnimationFrame(rafId);
-      container.removeEventListener('wheel', stop);
-      container.removeEventListener('touchstart', stop);
-    };
+    pinToBottomRef.current = true;
+    pinStartedAtRef.current = performance.now();
   }, [messages.length, selectedAssistant?.id, historyLoading]);
 
   // Голосовой ввод: потоковая диктовка через сервер (SpeechKit), работает на iOS.
