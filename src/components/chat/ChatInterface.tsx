@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins } from 'lucide-react';
+import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -473,6 +473,37 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const selectedAssistantRef = useRef<Assistant | null>(selectedAssistant);
   useEffect(() => { selectedAssistantRef.current = selectedAssistant; }, [selectedAssistant]);
 
+  // «Чистый лист»: per-assistant режим общения без прошлой истории и задач
+  // (профиль при этом продолжает формироваться на бэке). freshTs — метка
+  // включения, из неё бэк собирает отдельную fresh-сессию. Переживает F5
+  // через sessionStorage; повторное включение = новый чистый лист.
+  const getFreshKey = (aid: unknown) => `fresh_ts_${aid}`;
+  const [freshTs, setFreshTs] = useState<string | null>(() => {
+    const saved = sessionStorage.getItem('selected_assistant');
+    if (!saved) return null;
+    try { return sessionStorage.getItem(getFreshKey(JSON.parse(saved).id)); } catch { return null; }
+  });
+  useEffect(() => {
+    const aid = selectedAssistant?.id;
+    setFreshTs(aid != null ? sessionStorage.getItem(getFreshKey(aid)) : null);
+  }, [selectedAssistant?.id]);
+
+  const toggleFreshMode = () => {
+    if (!selectedAssistant) return;
+    const key = getFreshKey(selectedAssistant.id);
+    if (freshTs) {
+      sessionStorage.removeItem(key);
+      setFreshTs(null);
+    } else {
+      const ts = Date.now().toString();
+      sessionStorage.setItem(key, ts);
+      setFreshTs(ts);
+    }
+    // Скролл-маркеры сбрасываем: история сменится, надо заново прыгнуть вниз.
+    initialScrollDoneForAssistantRef.current = null;
+    historyLoadedForRef.current = null;
+  };
+
   // Initial load + refetch когда открывается дропдаун (пользователь мог
   // создать кастомного ассистента в /my-agents и тут же вернуться).
   // ВАЖНО: должно идти ПОСЛЕ объявления showAssistantDropdown — иначе TDZ
@@ -536,7 +567,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // ассистента → дубли истории (duplicate keys) и «открылся в середине».
       setHasMoreHistory(false);
       try {
-        const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=0`);
+        const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
+        const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=0${freshParam}`);
         if (response.ok) {
           const data = await response.json();
           const msgs = (data.messages || []).map((m: any) => {
@@ -581,7 +613,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     load();
-  }, [selectedAssistant?.id, hasUserSelectedAssistant]);
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, freshTs]);
 
   // Background polling: подхватывает ответы, которые backend дописал в БД,
   // пока user был на другом ассистенте или закрыл вкладку.
@@ -596,7 +628,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const poll = async () => {
       try {
-        const response = await apiClient.get(`/webhook/chat/history?assistantId=${assistantId}&limit=5&offset=0`);
+        const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
+        const response = await apiClient.get(`/webhook/chat/history?assistantId=${assistantId}&limit=5&offset=0${freshParam}`);
         if (cancelled || !response.ok) return;
         const data = await response.json();
         const fresh = (data?.messages || []) as any[];
@@ -663,7 +696,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       clearTimeout(t1);
       clearInterval(id);
     };
-  }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping]);
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping, freshTs]);
 
   const sendInitialGreeting = async () => {
     if (!selectedAssistant) return;
@@ -690,7 +723,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const requestedAssistantId = selectedAssistant.id;
     setLoadingMore(true);
     try {
-      const response = await apiClient.get(`/webhook/chat/history?assistantId=${requestedAssistantId}&limit=30&offset=${historyOffset}`);
+      const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
+      const response = await apiClient.get(`/webhook/chat/history?assistantId=${requestedAssistantId}&limit=30&offset=${historyOffset}${freshParam}`);
       if (response.ok) {
         const data = await response.json();
         // Ассистент сменился, пока fetch шёл — результат чужой, выбрасываем.
@@ -1027,7 +1061,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     try {
       const response = await apiClient.post('/webhook/soulmate/chat', {
         chatInput: userMessage,
-        assistant: currentAssistantId
+        assistant: currentAssistantId,
+        ...(freshTs ? { fresh: true, freshTs } : {})
       }, {
         signal: abortControllerRef.current.signal
       });
@@ -1906,6 +1941,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </span>
               </button>
             )}
+            <button
+              onClick={toggleFreshMode}
+              data-testid="fresh-mode-toggle"
+              className={clsx(
+                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors',
+                freshTs
+                  ? 'bg-forest-600 border-forest-600 text-white hover:bg-forest-700'
+                  : 'border-gray-200 text-gray-500 hover:text-forest-700 hover:border-forest-300'
+              )}
+              title={freshTs
+                ? 'Чистый лист включён: ассистент не видит прошлую историю и задачи (профиль продолжает пополняться). Нажми, чтобы вернуться к обычному диалогу.'
+                : 'Чистый лист: начать разговор без прошлой истории и задач. Профиль продолжает пополняться.'}
+            >
+              <Eraser className="w-4 h-4" />
+              <span className="hidden md:inline text-xs font-medium">Чистый лист</span>
+            </button>
             {messages.length > 1 && (
               <>
                 <button
