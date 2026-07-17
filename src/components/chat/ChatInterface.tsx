@@ -570,6 +570,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           sendInitialGreeting();
         }
       } finally {
+        // Маркер «история ИМЕННО этого ассистента загружена» — гейт для
+        // initial-scroll эффекта. Без него эффект срабатывал сразу при смене
+        // ассистента (пока в стейте старые messages и stale historyLoading=false),
+        // преждевременно помечал скролл сделанным — и настоящая история нового
+        // ассистента приезжала уже без скролла и без пина.
+        historyLoadedForRef.current = selectedAssistant.id;
         setHistoryLoading(false);
       }
     };
@@ -945,10 +951,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   const initialScrollDoneForAssistantRef = useRef<number | null>(null);
+  const historyLoadedForRef = useRef<number | null>(null);
   useEffect(() => {
     const aid = selectedAssistant?.id ?? null;
     if (initialScrollDoneForAssistantRef.current === aid) return;
     if (historyLoading) return;
+    // История в стейте может быть ещё от ПРЕДЫДУЩЕГО ассистента: load() нового
+    // не завершился, а stale historyLoading=false пропускал эффект. Ждём маркер.
+    if (historyLoadedForRef.current !== aid) return;
     if (messages.length === 0) return;
     initialScrollDoneForAssistantRef.current = aid;
     // Прямой scrollTop вместо scrollIntoView({behavior:'instant'}):
