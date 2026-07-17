@@ -24,7 +24,7 @@
       "purpose": "any"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/android-chrome-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -36,28 +36,52 @@
       "short_name": "Продолжить",
       "description": "Вернуться к последнему разговору",
       "url": "/chat?resume=1&src=shortcut",
-      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Спросить Романа",
       "short_name": "Роман",
       "description": "Универсальный AI-агент — задачи, поиск, действия",
       "url": "/chat?assistant=roman&src=shortcut",
-      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Сказать голосом",
       "short_name": "Голосом",
       "description": "Микрофон в последнем разговоре",
       "url": "/chat?voice=1&resume=1&src=shortcut",
-      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Создать картинку",
       "short_name": "Картинка",
       "description": "Генерация изображения по описанию",
       "url": "/image-gen?src=shortcut",
-      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ],
   "share_target": {
@@ -69,7 +93,12 @@
       "text": "text",
       "url": "url",
       "files": [
-        { "name": "files", "accept": ["image/*"] }
+        {
+          "name": "files",
+          "accept": [
+            "image/*"
+          ]
+        }
       ]
     }
   }
