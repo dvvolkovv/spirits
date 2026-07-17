@@ -468,6 +468,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   });
   const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
 
+  // Актуальный ассистент для async-колбэков (loadMoreHistory): state в замыкании
+  // устаревает, пока fetch в полёте, а ref всегда свежий.
+  const selectedAssistantRef = useRef<Assistant | null>(selectedAssistant);
+  useEffect(() => { selectedAssistantRef.current = selectedAssistant; }, [selectedAssistant]);
+
   // Initial load + refetch когда открывается дропдаун (пользователь мог
   // создать кастомного ассистента в /my-agents и тут же вернуться).
   // ВАЖНО: должно идти ПОСЛЕ объявления showAssistantDropdown — иначе TDZ
@@ -525,6 +530,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const load = async () => {
       setHistoryLoading(true);
       setHistoryOffset(0);
+      // Сброс ДО fetch: при смене ассистента список схлопывается до спиннера,
+      // браузер клампит scrollTop к 0 → onScroll видит scrollTop<100 со СТАРЫМ
+      // hasMoreHistory и дёргает loadMoreHistory с чужим offset для нового
+      // ассистента → дубли истории (duplicate keys) и «открылся в середине».
+      setHasMoreHistory(false);
       try {
         const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=0`);
         if (response.ok) {
@@ -664,13 +674,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     await sendMessageToAI(greetingMessage);
   };
 
+  // Ref-guard против конкурентных вызовов: state loadingMore обновляется
+  // асинхронно, два scroll-события до ре-рендера проходили проверку оба —
+  // двойной fetch с одинаковым offset → двойной prepend → duplicate keys.
+  const loadingMoreRef = useRef(false);
   const loadMoreHistory = async () => {
-    if (!selectedAssistant || loadingMore || !hasMoreHistory) return;
+    if (!selectedAssistant || loadingMoreRef.current || !hasMoreHistory) return;
+    loadingMoreRef.current = true;
+    const requestedAssistantId = selectedAssistant.id;
     setLoadingMore(true);
     try {
-      const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=${historyOffset}`);
+      const response = await apiClient.get(`/webhook/chat/history?assistantId=${requestedAssistantId}&limit=30&offset=${historyOffset}`);
       if (response.ok) {
         const data = await response.json();
+        // Ассистент сменился, пока fetch шёл — результат чужой, выбрасываем.
+        if (selectedAssistantRef.current?.id !== requestedAssistantId) return;
         const older = (data.messages || []).map((m: any) => {
           const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
           return {
@@ -682,7 +700,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (older.length > 0) {
           const container = messagesContainerRef.current;
           const prevHeight = container?.scrollHeight || 0;
-          setMessages(prev => [...older, ...prev]);
+          setMessages(prev => {
+            // Страховка от дублей при любых гонках: не префиксуем уже присутствующие id.
+            const existing = new Set(prev.map(m => m.id));
+            const fresh = older.filter((m: any) => !existing.has(m.id));
+            return fresh.length > 0 ? [...fresh, ...prev] : prev;
+          });
           setHistoryOffset(prev => prev + 30);
           setHasMoreHistory(data.hasMore || false);
           // Restore scroll position after prepending
@@ -698,6 +721,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (e) {
       console.error('Error loading more history:', e);
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
   };
@@ -871,14 +895,50 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // чего polling /webhook/chat/history (раз в 8с) перетягивал юзера обратно вниз
   // когда тот листал вверх. Follow streaming уже обрабатывается условным эффектом
   // выше (только если уже near-bottom).
+  //
+  // Одного мгновенного scrollIntoView мало: картинки (loading="lazy"),
+  // видео-эмбеды и карты догружаются ПОСЛЕ прыжка, раздувают высоту выше
+  // вьюпорта — и юзер оказывается в середине диалога. Поэтому после загрузки
+  // истории держим скролл прижатым к низу коротким окном, пока высота контента
+  // «дышит». Отпускаем при первом взаимодействии юзера или по таймауту.
   const initialScrollDoneForAssistantRef = useRef<number | null>(null);
   useEffect(() => {
     const aid = selectedAssistant?.id ?? null;
     if (initialScrollDoneForAssistantRef.current === aid) return;
     if (historyLoading) return;
     if (messages.length === 0) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
     initialScrollDoneForAssistantRef.current = aid;
+
+    const container = messagesContainerRef.current;
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+    if (!container) return;
+
+    let stopped = false;
+    const stop = () => { stopped = true; };
+    container.addEventListener('wheel', stop, { once: true, passive: true });
+    container.addEventListener('touchstart', stop, { once: true, passive: true });
+
+    const startedAt = performance.now();
+    const PIN_WINDOW_MS = 2000;
+    let lastHeight = container.scrollHeight;
+    let rafId = 0;
+    const tick = () => {
+      if (stopped || performance.now() - startedAt > PIN_WINDOW_MS) return;
+      const h = container.scrollHeight;
+      if (h !== lastHeight) {
+        container.scrollTop = h;
+        lastHeight = h;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      stopped = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      container.removeEventListener('wheel', stop);
+      container.removeEventListener('touchstart', stop);
+    };
   }, [messages.length, selectedAssistant?.id, historyLoading]);
 
   // Голосовой ввод: потоковая диктовка через сервер (SpeechKit), работает на iOS.
