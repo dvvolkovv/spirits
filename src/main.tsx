@@ -5,9 +5,11 @@ import './index.css';
 import { trackLandingOnce } from './services/eventsClient';
 import { initVkPixel } from './services/vkPixel';
 import { ensureServiceWorker, maybeResubscribe } from './services/pushClient';
+import { initViewportHeightVar } from './utils/viewportHeight';
 
 initVkPixel();
 trackLandingOnce();
+initViewportHeightVar();
 
 // Регистрируем PWA service worker (standalone-установка + web-push транспорт).
 // Best-effort, не блокирует загрузку; на неподдерживающих браузерах — no-op.

@@ -912,7 +912,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const releasePin = () => { pinToBottomRef.current = false; };
     container.addEventListener('wheel', releasePin, { passive: true });
-    container.addEventListener('touchstart', releasePin, { passive: true });
+    // touchmove, не touchstart: тап по сообщению — не намерение скроллить,
+    // на мобиле touchstart отпускал пин от любого касания.
+    container.addEventListener('touchmove', releasePin, { passive: true });
     container.addEventListener('mousedown', releasePin, { passive: true }); // drag скроллбара
 
     const PIN_MAX_MS = 15000;
@@ -937,7 +939,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => {
       cancelAnimationFrame(rafId);
       container.removeEventListener('wheel', releasePin);
-      container.removeEventListener('touchstart', releasePin);
+      container.removeEventListener('touchmove', releasePin);
       container.removeEventListener('mousedown', releasePin);
     };
   }, []);
@@ -949,7 +951,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (historyLoading) return;
     if (messages.length === 0) return;
     initialScrollDoneForAssistantRef.current = aid;
-    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+    // Прямой scrollTop вместо scrollIntoView({behavior:'instant'}):
+    // старые WebKit кидают TypeError на невалидный для них enum 'instant',
+    // и эффект падал ДО установки пина — на iOS скролл не работал вовсе.
+    const container = messagesContainerRef.current;
+    if (container) container.scrollTop = container.scrollHeight;
     pinToBottomRef.current = true;
     pinStartedAtRef.current = performance.now();
   }, [messages.length, selectedAssistant?.id, historyLoading]);
@@ -963,6 +969,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
+
+    // Отправка = явное намерение видеть ответ: ре-арм пина к низу.
+    // Без этого на мобиле после send юзер оставался на прежнем месте диалога,
+    // а ответ стримился ниже за пределами экрана.
+    pinToBottomRef.current = true;
+    pinStartedAtRef.current = performance.now();
 
     // Set streaming message ID immediately to show loading state
     const assistantMessageId = generateMessageId();

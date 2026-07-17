@@ -6,10 +6,16 @@
    100vh на 100dvh там, где dvh поддерживается. dvh отражает ДИНАМИЧЕСКИЙ
    viewport, а вместе с interactive-widget=resizes-content он ещё и сжимается
    при открытии клавиатуры → низ приложения (поле ввода) поднимается над ней.
-   Фолбэк на 100vh для старых браузеров (правило просто не применится). */
+   Фолбэк на 100vh для старых браузеров (правило просто не применится).
+
+   --vvh: iOS (Safari и standalone-PWA) НЕ поддерживает interactive-widget,
+   клавиатура там не сжимает ни layout viewport, ни dvh — поле ввода уходило
+   под клавиатуру наполовину. utils/viewportHeight.ts слушает visualViewport
+   и при открытой клавиатуре выставляет --vvh = фактическая видимая высота. */
 @supports (height: 100dvh) {
-  .h-screen { height: 100dvh; }
-  .min-h-screen { min-height: 100dvh; }
+  :root { --vvh: 100dvh; }
+  .h-screen { height: var(--vvh, 100dvh); }
+  .min-h-screen { min-height: var(--vvh, 100dvh); }
 }
 
 @keyframes slide-down {
