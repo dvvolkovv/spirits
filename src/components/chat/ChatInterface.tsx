@@ -24,6 +24,7 @@ import { apiClient } from '../../services/apiClient';
 import { refreshWidget } from '../../services/widgetClient';
 import { useVideoJobs } from '../video/useVideoJobs';
 import VideoJobCard from '../video/VideoJobCard';
+import { trackAuthed } from '../../services/eventsClient';
 
 interface Assistant {
   id: number;
@@ -1554,6 +1555,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     if (fileInputRef.current) fileInputRef.current.value = '';
 
+    // Диагностика «выбрал файл, но не грузится»: хлебные крошки по шагам,
+    // чтобы по events видеть, где именно обрывается флоу у конкретного юзера.
+    if (user?.phone) trackAuthed('file_pick', user.phone, { name: file.name, size: file.size, type: file.type, assistant_id: selectedAssistant?.id });
+
     if (supportsUniversalFiles) {
       // Универсальный flow: для любого файла показываем модалку с заданием.
       setPendingFile(file);
@@ -1620,6 +1625,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     const userMessage: Message = { id: generateMessageId(), type: 'user', content: `📎 ${file.name}\n\n${task}`, timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
+
+    if (user?.phone) trackAuthed('file_upload_start', user.phone, { name: file.name, size: file.size, type: file.type, assistant_id: selectedAssistant?.id });
 
     // Check if text file — send inline, otherwise upload via multipart
     const textTypes = ['text/', 'application/json', 'application/xml', 'application/csv', 'text/csv'];
@@ -1693,6 +1700,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (error) {
+      if (user?.phone) trackAuthed('file_upload_error', user.phone, { name: file.name, error: error instanceof Error ? error.message : String(error), assistant_id: selectedAssistant?.id });
       const errMsg: Message = {
         id: assistantMsgId,
         type: 'assistant',
@@ -2384,7 +2392,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             />
             <div className="flex gap-2">
               <button
-                onClick={() => { setShowFileTaskModal(false); setPendingFile(null); }}
+                onClick={() => {
+                  if (user?.phone && pendingFile) trackAuthed('file_task_cancel', user.phone, { name: pendingFile.name, assistant_id: selectedAssistant?.id });
+                  setShowFileTaskModal(false); setPendingFile(null);
+                }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
               >
                 {t('chat.file_modal_cancel')}
