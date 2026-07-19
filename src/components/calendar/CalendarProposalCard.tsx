@@ -37,6 +37,11 @@ const formatConflictTime = (iso: string): string => {
   }
 };
 
+// datetime-local yields "YYYY-MM-DDTHH:mm" (or "...:ss"); backend needs full "...:ss".
+const withSeconds = (dt: string): string => {
+  return /T\d{2}:\d{2}:\d{2}/.test(dt) ? dt : `${dt}:00`;
+};
+
 export const CalendarProposalCard: React.FC<Props> = ({ event, connected, conflicts, apiPost }) => {
   const [isConnected, setIsConnected] = useState(connected);
   const [datetime, setDatetime] = useState(toDatetimeLocalValue(event.datetime));
@@ -53,7 +58,7 @@ export const CalendarProposalCard: React.FC<Props> = ({ event, connected, confli
     try {
       const r = await apiPost('/webhook/calendar/events', {
         title: event.title,
-        datetime,
+        datetime: withSeconds(datetime),
         durationMin,
         note: event.note,
       });
