@@ -24,6 +24,8 @@ import { apiClient } from '../../services/apiClient';
 import { refreshWidget } from '../../services/widgetClient';
 import { useVideoJobs } from '../video/useVideoJobs';
 import VideoJobCard from '../video/VideoJobCard';
+import { CalendarProposalCard } from '../calendar/CalendarProposalCard';
+import { CalendarProposalEvent, CalendarConflict } from '../calendar/types';
 
 interface Assistant {
   id: number;
@@ -53,6 +55,12 @@ interface Message {
   imageUrl?: string;
   tokensUsed?: number;
   inlineJobIds?: string[];
+  /** Rendered as <CalendarProposalCard/> below the message (Task 6, agent→calendar). */
+  calendarProposal?: {
+    event: CalendarProposalEvent;
+    connected: boolean;
+    conflicts: CalendarConflict[];
+  };
 }
 
 interface ChatInterfaceProps {
@@ -775,6 +783,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [user?.phone]);
 
+  // Authorized POST helper for chat tool-result cards (calendar connect/add — Task 6).
+  // Reuses the same `apiClient` (Bearer token + auto-refresh on 401) as every other
+  // call in this file instead of duplicating auth. Always resolves to a parsed body
+  // — network/parse failures are normalized to `{ ok: false, error }` so callers
+  // never need a try/catch of their own.
+  const apiPost = useCallback(async (path: string, body: any): Promise<any> => {
+    try {
+      const response = await apiClient.post(path, body);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok && data?.ok === undefined) {
+        return { ok: false, error: data?.error || data?.message || `HTTP ${response.status}` };
+      }
+      return data;
+    } catch (error: any) {
+      return { ok: false, error: error?.message ?? 'network error' };
+    }
+  }, []);
+
   useEffect(() => {
     if (selectedAssistant && !isChangingAgentRef.current) {
       // Проверяем, что это действительно новое значение
@@ -948,6 +974,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       let accumulatedContent = '';
       const inlineJobIds: string[] = [];
+      let calendarProposal: Message['calendarProposal'] = undefined;
       let lastUpdate = Date.now();
       const updateInterval = 50;
       let buffer = '';
@@ -1055,6 +1082,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 accumulatedContent += `\n\n*Не удалось сделать баннер: ${data.result.error}*`;
               }
             }
+            if (data.type === 'tool_result' && data.tool === 'propose_calendar_event') {
+              if (data.result?.ok && data.result?.kind === 'calendar_proposal' && data.result?.event) {
+                calendarProposal = {
+                  event: data.result.event,
+                  connected: !!data.result.connected,
+                  conflicts: Array.isArray(data.result.conflicts) ? data.result.conflicts : [],
+                };
+              } else if (data.result?.error) {
+                accumulatedContent += `\n\n*Не удалось предложить встречу: ${data.result.error}*`;
+              }
+            }
           } catch (e) {
             // Skip invalid JSON lines
           }
@@ -1084,6 +1122,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           isStreaming: false,
           tokensUsed: lastUsage?.total || undefined,
           inlineJobIds: inlineJobIds.length > 0 ? [...inlineJobIds] : undefined,
+          calendarProposal,
         };
         setMessages(prev => [...prev, completedMessage]);
         setStreamingMessageId(null);
@@ -2023,6 +2062,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               )}
               {message.type === 'assistant' && message.inlineJobIds && message.inlineJobIds.length > 0 && (
                 <InlineVideoCards ids={message.inlineJobIds} messageTimestamp={message.timestamp} />
+              )}
+              {message.type === 'assistant' && message.calendarProposal && (
+                <CalendarProposalCard
+                  event={message.calendarProposal.event}
+                  connected={message.calendarProposal.connected}
+                  conflicts={message.calendarProposal.conflicts}
+                  apiPost={apiPost}
+                />
               )}
               {message.isStreaming && (
                 <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
