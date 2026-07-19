@@ -24,6 +24,7 @@ import { apiClient } from '../../services/apiClient';
 import { refreshWidget } from '../../services/widgetClient';
 import { useVideoJobs } from '../video/useVideoJobs';
 import VideoJobCard from '../video/VideoJobCard';
+import { InlineCalendarProposals } from '../calendar/InlineCalendarProposals';
 import { trackAuthed } from '../../services/eventsClient';
 
 interface Assistant {
@@ -54,6 +55,10 @@ interface Message {
   imageUrl?: string;
   tokensUsed?: number;
   inlineJobIds?: string[];
+  /** [CALENDAR_PROPOSAL:<uuid>] marker ids parsed from the message text — resolved
+   * and rendered as <CalendarProposalCard/> below the message via
+   * <InlineCalendarProposals/> (Task S2, mirrors inlineJobIds/video). */
+  calendarProposalIds?: string[];
 }
 
 interface ChatInterfaceProps {
@@ -70,6 +75,12 @@ interface ChatInterfaceProps {
 // can attach inline video players. Hide these tokens from the user-visible text.
 const VIDEO_JOB_MARKER_RE = /\s*\[VIDEO_JOB:[0-9a-f-]{36}\]\s*/gi;
 const stripVideoJobMarkers = (text: string): string => text.replace(VIDEO_JOB_MARKER_RE, '');
+
+// Same mechanism for calendar-event proposals (Task S1/S2): backend tags streamed
+// text with `[CALENDAR_PROPOSAL:<uuid>]` markers so the frontend can attach an
+// inline <CalendarProposalCard/>. Hide these tokens from the user-visible text.
+const CALENDAR_PROPOSAL_MARKER_RE = /\s*\[CALENDAR_PROPOSAL:[0-9a-f-]{36}\]\s*/gi;
+const stripCalendarProposalMarkers = (text: string): string => text.replace(CALENDAR_PROPOSAL_MARKER_RE, '');
 
 // Suggested-prompt chips for Роман (assistant id=12) — backlog 8ebe8593.
 // Роман — главный персональный ассистент-координатор, роутящий к специалистам.
@@ -89,6 +100,15 @@ const ROMAN_SUGGESTIONS: string[] = [
 const extractVideoJobIds = (text: string): string[] => {
   const ids: string[] = [];
   const matches = text.matchAll(/\[VIDEO_JOB:([0-9a-f-]{36})\]/gi);
+  for (const m of matches) {
+    if (!ids.includes(m[1])) ids.push(m[1]);
+  }
+  return ids;
+};
+
+const extractCalendarProposalIds = (text: string): string[] => {
+  const ids: string[] = [];
+  const matches = text.matchAll(/\[CALENDAR_PROPOSAL:([0-9a-f-]{36})\]/gi);
   for (const m of matches) {
     if (!ids.includes(m[1])) ids.push(m[1]);
   }
@@ -574,10 +594,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           const data = await response.json();
           const msgs = (data.messages || []).map((m: any) => {
             const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+            const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
             return {
               ...m,
               timestamp: new Date(m.timestamp),
               inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+              calendarProposalIds: calIds.length > 0 ? calIds : m.calendarProposalIds,
             };
           });
           setMessages(msgs);
@@ -592,10 +614,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (saved) {
           setMessages(JSON.parse(saved).map((m: any) => {
             const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+            const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
             return {
               ...m,
               timestamp: new Date(m.timestamp),
               inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+              calendarProposalIds: calIds.length > 0 ? calIds : m.calendarProposalIds,
             };
           }));
         } else {
@@ -678,10 +702,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           const newMsgs: Message[] = newer.map((m: any) => {
             const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+            const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
             return {
               ...m,
               timestamp: new Date(m.timestamp),
               inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+              calendarProposalIds: calIds.length > 0 ? calIds : m.calendarProposalIds,
             };
           });
           return [...prev, ...newMsgs];
@@ -732,10 +758,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (selectedAssistantRef.current?.id !== requestedAssistantId) return;
         const older = (data.messages || []).map((m: any) => {
           const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+          const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
           return {
             ...m,
             timestamp: new Date(m.timestamp),
             inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+            calendarProposalIds: calIds.length > 0 ? calIds : m.calendarProposalIds,
           };
         });
         if (older.length > 0) {
@@ -839,6 +867,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       console.error('Error changing agent on server:', error);
     }
   }, [user?.phone]);
+
+  // Authorized POST helper for chat tool-result cards (calendar connect/add — Task 6).
+  // Reuses the same `apiClient` (Bearer token + auto-refresh on 401) as every other
+  // call in this file instead of duplicating auth. Always resolves to a parsed body
+  // — network/parse failures are normalized to `{ ok: false, error }` so callers
+  // never need a try/catch of their own.
+  const apiPost = useCallback(async (path: string, body: any): Promise<any> => {
+    try {
+      const response = await apiClient.post(path, body);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok && data?.ok === undefined) {
+        return { ok: false, error: data?.error || data?.message || `HTTP ${response.status}` };
+      }
+      return data;
+    } catch (error: any) {
+      return { ok: false, error: error?.message ?? 'network error' };
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedAssistant && !isChangingAgentRef.current) {
@@ -1079,6 +1125,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       let accumulatedContent = '';
       const inlineJobIds: string[] = [];
+      const calendarProposalIds: string[] = [];
       let lastUpdate = Date.now();
       const updateInterval = 50;
       let buffer = '';
@@ -1113,6 +1160,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   // Trigger immediate refetch in all <InlineVideoCards> via useVideoJobs hook
                   // so the player appears within ~1s instead of waiting up to 60s.
                   window.dispatchEvent(new CustomEvent('video-job-poll-bump'));
+                }
+              }
+              // Same mechanism for [CALENDAR_PROPOSAL:<uuid>] markers (Task S1/S2):
+              // <InlineCalendarProposals> resolves each id via an authorized GET as
+              // soon as it appears in the id list, so no separate bump event is needed.
+              const calMatches = accumulatedContent.matchAll(/\[CALENDAR_PROPOSAL:([0-9a-f-]{36})\]/gi);
+              for (const m of calMatches) {
+                const proposalId = m[1];
+                if (!calendarProposalIds.includes(proposalId)) {
+                  calendarProposalIds.push(proposalId);
                 }
               }
               const now = Date.now();
@@ -1215,6 +1272,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           isStreaming: false,
           tokensUsed: lastUsage?.total || undefined,
           inlineJobIds: inlineJobIds.length > 0 ? [...inlineJobIds] : undefined,
+          calendarProposalIds: calendarProposalIds.length > 0 ? [...calendarProposalIds] : undefined,
         };
         setMessages(prev => [...prev, completedMessage]);
         setStreamingMessageId(null);
@@ -2043,7 +2101,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               ) : message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
-                    const contentForRender = stripVideoJobMarkers(message.content);
+                    const contentForRender = stripCalendarProposalMarkers(stripVideoJobMarkers(message.content));
                     const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
@@ -2178,6 +2236,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               {message.type === 'assistant' && message.inlineJobIds && message.inlineJobIds.length > 0 && (
                 <InlineVideoCards ids={message.inlineJobIds} messageTimestamp={message.timestamp} />
               )}
+              {message.type === 'assistant' && message.calendarProposalIds && message.calendarProposalIds.length > 0 && (
+                <InlineCalendarProposals ids={message.calendarProposalIds} apiPost={apiPost} />
+              )}
               {message.isStreaming && (
                 <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
               )}
@@ -2195,7 +2256,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {message.type === 'assistant' && !message.isStreaming && message.content && (
                   <button
                     type="button"
-                    onClick={() => handleCopyMessage(parseCustomMarkdown(stripVideoJobMarkers(message.content)).content || message.content, message.id)}
+                    onClick={() => handleCopyMessage(parseCustomMarkdown(stripCalendarProposalMarkers(stripVideoJobMarkers(message.content))).content || message.content, message.id)}
                     className="inline-flex items-center gap-1 text-gray-400 hover:text-forest-600 transition-colors"
                     title={t('chat.copy_message', 'Скопировать ответ')}
                   >
@@ -2252,7 +2313,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           ) : (
             <StreamingMessage
-              content={stripVideoJobMarkers(currentStreamingMessage)}
+              content={stripCalendarProposalMarkers(stripVideoJobMarkers(currentStreamingMessage))}
               components={markdownComponents}
               onButtonClick={handleButtonAction}
               onLinkClick={handleLinkNavigation}
