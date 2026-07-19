@@ -12,12 +12,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../../services/apiClient';
 import { CalendarProposalCard } from './CalendarProposalCard';
-import { ApiPost, CalendarProposalEvent, CalendarConflict } from './types';
+import { ApiPost, CalendarProposalEvent, CalendarConflict, CalendarProposalKind } from './types';
 
 interface ProposalData {
   event: CalendarProposalEvent;
   connected: boolean;
   conflicts: CalendarConflict[];
+  /** 'event' or 'task'; normalized below since older/omitted payloads mean 'event'. */
+  kind: CalendarProposalKind;
 }
 
 type Entry = { status: 'loading' | 'error' } | { status: 'ok'; data: ProposalData };
@@ -52,6 +54,7 @@ export const InlineCalendarProposals = ({ ids, apiPost }: { ids: string[]; apiPo
                   event: data.event,
                   connected: !!data.connected,
                   conflicts: Array.isArray(data.conflicts) ? data.conflicts : [],
+                  kind: data.kind === 'task' ? 'task' : 'event',
                 },
               },
             }));
@@ -90,6 +93,7 @@ export const InlineCalendarProposals = ({ ids, apiPost }: { ids: string[]; apiPo
             event={entry.data.event}
             connected={entry.data.connected}
             conflicts={entry.data.conflicts}
+            kind={entry.data.kind}
             apiPost={apiPost}
           />
         );
