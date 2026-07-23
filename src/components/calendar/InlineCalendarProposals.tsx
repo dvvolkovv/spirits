@@ -18,6 +18,13 @@ interface ProposalData {
   event: CalendarProposalEvent;
   connected: boolean;
   conflicts: CalendarConflict[];
+  /** Number of occurrences the proposal expands to (1 for a single event, N
+   * for a series). Defaults to 1 when the backend omits it (back-compat). */
+  occurrenceCount: number;
+  /** ISO-local start of the first/last occurrence, when the backend computed
+   * them (series only). */
+  firstAt?: string;
+  lastAt?: string;
 }
 
 type Entry = { status: 'loading' | 'error' } | { status: 'ok'; data: ProposalData };
@@ -52,6 +59,12 @@ export const InlineCalendarProposals = ({ ids, apiPost }: { ids: string[]; apiPo
                   event: data.event,
                   connected: !!data.connected,
                   conflicts: Array.isArray(data.conflicts) ? data.conflicts : [],
+                  occurrenceCount:
+                    typeof data.occurrenceCount === 'number' && data.occurrenceCount > 0
+                      ? data.occurrenceCount
+                      : 1,
+                  firstAt: typeof data.firstAt === 'string' ? data.firstAt : undefined,
+                  lastAt: typeof data.lastAt === 'string' ? data.lastAt : undefined,
                 },
               },
             }));
@@ -90,6 +103,9 @@ export const InlineCalendarProposals = ({ ids, apiPost }: { ids: string[]; apiPo
             event={entry.data.event}
             connected={entry.data.connected}
             conflicts={entry.data.conflicts}
+            occurrenceCount={entry.data.occurrenceCount}
+            firstAt={entry.data.firstAt}
+            lastAt={entry.data.lastAt}
             apiPost={apiPost}
           />
         );
