@@ -8,6 +8,17 @@
  * which wraps the existing `apiClient` service). */
 export type ApiPost = (path: string, body: any) => Promise<any>;
 
+/** Recurrence rule for a series proposal (weekly/daily), mirrors backend
+ * `Recurrence` (spirits_back/src/calendar/recurrence.ts). Exactly one of
+ * `count`/`until` is expected when present. */
+export interface CalendarRecurrence {
+  freq: 'daily' | 'weekly';
+  byDay?: string[];
+  interval?: number;
+  count?: number;
+  until?: string;
+}
+
 export interface CalendarProposalEvent {
   title: string;
   /** ISO local, e.g. "2026-07-20T15:00:00" (no timezone offset — wall-clock time).
@@ -16,6 +27,10 @@ export interface CalendarProposalEvent {
   datetime?: string;
   durationMin?: number;
   note?: string;
+  /** Series via RRULE (weekly/daily). Mutually informative with `dates`. */
+  recurrence?: CalendarRecurrence;
+  /** Series via explicit list of ISO-local start datetimes. */
+  dates?: string[];
 }
 
 export interface CalendarConflict {
