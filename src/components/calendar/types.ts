@@ -21,8 +21,9 @@ export interface CalendarRecurrence {
 
 export interface CalendarProposalEvent {
   title: string;
-  /** ISO local, e.g. "2026-07-20T15:00:00" (no timezone offset — wall-clock time). */
-  datetime: string;
+  /** ISO local, e.g. "2026-07-20T15:00:00" (no timezone offset — wall-clock time).
+   *  Optional: a dates-only series proposal carries its occurrences in `dates` and omits this. */
+  datetime?: string;
   durationMin?: number;
   note?: string;
   /** Series via RRULE (weekly/daily). Mutually informative with `dates`. */

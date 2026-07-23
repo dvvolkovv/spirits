@@ -25,7 +25,10 @@ type Status = 'idle' | 'saving' | 'added' | 'error' | 'dismissed';
 // Backend proposes a local wall-clock datetime with no TZ offset (e.g.
 // "2026-07-20T15:00:00"), which is exactly what <input type="datetime-local">
 // expects (YYYY-MM-DDTHH:mm) — just trim seconds if present.
-const toDatetimeLocalValue = (iso: string): string => {
+const toDatetimeLocalValue = (iso?: string): string => {
+  // A dates-only series proposal has no top-level `datetime` — guard so the card doesn't
+  // crash on `undefined.match(...)` before the series branch even renders.
+  if (!iso) return '';
   const m = iso.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
   return m ? m[1] : iso;
 };
