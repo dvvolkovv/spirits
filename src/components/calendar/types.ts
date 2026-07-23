@@ -23,7 +23,8 @@ export interface CalendarProposalEvent {
   title: string;
   /** ISO local, e.g. "2026-07-20T15:00:00" (no timezone offset — wall-clock time).
    * Optional for tasks — a task may have no due-time hint. Required in practice
-   * for events (backend always supplies it for kind 'event'). */
+   * for events (backend always supplies it for kind 'event'). Also optional for a
+   * dates-only series proposal, which carries its occurrences in `dates` and omits this. */
   datetime?: string;
   durationMin?: number;
   note?: string;
