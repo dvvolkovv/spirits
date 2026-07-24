@@ -256,7 +256,12 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
             <span>&#8592;</span> {t('chat.all_assistants')}
           </button>
         )}
-        {children({ selectedAssistant: selected, onSelectAssistant: handleSelect, assistants })}
+        {/* flex-1 min-h-0: без обёртки h-full внутри ChatInterface считался от всей
+            колонки, и мобильная панель «← Все ассистенты» (37px) выталкивала строку
+            ввода под нижнюю навигацию. */}
+        <div className="flex-1 min-h-0 flex flex-col">
+          {children({ selectedAssistant: selected, onSelectAssistant: handleSelect, assistants })}
+        </div>
       </div>
     </div>
   );
