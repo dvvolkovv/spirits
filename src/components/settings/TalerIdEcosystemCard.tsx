@@ -32,10 +32,24 @@ const TalerIdEcosystemCard: React.FC = () => {
       const d = await r.json().catch(() => ({}));
       const status = d?.status;
       if (status === 'connected') { setState('connected'); }
-      else if (status === 'ambiguous') { setState('ambiguous'); setMsg('Похоже, у тебя уже есть аккаунт TalerID. Свяжем вручную — эта опция скоро появится.'); }
+      else if (status === 'ambiguous') { setState('ambiguous'); setMsg('Похоже, у тебя уже есть аккаунт TalerID. Нажми «Войти и связать» ниже, чтобы привязать его.'); }
       else { setState('error'); setMsg('Не удалось подключить. Попробуй позже.'); }
     } catch {
       setState('error'); setMsg('Не удалось подключить. Попробуй позже.');
+    } finally { setBusy(false); }
+  };
+
+  // «Уже есть аккаунт TalerID?» — OAuth-вход в существующий аккаунт: бэкенд отдаёт authorize-URL,
+  // уводим туда браузер. После входа TalerID вернёт на SPA с ?talerid_link=<status> (тост в App.tsx).
+  const startLink = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await apiClient.post('/webhook/ecosystem/talerid/oauth/start', {});
+      const d = await r.json().catch(() => ({}));
+      if (d?.authorizeUrl) { window.location.href = d.authorizeUrl; return; }
+      setMsg('Не удалось начать связывание. Попробуй позже.');
+    } catch {
+      setMsg('Не удалось начать связывание. Попробуй позже.');
     } finally { setBusy(false); }
   };
 
@@ -53,9 +67,9 @@ const TalerIdEcosystemCard: React.FC = () => {
           Экосистема TalerID
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Календарь, заметки, сообщения и почта в одном. Нет своего календаря? Линкеон заведёт его в
-          TalerID — без отдельной регистрации, по твоему номеру. Сейчас доступен календарь: события
-          планируются в TalerID, а твои данные остаются твоими.
+          Календарь, заметки, сообщения и почта в одном. Нет аккаунта — Линкеон заведёт его в TalerID
+          без отдельной регистрации, по твоему номеру. Уже есть аккаунт TalerID — войди и свяжи его,
+          чтобы всё шло в него. Твои данные остаются твоими.
         </p>
 
         <div className="mt-4">
@@ -66,7 +80,7 @@ const TalerIdEcosystemCard: React.FC = () => {
           {state === 'connected' && (
             <div className="flex items-center justify-between gap-3">
               <span className="inline-flex items-center text-sm font-medium text-forest-700">
-                <Check className="w-4 h-4 mr-1.5" />Подключено · календарь
+                <Check className="w-4 h-4 mr-1.5" />Подключено
               </span>
               <button
                 type="button" onClick={disconnect} disabled={busy}
@@ -78,13 +92,21 @@ const TalerIdEcosystemCard: React.FC = () => {
           )}
 
           {(state === 'not_connected' || state === 'ambiguous' || state === 'error') && (
-            <button
-              type="button" onClick={connect} disabled={busy}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
-            >
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-              Подключить TalerID
-            </button>
+            <div className="flex flex-col items-start gap-2.5">
+              <button
+                type="button" onClick={connect} disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                Подключить TalerID
+              </button>
+              <button
+                type="button" onClick={startLink} disabled={busy}
+                className="text-sm text-forest-700 underline underline-offset-2 hover:text-forest-800 disabled:opacity-50"
+              >
+                Уже есть аккаунт TalerID? Войти и связать
+              </button>
+            </div>
           )}
 
           {msg && (
