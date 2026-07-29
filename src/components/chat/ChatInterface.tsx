@@ -1076,7 +1076,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       abortControllerRef.current.abort();
     }
 
-    abortControllerRef.current = new AbortController();
+    // Локальная ссылка на контроллер [d0fbc717 fix]: между созданием и использованием ниже есть
+    // `await refreshTokenIfNeeded()`, во время которого параллельный эффект (смена ассистента при
+    // ?assistant=roman + ?say=) может обнулить abortControllerRef.current → падение `null.signal`.
+    // Локальная `controller` невосприимчива к этому — именно её отдаём в signal.
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     // Capture assistant id at send time — if user switches assistants during
     // streaming, callbacks must NOT write into the new chat's state.
@@ -1111,7 +1116,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         assistant: currentAssistantId,
         ...(freshTs ? { fresh: true, freshTs } : {})
       }, {
-        signal: abortControllerRef.current.signal
+        signal: controller.signal
       });
 
       if (!response.ok) {
