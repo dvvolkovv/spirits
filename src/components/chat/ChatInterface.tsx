@@ -1612,7 +1612,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Убираем ТОЛЬКО say/src, но НЕ assistant [d0fbc717 fix]: снятие ?assistant заставляло
     // роутер/пикер переразрешить ассистента (флип на дефолт) → эффект-«смена ассистента» ронял
     // (abort) наш же отправляемый запрос. Оставляем assistant в URL — ассистент стабилен.
-    // ?assistant= держим в URL (не снимаем) — иначе роутер переразрешал бы ассистента и ронял send.
     const wantParam = new URLSearchParams(location.search).get('assistant');
     stripQueryParams(['say', 'src']);
     // Ждём, пока ВЫБРАННЫЙ ассистент реально станет запрошенным (Роман), и лишь ТОГДА шлём —
@@ -1625,6 +1624,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       yulia: 'юля', julia: 'юля', yulya: 'юля',
     };
     const wantNorm = wantParam ? (ALIASES[wantParam.toLowerCase()] || wantParam).toLowerCase() : null;
+    const resolvedId = (): number | null => {
+      try { return JSON.parse(sessionStorage.getItem('selected_assistant') || '{}').id ?? null; }
+      catch { return null; }
+    };
     const matchesWanted = (): boolean => {
       if (!wantNorm) return true;
       try {
@@ -1634,9 +1637,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           (s.displayName || '').toLowerCase() === wantNorm;
       } catch { return false; }
     };
+    // Готовы слать, только когда: (а) выбран нужный ассистент И (б) его история УЖЕ загрузилась
+    // (historyLoadedForRef == его id). Иначе async load() истории (setMessages(msgs) на строке ~605)
+    // ПЕРЕЗАТИРАЕТ наш оптимистичный пузырь юзера, отправленный до его завершения → пузырь пропадал
+    // локально (появлялся только после ручного refresh, когда сервер уже сохранил). Ждём загрузку.
+    const ready = (): boolean => matchesWanted() && historyLoadedForRef.current === resolvedId();
+    // Анти-остаток ввода: тёплый deep-link мог оставить в поле «первые пару слов» (IME докоммитил
+    // композицию в сфокусированное поле при переходе). Чистим ТОЛЬКО если текущий ввод — префикс
+    // отправляемой фразы (т.е. это её же остаток), чтобы не стереть посторонний текст.
+    const clearResidue = () => {
+      try { textareaRef.current?.blur(); } catch { /* no-op */ }
+      setInput((cur) => (cur && say.trim().startsWith(cur.trim()) ? '' : cur));
+    };
     let tries = 0;
     const trySend = () => {
-      if (matchesWanted() || tries >= 12) { sendMessageText(say); return; }
+      // Кап ~4с (ждём и резолв ассистента, и сетевую загрузку истории) → текст НИКОГДА не теряется:
+      // если так и не «созрело», всё равно отправим (лучше редкий ре-рендер, чем потерянный ввод).
+      if (ready() || tries >= 26) {
+        sendMessageText(say);
+        clearResidue();
+        setTimeout(clearResidue, 500); // подстраховка от позднего IME-докоммита после перехода
+        return;
+      }
       tries += 1;
       setTimeout(trySend, 150);
     };
