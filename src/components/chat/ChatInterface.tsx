@@ -1490,6 +1490,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
 
     if (isRecording) {
+      // Тап по микрофону вручную = стоп (тоггл). Но авто-старт из deep-link (нажал микрофон в
+      // строке, приложение уже открыто и ещё диктует) НЕ должен глушить — оставляем включённым
+      // [d0fbc717 fix: owner видел «2-й тап по микрофону → выключается»].
+      if (auto) return;
       voiceRef.current?.stop();
       return;
     }
@@ -1587,18 +1591,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [location.key, location.search]);
 
   // ?say=<text> → автоотправка первого сообщения. Ждём, пока ассистент выбран
-  // (шорткат «Энергия дня» даёт ?assistant=raya&say=...), чтобы уйти к нужному.
-  const sayApplied = useRef(false);
+  // (?assistant=roman → универсальный Роман), чтобы уйти к нужному.
+  // ВАЖНО [d0fbc717 fix]: реагируем на КАЖДУЮ навигацию (location.key/search) — как voice-эффект.
+  // Прежняя версия была one-shot (ref sayApplied + deps [assistant.id]): при УЖЕ открытом
+  // приложении (тёплый deep-link из лаунчера — обычный случай) эффект не перезапускался, и текст
+  // ТЕРЯЛСЯ (открывалось пустое поле). Гард по navKey — от повтора на ре-рендер.
+  const sayNavRef = useRef('');
   useEffect(() => {
-    if (sayApplied.current) return;
-    const say = new URLSearchParams(window.location.search).get('say');
+    const say = new URLSearchParams(location.search).get('say');
     if (!say) return;
     if (!selectedAssistant) return; // ждём резолва ассистента из ?assistant=
-    sayApplied.current = true;
+    const navKey = location.key + location.search;
+    if (sayNavRef.current === navKey) return;
+    sayNavRef.current = navKey;
     stripQueryParams(['say', 'assistant', 'src']);
     setTimeout(() => { sendMessageText(say); }, 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAssistant?.id]);
+  }, [location.key, location.search, selectedAssistant?.id]);
 
   // Маша (id=3) идёт через legacy chat.streamChat и НЕ имеет доступа к file-agent;
   // для неё пока оставляем PDF→profile-scan flow. Все остальные ассистенты идут
