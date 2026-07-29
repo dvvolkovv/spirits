@@ -1609,8 +1609,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const navKey = location.key + location.search;
     if (sayNavRef.current === navKey) return;
     sayNavRef.current = navKey;
-    stripQueryParams(['say', 'assistant', 'src']);
-    setTimeout(() => { sendMessageText(say); }, 300);
+    // Убираем ТОЛЬКО say/src, но НЕ assistant [d0fbc717 fix]: снятие ?assistant заставляло
+    // роутер/пикер переразрешить ассистента (флип на дефолт) → эффект-«смена ассистента» ронял
+    // (abort) наш же отправляемый запрос. Оставляем assistant в URL — ассистент стабилен.
+    stripQueryParams(['say', 'src']);
+    // Задержка побольше — даём ассистенту (Роман) устояться, чтобы transition-abort не убил send.
+    setTimeout(() => { sendMessageText(say); }, 700);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key, location.search, selectedAssistant?.id]);
 
