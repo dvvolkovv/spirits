@@ -1327,8 +1327,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   const sendMessageText = async (text: string) => {
-    // eslint-disable-next-line no-console
-    if (new URLSearchParams(location.search).get('saytrace') === '1') console.log('[saytrace] sendMessageText entry; text=', text?.slice(0, 30), 'isTyping=', isTyping, 'trimEmpty=', !text.trim());
     if (!text.trim() || isTyping) return;
 
     // Проверяем актуальность выбранного ассистента перед отправкой (per-tab)
@@ -1609,21 +1607,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!say) return;
     if (!selectedAssistant) return; // ждём резолва ассистента из ?assistant=
     const navKey = location.key + location.search;
-    // eslint-disable-next-line no-console
-    if (new URLSearchParams(location.search).get('saytrace') === '1') console.log('[saytrace] effect fire; say=', say, 'asst=', selectedAssistant?.id, 'navKey=', navKey, 'prevRef=', sayNavRef.current, 'isTyping=', isTyping);
     if (sayNavRef.current === navKey) return;
     sayNavRef.current = navKey;
     // Убираем ТОЛЬКО say/src, но НЕ assistant [d0fbc717 fix]: снятие ?assistant заставляло
     // роутер/пикер переразрешить ассистента (флип на дефолт) → эффект-«смена ассистента» ронял
     // (abort) наш же отправляемый запрос. Оставляем assistant в URL — ассистент стабилен.
-    const _trace = new URLSearchParams(location.search).get('saytrace') === '1';
     stripQueryParams(['say', 'src']);
-    // Задержка побольше — даём ассистенту (Роман) устояться, чтобы transition-abort не убил send.
-    setTimeout(() => {
-      // eslint-disable-next-line no-console
-      if (_trace) console.log('[saytrace] firing sendMessageText; isTyping=', isTyping, 'sel=', sessionStorage.getItem('selected_assistant')?.slice(0, 40));
-      sendMessageText(say);
-    }, 700);
+    // Задержка побольше — даём ассистенту (Роман) устояться перед отправкой. sendMessageText
+    // перечитывает selected_assistant из sessionStorage, поэтому даже если эффект впервые
+    // сработал на «тёплом» (старом) ассистенте, к моменту отправки уйдёт к нужному (Роман).
+    setTimeout(() => { sendMessageText(say); }, 700);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key, location.search, selectedAssistant?.id]);
 
