@@ -1612,11 +1612,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Убираем ТОЛЬКО say/src, но НЕ assistant [d0fbc717 fix]: снятие ?assistant заставляло
     // роутер/пикер переразрешить ассистента (флип на дефолт) → эффект-«смена ассистента» ронял
     // (abort) наш же отправляемый запрос. Оставляем assistant в URL — ассистент стабилен.
+    // ?assistant= держим в URL (не снимаем) — иначе роутер переразрешал бы ассистента и ронял send.
+    const wantParam = new URLSearchParams(location.search).get('assistant');
     stripQueryParams(['say', 'src']);
-    // Задержка побольше — даём ассистенту (Роман) устояться перед отправкой. sendMessageText
-    // перечитывает selected_assistant из sessionStorage, поэтому даже если эффект впервые
-    // сработал на «тёплом» (старом) ассистенте, к моменту отправки уйдёт к нужному (Роман).
-    setTimeout(() => { sendMessageText(say); }, 700);
+    // Ждём, пока ВЫБРАННЫЙ ассистент реально станет запрошенным (Роман), и лишь ТОГДА шлём —
+    // иначе на «тёплом» deep-link (app уже открыт на другом ассистенте) эффект впервые срабатывает
+    // на старом (напр. Райя) и текст мог уйти не туда. sendMessageText читает selected_assistant из
+    // sessionStorage, поэтому сверяемся именно с ним. Кап ~2с → текст НИКОГДА не теряется: если
+    // ассистент так и не зарезолвился (плохой алиас), всё равно отправим, но не потеряем ввод.
+    const ALIASES: Record<string, string> = {
+      roman: 'роман', raya: 'райя', misha: 'миша', masha: 'маша',
+      yulia: 'юля', julia: 'юля', yulya: 'юля',
+    };
+    const wantNorm = wantParam ? (ALIASES[wantParam.toLowerCase()] || wantParam).toLowerCase() : null;
+    const matchesWanted = (): boolean => {
+      if (!wantNorm) return true;
+      try {
+        const s = JSON.parse(sessionStorage.getItem('selected_assistant') || '{}');
+        return String(s.id) === wantParam ||
+          (s.name || '').toLowerCase() === wantNorm ||
+          (s.displayName || '').toLowerCase() === wantNorm;
+      } catch { return false; }
+    };
+    let tries = 0;
+    const trySend = () => {
+      if (matchesWanted() || tries >= 12) { sendMessageText(say); return; }
+      tries += 1;
+      setTimeout(trySend, 150);
+    };
+    setTimeout(trySend, 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key, location.search, selectedAssistant?.id]);
 
