@@ -16,7 +16,10 @@ export const ConnectCalendarModal: React.FC<Props> = ({ apiPost, onClose, onConn
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = username.trim().length > 0 && appPassword.trim().length > 0 && !loading;
+  // Яндекс показывает пароль приложения группами через пробелы — сам пароль без пробелов.
+  // Убираем ВСЕ пробелы, иначе Basic-auth уходит с ними и Яндекс отвечает 401 на верном пароле.
+  const cleanPassword = appPassword.replace(/\s+/g, '');
+  const canSubmit = username.trim().length > 0 && cleanPassword.length > 0 && !loading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +30,7 @@ export const ConnectCalendarModal: React.FC<Props> = ({ apiPost, onClose, onConn
       const r = await apiPost('/webhook/calendar/connect', {
         provider: 'yandex',
         username: username.trim(),
-        appPassword: appPassword.trim(),
+        appPassword: cleanPassword,
       });
       if (r?.ok) {
         onConnected();
@@ -96,6 +99,10 @@ export const ConnectCalendarModal: React.FC<Props> = ({ apiPost, onClose, onConn
           >
             Как создать пароль приложения в Яндексе
           </a>
+          <p className="text-xs text-gray-400">
+            Это отдельный «пароль приложения» из настроек Яндекса — не пароль от почты. Можно
+            вставить прямо с пробелами, я их уберу.
+          </p>
 
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
