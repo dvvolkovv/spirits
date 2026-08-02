@@ -10,8 +10,7 @@ import { ConnectCalendarModal } from '../calendar/ConnectCalendarModal';
 type Status = 'loading' | 'not_connected' | 'connected';
 
 const PROVIDER_LABEL: Record<string, string> = { yandex: 'Яндекс.Календарь' };
-const ICS_LABEL: Record<string, string> = { outlook: 'Outlook', corp: 'Outlook (рабочий)', google: 'Google', icloud: 'iCloud', work: 'Рабочий' };
-const OUTLOOK_KINDS = ['outlook', 'corp'];
+const ICS_LABEL: Record<string, string> = { link: 'По ссылке', outlook: 'Outlook (ссылка)', corp: 'Outlook (ссылка)', google: 'Google', icloud: 'iCloud', work: 'Рабочий' };
 
 // ConnectCalendarModal ждёт apiPost, отдающий уже распарсенный JSON (r.ok/r.error).
 const apiPost = async (path: string, body: any) => {
@@ -30,6 +29,16 @@ const CalendarSourcesCard: React.FC = () => {
   const [showConnect, setShowConnect] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Exchange (рабочий Outlook по EWS)
+  const [exchange, setExchange] = useState<{ connected: boolean; username?: string }>({ connected: false });
+  const [showExForm, setShowExForm] = useState(false);
+  const [exServer, setExServer] = useState('mail.clearwayintegration.com');
+  const [exDomain, setExDomain] = useState('');
+  const [exLogin, setExLogin] = useState('');
+  const [exPassword, setExPassword] = useState('');
+  const [exBusy, setExBusy] = useState(false);
+  const [exError, setExError] = useState<string | null>(null);
+
   // Календари по ссылке (ICS)
   const [ics, setIcs] = useState<IcsSource[]>([]);
   const [showAddIcs, setShowAddIcs] = useState(false);
@@ -45,6 +54,7 @@ const CalendarSourcesCard: React.FC = () => {
       setProvider(d?.provider);
       setUsername(d?.username);
       setCanReenable(!!d?.canReenable);
+      setExchange(d?.exchange || { connected: false });
       setStatus(d?.connected ? 'connected' : 'not_connected');
     } catch {
       setStatus('not_connected');
@@ -83,10 +93,29 @@ const CalendarSourcesCard: React.FC = () => {
 
   const onConnected = () => { setShowConnect(false); loadStatus(); };
 
+  const connectExchange = async () => {
+    setExBusy(true); setExError(null);
+    try {
+      const r = await apiClient.post('/webhook/calendar/exchange/connect', {
+        server: exServer.trim(), domain: exDomain.trim(), login: exLogin.trim(), password: exPassword,
+      });
+      const d = await r.json().catch(() => ({}));
+      if (d?.ok) { setExPassword(''); setShowExForm(false); await loadStatus(); }
+      else setExError(d?.error || 'Не удалось войти');
+    } catch { setExError('Не удалось войти'); }
+    finally { setExBusy(false); }
+  };
+
+  const disconnectExchange = async () => {
+    setExBusy(true); setExError(null);
+    try { await apiClient.delete('/webhook/calendar/exchange'); } catch {}
+    await loadStatus(); setExBusy(false);
+  };
+
   const addIcs = async () => {
     setIcsBusy(true); setIcsError(null);
     try {
-      const r = await apiClient.post('/webhook/calendar/ics', { url: icsUrl.trim(), kind: 'outlook' });
+      const r = await apiClient.post('/webhook/calendar/ics', { url: icsUrl.trim(), kind: 'link' });
       const d = await r.json().catch(() => ({}));
       if (d?.ok) { setIcsUrl(''); setShowAddIcs(false); await loadIcs(); }
       else setIcsError(d?.error || 'Не удалось добавить');
@@ -170,6 +199,67 @@ const CalendarSourcesCard: React.FC = () => {
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{error}</div>
           )}
 
+          {/* ——— Outlook (рабочий) через Exchange EWS — вход по логину/паролю, read-only ——— */}
+          {exchange.connected ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
+              <span className="inline-flex items-center text-sm font-medium text-forest-700 truncate">
+                <Check className="w-4 h-4 mr-1.5 shrink-0" />
+                Outlook (рабочий){exchange.username ? ` · ${exchange.username}` : ''}
+              </span>
+              <button
+                type="button" onClick={disconnectExchange} disabled={exBusy}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 shrink-0"
+              >
+                {exBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}Отключить
+              </button>
+            </div>
+          ) : !showExForm ? (
+            <button
+              type="button" onClick={() => { setShowExForm(true); setExError(null); }}
+              className="flex w-full items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50"
+            >
+              <span className="text-sm font-medium text-gray-900">Outlook (рабочий) — вход по логину</span>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-forest-700"><Plus className="w-4 h-4" />Подключить</span>
+            </button>
+          ) : (
+            <div className="rounded-lg border border-gray-200 p-3 space-y-2">
+              <div className="text-sm font-medium text-gray-900">Рабочий Outlook (Exchange) — только просмотр</div>
+              <p className="text-xs text-gray-500">
+                Тот же логин и пароль, что и от рабочей почты. Пароль хранится в зашифрованном виде.
+              </p>
+              <input
+                value={exServer} onChange={(e) => setExServer(e.target.value)} placeholder="сервер, напр. mail.компания.com"
+                className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+              />
+              <div className="flex gap-2">
+                <input
+                  value={exDomain} onChange={(e) => setExDomain(e.target.value)} placeholder="домен"
+                  className="w-1/2 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                />
+                <input
+                  value={exLogin} onChange={(e) => setExLogin(e.target.value)} placeholder="логин" autoComplete="username"
+                  className="w-1/2 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                />
+              </div>
+              <input
+                type="password" value={exPassword} onChange={(e) => setExPassword(e.target.value)} placeholder="пароль" autoComplete="new-password"
+                className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+              />
+              {exError && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{exError}</div>
+              )}
+              <div className="flex items-center justify-end gap-2">
+                <button type="button" onClick={() => { setShowExForm(false); setExError(null); }} className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900">Отмена</button>
+                <button
+                  type="button" onClick={connectExchange} disabled={exBusy || !exLogin.trim() || !exPassword}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
+                >
+                  {exBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}Подключить
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ——— По ссылке (ICS): Outlook, Google, iCloud — read-only. Показываем только активные. ——— */}
           {ics.filter((s) => s.enabled).map((s) => (
             <div key={s.kind} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
@@ -186,12 +276,12 @@ const CalendarSourcesCard: React.FC = () => {
             </div>
           ))}
 
-          {!ics.some((s) => s.enabled && OUTLOOK_KINDS.includes(s.kind)) && !showAddIcs && (
+          {!showAddIcs && (
             <button
               type="button" onClick={() => { setShowAddIcs(true); setIcsError(null); }}
               className="flex w-full items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50"
             >
-              <span className="text-sm font-medium text-gray-900">Outlook — по ссылке</span>
+              <span className="text-sm font-medium text-gray-900">Другой календарь по ссылке (Google, iCloud…)</span>
               <span className="inline-flex items-center gap-1.5 text-sm font-medium text-forest-700">
                 <Link2 className="w-4 h-4" />Добавить
               </span>
@@ -200,15 +290,14 @@ const CalendarSourcesCard: React.FC = () => {
 
           {showAddIcs && (
             <div className="rounded-lg border border-gray-200 p-3 space-y-2">
-              <div className="text-sm font-medium text-gray-900">Outlook по ссылке (только просмотр)</div>
+              <div className="text-sm font-medium text-gray-900">Календарь по ссылке (ICS, только просмотр)</div>
               <p className="text-xs text-gray-500">
-                В Outlook в браузере: Настройки → Календарь → <b>Общие календари</b> → «Опубликовать календарь» →
-                скопируй ссылку <b>ICS</b> и вставь сюда. Если такого пункта нет — публикацию закрыл админ компании,
-                тогда напиши мне, подключим через вход Microsoft.
+                Опубликуй календарь в своём сервисе (Google, iCloud, Outlook.com…) и вставь ссылку
+                <b> .ics</b> сюда. Это read-only: события будут видны в «сегодня».
               </p>
               <input
                 type="url" value={icsUrl} onChange={(e) => setIcsUrl(e.target.value)}
-                placeholder="https://outlook.office365.com/owa/calendar/…/calendar.ics"
+                placeholder="https://…/calendar.ics  (или webcal://…)"
                 className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
               />
               {icsError && (
