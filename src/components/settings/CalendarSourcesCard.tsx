@@ -10,7 +10,8 @@ import { ConnectCalendarModal } from '../calendar/ConnectCalendarModal';
 type Status = 'loading' | 'not_connected' | 'connected';
 
 const PROVIDER_LABEL: Record<string, string> = { yandex: 'Яндекс.Календарь' };
-const ICS_LABEL: Record<string, string> = { outlook: 'Outlook', google: 'Google', icloud: 'iCloud', work: 'Рабочий' };
+const ICS_LABEL: Record<string, string> = { outlook: 'Outlook', corp: 'Outlook (рабочий)', google: 'Google', icloud: 'iCloud', work: 'Рабочий' };
+const OUTLOOK_KINDS = ['outlook', 'corp'];
 
 // ConnectCalendarModal ждёт apiPost, отдающий уже распарсенный JSON (r.ok/r.error).
 const apiPost = async (path: string, body: any) => {
@@ -169,8 +170,8 @@ const CalendarSourcesCard: React.FC = () => {
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{error}</div>
           )}
 
-          {/* ——— По ссылке (ICS): Outlook, Google, iCloud — read-only ——— */}
-          {ics.map((s) => (
+          {/* ——— По ссылке (ICS): Outlook, Google, iCloud — read-only. Показываем только активные. ——— */}
+          {ics.filter((s) => s.enabled).map((s) => (
             <div key={s.kind} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
               <span className="inline-flex items-center text-sm font-medium text-forest-700 truncate">
                 <Check className="w-4 h-4 mr-1.5 shrink-0" />
@@ -185,7 +186,7 @@ const CalendarSourcesCard: React.FC = () => {
             </div>
           ))}
 
-          {!ics.some((s) => s.kind === 'outlook') && !showAddIcs && (
+          {!ics.some((s) => s.enabled && OUTLOOK_KINDS.includes(s.kind)) && !showAddIcs && (
             <button
               type="button" onClick={() => { setShowAddIcs(true); setIcsError(null); }}
               className="flex w-full items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50"
