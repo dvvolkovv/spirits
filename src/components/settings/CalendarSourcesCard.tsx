@@ -54,7 +54,7 @@ const CalendarSourcesCard: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm">
+    <div id="calendar-sources" className="bg-white rounded-lg shadow-sm scroll-mt-4">
       <div className="p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center">
           <Calendar className="w-5 h-5 mr-2 text-forest-600" />
