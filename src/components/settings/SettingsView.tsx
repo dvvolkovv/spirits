@@ -16,6 +16,7 @@ import { apiClient } from '../../services/apiClient';
 import LinkedAccountsView from './LinkedAccountsView';
 import RoutinesManager from './RoutinesManager';
 import TalerIdEcosystemCard from './TalerIdEcosystemCard';
+import CalendarSourcesCard from './CalendarSourcesCard';
 import {
   pushSupported,
   isPushSubscribed,
@@ -177,6 +178,9 @@ const SettingsView: React.FC = () => {
 
         {/* Экосистема TalerID — согласие на подключение (референс-коннектор над-экосистемного слоя) */}
         <TalerIdEcosystemCard />
+
+        {/* Календари — заметное место, чтобы добавить свой календарь (Яндекс по логину+паролю; Outlook/Google готовим) */}
+        <CalendarSourcesCard />
 
         {/* Contact Visibility — кто может получить твой контакт (phone) через поиск */}
         <div className="bg-white rounded-lg shadow-sm">
