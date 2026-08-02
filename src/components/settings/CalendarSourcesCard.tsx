@@ -25,16 +25,21 @@ const apiPost = async (path: string, body: any) => {
 const CalendarSourcesCard: React.FC = () => {
   const [status, setStatus] = useState<Status>('loading');
   const [provider, setProvider] = useState<string | undefined>(undefined);
+  const [username, setUsername] = useState<string | undefined>(undefined);
+  const [canReenable, setCanReenable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showConnect, setShowConnect] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadStatus = async () => {
     try {
       const r = await apiClient.get('/webhook/calendar/status');
       if (!r.ok) { setStatus('not_connected'); return; }
       const d = await r.json().catch(() => ({}));
-      if (d?.connected) { setStatus('connected'); setProvider(d.provider); }
-      else { setStatus('not_connected'); setProvider(undefined); }
+      setProvider(d?.provider);
+      setUsername(d?.username);
+      setCanReenable(!!d?.canReenable);
+      setStatus(d?.connected ? 'connected' : 'not_connected');
     } catch {
       setStatus('not_connected');
     }
@@ -43,9 +48,23 @@ const CalendarSourcesCard: React.FC = () => {
   useEffect(() => { loadStatus(); }, []);
 
   const disconnect = async () => {
-    setBusy(true);
+    setBusy(true); setError(null);
     try { await apiClient.delete('/webhook/calendar/connect'); } catch {}
-    setStatus('not_connected'); setProvider(undefined); setBusy(false);
+    await loadStatus(); // подключение остаётся сохранённым → появится «Подключить снова»
+    setBusy(false);
+  };
+
+  // Переподключить сохранённое подключение одним тапом (пароль уже в облаке). Если он устарел —
+  // бэкенд вернёт ошибку, и мы откроем полную форму для нового ввода.
+  const reconnect = async () => {
+    setBusy(true); setError(null);
+    try {
+      const r = await apiClient.post('/webhook/calendar/reconnect', {});
+      const d = await r.json().catch(() => ({}));
+      if (d?.ok) { await loadStatus(); }
+      else { setError(d?.error || 'Не удалось переподключить'); setShowConnect(true); }
+    } catch { setError('Не удалось переподключить'); }
+    finally { setBusy(false); }
   };
 
   const onConnected = () => {
@@ -90,16 +109,43 @@ const CalendarSourcesCard: React.FC = () => {
 
           {status === 'not_connected' && (
             <div className="space-y-2.5">
-              {/* Яндекс — рабочий путь: почта + пароль приложения */}
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
-                <span className="text-sm font-medium text-gray-900">Яндекс.Календарь</span>
-                <button
-                  type="button" onClick={() => setShowConnect(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-forest-700"
-                >
-                  <Plus className="w-4 h-4" />Подключить
-                </button>
-              </div>
+              {canReenable ? (
+                /* Отключено, но креды сохранены → один тап, без повторного ввода пароля. */
+                <>
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
+                    <span className="text-sm text-gray-700 truncate">
+                      {PROVIDER_LABEL[provider || ''] || 'Календарь'}{username ? ` · ${username}` : ''}
+                    </span>
+                    <button
+                      type="button" onClick={reconnect} disabled={busy}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50 shrink-0"
+                    >
+                      {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Подключить снова
+                    </button>
+                  </div>
+                  <button
+                    type="button" onClick={() => setShowConnect(true)}
+                    className="text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
+                  >
+                    Подключить другой аккаунт
+                  </button>
+                </>
+              ) : (
+                /* Яндекс — рабочий путь: почта + пароль приложения */
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
+                  <span className="text-sm font-medium text-gray-900">Яндекс.Календарь</span>
+                  <button
+                    type="button" onClick={() => setShowConnect(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-forest-700"
+                  >
+                    <Plus className="w-4 h-4" />Подключить
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{error}</div>
+              )}
 
               {/* Outlook / Google — требуют разовой регистрации приложения на стороне продукта.
                   Показываем честно как «готовим», без клика, чтобы не обещать несуществующее. */}
