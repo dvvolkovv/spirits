@@ -1,7 +1,7 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
@@ -90,6 +90,30 @@ const AppContent: React.FC = () => {
     // dashboard_cta | notification_link | in_chat_share | profile_share | manual_copy.
     const rt = params.get('rt');
     track('referral_click', { slug: ref, referral_touch: rt || 'direct' });
+  }, []);
+
+  // TalerID account-linking return: the OAuth callback redirects back to the SPA with
+  // ?talerid_link=<status>. Turn it into a toast and strip the param so a refresh doesn't re-fire.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const link = params.get('talerid_link');
+    if (!link) return;
+    const M: Record<string, { kind: 'success' | 'error' | 'info'; text: string }> = {
+      linked: { kind: 'success', text: 'Аккаунт TalerID связан' },
+      cancelled: { kind: 'info', text: 'Связывание отменено' },
+      expired: { kind: 'error', text: 'Ссылка для связывания устарела — попробуйте ещё раз' },
+      different_phone: { kind: 'error', text: 'На этом аккаунте TalerID уже привязан другой номер' },
+      phone_taken: { kind: 'error', text: 'Этот номер уже привязан к другому аккаунту TalerID' },
+      has_messages: { kind: 'error', text: 'Не удалось связать: в текущем аккаунте уже есть переписка — напишите в поддержку' },
+      error: { kind: 'error', text: 'Не удалось связать аккаунт. Попробуйте позже' },
+    };
+    const m = M[link] || M.error;
+    if (m.kind === 'success') toast.success(m.text);
+    else if (m.kind === 'error') toast.error(m.text);
+    else toast(m.text);
+    params.delete('talerid_link');
+    const qs = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
   }, []);
 
   if (isLoading) {

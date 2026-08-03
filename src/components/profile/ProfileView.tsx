@@ -51,8 +51,25 @@ const ProfileView: React.FC = () => {
   });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  // Deep-link из виджета лаунчера: /profile?open=calendars (или ?settings=1) — сразу
+  // разворачиваем аккордеон настроек, чтобы карточка «Календари» была видна без кликов.
+  const [showSettings, setShowSettings] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      return p.has('settings') || p.get('open') === 'calendars';
+    } catch { return false; }
+  });
   const [showReferral, setShowReferral] = useState(false);
+  // ?open=calendars → доскроллить к карточке «Календари» после раскрытия настроек.
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('open') !== 'calendars') return;
+    } catch { return; }
+    const id = window.setTimeout(() => {
+      document.getElementById('calendar-sources')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 350);
+    return () => window.clearTimeout(id);
+  }, []);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [editedData, setEditedData] = useState<ProfileData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
