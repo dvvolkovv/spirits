@@ -10,6 +10,7 @@ import OnboardingPage from './pages/OnboardingPage';            // eager: пер
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track, trackAuthed } from './services/eventsClient';
+import { apiClient } from './services/apiClient';
 import { refreshWidget, initWidgetNavigation, onAppResume, initDeepLinks } from './services/widgetClient';
 import { registerNativePush } from './services/pushClient';
 import './i18n';
@@ -45,7 +46,7 @@ const RouteFallback: React.FC = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, login } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const widgetInit = React.useRef(false);
@@ -91,6 +92,50 @@ const AppContent: React.FC = () => {
     const rt = params.get('rt');
     track('referral_click', { slug: ref, referral_touch: rt || 'direct' });
   }, []);
+
+  // Возврат из ВХОДА через TalerID: callback приводит сюда с одноразовым
+  // кодом ?talerid_login=<handoff>. Токены не едут в адресной строке — она
+  // осела бы в истории браузера и в логах прокси, — поэтому код меняем на
+  // них отдельным запросом. Параметр сразу вычищаем: обновление страницы
+  // не должно пытаться погасить уже использованный код.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const handoff = params.get('talerid_login');
+    const failed = params.get('talerid_login_error');
+    if (!handoff && !failed) return;
+
+    const strip = () => {
+      params.delete('talerid_login');
+      params.delete('talerid_login_error');
+      const qs = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+    };
+
+    if (failed || !handoff) {
+      toast.error('Не удалось войти через Taler ID. Попробуйте ещё раз');
+      strip();
+      return;
+    }
+
+    (async () => {
+      try {
+        const resp = await apiClient.post('/webhook/ecosystem/talerid/login/redeem', { handoff });
+        const body = await resp.json().catch(() => ({} as Record<string, string>));
+        if (!resp.ok || !body['access-token']) {
+          toast.error('Ссылка входа устарела — войдите заново');
+          strip();
+          return;
+        }
+        localStorage.setItem('jwt_access_token', body['access-token']);
+        localStorage.setItem('jwt_refresh_token', body['refresh-token']);
+        strip();
+        await login('', body['access-token']);
+      } catch {
+        toast.error('Не удалось войти через Taler ID. Попробуйте ещё раз');
+        strip();
+      }
+    })();
+  }, [login]);
 
   // TalerID account-linking return: the OAuth callback redirects back to the SPA with
   // ?talerid_link=<status>. Turn it into a toast and strip the param so a refresh doesn't re-fire.

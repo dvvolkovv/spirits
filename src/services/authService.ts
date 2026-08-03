@@ -203,6 +203,20 @@ class AuthService {
     return await resp.json();
   }
 
+  /**
+   * Вход через Taler ID — отдельный путь, а не общий /auth/oauth/init.
+   *
+   * Taler ID уже подключён к Linkeon как экосистемный партнёр: там свой
+   * зарегистрированный OAuth-клиент и свой redirect_uri. Заводить рядом
+   * второго клиента ради входа значило бы держать две регистрации ради
+   * одного и того же обмена.
+   */
+  async taleridLoginStart(): Promise<{ authorizeUrl: string }> {
+    const resp = await apiClient.post('/webhook/ecosystem/talerid/login/start', {});
+    if (!resp.ok) throw new Error('talerid login start failed');
+    return await resp.json();
+  }
+
   async listIdentities(): Promise<Identity[]> {
     const resp = await apiClient.get('/webhook/auth/identities');
     if (!resp.ok) throw new Error('list identities failed');

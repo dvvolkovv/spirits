@@ -51,7 +51,10 @@ const OAuthButton: React.FC<Props> = ({ provider }) => {
   const handleClick = async () => {
     setLoading(true);
     try {
-      const { authorizeUrl } = await authService.oauthInit(provider, 'login');
+      const { authorizeUrl } =
+        provider === 'talerid'
+          ? await authService.taleridLoginStart()
+          : await authService.oauthInit(provider, 'login');
       window.location.href = authorizeUrl;
     } catch (e) {
       setLoading(false);

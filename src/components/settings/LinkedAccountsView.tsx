@@ -57,7 +57,7 @@ const LinkedAccountsView: React.FC = () => {
     else setError(t('settings.linkedAccounts.unlinkError', 'Не удалось отвязать'));
   };
 
-  const handleLinkOAuth = async (provider: 'google' | 'yandex' | 'talerid') => {
+  const handleLinkOAuth = async (provider: 'google' | 'yandex') => {
     try {
       const { authorizeUrl } = await authService.oauthInit(provider, 'link');
       window.location.href = authorizeUrl;
@@ -126,17 +126,12 @@ const LinkedAccountsView: React.FC = () => {
             </button>
           </div>
         )}
-        {!linkedProviders.has('talerid') && (
-          <div className="px-4 py-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <img src="/talerid-logo.png" alt="" className="w-5 h-5 rounded" />
-              <p className="text-sm">Taler ID</p>
-            </div>
-            <button onClick={() => handleLinkOAuth('talerid')} className="text-xs text-forest-600 hover:text-forest-800">
-              {t('settings.linkedAccounts.link', 'Привязать')}
-            </button>
-          </div>
-        )}
+        {/* Taler ID здесь намеренно НЕ предлагаем: его связывание устроено
+            иначе — оно переносит телефон на сторону провайдера и имеет свои
+            исходы (номер занят, на аккаунте уже есть переписка). Для этого
+            есть отдельный блок TalerIdEcosystemCard; кнопка «Привязать»
+            рядом с Google и Яндексом повела бы во ВХОД и завела человеку
+            второй аккаунт вместо связывания с текущим. */}
       </div>
     </div>
   );
