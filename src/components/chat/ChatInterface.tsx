@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser } from 'lucide-react';
+import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -454,7 +454,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isVoiceSupported, setIsVoiceSupported] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [fileTaskInput, setFileTaskInput] = useState('');
   const [showFileTaskModal, setShowFileTaskModal] = useState(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
@@ -1502,7 +1502,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           const fname = nameEnc ? decodeURIComponent(nameEnc) : 'shared-image.jpg';
           await cache.delete('/__shared_image');
           const file = new File([blob], fname, { type: blob.type || 'image/jpeg' });
-          setPendingFile(file);
+          setPendingFiles([file]);
           setFileTaskInput('');
           setShowFileTaskModal(true);
         } catch { /* тихо: шеринг не критичен */ }
@@ -1549,23 +1549,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // (vision), архивы, и т.д.
   const supportsUniversalFiles = selectedAssistant?.id !== 3;
 
+  // Потолок вложений за одно сообщение. Держим в лад с релеем — там
+  // upload.array("files", 10), всё сверх десятого файла multer молча отбросит.
+  const MAX_ATTACHMENTS = 10;
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const picked = Array.from(event.target.files || []);
+    if (!picked.length) return;
 
     if (fileInputRef.current) fileInputRef.current.value = '';
 
     // Диагностика «выбрал файл, но не грузится»: хлебные крошки по шагам,
     // чтобы по events видеть, где именно обрывается флоу у конкретного юзера.
-    if (user?.phone) trackAuthed('file_pick', user.phone, { name: file.name, size: file.size, type: file.type, assistant_id: selectedAssistant?.id });
+    if (user?.phone) trackAuthed('file_pick', user.phone, {
+      count: picked.length,
+      name: picked.map(f => f.name).join(', ').slice(0, 200),
+      size: picked.reduce((sum, f) => sum + f.size, 0),
+      type: picked[0].type,
+      assistant_id: selectedAssistant?.id,
+    });
 
     if (supportsUniversalFiles) {
-      // Универсальный flow: для любого файла показываем модалку с заданием.
-      setPendingFile(file);
-      setFileTaskInput('');
+      // Универсальный flow: показываем модалку с заданием на всю пачку сразу.
+      // Докладываем к уже выбранным — модалка умеет «добавить ещё».
+      setPendingFiles(prev => {
+        const merged = [...prev, ...picked];
+        if (merged.length > MAX_ATTACHMENTS) alert(t('chat.file_limit', { max: MAX_ATTACHMENTS }));
+        return merged.slice(0, MAX_ATTACHMENTS);
+      });
       setShowFileTaskModal(true);
       return;
     }
+
+    const file = picked[0];
 
     // Legacy PDF-only path для Маши: scan-document → extracted profile data.
     if (file.type !== 'application/pdf') {
@@ -1615,24 +1631,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const handleFileTaskSubmit = async () => {
-    if (!pendingFile || !fileTaskInput.trim()) return;
+    if (!pendingFiles.length || !fileTaskInput.trim()) return;
 
     setShowFileTaskModal(false);
-    const file = pendingFile;
+    const files = pendingFiles;
     const task = fileTaskInput.trim();
-    setPendingFile(null);
+    setPendingFiles([]);
     setFileTaskInput('');
 
-    const userMessage: Message = { id: generateMessageId(), type: 'user', content: `📎 ${file.name}\n\n${task}`, timestamp: new Date() };
+    const fileList = files.map(f => `📎 ${f.name}`).join('\n');
+    const userMessage: Message = { id: generateMessageId(), type: 'user', content: `${fileList}\n\n${task}`, timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
 
-    if (user?.phone) trackAuthed('file_upload_start', user.phone, { name: file.name, size: file.size, type: file.type, assistant_id: selectedAssistant?.id });
+    if (user?.phone) trackAuthed('file_upload_start', user.phone, {
+      count: files.length,
+      name: files.map(f => f.name).join(', ').slice(0, 200),
+      size: files.reduce((sum, f) => sum + f.size, 0),
+      type: files[0].type,
+      assistant_id: selectedAssistant?.id,
+    });
 
     // Check if text file — send inline, otherwise upload via multipart
     const textTypes = ['text/', 'application/json', 'application/xml', 'application/csv', 'text/csv'];
-    const isTextFile = (textTypes.some(t => file.type.startsWith(t)) || !!file.name.match(/\.(txt|csv|json|xml|md|html|css|js|ts|py|sh|yaml|yml|toml|ini|cfg|log|sql)$/i)) && file.size < 500000;
+    const isTextFile = (f: File) =>
+      (textTypes.some(t => f.type.startsWith(t)) || !!f.name.match(/\.(txt|csv|json|xml|md|html|css|js|ts|py|sh|yaml|yml|toml|ini|cfg|log|sql)$/i)) && f.size < 500000;
 
-    if (isTextFile) {
+    // Инлайн-шорткат оставляем только для одиночного текстового файла: пачку
+    // всегда шлём мультипартом, иначе 10 файлов по 500 КБ раздуют промпт.
+    if (files.length === 1 && isTextFile(files[0])) {
+      const file = files[0];
       try {
         const text = await file.text();
         const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
@@ -1653,7 +1680,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       await apiClient.refreshTokenIfNeeded();
 
       const formData = new FormData();
-      formData.append('file', file);
+      // Поле `files` повторяется по разу на файл — бэк принимает его через
+      // upload.any() и прокидывает на релей списком, без склейки в один файл.
+      for (const f of files) formData.append('files', f);
       formData.append('message', task);
       formData.append('assistantId', String(selectedAssistant?.id || 'Роман'));
 
@@ -1700,7 +1729,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (error) {
-      if (user?.phone) trackAuthed('file_upload_error', user.phone, { name: file.name, error: error instanceof Error ? error.message : String(error), assistant_id: selectedAssistant?.id });
+      if (user?.phone) trackAuthed('file_upload_error', user.phone, { count: files.length, name: files.map(f => f.name).join(', ').slice(0, 200), error: error instanceof Error ? error.message : String(error), assistant_id: selectedAssistant?.id });
       const errMsg: Message = {
         id: assistantMsgId,
         type: 'assistant',
@@ -2280,6 +2309,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             ref={fileInputRef}
             type="file"
             accept={supportsUniversalFiles ? '*/*' : '.pdf'}
+            multiple={supportsUniversalFiles}
             onChange={handleFileUpload}
             className="hidden"
           />
@@ -2365,17 +2395,43 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* File task modal for Роман */}
-      {showFileTaskModal && pendingFile && (
+      {showFileTaskModal && pendingFiles.length > 0 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5">
-            <h3 className="text-lg font-semibold mb-2">{t('chat.file_modal_title')}</h3>
-            <div className="bg-gray-50 rounded-lg p-3 mb-3 flex items-center gap-2">
-              <span className="text-xl">📎</span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{pendingFile.name}</p>
-                <p className="text-xs text-gray-500">{(pendingFile.size / 1024).toFixed(1)} KB</p>
-              </div>
+            <h3 className="text-lg font-semibold mb-2">
+              {t('chat.file_modal_title')}
+              {pendingFiles.length > 1 && (
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  {t('chat.file_count', { count: pendingFiles.length })}
+                </span>
+              )}
+            </h3>
+            <div className="bg-gray-50 rounded-lg p-2 mb-3 max-h-40 overflow-y-auto space-y-1">
+              {pendingFiles.map((f, i) => (
+                <div key={`${f.name}-${f.size}-${i}`} className="flex items-center gap-2 px-1 py-1">
+                  <span className="text-lg flex-shrink-0">📎</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{f.name}</p>
+                    <p className="text-xs text-gray-500">{(f.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <button
+                    onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}
+                    className="p-1 text-gray-400 hover:text-red-600 flex-shrink-0"
+                    title={t('chat.file_remove')}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
+            {pendingFiles.length < MAX_ATTACHMENTS && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mb-3 text-sm text-forest-600 hover:text-forest-700"
+              >
+                + {t('chat.file_add_more')}
+              </button>
+            )}
             <textarea
               value={fileTaskInput}
               onChange={(e) => setFileTaskInput(e.target.value)}
@@ -2393,8 +2449,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  if (user?.phone && pendingFile) trackAuthed('file_task_cancel', user.phone, { name: pendingFile.name, assistant_id: selectedAssistant?.id });
-                  setShowFileTaskModal(false); setPendingFile(null);
+                  if (user?.phone && pendingFiles.length) trackAuthed('file_task_cancel', user.phone, { count: pendingFiles.length, name: pendingFiles.map(f => f.name).join(', ').slice(0, 200), assistant_id: selectedAssistant?.id });
+                  setShowFileTaskModal(false); setPendingFiles([]); setFileTaskInput('');
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
               >
