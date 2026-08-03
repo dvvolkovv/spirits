@@ -24,7 +24,7 @@ const AuthOAuthCallbackPage: React.FC = () => {
 
     if (errParam) { setError('Провайдер вернул ошибку: ' + errParam); return; }
     if (!code || !state || !provider) { setError('Битая ссылка'); return; }
-    if (provider !== 'google' && provider !== 'yandex') { setError('Неизвестный провайдер'); return; }
+    if (provider !== 'google' && provider !== 'yandex' && provider !== 'talerid') { setError('Неизвестный провайдер'); return; }
 
     (async () => {
       try {

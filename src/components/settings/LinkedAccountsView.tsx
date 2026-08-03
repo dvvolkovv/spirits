@@ -5,10 +5,27 @@ import { authService } from '../../services/authService';
 import type { Identity } from '../../types/auth';
 
 const providerLabel = (p: Identity['provider']): string => {
-  if (p === 'phone')  return 'Телефон';
-  if (p === 'email')  return 'Email';
-  if (p === 'google') return 'Google';
+  if (p === 'phone')   return 'Телефон';
+  if (p === 'email')   return 'Email';
+  if (p === 'google')  return 'Google';
+  if (p === 'talerid') return 'Taler ID';
   return 'Yandex';
+};
+
+/** Значок провайдера в списке. Логотип Taler ID — настоящий, из брендбука. */
+const providerBadge = (p: Identity['provider']) => {
+  if (p === 'talerid') {
+    return <img src="/talerid-logo.png" alt="" className="w-5 h-5 rounded" />;
+  }
+  return (
+    <span
+      className={`inline-flex w-5 h-5 rounded items-center justify-center text-xs font-bold ${
+        p === 'google' ? 'bg-white border' : 'bg-red-600 text-white'
+      }`}
+    >
+      {p === 'google' ? 'G' : 'Я'}
+    </span>
+  );
 };
 
 const LinkedAccountsView: React.FC = () => {
@@ -40,7 +57,7 @@ const LinkedAccountsView: React.FC = () => {
     else setError(t('settings.linkedAccounts.unlinkError', 'Не удалось отвязать'));
   };
 
-  const handleLinkOAuth = async (provider: 'google' | 'yandex') => {
+  const handleLinkOAuth = async (provider: 'google' | 'yandex' | 'talerid') => {
     try {
       const { authorizeUrl } = await authService.oauthInit(provider, 'link');
       window.location.href = authorizeUrl;
@@ -68,11 +85,9 @@ const LinkedAccountsView: React.FC = () => {
             <div className="flex items-center gap-2">
               {id.provider === 'phone' && <Smartphone className="w-4 h-4 text-gray-500" />}
               {id.provider === 'email' && <Mail className="w-4 h-4 text-gray-500" />}
-              {(id.provider === 'google' || id.provider === 'yandex') && (
-                <span className={`inline-flex w-5 h-5 rounded items-center justify-center text-xs font-bold ${id.provider === 'google' ? 'bg-white border' : 'bg-red-600 text-white'}`}>
-                  {id.provider === 'google' ? 'G' : 'Я'}
-                </span>
-              )}
+              {(id.provider === 'google' ||
+                id.provider === 'yandex' ||
+                id.provider === 'talerid') && providerBadge(id.provider)}
               <div>
                 <p className="text-sm font-medium">{providerLabel(id.provider)}</p>
                 <p className="text-xs text-gray-500">{id.providerSub}</p>
@@ -107,6 +122,17 @@ const LinkedAccountsView: React.FC = () => {
               <p className="text-sm">Yandex</p>
             </div>
             <button onClick={() => handleLinkOAuth('yandex')} className="text-xs text-forest-600 hover:text-forest-800">
+              {t('settings.linkedAccounts.link', 'Привязать')}
+            </button>
+          </div>
+        )}
+        {!linkedProviders.has('talerid') && (
+          <div className="px-4 py-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <img src="/talerid-logo.png" alt="" className="w-5 h-5 rounded" />
+              <p className="text-sm">Taler ID</p>
+            </div>
+            <button onClick={() => handleLinkOAuth('talerid')} className="text-xs text-forest-600 hover:text-forest-800">
               {t('settings.linkedAccounts.link', 'Привязать')}
             </button>
           </div>

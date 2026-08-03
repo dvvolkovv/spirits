@@ -3,7 +3,7 @@ import { apiClient } from './apiClient';
 import { vkReachGoal } from './vkPixel';
 import { getSource } from './eventsClient';
 import { AuthResponse, RefreshResponse, SMSResponse } from '../types/auth';
-import type { Identity } from '../types/auth';
+import type { Identity, OAuthProviderId } from '../types/auth';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -193,8 +193,12 @@ class AuthService {
     return await resp.json();
   }
 
-  async oauthInit(provider: 'google' | 'yandex', intent: 'login' | 'link' = 'login'): Promise<{ authorizeUrl: string }> {
+  async oauthInit(provider: OAuthProviderId, intent: 'login' | 'link' = 'login'): Promise<{ authorizeUrl: string }> {
     const resp = await apiClient.post('/webhook/auth/oauth/init', { provider, intent });
+    // 503 — провайдер объявлен, но ключи на сервере не прописаны. Отличаем
+    // от сбоя: «попробуйте позже» тут вводит в заблуждение, пока ключей нет,
+    // ответ не изменится.
+    if (resp.status === 503) throw new Error('oauth provider not configured');
     if (!resp.ok) throw new Error('oauth init failed');
     return await resp.json();
   }

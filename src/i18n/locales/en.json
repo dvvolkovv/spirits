@@ -118,6 +118,11 @@
     "file_modal_placeholder": "What should I do with this file? For example: analyze, rewrite, compress, extract text...",
     "file_modal_cancel": "Cancel",
     "file_modal_submit": "Send",
+    "file_count_one": "{{count}} file",
+    "file_count_other": "{{count}} files",
+    "file_remove": "Remove file",
+    "file_add_more": "Add more",
+    "file_limit": "You can attach at most {{max}} files at once — the extra ones were not added.",
     "tokens_suffix": "tokens",
     "switched_to": "Switched to {{name}}",
     "assistant_role_coach": "Coach",
@@ -696,32 +701,104 @@
     "quick_title": "Quick guide",
     "faq_title": "Frequently asked questions",
     "guides": [
-      { "title": "Chat with assistant", "desc": "Select an assistant in the left panel. Write a message or upload a PDF. The assistant will respond based on your profile." },
-      { "title": "Find partners", "desc": "Networking → Find people. Describe who you're looking for — the AI will find matches by values and skills." },
-      { "title": "Check compatibility", "desc": "Networking → Compatibility. Enter a phone number (or click «Compatibility» on a request card/chat) — the AI analyzes the match." },
-      { "title": "Communication requests", "desc": "Found someone interesting? Send a short intro message. The recipient will see it in Networking → Requests and accept or decline." },
-      { "title": "Chats between users", "desc": "Accepted requests create chats. Exchange messages, open the other person's profile, report or block via the «three dots» menu." },
-      { "title": "Image generation", "desc": "Images section or in chat «draw…». The AI creates an image from your description." },
-      { "title": "Video generation", "desc": "Video section. Text→video, image→video, continue a clip, lip-sync voice with image. 5 or 10 seconds." },
-      { "title": "Profile", "desc": "Built automatically from conversations with assistants. You can edit your name, upload a photo, view values/interests/skills." },
-      { "title": "Tokens", "desc": "Balance shown in the sidebar. Top up via YooKassa or promo codes. Spend is visible after every operation." }
+      {
+        "title": "Chat with assistant",
+        "desc": "Select an assistant in the left panel. Write a message or upload a PDF. The assistant will respond based on your profile."
+      },
+      {
+        "title": "Find partners",
+        "desc": "Networking → Find people. Describe who you're looking for — the AI will find matches by values and skills."
+      },
+      {
+        "title": "Check compatibility",
+        "desc": "Networking → Compatibility. Enter a phone number (or click «Compatibility» on a request card/chat) — the AI analyzes the match."
+      },
+      {
+        "title": "Communication requests",
+        "desc": "Found someone interesting? Send a short intro message. The recipient will see it in Networking → Requests and accept or decline."
+      },
+      {
+        "title": "Chats between users",
+        "desc": "Accepted requests create chats. Exchange messages, open the other person's profile, report or block via the «three dots» menu."
+      },
+      {
+        "title": "Image generation",
+        "desc": "Images section or in chat «draw…». The AI creates an image from your description."
+      },
+      {
+        "title": "Video generation",
+        "desc": "Video section. Text→video, image→video, continue a clip, lip-sync voice with image. 5 or 10 seconds."
+      },
+      {
+        "title": "Profile",
+        "desc": "Built automatically from conversations with assistants. You can edit your name, upload a photo, view values/interests/skills."
+      },
+      {
+        "title": "Tokens",
+        "desc": "Balance shown in the sidebar. Top up via YooKassa or promo codes. Spend is visible after every operation."
+      }
     ],
     "faq": [
-      { "q": "How do I get started with the platform?", "a": "After signing up with your phone number you receive a starter token pack. Select an assistant in the left panel and start chatting. The assistant will help define your goals and tasks." },
-      { "q": "What are tokens and how are they spent?", "a": "Tokens are the platform's internal currency. They're spent on messages to assistants, image generation, video generation and people search. The cost depends on task complexity — dynamic pricing adapts to workload. After each message you see the token usage." },
-      { "q": "Which assistants are available?", "a": "The platform offers two kinds of assistants:\n\n• For business — HR specialist, accountant, lawyer, marketer, business mentor, copywriter\n• For personal growth — coach, psychologist, game practitioner, numerologist, mindfulness assistant\n• Personal assistant Roman — helps with any task" },
-      { "q": "How does Networking work?", "a": "The Networking section has four tabs:\n\n• Find people — enter a query (for example «looking for a designer for an eco-friendly project») and the system will find matches by values, skills and interests.\n• Compatibility — enter another user's phone number and the AI will analyze your compatibility. You can also launch the analysis right from a request card or an open chat.\n• Requests — incoming and outgoing invitations to talk.\n• Chats — accepted conversations with other users." },
-      { "q": "How do I invite someone to chat?", "a": "From search or compatibility results, open the person's profile and click «Request chat». Write a short intro message (up to 500 characters) — the recipient will see it in «Networking → Requests». You can't send another request until they respond. If they sent you a request first — your request auto-accepts theirs and the chat opens immediately." },
-      { "q": "What do I do with an incoming chat request?", "a": "Open Networking → Requests tab. On the card:\n\n• «View profile» — opens the sender's values, interests and skills.\n• «Compatibility» — instant AI analysis of the match with your profile.\n• «Accept» — a chat is created and you switch to the conversation.\n• «Decline» — the request is silently removed, the sender is not notified of the decline.\n\nLimit: up to 10 active outgoing requests and no more than 5 new per hour." },
-      { "q": "How do user-to-user chats work?", "a": "Once a request is accepted, the conversation appears in Networking → Chats. In the conversation:\n\n• Messages — plain text up to 4000 characters, with read receipts.\n• Avatar and name in the header are clickable — they open the full profile.\n• The «three dots» menu in the top right — «View profile», «Compatibility», «Report», «Block».\n\nYou can exchange phone numbers and contacts directly in the conversation, if you agree to." },
-      { "q": "How do I report or block a user?", "a": "In an open chat click the three dots in the top right → «Report» (describe the reason, moderation will review it) or «Block» (after confirmation, the user can no longer message you and you can no longer message them). Requests from blocked users are also not created." },
-      { "q": "How is my profile built?", "a": "Your profile is built automatically from your conversations with assistants. The AI extracts your values, interests, skills, desires and intentions — they're stored in a graph database and gradually refined. The more you chat, the more accurate your profile and the better search and compatibility results." },
-      { "q": "Can I upload documents?", "a": "Yes! Click the «+» button in the chat and upload a PDF. The AI analyzes the document, extracts key information, and suggests ways to use it — update your profile, find partners, or analyze the data." },
-      { "q": "How do I generate images?", "a": "Two ways:\n\n• In chat — ask the assistant to «draw…» or «create an image…».\n• In the Images section — enter a description and click «Generate».\n\nGeneration costs 5,000 tokens per image." },
-      { "q": "How do I create a video?", "a": "Video section. Four modes are available:\n\n• Text → Video — generate a clip from a description. The system first auto-generates a starting still frame via Nano Banana (+5,000 tokens) and then animates it — composition is more stable this way than with «bare» text → video.\n• Image → Video — animate an uploaded image.\n• Extend — add another 5 seconds to your existing video.\n• Lip-sync — overlay voice/audio on a video, syncing to the face (Kling v1.6 model only).\n\nDuration 5 or 10 seconds, Standard or Pro quality. The token cost is shown on the «Create» button — it depends on mode, model, quality and duration (for Text → Video it already includes the +5,000 tokens for the still frame). Finished clips appear in the «My videos» tab — you can download them, extend them, or apply lip-sync." },
-      { "q": "How do I top up tokens?", "a": "Click the «Tokens» block in the sidebar or go to the top-up section. Packs from 149₽ to 1990₽ are available. You can also use promo codes for bonus tokens." },
-      { "q": "What is the partner program?", "a": "You can become a partner and receive a commission on payments from referred users. Contact the administrator to join. The commission is credited automatically with every payment from a referral." },
-      { "q": "Is my data safe?", "a": "Yes. We don't share your data with third parties. Other users' phone numbers are hidden — you can only contact them through platform requests and chats. Chat requests require your explicit consent (Accept/Decline). You can block any user and delete your account with all its data at any time from the Profile section." }
+      {
+        "q": "How do I get started with the platform?",
+        "a": "After signing up with your phone number you receive a starter token pack. Select an assistant in the left panel and start chatting. The assistant will help define your goals and tasks."
+      },
+      {
+        "q": "What are tokens and how are they spent?",
+        "a": "Tokens are the platform's internal currency. They're spent on messages to assistants, image generation, video generation and people search. The cost depends on task complexity — dynamic pricing adapts to workload. After each message you see the token usage."
+      },
+      {
+        "q": "Which assistants are available?",
+        "a": "The platform offers two kinds of assistants:\n\n• For business — HR specialist, accountant, lawyer, marketer, business mentor, copywriter\n• For personal growth — coach, psychologist, game practitioner, numerologist, mindfulness assistant\n• Personal assistant Roman — helps with any task"
+      },
+      {
+        "q": "How does Networking work?",
+        "a": "The Networking section has four tabs:\n\n• Find people — enter a query (for example «looking for a designer for an eco-friendly project») and the system will find matches by values, skills and interests.\n• Compatibility — enter another user's phone number and the AI will analyze your compatibility. You can also launch the analysis right from a request card or an open chat.\n• Requests — incoming and outgoing invitations to talk.\n• Chats — accepted conversations with other users."
+      },
+      {
+        "q": "How do I invite someone to chat?",
+        "a": "From search or compatibility results, open the person's profile and click «Request chat». Write a short intro message (up to 500 characters) — the recipient will see it in «Networking → Requests». You can't send another request until they respond. If they sent you a request first — your request auto-accepts theirs and the chat opens immediately."
+      },
+      {
+        "q": "What do I do with an incoming chat request?",
+        "a": "Open Networking → Requests tab. On the card:\n\n• «View profile» — opens the sender's values, interests and skills.\n• «Compatibility» — instant AI analysis of the match with your profile.\n• «Accept» — a chat is created and you switch to the conversation.\n• «Decline» — the request is silently removed, the sender is not notified of the decline.\n\nLimit: up to 10 active outgoing requests and no more than 5 new per hour."
+      },
+      {
+        "q": "How do user-to-user chats work?",
+        "a": "Once a request is accepted, the conversation appears in Networking → Chats. In the conversation:\n\n• Messages — plain text up to 4000 characters, with read receipts.\n• Avatar and name in the header are clickable — they open the full profile.\n• The «three dots» menu in the top right — «View profile», «Compatibility», «Report», «Block».\n\nYou can exchange phone numbers and contacts directly in the conversation, if you agree to."
+      },
+      {
+        "q": "How do I report or block a user?",
+        "a": "In an open chat click the three dots in the top right → «Report» (describe the reason, moderation will review it) or «Block» (after confirmation, the user can no longer message you and you can no longer message them). Requests from blocked users are also not created."
+      },
+      {
+        "q": "How is my profile built?",
+        "a": "Your profile is built automatically from your conversations with assistants. The AI extracts your values, interests, skills, desires and intentions — they're stored in a graph database and gradually refined. The more you chat, the more accurate your profile and the better search and compatibility results."
+      },
+      {
+        "q": "Can I upload documents?",
+        "a": "Yes! Click the «+» button in the chat and upload a PDF. The AI analyzes the document, extracts key information, and suggests ways to use it — update your profile, find partners, or analyze the data."
+      },
+      {
+        "q": "How do I generate images?",
+        "a": "Two ways:\n\n• In chat — ask the assistant to «draw…» or «create an image…».\n• In the Images section — enter a description and click «Generate».\n\nGeneration costs 5,000 tokens per image."
+      },
+      {
+        "q": "How do I create a video?",
+        "a": "Video section. Four modes are available:\n\n• Text → Video — generate a clip from a description. The system first auto-generates a starting still frame via Nano Banana (+5,000 tokens) and then animates it — composition is more stable this way than with «bare» text → video.\n• Image → Video — animate an uploaded image.\n• Extend — add another 5 seconds to your existing video.\n• Lip-sync — overlay voice/audio on a video, syncing to the face (Kling v1.6 model only).\n\nDuration 5 or 10 seconds, Standard or Pro quality. The token cost is shown on the «Create» button — it depends on mode, model, quality and duration (for Text → Video it already includes the +5,000 tokens for the still frame). Finished clips appear in the «My videos» tab — you can download them, extend them, or apply lip-sync."
+      },
+      {
+        "q": "How do I top up tokens?",
+        "a": "Click the «Tokens» block in the sidebar or go to the top-up section. Packs from 149₽ to 1990₽ are available. You can also use promo codes for bonus tokens."
+      },
+      {
+        "q": "What is the partner program?",
+        "a": "You can become a partner and receive a commission on payments from referred users. Contact the administrator to join. The commission is credited automatically with every payment from a referral."
+      },
+      {
+        "q": "Is my data safe?",
+        "a": "Yes. We don't share your data with third parties. Other users' phone numbers are hidden — you can only contact them through platform requests and chats. Chat requests require your explicit consent (Accept/Decline). You can block any user and delete your account with all its data at any time from the Profile section."
+      }
     ]
   },
   "support": {
@@ -932,7 +1009,12 @@
     }
   },
   "auth": {
-    "tabs": { "sms": "SMS", "email": "Email", "google": "Google", "yandex": "Yandex" },
+    "tabs": {
+      "sms": "SMS",
+      "email": "Email",
+      "google": "Google",
+      "yandex": "Yandex"
+    },
     "email": {
       "label": "Email address",
       "submit": "Get login link",
@@ -945,7 +1027,8 @@
     "oauth": {
       "google": "Continue with Google",
       "yandex": "Continue with Yandex",
-      "initFailed": "Failed to start provider login"
+      "initFailed": "Failed to start provider login",
+      "talerid": "Sign in with Taler ID"
     },
     "consent": {
       "ageAndPrefix": "I am 18 or older, I have read the ",

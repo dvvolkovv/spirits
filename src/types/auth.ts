@@ -26,7 +26,7 @@ export interface SMSResponse {
 
 export interface Identity {
   id: string;
-  provider: 'phone' | 'email' | 'google' | 'yandex';
+  provider: 'phone' | 'email' | 'google' | 'yandex' | 'talerid';
   providerSub: string;
   email: string | null;
   emailVerified: boolean;
@@ -71,3 +71,6 @@ export interface ReferralStats {
     paid_out: boolean;
   }>;
 }
+
+/** Провайдеры внешнего входа. Значение уходит на бэк как есть. */
+export type OAuthProviderId = 'google' | 'yandex' | 'talerid';

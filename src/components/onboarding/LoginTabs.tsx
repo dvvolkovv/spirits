@@ -44,6 +44,7 @@ const LoginTabs: React.FC = () => {
         <div className="space-y-2.5">
           <OAuthButton provider="yandex" />
           <OAuthButton provider="google" />
+          <OAuthButton provider="talerid" />
         </div>
 
         <div className="flex items-center gap-3 my-5">
