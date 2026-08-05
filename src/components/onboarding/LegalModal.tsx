@@ -12,7 +12,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const { t, i18n } = useTranslation();
   if (!isOpen) return null;
 
-  const isEn = i18n.language.startsWith('en');
+  // Юридически значимая версия — русская: соглашение описывает отношения по
+  // праву РФ и называет конкретного исполнителя с ИНН. Для всех остальных
+  // языков отдаём английскую редакцию как ознакомительную — она написана
+  // человеком, в отличие от машинного перевода, и понятнее кириллицы
+  // испанцу, немцу, французу или китайцу.
+  // Переводить оферту и политику на es/de/fr/zh машинно нельзя — только через юриста.
+  const isRu = i18n.language.startsWith('ru');
 
   const termsContentRu = (
     <div className="space-y-4">
@@ -855,8 +861,8 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
     </div>
   );
 
-  const termsContent = isEn ? termsContentEn : termsContentRu;
-  const privacyContent = isEn ? privacyContentEn : privacyContentRu;
+  const termsContent = isRu ? termsContentRu : termsContentEn;
+  const privacyContent = isRu ? privacyContentRu : privacyContentEn;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
