@@ -109,6 +109,11 @@ const SettingsView: React.FC = () => {
 
   const handleLanguageChange = (lang: string) => {
     handleSettingChange('language', lang);
+    // Язык уходит в профиль, чтобы подхватился на других устройствах
+    // и попал в системный промпт ассистентов.
+    apiClient
+      .post('/webhook/profile-update', { language: lang })
+      .catch((e) => console.warn('Не удалось сохранить язык в профиль:', e));
   };
 
   const ToggleSwitch: React.FC<{
