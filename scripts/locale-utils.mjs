@@ -30,12 +30,18 @@ export function unflatten(flat) {
   return out;
 }
 
-/** Ключи источника, которых нет в цели или которые там пусты. */
+const isBlank = (value) => value === undefined || value === null || value === '';
+
+/**
+ * Ключи источника, которых нет в цели или которые там пусты.
+ * Ключи, пустые в самом источнике, не считаются недостающими: в ru.json
+ * есть намеренно пустые значения (например chat.welcome_message), и
+ * требовать их «перевод» бессмысленно.
+ */
 export function missingKeys(sourceFlat, targetFlat) {
-  return Object.keys(sourceFlat).filter((key) => {
-    const value = targetFlat[key];
-    return value === undefined || value === null || value === '';
-  });
+  return Object.keys(sourceFlat).filter(
+    (key) => !isBlank(sourceFlat[key]) && isBlank(targetFlat[key]),
+  );
 }
 
 /**

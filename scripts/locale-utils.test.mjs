@@ -24,6 +24,11 @@ describe('missingKeys', () => {
   it('возвращает пустой список при полном покрытии', () => {
     expect(missingKeys({ a: '1' }, { a: 'x' })).toEqual([]);
   });
+
+  it('не требует перевода для намеренно пустого значения в источнике', () => {
+    expect(missingKeys({ a: '' }, {})).toEqual([]);
+    expect(missingKeys({ a: '' }, { a: '' })).toEqual([]);
+  });
 });
 
 describe('extractPlaceholders', () => {

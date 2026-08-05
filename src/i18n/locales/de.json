@@ -1,1 +1,732 @@
-{}
+{
+  "onboarding": {
+    "welcome": "LINKEON.IO",
+    "subtitle": "Die KI für Wachstum und Entwicklung deines Business",
+    "seg_biz": "KI-Team für dein Business: Anwalt, Buchhalter und Marketer in einem Chat",
+    "seg_creator": "KI-Studio: Texte, Bilder und Videos in Minuten",
+    "trust": "🎁 25.000 Tokens geschenkt · ohne Karte · 2 Minuten",
+    "enter_phone": "Telefonnummer eingeben",
+    "phone_placeholder": "+7 (999) 999-99-99",
+    "send_code": "Code senden",
+    "enter_code": "SMS-Code eingeben",
+    "code_sent": "Code gesendet an",
+    "resend_code": "Erneut senden",
+    "resend_in": "Erneut senden in {{time}}",
+    "verify": "Bestätigen",
+    "consent_title": "Einwilligung zur Datenverarbeitung",
+    "consent_text": "Ich stimme den Nutzungsbedingungen und der Datenschutzrichtlinie zu",
+    "accept_continue": "Akzeptieren und weiter",
+    "terms": "Nutzungsbedingungen",
+    "privacy": "Datenschutzrichtlinie",
+    "phone_invalid": "Gib eine gültige Telefonnummer ein",
+    "legal_consent_prefix": "Ich bin über 18 und akzeptiere",
+    "legal_and": ",",
+    "legal_and_before_privacy": ", ",
+    "legal_consent_suffix": " und willige in die Verarbeitung personenbezogener Daten ein",
+    "legal_terms_link": "Nutzungsbedingungen",
+    "legal_privacy_link": "Datenschutzrichtlinie",
+    "payment_info_link": "Leistungsbeschreibung und Zahlungsablauf",
+    "sms_sent": "Code per SMS gesendet",
+    "paste_from_clipboard": "Code einfügen",
+    "match": {
+      "title": "Womit fangen wir an?",
+      "subtitle": "Wähle, was gerade zu dir passt — wir finden den passenden Assistenten und starten sofort",
+      "show_all": "Alle Assistenten anzeigen →",
+      "greeting": "Hallo! Ich bin {{name}} — {{role}}. Womit fangen wir an?",
+      "reopen": "Assistenten auswählen",
+      "theme_self": "Mich selbst verstehen, Emotionen",
+      "theme_growth": "Ziele und persönliches Wachstum",
+      "theme_career": "Karriere und Arbeit",
+      "theme_biz": "Business und Geld",
+      "theme_practices": "Selbsterkenntnis-Praktiken",
+      "theme_unsure": "Weiß noch nicht / schaue nur"
+    }
+  },
+  "offer": {
+    "text": "Du hattest schon ein langes Gespräch — mach mit vollem Zugang weiter. Dein erstes Paket: 50% mehr Tokens 🎁",
+    "cta": "Paket wählen",
+    "badge": "🎁 +50% auf dein erstes Paket",
+    "nudge_text": "Hat dir das Gespräch gefallen? Schalte vollen Zugang frei — wähle ein Token-Paket und mach ohne Limits weiter.",
+    "nudge_cta": "Paket wählen"
+  },
+  "nav": {
+    "networking": "Networking",
+    "image_gen": "Bildgenerator",
+    "referral": "Partner",
+    "help": "Hilfe",
+    "socialAccounts": "Social Media",
+    "tokens": {
+      "label": "Tokens",
+      "top_up": "Zum Aufladen tippen",
+      "how_question": "Wie werden Tokens berechnet?",
+      "how_title": "Dynamisches Preissystem",
+      "how_line1": "Der Preis ist nicht fix — jede Aufgabe ist einzigartig. Wie bei Taxis oder Hotelketten passt sich der Preis flexibel an Arbeitsaufwand, Nachfrage und Ressourcen an.",
+      "how_line2": "Das Ergebnis: ein transparenter, fairer Preis ohne Aufpreise oder versteckte Gebühren. Du zahlst genau für das, was du bekommst.",
+      "how_line3": "Der Zähler zeigt nach jeder Nachricht den genauen Token-Verbrauch."
+    },
+    "legal": {
+      "terms": "Nutzungsbedingungen",
+      "privacy": "Datenschutzrichtlinie"
+    }
+  },
+  "errors": {
+    "boundary_title": "Fehler in der Oberfläche",
+    "details": "Details",
+    "retry": "Erneut versuchen",
+    "to_home": "Zur Startseite"
+  },
+  "chat": {
+    "title": "Chat mit dem Assistenten",
+    "placeholder": "Nachricht schreiben...",
+    "send": "Senden",
+    "typing": "schreibt...",
+    "upload_file": "PDF-Datei hochladen",
+    "uploading": "Datei wird hochgeladen...",
+    "file_uploaded": "Datei hochgeladen",
+    "upload_error": "Fehler beim Hochladen",
+    "pdf_only": "Bitte lade eine Datei im PDF-Format hoch",
+    "welcome_message": "",
+    "initial_greeting": "Hallo! Erzähl mir von dir!",
+    "suggestions": {
+      "values": "Erzähl mir von deinen Werten",
+      "goals": "Was sind deine Ziele?",
+      "interests": "Wofür interessierst du dich?"
+    },
+    "assistants": "Assistenten",
+    "personal_assistant": "Persönlicher Assistent",
+    "for_business": "Für dein Business",
+    "personal_growth": "Persönliches Wachstum",
+    "all_assistants": "Alle Assistenten",
+    "select_assistant": "Assistenten auswählen",
+    "select_assistant_hint": "im linken Bereich",
+    "upload_any_file": "Datei hochladen",
+    "tokens_top_up_title": "Zum Aufladen von Tokens tippen",
+    "regenerate_title": "Antwort neu generieren",
+    "clear_title": "Chat löschen",
+    "clear_confirm": "Chat-Verlauf löschen? Das lässt sich nicht rückgängig machen.",
+    "loading_history": "Verlauf wird geladen...",
+    "suggestions_hint": "Womit weitermachen:",
+    "load_more": "↑ Mehr laden",
+    "generating_image": "Bild wird generiert...",
+    "generating_image_error": "Bild konnte nicht generiert werden",
+    "video_gen_error": "Video konnte nicht generiert werden: {{error}}",
+    "ai_error_fallback": "Entschuldigung, bei der Verarbeitung deiner Nachricht ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
+    "file_error_fallback": "Bei der Verarbeitung der Datei ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
+    "file_upload_error_generic": "Beim Hochladen der Datei ist ein Fehler aufgetreten: {{error}}. Bitte versuch es noch mal.",
+    "file_error_unknown": "Unbekannter Fehler",
+    "file_modal_title": "Datei hochladen",
+    "file_modal_placeholder": "Was soll mit der Datei passieren? Z. B.: analysieren, überarbeiten, komprimieren, Text extrahieren...",
+    "file_modal_cancel": "Abbrechen",
+    "file_modal_submit": "Senden",
+    "file_count_other": "{{count}} Dateien",
+    "file_count_one": "{{count}} Datei",
+    "file_remove": "Datei entfernen",
+    "file_add_more": "Weitere hinzufügen",
+    "file_limit": "Du kannst maximal {{max}} Dateien auf einmal anhängen — weitere wurden nicht hinzugefügt.",
+    "tokens_suffix": "Tokens",
+    "switched_to": "Gewechselt zu {{name}}",
+    "assistant_role_coach": "Coach",
+    "assistant_role_psych": "Psychologe",
+    "assistant_role_gameplay": "Spielpraktiker",
+    "assistant_role_astro": "Astrologe",
+    "assistant_role_hd": "Human Design",
+    "assistant_role_default": "Assistent",
+    "voice_not_supported": "Spracheingabe wird von deinem Browser nicht unterstützt",
+    "voice_not_supported_title": "Spracheingabe nicht unterstützt",
+    "voice_start": "Spracheingabe starten",
+    "voice_stop": "Aufnahme stoppen",
+    "voice_error": "Fehler bei der Spracherkennung: {{error}}",
+    "image_alt": "Bild",
+    "download": "Herunterladen"
+  },
+  "profile": {
+    "title": "Mein Profil",
+    "personal_info": "Persönliche Angaben",
+    "profile_photo": "Profilbild",
+    "change_photo": "Foto ändern",
+    "upload_photo": "Foto hochladen",
+    "uploading": "Wird hochgeladen...",
+    "first_name": "Vorname",
+    "last_name": "Nachname",
+    "phone": "Telefon",
+    "first_name_placeholder": "Gib deinen Vornamen ein",
+    "last_name_placeholder": "Gib deinen Nachnamen ein",
+    "not_specified": "Nicht angegeben",
+    "edit": "Bearbeiten",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "values": "Werte",
+    "beliefs": "Überzeugungen",
+    "desires": "Wünsche",
+    "intentions": "Absichten",
+    "timeline": "Änderungsverlauf",
+    "confidence": "Konfidenz",
+    "add_value": "Wert hinzufügen",
+    "privacy_settings": "Datenschutzeinstellungen",
+    "name_help_text": "Vor- und Nachname helfen anderen Nutzern, dich besser kennenzulernen",
+    "complete_name_prompt": "Trage Vor- und Nachnamen ein, damit dich andere Nutzer besser kennenlernen können",
+    "delete_error_no_phone": "Telefonnummer nicht gefunden",
+    "delete_error_status": "Fehler beim Löschen des Profils: {{status}}",
+    "tasks": {
+      "title": "Aufgaben",
+      "empty": "Noch keine Aufgaben. Sie entstehen automatisch, wenn du mit Assistenten über aktuelle Themen sprichst.",
+      "loadError": "Aufgaben konnten nicht geladen werden",
+      "detailsError": "Details konnten nicht geladen werden",
+      "mutateError": "Status konnte nicht aktualisiert werden",
+      "events": "Ereignisse",
+      "assistantFallback": "Assistent",
+      "showInactive": "Abgeschlossene und Archiv anzeigen",
+      "actions": {
+        "close": "Schließen",
+        "archive": "Archivieren",
+        "reopen": "Wiederherstellen"
+      }
+    }
+  },
+  "search": {
+    "title": "Personensuche",
+    "placeholder": "Gib deine Absicht oder deinen Wunsch ein",
+    "recommendations": "Empfehlungen",
+    "match_score": "Übereinstimmung",
+    "common_values": "gemeinsame Werte",
+    "complementary": "Komplementäre Ziele",
+    "view_profile": "Profil ansehen",
+    "start_chat": "Chat starten",
+    "no_results": "Niemand gefunden",
+    "try_different": "Versuch andere Suchkriterien",
+    "start_prompt_title": "Starte die Personensuche",
+    "hint_title": "Finde Gleichgesinnte",
+    "hint_body": "Gib eine Suchanfrage ein, um Gleichgesinnte zu finden",
+    "searching": "Passende Personen werden gesucht...",
+    "error_stream": "Bei der Suche ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
+    "values_count": "Werte ({{count}})",
+    "interests_count": "Interessen ({{count}})",
+    "skills_count": "Fähigkeiten ({{count}})",
+    "no_description": "Keine Beschreibung",
+    "unknown_user": "Unbekannter Nutzer",
+    "telegram_tooltip": "In Telegram schreiben",
+    "no_phone": "Telefonnummer des Nutzers nicht verfügbar",
+    "intent_placeholders": [
+      "Ich möchte eine glückliche Familie gründen",
+      "Ich möchte Gitarre spielen lernen",
+      "Ich plane, eine Gruppe zu gründen",
+      "Ich baue eine Siedlung für Gleichgesinnte auf",
+      "Ich brauche eine psychologische Beratung",
+      "Ich möchte eine Coaching-Sitzung machen",
+      "Ich suche einen Partner für ein Fitnessstudio"
+    ]
+  },
+  "compatibility": {
+    "title": "Kompatibilität",
+    "subtitle": "Kompatibilitätsanalyse mit anderen Nutzern",
+    "add_phones": "Telefonnummern hinzufügen",
+    "add_phones_hint": "Gib die Telefonnummer eines auf LINKEON.IO registrierten Nutzers ein. Die KI analysiert eure Profile und zeigt die Kompatibilität nach Werten, Interessen und Fähigkeiten in Prozent.",
+    "picker_open": "Kontakte werden geöffnet...",
+    "pick_from_contacts": "Aus Kontakten wählen",
+    "add": "Hinzufügen",
+    "added_numbers": "Hinzugefügte Nummern:",
+    "analyzing": "Kompatibilität wird analysiert...",
+    "analyze": "Kompatibilität analysieren",
+    "result": "Analyseergebnis",
+    "error_invalid_11": "Gib eine gültige Telefonnummer ein (11 Ziffern)",
+    "error_already_added": "Diese Nummer wurde bereits hinzugefügt",
+    "error_picker_unsupported": "Dein Browser unterstützt die Kontaktauswahl nicht. Versuch es mit Chrome auf Android.",
+    "error_contacts_empty": "Keine Kontakte ausgewählt",
+    "error_added_with_duplicates": "{{added}} Nummern hinzugefügt. {{duplicates}} Nummern übersprungen (Duplikate).",
+    "error_no_valid_phones": "Keine gültigen Telefonnummern gefunden",
+    "error_picker_cancelled": "Kontaktauswahl abgebrochen",
+    "error_picker_generic": "Fehler bei der Kontaktauswahl. Stell sicher, dass du den Zugriff auf Kontakte erlaubt hast.",
+    "error_analysis": "Bei der Kompatibilitätsanalyse ist ein Fehler aufgetreten. Bitte versuch es noch mal."
+  },
+  "chats": {
+    "title": "Chats",
+    "new_chat": "Neuer Chat",
+    "new_group": "Neue Gruppe",
+    "search_contacts": "Kontakte suchen",
+    "group_info": "Gruppeninfo",
+    "leave_group": "Gruppe verlassen",
+    "add_members": "Mitglieder hinzufügen",
+    "members": "Mitglieder",
+    "online": "online",
+    "typing_indicator": "schreibt..."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "privacy": "Datenschutz",
+    "profile_visibility": "Profilsichtbarkeit",
+    "profile_visibility_desc": "Wer dein Profil in der Suche sehen kann",
+    "values_visibility": "Werte anzeigen",
+    "values_visibility_desc": "Deine Werte für andere sichtbar machen",
+    "allow_chats": "Chats erlauben",
+    "allow_chats_desc": "Wer einen Chat mit dir starten kann",
+    "language": "Sprache der Oberfläche",
+    "language_title": "Sprache der Oberfläche",
+    "language_desc": "Wähle deine bevorzugte Sprache",
+    "notifications": "Benachrichtigungen",
+    "new_messages": "Neue Nachrichten",
+    "new_messages_desc": "Benachrichtigungen über neue Nachrichten in Chats",
+    "new_matches": "Neue Matches",
+    "new_matches_desc": "Benachrichtigungen über passende Personen",
+    "account": "Konto",
+    "logout": "Abmelden",
+    "delete_account": "Konto löschen",
+    "version": "App-Version",
+    "visibility": {
+      "all": "Alle",
+      "matches": "Nur Matches",
+      "private": "Niemand"
+    },
+    "chat_access": {
+      "all": "Alle Nutzer",
+      "matches": "Nur Matches",
+      "none": "Niemand"
+    },
+    "linkedAccounts": {
+      "title": "Anmeldemethoden",
+      "unlink": "Trennen",
+      "link": "Verknüpfen",
+      "lastMethod": "Das ist die einzige Anmeldemethode",
+      "loadError": "Laden fehlgeschlagen",
+      "unlinkError": "Trennen fehlgeschlagen",
+      "oauthError": "Verknüpfung konnte nicht gestartet werden"
+    }
+  },
+  "video": {
+    "navTitle": "Video",
+    "pageTitle": "Videogenerierung",
+    "tabs": {
+      "create": "Erstellen",
+      "gallery": "Meine Videos"
+    },
+    "mode": {
+      "label": "Modus",
+      "text2video": "Text → Video",
+      "image2video": "Bild → Video",
+      "extend": "Verlängerung",
+      "lipsync": "Lippensync"
+    },
+    "model": {
+      "label": "Modell",
+      "standard": "Standard (v1.6)",
+      "premium": "Premium (v2 Master)"
+    },
+    "quality": {
+      "label": "Qualität",
+      "std": "Standard",
+      "pro": "Pro"
+    },
+    "duration": {
+      "label": "Länge",
+      "5s": "5 Sekunden",
+      "10s": "10 Sekunden",
+      "suffix": "s"
+    },
+    "prompt": {
+      "label": "Prompt",
+      "placeholder": "Z. B.: Experte spricht in die Kamera über einen Produktlaunch, warmes Licht, vertikal 9:16"
+    },
+    "negativePrompt": {
+      "label": "Negativer Prompt"
+    },
+    "cfgScale": {
+      "label": "CFG Scale"
+    },
+    "cameraType": {
+      "label": "Kamera"
+    },
+    "sourceImage": {
+      "label": "Ausgangsbild",
+      "upload": "Hochladen",
+      "fromGallery": "Aus der Bildergalerie"
+    },
+    "sourceVideo": {
+      "label": "Ausgangsvideo"
+    },
+    "audio": {
+      "label": "Audio für Lippensync"
+    },
+    "submit": {
+      "create": "Erstellen",
+      "cost": "Das kostet {{tokens}} Tokens"
+    },
+    "insufficientTokens": {
+      "title": "Nicht genug Tokens",
+      "cta": "Aufladen"
+    },
+    "job": {
+      "statusPending": "In der Warteschlange",
+      "statusProcessing": "Wird generiert… {{elapsed}}",
+      "statusReady": "Fertig",
+      "statusFailed": "Fehler",
+      "processingHint": "meist 3–5 Minuten",
+      "modes": {
+        "text2video": "Text→Video",
+        "image2video": "Foto→Video",
+        "extend": "Verlängerung",
+        "lipsync": "Lippensync"
+      },
+      "confirmDelete": "Löschen",
+      "actions": {
+        "play": "Ansehen",
+        "download": "Herunterladen",
+        "sendToChat": "In den Chat",
+        "extend": "Verlängern",
+        "lipsync": "Lippensync",
+        "delete": "Löschen"
+      },
+      "titles": {
+        "delete": "Löschen",
+        "download": "Herunterladen",
+        "extend": "Video verlängern (+5s)",
+        "lipsync": "Lippen mit Audio synchronisieren"
+      },
+      "emptyGallery": "Du hast noch keine fertigen Videos. Erstell dein erstes im Tab „Erstellen“.",
+      "toastReady": "Video ist fertig"
+    }
+  },
+  "help": {
+    "title": "So nutzt du LINKEON.IO",
+    "subtitle": "Kurzanleitung und Antworten auf häufige Fragen",
+    "cta": {
+      "title": "Keine Antwort gefunden?",
+      "body": "Schreib dem Support — der KI-Assistent antwortet zuerst und leitet bei Bedarf ans Team weiter.",
+      "button": "Support kontaktieren"
+    },
+    "quick_title": "Kurzanleitung",
+    "faq_title": "Häufige Fragen",
+    "guides": [
+      {
+        "title": "Chat mit dem Assistenten",
+        "desc": "Wähle einen Assistenten im linken Bereich. Schreib eine Nachricht oder lade ein PDF hoch. Der Assistent antwortet unter Berücksichtigung deines Profils."
+      },
+      {
+        "title": "Partnersuche",
+        "desc": "Networking → Personensuche. Beschreib, wen du suchst — die KI findet passende Personen nach Werten und Fähigkeiten."
+      },
+      {
+        "title": "Kompatibilitätsprüfung",
+        "desc": "Networking → Kompatibilität. Gib eine Telefonnummer ein (oder tippe auf „Kompatibilität“ in der Anfrage-Karte/im Chat) — die KI analysiert die Übereinstimmung."
+      },
+      {
+        "title": "Kontaktanfragen",
+        "desc": "Jemanden Interessantes gefunden? Schick eine kurze Intro-Nachricht. Der Empfänger sieht sie unter Networking → Anfragen und nimmt sie an oder lehnt sie ab."
+      },
+      {
+        "title": "Chats zwischen Nutzern",
+        "desc": "Angenommene Anfragen erstellen Chats. Tausche Nachrichten aus, öffne das Profil deines Gesprächspartners, melde ihn oder blockiere ihn über das Drei-Punkte-Menü."
+      },
+      {
+        "title": "Bildgenerierung",
+        "desc": "Bereich Bilder oder im Chat „male…“. Die KI erstellt ein Bild nach deiner Beschreibung."
+      },
+      {
+        "title": "Videogenerierung",
+        "desc": "Bereich Video. Text→Video, Bild→Video, Verlängerung, Lippensync von Stimme und Bild. 5 oder 10 Sekunden."
+      },
+      {
+        "title": "Profil",
+        "desc": "Wird automatisch aus Gesprächen mit Assistenten befüllt. Du kannst den Namen bearbeiten, ein Foto hochladen und Werte/Interessen/Fähigkeiten einsehen."
+      },
+      {
+        "title": "Tokens",
+        "desc": "Guthaben in der Seitenleiste. Lade es über YooKassa oder Promocodes auf. Der Verbrauch ist nach jeder Aktion sichtbar."
+      }
+    ],
+    "faq": [
+      {
+        "q": "Wie fange ich mit der Plattform an?",
+        "a": "Nach der Registrierung mit deiner Telefonnummer bekommst du ein Start-Token-Paket. Wähle einen Assistenten im linken Bereich und beginne das Gespräch. Der Assistent hilft dir, deine Ziele und Aufgaben zu klären."
+      },
+      {
+        "q": "Was sind Tokens und wie werden sie verbraucht?",
+        "a": "Tokens sind die interne Währung der Plattform. Sie werden für Nachrichten an Assistenten, Bild- und Videogenerierung sowie die Personensuche verbraucht. Die Kosten hängen von der Komplexität der Aufgabe ab — das dynamische Preissystem passt sich dem Arbeitsaufwand an. Nach jeder Nachricht siehst du den Token-Verbrauch."
+      },
+      {
+        "q": "Welche Assistenten stehen zur Verfügung?",
+        "a": "Die Plattform bietet zwei Arten von Assistenten:\n\n• Für dein Business — HR-Spezialist, Buchhalter, Anwalt, Marketer, Business-Mentor, Copywriter\n• Für persönliches Wachstum — Coach, Psychologe, Spielpraktiker, Numerologe, Achtsamkeits-Assistent\n• Persönlicher Assistent Roman — hilft bei allen Aufgaben"
+      },
+      {
+        "q": "Wie funktioniert Networking?",
+        "a": "Der Bereich Networking hat vier Tabs:\n\n• Personensuche — gib eine Anfrage ein (z. B. „suche Designer für ein Ökoprojekt“), und das System findet passende Personen nach Werten, Fähigkeiten und Interessen.\n• Kompatibilität — gib die Telefonnummer eines anderen Nutzers ein, und die KI analysiert eure Kompatibilität. Die Analyse lässt sich auch direkt aus der Anfrage-Karte oder aus einem offenen Chat starten.\n• Anfragen — eingehende und gesendete Kontakteinladungen.\n• Chats — angenommene Gespräche mit anderen Nutzern."
+      },
+      {
+        "q": "Wie lade ich jemanden zum Gespräch ein?",
+        "a": "Öffne aus den Such- oder Kompatibilitätsergebnissen das Profil und tippe auf „Kontakt anfragen“. Schreib eine kurze Intro-Nachricht (bis 500 Zeichen) — der Empfänger sieht sie im Tab „Networking → Anfragen“. Solange er nicht antwortet, kannst du keine weitere Anfrage senden. Hat er dir bereits eine Anfrage geschickt, nimmt deine Anfrage sie automatisch an, und der Chat öffnet sich sofort."
+      },
+      {
+        "q": "Was mache ich mit einer eingehenden Kontaktanfrage?",
+        "a": "Öffne Networking → Tab Anfragen. Auf der Karte:\n\n• „Profil ansehen“ — zeigt Werte, Interessen und Fähigkeiten des Absenders.\n• „Kompatibilität“ — sofortige KI-Analyse der Übereinstimmung mit deinem Profil.\n• „Annehmen“ — erstellt einen Chat, du wechselst in die Unterhaltung.\n• „Ablehnen“ — die Anfrage wird stillschweigend gelöscht, der Absender erhält keine Ablehnungsbenachrichtigung.\n\nLimit: bis zu 10 aktive ausgehende Anfragen und höchstens 5 neue pro Stunde."
+      },
+      {
+        "q": "Wie funktionieren Chats mit anderen Nutzern?",
+        "a": "Sobald eine Anfrage angenommen wurde, erscheint der Dialog unter Networking → Chats. In der Unterhaltung:\n\n• Nachrichten — normaler Text bis 4000 Zeichen, mit Lesebestätigungen.\n• Avatar und Name im Header sind klickbar — öffnet das vollständige Profil des Gesprächspartners.\n• Drei-Punkte-Menü oben rechts — „Profil ansehen“, „Kompatibilität“, „Melden“, „Blockieren“.\n\nTelefonnummern und Kontakte könnt ihr direkt in der Unterhaltung austauschen, wenn ihr euch darauf einigt."
+      },
+      {
+        "q": "Wie melde oder blockiere ich einen Nutzer?",
+        "a": "Tippe im offenen Chat oben rechts auf die drei Punkte → „Melden“ (beschreib den Grund, die Moderation prüft ihn) oder „Blockieren“ (nach der Bestätigung kann der Nutzer dir nicht mehr schreiben und du ihm nicht). Zudem werden keine Anfragen von blockierten Nutzern mehr erstellt."
+      },
+      {
+        "q": "Wie entsteht mein Profil?",
+        "a": "Dein Profil entsteht automatisch aus deinen Gesprächen mit Assistenten. Die KI erkennt deine Werte, Interessen, Fähigkeiten, Wünsche und Absichten — sie werden in einer Graphdatenbank gespeichert und laufend präzisiert. Je mehr du kommunizierst, desto genauer wird dein Profil und desto besser die Ergebnisse bei Suche und Kompatibilität."
+      },
+      {
+        "q": "Kann ich Dokumente hochladen?",
+        "a": "Ja! Tippe im Chat auf „+“ und lade eine PDF-Datei hoch. Die KI analysiert das Dokument, extrahiert die wichtigsten Informationen und schlägt Nutzungsmöglichkeiten vor — Profil aktualisieren, Partner finden oder Daten analysieren."
+      },
+      {
+        "q": "Wie generiere ich Bilder?",
+        "a": "Zwei Möglichkeiten:\n\n• Im Chat — schreib dem Assistenten „male...“ oder „erstelle ein Bild...“.\n• Im Bereich Bilder — gib eine Beschreibung ein und tippe auf „Generieren“.\n\nDie Generierung kostet 5.000 Tokens pro Bild."
+      },
+      {
+        "q": "Wie erstelle ich ein Video?",
+        "a": "Bereich Video. Vier Modi stehen zur Verfügung:\n\n• Text → Video — ein Video nach Beschreibung generieren. Das System erstellt zuerst automatisch ein Startbild über Nano Banana (+5000 Tokens) und animiert es dann — so wird die Komposition stabiler als bei reinem Text → Video.\n• Bild → Video — ein hochgeladenes Bild zum Leben erwecken.\n• Verlängerung — deinem fertigen Video weitere 5 Sekunden hinzufügen.\n• Lippensync — Stimme/Audio auf ein Video legen, synchron zum Gesicht (nur mit Modell Kling v1.6).\n\nDauer 5 oder 10 Sekunden, Qualität Standard oder Pro. Die Token-Kosten stehen auf dem Button „Erstellen“ — sie hängen von Modus, Modell, Qualität und Dauer ab (bei Text → Video sind +5000 für das Startbild bereits enthalten). Fertige Videos erscheinen im Tab „Meine Videos“ — du kannst sie herunterladen, verlängern oder mit Lippensync versehen."
+      },
+      {
+        "q": "Wie lade ich Tokens auf?",
+        "a": "Tippe auf den Block „Tokens“ in der Seitenleiste oder gehe zum Aufladebereich. Pakete von 149 ₽ bis 1990 ₽ stehen zur Verfügung. Für Bonus-Tokens kannst du auch Promocodes nutzen."
+      },
+      {
+        "q": "Was ist das Partnerprogramm?",
+        "a": "Du kannst Partner werden und Provision von den Zahlungen geworbener Nutzer erhalten. Wende dich zur Freischaltung an den Administrator. Die Provision wird automatisch bei jeder Zahlung eines Referrals gutgeschrieben."
+      },
+      {
+        "q": "Sind meine Daten sicher?",
+        "a": "Ja. Wir geben deine Daten nicht an Dritte weiter. Telefonnummern anderer Nutzer sind verborgen — Kontakt ist nur über Anfragen und Chats der Plattform möglich. Kontaktanfragen erfordern deine ausdrückliche Zustimmung (Annehmen/Ablehnen). Du kannst jeden Nutzer blockieren und dein Konto mit allen Daten jederzeit über den Bereich Profil löschen."
+      }
+    ]
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "Die KI antwortet zuerst, komplexe Fragen leiten wir ans Team weiter",
+    "empty_title": "Womit können wir helfen?",
+    "empty_body": "Der KI-Assistent beantwortet schnell Fragen zum Produkt und prüft den Status von Diensten und deinen Generierungen. Bei komplexen Fragen leitet er ans Team weiter, das sich in denselben Chat einklinkt.",
+    "ai_typing": "KI schreibt eine Antwort…",
+    "input_placeholder": "Beschreib deine Frage oder dein Problem…",
+    "send_aria": "Senden",
+    "sender_ai": "KI-Support",
+    "sender_team": "Team",
+    "sender_system": "System",
+    "banner_escalated": "An das Team weitergeleitet, es klinkt sich in den Chat ein und antwortet hier",
+    "banner_owner": "Gerade schreibt dir jemand aus dem Team",
+    "banner_closed": "Anfrage geschlossen. Bei einer neuen Frage öffne ein neues Ticket.",
+    "open_new_ticket": "Neues Ticket öffnen",
+    "new_ticket_placeholder": "Beschreib deine neue Frage…",
+    "new_ticket_divider": "Neues Ticket"
+  },
+  "maintenance": {
+    "title": "Wartungsarbeiten",
+    "subtitle": "Wir verbessern unseren Service für dich",
+    "banner": "Dienst vorübergehend nicht verfügbar",
+    "body1": "Derzeit laufen geplante Wartungsarbeiten zur Verbesserung der Servicequalität.",
+    "body2": "Wir entschuldigen uns für die vorübergehenden Unannehmlichkeiten.",
+    "ends_in": "Die Arbeiten enden in:",
+    "expired_title": "Wartungsarbeiten abgeschlossen!",
+    "expired_body": "Bitte lade die Seite neu, um den Dienst weiter zu nutzen.",
+    "stay_tuned": "Bleib auf dem Laufenden oder kontaktiere uns bei Fragen",
+    "reload": "Seite neu laden",
+    "tagline": "Linkeon — die Plattform, um Gleichgesinnte zu finden",
+    "units": {
+      "day_one": "Tag",
+      "hour_one": "Stunde",
+      "minute_one": "Minute",
+      "second_one": "Sekunde"
+    }
+  },
+  "payment": {
+    "verify_title": "Zahlungsprüfung",
+    "verifying": "Bitte warten...",
+    "success_title": "Zahlung erfolgreich!",
+    "success_body": "Deine Tokens wurden gutgeschrieben",
+    "tokens_added": "Tokens hinzugefügt",
+    "redirect_notice": "Du wirst in wenigen Sekunden zum Chat weitergeleitet...",
+    "go_to_chat": "Zum Chat",
+    "back_to_chat": "Zurück zum Chat",
+    "try_again": "Erneut versuchen",
+    "error_title": "Zahlungsfehler",
+    "error_default": "Etwas ist schiefgelaufen",
+    "error_missing_user_id": "Nicht genug Daten zur Zahlungsprüfung (user_id fehlt)",
+    "error_not_completed": "Die Zahlung wurde nicht abgeschlossen oder storniert. Falls du bezahlt hast, werden die Tokens automatisch gutgeschrieben.",
+    "error_pending": "Die Zahlung wird noch verarbeitet. Bitte warte ein paar Minuten und lade die Seite neu.",
+    "error_failed": "Die Zahlung wurde nicht abgeschlossen",
+    "error_verification": "Fehler bei der Zahlungsprüfung",
+    "error_exception": "Bei der Zahlungsprüfung ist ein Fehler aufgetreten: {{error}}",
+    "error_unknown": "Unbekannter Fehler"
+  },
+  "referral": {
+    "loading": "Daten des Empfehlungsprogramms werden geladen...",
+    "load_error_status": "Fehler beim Laden: {{status}}",
+    "load_error": "Daten des Partnerprogramms konnten nicht geladen werden",
+    "not_eligible_title": "Partnerprogramm",
+    "not_eligible_body_line1": "Du bist kein Teilnehmer des Partnerprogramms.",
+    "not_eligible_body_line2": "Wende dich zur Freischaltung an den Administrator.",
+    "title": "Mein Empfehlungsprogramm",
+    "leader_line": "{{name}} · Stufe {{level}} · {{pct}}% Provision",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "card_referees": "Geworbene Personen",
+    "card_paid": "Ausgaben der Referrals",
+    "card_commission": "Deine Provision",
+    "card_pending": "Zur Auszahlung",
+    "breakdown_direct": "Direkt ({{pct}}%): {{amount}}",
+    "breakdown_upstream": "Upstream ({{pct}}%): {{amount}}",
+    "paid_out": "Ausgezahlt: {{amount}}",
+    "payout_available": "Verfügbar zur Auszahlung",
+    "payout_tokens_word": "Tokens",
+    "payout_button": "Als Tokens auszahlen",
+    "payout_min_hint": "Mindestbetrag für die Auszahlung — {{min}} ₽",
+    "payout_confirm_title": "Auszahlung als Tokens",
+    "payout_confirm_body": "{{rub}} in {{tokens}} Tokens auf dein Guthaben umwandeln? Die Gutschrift erfolgt sofort.",
+    "payout_confirm_button": "Erhalten",
+    "payout_cancel": "Abbrechen",
+    "payout_success": "{{tokens}} Tokens für {{rub}} gutgeschrieben",
+    "payout_error": "Auszahlung fehlgeschlagen. Versuch es später erneut.",
+    "history_title": "Verlauf der Gutschriften",
+    "history_date": "Datum",
+    "history_phone": "Telefon",
+    "history_payment": "Zahlung",
+    "history_commission": "Provision",
+    "history_status": "Status",
+    "history_paid_title": "Ausgezahlt",
+    "history_pending_title": "Wartet auf Auszahlung",
+    "empty_history": "Noch keine Gutschriften. Teile deinen Link — die Provision erscheint nach der ersten Zahlung eines Referrals."
+  },
+  "common": {
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "retry": "Erneut versuchen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "done": "Fertig",
+    "ok": "OK",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "add": "Hinzufügen",
+    "search": "Suche",
+    "filter": "Filter",
+    "sort": "Sortierung",
+    "today": "Heute",
+    "yesterday": "Gestern"
+  },
+  "peer": {
+    "navTitle": "Chats",
+    "pageTitle": "Chats",
+    "loading": "Wird geladen…",
+    "noMessagesYet": "Keine Nachrichten",
+    "emptyChats": "Noch keine Chats",
+    "emptyChatsHint": "Finde einen Gesprächspartner im Tab Networking",
+    "emptyRequests": "Keine aktiven Anfragen",
+    "tabs": {
+      "chats": "Chats",
+      "requests": "Anfragen"
+    },
+    "requests": {
+      "incoming": "Eingehend",
+      "outgoing": "Gesendet",
+      "accept": "Annehmen",
+      "decline": "Ablehnen",
+      "withdraw": "Zurückziehen",
+      "compatibility": "Kompatibilität",
+      "viewProfile": "Profil ansehen"
+    },
+    "time": {
+      "now": "jetzt",
+      "min": "Min",
+      "hr": "Std",
+      "day": "T"
+    },
+    "profile": {
+      "title": "Nutzerprofil",
+      "match": "Übereinstimmung",
+      "values": "Werte",
+      "noValues": "Keine Werte angegeben",
+      "interests": "Interessen",
+      "skills": "Fähigkeiten",
+      "requestChat": "Kontakt anfragen",
+      "introLabel": "Kurze Nachricht an den Empfänger",
+      "introPlaceholder": "Warum möchtest du dich vorstellen? (bis 500 Zeichen)",
+      "sendRequest": "Anfrage senden",
+      "sentOk": "Anfrage gesendet",
+      "requestSentAwaiting": "Anfrage gesendet, wir warten auf Antwort",
+      "hasSentYouRequest": "Dieser Nutzer hat dir eine Anfrage geschickt",
+      "openRequests": "Zu den Anfragen",
+      "alreadyChatting": "Ihr habt bereits einen Chat",
+      "openChat": "Chat öffnen"
+    },
+    "chat": {
+      "inputPlaceholder": "Nachricht schreiben…",
+      "send": "Senden",
+      "sendFailed": "Senden fehlgeschlagen",
+      "emptyMessages": "Schreib die erste Nachricht",
+      "today": "Heute",
+      "yesterday": "Gestern",
+      "notFound": "Chat nicht gefunden",
+      "backToList": "Zur Chatliste",
+      "report": "Melden",
+      "block": "Blockieren",
+      "confirmBlock": "Diesen Nutzer blockieren? Er kann dir dann nicht mehr schreiben.",
+      "reportTitle": "Nutzer melden",
+      "reportHint": "Beschreib, was dich genau stört. Die Moderation prüft die Meldung.",
+      "reportPlaceholder": "Grund der Meldung…",
+      "reportSent": "Meldung gesendet"
+    },
+    "errors": {
+      "introRequired": "Schreib eine kurze Nachricht",
+      "rateLimited": "Zu viele Anfragen, versuch es später",
+      "sendFailed": "Anfrage konnte nicht gesendet werden"
+    }
+  },
+  "customAgents": {
+    "title": "Meine Assistenten",
+    "subtitle": "Persönliche KI-Assistenten mit eigenen Rollen — verfügbar unter /chat",
+    "createButton": "Erstellen",
+    "empty": "Du hast noch keine eigenen Assistenten.",
+    "createFirst": "Ersten erstellen",
+    "nav": "Meine Assistenten"
+  },
+  "studio": {
+    "nav": "Studio",
+    "title": "Studio",
+    "tabs": {
+      "agents": "Assistenten",
+      "bots": "Telegram-Bots"
+    }
+  },
+  "auth": {
+    "tabs": {
+      "sms": "SMS",
+      "email": "E-Mail",
+      "google": "Google",
+      "yandex": "Yandex"
+    },
+    "email": {
+      "label": "E-Mail-Adresse",
+      "submit": "Login-Link anfordern",
+      "sentTitle": "Prüf dein Postfach",
+      "sentBody": "Wir haben einen Login-Link gesendet an",
+      "tempmailBlocked": "Nutze eine dauerhafte E-Mail-Adresse",
+      "rateLimit": "Zu viele Anfragen, warte eine Minute",
+      "requestError": "Link konnte nicht gesendet werden"
+    },
+    "oauth": {
+      "google": "Mit Google anmelden",
+      "yandex": "Mit Yandex anmelden",
+      "initFailed": "Anmeldung über den Anbieter konnte nicht gestartet werden",
+      "talerid": "Mit Taler ID anmelden"
+    },
+    "consent": {
+      "ageAndPrefix": "Ich bin über 18 und habe die ",
+      "servicesLink": "Leistungsbeschreibung",
+      "and": " und den ",
+      "paymentLink": "Zahlungsablauf",
+      "suffix": " gelesen und akzeptiere sie.",
+      "needToAccept": "Akzeptiere zuerst die Bedingungen oben"
+    }
+  },
+  "tgBot": {
+    "nav": "Meine Bots",
+    "title": "Meine Telegram-Bots"
+  }
+}
