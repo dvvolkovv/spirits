@@ -23,7 +23,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <h3 className="text-lg font-semibold text-gray-800">1. Общие положения</h3>
         <p className="text-gray-700 leading-relaxed">
           Настоящее Пользовательское соглашение регулирует отношения между администрацией приложения
-          "Kindred Spirits" (далее - Приложение) и пользователями Приложения.
+          LINKEON.IO (далее - Приложение) и пользователями Приложения.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Приложение принадлежит и управляется <strong>Волковым Дмитрием Викторовичем
@@ -268,7 +268,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <h3 className="text-lg font-semibold text-gray-800">1. General provisions</h3>
         <p className="text-gray-700 leading-relaxed">
           These Terms of Service govern the relationship between the administration of the
-          "Kindred Spirits" application (hereinafter — the Application) and users of the Application.
+          LINKEON.IO application (hereinafter — the Application) and users of the Application.
         </p>
         <p className="text-gray-700 leading-relaxed">
           The Application is owned and operated by <strong>Dmitry Viktorovich Volkov
@@ -512,7 +512,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <p className="text-gray-700 leading-relaxed">
         Настоящая Политика конфиденциальности действует в отношении всех персональных
         данных, которые Оператор может получить о пользователе во время использования
-        Приложения "Kindred Spirits".
+        Приложения LINKEON.IO.
       </p>
 
       <section className="space-y-3">
@@ -773,7 +773,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
 
       <p className="text-gray-700 leading-relaxed">
         This Privacy Policy applies to all personal data that the Operator may receive about
-        the user during the use of the "Kindred Spirits" Application.
+        the user during the use of the LINKEON.IO Application.
       </p>
 
       <section className="space-y-3">
