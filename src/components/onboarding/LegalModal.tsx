@@ -589,11 +589,18 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li><strong>Яндекс SpeechKit</strong> — распознавание речи при голосовом вводе</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Передаваемые данные:</strong> текст профиля и введенные пользователем
-          сведения, содержание сообщений в чате с AI-ассистентами, файлы, которые
-          пользователь прикрепляет к сообщениям (документы, изображения, аудио),
-          а также аудиопоток при использовании голосового ввода. Данные банковских карт
-          и иные платежные реквизиты AI-провайдерам не передаются.
+          <strong>Передаваемые данные:</strong> имя и фамилия (если указаны
+          пользователем), интересы, ценности, убеждения, желания, намерения и навыки
+          из профиля пользователя, содержание переписки и история диалога
+          с AI-ассистентом, файлы, которые пользователь прикрепляет к сообщениям
+          (документы, изображения, аудио), а также аудиопоток при использовании
+          голосового ввода.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Не передаются:</strong> номер телефона пользователя и идентификатор
+          его учетной записи — ни в составе профиля, ни в составе запроса
+          к AI-провайдеру. Данные банковских карт и иные платежные реквизиты
+          AI-провайдерам также не передаются.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Цели AI-обработки:</strong> формирование ответов AI-ассистентов, генерация
@@ -850,10 +857,16 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li><strong>Yandex SpeechKit</strong> — speech recognition for voice input</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Data transmitted:</strong> profile text and information entered by the user,
-          the content of messages in chats with AI assistants, files the user attaches to
-          messages (documents, images, audio), and the audio stream when voice input is used.
-          Bank card data and other payment credentials are NOT transmitted to AI vendors.
+          <strong>Data transmitted:</strong> first and last name (if provided by the user),
+          interests, values, beliefs, desires, intentions and skills from the user's profile,
+          the content of the correspondence and the dialogue history with the AI assistant,
+          files the user attaches to messages (documents, images, audio), and the audio
+          stream when voice input is used.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Not transmitted:</strong> the user's phone number and account identifier —
+          neither as part of the profile nor as part of the request to the AI vendor. Bank
+          card data and other payment credentials are likewise NOT transmitted to AI vendors.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Purposes of AI processing:</strong> generating AI assistants' responses,
