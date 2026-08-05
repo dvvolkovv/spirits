@@ -37,6 +37,15 @@ const MIGRATED = [
   'src/components/video',
   'src/components/imagegen',
   'src/components/tokens',
+  'src/components/tg-bot',
+  'src/components/search',
+  'src/components/chats',
+  'src/components/peer',
+  'src/components/layout',
+  'src/components/support',
+  'src/pages',
+  'src/App.tsx',
+  'src/services/widgetClient.ts',
 ];
 
 /**

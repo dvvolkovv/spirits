@@ -309,7 +309,7 @@ const CompatibilityInterface: React.FC = () => {
                   value={currentPhoneInput}
                   onChange={handlePhoneInputChange}
                   onKeyPress={handleKeyPress}
-                  placeholder="+7 (900) 123-45-67"
+                  placeholder={t('compatibility.phone_placeholder')}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-all"
                   maxLength={18}
                   data-testid="compatibility-phone-input"

@@ -428,7 +428,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
               {fullProfile.contactVisible === 'private' ? (
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-gray-500">
-                    Пользователь не принимает запросы на контакт.
+                    {t('peer.profile.contactPrivateMsg')}
                   </span>
                   <button
                     onClick={onClose}
@@ -441,7 +441,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Check className="w-4 h-4 text-green-600" />
-                    Запрос на контакт отправлен
+                    {t('peer.profile.contactRequestSent')}
                   </div>
                   <button
                     onClick={onClose}
@@ -453,12 +453,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
               ) : (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Короткое сообщение-представление (необязательно)
+                    {t('peer.profile.contactIntroLabel')}
                   </label>
                   <textarea
                     value={contactRequestMessage}
                     onChange={(e) => setContactRequestMessage(e.target.value.slice(0, INTRO_MAX))}
-                    placeholder="Коротко — почему вам интересно познакомиться"
+                    placeholder={t('peer.profile.contactIntroPlaceholder') as string}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent resize-none"
                   />
@@ -475,7 +475,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
                       className="px-4 py-2 bg-forest-600 hover:bg-forest-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                       {contactRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                      Запросить контакт
+                      {t('peer.profile.requestContactButton')}
                     </button>
                   </div>
                 </div>

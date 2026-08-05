@@ -315,7 +315,10 @@
       "需要心理咨询",
       "想进行一次教练辅导",
       "寻找合伙人共同创建健身中心"
-    ]
+    ],
+    "phone_incomplete": "请输入完整的电话号码",
+    "analyzing_short": "分析中…",
+    "show_count": "显示（{{count}}）"
   },
   "compatibility": {
     "title": "契合度",
@@ -337,7 +340,8 @@
     "error_no_valid_phones": "未找到有效的手机号码",
     "error_picker_cancelled": "已取消选择联系人",
     "error_picker_generic": "选择联系人时出错，请确认你已授权访问通讯录。",
-    "error_analysis": "分析契合度时出错，请再试一次。"
+    "error_analysis": "分析契合度时出错，请再试一次。",
+    "phone_placeholder": "+7 (900) 123-45-67"
   },
   "chats": {
     "title": "聊天",
@@ -424,12 +428,12 @@
       "ics_add_error": "添加失败"
     },
     "talerid": {
-      "title": "TalerID 生态系统",
-      "desc": "日历、笔记、消息和邮件融为一体。没有账号？Linkeon 会用你的手机号在 TalerID 中自动创建，无需单独注册。已有 TalerID 账号？登录并关联，让一切都同步到它。你的数据始终属于你。",
+      "title": "Taler ID 生态系统",
+      "desc": "日历、笔记、消息和邮件融为一体。没有账号？Linkeon 会用你的手机号在 Taler ID 中自动创建，无需单独注册。已有 Taler ID 账号？登录并关联，让一切都同步到它。你的数据始终属于你。",
       "connected": "已连接",
-      "connect_button": "连接 TalerID",
-      "already_have_account": "已有 TalerID 账号？登录并关联",
-      "ambiguous_msg": "看起来你已经有一个 TalerID 账号。点击下方「登录并关联」以绑定它。",
+      "connect_button": "连接 Taler ID",
+      "already_have_account": "已有 Taler ID 账号？登录并关联",
+      "ambiguous_msg": "看起来你已经有一个 Taler ID 账号。点击下方「登录并关联」以绑定它。",
       "connect_error": "连接失败，请稍后再试。",
       "link_error": "无法开始关联，请稍后再试。"
     },
@@ -946,7 +950,13 @@
     "expired_body": "请刷新页面以继续使用服务。",
     "stay_tuned": "请关注更新，如有疑问请联系我们",
     "reload": "刷新页面",
-    "tagline": "Linkeon——寻找志同道合者的平台"
+    "tagline": "Linkeon——寻找志同道合者的平台",
+    "units": {
+      "day_other": "天",
+      "hour_other": "小时",
+      "minute_other": "分钟",
+      "second_other": "秒"
+    }
   },
   "payment": {
     "verify_title": "正在核实付款",
@@ -1056,7 +1066,13 @@
     "coupon_prompt_label": "有优惠券？",
     "coupon_activate_button": "激活",
     "roman_nudge_message": "罗曼 今天状态很好！不过其实他一直都这么给力 👍 首个套餐额外赠送 +50% 代币，让你享受更多优惠 🤝",
-    "later_button": "稍后再说"
+    "later_button": "稍后再说",
+    "fill_email_toast": "请填写邮箱",
+    "how_it_works_title": "使用流程",
+    "how_it_works_step1": "选择合适的代币套餐",
+    "how_it_works_step2": "通过 YooKassa 选择方便的方式付款",
+    "how_it_works_step3": "代币将立即充值到您的账户",
+    "how_it_works_step4": "开始与助手交流"
   },
   "referral": {
     "loading": "正在加载推荐计划数据...",
@@ -1178,7 +1194,12 @@
       "hasSentYouRequest": "该用户向你发送了请求",
       "openRequests": "前往请求页面",
       "alreadyChatting": "你们已经有聊天了",
-      "openChat": "打开聊天"
+      "openChat": "打开聊天",
+      "contactPrivateMsg": "该用户不接受联系请求。",
+      "contactRequestSent": "联系请求已发送",
+      "contactIntroLabel": "简短的自我介绍消息（可选）",
+      "contactIntroPlaceholder": "简单说明您为什么想认识对方",
+      "requestContactButton": "请求联系方式"
     },
     "chat": {
       "inputPlaceholder": "输入消息…",
@@ -1195,7 +1216,8 @@
       "reportTitle": "举报该用户",
       "reportHint": "请描述具体问题，审核团队会处理你的举报。",
       "reportPlaceholder": "举报原因…",
-      "reportSent": "举报已提交"
+      "reportSent": "举报已提交",
+      "tapForProfile": "点击可打开个人资料"
     },
     "errors": {
       "introRequired": "请填写一段简短留言",
@@ -1453,7 +1475,70 @@
   },
   "tgBot": {
     "nav": "我的机器人",
-    "title": "我的Telegram机器人"
+    "title": "我的Telegram机器人",
+    "mode_strict": "仅被提及时",
+    "mode_smart": "智能",
+    "mode_always": "始终",
+    "status_pending": "等待群组",
+    "status_active": "运行中",
+    "status_silent": "静默中",
+    "status_archived": "已归档",
+    "card_mode_voice": "{{mode}} · 语音：{{voice}}",
+    "card_no_title": "未命名",
+    "card_reconnect": "重新连接",
+    "reconnect_error": "重新连接失败",
+    "card_history_aria": "消息历史",
+    "card_history_title": "历史",
+    "card_archive_aria": "归档",
+    "wizard_fill_error": "请填写名称并选择角色",
+    "wizard_title": "创建 Telegram 机器人",
+    "step1_title": "第 1 步：绑定您的 Telegram",
+    "step1_desc": "这只需操作一次。机器人会知道您的 Telegram 账号已与 Linkeon 关联——这样 /balance 和 /silent 就只有您能使用。",
+    "generate_link_button": "生成链接",
+    "open_in_telegram": "在 Telegram 中打开",
+    "i_pressed_start": "我已点击 /start",
+    "bound_success": "已绑定",
+    "not_bound_error": "尚未绑定。请在 Telegram 中点击 /start。",
+    "name_in_group_label": "机器人在群组中的名称",
+    "name_placeholder": "财务顾问",
+    "name_hint": "当消息中出现该名称时，机器人会作出回应（在 strict 模式下）",
+    "role_label": "角色",
+    "addressing_title": "何时回复",
+    "addr_strict_desc": "仅在被 @提及、回复机器人或提到其名称时",
+    "addr_smart_desc": "自行判断何时适合介入（限流 60 秒）",
+    "addr_always_desc": "对群组中的每条消息都回复（限流 3 秒）",
+    "wizard_voice_title": "语音回复",
+    "voice_never_label": "从不",
+    "voice_never_desc": "始终以文字回复",
+    "voice_mirror_label": "镜像",
+    "voice_mirror_desc": "语音回语音，文字回文字",
+    "voice_always_desc": "每条回复都用语音",
+    "wizard_submit_button": "创建并获取群组邀请链接",
+    "step3_title": "第 3 步：将机器人添加到群组",
+    "addgroup_hint": "打开链接——Telegram 会提示您选择群组。添加后机器人会自动激活。链接有效期为 15 分钟。",
+    "edit_fill_error": "请填写名称和角色",
+    "saved_toast": "已保存",
+    "save_error_fallback": "保存失败",
+    "edit_modal_title": "编辑机器人",
+    "edit_name_label": "群组中的名称",
+    "edit_voice_title": "语音",
+    "saving_label": "保存中…",
+    "messages_load_error": "加载失败",
+    "history_title": "历史",
+    "history_empty": "暂无历史记录。",
+    "bot_label": "机器人",
+    "reconnect_modal_title": "重新连接「{{name}}」",
+    "list_load_error": "加载机器人列表失败",
+    "archive_confirm": "确定要归档「{{name}}」吗？\n机器人将退出群组。配置可以恢复。",
+    "archived_toast": "已归档",
+    "list_subtitle": "在您的群组中运行的 Telegram 机器人",
+    "create_button": "创建",
+    "tab_active": "活跃",
+    "empty_active_title": "暂无活跃的机器人",
+    "empty_archived_title": "归档为空",
+    "empty_active_hint": "为您的 Telegram 群组创建一个机器人",
+    "create_first_button": "创建第一个",
+    "presets_label": "Linkeon 预设"
   },
   "imagegen": {
     "edit_modal_title": "编辑图片",
@@ -1541,5 +1626,60 @@
     "size_square": "正方形",
     "size_wide": "宽幅",
     "size_portrait": "竖幅"
+  },
+  "pages": {
+    "link_expired_title": "链接已失效",
+    "link_expired_retry": "请尝试重新申请一个",
+    "back_to_login": "返回登录",
+    "signing_in": "正在登录…",
+    "oauth_provider_error": "提供方返回错误：{{error}}",
+    "oauth_broken_link": "链接无效",
+    "oauth_unknown_provider": "未知的提供方",
+    "oauth_merge_failed": "账号合并失败",
+    "oauth_account_exists_title": "账号已存在",
+    "oauth_merge_desc": "该 {{provider}} 账号已注册为独立的个人资料。",
+    "oauth_merge_desc_tokens": "该 {{provider}} 账号已注册为独立的个人资料，并拥有 <bold>{{tokens}} 个代币</bold>。",
+    "oauth_merge_confirm": "要将其与您当前的账号合并吗？",
+    "oauth_merge_confirm_tokens": "要将其与您当前的账号合并吗？代币将一并转移。",
+    "oauth_merge_button": "合并账号",
+    "oauth_login_failed_title": "登录失败",
+    "oauth_back": "返回",
+    "contact_requests": {
+      "title": "联系请求",
+      "tab_incoming": "收到的",
+      "tab_outgoing": "已发送",
+      "status_pending": "等待中",
+      "status_approved": "已接受",
+      "status_rejected": "已拒绝",
+      "status_cancelled": "已取消",
+      "empty_incoming": "目前还没有人请求您的联系方式。",
+      "empty_outgoing": "您还没有发送过联系请求。",
+      "resolved_at": "处理于 {{date}}",
+      "contact_opened": "已开放的联系方式：",
+      "reject_button": "拒绝",
+      "approve_button": "接受"
+    },
+    "studio": {
+      "agents_subtitle": "个人 AI 助手——可在 /chat 中使用",
+      "bots_subtitle": "为您的群组提供的 Telegram 机器人"
+    },
+    "talerid_login_failed": "通过 Taler ID 登录失败。请重试",
+    "talerid_login_expired": "登录链接已失效——请重新登录",
+    "talerid_link_success": "Taler ID 账号已关联",
+    "talerid_link_cancelled": "关联已取消",
+    "talerid_link_expired": "关联链接已失效——请重试",
+    "talerid_link_different_phone": "该 Taler ID 账号已绑定其他号码",
+    "talerid_link_phone_taken": "该号码已绑定到另一个 Taler ID 账号",
+    "talerid_link_has_messages": "关联失败：当前账号中已有聊天记录——请联系客服",
+    "talerid_link_error": "账号关联失败。请稍后再试"
+  },
+  "widget": {
+    "resume": "继续",
+    "resume_with": "继续与 {{name}}",
+    "image": "图片",
+    "image_long": "生成图片",
+    "voice": "语音",
+    "voice_long": "语音朗读",
+    "open_named": "打开：{{name}}"
   }
 }

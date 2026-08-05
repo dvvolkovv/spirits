@@ -257,7 +257,10 @@ const SearchInterface: React.FC = () => {
           if (additionalText) {
             const cleanAdditionalText = additionalText
               .replace(/^\s*[\n\r]+/g, '')
-              .replace(/\*\*Рекомендация\*\*/gi, '\n\n**Рекомендация**')
+              // Заголовок-выделение внутри строки выносим в отдельный абзац.
+              // Языконезависимо: ассистент отвечает на языке пользователя, поэтому
+              // привязываться к слову «Рекомендация» нельзя (см. LanguageService).
+              .replace(/([^\n])(\*\*[^*\n]{1,40}\*\*)/g, '$1\n\n$2')
               .trim();
 
             if (cleanAdditionalText && searchComment) {
@@ -270,7 +273,7 @@ const SearchInterface: React.FC = () => {
             return {
               id: String(uid || r.id || Math.random()),
               userId: Number.isFinite(uid) ? uid : undefined,
-              name: r.name || 'Неизвестный пользователь',
+              name: r.name || t('search.unknown_user'),
               values: r.values || [],
               intents: r.intents || [],
               interests: r.interests || [],
@@ -306,7 +309,7 @@ const SearchInterface: React.FC = () => {
       
     } catch (error) {
       console.error('Error during search:', error);
-      setSearchComment('Произошла ошибка при поиске. Попробуйте еще раз.');
+      setSearchComment(t('search.error_stream'));
       setResults([]);
     } finally {
       setIsSearching(false);
@@ -349,14 +352,14 @@ const SearchInterface: React.FC = () => {
     }
 
     if (!validatePhoneNumber(trimmedPhone)) {
-      setPhoneError('Введите полный номер телефона');
+      setPhoneError(t('search.phone_incomplete'));
       return;
     }
 
     const cleanPhone = '+' + trimmedPhone.replace(/\D/g, '');
 
     if (phoneNumbers.includes(cleanPhone)) {
-      setPhoneError('Этот номер уже добавлен');
+      setPhoneError(t('compatibility.error_already_added'));
       return;
     }
 
@@ -410,7 +413,7 @@ const SearchInterface: React.FC = () => {
                       addPhoneNumber();
                     }
                   }}
-                  placeholder="+7 (999) 999-99-99"
+                  placeholder={t('onboarding.phone_placeholder')}
                   className={clsx(
                     "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent",
                     phoneError ? "border-red-300" : "border-gray-300"
@@ -459,10 +462,10 @@ const SearchInterface: React.FC = () => {
               {isSearching ? (
                 <div className="flex items-center justify-center">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Анализ...
+                  {t('search.analyzing_short')}
                 </div>
               ) : (
-                `Показать (${phoneNumbers.length})`
+                t('search.show_count', { count: phoneNumbers.length })
               )}
             </button>
           </div>
@@ -512,7 +515,7 @@ const SearchInterface: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="text-blue-800 text-sm leading-relaxed break-words overflow-wrap-anywhere">
                   {isSearching && !searchComment ? (
-                    <p>Ищем подходящих людей...</p>
+                    <p>{t('search.searching')}</p>
                   ) : (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
@@ -556,7 +559,7 @@ const SearchInterface: React.FC = () => {
         {!hasSearched && !searchQuery && (
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Users className="w-5 h-5 mr-2 text-forest-600" />
-            Начните поиск людей
+            {t('search.start_prompt_title')}
           </h2>
         )}
 
@@ -574,10 +577,10 @@ const SearchInterface: React.FC = () => {
           <div className="text-center py-12">
             <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Найдите людей, близких по духу
+              {t('search.hint_title')}
             </h3>
             <p className="text-gray-600">
-              Введите запрос в поисковую строку, чтобы найти единомышленников
+              {t('search.hint_body')}
             </p>
           </div>
         ) : (
@@ -611,14 +614,14 @@ const SearchInterface: React.FC = () => {
                     </div>
 
                     <p className="text-gray-600 text-sm mb-3">
-                      {user.intents[0] || 'Нет описания'}
+                      {user.intents[0] || t('search.no_description')}
                     </p>
 
                     {/* Common Values */}
                     {user.values && user.values.length > 0 && (
                       <div className="mb-3">
                         <p className="text-xs text-gray-500 mb-2">
-                          Ценности ({user.values.length})
+                          {t('search.values_count', { count: user.values.length })}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {user.values.slice(0, 3).map((value, index) => (
@@ -642,7 +645,7 @@ const SearchInterface: React.FC = () => {
                     {user.interests && user.interests.length > 0 && (
                       <div className="mb-3">
                         <p className="text-xs text-gray-500 mb-2">
-                          Интересы ({user.interests.length})
+                          {t('search.interests_count', { count: user.interests.length })}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {user.interests.slice(0, 3).map((interest, index) => (
@@ -666,7 +669,7 @@ const SearchInterface: React.FC = () => {
                     {user.skills && user.skills.length > 0 && (
                       <div className="mb-4">
                         <p className="text-xs text-gray-500 mb-2">
-                          Навыки ({user.skills.length})
+                          {t('search.skills_count', { count: user.skills.length })}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {user.skills.slice(0, 3).map((skill, index) => (
@@ -697,7 +700,7 @@ const SearchInterface: React.FC = () => {
                       <button 
                         onClick={() => handleChatClick(user)}
                         className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                        title="Написать в Telegram"
+                        title={t('search.telegram_tooltip')}
                       >
                         <MessageCircle className="w-4 h-4 text-gray-600" />
                       </button>

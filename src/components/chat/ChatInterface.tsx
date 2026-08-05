@@ -27,6 +27,7 @@ import { useVideoJobs } from '../video/useVideoJobs';
 import VideoJobCard from '../video/VideoJobCard';
 import { InlineCalendarProposals } from '../calendar/InlineCalendarProposals';
 import { trackAuthed } from '../../services/eventsClient';
+import { getRoleForAssistant } from './assistantRole';
 
 interface Assistant {
   id: number;
@@ -36,15 +37,6 @@ interface Assistant {
   displayName?: string;
   description: string;
 }
-
-const getRoleForAssistant = (description: string, t: (k: string) => string): string => {
-  if (description.includes('Коуч')) return t('chat.assistant_role_coach');
-  if (description.includes('Психолог')) return t('chat.assistant_role_psych');
-  if (description.includes('Игропрактик')) return t('chat.assistant_role_gameplay');
-  if (description.includes('Астролог')) return t('chat.assistant_role_astro');
-  if (description.includes('Human Design')) return t('chat.assistant_role_hd');
-  return t('chat.assistant_role_default');
-};
 
 interface Message {
   id: string;
@@ -1999,7 +1991,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   )}
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-medium text-forest-900">{selectedAssistant.displayName ?? selectedAssistant.name}</span>
-                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description, t)}</span>
+                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.id, t)}</span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-forest-700" />
                 </button>

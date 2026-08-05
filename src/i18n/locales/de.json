@@ -316,7 +316,10 @@
       "Ich brauche eine psychologische Beratung",
       "Ich möchte eine Coaching-Sitzung machen",
       "Ich suche einen Partner für ein Fitnessstudio"
-    ]
+    ],
+    "phone_incomplete": "Gib die vollständige Telefonnummer ein",
+    "analyzing_short": "Analyse...",
+    "show_count": "Anzeigen ({{count}})"
   },
   "compatibility": {
     "title": "Kompatibilität",
@@ -338,7 +341,8 @@
     "error_no_valid_phones": "Keine gültigen Telefonnummern gefunden",
     "error_picker_cancelled": "Kontaktauswahl abgebrochen",
     "error_picker_generic": "Fehler bei der Kontaktauswahl. Stell sicher, dass du den Zugriff auf Kontakte erlaubt hast.",
-    "error_analysis": "Bei der Kompatibilitätsanalyse ist ein Fehler aufgetreten. Bitte versuch es noch mal."
+    "error_analysis": "Bei der Kompatibilitätsanalyse ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
+    "phone_placeholder": "+7 (900) 123-45-67"
   },
   "chats": {
     "title": "Chats",
@@ -425,12 +429,12 @@
       "ics_add_error": "Hinzufügen fehlgeschlagen"
     },
     "talerid": {
-      "title": "TalerID-Ökosystem",
-      "desc": "Kalender, Notizen, Nachrichten und E-Mail an einem Ort. Kein Konto? Linkeon legt eines bei TalerID an — ohne separate Registrierung, mit deiner Nummer. Schon ein TalerID-Konto? Melde dich an und verknüpfe es, damit alles dort zusammenläuft. Deine Daten bleiben deine.",
+      "title": "Taler ID-Ökosystem",
+      "desc": "Kalender, Notizen, Nachrichten und E-Mail an einem Ort. Kein Konto? Linkeon legt eines bei Taler ID an — ohne separate Registrierung, mit deiner Nummer. Schon ein Taler ID-Konto? Melde dich an und verknüpfe es, damit alles dort zusammenläuft. Deine Daten bleiben deine.",
       "connected": "Verbunden",
-      "connect_button": "TalerID verbinden",
-      "already_have_account": "Schon ein TalerID-Konto? Anmelden und verknüpfen",
-      "ambiguous_msg": "Sieht so aus, als hättest du schon ein TalerID-Konto. Tippe unten auf „Anmelden und verknüpfen“, um es zu verbinden.",
+      "connect_button": "Taler ID verbinden",
+      "already_have_account": "Schon ein Taler ID-Konto? Anmelden und verknüpfen",
+      "ambiguous_msg": "Sieht so aus, als hättest du schon ein Taler ID-Konto. Tippe unten auf „Anmelden und verknüpfen“, um es zu verbinden.",
       "connect_error": "Verbindung fehlgeschlagen. Versuch es später erneut.",
       "link_error": "Verknüpfung konnte nicht gestartet werden. Versuch es später erneut."
     },
@@ -952,7 +956,11 @@
       "day_one": "Tag",
       "hour_one": "Stunde",
       "minute_one": "Minute",
-      "second_one": "Sekunde"
+      "second_one": "Sekunde",
+      "day_other": "Tage",
+      "hour_other": "Stunden",
+      "minute_other": "Minuten",
+      "second_other": "Sekunden"
     }
   },
   "payment": {
@@ -1063,7 +1071,13 @@
     "coupon_prompt_label": "Hast du einen Gutschein?",
     "coupon_activate_button": "Aktivieren",
     "roman_nudge_message": "Roman ist heute in Bestform! Wie eigentlich immer 👍 Wir schenken dir +50% Tokens auf dein erstes Paket, damit du noch mehr rausholst 🤝",
-    "later_button": "Später"
+    "later_button": "Später",
+    "fill_email_toast": "Bitte E-Mail ausfüllen",
+    "how_it_works_title": "So funktioniert es",
+    "how_it_works_step1": "Wähle das passende Token-Paket",
+    "how_it_works_step2": "Bezahle bequem über YooKassa",
+    "how_it_works_step3": "Die Tokens werden sofort deinem Konto gutgeschrieben",
+    "how_it_works_step4": "Starte das Gespräch mit den Assistenten"
   },
   "referral": {
     "loading": "Daten des Empfehlungsprogramms werden geladen...",
@@ -1185,7 +1199,12 @@
       "hasSentYouRequest": "Dieser Nutzer hat dir eine Anfrage geschickt",
       "openRequests": "Zu den Anfragen",
       "alreadyChatting": "Ihr habt bereits einen Chat",
-      "openChat": "Chat öffnen"
+      "openChat": "Chat öffnen",
+      "contactPrivateMsg": "Der Nutzer nimmt keine Kontaktanfragen an.",
+      "contactRequestSent": "Kontaktanfrage gesendet",
+      "contactIntroLabel": "Kurze Vorstellungsnachricht (optional)",
+      "contactIntroPlaceholder": "Kurz – warum du dich kennenlernen möchtest",
+      "requestContactButton": "Kontakt anfragen"
     },
     "chat": {
       "inputPlaceholder": "Nachricht schreiben…",
@@ -1202,7 +1221,8 @@
       "reportTitle": "Nutzer melden",
       "reportHint": "Beschreib, was dich genau stört. Die Moderation prüft die Meldung.",
       "reportPlaceholder": "Grund der Meldung…",
-      "reportSent": "Meldung gesendet"
+      "reportSent": "Meldung gesendet",
+      "tapForProfile": "Tippe, um das Profil zu öffnen"
     },
     "errors": {
       "introRequired": "Schreib eine kurze Nachricht",
@@ -1460,7 +1480,70 @@
   },
   "tgBot": {
     "nav": "Meine Bots",
-    "title": "Meine Telegram-Bots"
+    "title": "Meine Telegram-Bots",
+    "mode_strict": "Bei Ansprache",
+    "mode_smart": "Smart",
+    "mode_always": "Immer",
+    "status_pending": "Wartet auf Gruppe",
+    "status_active": "Aktiv",
+    "status_silent": "Stumm",
+    "status_archived": "Archiv",
+    "card_mode_voice": "{{mode}} · Stimme: {{voice}}",
+    "card_no_title": "ohne Titel",
+    "card_reconnect": "Neu verbinden",
+    "reconnect_error": "Neu verbinden fehlgeschlagen",
+    "card_history_aria": "Nachrichtenverlauf",
+    "card_history_title": "Verlauf",
+    "card_archive_aria": "Archivieren",
+    "wizard_fill_error": "Gib einen Namen ein und wähle eine Rolle",
+    "wizard_title": "Telegram-Bot erstellen",
+    "step1_title": "Schritt 1: Verbinde dein Telegram",
+    "step1_desc": "Das ist nur einmal nötig. Der Bot erkennt, dass dein Telegram-Konto mit Linkeon verknüpft ist – damit /balance und /silent nur für dich verfügbar sind.",
+    "generate_link_button": "Link generieren",
+    "open_in_telegram": "In Telegram öffnen",
+    "i_pressed_start": "Ich habe /start gedrückt",
+    "bound_success": "Verknüpft",
+    "not_bound_error": "Noch nicht verknüpft. Drücke /start in Telegram.",
+    "name_in_group_label": "Bot-Name in der Gruppe",
+    "name_placeholder": "Finanzexperte",
+    "name_hint": "Der Bot reagiert, wenn dieser Name in einer Nachricht vorkommt (im Strict-Modus)",
+    "role_label": "Rolle",
+    "addressing_title": "Wann er antwortet",
+    "addr_strict_desc": "Nur bei @-Erwähnung, Antwort auf den Bot oder Nennung seines Namens",
+    "addr_smart_desc": "Entscheidet selbst, wann ein Beitrag passt (Rate-Limit 60 Sek.)",
+    "addr_always_desc": "Auf jede Nachricht in der Gruppe (Rate-Limit 3 Sek.)",
+    "wizard_voice_title": "Sprachantworten",
+    "voice_never_label": "Nie",
+    "voice_never_desc": "Immer als Text",
+    "voice_mirror_label": "Spiegelnd",
+    "voice_mirror_desc": "Sprache auf Sprache, Text auf Text",
+    "voice_always_desc": "Jede Antwort als Sprachnachricht",
+    "wizard_submit_button": "Erstellen und Gruppen-Link erhalten",
+    "step3_title": "Schritt 3: Füge den Bot zur Gruppe hinzu",
+    "addgroup_hint": "Öffne den Link – Telegram schlägt dir vor, eine Gruppe auszuwählen. Nach dem Hinzufügen aktiviert sich der Bot selbst. Der Link ist 15 Minuten gültig.",
+    "edit_fill_error": "Gib Name und Rolle ein",
+    "saved_toast": "Gespeichert",
+    "save_error_fallback": "Speichern fehlgeschlagen",
+    "edit_modal_title": "Bot bearbeiten",
+    "edit_name_label": "Name in der Gruppe",
+    "edit_voice_title": "Stimme",
+    "saving_label": "Speichere...",
+    "messages_load_error": "Laden fehlgeschlagen",
+    "history_title": "Verlauf",
+    "history_empty": "Der Verlauf ist leer.",
+    "bot_label": "Bot",
+    "reconnect_modal_title": "„{{name}}“ neu verbinden",
+    "list_load_error": "Bots konnten nicht geladen werden",
+    "archive_confirm": "„{{name}}“ archivieren?\nDer Bot verlässt die Gruppe. Die Konfiguration lässt sich wiederherstellen.",
+    "archived_toast": "Archiviert",
+    "list_subtitle": "Telegram-Bots, die in deinen Gruppen arbeiten",
+    "create_button": "Erstellen",
+    "tab_active": "Aktive",
+    "empty_active_title": "Keine aktiven Bots",
+    "empty_archived_title": "Archiv ist leer",
+    "empty_active_hint": "Erstelle einen Bot für deine Telegram-Gruppe",
+    "create_first_button": "Ersten erstellen",
+    "presets_label": "Linkeon-Vorlagen"
   },
   "imagegen": {
     "edit_modal_title": "Bild bearbeiten",
@@ -1548,5 +1631,60 @@
     "size_square": "Quadrat",
     "size_wide": "Breit",
     "size_portrait": "Porträt"
+  },
+  "pages": {
+    "link_expired_title": "Link abgelaufen",
+    "link_expired_retry": "Fordere einen neuen an",
+    "back_to_login": "Zurück zur Anmeldung",
+    "signing_in": "Anmeldung läuft...",
+    "oauth_provider_error": "Der Anbieter hat einen Fehler zurückgegeben: {{error}}",
+    "oauth_broken_link": "Fehlerhafter Link",
+    "oauth_unknown_provider": "Unbekannter Anbieter",
+    "oauth_merge_failed": "Konten konnten nicht zusammengeführt werden",
+    "oauth_account_exists_title": "Konto existiert bereits",
+    "oauth_merge_desc": "Dieses {{provider}}-Konto ist bereits als eigenes Profil registriert.",
+    "oauth_merge_desc_tokens": "Dieses {{provider}}-Konto ist bereits als eigenes Profil mit <bold>{{tokens}} Tokens</bold> registriert.",
+    "oauth_merge_confirm": "Mit deinem aktuellen Konto zusammenführen?",
+    "oauth_merge_confirm_tokens": "Mit deinem aktuellen Konto zusammenführen? Die Tokens werden übernommen.",
+    "oauth_merge_button": "Konten zusammenführen",
+    "oauth_login_failed_title": "Anmeldung fehlgeschlagen",
+    "oauth_back": "Zurück",
+    "contact_requests": {
+      "title": "Kontaktanfragen",
+      "tab_incoming": "Eingehend",
+      "tab_outgoing": "Gesendet",
+      "status_pending": "Ausstehend",
+      "status_approved": "Angenommen",
+      "status_rejected": "Abgelehnt",
+      "status_cancelled": "Abgebrochen",
+      "empty_incoming": "Bisher hat niemand deinen Kontakt angefragt.",
+      "empty_outgoing": "Du hast noch keine Kontaktanfragen gesendet.",
+      "resolved_at": "bearbeitet am {{date}}",
+      "contact_opened": "Kontakt freigegeben:",
+      "reject_button": "Ablehnen",
+      "approve_button": "Annehmen"
+    },
+    "studio": {
+      "agents_subtitle": "Persönliche KI-Assistenten – verfügbar unter /chat",
+      "bots_subtitle": "Telegram-Bots für deine Gruppen"
+    },
+    "talerid_login_failed": "Anmeldung über Taler ID fehlgeschlagen. Versuche es noch einmal",
+    "talerid_login_expired": "Der Anmeldelink ist abgelaufen – melde dich erneut an",
+    "talerid_link_success": "Taler ID-Konto verknüpft",
+    "talerid_link_cancelled": "Verknüpfung abgebrochen",
+    "talerid_link_expired": "Der Link zum Verknüpfen ist abgelaufen – versuche es noch einmal",
+    "talerid_link_different_phone": "Mit diesem Taler ID-Konto ist bereits eine andere Nummer verknüpft",
+    "talerid_link_phone_taken": "Diese Nummer ist bereits mit einem anderen Taler ID-Konto verknüpft",
+    "talerid_link_has_messages": "Verknüpfen nicht möglich: Im aktuellen Konto gibt es bereits Chatverläufe – wende dich an den Support",
+    "talerid_link_error": "Konto konnte nicht verknüpft werden. Versuche es später"
+  },
+  "widget": {
+    "resume": "Fortsetzen",
+    "resume_with": "Weiter mit {{name}}",
+    "image": "Bild",
+    "image_long": "Bild erstellen",
+    "voice": "Stimme",
+    "voice_long": "Vorlesen lassen",
+    "open_named": "Öffnen: {{name}}"
   }
 }

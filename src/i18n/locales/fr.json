@@ -123,7 +123,6 @@
     "file_modal_submit": "Envoyer",
     "file_count_other": "{{count}} fichiers",
     "file_count_one": "{{count}} fichier",
-    "file_count_many": "{{count}} fichiers",
     "file_remove": "Retirer le fichier",
     "file_add_more": "Ajouter",
     "file_limit": "Maximum {{max}} fichiers à la fois — les fichiers en trop n'ont pas été ajoutés.",
@@ -188,7 +187,8 @@
     "telegram_connecting": "Connexion…",
     "telegram_submit": "Connecter",
     "social_connect_button": "Connecter {{platform}}",
-    "social_connect_hint": "La page d'autorisation {{platform}} va s'ouvrir. Une fois validée, tu reviendras au chat."
+    "social_connect_hint": "La page d'autorisation {{platform}} va s'ouvrir. Une fois validée, tu reviendras au chat.",
+    "file_count_many": "{{count}} de fichiers"
   },
   "profile": {
     "title": "Mon profil",
@@ -317,7 +317,10 @@
       "J'ai besoin d'un conseil en psychologie",
       "Je veux faire une séance de coaching",
       "Je cherche un partenaire pour créer une salle de sport"
-    ]
+    ],
+    "phone_incomplete": "Saisissez le numéro de téléphone complet",
+    "analyzing_short": "Analyse...",
+    "show_count": "Afficher ({{count}})"
   },
   "compatibility": {
     "title": "Compatibilité",
@@ -339,7 +342,8 @@
     "error_no_valid_phones": "Aucun numéro valide trouvé",
     "error_picker_cancelled": "Sélection des contacts annulée",
     "error_picker_generic": "Erreur lors de la sélection des contacts. Vérifie que l'accès aux contacts est autorisé.",
-    "error_analysis": "Une erreur est survenue pendant l'analyse. Réessaie."
+    "error_analysis": "Une erreur est survenue pendant l'analyse. Réessaie.",
+    "phone_placeholder": "+7 (900) 123-45-67"
   },
   "chats": {
     "title": "Chats",
@@ -426,12 +430,12 @@
       "ics_add_error": "Échec de l'ajout"
     },
     "talerid": {
-      "title": "Écosystème TalerID",
-      "desc": "Calendrier, notes, messages et e-mails réunis. Pas de compte ? Linkeon t'en crée un sur TalerID sans inscription séparée, avec ton numéro. Tu as déjà un compte TalerID ? Connecte-toi et relie-le pour que tout y passe. Tes données restent les tiennes.",
+      "title": "Écosystème Taler ID",
+      "desc": "Calendrier, notes, messages et e-mails réunis. Pas de compte ? Linkeon t'en crée un sur Taler ID sans inscription séparée, avec ton numéro. Tu as déjà un compte Taler ID ? Connecte-toi et relie-le pour que tout y passe. Tes données restent les tiennes.",
       "connected": "Connecté",
-      "connect_button": "Connecter TalerID",
-      "already_have_account": "Déjà un compte TalerID ? Se connecter et le relier",
-      "ambiguous_msg": "On dirait que tu as déjà un compte TalerID. Clique sur « Se connecter et relier » ci-dessous pour le lier.",
+      "connect_button": "Connecter Taler ID",
+      "already_have_account": "Déjà un compte Taler ID ? Se connecter et le relier",
+      "ambiguous_msg": "On dirait que tu as déjà un compte Taler ID. Clique sur « Se connecter et relier » ci-dessous pour le lier.",
       "connect_error": "Échec de la connexion. Réessaie plus tard.",
       "link_error": "Échec du lancement de la liaison. Réessaie plus tard."
     },
@@ -951,13 +955,17 @@
     "tagline": "Linkeon — la plateforme pour trouver des personnes qui te ressemblent",
     "units": {
       "day_one": "jour",
-      "day_many": "jours",
       "hour_one": "heure",
-      "hour_many": "heures",
       "minute_one": "minute",
-      "minute_many": "minutes",
       "second_one": "seconde",
-      "second_many": "secondes"
+      "day_other": "jours",
+      "day_many": "de jours",
+      "hour_other": "heures",
+      "hour_many": "d'heures",
+      "minute_other": "minutes",
+      "minute_many": "de minutes",
+      "second_other": "secondes",
+      "second_many": "de secondes"
     }
   },
   "payment": {
@@ -1068,7 +1076,13 @@
     "coupon_prompt_label": "Tu as un coupon ?",
     "coupon_activate_button": "Activer",
     "roman_nudge_message": "Roman est en forme aujourd'hui ! Comme toujours d'ailleurs 👍 On t'offre +50% de jetons sur ton premier pack pour encore plus d'avantages 🤝",
-    "later_button": "Plus tard"
+    "later_button": "Plus tard",
+    "fill_email_toast": "Renseignez votre e-mail",
+    "how_it_works_title": "Comment ça marche",
+    "how_it_works_step1": "Choisissez le forfait de tokens qui vous convient",
+    "how_it_works_step2": "Payez par le moyen de votre choix via YooKassa",
+    "how_it_works_step3": "Les tokens sont crédités instantanément sur votre compte",
+    "how_it_works_step4": "Commencez à discuter avec les assistants"
   },
   "referral": {
     "loading": "Chargement du programme de parrainage...",
@@ -1190,7 +1204,12 @@
       "hasSentYouRequest": "Cet utilisateur t'a envoyé une demande",
       "openRequests": "Voir les demandes",
       "alreadyChatting": "Vous avez déjà un chat",
-      "openChat": "Ouvrir le chat"
+      "openChat": "Ouvrir le chat",
+      "contactPrivateMsg": "Cet utilisateur n’accepte pas les demandes de contact.",
+      "contactRequestSent": "Demande de contact envoyée",
+      "contactIntroLabel": "Court message de présentation (facultatif)",
+      "contactIntroPlaceholder": "En quelques mots — pourquoi vous aimeriez faire connaissance",
+      "requestContactButton": "Demander le contact"
     },
     "chat": {
       "inputPlaceholder": "Écris un message…",
@@ -1207,7 +1226,8 @@
       "reportTitle": "Signaler l'utilisateur",
       "reportHint": "Décris ce qui pose problème. La modération examinera le signalement.",
       "reportPlaceholder": "Motif du signalement…",
-      "reportSent": "Signalement envoyé"
+      "reportSent": "Signalement envoyé",
+      "tapForProfile": "Appuyez pour ouvrir le profil"
     },
     "errors": {
       "introRequired": "Écris un court message",
@@ -1465,7 +1485,70 @@
   },
   "tgBot": {
     "nav": "Mes bots",
-    "title": "Mes bots Telegram"
+    "title": "Mes bots Telegram",
+    "mode_strict": "Sur mention",
+    "mode_smart": "Intelligent",
+    "mode_always": "Toujours",
+    "status_pending": "En attente de groupe",
+    "status_active": "Actif",
+    "status_silent": "Silencieux",
+    "status_archived": "Archivé",
+    "card_mode_voice": "{{mode}} · voix : {{voice}}",
+    "card_no_title": "sans nom",
+    "card_reconnect": "Reconnecter",
+    "reconnect_error": "Échec de la reconnexion",
+    "card_history_aria": "Historique des messages",
+    "card_history_title": "Historique",
+    "card_archive_aria": "Archiver",
+    "wizard_fill_error": "Renseignez le nom et choisissez un rôle",
+    "wizard_title": "Créer un bot Telegram",
+    "step1_title": "Étape 1 : liez votre Telegram",
+    "step1_desc": "C’est à faire une seule fois. Le bot saura que votre compte Telegram est lié à Linkeon — afin que /balance et /silent ne soient accessibles qu’à vous.",
+    "generate_link_button": "Générer le lien",
+    "open_in_telegram": "Ouvrir dans Telegram",
+    "i_pressed_start": "J’ai appuyé sur /start",
+    "bound_success": "Compte lié",
+    "not_bound_error": "Pas encore lié. Appuyez sur /start dans Telegram.",
+    "name_in_group_label": "Nom du bot dans le groupe",
+    "name_placeholder": "Financier",
+    "name_hint": "Le bot réagira lorsque ce nom apparaîtra dans un message (en mode strict)",
+    "role_label": "Rôle",
+    "addressing_title": "Quand il répond",
+    "addr_strict_desc": "Uniquement lorsqu’on l’appelle par @-mention, qu’on répond à l’un de ses messages ou qu’on prononce son nom",
+    "addr_smart_desc": "Il décide lui-même quand il est pertinent d’intervenir (rate-limit 60 s)",
+    "addr_always_desc": "À chaque message du groupe (rate-limit 3 s)",
+    "wizard_voice_title": "Réponses vocales",
+    "voice_never_label": "Jamais",
+    "voice_never_desc": "Toujours en texte",
+    "voice_mirror_label": "En miroir",
+    "voice_mirror_desc": "Voix pour voix, texte pour texte",
+    "voice_always_desc": "Chaque réponse en vocal",
+    "wizard_submit_button": "Créer et obtenir le lien pour le groupe",
+    "step3_title": "Étape 3 : ajoutez le bot au groupe",
+    "addgroup_hint": "Ouvrez le lien — Telegram vous proposera de choisir un groupe. Une fois ajouté, le bot s’activera tout seul. Le lien reste valable 15 minutes.",
+    "edit_fill_error": "Renseignez le nom et le rôle",
+    "saved_toast": "Enregistré",
+    "save_error_fallback": "Échec de l’enregistrement",
+    "edit_modal_title": "Modifier le bot",
+    "edit_name_label": "Nom dans le groupe",
+    "edit_voice_title": "Voix",
+    "saving_label": "Enregistrement...",
+    "messages_load_error": "Échec du chargement",
+    "history_title": "Historique",
+    "history_empty": "L’historique est vide.",
+    "bot_label": "Bot",
+    "reconnect_modal_title": "Reconnexion de « {{name}} »",
+    "list_load_error": "Échec du chargement des bots",
+    "archive_confirm": "Archiver « {{name}} » ?\nLe bot quittera le groupe. La configuration pourra être restaurée.",
+    "archived_toast": "Archivé",
+    "list_subtitle": "Bots Telegram actifs dans vos groupes",
+    "create_button": "Créer",
+    "tab_active": "Actifs",
+    "empty_active_title": "Aucun bot actif",
+    "empty_archived_title": "L’archive est vide",
+    "empty_active_hint": "Créez un bot pour votre groupe Telegram",
+    "create_first_button": "Créer le premier",
+    "presets_label": "Préréglages Linkeon"
   },
   "imagegen": {
     "edit_modal_title": "Modifier l'image",
@@ -1553,5 +1636,60 @@
     "size_square": "Carré",
     "size_wide": "Large",
     "size_portrait": "Portrait"
+  },
+  "pages": {
+    "link_expired_title": "Lien expiré",
+    "link_expired_retry": "Essayez d’en demander un nouveau",
+    "back_to_login": "Retour à la connexion",
+    "signing_in": "Connexion...",
+    "oauth_provider_error": "Le fournisseur a renvoyé une erreur : {{error}}",
+    "oauth_broken_link": "Lien invalide",
+    "oauth_unknown_provider": "Fournisseur inconnu",
+    "oauth_merge_failed": "Échec de la fusion des comptes",
+    "oauth_account_exists_title": "Ce compte existe déjà",
+    "oauth_merge_desc": "Ce compte {{provider}} est déjà enregistré comme profil distinct.",
+    "oauth_merge_desc_tokens": "Ce compte {{provider}} est déjà enregistré comme profil distinct avec <bold>{{tokens}} tokens</bold>.",
+    "oauth_merge_confirm": "Le fusionner avec votre compte actuel ?",
+    "oauth_merge_confirm_tokens": "Le fusionner avec votre compte actuel ? Les tokens seront transférés.",
+    "oauth_merge_button": "Fusionner les comptes",
+    "oauth_login_failed_title": "Échec de la connexion",
+    "oauth_back": "Retour",
+    "contact_requests": {
+      "title": "Demandes de contact",
+      "tab_incoming": "Reçues",
+      "tab_outgoing": "Envoyées",
+      "status_pending": "En attente",
+      "status_approved": "Acceptée",
+      "status_rejected": "Refusée",
+      "status_cancelled": "Annulée",
+      "empty_incoming": "Personne n’a encore demandé votre contact.",
+      "empty_outgoing": "Vous n’avez encore envoyé aucune demande de contact.",
+      "resolved_at": "traitée le {{date}}",
+      "contact_opened": "Contact ouvert :",
+      "reject_button": "Refuser",
+      "approve_button": "Accepter"
+    },
+    "studio": {
+      "agents_subtitle": "Assistants IA personnels — disponibles dans /chat",
+      "bots_subtitle": "Bots Telegram pour vos groupes"
+    },
+    "talerid_login_failed": "Échec de la connexion via Taler ID. Réessayez",
+    "talerid_login_expired": "Le lien de connexion a expiré — reconnectez-vous",
+    "talerid_link_success": "Compte Taler ID lié",
+    "talerid_link_cancelled": "Liaison annulée",
+    "talerid_link_expired": "Le lien de liaison a expiré — réessayez",
+    "talerid_link_different_phone": "Un autre numéro est déjà lié à ce compte Taler ID",
+    "talerid_link_phone_taken": "Ce numéro est déjà lié à un autre compte Taler ID",
+    "talerid_link_has_messages": "Liaison impossible : le compte actuel contient déjà des conversations — contactez le support",
+    "talerid_link_error": "Échec de la liaison du compte. Réessayez plus tard"
+  },
+  "widget": {
+    "resume": "Continuer",
+    "resume_with": "Continuer avec {{name}}",
+    "image": "Image",
+    "image_long": "Créer une image",
+    "voice": "Voix",
+    "voice_long": "Dire à voix haute",
+    "open_named": "Ouvrir : {{name}}"
   }
 }

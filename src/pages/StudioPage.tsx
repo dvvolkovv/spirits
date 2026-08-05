@@ -24,8 +24,8 @@ const StudioPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('studio.title')}</h1>
         <p className="text-sm text-gray-500 mb-4">
           {tab === 'agents'
-            ? 'Личные AI-ассистенты — доступны в /chat'
-            : 'Telegram-боты для твоих групп'}
+            ? t('pages.studio.agents_subtitle')
+            : t('pages.studio.bots_subtitle')}
         </p>
 
         <div className="flex gap-1 border-b border-gray-200">

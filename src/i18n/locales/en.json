@@ -317,7 +317,10 @@
       "Need a psychology consultation",
       "I'd like to take a coaching session",
       "Looking for a partner to start a fitness center"
-    ]
+    ],
+    "phone_incomplete": "Enter the full phone number",
+    "analyzing_short": "Analyzing...",
+    "show_count": "Show ({{count}})"
   },
   "compatibility": {
     "title": "Compatibility",
@@ -339,7 +342,8 @@
     "error_no_valid_phones": "No valid phone numbers found",
     "error_picker_cancelled": "Contact picker cancelled",
     "error_picker_generic": "Error selecting contacts. Please make sure you've granted access to contacts.",
-    "error_analysis": "An error occurred during compatibility analysis. Please try again."
+    "error_analysis": "An error occurred during compatibility analysis. Please try again.",
+    "phone_placeholder": "+7 (900) 123-45-67"
   },
   "admin": {
     "title": "Management",
@@ -731,12 +735,12 @@
       "ics_add_error": "Couldn't add"
     },
     "talerid": {
-      "title": "TalerID ecosystem",
-      "desc": "Calendar, notes, messages, and mail in one place. No account yet — Linkeon will create one for you in TalerID automatically, using your phone number, no separate signup needed. Already have a TalerID account — sign in and link it so everything goes there. Your data stays yours.",
+      "title": "Taler ID ecosystem",
+      "desc": "Calendar, notes, messages, and mail in one place. No account yet — Linkeon will create one for you in Taler ID automatically, using your phone number, no separate signup needed. Already have a Taler ID account — sign in and link it so everything goes there. Your data stays yours.",
       "connected": "Connected",
-      "connect_button": "Connect TalerID",
-      "already_have_account": "Already have a TalerID account? Sign in and link",
-      "ambiguous_msg": "Looks like you already have a TalerID account. Tap \"Sign in and link\" below to connect it.",
+      "connect_button": "Connect Taler ID",
+      "already_have_account": "Already have a Taler ID account? Sign in and link",
+      "ambiguous_msg": "Looks like you already have a Taler ID account. Tap \"Sign in and link\" below to connect it.",
       "connect_error": "Couldn't connect. Try again later.",
       "link_error": "Couldn't start linking. Try again later."
     },
@@ -1256,17 +1260,13 @@
     "tagline": "Linkeon — a platform for finding kindred spirits",
     "units": {
       "day_one": "day",
-      "day_few": "days",
-      "day_many": "days",
       "hour_one": "hour",
-      "hour_few": "hours",
-      "hour_many": "hours",
       "minute_one": "minute",
-      "minute_few": "minutes",
-      "minute_many": "minutes",
       "second_one": "second",
-      "second_few": "seconds",
-      "second_many": "seconds"
+      "day_other": "days",
+      "hour_other": "hours",
+      "minute_other": "minutes",
+      "second_other": "seconds"
     }
   },
   "payment": {
@@ -1377,7 +1377,13 @@
     "coupon_prompt_label": "Have a coupon?",
     "coupon_activate_button": "Activate",
     "roman_nudge_message": "Roman's on fire today! Then again, he always is 👍 Get +50% tokens on your first package for even more value 🤝",
-    "later_button": "Later"
+    "later_button": "Later",
+    "fill_email_toast": "Enter your email",
+    "how_it_works_title": "How it works",
+    "how_it_works_step1": "Pick the token package that suits you",
+    "how_it_works_step2": "Pay the way you prefer via YooKassa",
+    "how_it_works_step3": "Tokens are credited to your account instantly",
+    "how_it_works_step4": "Start chatting with the assistants"
   },
   "referral": {
     "loading": "Loading referral program data...",
@@ -1499,7 +1505,12 @@
       "hasSentYouRequest": "This user has sent you a request",
       "openRequests": "Open requests",
       "alreadyChatting": "You already have a chat",
-      "openChat": "Open chat"
+      "openChat": "Open chat",
+      "contactPrivateMsg": "This user does not accept contact requests.",
+      "contactRequestSent": "Contact request sent",
+      "contactIntroLabel": "Short intro message (optional)",
+      "contactIntroPlaceholder": "Briefly — why you'd like to connect",
+      "requestContactButton": "Request contact"
     },
     "chat": {
       "inputPlaceholder": "Write a message…",
@@ -1516,7 +1527,8 @@
       "reportTitle": "Report user",
       "reportHint": "Describe what concerns you. Moderators will review.",
       "reportPlaceholder": "Reason…",
-      "reportSent": "Report submitted"
+      "reportSent": "Report submitted",
+      "tapForProfile": "Tap to open the profile"
     },
     "errors": {
       "introRequired": "Please write a short intro",
@@ -1774,7 +1786,70 @@
   },
   "tgBot": {
     "nav": "My Bots",
-    "title": "My Telegram Bots"
+    "title": "My Telegram Bots",
+    "mode_strict": "When addressed",
+    "mode_smart": "Smart",
+    "mode_always": "Always",
+    "status_pending": "Awaiting group",
+    "status_active": "Active",
+    "status_silent": "Silent",
+    "status_archived": "Archived",
+    "card_mode_voice": "{{mode}} · voice: {{voice}}",
+    "card_no_title": "untitled",
+    "card_reconnect": "Reconnect",
+    "reconnect_error": "Couldn't reconnect",
+    "card_history_aria": "Message history",
+    "card_history_title": "History",
+    "card_archive_aria": "Archive",
+    "wizard_fill_error": "Enter a name and choose a role",
+    "wizard_title": "Create a Telegram bot",
+    "step1_title": "Step 1: Link your Telegram",
+    "step1_desc": "This is a one-time step. The bot will know that your Telegram account is linked to Linkeon — so that /balance and /silent are available only to you.",
+    "generate_link_button": "Generate link",
+    "open_in_telegram": "Open in Telegram",
+    "i_pressed_start": "I pressed /start",
+    "bound_success": "Linked",
+    "not_bound_error": "Not linked yet. Press /start in Telegram.",
+    "name_in_group_label": "Bot name in the group",
+    "name_placeholder": "Financier",
+    "name_hint": "The bot will respond when this name appears in a message (in strict mode)",
+    "role_label": "Role",
+    "addressing_title": "When it replies",
+    "addr_strict_desc": "Only when called by @-mention, replied to, or addressed by name",
+    "addr_smart_desc": "Decides for itself when it's worth chiming in (60 sec rate limit)",
+    "addr_always_desc": "To every message in the group (3 sec rate limit)",
+    "wizard_voice_title": "Voice replies",
+    "voice_never_label": "Never",
+    "voice_never_desc": "Always as text",
+    "voice_mirror_label": "Mirror",
+    "voice_mirror_desc": "Voice for voice, text for text",
+    "voice_always_desc": "Every reply as voice",
+    "wizard_submit_button": "Create and get the group link",
+    "step3_title": "Step 3: Add the bot to a group",
+    "addgroup_hint": "Open the link — Telegram will ask you to choose a group. The bot activates itself once added. The link works for 15 minutes.",
+    "edit_fill_error": "Enter a name and a role",
+    "saved_toast": "Saved",
+    "save_error_fallback": "Couldn't save",
+    "edit_modal_title": "Edit bot",
+    "edit_name_label": "Name in the group",
+    "edit_voice_title": "Voice",
+    "saving_label": "Saving...",
+    "messages_load_error": "Couldn't load",
+    "history_title": "History",
+    "history_empty": "History is empty.",
+    "bot_label": "Bot",
+    "reconnect_modal_title": "Reconnecting “{{name}}”",
+    "list_load_error": "Couldn't load the bots",
+    "archive_confirm": "Archive “{{name}}”?\nThe bot will leave the group. The config can be restored.",
+    "archived_toast": "Archived",
+    "list_subtitle": "Telegram bots working in your groups",
+    "create_button": "Create",
+    "tab_active": "Active",
+    "empty_active_title": "No active bots",
+    "empty_archived_title": "The archive is empty",
+    "empty_active_hint": "Create a bot for your Telegram group",
+    "create_first_button": "Create the first one",
+    "presets_label": "Linkeon presets"
   },
   "imagegen": {
     "edit_modal_title": "Edit image",
@@ -1862,5 +1937,60 @@
     "size_square": "Square",
     "size_wide": "Wide",
     "size_portrait": "Portrait"
+  },
+  "pages": {
+    "link_expired_title": "The link has expired",
+    "link_expired_retry": "Try requesting a new one",
+    "back_to_login": "Back to sign-in",
+    "signing_in": "Signing in...",
+    "oauth_provider_error": "The provider returned an error: {{error}}",
+    "oauth_broken_link": "Broken link",
+    "oauth_unknown_provider": "Unknown provider",
+    "oauth_merge_failed": "Couldn't merge the accounts",
+    "oauth_account_exists_title": "Account already exists",
+    "oauth_merge_desc": "This {{provider}} account is already registered as a separate profile.",
+    "oauth_merge_desc_tokens": "This {{provider}} account is already registered as a separate profile with <bold>{{tokens}} tokens</bold>.",
+    "oauth_merge_confirm": "Merge it with your current account?",
+    "oauth_merge_confirm_tokens": "Merge it with your current account? The tokens will carry over.",
+    "oauth_merge_button": "Merge accounts",
+    "oauth_login_failed_title": "Couldn't sign in",
+    "oauth_back": "Back",
+    "contact_requests": {
+      "title": "Contact requests",
+      "tab_incoming": "Incoming",
+      "tab_outgoing": "Sent",
+      "status_pending": "Pending",
+      "status_approved": "Approved",
+      "status_rejected": "Declined",
+      "status_cancelled": "Cancelled",
+      "empty_incoming": "No one has requested your contact yet.",
+      "empty_outgoing": "You haven't sent any contact requests yet.",
+      "resolved_at": "processed {{date}}",
+      "contact_opened": "Contact shared:",
+      "reject_button": "Decline",
+      "approve_button": "Approve"
+    },
+    "studio": {
+      "agents_subtitle": "Personal AI assistants — available in /chat",
+      "bots_subtitle": "Telegram bots for your groups"
+    },
+    "talerid_login_failed": "Couldn't sign in with Taler ID. Please try again",
+    "talerid_login_expired": "The sign-in link has expired — please sign in again",
+    "talerid_link_success": "Taler ID account linked",
+    "talerid_link_cancelled": "Linking cancelled",
+    "talerid_link_expired": "The linking link has expired — please try again",
+    "talerid_link_different_phone": "This Taler ID account is already linked to a different phone number",
+    "talerid_link_phone_taken": "This phone number is already linked to another Taler ID account",
+    "talerid_link_has_messages": "Couldn't link: your current account already has conversations — please contact support",
+    "talerid_link_error": "Couldn't link the account. Please try again later"
+  },
+  "widget": {
+    "resume": "Resume",
+    "resume_with": "Resume with {{name}}",
+    "image": "Image",
+    "image_long": "Create an image",
+    "voice": "Voice",
+    "voice_long": "Speak aloud",
+    "open_named": "Open: {{name}}"
   }
 }

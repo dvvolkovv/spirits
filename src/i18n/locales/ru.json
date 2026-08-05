@@ -318,7 +318,10 @@
       "Нужна консультация по психологии",
       "Хочу пройти коучинговую сессию",
       "Ищу партнера для создания фитнес центра"
-    ]
+    ],
+    "phone_incomplete": "Введите полный номер телефона",
+    "analyzing_short": "Анализ...",
+    "show_count": "Показать ({{count}})"
   },
   "compatibility": {
     "title": "Совместимость",
@@ -340,7 +343,8 @@
     "error_no_valid_phones": "Не найдено подходящих номеров телефонов",
     "error_picker_cancelled": "Выбор контактов отменен",
     "error_picker_generic": "Ошибка при выборе контактов. Убедитесь, что вы дали разрешение на доступ к контактам.",
-    "error_analysis": "Произошла ошибка при анализе совместимости. Попробуйте еще раз."
+    "error_analysis": "Произошла ошибка при анализе совместимости. Попробуйте еще раз.",
+    "phone_placeholder": "+7 (900) 123-45-67"
   },
   "admin": {
     "title": "Управление",
@@ -732,12 +736,12 @@
       "ics_add_error": "Не удалось добавить"
     },
     "talerid": {
-      "title": "Экосистема TalerID",
-      "desc": "Календарь, заметки, сообщения и почта в одном. Нет аккаунта — Линкеон заведёт его в TalerID без отдельной регистрации, по твоему номеру. Уже есть аккаунт TalerID — войди и свяжи его, чтобы всё шло в него. Твои данные остаются твоими.",
+      "title": "Экосистема Taler ID",
+      "desc": "Календарь, заметки, сообщения и почта в одном. Нет аккаунта — Линкеон заведёт его в Taler ID без отдельной регистрации, по твоему номеру. Уже есть аккаунт Taler ID — войди и свяжи его, чтобы всё шло в него. Твои данные остаются твоими.",
       "connected": "Подключено",
-      "connect_button": "Подключить TalerID",
-      "already_have_account": "Уже есть аккаунт TalerID? Войти и связать",
-      "ambiguous_msg": "Похоже, у тебя уже есть аккаунт TalerID. Нажми «Войти и связать» ниже, чтобы привязать его.",
+      "connect_button": "Подключить Taler ID",
+      "already_have_account": "Уже есть аккаунт Taler ID? Войти и связать",
+      "ambiguous_msg": "Похоже, у тебя уже есть аккаунт Taler ID. Нажми «Войти и связать» ниже, чтобы привязать его.",
       "connect_error": "Не удалось подключить. Попробуй позже.",
       "link_error": "Не удалось начать связывание. Попробуй позже."
     },
@@ -1267,7 +1271,11 @@
       "minute_many": "минут",
       "second_one": "секунда",
       "second_few": "секунды",
-      "second_many": "секунд"
+      "second_many": "секунд",
+      "day_other": "дней",
+      "hour_other": "часов",
+      "minute_other": "минут",
+      "second_other": "секунд"
     }
   },
   "payment": {
@@ -1378,7 +1386,13 @@
     "coupon_prompt_label": "Есть купон?",
     "coupon_activate_button": "Активировать",
     "roman_nudge_message": "Роман сегодня в ударе! Впрочем, как и всегда 👍 Дарим +50% токенов на первый пакет, чтобы получить ещё больше выгоды 🤝",
-    "later_button": "Позже"
+    "later_button": "Позже",
+    "fill_email_toast": "Заполните email",
+    "how_it_works_title": "Как это работает",
+    "how_it_works_step1": "Выберите подходящий пакет токенов",
+    "how_it_works_step2": "Оплатите удобным способом через ЮKassa",
+    "how_it_works_step3": "Токены мгновенно зачислятся на ваш счет",
+    "how_it_works_step4": "Начните общение с ассистентами"
   },
   "referral": {
     "loading": "Загружаем данные реферальной программы...",
@@ -1500,7 +1514,12 @@
       "hasSentYouRequest": "Этот пользователь прислал вам запрос",
       "openRequests": "Перейти к запросам",
       "alreadyChatting": "У вас уже есть чат",
-      "openChat": "Открыть чат"
+      "openChat": "Открыть чат",
+      "contactPrivateMsg": "Пользователь не принимает запросы на контакт.",
+      "contactRequestSent": "Запрос на контакт отправлен",
+      "contactIntroLabel": "Короткое сообщение-представление (необязательно)",
+      "contactIntroPlaceholder": "Коротко — почему вам интересно познакомиться",
+      "requestContactButton": "Запросить контакт"
     },
     "chat": {
       "inputPlaceholder": "Напишите сообщение…",
@@ -1517,7 +1536,8 @@
       "reportTitle": "Пожаловаться на пользователя",
       "reportHint": "Опишите, что именно вас беспокоит. Модерация рассмотрит жалобу.",
       "reportPlaceholder": "Причина жалобы…",
-      "reportSent": "Жалоба отправлена"
+      "reportSent": "Жалоба отправлена",
+      "tapForProfile": "Нажмите, чтобы открыть профиль"
     },
     "errors": {
       "introRequired": "Напишите короткое сообщение",
@@ -1775,7 +1795,70 @@
   },
   "tgBot": {
     "nav": "Мои боты",
-    "title": "Мои Telegram-боты"
+    "title": "Мои Telegram-боты",
+    "mode_strict": "По обращению",
+    "mode_smart": "Умно",
+    "mode_always": "Всегда",
+    "status_pending": "Ждёт группы",
+    "status_active": "Активен",
+    "status_silent": "Молчит",
+    "status_archived": "Архив",
+    "card_mode_voice": "{{mode}} · голос: {{voice}}",
+    "card_no_title": "без названия",
+    "card_reconnect": "Переподключить",
+    "reconnect_error": "Не удалось переподключить",
+    "card_history_aria": "История сообщений",
+    "card_history_title": "История",
+    "card_archive_aria": "Архивировать",
+    "wizard_fill_error": "Заполни имя и выбери роль",
+    "wizard_title": "Создать Telegram-бота",
+    "step1_title": "Шаг 1: Привяжи свой Telegram",
+    "step1_desc": "Это нужно один раз. Бот узнает, что твой Telegram-аккаунт связан с Linkeon — чтобы /balance и /silent были доступны только тебе.",
+    "generate_link_button": "Сгенерировать ссылку",
+    "open_in_telegram": "Открыть в Telegram",
+    "i_pressed_start": "Я нажал /start",
+    "bound_success": "Привязано",
+    "not_bound_error": "Ещё не привязан. Нажми /start в Telegram.",
+    "name_in_group_label": "Имя бота в группе",
+    "name_placeholder": "Финансист",
+    "name_hint": "Бот будет реагировать, когда в сообщении встретится это имя (в strict-режиме)",
+    "role_label": "Роль",
+    "addressing_title": "Когда отвечает",
+    "addr_strict_desc": "Только когда зовут @-mention, реплай на бота или произносят его имя",
+    "addr_smart_desc": "Сам решает, когда уместно вмешаться (rate-limit 60 сек)",
+    "addr_always_desc": "На каждое сообщение в группе (rate-limit 3 сек)",
+    "wizard_voice_title": "Голосовые ответы",
+    "voice_never_label": "Никогда",
+    "voice_never_desc": "Всегда текстом",
+    "voice_mirror_label": "Зеркально",
+    "voice_mirror_desc": "Голос на голос, текст на текст",
+    "voice_always_desc": "Каждый ответ голосом",
+    "wizard_submit_button": "Создать и получить ссылку для группы",
+    "step3_title": "Шаг 3: Добавь бота в группу",
+    "addgroup_hint": "Открой ссылку — Telegram предложит выбрать группу. После добавления бот сам активируется. Ссылка работает 15 минут.",
+    "edit_fill_error": "Заполни имя и роль",
+    "saved_toast": "Сохранено",
+    "save_error_fallback": "Не удалось сохранить",
+    "edit_modal_title": "Редактировать бота",
+    "edit_name_label": "Имя в группе",
+    "edit_voice_title": "Голос",
+    "saving_label": "Сохраняю...",
+    "messages_load_error": "Не удалось загрузить",
+    "history_title": "История",
+    "history_empty": "История пуста.",
+    "bot_label": "Бот",
+    "reconnect_modal_title": "Переподключение «{{name}}»",
+    "list_load_error": "Не удалось загрузить ботов",
+    "archive_confirm": "Архивировать «{{name}}»?\nБот выйдет из группы. Конфиг можно восстановить.",
+    "archived_toast": "Архивировано",
+    "list_subtitle": "Telegram-боты, работающие в твоих группах",
+    "create_button": "Создать",
+    "tab_active": "Активные",
+    "empty_active_title": "Нет активных ботов",
+    "empty_archived_title": "Архив пуст",
+    "empty_active_hint": "Создай бота для своей Telegram-группы",
+    "create_first_button": "Создать первого",
+    "presets_label": "Пресеты Linkeon"
   },
   "imagegen": {
     "edit_modal_title": "Редактировать картинку",
@@ -1863,5 +1946,60 @@
     "size_square": "Квадрат",
     "size_wide": "Широкий",
     "size_portrait": "Портрет"
+  },
+  "pages": {
+    "link_expired_title": "Ссылка устарела",
+    "link_expired_retry": "Попробуй запросить новую",
+    "back_to_login": "Назад к входу",
+    "signing_in": "Входим...",
+    "oauth_provider_error": "Провайдер вернул ошибку: {{error}}",
+    "oauth_broken_link": "Битая ссылка",
+    "oauth_unknown_provider": "Неизвестный провайдер",
+    "oauth_merge_failed": "Не удалось слить аккаунты",
+    "oauth_account_exists_title": "Аккаунт уже существует",
+    "oauth_merge_desc": "Этот {{provider}}-аккаунт уже зарегистрирован как отдельный профиль.",
+    "oauth_merge_desc_tokens": "Этот {{provider}}-аккаунт уже зарегистрирован как отдельный профиль с <bold>{{tokens}} токенами</bold>.",
+    "oauth_merge_confirm": "Слить его с вашим текущим аккаунтом?",
+    "oauth_merge_confirm_tokens": "Слить его с вашим текущим аккаунтом? Токены перейдут.",
+    "oauth_merge_button": "Слить аккаунты",
+    "oauth_login_failed_title": "Не удалось войти",
+    "oauth_back": "Назад",
+    "contact_requests": {
+      "title": "Запросы на контакт",
+      "tab_incoming": "Входящие",
+      "tab_outgoing": "Отправленные",
+      "status_pending": "Ожидает",
+      "status_approved": "Принят",
+      "status_rejected": "Отклонён",
+      "status_cancelled": "Отменён",
+      "empty_incoming": "Пока никто не запросил ваш контакт.",
+      "empty_outgoing": "Вы ещё не отправляли запросов на контакт.",
+      "resolved_at": "обработано {{date}}",
+      "contact_opened": "Контакт открыт:",
+      "reject_button": "Отклонить",
+      "approve_button": "Принять"
+    },
+    "studio": {
+      "agents_subtitle": "Личные AI-ассистенты — доступны в /chat",
+      "bots_subtitle": "Telegram-боты для твоих групп"
+    },
+    "talerid_login_failed": "Не удалось войти через Taler ID. Попробуйте ещё раз",
+    "talerid_login_expired": "Ссылка входа устарела — войдите заново",
+    "talerid_link_success": "Аккаунт Taler ID связан",
+    "talerid_link_cancelled": "Связывание отменено",
+    "talerid_link_expired": "Ссылка для связывания устарела — попробуйте ещё раз",
+    "talerid_link_different_phone": "На этом аккаунте Taler ID уже привязан другой номер",
+    "talerid_link_phone_taken": "Этот номер уже привязан к другому аккаунту Taler ID",
+    "talerid_link_has_messages": "Не удалось связать: в текущем аккаунте уже есть переписка — напишите в поддержку",
+    "talerid_link_error": "Не удалось связать аккаунт. Попробуйте позже"
+  },
+  "widget": {
+    "resume": "Продолжить",
+    "resume_with": "Продолжить с {{name}}",
+    "image": "Картинка",
+    "image_long": "Создать картинку",
+    "voice": "Голос",
+    "voice_long": "Сказать голосом",
+    "open_named": "Открыть: {{name}}"
   }
 }

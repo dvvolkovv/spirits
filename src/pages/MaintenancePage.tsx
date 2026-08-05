@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Wrench, Clock, AlertCircle } from 'lucide-react';
-import { calculateTimeRemaining, formatTimeUnit, getMaintenanceEndTime, TimeRemaining } from '../utils/timeUtils';
+import { calculateTimeRemaining, getMaintenanceEndTime, TimeRemaining } from '../utils/timeUtils';
 
 const MaintenancePage: React.FC = () => {
   const { t } = useTranslation();
@@ -66,7 +66,7 @@ const MaintenancePage: React.FC = () => {
                       {String(timeRemaining.days).padStart(2, '0')}
                     </div>
                     <div className="text-sm text-gray-600 font-medium">
-                      {formatTimeUnit(timeRemaining.days, t('maintenance.units.day_one'), t('maintenance.units.day_many'), t('maintenance.units.day_few'))}
+                      {t('maintenance.units.day', { count: timeRemaining.days })}
                     </div>
                   </div>
 
@@ -75,7 +75,7 @@ const MaintenancePage: React.FC = () => {
                       {String(timeRemaining.hours).padStart(2, '0')}
                     </div>
                     <div className="text-sm text-gray-600 font-medium">
-                      {formatTimeUnit(timeRemaining.hours, t('maintenance.units.hour_one'), t('maintenance.units.hour_many'), t('maintenance.units.hour_few'))}
+                      {t('maintenance.units.hour', { count: timeRemaining.hours })}
                     </div>
                   </div>
 
@@ -84,7 +84,7 @@ const MaintenancePage: React.FC = () => {
                       {String(timeRemaining.minutes).padStart(2, '0')}
                     </div>
                     <div className="text-sm text-gray-600 font-medium">
-                      {formatTimeUnit(timeRemaining.minutes, t('maintenance.units.minute_one'), t('maintenance.units.minute_many'), t('maintenance.units.minute_few'))}
+                      {t('maintenance.units.minute', { count: timeRemaining.minutes })}
                     </div>
                   </div>
 
@@ -93,7 +93,7 @@ const MaintenancePage: React.FC = () => {
                       {String(timeRemaining.seconds).padStart(2, '0')}
                     </div>
                     <div className="text-sm text-gray-600 font-medium">
-                      {formatTimeUnit(timeRemaining.seconds, t('maintenance.units.second_one'), t('maintenance.units.second_many'), t('maintenance.units.second_few'))}
+                      {t('maintenance.units.second', { count: timeRemaining.seconds })}
                     </div>
                   </div>
                 </div>

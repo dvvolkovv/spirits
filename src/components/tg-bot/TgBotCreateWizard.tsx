@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { ArrowRight, ExternalLink, Check, Copy } from 'lucide-react';
 import { tgBotApi, type AddressingMode, type VoiceReplyMode } from '../../services/tgBotApi';
@@ -8,6 +9,7 @@ import { RolePickerField } from './role-picker/RolePickerField';
 type Step = 'identity' | 'config' | 'addgroup';
 
 export const TgBotCreateWizard: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('identity');
 
@@ -35,7 +37,7 @@ export const TgBotCreateWizard: React.FC = () => {
 
   const submitConfig = async () => {
     if (!displayName.trim() || !role) {
-      toast.error('Заполни имя и выбери роль');
+      toast.error(t('tgBot.wizard_fill_error'));
       return;
     }
     try {
@@ -53,26 +55,26 @@ export const TgBotCreateWizard: React.FC = () => {
 
   const copy = (s: string) => {
     navigator.clipboard.writeText(s);
-    toast.success('Скопировано');
+    toast.success(t('chat.copied'));
   };
 
   return (
     <div className="h-full overflow-y-auto">
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Создать Telegram-бота</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('tgBot.wizard_title')}</h1>
 
       {step === 'identity' && (
         <div className="bg-white rounded-2xl p-5 border border-gray-200">
-          <h2 className="font-semibold mb-2">Шаг 1: Привяжи свой Telegram</h2>
+          <h2 className="font-semibold mb-2">{t('tgBot.step1_title')}</h2>
           <p className="text-sm text-gray-600 mb-4">
-            Это нужно один раз. Бот узнает, что твой Telegram-аккаунт связан с Linkeon — чтобы /balance и /silent были доступны только тебе.
+            {t('tgBot.step1_desc')}
           </p>
           {!identityDeepLink ? (
             <button
               onClick={generateIdentityLink}
               className="px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
             >
-              Сгенерировать ссылку
+              {t('tgBot.generate_link_button')}
             </button>
           ) : (
             <div className="flex flex-wrap gap-2 items-center">
@@ -82,17 +84,17 @@ export const TgBotCreateWizard: React.FC = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
               >
-                <ExternalLink size={16} /> Открыть в Telegram
+                <ExternalLink size={16} /> {t('tgBot.open_in_telegram')}
               </a>
               <button
                 onClick={async () => {
                   const s = await tgBotApi.identityStatus();
-                  if (s.bound) { setStep('config'); toast.success('Привязано'); }
-                  else toast.error('Ещё не привязан. Нажми /start в Telegram.');
+                  if (s.bound) { setStep('config'); toast.success(t('tgBot.bound_success')); }
+                  else toast.error(t('tgBot.not_bound_error'));
                 }}
                 className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 font-medium"
               >
-                Я нажал /start
+                {t('tgBot.i_pressed_start')}
               </button>
             </div>
           )}
@@ -103,32 +105,32 @@ export const TgBotCreateWizard: React.FC = () => {
         <div className="space-y-5">
           <div className="bg-white rounded-2xl p-5 border border-gray-200">
             <label className="block">
-              <span className="text-sm font-medium text-gray-700">Имя бота в группе</span>
+              <span className="text-sm font-medium text-gray-700">{t('tgBot.name_in_group_label')}</span>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Финансист"
+                placeholder={t('tgBot.name_placeholder')}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"
                 maxLength={80}
               />
               <span className="text-xs text-gray-500 mt-1 block">
-                Бот будет реагировать, когда в сообщении встретится это имя (в strict-режиме)
+                {t('tgBot.name_hint')}
               </span>
             </label>
           </div>
 
           <div className="bg-white rounded-2xl p-5 border border-gray-200">
-            <h2 className="font-semibold mb-3">Роль</h2>
+            <h2 className="font-semibold mb-3">{t('tgBot.role_label')}</h2>
             <RolePickerField value={role} onChange={setRole} />
           </div>
 
           <div className="bg-white rounded-2xl p-5 border border-gray-200">
-            <h2 className="font-semibold mb-3">Когда отвечает</h2>
+            <h2 className="font-semibold mb-3">{t('tgBot.addressing_title')}</h2>
             {([
-              ['strict', 'По обращению', 'Только когда зовут @-mention, реплай на бота или произносят его имя'],
-              ['smart', 'Умно', 'Сам решает, когда уместно вмешаться (rate-limit 60 сек)'],
-              ['always', 'Всегда', 'На каждое сообщение в группе (rate-limit 3 сек)'],
+              ['strict', t('tgBot.mode_strict'), t('tgBot.addr_strict_desc')],
+              ['smart', t('tgBot.mode_smart'), t('tgBot.addr_smart_desc')],
+              ['always', t('tgBot.mode_always'), t('tgBot.addr_always_desc')],
             ] as const).map(([val, label, desc]) => (
               <label key={val} className="flex items-start gap-3 py-2 cursor-pointer">
                 <input type="radio" name="addr" checked={addressingMode === val} onChange={() => setAddressingMode(val)} className="mt-1" />
@@ -141,11 +143,11 @@ export const TgBotCreateWizard: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-2xl p-5 border border-gray-200">
-            <h2 className="font-semibold mb-3">Голосовые ответы</h2>
+            <h2 className="font-semibold mb-3">{t('tgBot.wizard_voice_title')}</h2>
             {([
-              ['never', 'Никогда', 'Всегда текстом'],
-              ['mirror', 'Зеркально', 'Голос на голос, текст на текст'],
-              ['always', 'Всегда', 'Каждый ответ голосом'],
+              ['never', t('tgBot.voice_never_label'), t('tgBot.voice_never_desc')],
+              ['mirror', t('tgBot.voice_mirror_label'), t('tgBot.voice_mirror_desc')],
+              ['always', t('tgBot.mode_always'), t('tgBot.voice_always_desc')],
             ] as const).map(([val, label, desc]) => (
               <label key={val} className="flex items-start gap-3 py-2 cursor-pointer">
                 <input type="radio" name="voice" checked={voiceReplyMode === val} onChange={() => setVoiceReplyMode(val)} className="mt-1" />
@@ -161,7 +163,7 @@ export const TgBotCreateWizard: React.FC = () => {
             onClick={submitConfig}
             className="w-full py-3 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium flex items-center justify-center gap-2"
           >
-            Создать и получить ссылку для группы <ArrowRight size={16} />
+            {t('tgBot.wizard_submit_button')} <ArrowRight size={16} />
           </button>
         </div>
       )}
@@ -170,11 +172,10 @@ export const TgBotCreateWizard: React.FC = () => {
         <div className="bg-white rounded-2xl p-5 border border-gray-200">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center"><Check size={16} /></div>
-            <h2 className="font-semibold">Шаг 3: Добавь бота в группу</h2>
+            <h2 className="font-semibold">{t('tgBot.step3_title')}</h2>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Открой ссылку — Telegram предложит выбрать группу. После добавления бот сам активируется.
-            Ссылка работает 15 минут.
+            {t('tgBot.addgroup_hint')}
           </p>
           <div className="flex items-center gap-2 mb-4">
             <input type="text" value={claimDeepLink} readOnly className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono" />
@@ -189,13 +190,13 @@ export const TgBotCreateWizard: React.FC = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
             >
-              <ExternalLink size={16} /> Открыть в Telegram
+              <ExternalLink size={16} /> {t('tgBot.open_in_telegram')}
             </a>
             <button
               onClick={() => navigate('/telegram-bots')}
               className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 font-medium"
             >
-              Готово
+              {t('common.done')}
             </button>
           </div>
         </div>

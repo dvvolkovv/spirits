@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { avatarService } from '../../services/avatarService';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
+import { getRoleForAssistant } from './assistantRole';
 
 interface Assistant {
   id: number;
@@ -19,30 +20,6 @@ interface AssistantSelectionProps {
   onSelectAssistant: (assistant: Assistant) => void;
   isLoading: boolean;
 }
-
-/**
- * Роль определяется по стабильному id ассистента, а НЕ по тексту описания.
- *
- * Раньше здесь был поиск русских подстрок (`description.includes('Коуч')`).
- * После локализации карточек на бэкенде описание приходит на языке
- * пользователя — испанец получает «Coach certificado…», подстрока не находится,
- * и роль у всех сваливалась в дефолтную. id стабилен и не переводится.
- *
- * Ассистента без записи здесь показываем с общей ролью — это осознанный
- * дефолт, а не ошибка: новый ассистент не должен ломать карточку.
- */
-const ROLE_KEY_BY_AGENT_ID: Record<number, string> = {
-  1: 'chat.assistant_role_coach',
-  2: 'chat.assistant_role_psych',
-  3: 'chat.assistant_role_gameplay',
-  9: 'chat.assistant_role_accountant',
-  10: 'chat.assistant_role_lawyer',
-  13: 'chat.assistant_role_astro',
-  14: 'chat.assistant_role_hd',
-};
-
-const getRoleForAssistant = (assistantId: number | string, t: (key: string) => string): string =>
-  t(ROLE_KEY_BY_AGENT_ID[Number(assistantId)] ?? 'chat.assistant_role_default');
 
 const AssistantCard: React.FC<{ assistant: Assistant; avatarUrl?: string; onSelect: (a: Assistant) => void }> = ({ assistant, avatarUrl, onSelect }) => {
   const { t } = useTranslation();
