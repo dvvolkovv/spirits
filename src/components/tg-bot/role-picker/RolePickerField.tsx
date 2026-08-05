@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { apiClient } from '../../../services/apiClient';
+import i18n from '../../../i18n';
+import { resolveLanguage } from '../../../i18n/languages';
 import { customAgentsApi, type CustomAgent } from '../../../services/customAgentsApi';
 import { avatarService } from '../../../services/avatarService';
 
@@ -23,7 +25,7 @@ export const RolePickerField: React.FC<Props> = ({ value, onChange }) => {
   const [presetAvatars, setPresetAvatars] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    apiClient.get('/webhook/agents')
+    apiClient.get(`/webhook/agents?lang=${resolveLanguage(i18n.language)}`)
       .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
       .then((list: Preset[]) => {
         setPresets(list);

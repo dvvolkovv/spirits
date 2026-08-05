@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Bell, Plus, Trash2, Pencil } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import i18n from '../../i18n';
+import { resolveLanguage } from '../../i18n/languages';
 
 interface Routine {
   id: string;
@@ -78,7 +80,7 @@ const RoutinesManager: React.FC = () => {
   };
   useEffect(() => {
     load();
-    apiClient.get('/webhook/agents').then(async (r) => { if (r.ok) setAgents(await r.json()); }).catch(() => {});
+    apiClient.get(`/webhook/agents?lang=${resolveLanguage(i18n.language)}`).then(async (r) => { if (r.ok) setAgents(await r.json()); }).catch(() => {});
   }, []);
 
   const post = async (body: any) => {
