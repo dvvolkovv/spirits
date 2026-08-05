@@ -6,6 +6,8 @@ export interface LanguageDef {
   flag: string;
 }
 
+// i18n-ignore: nativeName — название языка на нём самом, это данные реестра,
+// а не UI-текст: испанец должен видеть «Русский», а не «Ruso».
 export const SUPPORTED_LANGUAGES: LanguageDef[] = [
   { code: 'ru', nativeName: 'Русский', flag: '🇷🇺' },
   { code: 'en', nativeName: 'English', flag: '🇺🇸' },

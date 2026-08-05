@@ -9,6 +9,8 @@ interface Props {
 }
 
 /** Как выглядит кнопка провайдера: значок, подпись и голое имя провайдера (для интерполяции). */
+// i18n-ignore: label — только defaultValue для t('auth.oauth.*'), ключи есть
+// во всех локалях и фолбэк не срабатывает; «Я» — брендовый глиф Яндекса.
 const LOOKS: Record<OAuthProviderId, { label: string; providerName: string; badge: React.ReactNode }> = {
   google: {
     label: 'Войти через Google',
@@ -67,7 +69,8 @@ const OAuthButton: React.FC<Props> = ({ provider }) => {
         notConfigured
           ? t(
               'auth.oauth.notConfigured',
-              'Вход через {{provider}} пока не настроен на сервере',
+              // i18n-ignore: defaultValue многострочного t(), ключ есть во всех локалях
+        'Вход через {{provider}} пока не настроен на сервере',
               { provider: look.providerName },
             )
           : t('auth.oauth.initFailed', 'Не удалось начать вход через провайдер'),
