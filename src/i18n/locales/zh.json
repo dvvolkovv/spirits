@@ -48,7 +48,9 @@
     "cta": "选择套餐",
     "badge": "🎁 首个套餐+50%",
     "nudge_text": "聊得开心吗？开通完整版——选择代币套餐，畅聊无限制。",
-    "nudge_cta": "选择套餐"
+    "nudge_cta": "选择套餐",
+    "referral_text": "邀请好友加入 Linkeon，最高可获得他们付款金额的 10%，并可提现。",
+    "referral_cta": "邀请"
   },
   "nav": {
     "networking": "人脉拓展",
@@ -512,54 +514,85 @@
     "pageTitle": "视频生成",
     "tabs": {
       "create": "创建",
-      "gallery": "我的视频"
+      "gallery": "我的视频",
+      "smm": "SMM 短视频（尤利娅）"
     },
     "mode": {
       "label": "模式",
       "text2video": "文本 → 视频",
       "image2video": "图片 → 视频",
       "extend": "续写",
-      "lipsync": "对口型"
+      "lipsync": "对口型",
+      "hint": "选择生成模式，文字→视频是最简单的开始方式。",
+      "hint_text2video": "用文字描述场景——AI 会先生成起始帧（Nano Banana，+5000 代币），再将其动画化。这样得到的构图比「纯」text→video 更稳定。",
+      "hint_image2video": "上传起始帧，AI 会将其动画化为视频。",
+      "hint_extend": "在你已有的视频基础上再延长 5 秒。",
+      "hint_lipsync": "将已有视频的口型与音轨同步。"
     },
     "model": {
       "label": "模型",
       "standard": "标准版（v1.6）",
-      "premium": "高级版（v2 Master）"
+      "premium": "高级版（v2 Master）",
+      "hint": "标准版（v1.6）——更快更便宜。高级版（v2 Master）——画质最强，价格贵 6×。"
     },
     "quality": {
       "label": "质量",
       "std": "标准",
-      "pro": "专业"
+      "pro": "专业",
+      "hint": "普通（std）——标准分辨率。专业（pro）——高分辨率、精细度更高，价格翻倍。"
     },
     "duration": {
       "label": "时长",
       "5s": "5秒",
       "10s": "10秒",
-      "suffix": "秒"
+      "suffix": "秒",
+      "hint": "最终视频的时长。超过 10 秒的部分会自动拼接为多个片段，费用也更高（基础 10 秒 + 每增加一段加 5 秒）。",
+      "seconds_short": "{{count}} 秒"
     },
     "prompt": {
       "label": "提示词",
-      "placeholder": "例如：专家对着镜头讲解产品发布，暖色调灯光，竖屏9:16"
+      "placeholder": "例如：专家对着镜头讲解产品发布，暖色调灯光，竖屏9:16",
+      "hint": "场景描述越详细——动作、光线、画幅——效果就越精准。"
     },
     "negativePrompt": {
-      "label": "反向提示词"
+      "label": "反向提示词",
+      "hint": "说明视频中「不应该」出现的内容。例如：「模糊、伪影、屏幕上的文字」。",
+      "placeholder": "模糊、伪影、画质差…"
     },
     "cfgScale": {
-      "label": "CFG Scale"
+      "label": "CFG Scale",
+      "hint": "AI 遵循提示词的精确程度。0.5 是自由度与精确度的平衡；越接近 1，就越严格地按文字执行。",
+      "loose": "更自由",
+      "precise": "更精确"
     },
     "cameraType": {
-      "label": "镜头"
+      "label": "镜头",
+      "hint": "视频中镜头运动的类型。留空则由 AI 自行选择。",
+      "auto_option": "——自动——",
+      "option_simple": "静止（simple）",
+      "option_down_back": "后退下移（down_back）",
+      "option_forward_up": "前进上移（forward_up）",
+      "option_right_turn": "右转前进（right_turn_forward）",
+      "option_left_turn": "左转前进（left_turn_forward）"
     },
     "sourceImage": {
       "label": "原始图片",
       "upload": "上传",
-      "fromGallery": "从图片库选择"
+      "fromGallery": "从图片库选择",
+      "hint": "上传视频的首帧，或从你已生成的图片中选取。支持格式：JPG、PNG、WebP。",
+      "upload_file": "上传文件"
     },
     "sourceVideo": {
-      "label": "原始视频"
+      "label": "原始视频",
+      "hint": "来自「我的视频」图库中已完成视频的 ID。打开图库，将鼠标悬停在目标视频上——点击「继续」或「对口型」时会在提示框中显示 ID。",
+      "placeholder": "点击「继续」后从图库自动填入",
+      "tip": "提示：前往「我的视频」，点击「继续」或「对口型」按钮——ID 会自动填入。"
     },
     "audio": {
-      "label": "对口型音频"
+      "label": "对口型音频",
+      "hint": "包含语音的音频文件，用于视频中的口型同步。支持格式：MP3、WAV、M4A。时长需与视频一致。",
+      "select_file": "选择音频文件",
+      "uploaded": "音频已上传"
     },
     "submit": {
       "create": "创建",
@@ -567,7 +600,8 @@
     },
     "insufficientTokens": {
       "title": "代币不足",
-      "cta": "充值"
+      "cta": "充值",
+      "message": "需要 {{cost}} 代币，你当前有 {{balance}}。"
     },
     "job": {
       "statusPending": "排队中",
@@ -594,10 +628,182 @@
         "delete": "删除",
         "download": "下载",
         "extend": "续写视频（+5秒）",
-        "lipsync": "将口型与音频同步"
+        "lipsync": "将口型与音频同步",
+        "share": "分享推荐链接",
+        "repeat": "重新生成——相同参数，相同提示词"
       },
       "emptyGallery": "你还没有生成过视频，去「创建」标签页制作第一个吧。",
       "toastReady": "视频已完成"
+    },
+    "create": {
+      "examples_hint": "示例——点击即可填入",
+      "settings_toggle": "设置",
+      "segments_hint": "将由 {{count}} 个片段自动拼接成一段完整视频。",
+      "picker_error_status": "错误 {{status}}",
+      "picker_load_error": "图片加载失败",
+      "submitting": "正在创建视频…",
+      "generation_time_hint": "生成大约需要 3–5 分钟",
+      "cost_suffix": "（{{cost}} 代币）",
+      "prompt_examples_t2v": {
+        "horse_beach": {
+          "label": "沙滩上的白马",
+          "text": "一匹白马在日落时分的沙滩上奔驰，水花在空中飞溅，慢动作镜头，电影感光线"
+        },
+        "tokyo_rain": {
+          "label": "雨中东京",
+          "text": "夜晚的东京细雨绵绵，霓虹灯光倒映在湿润的路面上，镜头缓缓向前推进，充满电影质感"
+        },
+        "dragon_takeoff": {
+          "label": "巨龙起飞",
+          "text": "一条巨龙从山顶腾空而起，双翼有力地拍打，云层向两侧散开，宽广的史诗级镜头"
+        },
+        "astronaut": {
+          "label": "宇航员",
+          "text": "宇航员在空间站内失重漂浮，舷窗外可见地球，镜头平稳移动"
+        },
+        "hummingbird": {
+          "label": "蜂鸟",
+          "text": "一只蜂鸟悬停在鲜红色花朵前，翅膀因快速振动而模糊，微距拍摄，柔和的散景"
+        },
+        "chocolate_macro": {
+          "label": "巧克力微距",
+          "text": "热巧克力酱缓缓浇在海绵蛋糕上，慢动作拍摄，摄影棚灯光，微距镜头"
+        },
+        "dancer": {
+          "label": "舞者",
+          "text": "一位身穿红裙的舞者在日落时分的天台上旋转，衣裙随风飘扬，温暖的逆光"
+        },
+        "whale": {
+          "label": "鲸鱼",
+          "text": "一头巨大的蓝鲸从深海缓缓浮起，阳光穿透水面洒下光柱，水下拍摄"
+        },
+        "parkour": {
+          "label": "跑酷",
+          "text": "跑酷运动员在摩天大楼楼顶之间跳跃，无人机俯拍视角，镜头动感十足"
+        },
+        "lavender": {
+          "label": "薰衣草",
+          "text": "日落时分一望无际的薰衣草田，微风轻拂花丛，镜头向前推进，画面充满电影感"
+        }
+      },
+      "prompt_examples_i2v": {
+        "animate_portrait": {
+          "label": "让肖像动起来",
+          "text": "照片中的人物缓缓微笑并眨眼，发丝随风轻轻摆动，镜头轻微推近"
+        },
+        "landscape_motion": {
+          "label": "流动的风景",
+          "text": "天空中云朵缓缓飘移，树叶随风摇曳，阳光光斑闪烁"
+        },
+        "flythrough": {
+          "label": "向前穿越",
+          "text": "镜头平稳地向场景深处推进，带来沉浸感，电影级景深效果"
+        },
+        "orbit": {
+          "label": "环绕镜头",
+          "text": "镜头沿弧线缓缓环绕主体，焦点始终清晰，摄影棚灯光"
+        },
+        "hair_flow": {
+          "label": "发丝飘动",
+          "text": "人物的头发随风飘动，衣料轻轻摆动，极具戏剧感的慢动作"
+        },
+        "rain_starts": {
+          "label": "雨开始下了",
+          "text": "雨渐渐落下，物体表面出现水珠，氛围逐渐朦胧"
+        },
+        "day_night": {
+          "label": "昼夜交替",
+          "text": "画面平滑地从白天过渡到夜晚，城市灯光渐次亮起，云层加速流动"
+        },
+        "zoom_out": {
+          "label": "Zoom-out",
+          "text": "镜头缓缓后退，逐渐展现主体周围更多的环境"
+        }
+      },
+      "prompt_heading": "描述你希望视频中出现的内容"
+    },
+    "engine": {
+      "label": "引擎",
+      "hint": "Kling——通用生成。Veo 3.1——支持原生配音和人像的长版「真人出镜讲话」视频。",
+      "veo_option": "Veo 3.1 · 真人出镜讲话"
+    },
+    "imagePicker": {
+      "from_gallery_button": "从我的图片",
+      "title": "从我的图片中选择",
+      "empty": "你还没有生成过图片。",
+      "go_to_generator": "前往图片生成器",
+      "no_description": "无描述"
+    },
+    "veo": {
+      "prompt_hint": "台词/语音请直接写在提示词中——Veo 会自动配音（原生 lip-sync）。下方的人像照片为可选项，用于生成「真人出镜讲话」效果。",
+      "talking_head_title": "什么是「真人出镜讲话」？",
+      "talking_head_desc": "视频中，你照片里的人物直视镜头，说出提示词中的文字——口型同步，配以真实语音。适合用于问候语、视频名片、Reels 和 Stories。",
+      "step_photos_top": "1–3 张照片",
+      "step_photos_bottom": "人脸",
+      "step_text_top": "文字",
+      "step_text_bottom": "写入提示词",
+      "step_result_top": "视频",
+      "step_result_bottom": "带语音",
+      "preset_talking_head_button": "「真人出镜讲话」预设",
+      "preset_talking_head_prompt": "一位女生亲切地看着镜头说道：「你好！很高兴在 Linkeon 见到你——在这里你会找到志同道合的人。」柔和的日光，暖色调，自然的手势。",
+      "own_voice_label": "用我的声音配音",
+      "own_voice_hint": "Veo 会先生成视频，再用你的声音（基于你的样本克隆）为其配音。画质不受影响，口型依然同步。",
+      "own_voice_surcharge": "视频费用另加约 {{amount}} 代币。",
+      "tier_hint": "Fast——更快更便宜。Standard——细节更丰富，价格更高（约 2.7×）。",
+      "aspect_label": "画幅",
+      "aspect_hint": "9:16——竖屏，适合社交媒体（Reels、Shorts、Stories、TikTok）。16:9——横屏。人像内容建议选 9:16。",
+      "aspect_vertical": "9:16 · 竖屏",
+      "aspect_horizontal": "16:9 · 横屏",
+      "resolution_label": "分辨率",
+      "resolution_hint": "1080p——细节更丰富（皮肤、毛孔）。720p——速度更快。横屏（16:9）超过 8 秒的 extend 片段，Veo 始终使用 720p，因此 1080p 的优势在短视频中更明显。竖屏（9:16）由多个独立片段拼接而成——1080p 在任意时长下都适用。",
+      "length_hint": "16:9（横屏）：单条连续视频——基础 8 秒 + 每次延长 7 秒。9:16（竖屏）：Veo 无法无缝延长竖屏视频，因此超过 8 秒时我们会自动用多个 8 秒片段拼接成一条视频（衔接处可能有轻微的拼接痕迹）——台词会分配到各个片段中。",
+      "vertical_segments_hint": "竖屏 {{sec}} 秒——将由 {{count}} 个 8 秒片段自动拼接成一条视频。",
+      "portrait_photos_label": "人像照片（最多 3 张）",
+      "portrait_photos_hint": "用于生成「真人出镜讲话」的人脸效果。最佳做法是提供 3 张不同角度/光线下的正面照片：相比单张照片，Veo 生成的相似度会明显更高。不上传照片则按描述生成场景。",
+      "portrait_photos_recommend": "💡 建议上传<1>3 张照片</1>（不同角度）——这样人脸相似度会明显更好。",
+      "add_photo_button": "添加照片（{{count}}/3）"
+    },
+    "examples": {
+      "hint": "示例——悬停查看，点击「使用该提示词」",
+      "use_button": "使用该提示词",
+      "items": {
+        "veo_talkinghead": {
+          "label": "真人出镜讲话",
+          "prompt": "9:16 竖屏视频，真人出镜讲话：一位 30–40 岁、亲切友善的专家直视镜头，用中文自然对口型说道：「你好！今天我来聊聊如何……」。柔和的棚拍灯光，带轻微散景的暖色背景，语气沉稳自信，画面逼真写实，人声清晰，无背景音乐。"
+        },
+        "veo_nature": {
+          "label": "黎明山脉",
+          "prompt": "无人机掠过黎明时分云雾缭绕的绿色山脉，金色阳光穿透云层，山下河流蜿蜒流淌，镜头平稳移动，电影感十足，画面逼真"
+        },
+        "veo_coffee": {
+          "label": "窗边咖啡",
+          "prompt": "温馨咖啡馆里，木桌上一杯冒着热气的咖啡摆在雨中的窗边，温暖柔和的光线，浅景深，热气袅袅升起，氛围宁静，画面逼真"
+        },
+        "kling_horse": {
+          "label": "沙滩上的白马",
+          "prompt": "一匹白马在日落时分的沙滩上奔驰，水花在慢镜头中飞溅，充满戏剧感的金色光线，电影质感，镜头充满动感"
+        }
+      }
+    },
+    "voice": {
+      "upload_error_fallback": "上传失败",
+      "delete_error_fallback": "删除失败",
+      "ready": "声音已就绪",
+      "cloning": "正在分析并克隆声音…（通常不到一分钟）",
+      "upload_title": "上传你的声音样本",
+      "upload_hint": "≥60 秒，单声道，无音乐和噪音，语调富有变化。录音越干净，克隆效果越精准。",
+      "consent_label": "这是我本人的声音，我同意将其用于合成，为我的视频配音。",
+      "upload_button": "上传声音"
+    },
+    "share": {
+      "video_message": "我用 Linkeon 生成了这段视频——AI 自动创作社交媒体内容。快来试试吧，通过我的链接注册可获得新人礼包 🎁",
+      "result_prompt_text": "喜欢这个效果？分享给朋友——好友将获得<1>20,000 代币</1>的新人礼，而你则能获得他充值金额的一定比例分成。",
+      "button": "分享",
+      "close_aria": "关闭"
+    },
+    "gallery": {
+      "loading": "正在加载视频…",
+      "empty_hint": "在「创建」标签页生成你的第一段视频"
     }
   },
   "help": {
@@ -817,7 +1023,40 @@
       "section7_note": "如发生技术错误或扣款有误，服务将对用户账户余额中的代币进行调整。",
       "support_title": "客服联系方式",
       "got_it": "知道了"
-    }
+    },
+    "package_starter_name": "入门",
+    "package_savings": "节省 {{percent}}%",
+    "email_required_error": "请填写用于接收收据的邮箱",
+    "email_invalid_error": "请填写有效的邮箱地址",
+    "create_payment_error": "创建支付时出错，请稍后重试。",
+    "topup_modal_title": "充值代币",
+    "topup_modal_subtitle": "选择代币套餐，继续与助手对话",
+    "current_balance_label": "当前余额：",
+    "or_buy_package": "或购买代币套餐",
+    "email_label": "接收收据的邮箱",
+    "email_hint": "支付收据将发送至该邮箱",
+    "popular_badge": "热门",
+    "offer_badge": "🎁 +50%",
+    "approx_messages_label": "≈ {{count}} 条消息",
+    "price_per_1000_tokens": "约 {{price}} ₽ / 1000 代币",
+    "processing_label": "处理中…",
+    "buy_button": "购买",
+    "included_title": "套餐包含",
+    "included_item_chat": "与所有可用助手对话",
+    "included_item_no_expiry": "代币永不过期，长期有效",
+    "included_item_secure_payment": "通过 YooKassa 安全支付",
+    "included_item_instant_credit": "支付后代币即时到账",
+    "included_item_messages_note": "消息数量按带对话历史的详细回复计算。简短提问消耗的代币可减少 3–4 倍",
+    "coupon_not_found": "未找到该优惠券",
+    "coupon_inactive": "优惠券已失效",
+    "coupon_already_used": "你已经使用过该优惠券",
+    "coupon_enter_code_error": "请输入优惠券代码",
+    "coupon_generic_error": "激活优惠券时出错",
+    "coupon_success_message": "已到账 {{tokens}} 代币！",
+    "coupon_prompt_label": "有优惠券？",
+    "coupon_activate_button": "激活",
+    "roman_nudge_message": "罗曼 今天状态很好！不过其实他一直都这么给力 👍 首个套餐额外赠送 +50% 代币，让你享受更多优惠 🤝",
+    "later_button": "稍后再说"
   },
   "referral": {
     "loading": "正在加载推荐计划数据...",
@@ -893,7 +1132,8 @@
     "filter": "筛选",
     "sort": "排序",
     "today": "今天",
-    "yesterday": "昨天"
+    "yesterday": "昨天",
+    "upload": "上传"
   },
   "peer": {
     "navTitle": "聊天",
@@ -1214,5 +1454,92 @@
   "tgBot": {
     "nav": "我的机器人",
     "title": "我的Telegram机器人"
+  },
+  "imagegen": {
+    "edit_modal_title": "编辑图片",
+    "edit_prompt_placeholder": "想修改什么？例如：「把背景改成日落」「去掉人物」「颜色改成红色」",
+    "quality_standard": "普通 · {{cost}}",
+    "quality_hd": "HD（4K）· {{cost}}",
+    "apply_button": "应用",
+    "details_modal_title": "图片详情",
+    "click_to_zoom_title": "点击放大",
+    "zoom_label": "放大",
+    "compose_count_label": "共 {{count}} 张图片",
+    "prompt_label": "提示词",
+    "no_text": "无文字",
+    "tokens_spent_label": "已消耗代币",
+    "date_label": "日期",
+    "image_link_label": "图片链接",
+    "record_id_label": "记录 ID",
+    "use_prompt_button": "使用该提示词",
+    "create_video_title": "用这张图片创建视频",
+    "make_video_label": "生成视频",
+    "compose_modal_title": "合并图片",
+    "compose_instructions": "第一张图片已选好。请从你的结果和历史记录中再选择 1-2 张。",
+    "compose_prompt_placeholder": "想如何合并？例如：「把第一张里的猫放到第二张的宝座上」",
+    "compose_label": "合并",
+    "page_title": "图片生成",
+    "mode_image": "图片",
+    "mode_banner": "带文字的横幅",
+    "banner_note": "背景生成时<1>不含文字</1>，标题和按钮由程序叠加在上方——文字（包括西里尔字母）都能保证完全整齐。",
+    "banner_prompt_placeholder": "请仅描述背景（不含文字）。例如：「温暖的夏日海岸日落，柔和的散景」",
+    "image_prompt_placeholder": "描述你想要生成的图片…",
+    "banner_title_placeholder": "标题（大号字体）",
+    "banner_subtitle_placeholder": "副标题（可选）",
+    "banner_cta_placeholder": "按钮 / 行动号召（可选）。例如：「立即预约」",
+    "text_position_label": "文字位置",
+    "position_top": "顶部",
+    "position_center": "居中",
+    "position_bottom": "底部",
+    "theme_label": "主题 / 强调色",
+    "theme_dark": "深色",
+    "theme_light": "浅色",
+    "button_color_title": "按钮颜色",
+    "examples_hint": "示例——点击即可填入",
+    "example_portrait_label": "人像",
+    "example_portrait_text": "一张年轻女性身穿皮夹克的人像照，柔和的棚拍灯光，85mm 镜头，胶片颗粒感，电影质感",
+    "example_alps_label": "黎明阿尔卑斯山",
+    "example_alps_text": "阿尔卑斯山雾气缭绕的清晨，黄金时刻的光线，广角镜头，电影感光效，细节极其丰富",
+    "example_cyberpunk_label": "赛博朋克",
+    "example_cyberpunk_text": "夜晚的赛博朋克城市，霓虹招牌闪烁，湿润的路面倒映着灯光，细雨绵绵，Octane 3D 渲染，8K",
+    "example_fox_label": "水彩小狐狸",
+    "example_fox_text": "魔法森林里一只可爱的小狐狸，儿童绘本风格的水彩插画，柔和的粉彩色调",
+    "example_ghibli_label": "吉卜力风格动漫",
+    "example_ghibli_text": "身穿和服的女孩站在盛开的樱花树下，夕阳西下，Studio Ghibli 动漫风格，暖色调",
+    "example_perfume_label": "香水广告",
+    "example_perfume_text": "大理石台面上摆放的香水瓶，极简风格的广告摄影，柔和的阴影，米色背景",
+    "example_elf_label": "精灵法师",
+    "example_elf_text": "一位身穿长袍的古老精灵法师，手持发光法杖，哥特式神殿，弥漫的雾气，史诗般的光线",
+    "example_dessert_label": "焦糖布丁",
+    "example_dessert_text": "表面覆盖酥脆焦糖壳的焦糖布丁，微距拍摄，温暖的光线，虚化的散景，美食摄影",
+    "example_astronaut_label": "复古宇航员",
+    "example_astronaut_text": "宇航员坐在月球上凝望地球，70 年代 NASA 复古海报风格，海报式构图，色彩克制",
+    "example_tokyo_label": "水彩东京",
+    "example_tokyo_text": "挂着红灯笼的东京老街，细雨绵绵，水彩插画风格，柔和的晕染效果",
+    "size_label": "尺寸",
+    "negative_prompt_label": "反向提示词",
+    "negative_prompt_placeholder": "画面中不应该出现的内容…",
+    "generating_label": "生成中…",
+    "create_banner_button": "生成横幅",
+    "upload_own_image_title": "上传你自己的图片（之后可编辑 / 合并 / 增强画质）",
+    "insufficient_tokens_message": "代币不足。需要 {{needed}}，当前拥有 {{available}}",
+    "ctrl_enter_hint": "按 Ctrl+Enter 生成",
+    "results_title": "结果",
+    "edit_action_title": "编辑（{{cost}}）",
+    "compose_action_title": "与其他图片合并（{{cost}}）",
+    "upscale_action_title": "提升画质（{{cost}}）",
+    "upscale_label": "提升画质",
+    "share_message": "我用 Linkeon 生成了这张图片——AI 根据描述作画。快来试试吧，通过我的链接注册可获得新人礼包 🎁",
+    "share_label": "分享",
+    "empty_state_hint": "输入描述并点击「生成」",
+    "history_title": "生成历史（{{count}}）",
+    "details_label": "详情",
+    "kind_generate": "生成",
+    "kind_edit": "编辑",
+    "kind_compose": "合成",
+    "kind_upscale": "4K 高清放大",
+    "size_square": "正方形",
+    "size_wide": "宽幅",
+    "size_portrait": "竖幅"
   }
 }

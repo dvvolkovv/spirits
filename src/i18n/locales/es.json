@@ -48,7 +48,9 @@
     "cta": "Elegir paquete",
     "badge": "🎁 +50% en tu primer paquete",
     "nudge_text": "¿Te ha gustado la conversación? Desbloquea el acceso completo — elige un paquete de tokens y sigue sin límites.",
-    "nudge_cta": "Elegir paquete"
+    "nudge_cta": "Elegir paquete",
+    "referral_text": "Invita a tus amigos a Linkeon: consigue hasta el 10% de sus pagos y retíralo.",
+    "referral_cta": "Invitar"
   },
   "nav": {
     "networking": "Networking",
@@ -514,54 +516,85 @@
     "pageTitle": "Generación de vídeo",
     "tabs": {
       "create": "Crear",
-      "gallery": "Mis vídeos"
+      "gallery": "Mis vídeos",
+      "smm": "Vídeos SMM (Julia)"
     },
     "mode": {
       "label": "Modo",
       "text2video": "Texto → Vídeo",
       "image2video": "Imagen → Vídeo",
       "extend": "Continuar",
-      "lipsync": "Lipsync"
+      "lipsync": "Lipsync",
+      "hint": "Elige el modo de generación. Texto→Vídeo es la forma más sencilla de empezar.",
+      "hint_text2video": "Describe la escena con texto: la IA primero creará el fotograma inicial (Nano Banana, +5000 tokens) y luego lo animará. Así la composición es más estable que un text→video «puro».",
+      "hint_image2video": "Sube un fotograma inicial y la IA lo animará en vídeo.",
+      "hint_extend": "Continúa tu vídeo ya generado 5 segundos más.",
+      "hint_lipsync": "Sincroniza el movimiento de labios de un vídeo con una pista de audio."
     },
     "model": {
       "label": "Modelo",
       "standard": "Estándar (v1.6)",
-      "premium": "Premium (v2 Master)"
+      "premium": "Premium (v2 Master)",
+      "hint": "Estándar (v1.6): más rápido y económico. Premium (v2 Master): máxima calidad, 6× más caro."
     },
     "quality": {
       "label": "Calidad",
       "std": "Estándar",
-      "pro": "Pro"
+      "pro": "Pro",
+      "hint": "Normal (std): resolución estándar. Pro (pro): alta resolución y detalle, el doble de caro."
     },
     "duration": {
       "label": "Duración",
       "5s": "5 segundos",
       "10s": "10 segundos",
-      "suffix": "s"
+      "suffix": "s",
+      "hint": "Duración del vídeo final. Más de 10 segundos son segmentos unidos automáticamente y cuesta más (base 10 s + 5 s por cada tramo adicional).",
+      "seconds_short": "{{count}} s"
     },
     "prompt": {
       "label": "Prompt",
-      "placeholder": "Ej.: un experto habla a cámara sobre el lanzamiento de un producto, luz cálida, vertical 9:16"
+      "placeholder": "Ej.: un experto habla a cámara sobre el lanzamiento de un producto, luz cálida, vertical 9:16",
+      "hint": "Cuanto más detallada sea la escena —acción, luz, formato—, más preciso será el resultado."
     },
     "negativePrompt": {
-      "label": "Prompt negativo"
+      "label": "Prompt negativo",
+      "hint": "Indica qué NO debe aparecer en el vídeo. Por ejemplo: «desenfoque, artefactos, texto en pantalla».",
+      "placeholder": "desenfoque, artefactos, mala calidad..."
     },
     "cfgScale": {
-      "label": "CFG Scale"
+      "label": "CFG Scale",
+      "hint": "Indica cuán fielmente sigue la IA el prompt. 0.5 es el equilibrio entre libertad y precisión. Más cerca de 1, más se ciñe al texto.",
+      "loose": "Más libre",
+      "precise": "Más preciso"
     },
     "cameraType": {
-      "label": "Cámara"
+      "label": "Cámara",
+      "hint": "Tipo de movimiento de cámara en el vídeo. Déjalo vacío y la IA lo elegirá.",
+      "auto_option": "— Automático —",
+      "option_simple": "Estática (simple)",
+      "option_down_back": "Atrás-abajo (down_back)",
+      "option_forward_up": "Adelante-arriba (forward_up)",
+      "option_right_turn": "Giro a la derecha (right_turn_forward)",
+      "option_left_turn": "Giro a la izquierda (left_turn_forward)"
     },
     "sourceImage": {
       "label": "Imagen de origen",
       "upload": "Subir",
-      "fromGallery": "Desde la galería de imágenes"
+      "fromGallery": "Desde la galería de imágenes",
+      "hint": "Sube el primer fotograma del vídeo o elígelo entre tus imágenes generadas. Formatos: JPG, PNG, WebP.",
+      "upload_file": "Subir archivo"
     },
     "sourceVideo": {
-      "label": "Vídeo de origen"
+      "label": "Vídeo de origen",
+      "hint": "ID de un vídeo ya generado de la galería «Mis vídeos». Abre la galería, pasa el cursor sobre el vídeo: el ID aparece en la ayuda emergente al pulsar «Continuar» o «Lipsync».",
+      "placeholder": "Automático desde la galería al pulsar «Continuar»",
+      "tip": "Consejo: ve a «Mis vídeos» y pulsa «Continuar» o «Lipsync»: el ID se rellenará automáticamente."
     },
     "audio": {
-      "label": "Audio para el lipsync"
+      "label": "Audio para el lipsync",
+      "hint": "Archivo de audio con la voz para sincronizar los labios del vídeo. Formatos: MP3, WAV, M4A. La duración debe coincidir con la del vídeo.",
+      "select_file": "Seleccionar archivo de audio",
+      "uploaded": "Audio subido"
     },
     "submit": {
       "create": "Crear",
@@ -569,7 +602,8 @@
     },
     "insufficientTokens": {
       "title": "Tokens insuficientes",
-      "cta": "Recargar"
+      "cta": "Recargar",
+      "message": "Necesitas {{cost}} tokens, tienes {{balance}}."
     },
     "job": {
       "statusPending": "En cola",
@@ -596,10 +630,182 @@
         "delete": "Eliminar",
         "download": "Descargar",
         "extend": "Continuar vídeo (+5s)",
-        "lipsync": "Sincronizar labios con el audio"
+        "lipsync": "Sincronizar labios con el audio",
+        "share": "Compartir con enlace de referido",
+        "repeat": "Repetir con los mismos parámetros y el mismo prompt"
       },
       "emptyGallery": "Aún no tienes vídeos listos. Crea el primero en la pestaña «Crear».",
       "toastReady": "Vídeo listo"
+    },
+    "create": {
+      "examples_hint": "Ejemplos: haz clic para usarlos",
+      "settings_toggle": "Ajustes",
+      "segments_hint": "Lo montaremos con {{count}} segmentos y los uniremos en un solo vídeo automáticamente.",
+      "picker_error_status": "Error {{status}}",
+      "picker_load_error": "No se pudieron cargar las imágenes",
+      "submitting": "Creando vídeo…",
+      "generation_time_hint": "La generación tarda 3–5 minutos",
+      "cost_suffix": "({{cost}} tokens)",
+      "prompt_examples_t2v": {
+        "horse_beach": {
+          "label": "Caballo en la playa",
+          "text": "Un caballo blanco galopa por la playa al atardecer, salpicaduras de agua en el aire, cámara lenta, luz cinematográfica"
+        },
+        "tokyo_rain": {
+          "label": "Tokio bajo la lluvia",
+          "text": "Tokio de noche bajo la lluvia, reflejos de neón en el asfalto mojado, la cámara avanza lentamente, estilo cinematográfico"
+        },
+        "dragon_takeoff": {
+          "label": "Un dragón despega",
+          "text": "Un dragón enorme despega desde la cima de una montaña batiendo las alas con fuerza, las nubes se abren, plano panorámico épico"
+        },
+        "astronaut": {
+          "label": "Astronauta",
+          "text": "Un astronauta flota en gravedad cero dentro de una estación espacial, se ve la Tierra por la ventanilla, movimiento de cámara suave"
+        },
+        "hummingbird": {
+          "label": "Colibrí",
+          "text": "Un colibrí se mantiene suspendido frente a una flor rojo intenso, las alas difuminadas por el movimiento, primer plano macro, bokeh suave"
+        },
+        "chocolate_macro": {
+          "label": "Chocolate en macro",
+          "text": "Salsa de chocolate caliente cae lentamente sobre un bizcocho, cámara lenta, luz de estudio, macro"
+        },
+        "dancer": {
+          "label": "Bailarina",
+          "text": "Una bailarina con vestido rojo gira en una azotea al atardecer, el viento agita la tela, luz cálida a contraluz"
+        },
+        "whale": {
+          "label": "Ballena",
+          "text": "Una enorme ballena azul asciende lentamente desde las profundidades, los rayos de sol atraviesan el agua, filmación submarina"
+        },
+        "parkour": {
+          "label": "Parkour",
+          "text": "Un practicante de parkour salta entre tejados de rascacielos, vista aérea con dron, movimiento de cámara dinámico"
+        },
+        "lavender": {
+          "label": "Lavanda",
+          "text": "Un campo infinito de lavanda al atardecer, una brisa suave mece las flores, la cámara avanza, estilo cinematográfico"
+        }
+      },
+      "prompt_examples_i2v": {
+        "animate_portrait": {
+          "label": "Dar vida a un retrato",
+          "text": "La persona de la foto sonríe y parpadea lentamente, el cabello se mueve ligeramente con el viento, la cámara se acerca un poco"
+        },
+        "landscape_motion": {
+          "label": "Paisaje en movimiento",
+          "text": "Las nubes se deslizan lentamente por el cielo, las hojas de los árboles se agitan con el viento, destellos de sol parpadean"
+        },
+        "flythrough": {
+          "label": "Avance de cámara",
+          "text": "La cámara avanza suavemente hacia la escena, efecto de inmersión, profundidad de campo cinematográfica"
+        },
+        "orbit": {
+          "label": "Órbita",
+          "text": "La cámara rodea lentamente el objeto principal en un arco, manteniendo el enfoque, luz de estudio"
+        },
+        "hair_flow": {
+          "label": "Cabello al viento",
+          "text": "El cabello del personaje ondea con el viento, la tela de la ropa se agita, cámara lenta dramática"
+        },
+        "rain_starts": {
+          "label": "Empieza a llover",
+          "text": "Comienza a llover, aparecen gotas en las superficies, el ambiente se vuelve neblinoso"
+        },
+        "day_night": {
+          "label": "Transición de día a noche",
+          "text": "Transición suave del día a la noche, se encienden las luces de la ciudad, las nubes se mueven más rápido"
+        },
+        "zoom_out": {
+          "label": "Zoom out",
+          "text": "La cámara se aleja lentamente, revelando cada vez más del entorno alrededor del objeto principal"
+        }
+      },
+      "prompt_heading": "Describe qué debe aparecer en el vídeo"
+    },
+    "engine": {
+      "label": "Motor",
+      "hint": "Kling: generación universal. Veo 3.1: vídeos largos de «cabeza parlante» con voz nativa y retrato.",
+      "veo_option": "Veo 3.1 · cabeza parlante"
+    },
+    "imagePicker": {
+      "from_gallery_button": "De mis imágenes",
+      "title": "Elegir de mis imágenes",
+      "empty": "Aún no tienes imágenes generadas.",
+      "go_to_generator": "Ir al generador de imágenes",
+      "no_description": "Sin descripción"
+    },
+    "veo": {
+      "prompt_hint": "Escribe la frase o el discurso directamente en el prompt: Veo la pronunciará él mismo (lipsync nativo). El retrato de abajo es opcional, para la «cabeza parlante».",
+      "talking_head_title": "¿Qué es la «cabeza parlante»?",
+      "talking_head_desc": "Un vídeo donde la persona de tu foto mira a cámara y pronuncia el texto del prompt, con sincronización de labios y voz real. Ideal para saludos, videopresentaciones, Reels y Stories.",
+      "step_photos_top": "1–3 fotos",
+      "step_photos_bottom": "del rostro",
+      "step_text_top": "texto",
+      "step_text_bottom": "en el prompt",
+      "step_result_top": "vídeo",
+      "step_result_bottom": "con voz",
+      "preset_talking_head_button": "Preajuste «Cabeza parlante»",
+      "preset_talking_head_prompt": "Una chica mira a cámara con expresión amistosa y dice: «¡Hola! Me alegra verte en Linkeon: aquí encontrarás a personas afines a ti.» Luz diurna suave, tono cálido, gestos naturales.",
+      "own_voice_label": "Narrar con mi voz",
+      "own_voice_hint": "Veo generará el vídeo y luego lo narrará con tu voz (un clon a partir de tu muestra). La calidad de la imagen no cambia y los labios se mantienen sincronizados.",
+      "own_voice_surcharge": "Recargo de ~{{amount}} tokens sobre el coste del vídeo.",
+      "tier_hint": "Fast: más rápido y económico. Standard: más detalle, más caro (~2.7×).",
+      "aspect_label": "Formato",
+      "aspect_hint": "9:16: vertical para redes sociales (Reels, Shorts, Stories, TikTok). 16:9: horizontal. Para retratos es mejor 9:16.",
+      "aspect_vertical": "9:16 · vertical",
+      "aspect_horizontal": "16:9 · horizontal",
+      "resolution_label": "Resolución",
+      "resolution_hint": "1080p: más detalle (piel, poros). 720p: más rápido. En horizontal (16:9), los segmentos de extensión de Veo más allá de 8s siempre son 720p, así que 1080p se nota más en vídeos cortos. El formato vertical (9:16) se monta con clips independientes, así que ahí 1080p funciona con cualquier duración.",
+      "length_hint": "16:9 (horizontal): un solo vídeo continuo, base de 8s + extensiones de 7s. 9:16 (vertical): Veo no puede alargar el vertical sin cortes, así que más allá de 8s montamos automáticamente el vídeo con varios clips de 8s (pueden notarse pequeños cortes en las uniones); el texto se reparte entre los clips.",
+      "vertical_segments_hint": "Vertical de {{sec}}s: lo montaremos con {{count}} clips de 8s y los uniremos en un solo vídeo automáticamente.",
+      "portrait_photos_label": "Fotos para el retrato (hasta 3)",
+      "portrait_photos_hint": "Para la «cabeza parlante» a partir del rostro de una persona. Lo ideal son 3 fotos frontales en distintos ángulos/iluminaciones: así Veo logra un parecido notablemente más preciso que con una sola foto. Sin foto, la escena se genera según la descripción.",
+      "portrait_photos_recommend": "💡 Te recomendamos subir <1>3 fotografías</1> (distintos ángulos) — así el parecido facial es notablemente mejor.",
+      "add_photo_button": "Añadir foto ({{count}}/3)"
+    },
+    "examples": {
+      "hint": "Ejemplos: pasa el cursor para ver, pulsa «Usar prompt»",
+      "use_button": "Usar prompt",
+      "items": {
+        "veo_talkinghead": {
+          "label": "Cabeza parlante",
+          "prompt": "Vídeo vertical 9:16, cabeza parlante: un experto o experta de 30–40 años mira directamente a cámara y habla en español con sincronización de labios natural: «¡Hola! Hoy te voy a contar cómo…». Luz de estudio suave, fondo cálido con ligero bokeh, tono calmado y seguro, fotorrealista, voz limpia sin música de fondo."
+        },
+        "veo_nature": {
+          "label": "Montañas al amanecer",
+          "prompt": "Un dron sobrevuela montañas verdes envueltas en niebla al amanecer, la luz dorada se filtra entre las nubes, un río serpentea abajo, movimiento de cámara suave, estilo cinematográfico, fotorrealista"
+        },
+        "veo_coffee": {
+          "label": "Café junto a la ventana",
+          "prompt": "Una taza de café humeante sobre una mesa de madera junto a una ventana con lluvia en una cafetería acogedora, luz cálida y suave, poca profundidad de campo, el vapor se eleva, ambiente tranquilo, fotorrealista"
+        },
+        "kling_horse": {
+          "label": "Caballo en la playa",
+          "prompt": "Un caballo blanco galopa por la playa al atardecer, salpicaduras de agua en cámara lenta, luz dorada dramática, estilo cinematográfico, cámara dinámica"
+        }
+      }
+    },
+    "voice": {
+      "upload_error_fallback": "No se pudo subir",
+      "delete_error_fallback": "No se pudo eliminar",
+      "ready": "Voz lista",
+      "cloning": "Analizando y clonando la voz… (normalmente menos de un minuto)",
+      "upload_title": "Sube una muestra de tu voz",
+      "upload_hint": "≥60 segundos, mono, sin música ni ruido, con distintas entonaciones. Cuanto más limpia sea la grabación, más preciso será el clon.",
+      "consent_label": "Esta es mi voz y doy mi consentimiento para sintetizarla y usarla en la narración de mis vídeos.",
+      "upload_button": "Subir voz"
+    },
+    "share": {
+      "video_message": "Hice este vídeo en Linkeon: la IA crea contenido para redes sociales por sí sola. Pruébalo, con mi enlace te dan un bono de bienvenida 🎁",
+      "result_prompt_text": "¿Te gustó el resultado? Compártelo: tu amigo o amiga recibirá <1>20 000 tokens</1> de bienvenida, y tú un % de sus recargas.",
+      "button": "Compartir",
+      "close_aria": "Cerrar"
+    },
+    "gallery": {
+      "loading": "Cargando vídeos…",
+      "empty_hint": "Crea tu primer vídeo en la pestaña «Crear»"
     }
   },
   "help": {
@@ -829,7 +1035,40 @@
       "section7_note": "En caso de errores técnicos o cargos incorrectos, el servicio ajustará los tokens del saldo del usuario.",
       "support_title": "Contactos de soporte",
       "got_it": "Entendido"
-    }
+    },
+    "package_starter_name": "Inicial",
+    "package_savings": "Ahorro del {{percent}}%",
+    "email_required_error": "Indica un email para recibir el recibo",
+    "email_invalid_error": "Indica un email válido",
+    "create_payment_error": "Se produjo un error al crear el pago. Inténtalo más tarde.",
+    "topup_modal_title": "Recarga de tokens",
+    "topup_modal_subtitle": "Elige un paquete de tokens para seguir hablando con los asistentes",
+    "current_balance_label": "Saldo actual:",
+    "or_buy_package": "o compra un paquete de tokens",
+    "email_label": "Email para recibir el recibo",
+    "email_hint": "Enviaremos el recibo de pago a este email",
+    "popular_badge": "Popular",
+    "offer_badge": "🎁 +50%",
+    "approx_messages_label": "≈ {{count}} mensajes",
+    "price_per_1000_tokens": "~{{price}} ₽ por 1000 tokens",
+    "processing_label": "Procesando...",
+    "buy_button": "Comprar",
+    "included_title": "Qué incluye",
+    "included_item_chat": "Chatea con todos los asistentes disponibles",
+    "included_item_no_expiry": "Los tokens no caducan, son válidos para siempre",
+    "included_item_secure_payment": "Pago seguro a través de YooKassa",
+    "included_item_instant_credit": "Los tokens se acreditan al instante tras el pago",
+    "included_item_messages_note": "El número de mensajes corresponde a respuestas detalladas con historial de conversación. Las preguntas cortas gastan de 3 a 4 veces menos tokens",
+    "coupon_not_found": "Cupón no encontrado",
+    "coupon_inactive": "El cupón no está activo",
+    "coupon_already_used": "Ya has usado este cupón",
+    "coupon_enter_code_error": "Introduce el código del cupón",
+    "coupon_generic_error": "Error al activar el cupón",
+    "coupon_success_message": "¡Se han añadido {{tokens}} tokens!",
+    "coupon_prompt_label": "¿Tienes un cupón?",
+    "coupon_activate_button": "Activar",
+    "roman_nudge_message": "¡Román está que se sale hoy! Bueno, como siempre 👍 Te regalamos +50% de tokens en tu primer paquete para que aproveches aún más 🤝",
+    "later_button": "Más tarde"
   },
   "referral": {
     "loading": "Cargando datos del programa de referidos...",
@@ -905,7 +1144,8 @@
     "filter": "Filtro",
     "sort": "Ordenar",
     "today": "Hoy",
-    "yesterday": "Ayer"
+    "yesterday": "Ayer",
+    "upload": "Subir"
   },
   "peer": {
     "navTitle": "Chats",
@@ -1226,5 +1466,92 @@
   "tgBot": {
     "nav": "Mis bots",
     "title": "Mis bots de Telegram"
+  },
+  "imagegen": {
+    "edit_modal_title": "Editar imagen",
+    "edit_prompt_placeholder": "¿Qué quieres cambiar? Por ejemplo: «pon el fondo al atardecer», «quita a la persona», «cambia el color a rojo»",
+    "quality_standard": "Normal · {{cost}}",
+    "quality_hd": "HD (4K) · {{cost}}",
+    "apply_button": "Aplicar",
+    "details_modal_title": "Detalles de la imagen",
+    "click_to_zoom_title": "Haz clic para ampliar",
+    "zoom_label": "Ampliar",
+    "compose_count_label": "de {{count}} imágenes",
+    "prompt_label": "Prompt",
+    "no_text": "Sin texto",
+    "tokens_spent_label": "Tokens gastados",
+    "date_label": "Fecha",
+    "image_link_label": "Enlace a la imagen",
+    "record_id_label": "ID del registro",
+    "use_prompt_button": "Usar prompt",
+    "create_video_title": "Crear vídeo a partir de esta imagen",
+    "make_video_label": "Crear vídeo",
+    "compose_modal_title": "Combinar imágenes",
+    "compose_instructions": "La primera imagen ya está seleccionada. Elige 1 o 2 más entre tus resultados e historial.",
+    "compose_prompt_placeholder": "¿Cómo quieres combinarlas? Por ejemplo: «coge el gato de la primera y ponlo en el trono de la segunda»",
+    "compose_label": "Combinar",
+    "page_title": "Generación de imágenes",
+    "mode_image": "Imagen",
+    "mode_banner": "Banner con texto",
+    "banner_note": "El fondo se genera <1>sin texto</1>, y el título y el botón se superponen mediante software: las letras (incluido el cirílico) quedan perfectamente nítidas.",
+    "banner_prompt_placeholder": "Describe SOLO el fondo (sin texto). Ej.: «costa cálida de verano al atardecer, bokeh suave»",
+    "image_prompt_placeholder": "Describe la imagen que quieres crear...",
+    "banner_title_placeholder": "Título (grande)",
+    "banner_subtitle_placeholder": "Subtítulo (opcional)",
+    "banner_cta_placeholder": "Botón / llamada a la acción (opcional). Ej.: «Reservar»",
+    "text_position_label": "Posición del texto",
+    "position_top": "Arriba",
+    "position_center": "Centro",
+    "position_bottom": "Abajo",
+    "theme_label": "Tema / acento",
+    "theme_dark": "Oscuro",
+    "theme_light": "Claro",
+    "button_color_title": "Color del botón",
+    "examples_hint": "Ejemplos: haz clic para usarlos",
+    "example_portrait_label": "Retrato",
+    "example_portrait_text": "Retrato de una mujer joven con una chaqueta de cuero, luz de estudio suave, 85mm, grano de película, estilo cinematográfico",
+    "example_alps_label": "Los Alpes al amanecer",
+    "example_alps_text": "Mañana de niebla en los Alpes, hora dorada, objetivo gran angular, luz cinematográfica, alta definición",
+    "example_cyberpunk_label": "Ciberpunk",
+    "example_cyberpunk_text": "Ciudad ciberpunk de noche, letreros de neón, asfalto mojado con reflejos, lluvia, render 3D en Octane, 8K",
+    "example_fox_label": "Zorrito en acuarela",
+    "example_fox_text": "Un zorrito adorable en un bosque mágico, ilustración en acuarela al estilo de libro infantil, tonos pastel suaves",
+    "example_ghibli_label": "Anime estilo Ghibli",
+    "example_ghibli_text": "Una chica con kimono bajo un cerezo en flor, atardecer, estilo anime de Studio Ghibli, colores cálidos",
+    "example_perfume_label": "Anuncio de perfume",
+    "example_perfume_text": "Un frasco de perfume sobre una peana de mármol, fotografía publicitaria minimalista, sombras suaves, fondo beige",
+    "example_elf_label": "Elfo mago",
+    "example_elf_text": "Un antiguo mago élfico con una túnica larga, un báculo resplandeciente, un templo gótico, niebla atmosférica, luz épica",
+    "example_dessert_label": "Crème brûlée",
+    "example_dessert_text": "Crème brûlée con una crujiente costra de caramelo, primer plano macro, luz cálida, bokeh difuminado, fotografía gastronómica",
+    "example_astronaut_label": "Astronauta retro",
+    "example_astronaut_text": "Un astronauta sentado en la Luna mira hacia la Tierra, póster vintage de la NASA de los 70, estilo cartel, paleta limitada",
+    "example_tokyo_label": "Tokio en acuarela",
+    "example_tokyo_text": "Una callejuela del antiguo Tokio con farolillos rojos, lluvia, ilustración en acuarela, difuminados suaves",
+    "size_label": "Formato",
+    "negative_prompt_label": "Prompt negativo",
+    "negative_prompt_placeholder": "Qué NO debe aparecer en la imagen...",
+    "generating_label": "Generando...",
+    "create_banner_button": "Crear banner",
+    "upload_own_image_title": "Sube tu propia imagen (luego podrás editarla, combinarla o mejorarla)",
+    "insufficient_tokens_message": "Tokens insuficientes. Necesitas {{needed}}, tienes {{available}}",
+    "ctrl_enter_hint": "Ctrl+Enter para generar",
+    "results_title": "Resultados",
+    "edit_action_title": "Editar ({{cost}})",
+    "compose_action_title": "Combinar con otra ({{cost}})",
+    "upscale_action_title": "Mejorar calidad ({{cost}})",
+    "upscale_label": "Mejorar calidad",
+    "share_message": "Hice esta imagen en Linkeon: la IA la dibuja a partir de una descripción. Pruébalo, con mi enlace te dan un bono de bienvenida 🎁",
+    "share_label": "Compartir",
+    "empty_state_hint": "Escribe una descripción y pulsa «Generar»",
+    "history_title": "Historial de generaciones ({{count}})",
+    "details_label": "Detalles",
+    "kind_generate": "Generación",
+    "kind_edit": "Edición",
+    "kind_compose": "Composición",
+    "kind_upscale": "Upscale 4K",
+    "size_square": "Cuadrado",
+    "size_wide": "Ancho",
+    "size_portrait": "Retrato"
   }
 }
