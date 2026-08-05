@@ -93,6 +93,10 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
 
   const buildScheduledTime = (): string | null => {
     if (timeChoice === 'now') return null;
+    // i18n-ignore: КОНТРАКТ API. Эти фразы уходят на бэк в поле scheduledTime
+    // POST /webhook/smm/videos/:id/publish — судя по всему, бэк парсит русский
+    // текст. Пользователь их не видит (в UI показываются studio.time_*).
+    // Чтобы планировщик работал для нерусских языков, чинить надо на бэке.
     if (timeChoice === '1h') return 'через час';
     if (timeChoice === 'tomorrow18') return 'завтра в 18';
     if (timeChoice === 'custom' && customTime) {

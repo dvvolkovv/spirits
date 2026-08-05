@@ -116,6 +116,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
     if (q) {
       // Латинские алиасы для человекочитаемых шорткат-URL → к именам агентов.
       const ALIASES: Record<string, string> = {
+        // i18n-ignore: алиасы для ?assistant= в URL — сопоставляются с name
+        // ассистента с бэкенда. Это идентификаторы, перевод сломает deep-link.
         roman: 'роман', raya: 'райя', misha: 'миша', masha: 'маша',
         yulia: 'юля', julia: 'юля', yulya: 'юля',
       };

@@ -31,6 +31,7 @@ const MIGRATED = [
   'src/utils/formatters.ts',
   'src/components/settings/LanguageSelect.tsx',
   'src/components/onboarding',
+  'src/components/chat',
 ];
 
 /**
@@ -100,11 +101,32 @@ const files = MIGRATED.flatMap((t) => collect(t)).filter(
   (abs) => !DOCUMENT_BLOCKS.includes(relative(root, abs)),
 );
 
+/**
+ * Вырезает из исходника то, что заведомо не является захардкоженным UI,
+ * сохраняя нумерацию строк (заменяем на пустые, а не удаляем):
+ *
+ *  - блочные комментарии, включая JSX-вариант {@literal {}/* ... *}{@literal }}
+ *    — построчная проверка видела только первую строку такого блока;
+ *  - хвостовые // комментарии после кода;
+ *  - блоки <Trans>…</Trans> — их русское содержимое это шаблон по умолчанию,
+ *    сам перевод лежит в локали под i18nKey.
+ */
+function stripNonUi(source) {
+  return source
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/<Trans[\s\S]*?<\/Trans>/g, (m) => m.replace(/[^\n]/g, ' '))
+    .split('\n')
+    .map((line) => line.replace(/\/\/.*$/, ''))
+    .join('\n');
+}
+
 const findings = [];
 for (const abs of files) {
   const rel = relative(root, abs);
-  const lines = readFileSync(abs, 'utf8').split('\n');
-  const suppressed = suppressedLines(lines);
+  const raw = readFileSync(abs, 'utf8');
+  const lines = stripNonUi(raw).split('\n');
+  const suppressed = suppressedLines(raw.split('\n'));
   lines.forEach((line, i) => {
     if (!CYRILLIC.test(line) || suppressed.has(i) || isIgnorable(line)) return;
     findings.push(`${rel}:${i + 1}  ${line.trim().slice(0, 90)}`);

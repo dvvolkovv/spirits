@@ -1627,6 +1627,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // sessionStorage, поэтому сверяемся именно с ним. Кап ~2с → текст НИКОГДА не теряется: если
     // ассистент так и не зарезолвился (плохой алиас), всё равно отправим, но не потеряем ввод.
     const ALIASES: Record<string, string> = {
+      // i18n-ignore: алиасы для ?assistant= в URL — сопоставляются с name
+      // ассистента с бэкенда. Это идентификаторы, перевод сломает deep-link.
       roman: 'роман', raya: 'райя', misha: 'миша', masha: 'маша',
       yulia: 'юля', julia: 'юля', yulya: 'юля',
     };
@@ -1737,6 +1739,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const result = await response.json();
       const profileData = result.output;
 
+      // i18n-ignore: это не UI, а текст промпта — уходит на бэк в chatInput
+      // и читается моделью. Системные промпты мы намеренно держим русскими:
+      // модель исполняет инструкции на одном языке, отвечая на языке юзера.
       let profileText = '📄 **Данные из документа обработаны:**\n\n';
       if (profileData.name && profileData.family_name) profileText += `**Имя:** ${profileData.name} ${profileData.family_name}\n`;
       for (const [key, label] of [['profile','Профиль'],['values','Ценности'],['skills','Навыки'],['beliefs','Убеждения'],['desires','Желания'],['interests','Интересы'],['intents','Поиск людей']] as const) {
@@ -1749,6 +1754,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const userMessage: Message = { id: generateMessageId(), type: 'user', content: t('chat.file_uploaded_message', { name: file.name }), timestamp: new Date() };
       setMessages(prev => [...prev, userMessage]);
 
+      // i18n-ignore: текст промпта для модели, не UI (см. выше)
       const prompt = `Пользователь загрузил документ "${file.name}". Вот извлечённые данные:\n\n${profileText}\n\nЧто ты можешь предложить сделать с этой информацией?`;
       await sendMessageToAI(prompt);
 
@@ -1793,10 +1799,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const file = files[0];
       try {
         const text = await file.text();
-        const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
+        // i18n-ignore: текст промпта для модели, не UI (см. выше)
+      const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
         await sendMessageToAI(prompt);
       } catch {
-        await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
+        // i18n-ignore: текст промпта для модели, не UI (см. выше)
+      await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
       }
       return;
     }
@@ -1815,6 +1823,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // upload.any() и прокидывает на релей списком, без склейки в один файл.
       for (const f of files) formData.append('files', f);
       formData.append('message', task);
+      // i18n-ignore: значение поля API, не UI — имя ассистента по умолчанию
       formData.append('assistantId', String(selectedAssistant?.id || 'Роман'));
 
       const response = await apiClient.post('/webhook/agent/upload-and-chat', formData);
@@ -1874,13 +1883,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setCurrentStreamingMessage('');
     }
   };
-
-  const quickSuggestions = [
-    "Расскажи о моих ценностях",
-    "Какие у меня цели в жизни?",
-    "Что меня мотивирует?",
-    "Помоги найти единомышленников"
-  ];
 
   const handleSelectAssistant = async (assistant: Assistant) => {
     setSelectedAssistant(assistant);

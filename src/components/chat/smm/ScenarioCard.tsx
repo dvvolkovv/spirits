@@ -17,12 +17,6 @@ interface Props {
   scenarioId: string;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  psy: 'Психолог',
-  lawyer: 'Юрист',
-  coach: 'Коуч',
-};
-
 const MOOD_EMOJI: Record<string, string> = {
   dramatic: '🎭',
   inspiring: '✨',
