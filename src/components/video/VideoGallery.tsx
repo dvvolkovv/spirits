@@ -20,7 +20,7 @@ export default function VideoGallery({ jobs, loading, onDelete, onExtend, onLips
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4">
         <div className="w-8 h-8 border-4 border-forest-300 border-t-forest-600 rounded-full animate-spin mb-3" />
-        <p className="text-sm text-gray-400">Загружаем видео…</p>
+        <p className="text-sm text-gray-400">{t('video.gallery.loading')}</p>
       </div>
     );
   }
@@ -30,7 +30,7 @@ export default function VideoGallery({ jobs, loading, onDelete, onExtend, onLips
       <div className="flex flex-col items-center justify-center py-16 text-center px-4">
         <Film className="w-12 h-12 text-gray-200 mb-3" />
         <p className="text-sm text-gray-400">{t('video.job.emptyGallery')}</p>
-        <p className="text-xs text-gray-300 mt-1">Создайте первое видео на вкладке «Создать»</p>
+        <p className="text-xs text-gray-300 mt-1">{t('video.gallery.empty_hint')}</p>
       </div>
     );
   }
@@ -40,7 +40,7 @@ export default function VideoGallery({ jobs, loading, onDelete, onExtend, onLips
   return (
     <div className="p-4">
       {hasReady && (
-        <ResultSharePrompt text="Сделал(а) это видео в Linkeon — нейросеть сама создаёт контент для соцсетей. Попробуй, по моей ссылке дадут бонус на старт 🎁" />
+        <ResultSharePrompt text={t('video.share.video_message')} />
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {jobs.map((j) => (

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Gift, X, Share2 } from 'lucide-react';
 import { shareWithReferral } from '../../services/shareReferral';
 import type { ReferralTouch } from '../../services/shareReferral';
@@ -20,6 +21,7 @@ export function sharePromptEligible(): boolean {
 }
 
 export default function ResultSharePrompt({ text, touch = 'result_prompt' }: { text: string; touch?: ReferralTouch }) {
+  const { t } = useTranslation();
   const [show, setShow] = useState(() => sharePromptEligible());
   if (!show) return null;
   const bump = () => {
@@ -32,12 +34,14 @@ export default function ResultSharePrompt({ text, touch = 'result_prompt' }: { t
     <div className="mb-4 flex items-center gap-3 rounded-xl border border-forest-200 bg-forest-50 px-4 py-3">
       <Gift className="w-5 h-5 text-forest-600 flex-shrink-0" />
       <div className="flex-1 text-sm text-gray-700">
-        Понравился результат? Поделись — друг получит <b>20 000 токенов</b> на старт, а ты — % с его пополнений.
+        <Trans i18nKey="video.share.result_prompt_text">
+          Понравился результат? Поделись — друг получит <b>20 000 токенов</b> на старт, а ты — % с его пополнений.
+        </Trans>
       </div>
       <button onClick={onShare} className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white rounded-lg text-sm hover:bg-forest-700 transition-colors flex-shrink-0">
-        <Share2 className="w-4 h-4" /> Поделиться
+        <Share2 className="w-4 h-4" /> {t('video.share.button')}
       </button>
-      <button onClick={onClose} aria-label="Закрыть" className="text-gray-400 hover:text-gray-600 flex-shrink-0"><X className="w-4 h-4" /></button>
+      <button onClick={onClose} aria-label={t('video.share.close_aria') as string} className="text-gray-400 hover:text-gray-600 flex-shrink-0"><X className="w-4 h-4" /></button>
     </div>
   );
 }

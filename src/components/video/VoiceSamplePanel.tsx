@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mic, Loader, CheckCircle2, AlertTriangle, Trash2, Upload } from 'lucide-react';
 import type { VoiceState, VoiceDescriptor } from './useVoiceProfile';
 
@@ -14,6 +15,7 @@ interface Props {
 }
 
 const VoiceSamplePanel: React.FC<Props> = ({ status, hasVoice, descriptor, error, onUpload, onDelete }) => {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -23,14 +25,14 @@ const VoiceSamplePanel: React.FC<Props> = ({ status, hasVoice, descriptor, error
     if (!file || !consent) return;
     setBusy(true); setLocalErr(null);
     try { await onUpload(file, consent); setFile(null); }
-    catch (e: any) { setLocalErr(e?.message ?? 'Не удалось загрузить'); }
+    catch (e: any) { setLocalErr(e?.message ?? t('video.voice.upload_error_fallback')); }
     finally { setBusy(false); }
   };
 
   const remove = async () => {
     setBusy(true); setLocalErr(null);
     try { await onDelete(); setConsent(false); }
-    catch (e: any) { setLocalErr(e?.message ?? 'Не удалось удалить'); }
+    catch (e: any) { setLocalErr(e?.message ?? t('video.voice.delete_error_fallback')); }
     finally { setBusy(false); }
   };
 
@@ -40,10 +42,10 @@ const VoiceSamplePanel: React.FC<Props> = ({ status, hasVoice, descriptor, error
       <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm">
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-green-700 font-medium">
-            <CheckCircle2 className="w-4 h-4" /> Голос готов
+            <CheckCircle2 className="w-4 h-4" /> {t('video.voice.ready')}
           </span>
           <button onClick={remove} disabled={busy} className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 disabled:opacity-50">
-            {busy ? <Loader className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />} Заменить
+            {busy ? <Loader className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />} {t('studio.replace')}
           </button>
         </div>
         {descriptor && (
@@ -63,7 +65,7 @@ const VoiceSamplePanel: React.FC<Props> = ({ status, hasVoice, descriptor, error
     return (
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm flex items-center gap-2 text-gray-600">
         <Loader className="w-4 h-4 animate-spin text-forest-600" />
-        Анализируем и клонируем голос… (обычно меньше минуты)
+        {t('video.voice.cloning')}
       </div>
     );
   }
@@ -72,10 +74,10 @@ const VoiceSamplePanel: React.FC<Props> = ({ status, hasVoice, descriptor, error
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3 text-sm space-y-2">
       <div className="flex items-center gap-1.5 text-gray-700 font-medium">
-        <Mic className="w-4 h-4 text-forest-600" /> Загрузите образец своего голоса
+        <Mic className="w-4 h-4 text-forest-600" /> {t('video.voice.upload_title')}
       </div>
       <p className="text-xs text-gray-500">
-        ≥60 секунд, моно, без музыки и шума, разные интонации. Чем чище запись — тем точнее клон.
+        {t('video.voice.upload_hint')}
       </p>
       <input
         type="file"
@@ -85,7 +87,7 @@ const VoiceSamplePanel: React.FC<Props> = ({ status, hasVoice, descriptor, error
       />
       <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
-        <span>Это мой голос, и я согласен(на) на его синтез для озвучки моих видео.</span>
+        <span>{t('video.voice.consent_label')}</span>
       </label>
       {(localErr || (status === 'failed' && error)) && (
         <div className="flex items-center gap-1.5 text-xs text-red-600">
@@ -97,7 +99,7 @@ const VoiceSamplePanel: React.FC<Props> = ({ status, hasVoice, descriptor, error
         disabled={!file || !consent || busy}
         className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm disabled:opacity-50"
       >
-        {busy ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Загрузить голос
+        {busy ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} {t('video.voice.upload_button')}
       </button>
     </div>
   );

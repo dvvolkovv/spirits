@@ -34,6 +34,9 @@ const MIGRATED = [
   'src/components/chat',
   'src/components/settings',
   'src/components/profile',
+  'src/components/video',
+  'src/components/imagegen',
+  'src/components/tokens',
 ];
 
 /**

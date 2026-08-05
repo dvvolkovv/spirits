@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, X } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
@@ -16,6 +17,7 @@ const SessionPaywallNudge: React.FC<{ assistantId: number | null; sessionUserMsg
   assistantId,
   sessionUserMsgCount,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [paid, setPaid] = useState<boolean | null>(null);
   const [dismissed, setDismissed] = useState<boolean>(() => !!sessionStorage.getItem(DISMISS_KEY));
@@ -66,21 +68,21 @@ const SessionPaywallNudge: React.FC<{ assistantId: number | null; sessionUserMsg
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-gray-800">
-            Роман сегодня в ударе! Впрочем, как и всегда 👍 Дарим +50% токенов на первый пакет, чтобы получить ещё больше выгоды 🤝
+            {t('payment.roman_nudge_message')}
           </p>
           <div className="mt-3 flex items-center gap-2">
             <button
               onClick={buy}
               className="px-3 py-1.5 rounded-lg bg-forest-600 text-white text-sm font-medium hover:bg-forest-700 transition-colors"
             >
-              Выбрать пакет
+              {t('offer.cta')}
             </button>
             <button onClick={dismiss} className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">
-              Позже
+              {t('payment.later_button')}
             </button>
           </div>
         </div>
-        <button onClick={dismiss} aria-label="Закрыть" className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+        <button onClick={dismiss} aria-label={t('common.close')} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
           <X className="w-4 h-4" />
         </button>
       </div>

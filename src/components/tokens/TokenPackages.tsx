@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Coins, Check, Loader, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
@@ -17,32 +18,34 @@ interface TokenPackagesProps {
   onClose: () => void;
 }
 
-const packages: TokenPackage[] = [
+const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string): TokenPackage[] => [
   {
     id: 'starter',
-    name: 'Стартовый',
+    name: t('payment.package_starter_name'),
     tokens: 50000,
     price: 149,
   },
   {
     id: 'extended',
-    name: 'Расширенный',
+    name: t('payment.info.package_extended'),
     tokens: 200000,
     price: 499,
     popular: true,
-    savings: 'Экономия 15%',
+    savings: t('payment.package_savings', { percent: 15 }),
   },
   {
     id: 'professional',
-    name: 'Профессиональный',
+    name: t('payment.info.package_pro'),
     tokens: 1000000,
     price: 1990,
-    savings: 'Экономия 30%',
+    savings: t('payment.package_savings', { percent: 30 }),
   },
 ];
 
 export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
+  const packages = getPackages(t);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   // Пришли из оффера (?offer=1) — показываем бейдж «+50% к первому пакету».
@@ -93,12 +96,12 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
     if (!selectedPkg) return;
 
     if (!email.trim()) {
-      setEmailError('Пожалуйста, укажите email для получения чека');
+      setEmailError(t('payment.email_required_error'));
       return;
     }
 
     if (!validateEmail(email)) {
-      setEmailError('Пожалуйста, укажите корректный email');
+      setEmailError(t('payment.email_invalid_error'));
       return;
     }
 
@@ -123,15 +126,18 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
           if (data.payment_id) localStorage.setItem('pending_payment_id', data.payment_id);
           window.location.href = data.confirmation_url;
         } else {
+          // i18n-ignore: текст ловится catch'ем ниже и уходит в console.error;
+          // пользователю показывается переведённый alert payment.create_payment_error
           throw new Error('Не получена ссылка на оплату');
         }
       } else {
         const errorData = await response.json();
+        // i18n-ignore: см. выше — до UI не доходит
         throw new Error(errorData.message || 'Ошибка создания платежа');
       }
     } catch (error) {
       console.error('Ошибка при создании платежа:', error);
-      alert('Произошла ошибка при создании платежа. Попробуйте позже.');
+      alert(t('payment.create_payment_error'));
       setIsProcessing(false);
       setSelectedPackage(null);
     }
@@ -142,9 +148,9 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Пополнение токенов</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t('payment.topup_modal_title')}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Выберите пакет токенов для продолжения работы с ассистентами
+              {t('payment.topup_modal_subtitle')}
             </p>
           </div>
           <button
@@ -162,10 +168,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Coins className="w-5 h-5 text-forest-600" />
-                  <span className="text-sm font-medium text-gray-700">Текущий баланс:</span>
+                  <span className="text-sm font-medium text-gray-700">{t('payment.current_balance_label')}</span>
                 </div>
                 <span className="text-xl font-bold text-forest-700">
-                  {formatTokens(user.tokens)} токенов
+                  {formatTokens(user.tokens)} {t('chat.tokens_suffix')}
                 </span>
               </div>
             </div>
@@ -180,7 +186,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               <div className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-white text-gray-500">или купите пакет токенов</span>
+              <span className="px-3 bg-white text-gray-500">{t('payment.or_buy_package')}</span>
             </div>
           </div>
 
@@ -188,7 +194,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-gray-600" />
-                <span>Email для получения чека</span>
+                <span>{t('payment.email_label')}</span>
               </div>
             </label>
             <input
@@ -198,7 +204,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                 setEmail(e.target.value);
                 setEmailError('');
               }}
-              placeholder={isLoadingEmail ? 'Загрузка...' : 'example@mail.com'}
+              placeholder={isLoadingEmail ? t('common.loading') : 'example@mail.com'}
               className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
                 emailError ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -208,7 +214,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               <p className="mt-2 text-sm text-red-600">{emailError}</p>
             )}
             <p className="mt-2 text-xs text-gray-500">
-              На указанный email будет отправлен чек об оплате
+              {t('payment.email_hint')}
             </p>
           </div>
 
@@ -225,7 +231,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                 {pkg.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <span className="bg-gradient-to-r from-forest-600 to-warm-600 text-white px-4 py-1 rounded-full text-xs font-semibold">
-                      Популярный
+                      {t('payment.popular_badge')}
                     </span>
                   </div>
                 )}
@@ -233,7 +239,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                 {isOffer && (
                   <div className="absolute -top-3 left-4">
                     <span className="bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                      🎁 +50%
+                      {t('payment.offer_badge')}
                     </span>
                   </div>
                 )}
@@ -254,9 +260,9 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                       {formatTokens(pkg.tokens)}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600">токенов</p>
+                  <p className="text-sm text-gray-600">{t('chat.tokens_suffix')}</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    ≈ {Math.floor(pkg.tokens / 3500).toLocaleString('ru-RU')} сообщений
+                    {t('payment.approx_messages_label', { count: Math.floor(pkg.tokens / 3500).toLocaleString('ru-RU') })}
                   </p>
                 </div>
 
@@ -266,7 +272,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                     <span className="text-xl text-gray-600 ml-1">₽</span>
                   </div>
                   <p className="text-center text-xs text-gray-500 mt-1">
-                    ~{(pkg.price / (pkg.tokens / 1000)).toFixed(2)} ₽ за 1000 токенов
+                    {t('payment.price_per_1000_tokens', { price: (pkg.price / (pkg.tokens / 1000)).toFixed(2) })}
                   </p>
                 </div>
 
@@ -282,12 +288,12 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                   {isProcessing && selectedPackage === pkg.id ? (
                     <>
                       <Loader className="w-5 h-5 animate-spin" />
-                      <span>Обработка...</span>
+                      <span>{t('payment.processing_label')}</span>
                     </>
                   ) : (
                     <>
                       <Check className="w-5 h-5" />
-                      <span>Купить</span>
+                      <span>{t('payment.buy_button')}</span>
                     </>
                   )}
                 </button>
@@ -298,28 +304,28 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
           <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
               <Check className="w-5 h-5 text-blue-600 mr-2" />
-              Что включено
+              {t('payment.included_title')}
             </h4>
             <ul className="space-y-2 text-sm text-gray-700">
               <li className="flex items-start">
                 <span className="text-blue-600 mr-2">•</span>
-                <span>Общение со всеми доступными ассистентами</span>
+                <span>{t('payment.included_item_chat')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 mr-2">•</span>
-                <span>Токены не сгорают и действуют бессрочно</span>
+                <span>{t('payment.included_item_no_expiry')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 mr-2">•</span>
-                <span>Безопасная оплата через ЮKassa</span>
+                <span>{t('payment.included_item_secure_payment')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 mr-2">•</span>
-                <span>Мгновенное зачисление токенов после оплаты</span>
+                <span>{t('payment.included_item_instant_credit')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 mr-2">•</span>
-                <span className="text-gray-500">Количество сообщений указано для развёрнутых ответов с историей диалога. Короткие вопросы расходуют в 3–4 раза меньше токенов</span>
+                <span className="text-gray-500">{t('payment.included_item_messages_note')}</span>
               </li>
             </ul>
           </div>

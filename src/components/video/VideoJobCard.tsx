@@ -164,9 +164,9 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onRep
                   {job.video_url && (
                     <button
                       type="button"
-                      onClick={e => { e.stopPropagation(); shareWithReferral('Сделал(а) это видео в Linkeon — нейросеть сама создаёт контент для соцсетей. Попробуй, по моей ссылке дадут бонус на старт 🎁'); }}
+                      onClick={e => { e.stopPropagation(); shareWithReferral(t('video.share.video_message')); }}
                       className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
-                      title="Поделиться с реф-ссылкой"
+                      title={t('video.job.titles.share')}
                     >
                       <Share2 className="w-3.5 h-3.5" />
                     </button>
@@ -196,7 +196,7 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onRep
                       type="button"
                       onClick={e => { e.stopPropagation(); onRepeat(job); }}
                       className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
-                      title="Сделать заново — те же параметры, тот же промпт"
+                      title={t('video.job.titles.repeat')}
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
