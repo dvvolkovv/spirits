@@ -17,6 +17,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const termsContentRu = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Пользовательское соглашение</h2>
+      <p className="text-sm text-gray-500">Редакция от 5 августа 2026 г.</p>
 
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">1. Общие положения</h3>
@@ -42,9 +43,14 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">2. Цель Приложения</h3>
         <p className="text-gray-700 leading-relaxed">
-          Приложение предназначено для поиска и общения с людьми, близкими по духу, ценностям и
-          интересам. Приложение использует искусственный интеллект для анализа и подбора совместимых
-          пользователей.
+          Приложение предоставляет пользователю доступ к AI-ассистентам, к генерации
+          контента (текст, изображения, видео) и к ведению единого профиля.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Приложение также обеспечивает нетворкинг: поиск других пользователей по
+          совместимости профилей, отправку откликов и переписку с ними. Нетворкинг
+          в Приложении направлен на профессиональные и дружеские контакты и не является
+          сервисом знакомств.
         </p>
       </section>
 
@@ -91,13 +97,24 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">4.1. Платные услуги и подписки</h3>
+        <h3 className="text-lg font-semibold text-gray-800">4.1. Платные услуги и токены</h3>
         <p className="text-gray-700 leading-relaxed">
-          Приложение предоставляет как бесплатные, так и платные услуги (премиум-подписка).
+          Приложение предоставляет как бесплатные, так и платные услуги. Основной расчетной
+          единицей внутри Приложения являются токены. Токены расходуются при обращении
+          к AI-ассистентам, при генерации изображений и видео и при использовании иных
+          функций Приложения, требующих вычислительных ресурсов.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Платные услуги включают, но не ограничиваются: расширенный доступ к просмотру профилей,
-          приоритет в результатах поиска, дополнительные фильтры, детальный анализ совместимости.
+          При регистрации пользователю единовременно начисляется приветственный бонус —
+          25 000 токенов. Дополнительные токены приобретаются пакетами: 50 000 токенов —
+          149 ₽, 200 000 токенов — 499 ₽, 1 000 000 токенов — 1 990 ₽. Актуальный состав
+          пакетов и цены отображаются в Приложении в разделе покупки токенов.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Покупка токенов является разовой операцией.</strong> Подписка, регулярные
+          платежи и автоматическое списание средств в Приложении не применяются. Каждое
+          списание производится только по инициативе пользователя при оформлении конкретной
+          покупки; платежные данные для последующих списаний не сохраняются.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Оплата производится через интегрированные платежные системы. Исполнитель не обрабатывает
@@ -105,14 +122,10 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           с требованиями законодательства РФ.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          При оформлении подписки пользователь соглашается с автоматическим списанием
-          средств по окончании оплаченного периода до момента отмены подписки.
-          Для отмены необходимо отключить подписку в настройках не позднее чем за 24 часа
-          до даты следующего списания.
-        </p>
-        <p className="text-gray-700 leading-relaxed">
-          Неиспользованный период подписки не продлевается, не компенсируется и не
-          возвращается, за исключением случаев, предусмотренных разделом 8.
+          Приобретенные токены не имеют срока действия и не сгорают. Неиспользованный
+          остаток токенов не подлежит возврату и не обменивается на денежные средства,
+          в том числе при удалении аккаунта, за исключением случаев, предусмотренных
+          разделом 8.
         </p>
       </section>
 
@@ -139,14 +152,16 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Исполнитель НЕ ГАРАНТИРУЕТ:</strong>
         </p>
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
-          <li>Что пользователь найдет совместимого партнера</li>
-          <li>Что знакомства приведут к долгосрочным отношениям</li>
-          <li>Точность и надежность AI-алгоритмов подбора</li>
+          <li>Что пользователь найдет подходящие контакты по результатам поиска совместимости</li>
+          <li>Что установленные через Приложение контакты приведут к сотрудничеству или иному результату</li>
+          <li>Точность и надежность ответов AI-ассистентов, сгенерированного контента и алгоритмов подбора</li>
           <li>Непрерывную и безошибочную работу Приложения</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Процент совместимости и рекомендации AI являются исключительно информационными
-          и не должны рассматриваться как гарантия успешных отношений.
+          Процент совместимости, ответы AI-ассистентов и иные рекомендации AI являются
+          исключительно информационными, не являются профессиональной консультацией
+          (в том числе юридической, медицинской, психологической или финансовой) и не
+          должны рассматриваться как гарантия результата.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Исполнитель НЕ НЕСЕТ ОТВЕТСТВЕННОСТИ за:</strong>
@@ -154,11 +169,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
           <li>Содержание профилей других пользователей и достоверность информации</li>
           <li>Действия и заявления пользователей</li>
-          <li>Результаты или последствия знакомств и встреч</li>
+          <li>Результаты и последствия контактов, переписки и встреч между пользователями</li>
+          <li>Решения, принятые пользователем на основании ответов AI-ассистентов</li>
           <li>Действия третьих лиц (платежные системы, хостинг, AI-сервисы)</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Исполнитель не проверяет личность, семейное положение, намерения пользователей.
+          Исполнитель не проверяет личность пользователей, достоверность указанных ими
+          сведений и их намерения.
         </p>
         <p className="text-gray-700 leading-relaxed">
           В любом случае максимальная ответственность Исполнителя ограничена суммой,
@@ -197,9 +214,12 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li>Двойное списание по технической ошибке</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Возврат НЕ ПРОИЗВОДИТСЯ при: субъективной неудовлетворенности, отсутствии результата
-          знакомств, блокировке за нарушение правил, добровольном удалении аккаунта,
-          частичном использовании подписки.
+          Возврат НЕ ПРОИЗВОДИТСЯ при: субъективной неудовлетворенности ответами
+          AI-ассистентов, сгенерированным контентом или результатами поиска контактов,
+          блокировке за нарушение правил, добровольном удалении аккаунта.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Неиспользованный остаток приобретенных токенов возврату не подлежит.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Претензия направляется на email support@linkeon.ru и рассматривается
@@ -238,6 +258,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const termsContentEn = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Terms of Service</h2>
+      <p className="text-sm text-gray-500">Last updated: 5 August 2026</p>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
         This English version is a courtesy translation. In case of any discrepancy, the Russian-language version is governing and legally binding under the laws of the Russian Federation.
@@ -267,9 +288,14 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">2. Purpose of the Application</h3>
         <p className="text-gray-700 leading-relaxed">
-          The Application is intended for finding and communicating with people who share similar
-          values, spirit and interests. The Application uses artificial intelligence to analyze
-          and match compatible users.
+          The Application gives the user access to AI assistants, to content generation
+          (text, images, video) and to a single unified user profile.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          The Application also provides networking features: searching for other users by
+          profile compatibility, sending them responses and exchanging messages. Networking
+          in the Application is aimed at professional and friendly contacts and is not a
+          dating service.
         </p>
       </section>
 
@@ -315,13 +341,24 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">4.1. Paid services and subscriptions</h3>
+        <h3 className="text-lg font-semibold text-gray-800">4.1. Paid services and tokens</h3>
         <p className="text-gray-700 leading-relaxed">
-          The Application provides both free and paid services (premium subscription).
+          The Application provides both free and paid services. The internal unit of account
+          is the token. Tokens are consumed when the user interacts with AI assistants,
+          generates images and video, and uses other features of the Application that require
+          computing resources.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Paid services include, but are not limited to: extended profile viewing, priority in
-          search results, additional filters, detailed compatibility analysis.
+          Upon registration the user receives a one-time welcome bonus of 25,000 tokens.
+          Additional tokens are purchased in packages: 50,000 tokens — RUB 149; 200,000
+          tokens — RUB 499; 1,000,000 tokens — RUB 1,990. The current package composition and
+          prices are displayed in the Application in the token purchase section.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>The purchase of tokens is a one-off transaction.</strong> The Application
+          does not use subscriptions, recurring payments or automatic charges. Every charge is
+          made solely on the user's initiative when placing a specific order; payment
+          credentials are not stored for subsequent charges.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Payment is made through integrated payment systems. The Operator does not process
@@ -329,13 +366,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           legislation of the Russian Federation.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          By subscribing, the user agrees to automatic charges at the end of the paid period
-          until the subscription is cancelled. To cancel, the subscription must be disabled in
-          settings no later than 24 hours before the next charge date.
-        </p>
-        <p className="text-gray-700 leading-relaxed">
-          Unused subscription time is not extended, compensated or refunded, except in the
-          cases provided for in Section 8.
+          Purchased tokens have no expiry date and do not lapse. Any unused token balance is
+          non-refundable and is not exchangeable for money, including upon deletion of the
+          account, except in the cases provided for in Section 8.
         </p>
       </section>
 
@@ -362,14 +395,16 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>The Operator DOES NOT GUARANTEE:</strong>
         </p>
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
-          <li>That the user will find a compatible partner</li>
-          <li>That matches will lead to long-term relationships</li>
-          <li>The accuracy and reliability of AI matching algorithms</li>
+          <li>That the user will find suitable contacts through the compatibility search</li>
+          <li>That contacts established through the Application will lead to cooperation or any other outcome</li>
+          <li>The accuracy and reliability of AI assistants' responses, generated content and matching algorithms</li>
           <li>Continuous and error-free operation of the Application</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Compatibility percentages and AI recommendations are informational only and should
-          not be treated as a guarantee of successful relationships.
+          Compatibility percentages, AI assistants' responses and other AI recommendations are
+          informational only, do not constitute professional advice (including legal, medical,
+          psychological or financial advice) and must not be treated as a guarantee of any
+          outcome.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>The Operator IS NOT LIABLE for:</strong>
@@ -377,11 +412,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
           <li>The content of other users' profiles and the accuracy of the information</li>
           <li>Actions and statements of users</li>
-          <li>The outcomes or consequences of introductions and meetings</li>
+          <li>The outcomes and consequences of contacts, correspondence and meetings between users</li>
+          <li>Decisions taken by the user on the basis of AI assistants' responses</li>
           <li>Actions of third parties (payment systems, hosting, AI services)</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          The Operator does not verify the identity, marital status, or intentions of users.
+          The Operator does not verify users' identity, the accuracy of the information they
+          provide, or their intentions.
         </p>
         <p className="text-gray-700 leading-relaxed">
           In any case, the Operator's maximum liability is limited to the amount paid by the
@@ -420,9 +457,12 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li>Duplicate charge due to a technical error</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Refunds are NOT made for: subjective dissatisfaction, lack of dating results,
-          account blocking for rule violations, voluntary account deletion, or partial use
-          of a subscription.
+          Refunds are NOT made for: subjective dissatisfaction with AI assistants' responses,
+          generated content or contact search results; account blocking for rule violations;
+          or voluntary account deletion.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Any unused balance of purchased tokens is non-refundable.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Complaints are submitted to support@linkeon.ru and reviewed within 10 business days.
