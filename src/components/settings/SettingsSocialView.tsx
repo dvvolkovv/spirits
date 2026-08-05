@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2, Plus, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { socialAccountApi } from '../../services/socialAccountApi';
@@ -8,6 +9,7 @@ import TelegramConnectForm from '../chat/TelegramConnectForm';
 const PLATFORMS: SmmPlatform[] = ['telegram', 'vk', 'youtube', 'tiktok', 'instagram'];
 
 const SettingsSocialView: React.FC = () => {
+  const { t } = useTranslation();
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [tgModalOpen, setTgModalOpen] = useState(false);
@@ -18,7 +20,7 @@ const SettingsSocialView: React.FC = () => {
       const data = await socialAccountApi.list();
       setAccounts(data);
     } catch (e: any) {
-      toast.error(`Не удалось загрузить список: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('settings.social.load_error', { message: e?.message ?? t('settings.social.unknown_error') }));
     } finally {
       setLoading(false);
     }
@@ -32,10 +34,10 @@ const SettingsSocialView: React.FC = () => {
     const error = params.get('smm_oauth_error');
     if (success) {
       const label = PLATFORM_LABELS[success as SmmPlatform] ?? success;
-      toast.success(`${label} подключён`);
+      toast.success(t('chat.platform_connected_toast', { label }));
       window.history.replaceState({}, '', window.location.pathname);
     } else if (error) {
-      toast.error(`Не удалось подключить: ${decodeURIComponent(error)}`);
+      toast.error(t('chat.platform_connect_error_toast', { error: decodeURIComponent(error) }));
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -53,28 +55,28 @@ const SettingsSocialView: React.FC = () => {
       );
       window.location.href = authorizeUrl;
     } catch (e: any) {
-      const msg = e?.message ?? 'ошибка';
-      toast.error(`${PLATFORM_LABELS[platform]}: ${msg}`);
+      const msg = e?.message ?? t('settings.social.unknown_error');
+      toast.error(t('settings.social.connect_error', { platform: PLATFORM_LABELS[platform], message: msg }));
       setConnectingPlatform(null);
     }
   };
 
   const handleDelete = async (id: string, label: string) => {
-    if (!window.confirm(`Удалить подключение ${label}?`)) return;
+    if (!window.confirm(t('settings.social.confirm_delete', { label }))) return;
     try {
       await socialAccountApi.remove(id);
-      toast.success('Удалено');
+      toast.success(t('settings.social.deleted'));
       await refresh();
     } catch (e: any) {
-      toast.error(`Не удалось удалить: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('settings.social.delete_error', { message: e?.message ?? t('settings.social.unknown_error') }));
     }
   };
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-2">Социальные сети</h1>
+      <h1 className="text-2xl font-bold mb-2">{t('settings.social.title')}</h1>
       <p className="text-gray-600 mb-6">
-        Подключи свои каналы и аккаунты — AI-продюсер сможет публиковать видео туда.
+        {t('settings.social.desc')}
       </p>
 
       {/* Connect grid */}
@@ -92,29 +94,29 @@ const SettingsSocialView: React.FC = () => {
                 : <Plus className="w-4 h-4 text-blue-600" />}
               <span className="font-medium">{PLATFORM_LABELS[p]}</span>
             </div>
-            <div className="text-xs text-gray-500">Подключить</div>
+            <div className="text-xs text-gray-500">{t('settings.connect')}</div>
           </button>
         ))}
       </div>
 
       {/* Accounts list */}
-      <h2 className="text-lg font-semibold mb-3">Подключённые аккаунты</h2>
+      <h2 className="text-lg font-semibold mb-3">{t('settings.social.connected_title')}</h2>
       {loading ? (
         <div className="text-gray-500 flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" /> Загружаем…
+          <Loader2 className="w-4 h-4 animate-spin" /> {t('settings.social.loading')}
         </div>
       ) : accounts.length === 0 ? (
         <div className="text-gray-500 text-sm py-4 px-3 bg-gray-50 rounded">
-          Пока пусто. Подключи первый аккаунт выше.
+          {t('settings.social.empty')}
         </div>
       ) : (
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="text-left text-gray-500 border-b">
-              <th className="py-2 px-3">Платформа</th>
-              <th className="py-2 px-3">Название</th>
-              <th className="py-2 px-3">Статус</th>
-              <th className="py-2 px-3">Подключён</th>
+              <th className="py-2 px-3">{t('settings.social.col_platform')}</th>
+              <th className="py-2 px-3">{t('settings.social.col_name')}</th>
+              <th className="py-2 px-3">{t('settings.social.col_status')}</th>
+              <th className="py-2 px-3">{t('settings.social.col_connected')}</th>
               <th></th>
             </tr>
           </thead>
@@ -135,7 +137,7 @@ const SettingsSocialView: React.FC = () => {
                   <button
                     onClick={() => handleDelete(a.id, PLATFORM_LABELS[a.platform])}
                     className="text-red-500 hover:text-red-700"
-                    title="Удалить"
+                    title={t('common.delete') || ''}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -154,7 +156,7 @@ const SettingsSocialView: React.FC = () => {
         >
           <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Telegram-канал</h3>
+              <h3 className="text-lg font-semibold">{t('settings.social.telegram_modal_title')}</h3>
               <button onClick={() => setTgModalOpen(false)} className="text-gray-500 hover:text-gray-700">✕</button>
             </div>
             <TelegramConnectForm onConnected={() => { setTgModalOpen(false); refresh(); }} />

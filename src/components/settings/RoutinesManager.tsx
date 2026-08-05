@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bell, Plus, Trash2, Pencil } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
@@ -17,18 +18,11 @@ interface Routine {
 }
 interface Assistant { id: number; name: string; displayName?: string; }
 
-const DAY_LABELS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const DAY_KEYS = ['day_sun', 'day_mon', 'day_tue', 'day_wed', 'day_thu', 'day_fri', 'day_sat'] as const;
 const WEEKDAYS = [1, 2, 3, 4, 5];
 const WEEKENDS = [0, 6];
 
 const eq = (a: number[], b: number[]) => a.length === b.length && [...a].sort().every((v, i) => v === [...b].sort()[i]);
-
-const daysLabel = (days: number[] | null): string => {
-  if (!days || days.length === 0 || days.length === 7) return 'Ежедневно';
-  if (eq(days, WEEKDAYS)) return 'По будням';
-  if (eq(days, WEEKENDS)) return 'По выходным';
-  return [...days].sort().map((d) => DAY_LABELS[d]).join(', ');
-};
 
 type Preset = 'daily' | 'weekdays' | 'weekends' | 'custom';
 const daysToPreset = (days: number[] | null): Preset => {
@@ -60,11 +54,21 @@ const emptyForm = (assistantId: string): FormState => ({
 });
 
 const RoutinesManager: React.FC = () => {
+  const { t } = useTranslation();
   const [routines, setRoutines] = useState<Routine[] | null>(null);
   const [agents, setAgents] = useState<Assistant[]>([]);
   const [form, setForm] = useState<FormState | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const dayLabels = DAY_KEYS.map((k) => t(`settings.routines.${k}`));
+
+  const daysLabel = (days: number[] | null): string => {
+    if (!days || days.length === 0 || days.length === 7) return t('settings.routines.label_daily');
+    if (eq(days, WEEKDAYS)) return t('settings.routines.label_weekdays');
+    if (eq(days, WEEKENDS)) return t('settings.routines.label_weekends');
+    return [...days].sort().map((d) => dayLabels[d]).join(', ');
+  };
 
   const agentName = (id: string) => {
     const a = agents.find((x) => String(x.id) === String(id));
@@ -88,9 +92,9 @@ const RoutinesManager: React.FC = () => {
     try {
       const r = await apiClient.post('/webhook/routines', body);
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setMsg(d?.error || 'Не получилось'); return null; }
+      if (!r.ok) { setMsg(d?.error || t('settings.routines.error_generic')); return null; }
       return d;
-    } catch { setMsg('Ошибка сети'); return null; }
+    } catch { setMsg(t('settings.routines.error_network')); return null; }
     finally { setBusy(false); }
   };
 
@@ -100,12 +104,12 @@ const RoutinesManager: React.FC = () => {
     load();
   };
   const del = async (rt: Routine) => {
-    if (!window.confirm(`Удалить «${rt.title}»?`)) return;
+    if (!window.confirm(t('settings.routines.confirm_delete', { title: rt.title }))) return;
     await post({ action: 'delete', id: rt.id }); load();
   };
   const test = async (rt: Routine) => {
     const d = await post({ action: 'test', id: rt.id });
-    if (d) setMsg(d.delivered > 0 ? 'Отправили — проверь уведомление 🔔' : 'Сгенерировали, но пуш не доставлен. Включи уведомления выше на этом устройстве.');
+    if (d) setMsg(d.delivered > 0 ? t('settings.routines.test_success') : t('settings.routines.test_no_push'));
   };
   const addEnergy = async () => { await post({ action: 'preset_energy', tz: browserTz }); load(); };
 
@@ -117,11 +121,11 @@ const RoutinesManager: React.FC = () => {
 
   const saveForm = async () => {
     if (!form) return;
-    if (!form.prompt.trim()) { setMsg('Опиши, что присылать'); return; }
+    if (!form.prompt.trim()) { setMsg(t('settings.routines.prompt_required')); return; }
     const days = presetToDays(form.preset, form.customDays);
     const body: any = {
       action: form.id ? 'update' : 'create',
-      title: form.title.trim() || 'Напоминание',
+      title: form.title.trim() || t('settings.routines.default_title'),
       assistant: form.assistantId,
       prompt: form.prompt.trim(),
       sendHour: form.hour,
@@ -140,28 +144,28 @@ const RoutinesManager: React.FC = () => {
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center">
           <Bell className="w-5 h-5 mr-2 text-warm-600" />
-          Мои напоминания
+          {t('settings.routines.title')}
         </h2>
         {!form && (
           <button onClick={openNew} className="text-sm text-forest-600 hover:text-forest-700 font-medium flex items-center gap-1">
-            <Plus className="w-4 h-4" /> Добавить
+            <Plus className="w-4 h-4" /> {t('common.add')}
           </button>
         )}
       </div>
 
       <div className="p-6 space-y-4">
         <p className="text-sm text-gray-600">
-          Ассистенты сами присылают тебе сообщения по расписанию (энергия дня, сводки, напоминания). Нужно, чтобы push-уведомления на этом устройстве (выше) были включены.
+          {t('settings.routines.desc')}
         </p>
 
         {/* Список */}
         {routines === null ? (
-          <p className="text-sm text-gray-400">Загрузка…</p>
+          <p className="text-sm text-gray-400">{t('settings.routines.loading')}</p>
         ) : routines.length === 0 && !form ? (
           <div className="text-sm text-gray-500">
-            Пока нет напоминаний.{' '}
+            {t('settings.routines.empty')}{' '}
             <button onClick={addEnergy} disabled={busy} className="text-forest-600 hover:text-forest-700 font-medium disabled:opacity-50">
-              + Энергия дня от Райи
+              {t('settings.routines.add_energy_preset')}
             </button>
           </div>
         ) : (
@@ -174,9 +178,9 @@ const RoutinesManager: React.FC = () => {
                     {agentName(rt.assistantId)} · {String(rt.sendHour).padStart(2, '0')}:00 · {daysLabel(rt.days)}
                   </div>
                 </div>
-                <button onClick={() => test(rt)} disabled={busy} title="Проверить сейчас" className="text-xs text-forest-600 hover:text-forest-700 disabled:opacity-50 whitespace-nowrap">тест</button>
-                <button onClick={() => openEdit(rt)} title="Изменить" className="text-gray-400 hover:text-gray-700"><Pencil className="w-4 h-4" /></button>
-                <button onClick={() => del(rt)} title="Удалить" className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                <button onClick={() => test(rt)} disabled={busy} title={t('settings.routines.test_now_title') || ''} className="text-xs text-forest-600 hover:text-forest-700 disabled:opacity-50 whitespace-nowrap">{t('settings.routines.test_button')}</button>
+                <button onClick={() => openEdit(rt)} title={t('settings.routines.edit_title') || ''} className="text-gray-400 hover:text-gray-700"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => del(rt)} title={t('common.delete') || ''} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
                 <button
                   onClick={() => toggle(rt)}
                   disabled={busy}
@@ -192,8 +196,8 @@ const RoutinesManager: React.FC = () => {
         {/* Форма создания/редактирования */}
         {form && (
           <div className="p-4 rounded-lg border border-forest-200 bg-forest-50/40 space-y-3">
-            <div className="text-sm font-medium text-gray-900">{form.id ? 'Изменить напоминание' : 'Новое напоминание'}</div>
-            <input className={inputCls} placeholder="Название (напр. «Энергия дня»)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            <div className="text-sm font-medium text-gray-900">{form.id ? t('settings.routines.edit_form_title') : t('settings.routines.new_form_title')}</div>
+            <input className={inputCls} placeholder={t('settings.routines.name_placeholder') || ''} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <div className="grid grid-cols-2 gap-3">
               <select className={inputCls} value={form.assistantId} onChange={(e) => setForm({ ...form, assistantId: e.target.value })}>
                 {agents.map((a) => <option key={a.id} value={String(a.id)}>{a.displayName || a.name}</option>)}
@@ -203,14 +207,14 @@ const RoutinesManager: React.FC = () => {
               </select>
             </div>
             <select className={inputCls} value={form.preset} onChange={(e) => setForm({ ...form, preset: e.target.value as Preset })}>
-              <option value="daily">Каждый день</option>
-              <option value="weekdays">По будням (Пн–Пт)</option>
-              <option value="weekends">По выходным (Сб, Вс)</option>
-              <option value="custom">Выбрать дни…</option>
+              <option value="daily">{t('settings.routines.preset_daily')}</option>
+              <option value="weekdays">{t('settings.routines.preset_weekdays')}</option>
+              <option value="weekends">{t('settings.routines.preset_weekends')}</option>
+              <option value="custom">{t('settings.routines.preset_custom')}</option>
             </select>
             {form.preset === 'custom' && (
               <div className="flex flex-wrap gap-1">
-                {DAY_LABELS.map((lbl, d) => {
+                {dayLabels.map((lbl, d) => {
                   const on = form.customDays.includes(d);
                   return (
                     <button key={d} type="button"
@@ -221,12 +225,12 @@ const RoutinesManager: React.FC = () => {
                 })}
               </div>
             )}
-            <textarea className={inputCls} rows={3} placeholder="Что присылать? Напр. «Дай энергию дня и один фокус» или «Сделай сводку по моим задачам»" value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} />
+            <textarea className={inputCls} rows={3} placeholder={t('settings.routines.prompt_placeholder') || ''} value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} />
             <div className="flex items-center gap-2">
               <button onClick={saveForm} disabled={busy} className="px-4 py-2 rounded-lg bg-forest-600 text-white text-sm font-medium hover:bg-forest-700 disabled:opacity-50">
-                {form.id ? 'Сохранить' : 'Создать'}
+                {form.id ? t('common.save') : t('settings.routines.create')}
               </button>
-              <button onClick={() => { setForm(null); setMsg(null); }} disabled={busy} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Отмена</button>
+              <button onClick={() => { setForm(null); setMsg(null); }} disabled={busy} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">{t('common.cancel')}</button>
             </div>
           </div>
         )}

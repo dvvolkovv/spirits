@@ -3,14 +3,12 @@
 // (2) по ссылке (ICS) — Outlook «Опубликовать календарь», Google, iCloud (read-only, видно в «сегодня»).
 // Данные календаря живут в облаке Линкеона (мульти-устройство).
 import React, { useEffect, useState } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { Calendar, Check, Loader2, Plus, Link2 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { ConnectCalendarModal } from '../calendar/ConnectCalendarModal';
 
 type Status = 'loading' | 'not_connected' | 'connected';
-
-const PROVIDER_LABEL: Record<string, string> = { yandex: 'Яндекс.Календарь' };
-const ICS_LABEL: Record<string, string> = { link: 'По ссылке', outlook: 'Outlook (ссылка)', corp: 'Outlook (ссылка)', google: 'Google', icloud: 'iCloud', work: 'Рабочий' };
 
 // ConnectCalendarModal ждёт apiPost, отдающий уже распарсенный JSON (r.ok/r.error).
 const apiPost = async (path: string, body: any) => {
@@ -21,6 +19,7 @@ const apiPost = async (path: string, body: any) => {
 interface IcsSource { kind: string; url: string; enabled: boolean }
 
 const CalendarSourcesCard: React.FC = () => {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<Status>('loading');
   const [provider, setProvider] = useState<string | undefined>(undefined);
   const [username, setUsername] = useState<string | undefined>(undefined);
@@ -45,6 +44,21 @@ const CalendarSourcesCard: React.FC = () => {
   const [icsUrl, setIcsUrl] = useState('');
   const [icsBusy, setIcsBusy] = useState(false);
   const [icsError, setIcsError] = useState<string | null>(null);
+
+  const providerLabel = (p?: string): string =>
+    p === 'yandex' ? t('settings.calendar.yandex_calendar') : t('settings.calendar.generic');
+
+  const icsLabel = (kind: string): string => {
+    switch (kind) {
+      case 'link': return t('settings.calendar.ics_label_link');
+      case 'outlook':
+      case 'corp': return t('settings.calendar.ics_label_outlook');
+      case 'google': return 'Google';
+      case 'icloud': return 'iCloud';
+      case 'work': return t('settings.calendar.ics_label_work');
+      default: return kind;
+    }
+  };
 
   const loadStatus = async () => {
     try {
@@ -86,8 +100,8 @@ const CalendarSourcesCard: React.FC = () => {
       const r = await apiClient.post('/webhook/calendar/reconnect', {});
       const d = await r.json().catch(() => ({}));
       if (d?.ok) { await loadStatus(); }
-      else { setError(d?.error || 'Не удалось переподключить'); setShowConnect(true); }
-    } catch { setError('Не удалось переподключить'); }
+      else { setError(d?.error || t('settings.calendar.reconnect_error')); setShowConnect(true); }
+    } catch { setError(t('settings.calendar.reconnect_error')); }
     finally { setBusy(false); }
   };
 
@@ -101,8 +115,8 @@ const CalendarSourcesCard: React.FC = () => {
       });
       const d = await r.json().catch(() => ({}));
       if (d?.ok) { setExPassword(''); setShowExForm(false); await loadStatus(); }
-      else setExError(d?.error || 'Не удалось войти');
-    } catch { setExError('Не удалось войти'); }
+      else setExError(d?.error || t('settings.calendar.exchange_login_error'));
+    } catch { setExError(t('settings.calendar.exchange_login_error')); }
     finally { setExBusy(false); }
   };
 
@@ -118,8 +132,8 @@ const CalendarSourcesCard: React.FC = () => {
       const r = await apiClient.post('/webhook/calendar/ics', { url: icsUrl.trim(), kind: 'link' });
       const d = await r.json().catch(() => ({}));
       if (d?.ok) { setIcsUrl(''); setShowAddIcs(false); await loadIcs(); }
-      else setIcsError(d?.error || 'Не удалось добавить');
-    } catch { setIcsError('Не удалось добавить'); }
+      else setIcsError(d?.error || t('settings.calendar.ics_add_error'));
+    } catch { setIcsError(t('settings.calendar.ics_add_error')); }
     finally { setIcsBusy(false); }
   };
 
@@ -133,18 +147,17 @@ const CalendarSourcesCard: React.FC = () => {
       <div className="p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center">
           <Calendar className="w-5 h-5 mr-2 text-forest-600" />
-          Календари
+          {t('settings.calendar.title')}
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Добавь свои календари — события из всех сразу видны в «твоём сегодня». Данные хранятся
-          в облаке Линкеона, поэтому видны на всех твоих устройствах.
+          {t('settings.calendar.desc')}
         </p>
 
         <div className="mt-4 space-y-2.5">
           {/* ——— Яндекс (по логину + паролю приложения) ——— */}
           {status === 'loading' && (
             <div className="flex items-center text-sm text-gray-400">
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />Проверяю…
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('settings.checking')}
             </div>
           )}
 
@@ -152,13 +165,13 @@ const CalendarSourcesCard: React.FC = () => {
             <div className="flex items-center justify-between gap-3">
               <span className="inline-flex items-center text-sm font-medium text-forest-700">
                 <Check className="w-4 h-4 mr-1.5" />
-                {PROVIDER_LABEL[provider || ''] || 'Календарь'} · подключён
+                {t('settings.calendar.connected_as', { name: providerLabel(provider) })}
               </span>
               <button
                 type="button" onClick={disconnect} disabled={busy}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
-                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}Отключить
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}{t('settings.disconnect')}
               </button>
             </div>
           )}
@@ -167,30 +180,30 @@ const CalendarSourcesCard: React.FC = () => {
             <>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
                 <span className="text-sm text-gray-700 truncate">
-                  {PROVIDER_LABEL[provider || ''] || 'Календарь'}{username ? ` · ${username}` : ''}
+                  {providerLabel(provider)}{username ? ` · ${username}` : ''}
                 </span>
                 <button
                   type="button" onClick={reconnect} disabled={busy}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50 shrink-0"
                 >
-                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}Подключить снова
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}{t('settings.calendar.reconnect')}
                 </button>
               </div>
               <button
                 type="button" onClick={() => setShowConnect(true)}
                 className="text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
               >
-                Подключить другой аккаунт
+                {t('settings.calendar.connect_other')}
               </button>
             </>
           ) : (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
-              <span className="text-sm font-medium text-gray-900">Яндекс.Календарь</span>
+              <span className="text-sm font-medium text-gray-900">{t('settings.calendar.yandex_calendar')}</span>
               <button
                 type="button" onClick={() => setShowConnect(true)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-forest-700"
               >
-                <Plus className="w-4 h-4" />Подключить
+                <Plus className="w-4 h-4" />{t('settings.connect')}
               </button>
             </div>
           ))}
@@ -204,13 +217,13 @@ const CalendarSourcesCard: React.FC = () => {
             <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
               <span className="inline-flex items-center text-sm font-medium text-forest-700 truncate">
                 <Check className="w-4 h-4 mr-1.5 shrink-0" />
-                Outlook (рабочий){exchange.username ? ` · ${exchange.username}` : ''}
+                {t('settings.calendar.outlook_work')}{exchange.username ? ` · ${exchange.username}` : ''}
               </span>
               <button
                 type="button" onClick={disconnectExchange} disabled={exBusy}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 shrink-0"
               >
-                {exBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}Отключить
+                {exBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}{t('settings.disconnect')}
               </button>
             </div>
           ) : !showExForm ? (
@@ -218,43 +231,43 @@ const CalendarSourcesCard: React.FC = () => {
               type="button" onClick={() => { setShowExForm(true); setExError(null); }}
               className="flex w-full items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50"
             >
-              <span className="text-sm font-medium text-gray-900">Outlook (рабочий) — вход по логину</span>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-forest-700"><Plus className="w-4 h-4" />Подключить</span>
+              <span className="text-sm font-medium text-gray-900">{t('settings.calendar.outlook_connect_prompt')}</span>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-forest-700"><Plus className="w-4 h-4" />{t('settings.connect')}</span>
             </button>
           ) : (
             <div className="rounded-lg border border-gray-200 p-3 space-y-2">
-              <div className="text-sm font-medium text-gray-900">Рабочий Outlook (Exchange) — только просмотр</div>
+              <div className="text-sm font-medium text-gray-900">{t('settings.calendar.outlook_form_title')}</div>
               <p className="text-xs text-gray-500">
-                Тот же логин и пароль, что и от рабочей почты. Пароль хранится в зашифрованном виде.
+                {t('settings.calendar.outlook_form_desc')}
               </p>
               <input
-                value={exServer} onChange={(e) => setExServer(e.target.value)} placeholder="сервер, напр. mail.компания.com"
+                value={exServer} onChange={(e) => setExServer(e.target.value)} placeholder={t('settings.calendar.server_placeholder') || ''}
                 className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
               />
               <div className="flex gap-2">
                 <input
-                  value={exDomain} onChange={(e) => setExDomain(e.target.value)} placeholder="домен"
+                  value={exDomain} onChange={(e) => setExDomain(e.target.value)} placeholder={t('settings.calendar.domain_placeholder') || ''}
                   className="w-1/2 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
                 />
                 <input
-                  value={exLogin} onChange={(e) => setExLogin(e.target.value)} placeholder="логин" autoComplete="username"
+                  value={exLogin} onChange={(e) => setExLogin(e.target.value)} placeholder={t('settings.calendar.login_placeholder') || ''} autoComplete="username"
                   className="w-1/2 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
                 />
               </div>
               <input
-                type="password" value={exPassword} onChange={(e) => setExPassword(e.target.value)} placeholder="пароль" autoComplete="new-password"
+                type="password" value={exPassword} onChange={(e) => setExPassword(e.target.value)} placeholder={t('settings.calendar.password_placeholder') || ''} autoComplete="new-password"
                 className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
               />
               {exError && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{exError}</div>
               )}
               <div className="flex items-center justify-end gap-2">
-                <button type="button" onClick={() => { setShowExForm(false); setExError(null); }} className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900">Отмена</button>
+                <button type="button" onClick={() => { setShowExForm(false); setExError(null); }} className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900">{t('common.cancel')}</button>
                 <button
                   type="button" onClick={connectExchange} disabled={exBusy || !exLogin.trim() || !exPassword}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
                 >
-                  {exBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}Подключить
+                  {exBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}{t('settings.connect')}
                 </button>
               </div>
             </div>
@@ -265,13 +278,13 @@ const CalendarSourcesCard: React.FC = () => {
             <div key={s.kind} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
               <span className="inline-flex items-center text-sm font-medium text-forest-700 truncate">
                 <Check className="w-4 h-4 mr-1.5 shrink-0" />
-                {ICS_LABEL[s.kind] || s.kind} · по ссылке
+                {t('settings.calendar.ics_connected', { label: icsLabel(s.kind) })}
               </span>
               <button
                 type="button" onClick={() => removeIcs(s.kind)}
                 className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 shrink-0"
               >
-                Убрать
+                {t('settings.calendar.remove')}
               </button>
             </div>
           ))}
@@ -281,23 +294,25 @@ const CalendarSourcesCard: React.FC = () => {
               type="button" onClick={() => { setShowAddIcs(true); setIcsError(null); }}
               className="flex w-full items-center justify-between gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-2.5 text-left hover:bg-gray-50"
             >
-              <span className="text-sm font-medium text-gray-900">Другой календарь по ссылке (Google, iCloud…)</span>
+              <span className="text-sm font-medium text-gray-900">{t('settings.calendar.add_other_ics')}</span>
               <span className="inline-flex items-center gap-1.5 text-sm font-medium text-forest-700">
-                <Link2 className="w-4 h-4" />Добавить
+                <Link2 className="w-4 h-4" />{t('common.add')}
               </span>
             </button>
           )}
 
           {showAddIcs && (
             <div className="rounded-lg border border-gray-200 p-3 space-y-2">
-              <div className="text-sm font-medium text-gray-900">Календарь по ссылке (ICS, только просмотр)</div>
+              <div className="text-sm font-medium text-gray-900">{t('settings.calendar.ics_form_title')}</div>
               <p className="text-xs text-gray-500">
-                Опубликуй календарь в своём сервисе (Google, iCloud, Outlook.com…) и вставь ссылку
-                <b> .ics</b> сюда. Это read-only: события будут видны в «сегодня».
+                <Trans i18nKey="settings.calendar.ics_form_desc">
+                  Опубликуй календарь в своём сервисе (Google, iCloud, Outlook.com…) и вставь ссылку
+                  <b> .ics</b> сюда. Это read-only: события будут видны в «сегодня».
+                </Trans>
               </p>
               <input
                 type="url" value={icsUrl} onChange={(e) => setIcsUrl(e.target.value)}
-                placeholder="https://…/calendar.ics  (или webcal://…)"
+                placeholder={t('settings.calendar.ics_url_placeholder') || ''}
                 className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
               />
               {icsError && (
@@ -305,13 +320,13 @@ const CalendarSourcesCard: React.FC = () => {
               )}
               <div className="flex items-center justify-end gap-2">
                 <button type="button" onClick={() => { setShowAddIcs(false); setIcsError(null); }} className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900">
-                  Отмена
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button" onClick={addIcs} disabled={icsBusy || icsUrl.trim().length < 8}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
                 >
-                  {icsBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}Добавить
+                  {icsBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}{t('common.add')}
                 </button>
               </div>
             </div>

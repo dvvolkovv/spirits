@@ -1,28 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import { ClipboardList, Loader, ChevronRight, ChevronDown, Check, Archive, RotateCcw } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import type { TaskListItem, TaskStatus, TaskDetails } from '../../types/tasks';
 
+// Модульные функции без доступа к хуку useTranslation — используют
+// напрямую общий i18next-инстанс (тот же, что инициализирован в src/i18n).
 const formatRelative = (iso: string | null): string => {
   if (!iso) return '';
   const d = new Date(iso);
   const diffMs = Date.now() - d.getTime();
   const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return 'только что';
+  // just_now/minutes_ago/hours_ago текстуально совпадают с уже существующими
+  // support.time.* — переиспользуем вместо дублирования. days_ago отличается
+  // сокращением («дн» вместо «д»), поэтому под него отдельный ключ.
+  if (sec < 60) return i18n.t('support.time.just_now');
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min} мин назад`;
+  if (min < 60) return i18n.t('support.time.minutes_ago', { count: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} ч назад`;
+  if (hr < 24) return i18n.t('support.time.hours_ago', { count: hr });
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day} дн назад`;
+  if (day < 7) return i18n.t('profile.tasks.time_days_ago', { count: day });
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
 };
 
 const statusBadge = (status: TaskStatus): { cls: string; label: string } => {
-  if (status === 'active') return { cls: 'bg-forest-50 text-forest-700', label: 'активна' };
-  if (status === 'done')   return { cls: 'bg-gray-100 text-gray-600',     label: 'завершена' };
-  return { cls: 'bg-gray-100 text-gray-500', label: 'архив' };
+  if (status === 'active') return { cls: 'bg-forest-50 text-forest-700', label: i18n.t('profile.tasks.status.active') };
+  if (status === 'done')   return { cls: 'bg-gray-100 text-gray-600',     label: i18n.t('profile.tasks.status.done') };
+  return { cls: 'bg-gray-100 text-gray-500', label: i18n.t('profile.tasks.status.archived') };
 };
 
 const formatDateTime = (iso: string): string => {

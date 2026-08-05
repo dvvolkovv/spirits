@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Smartphone, Mail, Loader } from 'lucide-react';
 import { authService } from '../../services/authService';
 import type { Identity } from '../../types/auth';
+import type { TFunction } from 'i18next';
 
-const providerLabel = (p: Identity['provider']): string => {
-  if (p === 'phone')   return 'Телефон';
+const providerLabel = (t: TFunction, p: Identity['provider']): string => {
+  if (p === 'phone')   return t('profile.phone');
   if (p === 'email')   return 'Email';
   if (p === 'google')  return 'Google';
   if (p === 'talerid') return 'Taler ID';
@@ -89,7 +90,7 @@ const LinkedAccountsView: React.FC = () => {
                 id.provider === 'yandex' ||
                 id.provider === 'talerid') && providerBadge(id.provider)}
               <div>
-                <p className="text-sm font-medium">{providerLabel(id.provider)}</p>
+                <p className="text-sm font-medium">{providerLabel(t, id.provider)}</p>
                 <p className="text-xs text-gray-500">{id.providerSub}</p>
               </div>
             </div>
