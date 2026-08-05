@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
+import { LanguageSelect } from '../settings/LanguageSelect';
 
 interface PhoneInputProps {
   onSubmit: (phone: string) => void;
@@ -45,6 +46,9 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
 
   return (
     <form onSubmit={handleSubmit((data) => onSubmit(data.phone))}>
+      <div className="flex justify-end mb-4">
+        <LanguageSelect className="text-sm px-2 py-1 border border-gray-200 rounded-lg bg-white/80 focus:ring-2 focus:ring-forest-500" />
+      </div>
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">

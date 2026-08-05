@@ -1,0 +1,725 @@
+{
+  "onboarding": {
+    "welcome": "LINKEON.IO",
+    "subtitle": "赋能企业成长与发展的智能引擎",
+    "seg_biz": "企业AI团队：律师、会计师和营销专家汇聚一个聊天",
+    "seg_creator": "AI工作室：几分钟内生成文案、图片和视频",
+    "trust": "🎁 赠送25,000代币 · 无需银行卡 · 仅需2分钟",
+    "enter_phone": "请输入手机号码",
+    "phone_placeholder": "+7 (999) 999-99-99",
+    "send_code": "发送验证码",
+    "enter_code": "请输入短信验证码",
+    "code_sent": "验证码已发送至",
+    "resend_code": "重新发送",
+    "resend_in": "{{time}}后可重新发送",
+    "verify": "确认",
+    "consent_title": "数据处理同意书",
+    "consent_text": "我同意使用条款和隐私政策",
+    "accept_continue": "同意并继续",
+    "terms": "用户协议",
+    "privacy": "隐私政策",
+    "phone_invalid": "请输入有效的手机号码",
+    "legal_consent_prefix": "我已年满18周岁，接受",
+    "legal_and": "，",
+    "legal_and_before_privacy": "，",
+    "legal_consent_suffix": " 并同意处理我的个人数据",
+    "legal_terms_link": "用户协议",
+    "legal_privacy_link": "隐私政策",
+    "payment_info_link": "服务说明与付款方式",
+    "sms_sent": "验证码已通过短信发送",
+    "paste_from_clipboard": "从剪贴板粘贴验证码",
+    "match": {
+      "title": "从哪里开始？",
+      "subtitle": "选择当前最贴近你的选项——我们将为你匹配合适的助手，马上开始对话",
+      "show_all": "查看全部助手 →",
+      "greeting": "你好！我是{{name}}，{{role}}。我们从哪里开始？",
+      "reopen": "匹配助手",
+      "theme_self": "了解自己，梳理情绪",
+      "theme_growth": "目标与个人成长",
+      "theme_career": "职业与工作",
+      "theme_biz": "商业与财务",
+      "theme_practices": "自我认知练习",
+      "theme_unsure": "还不确定 / 先随便看看"
+    }
+  },
+  "offer": {
+    "text": "你已经聊了很多——升级到完整版继续吧。首个套餐额外赠送50%代币 🎁",
+    "cta": "选择套餐",
+    "badge": "🎁 首个套餐+50%",
+    "nudge_text": "聊得开心吗？开通完整版——选择代币套餐，畅聊无限制。",
+    "nudge_cta": "选择套餐"
+  },
+  "nav": {
+    "networking": "人脉拓展",
+    "image_gen": "图片生成器",
+    "referral": "合伙人",
+    "help": "帮助",
+    "socialAccounts": "社交账号",
+    "tokens": {
+      "label": "代币",
+      "top_up": "点击充值",
+      "how_question": "代币是如何计算的？",
+      "how_title": "动态定价机制",
+      "how_line1": "价格并非固定——每个任务都是独特的。就像打车软件或酒店预订平台一样，费用会根据实际工作量、需求和资源灵活调整。",
+      "how_line2": "最终结果是：价格透明公正，没有多付也没有隐藏费用。你花的每一分钱都物有所值。",
+      "how_line3": "计数器会在每条消息后显示准确的代币消耗量。"
+    },
+    "legal": {
+      "terms": "用户协议",
+      "privacy": "隐私政策"
+    }
+  },
+  "errors": {
+    "boundary_title": "界面出错了",
+    "details": "详情",
+    "retry": "重试",
+    "to_home": "返回首页"
+  },
+  "chat": {
+    "title": "与助手聊天",
+    "placeholder": "输入消息...",
+    "send": "发送",
+    "typing": "正在输入...",
+    "upload_file": "上传PDF文件",
+    "uploading": "正在上传文件...",
+    "file_uploaded": "文件已上传",
+    "upload_error": "文件上传失败",
+    "pdf_only": "请上传PDF格式的文件",
+    "welcome_message": "",
+    "initial_greeting": "你好！和我聊聊你自己吧！",
+    "suggestions": {
+      "values": "聊聊你的价值观",
+      "goals": "你的目标是什么？",
+      "interests": "你有什么兴趣爱好？"
+    },
+    "assistants": "助手",
+    "personal_assistant": "私人助手",
+    "for_business": "商务助手",
+    "personal_growth": "个人成长",
+    "all_assistants": "全部助手",
+    "select_assistant": "选择助手",
+    "select_assistant_hint": "在左侧面板中",
+    "upload_any_file": "上传文件",
+    "tokens_top_up_title": "点击充值代币",
+    "regenerate_title": "重新生成回复",
+    "clear_title": "清空聊天",
+    "clear_confirm": "确定要清空聊天记录吗？此操作无法撤销。",
+    "loading_history": "正在加载历史记录...",
+    "suggestions_hint": "接下来聊点什么：",
+    "load_more": "↑ 加载更多",
+    "generating_image": "正在生成图片...",
+    "generating_image_error": "图片生成失败",
+    "video_gen_error": "视频生成失败：{{error}}",
+    "ai_error_fallback": "抱歉，处理你的消息时出错了，请再试一次。",
+    "file_error_fallback": "处理文件时出错，请再试一次。",
+    "file_upload_error_generic": "上传文件时出错：{{error}}。请再试一次。",
+    "file_error_unknown": "未知错误",
+    "file_modal_title": "上传文件",
+    "file_modal_placeholder": "想对这个文件做什么？例如：分析、修改、压缩、提取文字...",
+    "file_modal_cancel": "取消",
+    "file_modal_submit": "发送",
+    "file_count_other": "{{count}} 个文件",
+    "file_remove": "移除文件",
+    "file_add_more": "继续添加",
+    "file_limit": "一次最多只能添加{{max}}个文件，多余的未被添加。",
+    "tokens_suffix": "代币",
+    "switched_to": "已切换到{{name}}",
+    "assistant_role_coach": "教练",
+    "assistant_role_psych": "心理咨询师",
+    "assistant_role_gameplay": "游戏化教练",
+    "assistant_role_astro": "占星师",
+    "assistant_role_hd": "人类图",
+    "assistant_role_default": "助手",
+    "voice_not_supported": "你的浏览器不支持语音输入",
+    "voice_not_supported_title": "不支持语音输入",
+    "voice_start": "开始语音输入",
+    "voice_stop": "停止录音",
+    "voice_error": "语音识别出错：{{error}}",
+    "image_alt": "图片",
+    "download": "下载"
+  },
+  "profile": {
+    "title": "我的个人资料",
+    "personal_info": "个人信息",
+    "profile_photo": "头像",
+    "change_photo": "更换头像",
+    "upload_photo": "上传头像",
+    "uploading": "正在上传...",
+    "first_name": "名字",
+    "last_name": "姓氏",
+    "phone": "手机号",
+    "first_name_placeholder": "请输入你的名字",
+    "last_name_placeholder": "请输入你的姓氏",
+    "not_specified": "未填写",
+    "edit": "编辑",
+    "save": "保存",
+    "cancel": "取消",
+    "values": "价值观",
+    "beliefs": "信念",
+    "desires": "愿望",
+    "intentions": "意图",
+    "timeline": "变更历史",
+    "confidence": "置信度",
+    "add_value": "添加价值观",
+    "privacy_settings": "隐私设置",
+    "name_help_text": "填写姓名有助于其他用户更好地了解你",
+    "complete_name_prompt": "填写姓名，让其他用户更好地了解你",
+    "delete_error_no_phone": "未找到手机号",
+    "delete_error_status": "删除资料失败：{{status}}",
+    "tasks": {
+      "title": "任务",
+      "empty": "暂时还没有任务。当你和助手聊到当前事务时，任务会自动出现。",
+      "loadError": "任务加载失败",
+      "detailsError": "详情加载失败",
+      "mutateError": "状态更新失败",
+      "events": "事件",
+      "assistantFallback": "助手",
+      "showInactive": "显示已完成和已归档",
+      "actions": {
+        "close": "关闭",
+        "archive": "归档",
+        "reopen": "恢复"
+      }
+    }
+  },
+  "search": {
+    "title": "寻找伙伴",
+    "placeholder": "输入你的意向或需求",
+    "recommendations": "推荐",
+    "match_score": "匹配度",
+    "common_values": "共同价值观",
+    "complementary": "互补目标",
+    "view_profile": "查看资料",
+    "start_chat": "开始聊天",
+    "no_results": "未找到相关用户",
+    "try_different": "请尝试调整搜索条件",
+    "start_prompt_title": "开始寻找伙伴",
+    "hint_title": "找到与你志同道合的人",
+    "hint_body": "在搜索框中输入内容，找到志同道合的人",
+    "searching": "正在寻找合适的人...",
+    "error_stream": "搜索时出错，请再试一次。",
+    "values_count": "价值观（{{count}}）",
+    "interests_count": "兴趣（{{count}}）",
+    "skills_count": "技能（{{count}}）",
+    "no_description": "暂无描述",
+    "unknown_user": "未知用户",
+    "telegram_tooltip": "在Telegram上联系",
+    "no_phone": "该用户的手机号不可用",
+    "intent_placeholders": [
+      "想组建一个幸福的家庭",
+      "想学弹吉他",
+      "计划成立一个社群",
+      "正在创建志同道合者社区",
+      "需要心理咨询",
+      "想进行一次教练辅导",
+      "寻找合伙人共同创建健身中心"
+    ]
+  },
+  "compatibility": {
+    "title": "契合度",
+    "subtitle": "分析与其他用户的契合度",
+    "add_phones": "添加手机号码",
+    "add_phones_hint": "输入已在LINKEON.IO平台注册的用户手机号。AI将分析你们的个人资料，并显示价值观、兴趣和技能方面的契合度百分比。",
+    "picker_open": "正在打开通讯录...",
+    "pick_from_contacts": "从通讯录选择",
+    "add": "添加",
+    "added_numbers": "已添加号码：",
+    "analyzing": "正在分析契合度...",
+    "analyze": "分析契合度",
+    "result": "分析结果",
+    "error_invalid_11": "请输入有效的手机号码（11位数字）",
+    "error_already_added": "该号码已添加",
+    "error_picker_unsupported": "你的浏览器不支持选择联系人，请尝试在Android上使用Chrome浏览器。",
+    "error_contacts_empty": "未选择联系人",
+    "error_added_with_duplicates": "已添加{{added}}个号码，{{duplicates}}个号码因重复被跳过。",
+    "error_no_valid_phones": "未找到有效的手机号码",
+    "error_picker_cancelled": "已取消选择联系人",
+    "error_picker_generic": "选择联系人时出错，请确认你已授权访问通讯录。",
+    "error_analysis": "分析契合度时出错，请再试一次。"
+  },
+  "chats": {
+    "title": "聊天",
+    "new_chat": "新建聊天",
+    "new_group": "新建群组",
+    "search_contacts": "搜索联系人",
+    "group_info": "群组信息",
+    "leave_group": "退出群组",
+    "add_members": "添加成员",
+    "members": "成员",
+    "online": "在线",
+    "typing_indicator": "正在输入..."
+  },
+  "settings": {
+    "title": "设置",
+    "privacy": "隐私",
+    "profile_visibility": "资料可见性",
+    "profile_visibility_desc": "谁可以在搜索中看到你的资料",
+    "values_visibility": "显示价值观",
+    "values_visibility_desc": "向他人展示你的价值观",
+    "allow_chats": "允许聊天",
+    "allow_chats_desc": "谁可以向你发起聊天",
+    "language": "界面语言",
+    "language_title": "界面语言",
+    "language_desc": "选择你偏好的语言",
+    "notifications": "通知",
+    "new_messages": "新消息",
+    "new_messages_desc": "聊天中收到新消息时通知你",
+    "new_matches": "新匹配",
+    "new_matches_desc": "出现合适的人选时通知你",
+    "account": "账户",
+    "logout": "退出登录",
+    "delete_account": "删除账户",
+    "version": "应用版本",
+    "visibility": {
+      "all": "所有人",
+      "matches": "仅匹配对象",
+      "private": "任何人都不可见"
+    },
+    "chat_access": {
+      "all": "所有用户",
+      "matches": "仅匹配对象",
+      "none": "任何人都不可以"
+    },
+    "linkedAccounts": {
+      "title": "登录方式",
+      "unlink": "解除绑定",
+      "link": "绑定",
+      "lastMethod": "这是唯一的登录方式",
+      "loadError": "加载失败",
+      "unlinkError": "解绑失败",
+      "oauthError": "无法开始绑定"
+    }
+  },
+  "video": {
+    "navTitle": "视频",
+    "pageTitle": "视频生成",
+    "tabs": {
+      "create": "创建",
+      "gallery": "我的视频"
+    },
+    "mode": {
+      "label": "模式",
+      "text2video": "文本 → 视频",
+      "image2video": "图片 → 视频",
+      "extend": "续写",
+      "lipsync": "对口型"
+    },
+    "model": {
+      "label": "模型",
+      "standard": "标准版（v1.6）",
+      "premium": "高级版（v2 Master）"
+    },
+    "quality": {
+      "label": "质量",
+      "std": "标准",
+      "pro": "专业"
+    },
+    "duration": {
+      "label": "时长",
+      "5s": "5秒",
+      "10s": "10秒",
+      "suffix": "秒"
+    },
+    "prompt": {
+      "label": "提示词",
+      "placeholder": "例如：专家对着镜头讲解产品发布，暖色调灯光，竖屏9:16"
+    },
+    "negativePrompt": {
+      "label": "反向提示词"
+    },
+    "cfgScale": {
+      "label": "CFG Scale"
+    },
+    "cameraType": {
+      "label": "镜头"
+    },
+    "sourceImage": {
+      "label": "原始图片",
+      "upload": "上传",
+      "fromGallery": "从图片库选择"
+    },
+    "sourceVideo": {
+      "label": "原始视频"
+    },
+    "audio": {
+      "label": "对口型音频"
+    },
+    "submit": {
+      "create": "创建",
+      "cost": "将花费{{tokens}}代币"
+    },
+    "insufficientTokens": {
+      "title": "代币不足",
+      "cta": "充值"
+    },
+    "job": {
+      "statusPending": "排队中",
+      "statusProcessing": "生成中… {{elapsed}}",
+      "statusReady": "已完成",
+      "statusFailed": "失败",
+      "processingHint": "通常需要3–5分钟",
+      "modes": {
+        "text2video": "文本→视频",
+        "image2video": "照片→视频",
+        "extend": "续写",
+        "lipsync": "对口型"
+      },
+      "confirmDelete": "删除",
+      "actions": {
+        "play": "观看",
+        "download": "下载",
+        "sendToChat": "发送到聊天",
+        "extend": "续写",
+        "lipsync": "对口型",
+        "delete": "删除"
+      },
+      "titles": {
+        "delete": "删除",
+        "download": "下载",
+        "extend": "续写视频（+5秒）",
+        "lipsync": "将口型与音频同步"
+      },
+      "emptyGallery": "你还没有生成过视频，去「创建」标签页制作第一个吧。",
+      "toastReady": "视频已完成"
+    }
+  },
+  "help": {
+    "title": "如何使用LINKEON.IO",
+    "subtitle": "简明指南与常见问题解答",
+    "cta": {
+      "title": "没找到答案？",
+      "body": "联系客服——AI助手会第一时间回复，如有需要会转接给人工团队。",
+      "button": "联系客服"
+    },
+    "quick_title": "简明指南",
+    "faq_title": "常见问题",
+    "guides": [
+      {
+        "title": "与助手聊天",
+        "desc": "在左侧面板选择助手，输入消息或上传PDF文件，助手会结合你的个人资料进行回复。"
+      },
+      {
+        "title": "寻找合作伙伴",
+        "desc": "人脉拓展 → 寻找伙伴。描述你要找的人，AI会根据价值观和技能匹配合适的人选。"
+      },
+      {
+        "title": "契合度检测",
+        "desc": "人脉拓展 → 契合度。输入手机号码（或在请求卡片/聊天中点击「契合度」）——AI会分析匹配程度。"
+      },
+      {
+        "title": "沟通请求",
+        "desc": "找到感兴趣的人？发送一条简短的自我介绍消息，对方会在「人脉拓展 → 请求」中看到，并选择接受或拒绝。"
+      },
+      {
+        "title": "用户间聊天",
+        "desc": "被接受的请求会创建聊天。你可以互发消息、查看对方资料，或通过「更多」菜单举报和拉黑。"
+      },
+      {
+        "title": "图片生成",
+        "desc": "在「图片」板块，或在聊天中输入「画一张…」，AI会根据描述生成图片。"
+      },
+      {
+        "title": "视频生成",
+        "desc": "在「视频」板块。支持文本生成视频、图片生成视频、视频续写、语音对口型，时长5秒或10秒。"
+      },
+      {
+        "title": "个人资料",
+        "desc": "根据与助手的对话自动生成。你可以编辑姓名、上传头像，并查看价值观/兴趣/技能。"
+      },
+      {
+        "title": "代币",
+        "desc": "余额显示在侧边栏。可通过YooKassa或优惠码充值，每次操作后都能看到消耗情况。"
+      }
+    ],
+    "faq": [
+      {
+        "q": "如何开始使用平台？",
+        "a": "使用手机号注册后，你会获得一份初始代币礼包。在左侧面板选择一位助手，开始对话吧，助手会帮你梳理目标和任务。"
+      },
+      {
+        "q": "什么是代币，它们是如何消耗的？",
+        "a": "代币是平台的内部虚拟货币，用于向助手发消息、生成图片、生成视频以及寻找伙伴。费用取决于任务的复杂程度——动态定价系统会根据工作量自动调整。每条消息发送后你都能看到代币消耗情况。"
+      },
+      {
+        "q": "有哪些助手可以使用？",
+        "a": "平台提供两类助手：\n\n• 商务类——HR专家、会计师、律师、营销专家、商业导师、文案撰稿人\n• 个人成长类——教练、心理咨询师、游戏化教练、数字命理师、正念助手\n• 私人助手Roman——帮你处理各种事务"
+      },
+      {
+        "q": "人脉拓展功能是如何运作的？",
+        "a": "「人脉拓展」板块共有四个标签页：\n\n• 寻找伙伴——输入你的需求（例如「寻找环保项目的设计师」），系统会根据价值观、技能和兴趣匹配合适的人。\n• 契合度——输入对方的手机号码，AI会分析你们的契合度。也可以直接在请求卡片或已打开的聊天中发起分析。\n• 请求——收到和发出的沟通邀请。\n• 聊天——已接受的与其他用户的对话。"
+      },
+      {
+        "q": "如何邀请他人沟通？",
+        "a": "从搜索结果或契合度分析中打开对方的资料，点击「请求沟通」，写一段简短的自我介绍（不超过500字），对方会在「人脉拓展 → 请求」标签页看到。在对方回应之前，无法重复发送请求。如果对方已经先向你发出了请求，你的请求会自动接受对方的邀请，并立即打开聊天。"
+      },
+      {
+        "q": "收到沟通请求该怎么处理？",
+        "a": "打开「人脉拓展 → 请求」标签页，卡片上有以下选项：\n\n•「查看资料」——查看对方的价值观、兴趣和技能。\n•「契合度」——即时AI分析与你的匹配程度。\n•「接受」——创建聊天，进入对话。\n•「拒绝」——请求会被静默删除，对方不会收到拒绝通知。\n\n限制：最多10个活跃的发出请求，每小时最多发起5个新请求。"
+      },
+      {
+        "q": "与其他用户的聊天是如何运作的？",
+        "a": "请求被接受后，对话会出现在「人脉拓展 → 聊天」中。在聊天界面：\n\n• 消息——最多4000字的普通文本，带已读标记。\n• 顶部头像和姓名可点击——打开对方的完整资料。\n• 右上角的「更多」菜单——「查看资料」「契合度」「举报」「拉黑」。\n\n如果双方同意，可以直接在聊天中交换电话和联系方式。"
+      },
+      {
+        "q": "如何举报或拉黑用户？",
+        "a": "在已打开的聊天中，点击右上角的「更多」→「举报」（描述原因，将由审核团队处理）或「拉黑」（确认后，对方将无法再给你发消息，你也无法给对方发消息）。被拉黑的用户也无法再向你发送请求。"
+      },
+      {
+        "q": "我的个人资料是如何生成的？",
+        "a": "个人资料会根据你与助手的对话自动生成。AI会提取你的价值观、兴趣、技能、愿望和意图，并保存在图数据库中，随时间逐步完善。你聊得越多，资料就越精准，搜索和契合度匹配的结果也会越好。"
+      },
+      {
+        "q": "可以上传文档吗？",
+        "a": "可以！点击聊天中的「+」按钮上传PDF文件，AI会分析文档、提取关键信息，并提供使用建议——比如更新资料、寻找合作伙伴或分析数据。"
+      },
+      {
+        "q": "如何生成图片？",
+        "a": "有两种方式：\n\n• 在聊天中——对助手说「画一张…」或「生成一张图片…」。\n• 在「图片」板块——输入描述并点击「生成」。\n\n每张图片生成费用为5,000代币。"
+      },
+      {
+        "q": "如何生成视频？",
+        "a": "在「视频」板块，共有四种模式：\n\n• 文本 → 视频——根据描述生成视频。系统会先通过Nano Banana自动生成起始帧（+5000代币），再对其进行动画化——这样画面构图比直接「纯」文本生成视频更稳定。\n• 图片 → 视频——让上传的图片动起来。\n• 续写——为已有视频再增加5秒。\n• 对口型——将语音/音频叠加到视频上，与人物面部同步（仅支持Kling v1.6模型）。\n\n时长为5秒或10秒，质量可选Standard或Pro。代币消耗会显示在「创建」按钮上，取决于模式、模型、质量和时长（文本→视频已包含起始帧的+5000代币）。生成完成的视频会出现在「我的视频」标签页，可以下载、续写或应用对口型。"
+      },
+      {
+        "q": "如何充值代币？",
+        "a": "点击侧边栏的「代币」区块，或进入充值页面。可选套餐价格从149卢布到1990卢布不等，也可以使用优惠码获取额外代币。"
+      },
+      {
+        "q": "什么是合伙人计划？",
+        "a": "你可以成为合伙人，从你邀请的用户的付款中获得佣金。请联系管理员开通该功能。每当被推荐用户付款时，佣金会自动结算。"
+      },
+      {
+        "q": "我的数据安全吗？",
+        "a": "安全。我们不会将你的数据提供给第三方。其他用户的手机号是隐藏的，只能通过平台的请求和聊天功能进行联系。沟通请求需要你明确同意（接受/拒绝）。你可以随时拉黑任何用户，并在「个人资料」板块删除账户及所有数据。"
+      }
+    ]
+  },
+  "support": {
+    "title": "客服中心",
+    "subtitle": "AI优先回复，复杂问题将转交人工团队",
+    "empty_title": "有什么可以帮你？",
+    "empty_body": "AI助手会快速解答产品相关问题，并检查服务和生成任务的状态。如果问题较复杂，会转交给人工团队，他们会在这个聊天中与你继续沟通。",
+    "ai_typing": "AI正在输入回复…",
+    "input_placeholder": "描述你的问题…",
+    "send_aria": "发送",
+    "sender_ai": "AI客服",
+    "sender_team": "团队",
+    "sender_system": "系统",
+    "banner_escalated": "已转交人工团队，他们会在这里与你继续沟通",
+    "banner_owner": "现在与你沟通的是人工团队成员",
+    "banner_closed": "该工单已关闭。如有新问题，请开启新工单。",
+    "open_new_ticket": "开启新工单",
+    "new_ticket_placeholder": "描述新的问题…",
+    "new_ticket_divider": "新工单"
+  },
+  "maintenance": {
+    "title": "系统维护中",
+    "subtitle": "我们正在为你优化服务",
+    "banner": "服务暂时不可用",
+    "body1": "目前正在进行计划内的系统维护，以提升服务质量。",
+    "body2": "由此带来的不便，敬请谅解。",
+    "ends_in": "维护预计还需：",
+    "expired_title": "系统维护已完成！",
+    "expired_body": "请刷新页面以继续使用服务。",
+    "stay_tuned": "请关注更新，如有疑问请联系我们",
+    "reload": "刷新页面",
+    "tagline": "Linkeon——寻找志同道合者的平台"
+  },
+  "payment": {
+    "verify_title": "正在核实付款",
+    "verifying": "请稍候...",
+    "success_title": "支付成功！",
+    "success_body": "代币已成功到账",
+    "tokens_added": "代币已到账",
+    "redirect_notice": "几秒后将自动跳转到聊天页面...",
+    "go_to_chat": "前往聊天",
+    "back_to_chat": "返回聊天",
+    "try_again": "重试",
+    "error_title": "支付失败",
+    "error_default": "出了点问题",
+    "error_missing_user_id": "缺少核实付款所需的数据（缺少user_id）",
+    "error_not_completed": "支付未完成或已取消。如果你已完成付款，代币将自动到账。",
+    "error_pending": "支付正在处理中，请稍等几分钟后刷新页面。",
+    "error_failed": "支付未完成",
+    "error_verification": "核实付款失败",
+    "error_exception": "核实付款时出错：{{error}}",
+    "error_unknown": "未知错误"
+  },
+  "referral": {
+    "loading": "正在加载推荐计划数据...",
+    "load_error_status": "加载失败：{{status}}",
+    "load_error": "合伙人计划数据加载失败",
+    "not_eligible_title": "合伙人计划",
+    "not_eligible_body_line1": "你尚未加入合伙人计划。",
+    "not_eligible_body_line2": "如需开通，请联系管理员。",
+    "title": "我的推荐计划",
+    "leader_line": "{{name}} · 等级{{level}} · 佣金{{pct}}%",
+    "copy": "复制",
+    "copied": "已复制",
+    "card_referees": "已邀请人数",
+    "card_paid": "被推荐人消费",
+    "card_commission": "你的佣金",
+    "card_pending": "待支付",
+    "breakdown_direct": "直接推荐（{{pct}}%）：{{amount}}",
+    "breakdown_upstream": "上游（{{pct}}%）：{{amount}}",
+    "paid_out": "已支付：{{amount}}",
+    "payout_available": "可提现金额",
+    "payout_tokens_word": "代币",
+    "payout_button": "兑换为代币",
+    "payout_min_hint": "最低提现金额为{{min}} ₽",
+    "payout_confirm_title": "兑换为代币",
+    "payout_confirm_body": "将{{rub}}兑换为{{tokens}}代币并存入你的余额？兑换即时到账。",
+    "payout_confirm_button": "确认兑换",
+    "payout_cancel": "取消",
+    "payout_success": "已到账{{tokens}}代币，兑换自{{rub}}",
+    "payout_error": "兑换失败，请稍后再试。",
+    "history_title": "佣金记录",
+    "history_date": "日期",
+    "history_phone": "手机号",
+    "history_payment": "付款",
+    "history_commission": "佣金",
+    "history_status": "状态",
+    "history_paid_title": "已支付",
+    "history_pending_title": "待支付",
+    "empty_history": "暂无佣金记录。分享你的专属链接，被推荐人首次付款后即可获得佣金。"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "retry": "重试",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "done": "完成",
+    "ok": "确定",
+    "cancel": "取消",
+    "save": "保存",
+    "edit": "编辑",
+    "delete": "删除",
+    "add": "添加",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "today": "今天",
+    "yesterday": "昨天"
+  },
+  "peer": {
+    "navTitle": "聊天",
+    "pageTitle": "聊天",
+    "loading": "加载中…",
+    "noMessagesYet": "暂无消息",
+    "emptyChats": "暂时还没有聊天",
+    "emptyChatsHint": "在「人脉拓展」标签页找到聊天对象",
+    "emptyRequests": "暂无活跃请求",
+    "tabs": {
+      "chats": "聊天",
+      "requests": "请求"
+    },
+    "requests": {
+      "incoming": "收到的",
+      "outgoing": "发出的",
+      "accept": "接受",
+      "decline": "拒绝",
+      "withdraw": "撤回",
+      "compatibility": "契合度",
+      "viewProfile": "查看资料"
+    },
+    "time": {
+      "now": "刚刚",
+      "min": "分钟",
+      "hr": "小时",
+      "day": "天"
+    },
+    "profile": {
+      "title": "用户资料",
+      "match": "匹配度",
+      "values": "价值观",
+      "noValues": "未填写价值观",
+      "interests": "兴趣",
+      "skills": "技能",
+      "requestChat": "请求沟通",
+      "introLabel": "给对方的简短留言",
+      "introPlaceholder": "为什么想认识对方？（最多500字）",
+      "sendRequest": "发送请求",
+      "sentOk": "请求已发送",
+      "requestSentAwaiting": "请求已发送，等待对方回复",
+      "hasSentYouRequest": "该用户向你发送了请求",
+      "openRequests": "前往请求页面",
+      "alreadyChatting": "你们已经有聊天了",
+      "openChat": "打开聊天"
+    },
+    "chat": {
+      "inputPlaceholder": "输入消息…",
+      "send": "发送",
+      "sendFailed": "发送失败",
+      "emptyMessages": "发送第一条消息吧",
+      "today": "今天",
+      "yesterday": "昨天",
+      "notFound": "未找到聊天",
+      "backToList": "返回聊天列表",
+      "report": "举报",
+      "block": "拉黑",
+      "confirmBlock": "确定要拉黑该用户吗？拉黑后对方将无法再给你发消息。",
+      "reportTitle": "举报该用户",
+      "reportHint": "请描述具体问题，审核团队会处理你的举报。",
+      "reportPlaceholder": "举报原因…",
+      "reportSent": "举报已提交"
+    },
+    "errors": {
+      "introRequired": "请填写一段简短留言",
+      "rateLimited": "请求过多，请稍后再试",
+      "sendFailed": "请求发送失败"
+    }
+  },
+  "customAgents": {
+    "title": "我的助手",
+    "subtitle": "拥有专属角色的私人AI助手——可在聊天中使用",
+    "createButton": "创建",
+    "empty": "你还没有创建自定义助手。",
+    "createFirst": "创建第一个",
+    "nav": "我的助手"
+  },
+  "studio": {
+    "nav": "工作室",
+    "title": "工作室",
+    "tabs": {
+      "agents": "助手",
+      "bots": "Telegram机器人"
+    }
+  },
+  "auth": {
+    "tabs": {
+      "sms": "短信",
+      "email": "邮箱",
+      "google": "Google",
+      "yandex": "Yandex"
+    },
+    "email": {
+      "label": "电子邮箱",
+      "submit": "获取登录链接",
+      "sentTitle": "查看你的邮箱",
+      "sentBody": "我们已将登录链接发送至",
+      "tempmailBlocked": "请使用长期有效的邮箱",
+      "rateLimit": "请求过于频繁，请稍等一分钟",
+      "requestError": "链接发送失败"
+    },
+    "oauth": {
+      "google": "通过Google登录",
+      "yandex": "通过Yandex登录",
+      "initFailed": "无法通过该方式发起登录",
+      "talerid": "通过Taler ID登录"
+    },
+    "consent": {
+      "ageAndPrefix": "我已年满18周岁，已阅读",
+      "servicesLink": "服务说明",
+      "and": " 和 ",
+      "paymentLink": "付款方式",
+      "suffix": " 并接受以上内容。",
+      "needToAccept": "请先同意上述条款"
+    }
+  },
+  "tgBot": {
+    "nav": "我的机器人",
+    "title": "我的Telegram机器人"
+  }
+}

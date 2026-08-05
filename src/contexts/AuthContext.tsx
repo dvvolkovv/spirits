@@ -4,6 +4,8 @@ import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
 import { clearAppStorage } from '../utils/clearAppStorage';
 import { attributeSource } from '../services/eventsClient';
+import i18n from '../i18n';
+import { resolveLanguage } from '../i18n/languages';
 
 
 interface User {
@@ -185,6 +187,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (profileRecord) {
           const profileJson = profileRecord.profileJson || profileRecord;
+
+          // Язык профиля — источник правды: он синхронизирует UI между
+          // устройствами. Если в профиле пусто, молча сохраняем то, что
+          // определил детектор, чтобы следующее устройство получило язык.
+          const profileLang = profileJson.language;
+          if (profileLang) {
+            const resolved = resolveLanguage(profileLang);
+            if (resolved !== i18n.language) {
+              i18n.changeLanguage(resolved);
+            }
+          } else {
+            const detected = resolveLanguage(i18n.language);
+            apiClient
+              .post('/webhook/profile-update', { language: detected })
+              .catch((e) => console.warn('Не удалось сохранить язык в профиль:', e));
+          }
 
           setUser((currentUser) => {
             if (!currentUser) return currentUser;

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { resolveLanguage } from '../../i18n/languages';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X } from 'lucide-react';
@@ -325,7 +326,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   allAssistants,
   onOpenMatch,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -806,7 +807,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     const fetchAssistants = async () => {
       try {
-        const response = await apiClient.get('/webhook/agents');
+        const response = await apiClient.get(`/webhook/agents?lang=${resolveLanguage(i18n.language)}`);
         if (response.ok) {
           const data = await response.json();
           setAssistants(data);
@@ -846,7 +847,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     fetchAssistants();
-  }, [user?.preferredAgent, hasUserSelectedAssistant]);
+  }, [user?.preferredAgent, hasUserSelectedAssistant, i18n.language]);
 
   // Флаг для предотвращения бесконечного цикла переключений
   const isChangingAgentRef = useRef(false);
@@ -1114,6 +1115,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const response = await apiClient.post('/webhook/soulmate/chat', {
         chatInput: userMessage,
         assistant: currentAssistantId,
+        // Быстрый путь: бэк не читает профиль лишний раз. Профиль остаётся
+        // авторитетным фолбэком, если поле не пришло.
+        lang: resolveLanguage(i18n.language),
         ...(freshTs ? { fresh: true, freshTs } : {})
       }, {
         signal: controller.signal

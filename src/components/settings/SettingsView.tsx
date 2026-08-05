@@ -17,6 +17,7 @@ import LinkedAccountsView from './LinkedAccountsView';
 import RoutinesManager from './RoutinesManager';
 import TalerIdEcosystemCard from './TalerIdEcosystemCard';
 import CalendarSourcesCard from './CalendarSourcesCard';
+import { LanguageSelect } from './LanguageSelect';
 import {
   pushSupported,
   isPushSubscribed,
@@ -107,8 +108,12 @@ const SettingsView: React.FC = () => {
   };
 
   const handleLanguageChange = (lang: string) => {
-    i18n.changeLanguage(lang);
     handleSettingChange('language', lang);
+    // Язык уходит в профиль, чтобы подхватился на других устройствах
+    // и попал в системный промпт ассистентов.
+    apiClient
+      .post('/webhook/profile-update', { language: lang })
+      .catch((e) => console.warn('Не удалось сохранить язык в профиль:', e));
   };
 
   const ToggleSwitch: React.FC<{
@@ -313,14 +318,7 @@ const SettingsView: React.FC = () => {
                   {t('settings.language_desc')}
                 </p>
               </div>
-              <select
-                value={settings.language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-              >
-                <option value="ru">🇷🇺 Русский</option>
-                <option value="en">🇺🇸 English</option>
-              </select>
+              <LanguageSelect onChange={handleLanguageChange} />
             </div>
           </div>
         </div>

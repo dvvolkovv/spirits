@@ -7,6 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "lint:i18n": "eslint src/i18n src/utils/formatters.ts src/components/settings/LanguageSelect.tsx",
+    "check-locales": "node scripts/check-locales.mjs",
+    "translate-locales": "node scripts/translate-locales.mjs",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -16,6 +20,7 @@
     "html2canvas": "^1.4.1",
     "i18next": "^23.7.6",
     "i18next-browser-languagedetector": "^7.2.0",
+    "i18next-resources-to-backend": "^1.2.3",
     "lucide-react": "^0.344.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
@@ -30,6 +35,8 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@eslint/js": "^8.57.1",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/typography": "^0.5.19",
     "@types/react": "^18.2.43",
@@ -37,11 +44,15 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.55.0",
+    "eslint-plugin-i18next": "^6.1.5",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "globals": "^15.15.0",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.3.6",
     "typescript": "^5.2.2",
-    "vite": "^5.0.8"
+    "typescript-eslint": "^8.66.0",
+    "vite": "^5.0.8",
+    "vitest": "^2.1.9"
   }
 }

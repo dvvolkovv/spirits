@@ -1,0 +1,737 @@
+{
+  "onboarding": {
+    "welcome": "LINKEON.IO",
+    "subtitle": "L'IA pour développer ton business",
+    "seg_biz": "Équipe IA pour ton business : juriste, comptable et marketeur dans un seul chat",
+    "seg_creator": "Studio IA : textes, images et vidéos en quelques minutes",
+    "trust": "🎁 25 000 jetons offerts · sans carte · 2 minutes",
+    "enter_phone": "Entre ton numéro de téléphone",
+    "phone_placeholder": "+7 (999) 999-99-99",
+    "send_code": "Envoyer le code",
+    "enter_code": "Entre le code SMS",
+    "code_sent": "Code envoyé au numéro",
+    "resend_code": "Renvoyer",
+    "resend_in": "Renvoyer dans {{time}}",
+    "verify": "Confirmer",
+    "consent_title": "Consentement au traitement des données",
+    "consent_text": "J'accepte les conditions d'utilisation et la politique de confidentialité",
+    "accept_continue": "Accepter et continuer",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "phone_invalid": "Entre un numéro de téléphone valide",
+    "legal_consent_prefix": "J'ai plus de 18 ans, j'accepte",
+    "legal_and": ",",
+    "legal_and_before_privacy": ", ",
+    "legal_consent_suffix": " et je consens au traitement de mes données personnelles",
+    "legal_terms_link": "les Conditions d'utilisation",
+    "legal_privacy_link": "la Politique de confidentialité",
+    "payment_info_link": "Description des services et modalités de paiement",
+    "sms_sent": "Code envoyé par SMS",
+    "paste_from_clipboard": "Coller le code",
+    "match": {
+      "title": "Par où commencer ?",
+      "subtitle": "Choisis ce qui te correspond — on te trouve un spécialiste et on démarre tout de suite",
+      "show_all": "Voir tous les spécialistes →",
+      "greeting": "Bonjour ! Je suis {{name}}, {{role}}. Par où commence-t-on ?",
+      "reopen": "Trouver un spécialiste",
+      "theme_self": "Mieux se comprendre, émotions",
+      "theme_growth": "Objectifs et développement personnel",
+      "theme_career": "Carrière et travail",
+      "theme_biz": "Business et argent",
+      "theme_practices": "Pratiques de connaissance de soi",
+      "theme_unsure": "Je ne sais pas encore / je regarde"
+    }
+  },
+  "offer": {
+    "text": "Tu as déjà bien avancé la conversation — continue en accès complet. Premier pack : +50% de jetons 🎁",
+    "cta": "Choisir un pack",
+    "badge": "🎁 +50% sur le premier pack",
+    "nudge_text": "La discussion te plaît ? Passe en accès complet — choisis un pack de jetons et continue sans limite.",
+    "nudge_cta": "Choisir un pack"
+  },
+  "nav": {
+    "networking": "Réseautage",
+    "image_gen": "Générateur d'images",
+    "referral": "Partenaires",
+    "help": "Aide",
+    "socialAccounts": "Réseaux sociaux",
+    "tokens": {
+      "label": "Jetons",
+      "top_up": "Clique pour recharger",
+      "how_question": "Comment sont calculés les jetons ?",
+      "how_title": "Tarification dynamique",
+      "how_line1": "Le prix n'est pas fixe — chaque tâche est unique. Comme pour un taxi ou un hôtel, le coût s'ajuste selon le travail réel, la demande et les ressources.",
+      "how_line2": "Résultat : un prix juste et transparent, sans surcoût ni frais cachés. Tu paies exactement ce que tu reçois.",
+      "how_line3": "Le compteur indique la consommation exacte de jetons après chaque message."
+    },
+    "legal": {
+      "terms": "Conditions d'utilisation",
+      "privacy": "Politique de confidentialité"
+    }
+  },
+  "errors": {
+    "boundary_title": "Erreur d'interface",
+    "details": "Détails",
+    "retry": "Réessayer",
+    "to_home": "Accueil"
+  },
+  "chat": {
+    "title": "Chat avec l'assistant",
+    "placeholder": "Écris un message...",
+    "send": "Envoyer",
+    "typing": "écrit...",
+    "upload_file": "Charger un fichier PDF",
+    "uploading": "Chargement du fichier...",
+    "file_uploaded": "Fichier chargé",
+    "upload_error": "Erreur de chargement du fichier",
+    "pdf_only": "Charge un fichier au format PDF",
+    "welcome_message": "",
+    "initial_greeting": "Salut ! Parle-moi de toi !",
+    "suggestions": {
+      "values": "Parle-moi de tes valeurs",
+      "goals": "Quels sont tes objectifs ?",
+      "interests": "Quelles sont tes passions ?"
+    },
+    "assistants": "Assistants",
+    "personal_assistant": "Assistant personnel",
+    "for_business": "Pour le business",
+    "personal_growth": "Développement personnel",
+    "all_assistants": "Tous les assistants",
+    "select_assistant": "Choisis un assistant",
+    "select_assistant_hint": "dans le panneau de gauche",
+    "upload_any_file": "Charger un fichier",
+    "tokens_top_up_title": "Clique pour recharger tes jetons",
+    "regenerate_title": "Régénérer la réponse",
+    "clear_title": "Effacer le chat",
+    "clear_confirm": "Effacer l'historique du chat ? Cette action est irréversible.",
+    "loading_history": "Chargement de l'historique...",
+    "suggestions_hint": "Pour continuer :",
+    "load_more": "↑ Charger plus",
+    "generating_image": "Génération de l'image...",
+    "generating_image_error": "Échec de la génération de l'image",
+    "video_gen_error": "Échec de la génération vidéo : {{error}}",
+    "ai_error_fallback": "Désolé, une erreur est survenue. Réessaie.",
+    "file_error_fallback": "Une erreur est survenue lors du traitement du fichier. Réessaie.",
+    "file_upload_error_generic": "Erreur lors du chargement du fichier : {{error}}. Réessaie.",
+    "file_error_unknown": "Erreur inconnue",
+    "file_modal_title": "Chargement du fichier",
+    "file_modal_placeholder": "Que faire de ce fichier ? Par ex. : analyse, retravaille, compresse, extrais le texte...",
+    "file_modal_cancel": "Annuler",
+    "file_modal_submit": "Envoyer",
+    "file_count_other": "{{count}} fichiers",
+    "file_count_one": "{{count}} fichier",
+    "file_count_many": "{{count}} fichiers",
+    "file_remove": "Retirer le fichier",
+    "file_add_more": "Ajouter",
+    "file_limit": "Maximum {{max}} fichiers à la fois — les fichiers en trop n'ont pas été ajoutés.",
+    "tokens_suffix": "jetons",
+    "switched_to": "Basculé sur {{name}}",
+    "assistant_role_coach": "Coach",
+    "assistant_role_psych": "Psychologue",
+    "assistant_role_gameplay": "Ludopédagogue",
+    "assistant_role_astro": "Astrologue",
+    "assistant_role_hd": "Human Design",
+    "assistant_role_default": "Assistant",
+    "voice_not_supported": "La saisie vocale n'est pas prise en charge par ton navigateur",
+    "voice_not_supported_title": "Saisie vocale non prise en charge",
+    "voice_start": "Démarrer la saisie vocale",
+    "voice_stop": "Arrêter l'enregistrement",
+    "voice_error": "Erreur de reconnaissance vocale : {{error}}",
+    "image_alt": "image",
+    "download": "Télécharger"
+  },
+  "profile": {
+    "title": "Mon profil",
+    "personal_info": "Informations personnelles",
+    "profile_photo": "Photo de profil",
+    "change_photo": "Changer la photo",
+    "upload_photo": "Charger une photo",
+    "uploading": "Chargement...",
+    "first_name": "Prénom",
+    "last_name": "Nom",
+    "phone": "Téléphone",
+    "first_name_placeholder": "Ton prénom",
+    "last_name_placeholder": "Ton nom",
+    "not_specified": "Non renseigné",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "values": "Valeurs",
+    "beliefs": "Croyances",
+    "desires": "Désirs",
+    "intentions": "Intentions",
+    "timeline": "Historique",
+    "confidence": "Confiance",
+    "add_value": "Ajouter une valeur",
+    "privacy_settings": "Confidentialité",
+    "name_help_text": "Ton prénom et ton nom aident les autres à mieux te connaître",
+    "complete_name_prompt": "Complète ton prénom et ton nom pour que les autres te connaissent mieux",
+    "delete_error_no_phone": "Numéro de téléphone introuvable",
+    "delete_error_status": "Erreur lors de la suppression du profil : {{status}}",
+    "tasks": {
+      "title": "Tâches",
+      "empty": "Aucune tâche pour l'instant. Elles apparaissent automatiquement quand tu discutes de tes affaires avec les assistants.",
+      "loadError": "Échec du chargement des tâches",
+      "detailsError": "Échec du chargement des détails",
+      "mutateError": "Échec de la mise à jour du statut",
+      "events": "Événements",
+      "assistantFallback": "Assistant",
+      "showInactive": "Afficher terminées et archivées",
+      "actions": {
+        "close": "Clôturer",
+        "archive": "Archiver",
+        "reopen": "Restaurer"
+      }
+    }
+  },
+  "search": {
+    "title": "Recherche de personnes",
+    "placeholder": "Décris ton intention ou ton envie",
+    "recommendations": "Recommandations",
+    "match_score": "Correspondance",
+    "common_values": "valeurs communes",
+    "complementary": "Objectifs complémentaires",
+    "view_profile": "Voir le profil",
+    "start_chat": "Démarrer le chat",
+    "no_results": "Aucun résultat",
+    "try_different": "Essaie de modifier tes critères de recherche",
+    "start_prompt_title": "Lance une recherche",
+    "hint_title": "Trouve des personnes qui te ressemblent",
+    "hint_body": "Tape ta recherche pour trouver des personnes qui partagent tes idées",
+    "searching": "Recherche de personnes en cours...",
+    "error_stream": "Une erreur est survenue pendant la recherche. Réessaie.",
+    "values_count": "Valeurs ({{count}})",
+    "interests_count": "Centres d'intérêt ({{count}})",
+    "skills_count": "Compétences ({{count}})",
+    "no_description": "Aucune description",
+    "unknown_user": "Utilisateur inconnu",
+    "telegram_tooltip": "Écrire sur Telegram",
+    "no_phone": "Numéro de téléphone indisponible",
+    "intent_placeholders": [
+      "Je veux fonder une famille heureuse",
+      "Je veux apprendre la guitare",
+      "Je prévois de créer un groupe",
+      "Je crée un village de personnes qui partagent mes idées",
+      "J'ai besoin d'un conseil en psychologie",
+      "Je veux faire une séance de coaching",
+      "Je cherche un partenaire pour créer une salle de sport"
+    ]
+  },
+  "compatibility": {
+    "title": "Compatibilité",
+    "subtitle": "Analyse de compatibilité avec d'autres utilisateurs",
+    "add_phones": "Ajoute des numéros de téléphone",
+    "add_phones_hint": "Entre le numéro d'un utilisateur inscrit sur Linkeon. L'IA analysera vos profils et affichera le pourcentage de compatibilité selon vos valeurs, intérêts et compétences.",
+    "picker_open": "Ouverture des contacts...",
+    "pick_from_contacts": "Choisir dans les contacts",
+    "add": "Ajouter",
+    "added_numbers": "Numéros ajoutés :",
+    "analyzing": "Analyse de la compatibilité...",
+    "analyze": "Analyser la compatibilité",
+    "result": "Résultat de l'analyse",
+    "error_invalid_11": "Entre un numéro valide (11 chiffres)",
+    "error_already_added": "Ce numéro est déjà ajouté",
+    "error_picker_unsupported": "Ton navigateur ne prend pas en charge la sélection de contacts. Essaie Chrome sur Android.",
+    "error_contacts_empty": "Aucun contact sélectionné",
+    "error_added_with_duplicates": "{{added}} numéros ajoutés. {{duplicates}} ignorés (doublons).",
+    "error_no_valid_phones": "Aucun numéro valide trouvé",
+    "error_picker_cancelled": "Sélection des contacts annulée",
+    "error_picker_generic": "Erreur lors de la sélection des contacts. Vérifie que l'accès aux contacts est autorisé.",
+    "error_analysis": "Une erreur est survenue pendant l'analyse. Réessaie."
+  },
+  "chats": {
+    "title": "Chats",
+    "new_chat": "Nouveau chat",
+    "new_group": "Nouveau groupe",
+    "search_contacts": "Rechercher des contacts",
+    "group_info": "Infos du groupe",
+    "leave_group": "Quitter le groupe",
+    "add_members": "Ajouter des membres",
+    "members": "Membres",
+    "online": "en ligne",
+    "typing_indicator": "écrit..."
+  },
+  "settings": {
+    "title": "Paramètres",
+    "privacy": "Confidentialité",
+    "profile_visibility": "Visibilité du profil",
+    "profile_visibility_desc": "Qui peut voir ton profil dans la recherche",
+    "values_visibility": "Afficher les valeurs",
+    "values_visibility_desc": "Afficher tes valeurs aux autres",
+    "allow_chats": "Autoriser les chats",
+    "allow_chats_desc": "Qui peut démarrer un chat avec toi",
+    "language": "Langue de l'interface",
+    "language_title": "Langue de l'interface",
+    "language_desc": "Choisis ta langue préférée",
+    "notifications": "Notifications",
+    "new_messages": "Nouveaux messages",
+    "new_messages_desc": "Notifications pour les nouveaux messages",
+    "new_matches": "Nouvelles correspondances",
+    "new_matches_desc": "Notifications pour les profils compatibles",
+    "account": "Compte",
+    "logout": "Se déconnecter",
+    "delete_account": "Supprimer le compte",
+    "version": "Version de l'app",
+    "visibility": {
+      "all": "Tout le monde",
+      "matches": "Correspondances uniquement",
+      "private": "Personne"
+    },
+    "chat_access": {
+      "all": "Tous les utilisateurs",
+      "matches": "Correspondances uniquement",
+      "none": "Personne"
+    },
+    "linkedAccounts": {
+      "title": "Méthodes de connexion",
+      "unlink": "Dissocier",
+      "link": "Associer",
+      "lastMethod": "C'est ton seul moyen de connexion",
+      "loadError": "Échec du chargement",
+      "unlinkError": "Échec de la dissociation",
+      "oauthError": "Échec du démarrage de l'association"
+    }
+  },
+  "video": {
+    "navTitle": "Vidéo",
+    "pageTitle": "Génération vidéo",
+    "tabs": {
+      "create": "Créer",
+      "gallery": "Mes vidéos"
+    },
+    "mode": {
+      "label": "Mode",
+      "text2video": "Texte → Vidéo",
+      "image2video": "Image → Vidéo",
+      "extend": "Prolongation",
+      "lipsync": "Lipsync"
+    },
+    "model": {
+      "label": "Modèle",
+      "standard": "Standard (v1.6)",
+      "premium": "Premium (v2 Master)"
+    },
+    "quality": {
+      "label": "Qualité",
+      "std": "Standard",
+      "pro": "Pro"
+    },
+    "duration": {
+      "label": "Durée",
+      "5s": "5 secondes",
+      "10s": "10 secondes",
+      "suffix": "s"
+    },
+    "prompt": {
+      "label": "Prompt",
+      "placeholder": "Ex. : un expert parle à la caméra du lancement d'un produit, lumière chaude, vertical 9:16"
+    },
+    "negativePrompt": {
+      "label": "Prompt négatif"
+    },
+    "cfgScale": {
+      "label": "CFG Scale"
+    },
+    "cameraType": {
+      "label": "Caméra"
+    },
+    "sourceImage": {
+      "label": "Image source",
+      "upload": "Charger",
+      "fromGallery": "Depuis la galerie d'images"
+    },
+    "sourceVideo": {
+      "label": "Vidéo source"
+    },
+    "audio": {
+      "label": "Audio pour le lipsync"
+    },
+    "submit": {
+      "create": "Créer",
+      "cost": "Coût : {{tokens}} jetons"
+    },
+    "insufficientTokens": {
+      "title": "Jetons insuffisants",
+      "cta": "Recharger"
+    },
+    "job": {
+      "statusPending": "En attente",
+      "statusProcessing": "Génération… {{elapsed}}",
+      "statusReady": "Prêt",
+      "statusFailed": "Erreur",
+      "processingHint": "généralement 3-5 min",
+      "modes": {
+        "text2video": "Texte→Vidéo",
+        "image2video": "Photo→Vidéo",
+        "extend": "Prolongation",
+        "lipsync": "Lipsync"
+      },
+      "confirmDelete": "Supprimer",
+      "actions": {
+        "play": "Regarder",
+        "download": "Télécharger",
+        "sendToChat": "Vers le chat",
+        "extend": "Prolonger",
+        "lipsync": "Lipsync",
+        "delete": "Supprimer"
+      },
+      "titles": {
+        "delete": "Supprimer",
+        "download": "Télécharger",
+        "extend": "Prolonger la vidéo (+5s)",
+        "lipsync": "Synchroniser les lèvres avec l'audio"
+      },
+      "emptyGallery": "Pas encore de vidéo. Crée la première dans l'onglet « Créer ».",
+      "toastReady": "Vidéo prête"
+    }
+  },
+  "help": {
+    "title": "Comment utiliser Linkeon",
+    "subtitle": "Guide rapide et réponses aux questions fréquentes",
+    "cta": {
+      "title": "Pas trouvé de réponse ?",
+      "body": "Contacte le support — l'assistant IA répond en premier et transmet à l'équipe si besoin.",
+      "button": "Contacter le support"
+    },
+    "quick_title": "Guide rapide",
+    "faq_title": "Questions fréquentes",
+    "guides": [
+      {
+        "title": "Chat avec l'assistant",
+        "desc": "Choisis un assistant dans le panneau de gauche. Écris un message ou charge un PDF. L'assistant répond en tenant compte de ton profil."
+      },
+      {
+        "title": "Recherche de partenaires",
+        "desc": "Réseautage → Recherche de personnes. Décris qui tu cherches — l'IA trouve les profils compatibles selon les valeurs et compétences."
+      },
+      {
+        "title": "Vérification de compatibilité",
+        "desc": "Réseautage → Compatibilité. Entre un numéro de téléphone (ou clique sur « Compatibilité » dans une demande ou un chat) — l'IA analyse la correspondance."
+      },
+      {
+        "title": "Demandes de contact",
+        "desc": "Tu as trouvé quelqu'un d'intéressant ? Envoie un court message de présentation. Le destinataire le verra dans Réseautage → Demandes et pourra l'accepter ou le refuser."
+      },
+      {
+        "title": "Chats entre utilisateurs",
+        "desc": "Les demandes acceptées créent un chat. Échange des messages, consulte le profil de ton interlocuteur, signale-le ou bloque-le via le menu « trois points »."
+      },
+      {
+        "title": "Génération d'images",
+        "desc": "Section Images, ou dans le chat « dessine… ». L'IA crée une image à partir de ta description."
+      },
+      {
+        "title": "Génération de vidéo",
+        "desc": "Section Vidéo. Texte→vidéo, image→vidéo, prolongation, lipsync voix/image. 5 ou 10 secondes."
+      },
+      {
+        "title": "Profil",
+        "desc": "Se remplit automatiquement à partir des échanges avec les assistants. Tu peux modifier ton nom, charger une photo, consulter tes valeurs/centres d'intérêt/compétences."
+      },
+      {
+        "title": "Jetons",
+        "desc": "Solde dans le panneau latéral. Recharge via YooKassa ou avec des codes promo. La consommation s'affiche après chaque opération."
+      }
+    ],
+    "faq": [
+      {
+        "q": "Comment débuter sur la plateforme ?",
+        "a": "Après ton inscription par numéro de téléphone, tu reçois un pack de jetons de départ. Choisis un assistant dans le panneau de gauche et lance la conversation. L'assistant t'aide à définir tes objectifs et tes besoins."
+      },
+      {
+        "q": "Que sont les jetons et comment sont-ils consommés ?",
+        "a": "Les jetons sont la monnaie interne de la plateforme. Ils sont consommés pour les messages aux assistants, la génération d'images, la génération de vidéos et la recherche de personnes. Le coût dépend de la complexité de la tâche — la tarification dynamique s'ajuste au volume de travail. Tu vois la consommation après chaque message."
+      },
+      {
+        "q": "Quels assistants sont disponibles ?",
+        "a": "La plateforme propose deux types d'assistants :\n\n• Pour le business — RH, comptable, juriste, marketeur, mentor business, copywriter\n• Pour le développement personnel — coach, psychologue, ludopédagogue, numérologue, assistant pleine conscience\n• L'assistant personnel Roman — pour toutes tes tâches"
+      },
+      {
+        "q": "Comment fonctionne le Réseautage ?",
+        "a": "La section Réseautage compte quatre onglets :\n\n• Recherche de personnes — tape ta recherche (ex. « je cherche un designer pour un projet écolo »), et le système trouve les profils compatibles selon les valeurs, compétences et intérêts.\n• Compatibilité — entre le numéro d'un autre utilisateur, et l'IA analyse votre compatibilité. L'analyse peut aussi être lancée directement depuis une demande ou un chat ouvert.\n• Demandes — invitations reçues et envoyées.\n• Chats — conversations acceptées avec d'autres utilisateurs."
+      },
+      {
+        "q": "Comment inviter quelqu'un à échanger ?",
+        "a": "Depuis les résultats de recherche ou de compatibilité, ouvre le profil de la personne et clique sur « Demander un contact ». Écris un court message de présentation (500 caractères max) — le destinataire le verra dans l'onglet « Réseautage → Demandes ». Tu ne peux pas renvoyer de demande tant qu'il n'a pas répondu. S'il t'a déjà envoyé une demande, la tienne l'accepte automatiquement et le chat s'ouvre aussitôt."
+      },
+      {
+        "q": "Que faire d'une demande de contact reçue ?",
+        "a": "Ouvre Réseautage → l'onglet Demandes. Sur la carte :\n\n• « Voir le profil » — affiche les valeurs, intérêts et compétences de l'expéditeur.\n• « Compatibilité » — analyse IA instantanée avec ton profil.\n• « Accepter » — crée un chat et t'y amène.\n• « Refuser » — la demande est simplement supprimée, sans notification pour l'expéditeur.\n\nLimite : 10 demandes sortantes actives max et 5 nouvelles par heure."
+      },
+      {
+        "q": "Comment fonctionnent les chats avec les autres utilisateurs ?",
+        "a": "Une fois la demande acceptée, la conversation apparaît dans Réseautage → Chats. Dans la conversation :\n\n• Messages — texte simple, 4000 caractères max, avec accusés de lecture.\n• L'avatar et le nom en haut sont cliquables — ils ouvrent le profil complet de ton interlocuteur.\n• Menu « trois points » en haut à droite — « Voir le profil », « Compatibilité », « Signaler », « Bloquer ».\n\nVous pouvez échanger téléphones et contacts directement dans la conversation, si vous êtes d'accord."
+      },
+      {
+        "q": "Comment signaler ou bloquer un utilisateur ?",
+        "a": "Dans le chat, clique sur les trois points en haut à droite → « Signaler » (décris la raison, la modération l'examine) ou « Bloquer » (après confirmation, cette personne ne pourra plus t'écrire, ni toi à elle). Les demandes de contact des utilisateurs bloqués ne peuvent plus être créées."
+      },
+      {
+        "q": "Comment se forme mon profil ?",
+        "a": "Ton profil se construit automatiquement à partir de tes conversations avec les assistants. L'IA extrait tes valeurs, intérêts, compétences, désirs et intentions — stockés dans une base de graphes et affinés progressivement. Plus tu échanges, plus ton profil est précis et meilleurs sont les résultats de recherche et de compatibilité."
+      },
+      {
+        "q": "Peut-on charger des documents ?",
+        "a": "Oui ! Clique sur le bouton « + » dans le chat et charge un fichier PDF. L'IA analyse le document, en extrait les informations clés et propose des usages — mettre à jour ton profil, trouver des partenaires ou analyser les données."
+      },
+      {
+        "q": "Comment générer des images ?",
+        "a": "Deux façons :\n\n• Dans le chat — écris à l'assistant « dessine... » ou « crée une image... ».\n• Dans la section Images — entre une description et clique sur « Générer ».\n\nLa génération coûte 5 000 jetons par image."
+      },
+      {
+        "q": "Comment créer une vidéo ?",
+        "a": "Section Vidéo. Quatre modes disponibles :\n\n• Texte → Vidéo — génère un clip à partir d'une description. Le système crée d'abord automatiquement une image de départ via Nano Banana (+5000 jetons), puis l'anime — la composition est ainsi plus stable qu'un text → video « brut ».\n• Image → Vidéo — anime une image chargée.\n• Prolongation — ajoute 5 secondes à une vidéo déjà créée.\n• Lipsync — superpose une voix/un audio sur une vidéo, synchronisé avec le visage (modèle Kling v1.6 uniquement).\n\nDurée de 5 ou 10 secondes, qualité Standard ou Pro. Le coût en jetons s'affiche sur le bouton « Créer » — il dépend du mode, du modèle, de la qualité et de la durée (pour Texte → Vidéo, les +5000 jetons de l'image de départ sont déjà inclus). Les vidéos prêtes apparaissent dans l'onglet « Mes vidéos » — tu peux les télécharger, les prolonger ou leur appliquer un lipsync."
+      },
+      {
+        "q": "Comment recharger mes jetons ?",
+        "a": "Clique sur le bloc « Jetons » dans le panneau latéral ou va dans la section de recharge. Des packs sont disponibles de 149₽ à 1990₽. Tu peux aussi utiliser des codes promo pour des jetons bonus."
+      },
+      {
+        "q": "Qu'est-ce que le programme partenaire ?",
+        "a": "Tu peux devenir partenaire et toucher une commission sur les paiements des utilisateurs que tu as recommandés. Contacte l'administrateur pour t'inscrire. La commission est créditée automatiquement à chaque paiement d'un filleul."
+      },
+      {
+        "q": "Mes données sont-elles en sécurité ?",
+        "a": "Oui. Nous ne partageons pas tes données avec des tiers. Les numéros des autres utilisateurs sont masqués — le contact ne se fait que via les demandes et chats de la plateforme. Les demandes de contact nécessitent ton accord explicite (Accepter/Refuser). Tu peux bloquer n'importe quel utilisateur et supprimer ton compte avec toutes tes données à tout moment depuis la section Profil."
+      }
+    ]
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "L'IA répond en premier, les questions complexes vont à l'équipe",
+    "empty_title": "Comment pouvons-nous t'aider ?",
+    "empty_body": "L'assistant IA répond vite sur le produit, vérifie l'état des services et de tes générations. Si la question est complexe, il la transmet à l'équipe qui te répond dans ce même chat.",
+    "ai_typing": "L'IA rédige une réponse…",
+    "input_placeholder": "Décris ta question ou ton problème…",
+    "send_aria": "Envoyer",
+    "sender_ai": "Support IA",
+    "sender_team": "Équipe",
+    "sender_system": "Système",
+    "banner_escalated": "Transmis à l'équipe, elle rejoindra le chat et répondra ici",
+    "banner_owner": "Un membre de l'équipe te répond actuellement",
+    "banner_closed": "Ticket clos. Pour une nouvelle question, ouvre un nouveau ticket.",
+    "open_new_ticket": "Ouvrir un nouveau ticket",
+    "new_ticket_placeholder": "Décris ta nouvelle question…",
+    "new_ticket_divider": "Nouveau ticket"
+  },
+  "maintenance": {
+    "title": "Maintenance en cours",
+    "subtitle": "Nous améliorons le service pour toi",
+    "banner": "Service temporairement indisponible",
+    "body1": "Une maintenance planifiée est en cours pour améliorer la qualité du service.",
+    "body2": "Nous nous excusons pour la gêne occasionnée.",
+    "ends_in": "Fin prévue dans :",
+    "expired_title": "Maintenance terminée !",
+    "expired_body": "Actualise la page pour continuer.",
+    "stay_tuned": "Reste informé ou contacte-nous en cas de question",
+    "reload": "Actualiser la page",
+    "tagline": "Linkeon — la plateforme pour trouver des personnes qui te ressemblent",
+    "units": {
+      "day_one": "jour",
+      "day_many": "jours",
+      "hour_one": "heure",
+      "hour_many": "heures",
+      "minute_one": "minute",
+      "minute_many": "minutes",
+      "second_one": "seconde",
+      "second_many": "secondes"
+    }
+  },
+  "payment": {
+    "verify_title": "Vérification du paiement",
+    "verifying": "Merci de patienter...",
+    "success_title": "Paiement réussi !",
+    "success_body": "Tes jetons ont bien été crédités",
+    "tokens_added": "jetons ajoutés",
+    "redirect_notice": "Tu vas être redirigé vers le chat dans quelques secondes...",
+    "go_to_chat": "Aller au chat",
+    "back_to_chat": "Retour au chat",
+    "try_again": "Réessayer",
+    "error_title": "Erreur de paiement",
+    "error_default": "Une erreur est survenue",
+    "error_missing_user_id": "Données insuffisantes pour vérifier le paiement (user_id manquant)",
+    "error_not_completed": "Paiement non finalisé ou annulé. Si tu as payé, les jetons seront crédités automatiquement.",
+    "error_pending": "Le paiement est en cours de traitement. Patiente quelques minutes puis actualise la page.",
+    "error_failed": "Le paiement n'a pas abouti",
+    "error_verification": "Erreur de vérification du paiement",
+    "error_exception": "Erreur lors de la vérification du paiement : {{error}}",
+    "error_unknown": "Erreur inconnue"
+  },
+  "referral": {
+    "loading": "Chargement du programme de parrainage...",
+    "load_error_status": "Erreur de chargement : {{status}}",
+    "load_error": "Échec du chargement du programme partenaire",
+    "not_eligible_title": "Programme partenaire",
+    "not_eligible_body_line1": "Tu ne fais pas partie du programme partenaire.",
+    "not_eligible_body_line2": "Contacte l'administrateur pour t'inscrire.",
+    "title": "Mon programme de parrainage",
+    "leader_line": "{{name}} · niveau {{level}} · {{pct}}% de commission",
+    "copy": "Copier",
+    "copied": "Copié",
+    "card_referees": "Personnes parrainées",
+    "card_paid": "Dépenses des filleuls",
+    "card_commission": "Ta commission",
+    "card_pending": "À verser",
+    "breakdown_direct": "Directs ({{pct}}%) : {{amount}}",
+    "breakdown_upstream": "Upstream ({{pct}}%) : {{amount}}",
+    "paid_out": "Versé : {{amount}}",
+    "payout_available": "Disponible au retrait",
+    "payout_tokens_word": "jetons",
+    "payout_button": "Recevoir en jetons",
+    "payout_min_hint": "Minimum de retrait : {{min}} ₽",
+    "payout_confirm_title": "Retrait en jetons",
+    "payout_confirm_body": "Convertir {{rub}} en {{tokens}} jetons sur ton solde ? Le crédit est instantané.",
+    "payout_confirm_button": "Recevoir",
+    "payout_cancel": "Annuler",
+    "payout_success": "{{tokens}} jetons crédités pour {{rub}}",
+    "payout_error": "Échec du retrait. Réessaie plus tard.",
+    "history_title": "Historique des commissions",
+    "history_date": "Date",
+    "history_phone": "Téléphone",
+    "history_payment": "Paiement",
+    "history_commission": "Commission",
+    "history_status": "Statut",
+    "history_paid_title": "Versé",
+    "history_pending_title": "En attente",
+    "empty_history": "Aucune commission pour l'instant. Partage ton lien — la commission apparaîtra après le premier paiement d'un filleul."
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "retry": "Réessayer",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "done": "Terminé",
+    "ok": "OK",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "add": "Ajouter",
+    "search": "Recherche",
+    "filter": "Filtre",
+    "sort": "Trier",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier"
+  },
+  "peer": {
+    "navTitle": "Chats",
+    "pageTitle": "Chats",
+    "loading": "Chargement…",
+    "noMessagesYet": "Aucun message",
+    "emptyChats": "Pas encore de chat",
+    "emptyChatsHint": "Trouve un interlocuteur dans l'onglet Réseautage",
+    "emptyRequests": "Aucune demande active",
+    "tabs": {
+      "chats": "Chats",
+      "requests": "Demandes"
+    },
+    "requests": {
+      "incoming": "Reçues",
+      "outgoing": "Envoyées",
+      "accept": "Accepter",
+      "decline": "Refuser",
+      "withdraw": "Annuler",
+      "compatibility": "Compatibilité",
+      "viewProfile": "Voir le profil"
+    },
+    "time": {
+      "now": "à l'instant",
+      "min": "min",
+      "hr": "h",
+      "day": "j"
+    },
+    "profile": {
+      "title": "Profil de l'utilisateur",
+      "match": "Correspondance",
+      "values": "Valeurs",
+      "noValues": "Aucune valeur renseignée",
+      "interests": "Centres d'intérêt",
+      "skills": "Compétences",
+      "requestChat": "Demander un contact",
+      "introLabel": "Court message au destinataire",
+      "introPlaceholder": "Pourquoi veux-tu échanger ? (500 caractères max)",
+      "sendRequest": "Envoyer la demande",
+      "sentOk": "Demande envoyée",
+      "requestSentAwaiting": "Demande envoyée, en attente de réponse",
+      "hasSentYouRequest": "Cet utilisateur t'a envoyé une demande",
+      "openRequests": "Voir les demandes",
+      "alreadyChatting": "Vous avez déjà un chat",
+      "openChat": "Ouvrir le chat"
+    },
+    "chat": {
+      "inputPlaceholder": "Écris un message…",
+      "send": "Envoyer",
+      "sendFailed": "Échec de l'envoi",
+      "emptyMessages": "Écris le premier message",
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "notFound": "Chat introuvable",
+      "backToList": "Retour à la liste",
+      "report": "Signaler",
+      "block": "Bloquer",
+      "confirmBlock": "Bloquer cet utilisateur ? Il ne pourra plus t'écrire.",
+      "reportTitle": "Signaler l'utilisateur",
+      "reportHint": "Décris ce qui pose problème. La modération examinera le signalement.",
+      "reportPlaceholder": "Motif du signalement…",
+      "reportSent": "Signalement envoyé"
+    },
+    "errors": {
+      "introRequired": "Écris un court message",
+      "rateLimited": "Trop de demandes, réessaie plus tard",
+      "sendFailed": "Échec de l'envoi de la demande"
+    }
+  },
+  "customAgents": {
+    "title": "Mes assistants",
+    "subtitle": "Assistants IA personnels avec leur propre rôle — disponibles dans /chat",
+    "createButton": "Créer",
+    "empty": "Tu n'as pas encore d'assistant personnalisé.",
+    "createFirst": "Créer le premier",
+    "nav": "Mes assistants"
+  },
+  "studio": {
+    "nav": "Studio",
+    "title": "Studio",
+    "tabs": {
+      "agents": "Assistants",
+      "bots": "Bots Telegram"
+    }
+  },
+  "auth": {
+    "tabs": {
+      "sms": "SMS",
+      "email": "Email",
+      "google": "Google",
+      "yandex": "Yandex"
+    },
+    "email": {
+      "label": "Adresse e-mail",
+      "submit": "Recevoir le lien de connexion",
+      "sentTitle": "Vérifie ta boîte mail",
+      "sentBody": "Nous avons envoyé un lien de connexion à",
+      "tempmailBlocked": "Utilise une adresse e-mail permanente",
+      "rateLimit": "Trop de demandes, attends une minute",
+      "requestError": "Échec de l'envoi du lien"
+    },
+    "oauth": {
+      "google": "Se connecter avec Google",
+      "yandex": "Se connecter avec Yandex",
+      "initFailed": "Échec du démarrage de la connexion",
+      "talerid": "Se connecter avec Taler ID"
+    },
+    "consent": {
+      "ageAndPrefix": "J'ai plus de 18 ans, j'ai pris connaissance de ",
+      "servicesLink": "la description des services",
+      "and": " et ",
+      "paymentLink": "les modalités de paiement",
+      "suffix": " et je les accepte.",
+      "needToAccept": "Accepte d'abord les conditions ci-dessus"
+    }
+  },
+  "tgBot": {
+    "nav": "Mes bots",
+    "title": "Mes bots Telegram"
+  }
+}

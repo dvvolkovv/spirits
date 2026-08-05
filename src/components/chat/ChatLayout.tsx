@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
+import { resolveLanguage } from '../../i18n/languages';
 import { avatarService } from '../../services/avatarService';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { clsx } from 'clsx';
@@ -31,7 +32,7 @@ const getRoleBadge = (desc: string): string => {
 };
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -44,7 +45,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    apiClient.get('/webhook/agents').then(async r => {
+    apiClient.get(`/webhook/agents?lang=${resolveLanguage(i18n.language)}`).then(async r => {
       if (r.ok) {
         const data = await r.json();
         setAssistants(data);
