@@ -499,6 +499,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentRu = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Политика конфиденциальности</h2>
+      <p className="text-sm text-gray-500">Редакция от 5 августа 2026 г.</p>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
         <h3 className="text-lg font-semibold text-gray-900">Оператор персональных данных</h3>
@@ -569,21 +570,53 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">3. Обработка данных с помощью искусственного интеллекта</h3>
         <p className="text-gray-700 leading-relaxed">
-          Для анализа совместимости пользователей Приложение использует технологии
-          искусственного интеллекта, предоставляемые сторонними провайдерами.
+          Для работы AI-ассистентов, генерации контента, распознавания речи и анализа
+          совместимости пользователей Приложение использует технологии искусственного
+          интеллекта, предоставляемые сторонними провайдерами.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Используемые сервисы:</strong> OpenAI (ChatGPT, GPT-4), Anthropic (Claude),
-          другие AI-сервисы.
+          <strong>Используемые сервисы:</strong>
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+          <li><strong>OpenAI</strong> (ChatGPT, GPT-4) — обработка текстовых запросов</li>
+          <li><strong>Anthropic</strong> (Claude) — обработка текстовых запросов</li>
+          <li><strong>Google</strong> — Gemini (обработка текста и мультимодальных данных),
+            Imagen 4.0 Ultra и Nano Banana (генерация и редактирование изображений),
+            Veo (генерация видео)</li>
+          <li><strong>DeepSeek</strong> — формирование приветственных сообщений и части
+            ответов в чате</li>
+          <li><strong>Kling (Kuaishou)</strong> — генерация видео</li>
+          <li><strong>Яндекс SpeechKit</strong> — распознавание речи при голосовом вводе</li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Передаваемые данные:</strong> текст профиля и введенные пользователем
+          сведения, содержание сообщений в чате с AI-ассистентами, файлы, которые
+          пользователь прикрепляет к сообщениям (документы, изображения, аудио),
+          а также аудиопоток при использовании голосового ввода. Данные банковских карт
+          и иные платежные реквизиты AI-провайдерам не передаются.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Передаваемые данные:</strong> текст профиля, ответы на вопросы,
-          история сообщений, демографическая информация в обезличенном виде.
-          Номер телефона, фамилия и фотографии НЕ передаются AI-провайдерам.
+          <strong>Цели AI-обработки:</strong> формирование ответов AI-ассистентов, генерация
+          изображений и видео по заданию пользователя, распознавание речи, определение
+          ценностей и личностных характеристик, расчет совместимости, персонализация опыта.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Цели AI-обработки:</strong> определение ценностей и личностных
-          характеристик, расчет совместимости, персонализация опыта.
+          <strong>Трансграничная передача данных.</strong> Все перечисленные выше
+          AI-провайдеры находятся за пределами Российской Федерации, поэтому передача им
+          данных является трансграничной в значении статьи 12 Федерального закона
+          от 27.07.2006 № 152-ФЗ «О персональных данных».
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Передача данных в Китайскую Народную Республику.</strong> Данные
+          передаются в том числе на территорию <strong>КНР</strong>: в сервис
+          <strong> DeepSeek</strong> (приветственные сообщения и часть ответов в чате)
+          и в сервис <strong>Kling (Kuaishou)</strong> (генерация видео). КНР не является
+          участником Конвенции Совета Европы о защите физических лиц при автоматизированной
+          обработке персональных данных и не относится к государствам, обеспечивающим
+          адекватную защиту прав субъектов персональных данных. Такая передача
+          осуществляется на основании согласия пользователя в соответствии с частью 4
+          статьи 12 указанного закона. Пользователь вправе не использовать функции чата
+          и генерации видео, если не согласен с передачей своих данных в КНР.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>ВАЖНО:</strong> После передачи данных AI-провайдерам Оператор не контролирует
@@ -671,8 +704,35 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">8. Cookies и аналитика</h3>
         <p className="text-gray-700 leading-relaxed">
-          Мы используем cookies и аналогичные технологии для улучшения работы Приложения и анализа
-          использования. Вы можете управлять настройками cookies в своем браузере.
+          Мы используем cookies и аналогичные технологии (в том числе localStorage браузера)
+          для работы аутентификации, сохранения пользовательских настроек, анализа
+          использования Приложения и оценки эффективности рекламы.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          В Приложении установлены следующие сторонние счетчики и трекеры:
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+          <li>
+            <strong>Яндекс.Метрика</strong>, номер счетчика <strong>105897773</strong>.
+            Включены Вебвизор (запись действий пользователя на странице), карта кликов,
+            отслеживание переходов по ссылкам и передача данных электронной коммерции.
+          </li>
+          <li>
+            <strong>VK Ads / top.Mail.Ru</strong>, номер счетчика <strong>3773048</strong>.
+            Фиксирует просмотры страниц и событие регистрации нового пользователя
+            для оптимизации рекламных кампаний.
+          </li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed">
+          Указанные сервисы получают технические данные: IP-адрес, идентификаторы cookies,
+          тип и версию браузера и операционной системы, параметры экрана, источник перехода,
+          просмотренные страницы и совершенные в интерфейсе действия. В отношении собираемых
+          ими данных эти сервисы выступают самостоятельными операторами и обрабатывают данные
+          в соответствии со своими политиками конфиденциальности.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Вы можете отключить cookies в настройках своего браузера. При этом часть функций
+          Приложения, включая вход в аккаунт, может стать недоступной.
         </p>
       </section>
 
@@ -697,6 +757,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentEn = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
+      <p className="text-sm text-gray-500">Last updated: 5 August 2026</p>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
         This English version is a courtesy translation. In case of any discrepancy, the Russian-language version is governing and legally binding under the laws of the Russian Federation.
@@ -770,21 +831,54 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">3. Data processing via artificial intelligence</h3>
         <p className="text-gray-700 leading-relaxed">
-          To analyze user compatibility, the Application uses artificial-intelligence
+          For the operation of AI assistants, content generation, speech recognition and
+          analysis of user compatibility, the Application uses artificial-intelligence
           technologies provided by third-party vendors.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Services used:</strong> OpenAI (ChatGPT, GPT-4), Anthropic (Claude), other
-          AI services.
+          <strong>Services used:</strong>
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+          <li><strong>OpenAI</strong> (ChatGPT, GPT-4) — processing of text requests</li>
+          <li><strong>Anthropic</strong> (Claude) — processing of text requests</li>
+          <li><strong>Google</strong> — Gemini (processing of text and multimodal data),
+            Imagen 4.0 Ultra and Nano Banana (image generation and editing),
+            Veo (video generation)</li>
+          <li><strong>DeepSeek</strong> — generation of welcome messages and part of the
+            chat responses</li>
+          <li><strong>Kling (Kuaishou)</strong> — video generation</li>
+          <li><strong>Yandex SpeechKit</strong> — speech recognition for voice input</li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Data transmitted:</strong> profile text and information entered by the user,
+          the content of messages in chats with AI assistants, files the user attaches to
+          messages (documents, images, audio), and the audio stream when voice input is used.
+          Bank card data and other payment credentials are NOT transmitted to AI vendors.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Data transmitted:</strong> profile text, answers to questions, message
-          history, demographic information in anonymized form. Phone number, last name and
-          photos are NOT transmitted to AI vendors.
+          <strong>Purposes of AI processing:</strong> generating AI assistants' responses,
+          generating images and video at the user's request, speech recognition, determining
+          values and personality traits, calculating compatibility, personalizing the
+          experience.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Purposes of AI processing:</strong> determining values and personality
-          traits, calculating compatibility, personalizing the experience.
+          <strong>Cross-border data transfer.</strong> All the AI vendors listed above are
+          located outside the Russian Federation, and therefore the transfer of data to them
+          constitutes a cross-border transfer within the meaning of Article 12 of Federal Law
+          No. 152-FZ of 27 July 2006 "On Personal Data".
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Transfer of data to the People's Republic of China.</strong> Data is
+          transferred, among other destinations, to the territory of the
+          <strong> PRC</strong>: to <strong>DeepSeek</strong> (welcome messages and part of
+          the chat responses) and to <strong>Kling (Kuaishou)</strong> (video generation).
+          The PRC is not a party to the Council of Europe Convention for the Protection of
+          Individuals with regard to Automatic Processing of Personal Data and is not among
+          the states providing adequate protection of the rights of personal data subjects.
+          Such transfer is carried out on the basis of the user's consent pursuant to
+          Part 4 of Article 12 of that law. A user who does not agree to the transfer of
+          their data to the PRC may refrain from using the chat and video generation
+          features.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>IMPORTANT:</strong> After data is transmitted to AI vendors, the Operator
@@ -872,8 +966,35 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">8. Cookies and analytics</h3>
         <p className="text-gray-700 leading-relaxed">
-          We use cookies and similar technologies to improve the Application and analyze
-          usage. You can manage cookie settings in your browser.
+          We use cookies and similar technologies (including the browser's localStorage) to
+          operate authentication, store user preferences, analyze use of the Application and
+          measure advertising performance.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          The following third-party counters and trackers are installed in the Application:
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+          <li>
+            <strong>Yandex.Metrica</strong>, counter number <strong>105897773</strong>.
+            Webvisor (recording of the user's actions on the page), click map, link-click
+            tracking and e-commerce data transmission are enabled.
+          </li>
+          <li>
+            <strong>VK Ads / top.Mail.Ru</strong>, counter number <strong>3773048</strong>.
+            Records page views and the new-user registration event in order to optimize
+            advertising campaigns.
+          </li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed">
+          These services receive technical data: IP address, cookie identifiers, browser and
+          operating system type and version, screen parameters, referral source, pages viewed
+          and actions taken in the interface. With respect to the data they collect, these
+          services act as independent operators and process the data in accordance with their
+          own privacy policies.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          You can disable cookies in your browser settings. Some features of the Application,
+          including signing in to your account, may then become unavailable.
         </p>
       </section>
 
