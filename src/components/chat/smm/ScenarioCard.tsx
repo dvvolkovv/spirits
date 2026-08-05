@@ -1,6 +1,7 @@
 // src/components/chat/smm/ScenarioCard.tsx
 import React, { useEffect, useState } from 'react';
 import { Check, RotateCcw, X, Loader2, AlertCircle, Pencil, Palette } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   getScenario,
   approveScenario,
@@ -16,12 +17,6 @@ interface Props {
   scenarioId: string;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  psy: 'Психолог',
-  lawyer: 'Юрист',
-  coach: 'Коуч',
-};
-
 const MOOD_EMOJI: Record<string, string> = {
   dramatic: '🎭',
   inspiring: '✨',
@@ -32,6 +27,7 @@ const MOOD_EMOJI: Record<string, string> = {
 };
 
 export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
+  const { t } = useTranslation();
   const [scenario, setScenario] = useState<ScenarioDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +56,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
         if (n < 2) {
           setTimeout(() => alive && attempt(n + 1), 600 * (n + 1));
         } else {
-          setError(e?.message ?? 'ошибка');
+          setError(e?.message ?? t('studio.error_fallback'));
           setLoading(false);
         }
       }
@@ -76,14 +72,14 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
     try {
       const r = await approveScenario(scenarioId);
       if (r.failed.length > 0) {
-        setActionMessage(`Не хватило токенов: ${r.failed[0].reason}`);
+        setActionMessage(t('studio.insufficient_tokens_message', { reason: r.failed[0].reason }));
       } else {
         setRenderedVideoId(r.approved[0].videoId);
         const updated = await getScenario(scenarioId);
         setScenario(updated);
       }
     } catch (e: unknown) {
-      setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+      setActionMessage(t('studio.action_error', { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setActionInflight(null);
     }
@@ -91,7 +87,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
 
   const handleRegenerate = async () => {
     if (!scenario) return;
-    const feedback = window.prompt('Что переделать в сценарии?', '');
+    const feedback = window.prompt(t('studio.regenerate_prompt_message'), '');
     if (!feedback) return;
     setActionInflight('regenerate');
     setActionMessage(null);
@@ -99,9 +95,9 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
       await regenerateScenario(scenarioId, feedback);
       const updated = await getScenario(scenarioId);
       setScenario(updated);
-      setActionMessage('Перегенерировано');
+      setActionMessage(t('studio.regenerated_message'));
     } catch (e: unknown) {
-      setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+      setActionMessage(t('studio.action_error', { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setActionInflight(null);
     }
@@ -109,16 +105,16 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
 
   const handleReject = async () => {
     if (!scenario) return;
-    if (!window.confirm('Точно отклонить этот сценарий?')) return;
+    if (!window.confirm(t('studio.confirm_reject_scenario'))) return;
     setActionInflight('reject');
     setActionMessage(null);
     try {
       await rejectScenario(scenarioId);
       const updated = await getScenario(scenarioId);
       setScenario(updated);
-      setActionMessage('Отклонено');
+      setActionMessage(t('studio.scenario_rejected_message'));
     } catch (e: unknown) {
-      setActionMessage(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+      setActionMessage(t('studio.action_error', { error: e instanceof Error ? e.message : String(e) }));
     } finally {
       setActionInflight(null);
     }
@@ -128,7 +124,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
     return (
       <div className="my-3 inline-flex items-center space-x-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
         <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Загружаю сценарий…</span>
+        <span>{t('studio.loading_scenario')}</span>
       </div>
     );
   }
@@ -137,7 +133,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
     return (
       <div className="my-3 inline-flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         <AlertCircle className="h-4 w-4" />
-        <span>Не удалось загрузить сценарий ({error ?? 'unknown'}).</span>
+        <span>{t('studio.scenario_load_error', { error: error ?? 'unknown' })}</span>
       </div>
     );
   }
@@ -160,7 +156,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
           const isHero = turn.speaker === 'hero';
           return (
             <div key={i} className="flex items-start gap-2 text-sm">
-              <span className="shrink-0 text-base leading-5" title={isHero ? 'Герой' : 'Ассистент'}>
+              <span className="shrink-0 text-base leading-5" title={isHero ? t('studio.speaker_hero') : t('studio.speaker_assistant')}>
                 {isHero ? '👤' : '🤖'}
               </span>
               <div className="flex-1 min-w-0">
@@ -175,7 +171,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
         {scenario.brollPrompts && scenario.brollPrompts.length > 0 && (
           <details className="mt-2 pt-2 border-t border-gray-100">
             <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-700">
-              Визуальные вставки ({scenario.brollPrompts.length})
+              {t('studio.broll_summary', { count: scenario.brollPrompts.length })}
             </summary>
             <ul className="mt-1 space-y-0.5 text-xs text-gray-500">
               {scenario.brollPrompts.map((b, i) => (
@@ -199,7 +195,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
             className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
           >
             {actionInflight === 'approve' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-            Утвердить
+            {t('studio.approve_button')}
           </button>
           <button
             onClick={() => setEditOpen(true)}
@@ -207,7 +203,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
             className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50 disabled:opacity-50"
           >
             <Pencil className="h-3.5 w-3.5" />
-            Редактировать
+            {t('studio.edit_button')}
           </button>
           <button
             onClick={handleRegenerate}
@@ -215,7 +211,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
             className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50 disabled:opacity-50"
           >
             {actionInflight === 'regenerate' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
-            Перегенерировать
+            {t('studio.regenerate_scenario_button')}
           </button>
           {!scenario.isLinkeonOfficial && scenario.creatorSettings && (
             <button
@@ -224,7 +220,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
               className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50 disabled:opacity-50"
             >
               <Palette className="h-3.5 w-3.5" />
-              Бренд
+              {t('studio.brand_button')}
             </button>
           )}
           <button
@@ -233,7 +229,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
             className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
           >
             {actionInflight === 'reject' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
-            Отклонить
+            {t('studio.reject_button')}
           </button>
         </div>
       ) : (
@@ -245,7 +241,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
             className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50"
           >
             <Pencil className="h-3.5 w-3.5" />
-            Редактировать сценарий
+            {t('studio.edit_scenario_button')}
           </button>
           {!scenario.isLinkeonOfficial && scenario.creatorSettings && (
             <button
@@ -253,7 +249,7 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
               className="inline-flex items-center gap-1.5 rounded-lg border border-forest-300 bg-white px-3 py-1.5 text-sm font-medium text-forest-700 hover:bg-forest-50"
             >
               <Palette className="h-3.5 w-3.5" />
-              Бренд
+              {t('studio.brand_button')}
             </button>
           )}
         </div>
@@ -288,11 +284,12 @@ export const ScenarioCard: React.FC<Props> = ({ scenarioId }) => {
 };
 
 const StatusBadge: React.FC<{ status: ScenarioDetail['status'] }> = ({ status }) => {
+  const { t } = useTranslation();
   const map: Record<string, { label: string; cls: string }> = {
-    pending_review: { label: 'На ревью', cls: 'bg-yellow-100 text-yellow-800' },
-    approved: { label: 'Утверждено', cls: 'bg-forest-100 text-forest-800' },
-    rejected: { label: 'Отклонено', cls: 'bg-gray-200 text-gray-700' },
-    regenerating: { label: 'Перегенерация', cls: 'bg-blue-100 text-blue-800' },
+    pending_review: { label: t('studio.scenario_status_pending_review'), cls: 'bg-yellow-100 text-yellow-800' },
+    approved: { label: t('studio.scenario_status_approved'), cls: 'bg-forest-100 text-forest-800' },
+    rejected: { label: t('studio.scenario_status_rejected'), cls: 'bg-gray-200 text-gray-700' },
+    regenerating: { label: t('studio.scenario_status_regenerating'), cls: 'bg-blue-100 text-blue-800' },
   };
   const m = map[status] ?? { label: status, cls: 'bg-gray-100 text-gray-700' };
   return <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${m.cls}`}>{m.label}</span>;

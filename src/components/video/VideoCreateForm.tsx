@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Sparkles, Settings2, ChevronDown, ChevronUp, Loader, AlertCircle, Info, Image as ImageIcon, X, Wand2, Mic } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -139,36 +140,42 @@ function Hint({ text }: { text: string }) {
   );
 }
 
-const MODE_HINTS: Record<Mode, string> = {
-  text2video: 'Опишите сцену текстом — ИИ сначала создаст стартовый кадр (Nano Banana, +5000 токенов), затем анимирует его. Так композиция стабильнее, чем «голый» text→video.',
-  image2video: 'Загрузите стартовый кадр, ИИ анимирует его в видео.',
-  extend: 'Продолжает ваше уже готовое видео ещё на 5 секунд.',
-  lipsync: 'Синхронизирует движение губ готового видео с аудиодорожкой.',
-};
+function getModeHints(t: TFunction): Record<Mode, string> {
+  return {
+    text2video: t('video.mode.hint_text2video'),
+    image2video: t('video.mode.hint_image2video'),
+    extend: t('video.mode.hint_extend'),
+    lipsync: t('video.mode.hint_lipsync'),
+  };
+}
 
-const PROMPT_EXAMPLES_T2V = [
-  { label: 'Лошадь на пляже', text: 'Белая лошадь скачет по пляжу на закате, брызги воды в воздухе, замедленная съёмка, кинематографичный свет' },
-  { label: 'Токио под дождём', text: 'Ночной Токио под дождём, неоновые отражения на мокром асфальте, медленное движение камеры вперёд, кинематографично' },
-  { label: 'Дракон взлетает', text: 'Огромный дракон взлетает с вершины горы, мощно хлопая крыльями, облака расступаются, широкий эпичный кадр' },
-  { label: 'Астронавт', text: 'Астронавт парит в невесомости внутри космической станции, в иллюминаторе видна Земля, плавное движение камеры' },
-  { label: 'Колибри', text: 'Колибри зависает перед ярко-красным цветком, крылья размыты движением, макросъёмка, мягкое боке' },
-  { label: 'Шоколад-макро', text: 'Горячий шоколадный соус медленно льётся на бисквитный торт, замедленная съёмка, студийный свет, макро' },
-  { label: 'Танцовщица', text: 'Танцовщица в красном платье кружится на крыше на закате, ветер развевает ткань, тёплый контровой свет' },
-  { label: 'Кит', text: 'Огромный синий кит медленно всплывает из глубины, лучи солнца пробиваются сквозь воду, подводная съёмка' },
-  { label: 'Паркур', text: 'Паркурщик прыгает между крышами небоскрёбов, вид сверху с дрона, динамичное движение камеры' },
-  { label: 'Лаванда', text: 'Бесконечное поле лаванды на закате, лёгкий ветер колышет цветы, пролёт камеры вперёд, кинематографично' },
-];
+function getPromptExamplesT2V(t: TFunction) {
+  return [
+    { label: t('video.create.prompt_examples_t2v.horse_beach.label'), text: t('video.create.prompt_examples_t2v.horse_beach.text') },
+    { label: t('video.create.prompt_examples_t2v.tokyo_rain.label'), text: t('video.create.prompt_examples_t2v.tokyo_rain.text') },
+    { label: t('video.create.prompt_examples_t2v.dragon_takeoff.label'), text: t('video.create.prompt_examples_t2v.dragon_takeoff.text') },
+    { label: t('video.create.prompt_examples_t2v.astronaut.label'), text: t('video.create.prompt_examples_t2v.astronaut.text') },
+    { label: t('video.create.prompt_examples_t2v.hummingbird.label'), text: t('video.create.prompt_examples_t2v.hummingbird.text') },
+    { label: t('video.create.prompt_examples_t2v.chocolate_macro.label'), text: t('video.create.prompt_examples_t2v.chocolate_macro.text') },
+    { label: t('video.create.prompt_examples_t2v.dancer.label'), text: t('video.create.prompt_examples_t2v.dancer.text') },
+    { label: t('video.create.prompt_examples_t2v.whale.label'), text: t('video.create.prompt_examples_t2v.whale.text') },
+    { label: t('video.create.prompt_examples_t2v.parkour.label'), text: t('video.create.prompt_examples_t2v.parkour.text') },
+    { label: t('video.create.prompt_examples_t2v.lavender.label'), text: t('video.create.prompt_examples_t2v.lavender.text') },
+  ];
+}
 
-const PROMPT_EXAMPLES_I2V = [
-  { label: 'Оживить портрет', text: 'Человек на фото медленно улыбается и моргает, лёгкое движение волос от ветра, камера чуть приближается' },
-  { label: 'Пейзаж в движении', text: 'Облака в небе медленно плывут, листья деревьев шевелятся от ветра, солнечные блики мерцают' },
-  { label: 'Пролёт вперёд', text: 'Камера плавно движется вперёд в сцену, эффект погружения, кинематографичная глубина резкости' },
-  { label: 'Орбита', text: 'Камера медленно облетает главный объект по дуге, сохраняя фокус, студийный свет' },
-  { label: 'Взмах волос', text: 'Волосы персонажа развеваются от ветра, ткань одежды колышется, драматичное замедление' },
-  { label: 'Дождь начинается', text: 'Начинается дождь, появляются капли на поверхностях, атмосфера становится туманной' },
-  { label: 'Смена дня и ночи', text: 'Плавный переход от дня к ночи, зажигаются огни города, облака несутся быстрее' },
-  { label: 'Zoom-out', text: 'Камера медленно отъезжает, раскрывая всё больше окружения вокруг главного объекта' },
-];
+function getPromptExamplesI2V(t: TFunction) {
+  return [
+    { label: t('video.create.prompt_examples_i2v.animate_portrait.label'), text: t('video.create.prompt_examples_i2v.animate_portrait.text') },
+    { label: t('video.create.prompt_examples_i2v.landscape_motion.label'), text: t('video.create.prompt_examples_i2v.landscape_motion.text') },
+    { label: t('video.create.prompt_examples_i2v.flythrough.label'), text: t('video.create.prompt_examples_i2v.flythrough.text') },
+    { label: t('video.create.prompt_examples_i2v.orbit.label'), text: t('video.create.prompt_examples_i2v.orbit.text') },
+    { label: t('video.create.prompt_examples_i2v.hair_flow.label'), text: t('video.create.prompt_examples_i2v.hair_flow.text') },
+    { label: t('video.create.prompt_examples_i2v.rain_starts.label'), text: t('video.create.prompt_examples_i2v.rain_starts.text') },
+    { label: t('video.create.prompt_examples_i2v.day_night.label'), text: t('video.create.prompt_examples_i2v.day_night.text') },
+    { label: t('video.create.prompt_examples_i2v.zoom_out.label'), text: t('video.create.prompt_examples_i2v.zoom_out.text') },
+  ];
+}
 
 export default function VideoCreateForm({ onCreated, defaults }: Props) {
   const { t } = useTranslation();
@@ -176,6 +183,9 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
   const balance = user?.tokens ?? 0;
   const voice = useVoiceProfile();   // клон голоса пользователя (96cba3f7)
   const [showSettings, setShowSettings] = useState(false);
+  const MODE_HINTS = useMemo(() => getModeHints(t), [t]);
+  const promptExamplesT2V = useMemo(() => getPromptExamplesT2V(t), [t]);
+  const promptExamplesI2V = useMemo(() => getPromptExamplesI2V(t), [t]);
 
   const [s, setS] = useState<FormState>({
     mode: 'text2video',
@@ -204,11 +214,11 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
     setPickerLoading(true);
     try {
       const resp = await apiClient.get('/webhook/imagegen/history');
-      if (!resp.ok) throw new Error(`Ошибка ${resp.status}`);
+      if (!resp.ok) throw new Error(t('video.create.picker_error_status', { status: resp.status }));
       const data = await resp.json();
       setPickerImages(Array.isArray(data) ? data : []);
     } catch (e: any) {
-      setPickerError(e?.message ?? 'Не удалось загрузить картинки');
+      setPickerError(e?.message ?? t('video.create.picker_load_error'));
     } finally {
       setPickerLoading(false);
     }
@@ -310,7 +320,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
         <div>
           <label htmlFor="video-prompt" className="flex items-center gap-1.5 text-sm font-semibold text-gray-800 mb-1.5">
             <Wand2 className="w-4 h-4 text-forest-600" />
-            Опишите, что должно быть в видео
+            {t('video.create.prompt_heading')}
           </label>
           <textarea
             id="video-prompt"
@@ -320,7 +330,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             value={s.prompt}
             onChange={e => setS({ ...s, prompt: e.target.value })}
           />
-          <p className="text-xs text-gray-400 mt-1">Чем подробнее сцена — действие, свет, формат — тем точнее результат.</p>
+          <p className="text-xs text-gray-400 mt-1">{t('video.prompt.hint')}</p>
         </div>
       )}
 
@@ -329,10 +339,10 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
         <div>
           <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
-            Примеры — нажмите, чтобы подставить
+            {t('video.create.examples_hint')}
           </p>
           <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-            {(s.mode === 'text2video' ? PROMPT_EXAMPLES_T2V : PROMPT_EXAMPLES_I2V).map((ex, i) => (
+            {(s.mode === 'text2video' ? promptExamplesT2V : promptExamplesI2V).map((ex, i) => (
               <button
                 key={i}
                 type="button"
@@ -350,8 +360,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
       {/* Engine selector */}
       <div>
         <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
-          Движок
-          <Hint text="Kling — универсальная генерация. Veo 3.1 — длинные ролики «говорящая голова» с нативной озвучкой и портретом." />
+          {t('video.engine.label')}
+          <Hint text={t('video.engine.hint') as string} />
         </p>
         <div className="flex gap-2">
           {(['kling', 'veo'] as const).map(en => (
@@ -366,7 +376,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
               )}
             >
-              {en === 'kling' ? 'Kling' : 'Veo 3.1 · говорящая голова'}
+              {en === 'kling' ? 'Kling' : t('video.engine.veo_option')}
             </button>
           ))}
         </div>
@@ -377,7 +387,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
       <div>
         <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
           {t('video.mode.label')}
-          <Hint text="Выберите режим генерации. Текст→Видео — самый простой старт." />
+          <Hint text={t('video.mode.hint') as string} />
         </p>
         <div className="flex flex-wrap gap-2">
           {(['text2video', 'image2video', 'extend', 'lipsync'] as const).map(m => (
@@ -407,7 +417,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
         className="flex items-center gap-2 text-sm text-gray-600 hover:text-forest-600 transition-colors"
       >
         <Settings2 className="w-4 h-4" />
-        <span>Настройки</span>
+        <span>{t('video.create.settings_toggle')}</span>
         {showSettings ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
       </button>
 
@@ -419,7 +429,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.model.label')}
-                <Hint text="Стандарт (v1.6) — быстрее и дешевле. Премиум (v2 Master) — максимальное качество, в 6× дороже." />
+                <Hint text={t('video.model.hint') as string} />
               </p>
               <div className="flex gap-2">
                 {(['kling-v1-6', 'kling-v2-master'] as const).map(m => (
@@ -446,7 +456,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.quality.label')}
-                <Hint text="Обычное (std) — стандартное разрешение. Профи (pro) — высокое разрешение и детализация, вдвое дороже." />
+                <Hint text={t('video.quality.hint') as string} />
               </p>
               <div className="flex gap-2">
                 {(['std', 'pro'] as const).map(q => (
@@ -473,7 +483,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.duration.label')}
-                <Hint text="Длина итогового видео. Свыше 10 секунд — это автоматически склеенные сегменты, считается дороже (база 10 с + по 5 с за каждый дополнительный кусок)." />
+                <Hint text={t('video.duration.hint') as string} />
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {COMPOSABLE_DURATIONS.map((d) => {
@@ -496,14 +506,14 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                           : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
                       )}
                     >
-                      {d} с
+                      {t('video.duration.seconds_short', { count: d })}
                     </button>
                   );
                 })}
               </div>
               {s.targetDurationSec && s.targetDurationSec > 10 && (
                 <p className="text-[11px] text-gray-500 mt-1.5">
-                  Соберём из {Math.ceil((s.targetDurationSec - 10) / 5) + 1} сегментов и склеим в один ролик автоматически.
+                  {t('video.create.segments_hint', { count: Math.ceil((s.targetDurationSec - 10) / 5) + 1 })}
                 </p>
               )}
             </div>
@@ -514,12 +524,12 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.negativePrompt.label')}
-                <Hint text="Укажите, что НЕ должно появиться в видео. Например: «размытость, артефакты, текст на экране»." />
+                <Hint text={t('video.negativePrompt.hint') as string} />
               </p>
               <textarea
                 rows={2}
                 className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300 bg-white"
-                placeholder="размытость, артефакты, плохое качество..."
+                placeholder={t('video.negativePrompt.placeholder') as string}
                 value={s.negativePrompt}
                 onChange={e => setS({ ...s, negativePrompt: e.target.value })}
               />
@@ -531,7 +541,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.cfgScale.label')}: <span className="ml-1 text-gray-700 font-semibold">{s.cfgScale.toFixed(1)}</span>
-                <Hint text="Насколько точно ИИ следует промпту. 0.5 — баланс свободы и точности. Ближе к 1 — строже следует тексту." />
+                <Hint text={t('video.cfgScale.hint') as string} />
               </p>
               <input
                 type="range" min={0} max={1} step={0.1}
@@ -540,8 +550,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                 onChange={e => setS({ ...s, cfgScale: parseFloat(e.target.value) })}
               />
               <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
-                <span>Свободнее</span>
-                <span>Точнее</span>
+                <span>{t('video.cfgScale.loose')}</span>
+                <span>{t('video.cfgScale.precise')}</span>
               </div>
             </div>
           )}
@@ -551,19 +561,19 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.cameraType.label')}
-                <Hint text="Тип движения камеры в видео. Оставьте пустым — ИИ выберет сам." />
+                <Hint text={t('video.cameraType.hint') as string} />
               </p>
               <select
                 className={`${inputClass} appearance-none`}
                 value={s.cameraType ?? ''}
                 onChange={e => setS({ ...s, cameraType: e.target.value || undefined })}
               >
-                <option value="">— Автоматически —</option>
-                <option value="simple">Статичная (simple)</option>
-                <option value="down_back">Назад-вниз (down_back)</option>
-                <option value="forward_up">Вперёд-вверх (forward_up)</option>
-                <option value="right_turn_forward">Поворот вправо (right_turn_forward)</option>
-                <option value="left_turn_forward">Поворот влево (left_turn_forward)</option>
+                <option value="">{t('video.cameraType.auto_option')}</option>
+                <option value="simple">{t('video.cameraType.option_simple')}</option>
+                <option value="down_back">{t('video.cameraType.option_down_back')}</option>
+                <option value="forward_up">{t('video.cameraType.option_forward_up')}</option>
+                <option value="right_turn_forward">{t('video.cameraType.option_right_turn')}</option>
+                <option value="left_turn_forward">{t('video.cameraType.option_left_turn')}</option>
               </select>
             </div>
           )}
@@ -573,11 +583,11 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.sourceImage.label')}
-                <Hint text="Загрузите первый кадр будущего видео или возьмите из ваших сгенерированных картинок. Форматы: JPG, PNG, WebP." />
+                <Hint text={t('video.sourceImage.hint') as string} />
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-forest-400 cursor-pointer transition-colors bg-white text-sm text-gray-500 hover:text-forest-600">
-                  <span>Загрузить файл</span>
+                  <span>{t('video.sourceImage.upload_file')}</span>
                   <input
                     type="file" accept="image/*" className="hidden"
                     onChange={async (e) => {
@@ -596,7 +606,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:border-forest-400 hover:bg-forest-50 hover:text-forest-700 transition-colors bg-white text-sm text-gray-600"
                 >
                   <ImageIcon className="w-4 h-4" />
-                  <span>Из моих картинок</span>
+                  <span>{t('video.imagePicker.from_gallery_button')}</span>
                 </button>
               </div>
               {s.sourceImageUrl && (
@@ -610,17 +620,17 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.sourceVideo.label')}
-                <Hint text="ID готового видео из галереи «Мои видео». Откройте галерею, наведите на нужное видео — ID показывается во всплывающей подсказке при нажатии «Продолжить» или «Липсинк»." />
+                <Hint text={t('video.sourceVideo.hint') as string} />
               </p>
               <input
                 className={inputClass}
-                placeholder="Автоматически из галереи при нажатии «Продолжить»"
+                placeholder={t('video.sourceVideo.placeholder') as string}
                 value={s.sourceVideoId ?? ''}
                 onChange={e => setS({ ...s, sourceVideoId: e.target.value })}
               />
               {!s.sourceVideoId && (
                 <p className="text-xs text-gray-400 mt-1">
-                  Совет: перейдите в «Мои видео» и нажмите кнопку «Продолжить» или «Липсинк» — ID заполнится автоматически.
+                  {t('video.sourceVideo.tip')}
                 </p>
               )}
             </div>
@@ -631,10 +641,10 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
                 {t('video.audio.label')}
-                <Hint text="Аудиофайл с речью, под которую синхронизируются губы в видео. Форматы: MP3, WAV, M4A. Длительность должна совпадать с видео." />
+                <Hint text={t('video.audio.hint') as string} />
               </p>
               <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-forest-400 cursor-pointer transition-colors bg-white text-sm text-gray-500 hover:text-forest-600">
-                <span>Выбрать аудиофайл</span>
+                <span>{t('video.audio.select_file')}</span>
                 <input
                   type="file" accept="audio/*" className="hidden"
                   onChange={async (e) => {
@@ -647,7 +657,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                   }}
                 />
               </label>
-              {s.audioUrl && <p className="text-xs text-green-600 mt-1">Аудио загружено</p>}
+              {s.audioUrl && <p className="text-xs text-green-600 mt-1">{t('video.audio.uploaded')}</p>}
             </div>
           )}
         </div>
@@ -658,28 +668,27 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
       {s.engine === 'veo' && (
         <div className="bg-gray-50 rounded-xl p-4 space-y-4">
           <p className="text-[11px] text-gray-500 -mb-1">
-            Реплику/речь пишите прямо в промпт — Veo озвучит её сам (нативный lipsync). Портрет ниже — опционально, для «говорящей головы».
+            {t('video.veo.prompt_hint')}
           </p>
 
           {/* Поясняющий блок «что такое говорящая голова» (бэклог d6479951:
               термин не всем понятен — показываем схему вход→выход). */}
           <div className="rounded-lg border border-forest-200 bg-white p-3">
-            <p className="text-xs font-semibold text-gray-700 mb-1">Что такое «говорящая голова»?</p>
+            <p className="text-xs font-semibold text-gray-700 mb-1">{t('video.veo.talking_head_title')}</p>
             <p className="text-[11px] text-gray-500 leading-snug mb-3">
-              Видео, где человек с вашего фото смотрит в камеру и произносит текст из промпта —
-              с синхронизацией губ и живым голосом. Подходит для приветствий, видеовизиток, Reels и Stories.
+              {t('video.veo.talking_head_desc')}
             </p>
             {/* Анимированная подсказка: шаги по очереди «подсвечиваются» (бегущая
                 волна), на результате пульсирует play. */}
             <div className="flex items-center justify-center gap-2 sm:gap-3 text-center">
               <div className="flex flex-col items-center gap-1">
                 <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-2xl animate-pulse [animation-duration:2.4s] [animation-delay:0ms]" aria-hidden="true">🖼️</div>
-                <span className="text-[10px] text-gray-400 leading-tight">1–3 фото<br />лица</span>
+                <span className="text-[10px] text-gray-400 leading-tight">{t('video.veo.step_photos_top')}<br />{t('video.veo.step_photos_bottom')}</span>
               </div>
               <span className="text-gray-300 text-lg animate-pulse [animation-duration:2.4s] [animation-delay:300ms]" aria-hidden="true">→</span>
               <div className="flex flex-col items-center gap-1">
                 <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-2xl animate-pulse [animation-duration:2.4s] [animation-delay:600ms]" aria-hidden="true">📝</div>
-                <span className="text-[10px] text-gray-400 leading-tight">текст<br />в промпте</span>
+                <span className="text-[10px] text-gray-400 leading-tight">{t('video.veo.step_text_top')}<br />{t('video.veo.step_text_bottom')}</span>
               </div>
               <span className="text-gray-300 text-lg animate-pulse [animation-duration:2.4s] [animation-delay:900ms]" aria-hidden="true">→</span>
               <div className="flex flex-col items-center gap-1">
@@ -690,7 +699,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                     <span className="absolute inset-0 rounded-full bg-forest-500 opacity-60 animate-ping" />
                   </span>
                 </div>
-                <span className="text-[10px] text-forest-600 font-medium leading-tight">видео<br />с речью</span>
+                <span className="text-[10px] text-forest-600 font-medium leading-tight">{t('video.veo.step_result_top')}<br />{t('video.veo.step_result_bottom')}</span>
               </div>
             </div>
           </div>
@@ -701,19 +710,19 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             onClick={() => setS(x => ({
               ...x,
               engine: 'veo', veoTier: 'fast', veoLengthSec: 24,
-              prompt: x.prompt || 'Девушка дружелюбно смотрит в камеру и говорит: «Привет! Рада видеть тебя в Linkeon — здесь ты найдёшь близких по духу людей.» Мягкий дневной свет, тёплый тон, естественные жесты.',
+              prompt: x.prompt || t('video.veo.preset_talking_head_prompt'),
             }))}
             className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border border-forest-300 bg-forest-50 text-forest-700 hover:bg-forest-100 transition-colors"
           >
-            <Sparkles className="w-3.5 h-3.5" /> Пресет «Говорящая голова»
+            <Sparkles className="w-3.5 h-3.5" /> {t('video.veo.preset_talking_head_button')}
           </button>
 
           {/* Озвучить моим голосом (96cba3f7) */}
           <div className="rounded-lg border border-gray-200 bg-white p-3">
             <label className="flex items-center justify-between gap-2 cursor-pointer">
               <span className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
-                <Mic className="w-4 h-4 text-forest-600" /> Озвучить моим голосом
-                <Hint text="Veo сгенерит видео, затем озвучит его вашим голосом (клон из вашего образца). Качество картинки не меняется, губы остаются синхронны." />
+                <Mic className="w-4 h-4 text-forest-600" /> {t('video.veo.own_voice_label')}
+                <Hint text={t('video.veo.own_voice_hint') as string} />
               </span>
               <input
                 type="checkbox"
@@ -732,7 +741,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                   onDelete={voice.deleteVoice}
                 />
                 <p className="text-[11px] text-gray-400">
-                  Надбавка ~{ownVoiceSurcharge(s.veoLengthSec ?? 24).toLocaleString('ru')} токенов к стоимости видео.
+                  {t('video.veo.own_voice_surcharge', { amount: ownVoiceSurcharge(s.veoLengthSec ?? 24).toLocaleString('ru') })}
                 </p>
               </div>
             )}
@@ -741,8 +750,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           {/* Tier */}
           <div>
             <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
-              Качество
-              <Hint text="Fast — быстрее и дешевле. Standard — выше детализация, дороже (~2.7×)." />
+              {t('video.quality.label')}
+              <Hint text={t('video.veo.tier_hint') as string} />
             </p>
             <div className="flex gap-2">
               {(['fast', 'standard'] as const).map(tier => (
@@ -766,11 +775,11 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           {/* Format (aspect ratio) */}
           <div>
             <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
-              Формат
-              <Hint text="9:16 — вертикаль для соцсетей (Reels, Shorts, Stories, TikTok). 16:9 — горизонталь. Для портрета лучше 9:16." />
+              {t('video.veo.aspect_label')}
+              <Hint text={t('video.veo.aspect_hint') as string} />
             </p>
             <div className="flex gap-2">
-              {([['9:16', '9:16 · вертикаль'], ['16:9', '16:9 · горизонталь']] as const).map(([val, label]) => (
+              {([['9:16', t('video.veo.aspect_vertical')], ['16:9', t('video.veo.aspect_horizontal')]] as const).map(([val, label]) => (
                 <button
                   key={val}
                   type="button"
@@ -791,8 +800,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           {/* Resolution */}
           <div>
             <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
-              Разрешение
-              <Hint text="1080p — выше детализация (кожа, поры). 720p — быстрее. В горизонтали (16:9) длиннее 8с extend-сегменты Veo всегда 720p, поэтому 1080p заметнее на коротких роликах. Вертикаль (9:16) собирается из независимых клипов — там 1080p работает на любой длине." />
+              {t('video.veo.resolution_label')}
+              <Hint text={t('video.veo.resolution_hint') as string} />
             </p>
             <div className="flex gap-2">
               {(['1080p', '720p'] as const).map(res => (
@@ -816,8 +825,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           {/* Length */}
           <div>
             <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
-              Длина
-              <Hint text="16:9 (горизонталь): одно непрерывное видео — база 8с + расширения по 7с. 9:16 (вертикаль): Veo не умеет бесшовно удлинять вертикаль, поэтому длиннее 8с мы автоматически собираем ролик из нескольких 8с-клипов (на стыках возможны лёгкие склейки) — реплика распределяется по клипам." />
+              {t('video.duration.label')}
+              <Hint text={t('video.veo.length_hint') as string} />
             </p>
             <div className="grid grid-cols-4 gap-2">
               {VEO_LENGTHS.map(len => (
@@ -832,13 +841,13 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                       : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
                   )}
                 >
-                  {len} с
+                  {t('video.duration.seconds_short', { count: len })}
                 </button>
               ))}
             </div>
             {(s.veoAspectRatio ?? '9:16') === '9:16' && (s.veoLengthSec ?? 24) > 8 && (
               <p className="mt-2 text-xs text-gray-500">
-                Вертикаль {s.veoLengthSec ?? 24}с — соберём из {Math.ceil((s.veoLengthSec ?? 24) / 8)} клипов по 8с и склеим в один ролик автоматически.
+                {t('video.veo.vertical_segments_hint', { sec: s.veoLengthSec ?? 24, count: Math.ceil((s.veoLengthSec ?? 24) / 8) })}
               </p>
             )}
           </div>
@@ -846,11 +855,13 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           {/* Portrait (optional) */}
           <div>
             <p className="text-xs font-medium text-gray-500 mb-1 flex items-center">
-              Фото для портрета (до 3)
-              <Hint text="Для «говорящей головы» из лица человека. Лучше всего — 3 фронтальных фото в разных ракурсах/освещении: Veo даёт заметно более точное сходство, чем по одному фото. Без фото — сцена по описанию." />
+              {t('video.veo.portrait_photos_label')}
+              <Hint text={t('video.veo.portrait_photos_hint') as string} />
             </p>
             <p className="text-[11px] text-forest-600 mb-2">
-              💡 Рекомендуем загрузить <b>3 фотографии</b> (разные ракурсы) — так сходство лица заметно лучше.
+              <Trans i18nKey="video.veo.portrait_photos_recommend">
+                💡 Рекомендуем загрузить <b>3 фотографии</b> (разные ракурсы) — так сходство лица заметно лучше.
+              </Trans>
             </p>
             {(s.sourceImageUrls?.length ?? 0) > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
@@ -870,7 +881,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             {(s.sourceImageUrls?.length ?? 0) < 3 && (
               <div className="flex flex-col sm:flex-row gap-2">
                 <label className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-forest-400 cursor-pointer transition-colors bg-white text-sm text-gray-500 hover:text-forest-600">
-                  <span>Добавить фото ({s.sourceImageUrls?.length ?? 0}/3)</span>
+                  <span>{t('video.veo.add_photo_button', { count: s.sourceImageUrls?.length ?? 0 })}</span>
                   <input
                     type="file" accept="image/*" multiple className="hidden"
                     onChange={async (e) => {
@@ -891,7 +902,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 hover:border-forest-400 hover:bg-forest-50 hover:text-forest-700 transition-colors bg-white text-sm text-gray-600"
                 >
                   <ImageIcon className="w-4 h-4" />
-                  <span>Из моих картинок</span>
+                  <span>{t('video.imagePicker.from_gallery_button')}</span>
                 </button>
               </div>
             )}
@@ -910,8 +921,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
       {/* Insufficient tokens */}
       {insufficient && (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-          Нужно {cost.toLocaleString('ru-RU')} токенов, у вас {balance.toLocaleString('ru-RU')}.{' '}
-          <a href="/chat?view=tokens" className="underline font-medium">Пополнить</a>
+          {t('video.insufficientTokens.message', { cost: cost.toLocaleString('ru-RU'), balance: balance.toLocaleString('ru-RU') })}{' '}
+          <a href="/chat?view=tokens" className="underline font-medium">{t('video.insufficientTokens.cta')}</a>
         </div>
       )}
 
@@ -930,18 +941,18 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
         {submitting ? (
           <>
             <Loader className="w-4 h-4 animate-spin" />
-            <span>Создаём видео…</span>
+            <span>{t('video.create.submitting')}</span>
           </>
         ) : (
           <>
             <Sparkles className="w-4 h-4" />
             <span>{t('video.submit.create')}</span>
-            <span className="text-xs opacity-70 ml-1">({cost.toLocaleString('ru-RU')} токенов)</span>
+            <span className="text-xs opacity-70 ml-1">{t('video.create.cost_suffix', { cost: cost.toLocaleString('ru-RU') })}</span>
           </>
         )}
       </button>
 
-      <p className="text-xs text-gray-400 text-center">Генерация занимает 3–5 минут</p>
+      <p className="text-xs text-gray-400 text-center">{t('video.create.generation_time_hint')}</p>
 
       {/* Image picker modal */}
       {showImagePicker && (
@@ -950,7 +961,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-forest-600" />
-                <h3 className="text-base font-semibold text-gray-900">Выбрать из моих картинок</h3>
+                <h3 className="text-base font-semibold text-gray-900">{t('video.imagePicker.title')}</h3>
               </div>
               <button onClick={() => setShowImagePicker(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -973,8 +984,8 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
             {!pickerLoading && !pickerError && pickerImages.length === 0 && (
               <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
                 <ImageIcon className="w-10 h-10 text-gray-200 mb-2" />
-                <p className="text-sm text-gray-500">У вас пока нет сгенерированных картинок.</p>
-                <a href="/imagegen" className="mt-3 text-sm text-forest-600 hover:text-forest-700 underline">Перейти к генератору картинок</a>
+                <p className="text-sm text-gray-500">{t('video.imagePicker.empty')}</p>
+                <a href="/imagegen" className="mt-3 text-sm text-forest-600 hover:text-forest-700 underline">{t('video.imagePicker.go_to_generator')}</a>
               </div>
             )}
 
@@ -999,7 +1010,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
                       >
                         <img src={it.image_url} className="w-full h-full object-cover" loading="lazy" alt="" />
                         <span className="absolute inset-x-0 bottom-0 px-1.5 py-1 bg-gradient-to-t from-black/70 to-transparent text-[10px] text-white line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {cleanPrompt || 'Без описания'}
+                          {cleanPrompt || t('video.imagePicker.no_description')}
                         </span>
                       </button>
                     );

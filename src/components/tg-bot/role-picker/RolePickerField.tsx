@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
 import { apiClient } from '../../../services/apiClient';
 import i18n from '../../../i18n';
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export const RolePickerField: React.FC<Props> = ({ value, onChange }) => {
+  const { t } = useTranslation();
   const [presets, setPresets] = useState<Preset[]>([]);
   const [customs, setCustoms] = useState<CustomAgent[]>([]);
   const [presetAvatars, setPresetAvatars] = useState<Record<string, string>>({});
@@ -55,7 +57,7 @@ export const RolePickerField: React.FC<Props> = ({ value, onChange }) => {
     <div className="space-y-4">
       {customs.length > 0 && (
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Мои</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{t('chat.my_assistants_label')}</div>
           <div className="grid grid-cols-1 gap-2">
             {customs.map(c => {
               const selected = value?.type === 'custom' && value.id === c.id;
@@ -81,7 +83,7 @@ export const RolePickerField: React.FC<Props> = ({ value, onChange }) => {
       )}
 
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Пресеты Linkeon</div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{t('tgBot.presets_label')}</div>
         <div className="grid grid-cols-1 gap-2">
           {presets.map(p => {
             const idStr = String(p.id);

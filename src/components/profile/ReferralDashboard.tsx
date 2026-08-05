@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { Copy, Users, TrendingUp, CheckCircle, Clock, Loader, AlertCircle, Coins } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { ReferralStats } from '../../types/auth';
@@ -90,12 +90,12 @@ const ReferralDashboard: React.FC = () => {
     try {
       const r = await apiClient.post('/webhook/referral/withdraw', { method: wMethod, requisites: wReq.trim() });
       const data = await r.json();
-      if (!r.ok) throw new Error(data?.error || 'Не удалось создать заявку');
+      if (!r.ok) throw new Error(data?.error || t('referral.withdraw_error_default'));
       setWithdrawDone({ amount_rub: data.amount_rub });
       setShowWithdraw(false);
       await loadStats();
     } catch (e) {
-      setWithdrawError(e instanceof Error ? e.message : 'Ошибка');
+      setWithdrawError(e instanceof Error ? e.message : t('common.error'));
     } finally {
       setWithdrawBusy(false);
     }
@@ -178,7 +178,13 @@ const ReferralDashboard: React.FC = () => {
         {/* Питч двустороннего бонуса — усиливает мотив поделиться */}
         {!!stats.referee_bonus_tokens && stats.referee_bonus_tokens > 0 && (
           <p className="text-sm text-forest-700 bg-forest-50 border border-forest-100 rounded-lg px-3 py-2 flex items-center gap-2">
-            🎁 <span>Друзья получают <b>{stats.referee_bonus_tokens.toLocaleString(i18n.language)}</b> токенов на старт по вашей ссылке — а вы {stats.leader.commission_pct}% с их оплат.</span>
+            🎁 <span>
+              <Trans
+                i18nKey="referral.referee_bonus_pitch"
+                values={{ tokens: stats.referee_bonus_tokens.toLocaleString(i18n.language), pct: stats.leader.commission_pct }}
+                components={{ bold: <b /> }}
+              />
+            </span>
           </p>
         )}
 
@@ -209,7 +215,11 @@ const ReferralDashboard: React.FC = () => {
           if (w > 0 || payoutDone || withdrawDone) return null;
           return (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-              💸 <b>Вывод вознаграждения</b> — токенами (от {PAYOUT_MIN_RUB}&nbsp;₽) или деньгами на карту/СБП (от {WITHDRAW_MIN_RUB}&nbsp;₽). Кнопки появятся здесь, как только накопится комиссия с приглашённых.
+              💸 <Trans
+                i18nKey="referral.payout_explainer"
+                values={{ payoutMin: PAYOUT_MIN_RUB, withdrawMin: WITHDRAW_MIN_RUB }}
+                components={{ bold: <b /> }}
+              />
             </div>
           );
         })()}
@@ -260,26 +270,26 @@ const ReferralDashboard: React.FC = () => {
               {withdrawDone ? (
                 <div className="flex items-center gap-2 text-sm text-warm-800">
                   <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Заявка на вывод {formatRub(withdrawDone.amount_rub)} создана — обработаем в ближайшее время.</span>
+                  <span>{t('referral.withdraw_success', { amount: formatRub(withdrawDone.amount_rub) })}</span>
                 </div>
               ) : !showWithdraw ? (
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
-                    <p className="text-xs text-warm-700 mb-0.5">Вывести деньгами на карту или по СБП</p>
+                    <p className="text-xs text-warm-700 mb-0.5">{t('referral.withdraw_cta_label')}</p>
                     <p className="text-lg font-bold text-warm-800">{formatRub(withdrawable)}</p>
                   </div>
                   <button
                     onClick={() => { setWithdrawError(null); setShowWithdraw(true); }}
                     disabled={withdrawable < WITHDRAW_MIN_RUB}
                     className="px-4 py-2 bg-warm-600 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title={withdrawable < WITHDRAW_MIN_RUB ? `Минимум — ${WITHDRAW_MIN_RUB} ₽` : undefined}
+                    title={withdrawable < WITHDRAW_MIN_RUB ? t('referral.withdraw_min_hint', { min: WITHDRAW_MIN_RUB }) : undefined}
                   >
-                    Вывести деньгами
+                    {t('referral.withdraw_button')}
                   </button>
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  <p className="text-sm font-medium text-warm-800">Заявка на вывод {formatRub(withdrawable)}</p>
+                  <p className="text-sm font-medium text-warm-800">{t('referral.withdraw_request_title', { amount: formatRub(withdrawable) })}</p>
                   <div className="flex gap-2">
                     {(['sbp', 'card'] as const).map((m) => (
                       <button
@@ -287,14 +297,14 @@ const ReferralDashboard: React.FC = () => {
                         onClick={() => setWMethod(m)}
                         className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${wMethod === m ? 'border-warm-500 bg-warm-100 text-warm-800 font-medium' : 'border-gray-200 bg-white text-gray-600'}`}
                       >
-                        {m === 'sbp' ? 'СБП' : 'Карта'}
+                        {m === 'sbp' ? t('referral.method_sbp') : t('referral.method_card')}
                       </button>
                     ))}
                   </div>
                   <input
                     value={wReq}
                     onChange={(e) => setWReq(e.target.value)}
-                    placeholder={wMethod === 'sbp' ? 'Телефон для СБП (+7…)' : 'Номер карты'}
+                    placeholder={wMethod === 'sbp' ? t('referral.withdraw_placeholder_sbp') : t('referral.withdraw_placeholder_card')}
                     inputMode={wMethod === 'sbp' ? 'tel' : 'numeric'}
                     className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-300"
                   />
@@ -305,15 +315,15 @@ const ReferralDashboard: React.FC = () => {
                       className="flex items-center gap-1.5 px-4 py-2 bg-warm-600 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {withdrawBusy ? <Loader className="w-4 h-4 animate-spin" /> : null}
-                      Отправить заявку
+                      {t('referral.withdraw_submit')}
                     </button>
-                    <button onClick={() => setShowWithdraw(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Отмена</button>
+                    <button onClick={() => setShowWithdraw(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">{t('common.cancel')}</button>
                   </div>
                   {withdrawError && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{withdrawError}</p>}
                 </div>
               )}
               {withdrawable < WITHDRAW_MIN_RUB && !withdrawDone && (
-                <p className="text-xs text-warm-600 mt-1.5">Минимум для вывода деньгами — {WITHDRAW_MIN_RUB} ₽</p>
+                <p className="text-xs text-warm-600 mt-1.5">{t('referral.withdraw_min_notice', { min: WITHDRAW_MIN_RUB })}</p>
               )}
             </div>
           );
@@ -347,14 +357,14 @@ const ReferralDashboard: React.FC = () => {
         {/* ④ Лента активности (in-app уведомления) */}
         {activity.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Активность</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('referral.activity_title')}</h3>
             <ul className="space-y-1.5">
               {activity.map((a, i) => (
                 <li key={i} className="flex items-center justify-between gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2">
                   <span className="text-gray-700">
                     {a.type === 'joined'
-                      ? <>👋 Друг {a.who} присоединился по вашей ссылке</>
-                      : <>💰 Начисление с оплаты друга {a.who}{a.level === 2 ? ' (2-й уровень)' : ''}</>}
+                      ? t('referral.activity_joined', { who: a.who })
+                      : t(a.level === 2 ? 'referral.activity_earned_level2' : 'referral.activity_earned', { who: a.who })}
                   </span>
                   <span className="text-xs text-gray-400 flex items-center gap-2 flex-shrink-0">
                     {a.type === 'earned' && a.rub != null && <b className="text-forest-700">{formatRub(a.rub)}</b>}

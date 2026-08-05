@@ -2,12 +2,14 @@
 // Подключение = провижининг TalerID-аккаунта из телефона юзера (бесшовно) + доступ к календарю
 // через публичный MCP+OAuth. Пока — только календарь: при подключении события планируются в TalerID.
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar, Check, Loader2, Link2, AlertCircle } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
 type Conn = 'loading' | 'not_connected' | 'connected' | 'ambiguous' | 'error';
 
 const TalerIdEcosystemCard: React.FC = () => {
+  const { t } = useTranslation();
   const [state, setState] = useState<Conn>('loading');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -32,10 +34,10 @@ const TalerIdEcosystemCard: React.FC = () => {
       const d = await r.json().catch(() => ({}));
       const status = d?.status;
       if (status === 'connected') { setState('connected'); }
-      else if (status === 'ambiguous') { setState('ambiguous'); setMsg('Похоже, у тебя уже есть аккаунт TalerID. Нажми «Войти и связать» ниже, чтобы привязать его.'); }
-      else { setState('error'); setMsg('Не удалось подключить. Попробуй позже.'); }
+      else if (status === 'ambiguous') { setState('ambiguous'); setMsg(t('settings.talerid.ambiguous_msg')); }
+      else { setState('error'); setMsg(t('settings.talerid.connect_error')); }
     } catch {
-      setState('error'); setMsg('Не удалось подключить. Попробуй позже.');
+      setState('error'); setMsg(t('settings.talerid.connect_error'));
     } finally { setBusy(false); }
   };
 
@@ -47,9 +49,9 @@ const TalerIdEcosystemCard: React.FC = () => {
       const r = await apiClient.post('/webhook/ecosystem/talerid/oauth/start', {});
       const d = await r.json().catch(() => ({}));
       if (d?.authorizeUrl) { window.location.href = d.authorizeUrl; return; }
-      setMsg('Не удалось начать связывание. Попробуй позже.');
+      setMsg(t('settings.talerid.link_error'));
     } catch {
-      setMsg('Не удалось начать связывание. Попробуй позже.');
+      setMsg(t('settings.talerid.link_error'));
     } finally { setBusy(false); }
   };
 
@@ -64,29 +66,27 @@ const TalerIdEcosystemCard: React.FC = () => {
       <div className="p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center">
           <Calendar className="w-5 h-5 mr-2 text-forest-600" />
-          Экосистема TalerID
+          {t('settings.talerid.title')}
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Календарь, заметки, сообщения и почта в одном. Нет аккаунта — Линкеон заведёт его в TalerID
-          без отдельной регистрации, по твоему номеру. Уже есть аккаунт TalerID — войди и свяжи его,
-          чтобы всё шло в него. Твои данные остаются твоими.
+          {t('settings.talerid.desc')}
         </p>
 
         <div className="mt-4">
           {state === 'loading' && (
-            <div className="flex items-center text-sm text-gray-400"><Loader2 className="w-4 h-4 mr-2 animate-spin" />Проверяю…</div>
+            <div className="flex items-center text-sm text-gray-400"><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t('settings.checking')}</div>
           )}
 
           {state === 'connected' && (
             <div className="flex items-center justify-between gap-3">
               <span className="inline-flex items-center text-sm font-medium text-forest-700">
-                <Check className="w-4 h-4 mr-1.5" />Подключено
+                <Check className="w-4 h-4 mr-1.5" />{t('settings.talerid.connected')}
               </span>
               <button
                 type="button" onClick={disconnect} disabled={busy}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
-                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}Отключить
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}{t('settings.disconnect')}
               </button>
             </div>
           )}
@@ -98,13 +98,13 @@ const TalerIdEcosystemCard: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
               >
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-                Подключить TalerID
+                {t('settings.talerid.connect_button')}
               </button>
               <button
                 type="button" onClick={startLink} disabled={busy}
                 className="text-sm text-forest-700 underline underline-offset-2 hover:text-forest-800 disabled:opacity-50"
               >
-                Уже есть аккаунт TalerID? Войти и связать
+                {t('settings.talerid.already_have_account')}
               </button>
             </div>
           )}

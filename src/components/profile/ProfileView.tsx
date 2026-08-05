@@ -110,7 +110,9 @@ const ProfileView: React.FC = () => {
           // Если это объект, используем его напрямую
           profileRecord = responseData;
         } else {
-          throw new Error('Неожиданный формат ответа сервера');
+          // Не user-facing: попадает только в console.error ниже, никогда не в alert/UI.
+          // i18n-ignore: сообщение уходит только в console.error, до UI не доходит
+        throw new Error('Неожиданный формат ответа сервера');
         }
 
         // Извлекаем данные профиля из записи
@@ -211,7 +213,7 @@ const ProfileView: React.FC = () => {
       const response = await apiClient.post('/webhook/profile-update', payload);
 
       if (!response.ok) {
-        throw new Error(`Ошибка обновления профиля: ${response.status}`);
+        throw new Error(t('profile.update_error_status', { status: response.status }));
       }
 
       const result = await response.json();
@@ -228,13 +230,13 @@ const ProfileView: React.FC = () => {
 
         setIsEditing(false);
         setEditedData(null);
-        alert('Профиль успешно обновлен');
+        alert(t('profile.update_success_alert'));
       } else {
-        throw new Error('Сервер вернул ошибку');
+        throw new Error(t('profile.server_returned_error'));
       }
     } catch (error) {
       console.error('Ошибка при обновлении профиля:', error);
-      alert(`Ошибка при обновлении профиля: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+      alert(t('profile.update_error_alert', { message: error instanceof Error ? error.message : t('profile.unknown_error') }));
     }
   };
 
@@ -252,12 +254,12 @@ const ProfileView: React.FC = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Пожалуйста, выберите изображение');
+      alert(t('profile.avatar_invalid_type_alert'));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('Размер файла не должен превышать 5MB');
+      alert(t('profile.avatar_too_large_alert'));
       return;
     }
 
@@ -273,17 +275,17 @@ const ProfileView: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Ошибка загрузки аватара: ${response.status}`);
+        throw new Error(t('profile.avatar_upload_error_status', { status: response.status }));
       }
 
       // Перезагружаем аватар с сервера с параметром для обхода кеша браузера
       await loadAvatarFromServer(true);
-      
+
       setIsUploadingAvatar(false);
       //alert('Аватар успешно загружен');
     } catch (error) {
       console.error('Ошибка при загрузке аватара:', error);
-      alert(`Ошибка при загрузке аватара: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
+      alert(t('profile.avatar_upload_error_alert', { message: error instanceof Error ? error.message : t('profile.unknown_error') }));
       setIsUploadingAvatar(false);
     }
   };
@@ -306,11 +308,11 @@ const ProfileView: React.FC = () => {
     if (user?.firstName) {
       return user.firstName;
     }
-    return 'Пользователь';
+    return t('profile.default_user_name');
   };
 
   const handleLogout = () => {
-    if (window.confirm('Вы уверены, что хотите выйти?')) {
+    if (window.confirm(t('profile.logout_confirm'))) {
       logout();
     }
   };
@@ -322,7 +324,7 @@ const ProfileView: React.FC = () => {
   const confirmDeleteAccount = () => {
     setShowDeleteConfirm(false);
     deleteProfile().catch((error: Error) => {
-      alert(`Ошибка при удалении аккаунта: ${error.message}`);
+      alert(t('profile.delete_account_error_alert', { message: error.message }));
     });
   };
 
@@ -356,7 +358,7 @@ const ProfileView: React.FC = () => {
               {isLoadingProfile ? (
                 <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
               ) : (
-                'Обновить'
+                t('profile.refresh')
               )}
             </button>
             {isEditing && (
@@ -390,7 +392,7 @@ const ProfileView: React.FC = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center space-x-3">
               <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              <span className="text-blue-800">Загружаем профиль с сервера...</span>
+              <span className="text-blue-800">{t('profile.loading_from_server')}</span>
             </div>
           </div>
         )}
@@ -450,7 +452,7 @@ const ProfileView: React.FC = () => {
               />
               <Upload className="w-4 h-4 text-gray-600" />
               <span className="text-sm text-gray-700">
-                {isUploadingAvatar ? 'Загрузка...' : 'Изменить фото'}
+                {isUploadingAvatar ? t('profile.uploading') : t('profile.change_photo')}
               </span>
             </label>
           </div>
@@ -462,8 +464,8 @@ const ProfileView: React.FC = () => {
               <Coins className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold text-gray-900">Баланс токенов</h2>
-              <p className="text-sm text-gray-600">Используется для общения с ассистентом</p>
+              <h2 className="text-lg font-semibold text-gray-900">{t('profile.token_balance_title')}</h2>
+              <p className="text-sm text-gray-600">{t('profile.token_balance_desc')}</p>
             </div>
           </div>
 
@@ -472,7 +474,7 @@ const ProfileView: React.FC = () => {
               <span data-testid="profile-token-balance" className="text-4xl font-bold text-forest-700">
                 {user?.tokens !== undefined ? user.tokens : 0}
               </span>
-              <span className="text-lg text-gray-600 ml-2">токенов</span>
+              <span className="text-lg text-gray-600 ml-2">{t('referral.payout_tokens_word')}</span>
             </div>
 
             <button
@@ -480,14 +482,14 @@ const ProfileView: React.FC = () => {
               className="flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-forest-600 to-warm-600 text-white rounded-lg hover:from-forest-700 hover:to-warm-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 w-full sm:w-auto"
             >
               <CreditCard className="w-5 h-5" />
-              <span className="font-medium">Пополнить</span>
+              <span className="font-medium">{t('profile.token_topup_button')}</span>
             </button>
           </div>
 
           {user?.tokens !== undefined && user.tokens < 10 && (
             <div className="mt-4 p-3 bg-warm-100 border border-warm-300 rounded-lg">
               <p className="text-sm text-warm-800">
-                <span className="font-semibold">Низкий баланс!</span> Пополните токены для продолжения общения с ассистентом.
+                <span className="font-semibold">{t('profile.low_balance_title')}</span> {t('profile.low_balance_body')}
               </p>
             </div>
           )}
@@ -505,18 +507,18 @@ const ProfileView: React.FC = () => {
             {tgIdentity?.bound ? (
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-                Привязан
+                {t('profile.telegram_bound')}
                 {tgIdentity.tgUsername && <span className="text-blue-600 font-medium">@{tgIdentity.tgUsername}</span>}
                 {!tgIdentity.tgUsername && tgIdentity.tgFirstName && <span className="text-gray-600">{tgIdentity.tgFirstName}</span>}
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500">Не привязан</span>
+                <span className="text-sm text-gray-500">{t('profile.telegram_not_bound')}</span>
                 <button
                   onClick={() => navigate('/telegram-bots/new')}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Привязать →
+                  {t('profile.telegram_bind_cta')}
                 </button>
               </div>
           )}
@@ -581,7 +583,7 @@ const ProfileView: React.FC = () => {
               </div>
               {profileData?.user_nickname && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Никнейм:</span>
+                  <span className="text-sm font-medium text-gray-700">{t('profile.nickname_label')}:</span>
                   <span className="text-sm text-gray-900">@{profileData.user_nickname}</span>
                 </div>
               )}
@@ -676,7 +678,7 @@ const ProfileView: React.FC = () => {
             <div className="text-center py-8">
               <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">
-                Ценности не указаны. Начните общение с ассистентом для их определения.
+                {t('profile.values_empty')}
               </p>
             </div>
           )}
@@ -686,7 +688,7 @@ const ProfileView: React.FC = () => {
         {profile.params.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Параметры профиля
+              {t('profile.params_title')}
             </h2>
             <div className="space-y-2">
               {profile.params.map((param, index) => (
@@ -697,7 +699,7 @@ const ProfileView: React.FC = () => {
                     <button
                       onClick={() => removeFromArray('profile', index)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
-                      title="Удалить"
+                      title={t('common.delete')}
                     >
                       <X className="w-4 h-4 text-red-600" />
                     </button>
@@ -772,7 +774,7 @@ const ProfileView: React.FC = () => {
         {profile.interests.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Интересы
+              {t('profile.interests')}
             </h2>
             <div className="space-y-2">
               {profile.interests.map((interest, index) => (
@@ -792,7 +794,7 @@ const ProfileView: React.FC = () => {
         {profile.skills.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Навыки
+              {t('profile.skills')}
             </h2>
             <div className="space-y-2">
               {profile.skills.map((skill, index) => (
@@ -817,16 +819,16 @@ const ProfileView: React.FC = () => {
             <div className="text-center py-8">
               <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Профиль не найден
+                {t('profile.empty_title')}
               </h3>
               <p className="text-gray-600 mb-4">
-                Начните общение с ассистентом для создания профиля
+                {t('profile.empty_body')}
               </p>
               <button
                 onClick={() => window.location.href = '/chat'}
                 className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors"
               >
-                Перейти к чату
+                {t('profile.empty_cta')}
               </button>
             </div>
           </div>
@@ -870,15 +872,15 @@ const ProfileView: React.FC = () => {
             {profileData && (
               <div className="flex items-center space-x-3 text-sm">
                 <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                <span className="text-gray-500">Сейчас</span>
-                <span className="text-gray-900">Профиль загружен с сервера</span>
+                <span className="text-gray-500">{t('profile.timeline_now_label')}</span>
+                <span className="text-gray-900">{t('profile.timeline_loaded_now')}</span>
               </div>
             )}
             <div className="flex items-center space-x-3 text-sm">
               <div className="w-2 h-2 bg-forest-500 rounded-full" />
-              <span className="text-gray-500">История</span>
+              <span className="text-gray-500">{t('profile.timeline_history_label')}</span>
               <span className="text-gray-900">
-                {profileData ? 'Профиль обновляется через общение с ассистентом' : 'Профиль будет создан после первого общения с ассистентом'}
+                {profileData ? t('profile.timeline_updating') : t('profile.timeline_will_be_created')}
               </span>
             </div>
           </div>
@@ -894,33 +896,33 @@ const ProfileView: React.FC = () => {
             </div>
 
             <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
-              Удалить аккаунт?
+              {t('profile.delete_confirm_title')}
             </h3>
 
             <div className="mb-6 space-y-3">
               <p className="text-gray-700 text-center">
-                Это действие необратимо. Будут удалены:
+                {t('profile.delete_confirm_intro')}
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-start space-x-2">
                   <span className="text-red-500 font-bold">•</span>
-                  <span>Все личные данные и профиль</span>
+                  <span>{t('profile.delete_item_personal_data')}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-red-500 font-bold">•</span>
-                  <span>История общения с ассистентами</span>
+                  <span>{t('profile.delete_item_chat_history')}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-red-500 font-bold">•</span>
-                  <span>Баланс токенов</span>
+                  <span>{t('profile.token_balance_title')}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-red-500 font-bold">•</span>
-                  <span>Все настройки и предпочтения</span>
+                  <span>{t('profile.delete_item_settings')}</span>
                 </li>
               </ul>
               <p className="text-red-600 font-semibold text-center mt-4">
-                Восстановление данных будет невозможно
+                {t('profile.delete_irreversible_warning')}
               </p>
             </div>
 
@@ -929,13 +931,13 @@ const ProfileView: React.FC = () => {
                 onClick={() => setShowDeleteConfirm(false)}
                 className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
               >
-                Отмена
+                {t('profile.cancel')}
               </button>
               <button
                 onClick={confirmDeleteAccount}
                 className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
               >
-                Удалить навсегда
+                {t('profile.delete_confirm_button')}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import PhoneInput from './PhoneInput';
 import OTPInput from './OTPInput';
@@ -8,6 +9,7 @@ import { authService } from '../../services/authService';
 type Step = 'phone' | 'otp';
 
 const SmsLoginPane: React.FC = () => {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('phone');
@@ -24,14 +26,14 @@ const SmsLoginPane: React.FC = () => {
         setStep('otp');
       } else {
         if (result.message === 'User blocked') {
-          alert('Ваш аккаунт заблокирован. Пожалуйста, свяжитесь с поддержкой.');
+          alert(t('auth.sms.userBlocked', 'Ваш аккаунт заблокирован. Пожалуйста, свяжитесь с поддержкой.'));
         } else {
-          alert('Ошибка отправки СМС. Попробуйте еще раз.');
+          alert(t('auth.sms.sendError', 'Ошибка отправки СМС. Попробуйте еще раз.'));
         }
       }
     } catch (error) {
       console.error('Error sending SMS:', error);
-      alert('Ошибка отправки СМС. Попробуйте еще раз.');
+      alert(t('auth.sms.sendError', 'Ошибка отправки СМС. Попробуйте еще раз.'));
     } finally {
       setIsLoading(false);
     }
@@ -53,18 +55,18 @@ const SmsLoginPane: React.FC = () => {
         navigate('/chat', { replace: true });
       } else {
         if (result.error === 'Wrong code') {
-          setOtpError('Неверный код. Попробуйте еще раз.');
+          setOtpError(t('auth.sms.wrongCode', 'Неверный код. Попробуйте еще раз.'));
         } else if (result.error === 'Code not found') {
-          setOtpError('Код не найден. Запросите новый код.');
+          setOtpError(t('auth.sms.codeNotFound', 'Код не найден. Запросите новый код.'));
         } else if (result.error === 'User disable') {
-          setOtpError('Ваш аккаунт отключен. Обратитесь в поддержку.');
+          setOtpError(t('auth.sms.userDisabled', 'Ваш аккаунт отключен. Обратитесь в поддержку.'));
         } else {
-          setOtpError('Ошибка проверки кода. Попробуйте еще раз.');
+          setOtpError(t('auth.sms.verifyError', 'Ошибка проверки кода. Попробуйте еще раз.'));
         }
       }
     } catch (error) {
       console.error('Error verifying code:', error);
-      setOtpError('Ошибка проверки кода. Попробуйте еще раз.');
+      setOtpError(t('auth.sms.verifyError', 'Ошибка проверки кода. Попробуйте еще раз.'));
     } finally {
       setIsLoading(false);
     }
@@ -74,11 +76,11 @@ const SmsLoginPane: React.FC = () => {
     try {
       const result = await authService.requestSMSCode(phone);
       if (!result.success) {
-        alert('Ошибка повторной отправки СМС. Попробуйте еще раз.');
+        alert(t('auth.sms.resendError', 'Ошибка повторной отправки СМС. Попробуйте еще раз.'));
       }
     } catch (error) {
       console.error('Error resending SMS:', error);
-      alert('Ошибка повторной отправки СМС. Попробуйте еще раз.');
+      alert(t('auth.sms.resendError', 'Ошибка повторной отправки СМС. Попробуйте еще раз.'));
     }
   };
 

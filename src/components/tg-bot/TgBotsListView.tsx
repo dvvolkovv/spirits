@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { Plus, Copy, ExternalLink, X } from 'lucide-react';
 import { tgBotApi, type TgBotConfig } from '../../services/tgBotApi';
@@ -10,25 +11,26 @@ import { TgBotMessagesView } from './TgBotMessagesView';
 // Модалка с новой claim-ссылкой после «Переподключить». Module-scope —
 // inline-FC внутри рендера ре-маунтится из-за token-poll (см. комментарий ниже).
 const ReconnectLinkModal: React.FC<{ displayName: string; deepLink: string; onClose: () => void }> =
-({ displayName, deepLink, onClose }) => (
+({ displayName, deepLink, onClose }) => {
+  const { t } = useTranslation();
+  return (
   <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
     <div className="bg-white rounded-2xl p-5 max-w-md w-full shadow-xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-gray-900">Переподключение «{displayName}»</h2>
-        <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:bg-gray-100" aria-label="Закрыть">
+        <h2 className="font-semibold text-gray-900">{t('tgBot.reconnect_modal_title', { name: displayName })}</h2>
+        <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:bg-gray-100" aria-label={t('common.close')}>
           <X size={18} />
         </button>
       </div>
       <p className="text-sm text-gray-600 mb-4">
-        Открой ссылку — Telegram предложит выбрать группу. После добавления бот сам активируется.
-        Ссылка работает 15 минут.
+        {t('tgBot.addgroup_hint')}
       </p>
       <div className="flex items-center gap-2 mb-4">
         <input type="text" value={deepLink} readOnly className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono" />
         <button
-          onClick={() => { navigator.clipboard.writeText(deepLink); toast.success('Скопировано'); }}
+          onClick={() => { navigator.clipboard.writeText(deepLink); toast.success(t('chat.copied')); }}
           className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
-          aria-label="Скопировать"
+          aria-label={t('referral.copy')}
         >
           <Copy size={16} />
         </button>
@@ -39,11 +41,12 @@ const ReconnectLinkModal: React.FC<{ displayName: string; deepLink: string; onCl
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
       >
-        <ExternalLink size={16} /> Открыть в Telegram
+        <ExternalLink size={16} /> {t('tgBot.open_in_telegram')}
       </a>
     </div>
   </div>
-);
+  );
+};
 
 interface Props {
   /** Если true — без внешней h-full обёртки и без заголовка страницы. */
@@ -51,6 +54,7 @@ interface Props {
 }
 
 export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [configs, setConfigs] = useState<TgBotConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +66,7 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
   const reload = async () => {
     setLoading(true);
     try { setConfigs(await tgBotApi.list()); }
-    catch (e: any) { toast.error(e?.message ?? 'Не удалось загрузить ботов'); }
+    catch (e: any) { toast.error(e?.message ?? t('tgBot.list_load_error')); }
     finally { setLoading(false); }
   };
 
@@ -76,16 +80,16 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
       setReconnect({ displayName: c.displayName, deepLink: r.deepLink });
       setTab('active'); // конфиг разархивирован → переехал во вкладку «Активные»
       reload();
-    } catch (e: any) { toast.error(e?.message ?? 'Не удалось переподключить'); }
+    } catch (e: any) { toast.error(e?.message ?? t('tgBot.reconnect_error')); }
   };
 
   const handleDelete = async (c: TgBotConfig) => {
-    if (!confirm(`Архивировать «${c.displayName}»?\nБот выйдет из группы. Конфиг можно восстановить.`)) return;
+    if (!confirm(t('tgBot.archive_confirm', { name: c.displayName }))) return;
     try {
       await tgBotApi.remove(c.id);
-      toast.success('Архивировано');
+      toast.success(t('tgBot.archived_toast'));
       reload();
-    } catch (e: any) { toast.error(e?.message ?? 'Ошибка'); }
+    } catch (e: any) { toast.error(e?.message ?? t('common.error')); }
   };
 
   // ВАЖНО: контентная часть и обёртка строятся напрямую через JSX, БЕЗ
@@ -98,14 +102,14 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
       {!embedded && (
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Мои боты</h1>
-          <p className="text-sm text-gray-500 mt-1">Telegram-боты, работающие в твоих группах</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('tgBot.nav')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('tgBot.list_subtitle')}</p>
         </div>
         <button
           onClick={() => navigate('/telegram-bots/new')}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
         >
-          <Plus size={16} /> Создать
+          <Plus size={16} /> {t('tgBot.create_button')}
         </button>
       </div>
       )}
@@ -116,13 +120,13 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
             onClick={() => navigate('/telegram-bots/new')}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
           >
-            <Plus size={16} /> Создать
+            <Plus size={16} /> {t('tgBot.create_button')}
           </button>
         </div>
       )}
 
       <div className="flex gap-1 mb-5 border-b border-gray-200">
-        {([['active', 'Активные'], ['archived', 'Архив']] as const).map(([k, label]) => (
+        {([['active', t('tgBot.tab_active')], ['archived', t('tgBot.status_archived')]] as const).map(([k, label]) => (
           <button
             key={k}
             onClick={() => setTab(k)}
@@ -134,21 +138,21 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
       </div>
 
       {loading ? (
-        <div className="text-center text-gray-400 py-12">Загрузка...</div>
+        <div className="text-center text-gray-400 py-12">{t('common.loading')}</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-forest-600 to-forest-800 flex items-center justify-center mx-auto mb-4 shadow-md">
             <Plus size={24} className="text-white" />
           </div>
-          <p className="text-gray-600 font-medium mb-1">{tab === 'active' ? 'Нет активных ботов' : 'Архив пуст'}</p>
+          <p className="text-gray-600 font-medium mb-1">{tab === 'active' ? t('tgBot.empty_active_title') : t('tgBot.empty_archived_title')}</p>
           {tab === 'active' && (
             <>
-              <p className="text-sm text-gray-400 mb-4">Создай бота для своей Telegram-группы</p>
+              <p className="text-sm text-gray-400 mb-4">{t('tgBot.empty_active_hint')}</p>
               <button
                 onClick={() => navigate('/telegram-bots/new')}
                 className="px-5 py-2.5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
               >
-                Создать первого
+                {t('tgBot.create_first_button')}
               </button>
             </>
           )}

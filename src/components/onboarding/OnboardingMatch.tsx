@@ -12,7 +12,9 @@ interface Assistant {
 // Тема → ассистент по СТАБИЛЬНОМУ name (per spirits_back/CLAUDE.md — name не
 // меняется). Фолбэк — Роман (координатор), если профильный ассистент почему-то
 // отсутствует в ростере.
-export const ONBOARDING_THEMES: { key: string; emoji: string; assistantName: string }[] = [
+export // i18n-ignore: assistantName — стабильный идентификатор ассистента с бэкенда,
+// по нему идёт сопоставление. Перевод сломает выбор ассистента.
+const ONBOARDING_THEMES: { key: string; emoji: string; assistantName: string }[] = [
   { key: 'theme_self', emoji: '🧭', assistantName: 'Оля' },
   { key: 'theme_growth', emoji: '📈', assistantName: 'Миша' },
   { key: 'theme_career', emoji: '💼', assistantName: 'Ирина' },
@@ -20,6 +22,7 @@ export const ONBOARDING_THEMES: { key: string; emoji: string; assistantName: str
   { key: 'theme_practices', emoji: '🔮', assistantName: 'Райя' },
   { key: 'theme_unsure', emoji: '🤔', assistantName: 'Роман' },
 ];
+// i18n-ignore: идентификатор с бэкенда, см. выше
 const FALLBACK_ASSISTANT_NAME = 'Роман';
 
 interface Props {

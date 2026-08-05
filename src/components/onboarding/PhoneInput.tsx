@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
 import { ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
+import { AsYouType, parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
 import { LanguageSelect } from '../settings/LanguageSelect';
+import { CountrySelect } from './CountrySelect';
+import { defaultCountryForLanguage } from './phoneCountry';
 
 interface PhoneInputProps {
   onSubmit: (phone: string) => void;
@@ -11,41 +13,47 @@ interface PhoneInputProps {
   isLoading: boolean;
 }
 
-interface FormData {
-  phone: string;
-}
-
 const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
-  const { t } = useTranslation();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-  } = useForm<FormData>();
+  const { t, i18n } = useTranslation();
+  const [country, setCountry] = useState<CountryCode>(() => defaultCountryForLanguage(i18n.language));
+  const [national, setNational] = useState('');
+  const [touched, setTouched] = useState(false);
 
-  const phone = watch('phone');
-
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length === 0) return '';
-    if (digits.length <= 1) return '+7';
-    if (digits.length <= 4) return `+7 (${digits.slice(1)}`;
-    if (digits.length <= 7) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4)}`;
-    if (digits.length <= 9) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
-    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    e.target.value = formatted;
-  };
-
-  const isValidPhone = phone && phone.replace(/\D/g, '').length === 11;
+  /**
+   * Номер собирается из выбранной страны и национальной части.
+   *
+   * Раньше здесь была маска, намертво зашитая на +7 (11 цифр) — телефоном
+   * могли войти только Россия и Казахстан, остальной мир упирался в форму,
+   * которая физически не принимала его номер.
+   *
+   * Валидация — через libphonenumber-js, а не своей регуляркой: длина и
+   * формат номера различаются по странам и даже по операторам внутри страны,
+   * самодельная проверка неизбежно ошибётся.
+   */
+  const parsed = parsePhoneNumberFromString(national, country);
+  const isValidPhone = Boolean(parsed?.isValid());
   const canSubmit = isValidPhone && !isLoading;
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // AsYouType форматирует по мере ввода в формате выбранной страны.
+    // Стираем форматирование при удалении, иначе backspace «залипает»
+    // на скобке или дефисе, которые формат вставил сам.
+    const raw = e.target.value;
+    const formatter = new AsYouType(country);
+    setNational(raw.endsWith(' ') || raw.endsWith(')') ? raw : formatter.input(raw));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setTouched(true);
+    if (!canSubmit || !parsed) return;
+    // На бэк уходит E.164 без плюса: authService всё равно вырезает нецифры,
+    // но так формат номера однозначен независимо от того, как его ввели.
+    onSubmit(parsed.number);
+  };
+
   return (
-    <form onSubmit={handleSubmit((data) => onSubmit(data.phone))}>
+    <form onSubmit={handleSubmit}>
       <div className="flex justify-end mb-4">
         <LanguageSelect className="text-sm px-2 py-1 border border-gray-200 rounded-lg bg-white/80 focus:ring-2 focus:ring-forest-500" />
       </div>
@@ -54,18 +62,20 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t('onboarding.enter_phone')}
           </label>
-          <input
-            type="tel"
-            {...register('phone', {
-              required: true,
-              onChange: handlePhoneChange,
-            })}
-            data-testid="phone-input"
-            placeholder={t('onboarding.phone_placeholder')}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-lg"
-            autoFocus
-          />
-          {errors.phone && (
+          <div className="flex">
+            <CountrySelect value={country} onChange={setCountry} disabled={isLoading} />
+            <input
+              type="tel"
+              value={national}
+              onChange={handleChange}
+              onBlur={() => setTouched(true)}
+              data-testid="phone-input"
+              placeholder={new AsYouType(country).input('0'.repeat(9))}
+              className="flex-1 min-w-0 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-lg"
+              autoFocus
+            />
+          </div>
+          {touched && national && !isValidPhone && (
             <p className="text-red-500 text-sm mt-1">
               {t('onboarding.phone_invalid')}
             </p>

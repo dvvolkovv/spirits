@@ -8,10 +8,13 @@ interface Props {
   provider: OAuthProviderId;
 }
 
-/** Как выглядит кнопка провайдера: значок и подпись. */
-const LOOKS: Record<OAuthProviderId, { label: string; badge: React.ReactNode }> = {
+/** Как выглядит кнопка провайдера: значок, подпись и голое имя провайдера (для интерполяции). */
+// i18n-ignore: label — только defaultValue для t('auth.oauth.*'), ключи есть
+// во всех локалях и фолбэк не срабатывает; «Я» — брендовый глиф Яндекса.
+const LOOKS: Record<OAuthProviderId, { label: string; providerName: string; badge: React.ReactNode }> = {
   google: {
     label: 'Войти через Google',
+    providerName: 'Google',
     badge: (
       <span className="inline-flex w-6 h-6 rounded items-center justify-center font-bold text-sm bg-white border">
         G
@@ -20,6 +23,7 @@ const LOOKS: Record<OAuthProviderId, { label: string; badge: React.ReactNode }> 
   },
   yandex: {
     label: 'Войти через Yandex',
+    providerName: 'Yandex',
     badge: (
       <span className="inline-flex w-6 h-6 rounded items-center justify-center font-bold text-sm bg-red-600 text-white">
         Я
@@ -31,6 +35,7 @@ const LOOKS: Record<OAuthProviderId, { label: string; badge: React.ReactNode }> 
   // фирменный знак самодельным значком нельзя.
   talerid: {
     label: 'Войти через Taler ID',
+    providerName: 'Taler ID',
     badge: (
       <img
         src="/talerid-logo.png"
@@ -64,7 +69,9 @@ const OAuthButton: React.FC<Props> = ({ provider }) => {
         notConfigured
           ? t(
               'auth.oauth.notConfigured',
-              `Вход через ${look.label.replace(/^Войти через /, '')} пока не настроен на сервере`,
+              // i18n-ignore: defaultValue многострочного t(), ключ есть во всех локалях
+        'Вход через {{provider}} пока не настроен на сервере',
+              { provider: look.providerName },
             )
           : t('auth.oauth.initFailed', 'Не удалось начать вход через провайдер'),
       );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
 import { tgBotApi, type TgBotConfig, type AddressingMode, type VoiceReplyMode } from '../../services/tgBotApi';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) => {
+  const { t } = useTranslation();
   const [displayName, setDisplayName] = useState(config.displayName);
   const [role, setRole] = useState<{ type: 'preset' | 'custom'; id: string } | null>(
     config.customAgentId
@@ -25,7 +27,7 @@ export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) =>
 
   const handleSave = async () => {
     if (!displayName.trim() || !role) {
-      toast.error('Заполни имя и роль');
+      toast.error(t('tgBot.edit_fill_error'));
       return;
     }
     setSaving(true);
@@ -37,10 +39,10 @@ export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) =>
         addressingMode,
         voiceReplyMode,
       });
-      toast.success('Сохранено');
+      toast.success(t('tgBot.saved_toast'));
       onSaved();
     } catch (e: any) {
-      toast.error(e?.message ?? 'Не удалось сохранить');
+      toast.error(e?.message ?? t('tgBot.save_error_fallback'));
       setSaving(false);
     }
   };
@@ -49,12 +51,12 @@ export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) =>
     <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-[60] md:p-4 pb-[env(safe-area-inset-bottom)] md:pb-4">
       <div className="bg-white rounded-t-2xl md:rounded-2xl max-w-2xl w-full h-[85dvh] md:h-auto md:max-h-[90dvh] flex flex-col overflow-hidden">
         <div className="bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">Редактировать бота</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('tgBot.edit_modal_title')}</h2>
           <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-700"><X size={20} /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Имя в группе</span>
+            <span className="text-sm font-medium text-gray-700">{t('tgBot.edit_name_label')}</span>
             <input
               type="text"
               value={displayName}
@@ -65,16 +67,16 @@ export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) =>
           </label>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Роль</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">{t('tgBot.role_label')}</h3>
             <RolePickerField value={role} onChange={setRole} />
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Когда отвечает</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">{t('tgBot.addressing_title')}</h3>
             {([
-              ['strict', 'По обращению'],
-              ['smart', 'Умно'],
-              ['always', 'Всегда'],
+              ['strict', t('tgBot.mode_strict')],
+              ['smart', t('tgBot.mode_smart')],
+              ['always', t('tgBot.mode_always')],
             ] as const).map(([val, label]) => (
               <label key={val} className="flex items-center gap-2 py-1.5 cursor-pointer">
                 <input type="radio" name="addr-edit" checked={addressingMode === val} onChange={() => setAddressingMode(val)} />
@@ -84,11 +86,11 @@ export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) =>
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Голос</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">{t('tgBot.edit_voice_title')}</h3>
             {([
-              ['never', 'Никогда'],
-              ['mirror', 'Зеркально'],
-              ['always', 'Всегда'],
+              ['never', t('tgBot.voice_never_label')],
+              ['mirror', t('tgBot.voice_mirror_label')],
+              ['always', t('tgBot.mode_always')],
             ] as const).map(([val, label]) => (
               <label key={val} className="flex items-center gap-2 py-1.5 cursor-pointer">
                 <input type="radio" name="voice-edit" checked={voiceReplyMode === val} onChange={() => setVoiceReplyMode(val)} />
@@ -103,14 +105,14 @@ export const TgBotEditModal: React.FC<Props> = ({ config, onClose, onSaved }) =>
             disabled={saving}
             className="flex-1 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-50"
           >
-            Отмена
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="flex-1 py-3 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50"
           >
-            {saving ? 'Сохраняю...' : 'Сохранить'}
+            {saving ? t('tgBot.saving_label') : t('common.save')}
           </button>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+import { resolveLanguage } from '../i18n/languages';
 import { tokenManager } from '../utils/tokenManager';
 import { apiClient } from './apiClient';
 import { vkReachGoal } from './vkPixel';
@@ -17,6 +19,9 @@ function attribQuery(): string {
     const p = new URLSearchParams();
     if (sid) p.set('sid', sid);
     if (src) p.set('src', src);
+    // Язык интерфейса — чтобы SMS с кодом пришла на нём, а не по-русски.
+    // На момент входа профиля ещё нет, читать язык серверу неоткуда.
+    p.set('lang', resolveLanguage(i18n.language));
     const s = p.toString();
     return s ? `?${s}` : '';
   } catch {

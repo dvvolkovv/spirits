@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Coins, Check, Loader, ArrowLeft, Mail } from 'lucide-react';
 import CouponInput from '../components/tokens/CouponInput';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,34 +15,36 @@ interface TokenPackage {
   savings?: string;
 }
 
-const packages: TokenPackage[] = [
+const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string): TokenPackage[] => [
   {
     id: 'starter',
-    name: 'Стартовый',
+    name: t('payment.package_starter_name'),
     tokens: 50000,
     price: 149,
   },
   {
     id: 'extended',
-    name: 'Расширенный',
+    name: t('payment.info.package_extended'),
     tokens: 200000,
     price: 499,
     popular: true,
-    savings: 'Экономия 15%',
+    savings: t('payment.package_savings', { percent: 15 }),
   },
   {
     id: 'professional',
-    name: 'Профессиональный',
+    name: t('payment.info.package_pro'),
     tokens: 1000000,
     price: 1990,
-    savings: 'Экономия 30%',
+    savings: t('payment.package_savings', { percent: 30 }),
   },
 ];
 
 const TokenPurchasePage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const packages = getPackages(t);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [phone, setPhone] = useState('');
@@ -108,7 +111,7 @@ const TokenPurchasePage: React.FC = () => {
     if (!selectedPkg) return;
 
     if (!email.trim()) {
-      setEmailError('Пожалуйста, укажите email для получения чека');
+      setEmailError(t('payment.email_required_error'));
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
       emailInputRef.current?.focus();
@@ -117,7 +120,7 @@ const TokenPurchasePage: React.FC = () => {
     }
 
     if (!validateEmail(email)) {
-      setEmailError('Пожалуйста, укажите корректный email');
+      setEmailError(t('payment.email_invalid_error'));
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
       emailInputRef.current?.focus();
@@ -145,15 +148,18 @@ const TokenPurchasePage: React.FC = () => {
         if (data && data.confirmation_url) {
           window.location.href = data.confirmation_url;
         } else {
+          // i18n-ignore: текст ловится catch'ем ниже и уходит в console.error;
+          // пользователю показывается переведённый alert payment.create_payment_error
           throw new Error('Не получена ссылка на оплату');
         }
       } else {
         const errorData = await response.json();
+        // i18n-ignore: см. выше — до UI не доходит
         throw new Error(errorData.message || 'Ошибка создания платежа');
       }
     } catch (error) {
       console.error('Ошибка при создании платежа:', error);
-      alert('Произошла ошибка при создании платежа. Попробуйте позже.');
+      alert(t('payment.create_payment_error'));
       setIsProcessing(false);
       setSelectedPackage(null);
     }
@@ -165,7 +171,7 @@ const TokenPurchasePage: React.FC = () => {
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
           <div className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
             <Mail className="w-5 h-5" />
-            <span className="font-medium">Заполните email</span>
+            <span className="font-medium">{t('payment.fill_email_toast')}</span>
           </div>
         </div>
       )}
@@ -175,7 +181,7 @@ const TokenPurchasePage: React.FC = () => {
           className="mb-6 flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Назад</span>
+          <span>{t('common.back')}</span>
         </button>
 
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
@@ -183,9 +189,9 @@ const TokenPurchasePage: React.FC = () => {
             <div className="flex items-center justify-center mb-4">
               <Coins className="w-12 h-12" />
             </div>
-            <h1 className="text-3xl font-bold text-center mb-2">Пополнение токенов</h1>
+            <h1 className="text-3xl font-bold text-center mb-2">{t('payment.topup_modal_title')}</h1>
             <p className="text-center text-forest-50">
-              Выберите пакет токенов для продолжения работы с ассистентами
+              {t('payment.topup_modal_subtitle')}
             </p>
           </div>
 
@@ -194,7 +200,7 @@ const TokenPurchasePage: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <div className="flex items-center space-x-2">
                   <Mail className="w-4 h-4 text-gray-600" />
-                  <span>Email для получения чека</span>
+                  <span>{t('payment.email_label')}</span>
                 </div>
               </label>
               <input
@@ -206,7 +212,7 @@ const TokenPurchasePage: React.FC = () => {
                   setEmail(e.target.value);
                   setEmailError('');
                 }}
-                placeholder={isLoadingEmail ? 'Загрузка...' : 'example@mail.com'}
+                placeholder={isLoadingEmail ? t('common.loading') : 'example@mail.com'}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
                   emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -216,7 +222,7 @@ const TokenPurchasePage: React.FC = () => {
                 <p className="mt-2 text-sm text-red-600">{emailError}</p>
               )}
               <p className="mt-2 text-xs text-gray-500">
-                На указанный email будет отправлен чек об оплате
+                {t('payment.email_hint')}
               </p>
             </div>
 
@@ -229,7 +235,7 @@ const TokenPurchasePage: React.FC = () => {
                 <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-3 bg-white text-gray-500">или купите пакет токенов</span>
+                <span className="px-3 bg-white text-gray-500">{t('payment.or_buy_package')}</span>
               </div>
             </div>
 
@@ -249,7 +255,7 @@ const TokenPurchasePage: React.FC = () => {
                   {pkg.popular && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <span className="bg-gradient-to-r from-forest-600 to-warm-600 text-white px-4 py-1 rounded-full text-xs font-semibold">
-                        Популярный
+                        {t('payment.popular_badge')}
                       </span>
                     </div>
                   )}
@@ -270,9 +276,9 @@ const TokenPurchasePage: React.FC = () => {
                         {formatTokens(pkg.tokens)}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600">токенов</p>
+                    <p className="text-sm text-gray-600">{t('chat.tokens_suffix')}</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      ≈ {Math.floor(pkg.tokens / 3500).toLocaleString('ru-RU')} сообщений
+                      {t('payment.approx_messages_label', { count: Math.floor(pkg.tokens / 3500).toLocaleString('ru-RU') })}
                     </p>
                   </div>
 
@@ -282,7 +288,7 @@ const TokenPurchasePage: React.FC = () => {
                       <span className="text-xl text-gray-600 ml-1">₽</span>
                     </div>
                     <p className="text-center text-xs text-gray-500 mt-1">
-                      ~{(pkg.price / (pkg.tokens / 1000)).toFixed(2)} ₽ за 1000 токенов
+                      {t('payment.price_per_1000_tokens', { price: (pkg.price / (pkg.tokens / 1000)).toFixed(2) })}
                     </p>
                   </div>
 
@@ -299,12 +305,12 @@ const TokenPurchasePage: React.FC = () => {
                     {isProcessing && selectedPackage === pkg.id ? (
                       <>
                         <Loader className="w-5 h-5 animate-spin" />
-                        <span>Обработка...</span>
+                        <span>{t('payment.processing_label')}</span>
                       </>
                     ) : (
                       <>
                         <Check className="w-5 h-5" />
-                        <span>Купить</span>
+                        <span>{t('payment.buy_button')}</span>
                       </>
                     )}
                   </button>
@@ -316,28 +322,28 @@ const TokenPurchasePage: React.FC = () => {
               <div className="p-6 bg-blue-50 rounded-xl border border-blue-200">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <Check className="w-5 h-5 text-blue-600 mr-2" />
-                  Что включено
+                  {t('payment.included_title')}
                 </h4>
                 <ul className="space-y-3 text-sm text-gray-700">
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">•</span>
-                    <span>Общение со всеми доступными ассистентами</span>
+                    <span>{t('payment.included_item_chat')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">•</span>
-                    <span>Токены не сгорают и действуют бессрочно</span>
+                    <span>{t('payment.included_item_no_expiry')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">•</span>
-                    <span>Безопасная оплата через ЮKassa</span>
+                    <span>{t('payment.included_item_secure_payment')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">•</span>
-                    <span>Мгновенное зачисление токенов после оплаты</span>
+                    <span>{t('payment.included_item_instant_credit')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">•</span>
-                    <span className="text-gray-500">Количество сообщений указано для развёрнутых ответов с историей диалога. Короткие вопросы расходуют в 3–4 раза меньше токенов</span>
+                    <span className="text-gray-500">{t('payment.included_item_messages_note')}</span>
                   </li>
                 </ul>
               </div>
@@ -345,24 +351,24 @@ const TokenPurchasePage: React.FC = () => {
               <div className="p-6 bg-green-50 rounded-xl border border-green-200">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <Coins className="w-5 h-5 text-green-600 mr-2" />
-                  Как это работает
+                  {t('payment.how_it_works_title')}
                 </h4>
                 <ol className="space-y-3 text-sm text-gray-700">
                   <li className="flex items-start">
                     <span className="font-semibold text-green-600 mr-2">1.</span>
-                    <span>Выберите подходящий пакет токенов</span>
+                    <span>{t('payment.how_it_works_step1')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold text-green-600 mr-2">2.</span>
-                    <span>Оплатите удобным способом через ЮKassa</span>
+                    <span>{t('payment.how_it_works_step2')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold text-green-600 mr-2">3.</span>
-                    <span>Токены мгновенно зачислятся на ваш счет</span>
+                    <span>{t('payment.how_it_works_step3')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold text-green-600 mr-2">4.</span>
-                    <span>Начните общение с ассистентами</span>
+                    <span>{t('payment.how_it_works_step4')}</span>
                   </li>
                 </ol>
               </div>

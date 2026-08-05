@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Gift, Copy, Check } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
@@ -13,6 +14,7 @@ import { withTouch } from '../../services/shareReferral';
  * entry point, not a change to the program.
  */
 const InviteFriendBlock: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -44,8 +46,8 @@ const InviteFriendBlock: React.FC = () => {
           <Gift className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-gray-900">Пригласи друга</h2>
-          <p className="text-sm text-gray-600">Поделись ссылкой — друзья присоединятся к Linkeon по ней</p>
+          <h2 className="text-lg font-semibold text-gray-900">{t('profile.invite_friend_title')}</h2>
+          <p className="text-sm text-gray-600">{t('profile.invite_friend_body')}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-2">
@@ -55,14 +57,14 @@ const InviteFriendBlock: React.FC = () => {
           className="flex items-center gap-1 px-3 py-1.5 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 transition-colors flex-shrink-0"
         >
           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          {copied ? 'Скопировано' : 'Копировать'}
+          {copied ? t('referral.copied') : t('referral.copy')}
         </button>
       </div>
       <button
         onClick={() => navigate('/referral')}
         className="mt-3 text-sm text-forest-700 hover:underline"
       >
-        Подробнее о реферальной программе →
+        {t('profile.invite_friend_more_link')}
       </button>
     </div>
   );

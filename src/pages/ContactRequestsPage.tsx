@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Check, X, Loader2, Inbox, Send, MessageCircle } from 'lucide-react';
 import { apiClient } from '../services/apiClient';
 import { clsx } from 'clsx';
@@ -20,6 +21,7 @@ interface ContactRequest {
 }
 
 const ContactRequestsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [incoming, setIncoming] = useState<ContactRequest[]>([]);
   const [outgoing, setOutgoing] = useState<ContactRequest[]>([]);
@@ -57,10 +59,10 @@ const ContactRequestsPage: React.FC = () => {
 
   const statusBadge = (s: Status) => {
     const map: Record<Status, { label: string; cls: string }> = {
-      pending:   { label: 'Ожидает',  cls: 'bg-amber-100 text-amber-800' },
-      approved:  { label: 'Принят',   cls: 'bg-green-100 text-green-800' },
-      rejected:  { label: 'Отклонён', cls: 'bg-gray-100 text-gray-600' },
-      cancelled: { label: 'Отменён',  cls: 'bg-gray-100 text-gray-600' },
+      pending:   { label: t('pages.contact_requests.status_pending'),   cls: 'bg-amber-100 text-amber-800' },
+      approved:  { label: t('pages.contact_requests.status_approved'),  cls: 'bg-green-100 text-green-800' },
+      rejected:  { label: t('pages.contact_requests.status_rejected'),  cls: 'bg-gray-100 text-gray-600' },
+      cancelled: { label: t('pages.contact_requests.status_cancelled'), cls: 'bg-gray-100 text-gray-600' },
     };
     const m = map[s];
     return <span className={clsx('px-2 py-0.5 rounded text-xs font-medium', m.cls)}>{m.label}</span>;
@@ -73,15 +75,15 @@ const ContactRequestsPage: React.FC = () => {
       <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <Inbox className="w-6 h-6 text-forest-600" />
-          Запросы на контакт
+          {t('pages.contact_requests.title')}
         </h1>
       </div>
 
       <div className="bg-white border-b flex-shrink-0">
         <div className="flex">
           {([
-            { key: 'incoming' as const, label: 'Входящие', icon: Inbox, count: incoming.filter((r) => r.status === 'pending').length },
-            { key: 'outgoing' as const, label: 'Отправленные', icon: Send,  count: outgoing.filter((r) => r.status === 'pending').length },
+            { key: 'incoming' as const, label: t('pages.contact_requests.tab_incoming'), icon: Inbox, count: incoming.filter((r) => r.status === 'pending').length },
+            { key: 'outgoing' as const, label: t('pages.contact_requests.tab_outgoing'), icon: Send,  count: outgoing.filter((r) => r.status === 'pending').length },
           ]).map(({ key, label, icon: Icon, count }) => (
             <button
               key={key}
@@ -114,7 +116,7 @@ const ContactRequestsPage: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Inbox className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">
-              {tab === 'incoming' ? 'Пока никто не запросил ваш контакт.' : 'Вы ещё не отправляли запросов на контакт.'}
+              {tab === 'incoming' ? t('pages.contact_requests.empty_incoming') : t('pages.contact_requests.empty_outgoing')}
             </p>
           </div>
         )}
@@ -125,12 +127,12 @@ const ContactRequestsPage: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-gray-900">
                   {tab === 'incoming'
-                    ? (r.requester_name || 'Пользователь')
-                    : (r.target_name || 'Пользователь')}
+                    ? (r.requester_name || t('profile.default_user_name'))
+                    : (r.target_name || t('profile.default_user_name'))}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
                   {fmtDate(r.created_at)}
-                  {r.resolved_at && ` · обработано ${fmtDate(r.resolved_at)}`}
+                  {r.resolved_at && ` · ${t('pages.contact_requests.resolved_at', { date: fmtDate(r.resolved_at) })}`}
                 </div>
               </div>
               {statusBadge(r.status)}
@@ -145,7 +147,7 @@ const ContactRequestsPage: React.FC = () => {
             {r.status === 'approved' && (
               <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded p-2">
                 <MessageCircle className="w-4 h-4" />
-                Контакт открыт:&nbsp;
+                {t('pages.contact_requests.contact_opened')}&nbsp;
                 <span className="font-medium">
                   {tab === 'incoming' ? r.requester_phone : r.target_phone}
                 </span>
@@ -160,7 +162,7 @@ const ContactRequestsPage: React.FC = () => {
                   className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <X className="w-4 h-4" />
-                  Отклонить
+                  {t('pages.contact_requests.reject_button')}
                 </button>
                 <button
                   onClick={() => resolve(r.id, 'approve')}
@@ -168,7 +170,7 @@ const ContactRequestsPage: React.FC = () => {
                   className="px-3 py-1.5 bg-forest-600 hover:bg-forest-700 text-white rounded-lg text-sm disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {resolvingId === r.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Принять
+                  {t('pages.contact_requests.approve_button')}
                 </button>
               </div>
             )}

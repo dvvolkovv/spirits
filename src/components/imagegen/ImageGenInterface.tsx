@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { shareWithReferral } from '../../services/shareReferral';
 import { useImageGen } from '../../contexts/ImageGenContext';
@@ -36,17 +37,21 @@ import {
   ImageSize,
 } from '../../types/imageGen';
 
-const PROMPT_EXAMPLES = [
-  { label: 'Портрет', text: 'Портретный снимок молодой женщины в кожаной куртке, мягкий студийный свет, 85mm, зерно плёнки, кинематографично' },
-  { label: 'Альпы на рассвете', text: 'Туманное утро в Альпах, золотой час, широкоугольный объектив, кинематографичный свет, высокая детализация' },
-  { label: 'Киберпанк', text: 'Ночной киберпанк-город, неоновые вывески, мокрый асфальт с отражениями, дождь, 3D-рендер в Octane, 8K' },
-  { label: 'Акварельный лисёнок', text: 'Милый лисёнок в волшебном лесу, акварельная иллюстрация в стиле детской книги, мягкие пастельные тона' },
-  { label: 'Аниме-Гибли', text: 'Девушка в кимоно под цветущей сакурой, закат, аниме-стиль Studio Ghibli, тёплые цвета' },
-  { label: 'Реклама парфюма', text: 'Флакон парфюма на мраморной подставке, минималистичная рекламная съёмка, мягкие тени, бежевый фон' },
-  { label: 'Эльф-маг', text: 'Древний эльфийский маг в длинной мантии, светящийся посох, готический храм, атмосферный туман, эпичный свет' },
-  { label: 'Крем-брюле', text: 'Крем-брюле с хрустящей карамельной корочкой, макросъёмка, тёплый свет, размытое боке, food photography' },
-  { label: 'Астронавт-ретро', text: 'Астронавт сидит на Луне и смотрит на Землю, винтажный постер NASA 70-х, плакатная стилистика, ограниченная палитра' },
-  { label: 'Акварельный Токио', text: 'Улочка старого Токио с красными фонарями, дождь, акварельная иллюстрация, мягкие размытия' },
+const EDIT_COST = 5000;
+const COMPOSE_COST = 5000;
+const UPSCALE_COST = 10000;
+
+const getPromptExamples = (t: (key: string) => string) => [
+  { label: t('imagegen.example_portrait_label'), text: t('imagegen.example_portrait_text') },
+  { label: t('imagegen.example_alps_label'), text: t('imagegen.example_alps_text') },
+  { label: t('imagegen.example_cyberpunk_label'), text: t('imagegen.example_cyberpunk_text') },
+  { label: t('imagegen.example_fox_label'), text: t('imagegen.example_fox_text') },
+  { label: t('imagegen.example_ghibli_label'), text: t('imagegen.example_ghibli_text') },
+  { label: t('imagegen.example_perfume_label'), text: t('imagegen.example_perfume_text') },
+  { label: t('imagegen.example_elf_label'), text: t('imagegen.example_elf_text') },
+  { label: t('imagegen.example_dessert_label'), text: t('imagegen.example_dessert_text') },
+  { label: t('imagegen.example_astronaut_label'), text: t('imagegen.example_astronaut_text') },
+  { label: t('imagegen.example_tokyo_label'), text: t('imagegen.example_tokyo_text') },
 ];
 
 // Иконка-кнопка для action-панели на карточке картинки. Tailwind tooltip через
@@ -77,6 +82,7 @@ const CardIconBtn: React.FC<{
 );
 
 const ImageGenInterface: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const {
@@ -131,10 +137,10 @@ const ImageGenInterface: React.FC = () => {
   };
 
   const kindLabel: Record<string, { label: string; color: string }> = {
-    generate: { label: 'Генерация', color: 'bg-forest-100 text-forest-700' },
-    edit: { label: 'Редактирование', color: 'bg-blue-100 text-blue-700' },
-    compose: { label: 'Композиция', color: 'bg-purple-100 text-purple-700' },
-    upscale: { label: 'Апскейл 4K', color: 'bg-amber-100 text-amber-700' },
+    generate: { label: t('imagegen.kind_generate'), color: 'bg-forest-100 text-forest-700' },
+    edit: { label: t('imagegen.kind_edit'), color: 'bg-blue-100 text-blue-700' },
+    compose: { label: t('imagegen.kind_compose'), color: 'bg-purple-100 text-purple-700' },
+    upscale: { label: t('imagegen.kind_upscale'), color: 'bg-amber-100 text-amber-700' },
   };
 
   const copyToClipboard = async (text: string, key: string) => {
@@ -198,6 +204,8 @@ const ImageGenInterface: React.FC = () => {
     );
   };
 
+  const PROMPT_EXAMPLES = getPromptExamples(t);
+
   const allPickable = [
     ...results.map(r => ({ url: r.url, prompt: '' })),
     ...history.map(h => ({ url: h.image_url, prompt: h.prompt })),
@@ -212,7 +220,7 @@ const ImageGenInterface: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Wand2 className="w-5 h-5 text-forest-600" />
-                <h3 className="text-base font-semibold text-gray-900">Редактировать картинку</h3>
+                <h3 className="text-base font-semibold text-gray-900">{t('imagegen.edit_modal_title')}</h3>
               </div>
               <button onClick={() => setEditModal(null)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
@@ -222,7 +230,7 @@ const ImageGenInterface: React.FC = () => {
             <textarea
               value={editPrompt}
               onChange={e => setEditPrompt(e.target.value)}
-              placeholder="Что изменить? Например: «сделай фон закатным», «убери человека», «поменяй цвет на красный»"
+              placeholder={t('imagegen.edit_prompt_placeholder')}
               rows={3}
               className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
               autoFocus
@@ -233,14 +241,14 @@ const ImageGenInterface: React.FC = () => {
                 className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
                   editQuality === 'std' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
               >
-                Обычное · 5 000
+                {t('imagegen.quality_standard', { cost: EDIT_COST.toLocaleString('ru-RU') })}
               </button>
               <button
                 onClick={() => setEditQuality('hd')}
                 className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
                   editQuality === 'hd' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
               >
-                HD (4K) · 10 000
+                {t('imagegen.quality_hd', { cost: UPSCALE_COST.toLocaleString('ru-RU') })}
               </button>
             </div>
             <button
@@ -250,7 +258,7 @@ const ImageGenInterface: React.FC = () => {
                 editPrompt.trim() ? 'bg-forest-600 hover:bg-forest-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed')}
             >
               <Wand2 className="w-4 h-4" />
-              Применить
+              {t('imagegen.apply_button')}
             </button>
           </div>
         </div>
@@ -267,7 +275,7 @@ const ImageGenInterface: React.FC = () => {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Info className="w-5 h-5 text-forest-600" />
-                  <h3 className="text-base font-semibold text-gray-900">Детали изображения</h3>
+                  <h3 className="text-base font-semibold text-gray-900">{t('imagegen.details_modal_title')}</h3>
                 </div>
                 <button onClick={() => setDetailsItem(null)} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
@@ -278,13 +286,13 @@ const ImageGenInterface: React.FC = () => {
                 type="button"
                 onClick={() => setLightboxImg(detailsItem.image_url)}
                 className="group relative w-full mb-4 rounded-lg overflow-hidden bg-gray-50 block cursor-zoom-in"
-                title="Нажмите, чтобы увеличить"
+                title={t('imagegen.click_to_zoom_title')}
               >
                 <img src={detailsItem.image_url} className="w-full max-h-64 object-contain" alt="preview" />
                 <span className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 text-gray-800 text-xs font-medium shadow-lg">
                     <ZoomIn className="w-3.5 h-3.5" />
-                    Увеличить
+                    {t('imagegen.zoom_label')}
                   </span>
                 </span>
               </button>
@@ -293,30 +301,30 @@ const ImageGenInterface: React.FC = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={clsx('px-2 py-0.5 rounded-full text-xs font-medium', meta.color)}>{meta.label}</span>
                   {parsed.kind === 'compose' && parsed.composeCount && (
-                    <span className="text-xs text-gray-500">из {parsed.composeCount} картинок</span>
+                    <span className="text-xs text-gray-500">{t('imagegen.compose_count_label', { count: parsed.composeCount })}</span>
                   )}
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-medium text-gray-500">Промпт</p>
+                    <p className="text-xs font-medium text-gray-500">{t('imagegen.prompt_label')}</p>
                     <button
                       onClick={() => copyToClipboard(parsed.text, 'prompt')}
                       className="text-xs text-forest-600 hover:text-forest-700 flex items-center gap-1"
                     >
                       {copyStatus === 'prompt' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      {copyStatus === 'prompt' ? 'Скопировано' : 'Копировать'}
+                      {copyStatus === 'prompt' ? t('chat.copied') : t('chat.copy')}
                     </button>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-800 whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
-                    {parsed.text || <span className="text-gray-400">Без текста</span>}
+                    {parsed.text || <span className="text-gray-400">{t('imagegen.no_text')}</span>}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
-                      <Coins className="w-3 h-3" /> Потрачено токенов
+                      <Coins className="w-3 h-3" /> {t('imagegen.tokens_spent_label')}
                     </p>
                     <p className="text-sm text-gray-800 font-semibold">
                       {detailsItem.tokens_spent != null ? Number(detailsItem.tokens_spent).toLocaleString('ru-RU') : '—'}
@@ -324,7 +332,7 @@ const ImageGenInterface: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" /> Дата
+                      <Calendar className="w-3 h-3" /> {t('imagegen.date_label')}
                     </p>
                     <p className="text-sm text-gray-800">
                       {created.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' })}
@@ -334,13 +342,13 @@ const ImageGenInterface: React.FC = () => {
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-medium text-gray-500">Ссылка на картинку</p>
+                    <p className="text-xs font-medium text-gray-500">{t('imagegen.image_link_label')}</p>
                     <button
                       onClick={() => copyToClipboard(detailsItem.image_url, 'url')}
                       className="text-xs text-forest-600 hover:text-forest-700 flex items-center gap-1"
                     >
                       {copyStatus === 'url' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      {copyStatus === 'url' ? 'Скопировано' : 'Копировать'}
+                      {copyStatus === 'url' ? t('chat.copied') : t('chat.copy')}
                     </button>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2 text-[11px] text-gray-600 break-all font-mono">
@@ -349,7 +357,7 @@ const ImageGenInterface: React.FC = () => {
                 </div>
 
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">ID записи</p>
+                  <p className="text-xs font-medium text-gray-500 mb-1">{t('imagegen.record_id_label')}</p>
                   <p className="text-xs text-gray-500 font-mono">#{detailsItem.id}</p>
                 </div>
               </div>
@@ -366,7 +374,7 @@ const ImageGenInterface: React.FC = () => {
                   disabled={!parsed.text}
                 >
                   <RotateCcw className="w-4 h-4" />
-                  Использовать промпт
+                  {t('imagegen.use_prompt_button')}
                 </button>
                 <button
                   onClick={() => {
@@ -378,17 +386,17 @@ const ImageGenInterface: React.FC = () => {
                     navigate(`/video?${params.toString()}`);
                   }}
                   className="px-4 py-2.5 rounded-xl border border-forest-200 text-forest-700 hover:bg-forest-50 text-sm font-medium flex items-center justify-center gap-2"
-                  title="Создать видео из этой картинки"
+                  title={t('imagegen.create_video_title')}
                 >
                   <Film className="w-4 h-4" />
-                  Сделать видео
+                  {t('imagegen.make_video_label')}
                 </button>
                 <button
                   onClick={() => handleDownload(detailsItem.image_url, detailsItem.id)}
                   className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
-                  Скачать
+                  {t('chat.download')}
                 </button>
               </div>
             </div>
@@ -403,13 +411,13 @@ const ImageGenInterface: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-forest-600" />
-                <h3 className="text-base font-semibold text-gray-900">Объединить картинки</h3>
+                <h3 className="text-base font-semibold text-gray-900">{t('imagegen.compose_modal_title')}</h3>
               </div>
               <button onClick={() => setComposeModal(null)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-gray-500 mb-2">Первая картинка уже выбрана. Выберите 1-2 дополнительные из ваших результатов и истории.</p>
+            <p className="text-xs text-gray-500 mb-2">{t('imagegen.compose_instructions')}</p>
             <div className="grid grid-cols-4 gap-2 mb-3 max-h-48 overflow-y-auto bg-gray-50 rounded-lg p-2">
               <div className="relative aspect-square rounded overflow-hidden border-2 border-forest-400">
                 <img src={composeModal.firstUrl} className="w-full h-full object-cover" alt="first" />
@@ -441,7 +449,7 @@ const ImageGenInterface: React.FC = () => {
             <textarea
               value={composePrompt}
               onChange={e => setComposePrompt(e.target.value)}
-              placeholder="Как объединить? Например: «возьми кота из первой и посади на трон из второй»"
+              placeholder={t('imagegen.compose_prompt_placeholder')}
               rows={2}
               className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
             />
@@ -451,14 +459,14 @@ const ImageGenInterface: React.FC = () => {
                 className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
                   composeQuality === 'std' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
               >
-                Обычное · 5 000
+                {t('imagegen.quality_standard', { cost: COMPOSE_COST.toLocaleString('ru-RU') })}
               </button>
               <button
                 onClick={() => setComposeQuality('hd')}
                 className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
                   composeQuality === 'hd' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
               >
-                HD (4K) · 10 000
+                {t('imagegen.quality_hd', { cost: UPSCALE_COST.toLocaleString('ru-RU') })}
               </button>
             </div>
             <button
@@ -468,7 +476,7 @@ const ImageGenInterface: React.FC = () => {
                 composePickUrls.length > 0 && composePrompt.trim() ? 'bg-forest-600 hover:bg-forest-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed')}
             >
               <Layers className="w-4 h-4" />
-              Объединить
+              {t('imagegen.compose_label')}
             </button>
           </div>
         </div>
@@ -499,7 +507,7 @@ const ImageGenInterface: React.FC = () => {
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Image className="w-5 h-5 text-forest-600" />
-          <h1 className="text-base font-semibold text-gray-900">Генерация изображений</h1>
+          <h1 className="text-base font-semibold text-gray-900">{t('imagegen.page_title')}</h1>
         </div>
         {user?.tokens !== undefined && (
           <div className="flex items-center gap-1.5 text-sm text-gray-600">
@@ -520,7 +528,7 @@ const ImageGenInterface: React.FC = () => {
               className={clsx('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
                 mode === 'image' ? 'bg-white text-forest-700 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
             >
-              <Image className="w-4 h-4" /> Картинка
+              <Image className="w-4 h-4" /> {t('imagegen.mode_image')}
             </button>
             <button
               type="button"
@@ -528,14 +536,13 @@ const ImageGenInterface: React.FC = () => {
               className={clsx('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors',
                 mode === 'banner' ? 'bg-white text-forest-700 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
             >
-              <Type className="w-4 h-4" /> Баннер с текстом
+              <Type className="w-4 h-4" /> {t('imagegen.mode_banner')}
             </button>
           </div>
 
           {mode === 'banner' && (
             <p className="text-xs text-gray-500 bg-forest-50 border border-forest-100 rounded-lg px-3 py-2">
-              Фон генерируется <b>без текста</b>, а заголовок и кнопку мы накладываем поверх программно —
-              буквы (включая кириллицу) получаются идеально ровными.
+              <Trans i18nKey="imagegen.banner_note" components={{ 1: <b /> }} />
             </p>
           )}
 
@@ -546,8 +553,8 @@ const ImageGenInterface: React.FC = () => {
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={mode === 'banner'
-              ? 'Опишите ТОЛЬКО фон (без текста). Напр.: «тёплое летнее побережье на закате, мягкое боке»'
-              : 'Опишите изображение, которое хотите создать...'}
+              ? t('imagegen.banner_prompt_placeholder')
+              : t('imagegen.image_prompt_placeholder')}
             rows={3}
             className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300 focus:border-transparent"
           />
@@ -559,28 +566,28 @@ const ImageGenInterface: React.FC = () => {
                 type="text"
                 value={banner.title}
                 onChange={e => setB('title', e.target.value)}
-                placeholder="Заголовок (крупно)"
+                placeholder={t('imagegen.banner_title_placeholder')}
                 className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
               />
               <input
                 type="text"
                 value={banner.subtitle}
                 onChange={e => setB('subtitle', e.target.value)}
-                placeholder="Подзаголовок (опционально)"
+                placeholder={t('imagegen.banner_subtitle_placeholder')}
                 className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
               />
               <input
                 type="text"
                 value={banner.cta}
                 onChange={e => setB('cta', e.target.value)}
-                placeholder="Кнопка / призыв (опционально). Напр.: «Записаться»"
+                placeholder={t('imagegen.banner_cta_placeholder')}
                 className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300"
               />
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">Позиция текста</p>
+                  <p className="text-xs font-medium text-gray-500 mb-1">{t('imagegen.text_position_label')}</p>
                   <div className="flex gap-1">
-                    {([['top', 'Сверху'], ['center', 'Центр'], ['bottom', 'Снизу']] as const).map(([val, lbl]) => (
+                    {([['top', t('imagegen.position_top')], ['center', t('imagegen.position_center')], ['bottom', t('imagegen.position_bottom')]] as const).map(([val, lbl]) => (
                       <button
                         key={val}
                         type="button"
@@ -594,9 +601,9 @@ const ImageGenInterface: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1">Тема / акцент</p>
+                  <p className="text-xs font-medium text-gray-500 mb-1">{t('imagegen.theme_label')}</p>
                   <div className="flex gap-1 items-center">
-                    {([['dark', 'Тёмная'], ['light', 'Светлая']] as const).map(([val, lbl]) => (
+                    {([['dark', t('imagegen.theme_dark')], ['light', t('imagegen.theme_light')]] as const).map(([val, lbl]) => (
                       <button
                         key={val}
                         type="button"
@@ -611,7 +618,7 @@ const ImageGenInterface: React.FC = () => {
                       type="color"
                       value={banner.accent}
                       onChange={e => setB('accent', e.target.value)}
-                      title="Цвет кнопки"
+                      title={t('imagegen.button_color_title')}
                       className="w-9 h-8 rounded-lg border border-gray-200 cursor-pointer bg-white p-0.5"
                     />
                   </div>
@@ -625,7 +632,7 @@ const ImageGenInterface: React.FC = () => {
           <div>
             <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
-              Примеры — нажмите, чтобы подставить
+              {t('imagegen.examples_hint')}
             </p>
             <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
               {PROMPT_EXAMPLES.map((ex, i) => (
@@ -652,7 +659,7 @@ const ImageGenInterface: React.FC = () => {
             className="flex items-center gap-2 text-sm text-gray-600 hover:text-forest-600 transition-colors"
           >
             <Settings2 className="w-4 h-4" />
-            <span>Настройки</span>
+            <span>{t('settings.title')}</span>
             {showSettings ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
 
@@ -661,7 +668,7 @@ const ImageGenInterface: React.FC = () => {
             <div className="bg-gray-50 rounded-xl p-4 space-y-4">
               {/* Size */}
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-2">Формат</p>
+                <p className="text-xs font-medium text-gray-500 mb-2">{t('imagegen.size_label')}</p>
                 <div className="flex gap-2">
                   {IMAGE_SIZES.map(s => (
                     <button
@@ -684,7 +691,7 @@ const ImageGenInterface: React.FC = () => {
                           height: s.h > s.w ? 24 : Math.round(24 * s.h / s.w),
                         }}
                       />
-                      <span className="font-medium">{s.label}</span>
+                      <span className="font-medium">{t(s.labelKey)}</span>
                       <span className="text-gray-400">{s.aspect}</span>
                     </button>
                   ))}
@@ -693,11 +700,11 @@ const ImageGenInterface: React.FC = () => {
 
               {/* Negative prompt */}
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-2">Негативный промпт</p>
+                <p className="text-xs font-medium text-gray-500 mb-2">{t('imagegen.negative_prompt_label')}</p>
                 <textarea
                   value={settings.negativePrompt}
                   onChange={e => set('negativePrompt', e.target.value)}
-                  placeholder="Что НЕ должно быть на изображении..."
+                  placeholder={t('imagegen.negative_prompt_placeholder')}
                   rows={2}
                   className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-forest-300 bg-white"
                 />
@@ -735,12 +742,12 @@ const ImageGenInterface: React.FC = () => {
               {isGenerating ? (
                 <>
                   <Loader className="w-4 h-4 animate-spin" />
-                  <span>Генерирую...</span>
+                  <span>{t('imagegen.generating_label')}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>{mode === 'banner' ? 'Создать баннер' : 'Сгенерировать'}</span>
+                  <span>{mode === 'banner' ? t('imagegen.create_banner_button') : t('studio.generate_button')}</span>
                   <span className="text-xs opacity-70 ml-1">({tokenCost.toLocaleString('ru-RU')})</span>
                 </>
               )}
@@ -754,26 +761,26 @@ const ImageGenInterface: React.FC = () => {
                   ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
                   : 'bg-white text-forest-700 border-forest-200 hover:bg-forest-50'
               )}
-              title="Загрузить свою картинку (затем можно редактировать / объединять / улучшать)"
+              title={t('imagegen.upload_own_image_title')}
             >
               <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">Загрузить</span>
+              <span className="hidden sm:inline">{t('common.upload')}</span>
             </button>
           </div>
 
           {!hasEnoughTokens && !isGenerating && (
             <p className="text-xs text-red-500 text-center">
-              Недостаточно токенов. Нужно {tokenCost.toLocaleString('ru-RU')}, есть {(user?.tokens ?? 0).toLocaleString('ru-RU')}
+              {t('imagegen.insufficient_tokens_message', { needed: tokenCost.toLocaleString('ru-RU'), available: (user?.tokens ?? 0).toLocaleString('ru-RU') })}
             </p>
           )}
 
-          <p className="text-xs text-gray-400 text-center">Ctrl+Enter для генерации</p>
+          <p className="text-xs text-gray-400 text-center">{t('imagegen.ctrl_enter_hint')}</p>
         </div>
 
         {/* Results */}
         {results.length > 0 && (
           <div className="p-4">
-            <h2 className="text-sm font-medium text-gray-700 mb-3">Результаты</h2>
+            <h2 className="text-sm font-medium text-gray-700 mb-3">{t('imagegen.results_title')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {results.map((img, idx) => (
                 <div key={idx} className="group relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
@@ -787,42 +794,42 @@ const ImageGenInterface: React.FC = () => {
                     <button
                       onClick={() => setLightboxImg(img.url)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title="Увеличить"
+                      title={t('imagegen.zoom_label')}
                     >
                       <ZoomIn className="w-4 h-4 text-gray-800" />
                     </button>
                     <button
                       onClick={() => openEdit(img.url)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title="Редактировать (5 000)"
+                      title={t('imagegen.edit_action_title', { cost: EDIT_COST.toLocaleString('ru-RU') })}
                     >
                       <Wand2 className="w-4 h-4 text-forest-700" />
                     </button>
                     <button
                       onClick={() => openCompose(img.url)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title="Объединить с другой (5 000)"
+                      title={t('imagegen.compose_action_title', { cost: COMPOSE_COST.toLocaleString('ru-RU') })}
                     >
                       <Layers className="w-4 h-4 text-forest-700" />
                     </button>
                     <button
                       onClick={() => handleUpscale(img.url)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title="Улучшить качество (10 000)"
+                      title={t('imagegen.upscale_action_title', { cost: UPSCALE_COST.toLocaleString('ru-RU') })}
                     >
                       <Maximize2 className="w-4 h-4 text-forest-700" />
                     </button>
                     <button
                       onClick={() => handleDownload(img.url, idx)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title="Скачать"
+                      title={t('chat.download')}
                     >
                       <Download className="w-4 h-4 text-gray-800" />
                     </button>
                     <button
-                      onClick={() => shareWithReferral('Сделал(а) эту картинку в Linkeon — нейросеть рисует по описанию. Попробуй, по моей ссылке дадут бонус на старт 🎁', 'image_share')}
+                      onClick={() => shareWithReferral(t('imagegen.share_message'), 'image_share')}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title="Поделиться"
+                      title={t('imagegen.share_label')}
                     >
                       <Share2 className="w-4 h-4 text-forest-700" />
                     </button>
@@ -844,7 +851,7 @@ const ImageGenInterface: React.FC = () => {
         {results.length === 0 && !isGenerating && history.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center px-4">
             <Image className="w-12 h-12 text-gray-200 mb-3" />
-            <p className="text-sm text-gray-400">Введите описание и нажмите «Сгенерировать»</p>
+            <p className="text-sm text-gray-400">{t('imagegen.empty_state_hint')}</p>
           </div>
         )}
 
@@ -853,7 +860,7 @@ const ImageGenInterface: React.FC = () => {
           <div className="mt-4">
             <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 mb-3">
               {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              История генераций ({history.length})
+              {t('imagegen.history_title', { count: history.length })}
             </button>
             {showHistory && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -861,19 +868,19 @@ const ImageGenInterface: React.FC = () => {
                   <div key={h.id} className="relative group rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
                     <img src={h.image_url} alt={h.prompt} className="w-full aspect-square object-cover cursor-pointer" onClick={() => setLightboxImg(h.image_url)} loading="lazy" />
                     <div className="absolute inset-x-0 top-0 p-2 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 bg-gradient-to-b from-black/50 to-transparent transition-opacity">
-                      <CardIconBtn onClick={() => setDetailsItem(h)} icon={Info} label="Детали" />
-                      <CardIconBtn onClick={() => openEdit(h.image_url)} icon={Wand2} label="Редактировать" />
-                      <CardIconBtn onClick={() => openCompose(h.image_url)} icon={Layers} label="Объединить" />
+                      <CardIconBtn onClick={() => setDetailsItem(h)} icon={Info} label={t('imagegen.details_label')} />
+                      <CardIconBtn onClick={() => openEdit(h.image_url)} icon={Wand2} label={t('common.edit')} />
+                      <CardIconBtn onClick={() => openCompose(h.image_url)} icon={Layers} label={t('imagegen.compose_label')} />
                       <CardIconBtn
                         onClick={() => {
                           const params = new URLSearchParams({ mode: 'image2video', sourceImageUrl: h.image_url });
                           navigate(`/video?${params.toString()}`);
                         }}
                         icon={Film}
-                        label="Сделать видео"
+                        label={t('imagegen.make_video_label')}
                       />
-                      <CardIconBtn onClick={() => handleUpscale(h.image_url)} icon={Maximize2} label="Улучшить качество" />
-                      <CardIconBtn onClick={() => deleteImage(h.id)} icon={X} label="Удалить" danger />
+                      <CardIconBtn onClick={() => handleUpscale(h.image_url)} icon={Maximize2} label={t('imagegen.upscale_label')} />
+                      <CardIconBtn onClick={() => deleteImage(h.id)} icon={X} label={t('common.delete')} danger />
                     </div>
                     <div className="p-2">
                       <p className="text-[10px] text-gray-500 line-clamp-2">{h.prompt}</p>

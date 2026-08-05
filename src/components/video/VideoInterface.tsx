@@ -87,7 +87,7 @@ export default function VideoInterface() {
         {([
           { id: 'create', label: t('video.tabs.create') },
           { id: 'gallery', label: t('video.tabs.gallery') },
-          { id: 'smm', label: 'SMM-ролики (Юля)' },
+          { id: 'smm', label: t('video.tabs.smm') },
         ] as const).map((x) => (
           <button
             key={x.id}

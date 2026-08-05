@@ -27,6 +27,7 @@ import { useVideoJobs } from '../video/useVideoJobs';
 import VideoJobCard from '../video/VideoJobCard';
 import { InlineCalendarProposals } from '../calendar/InlineCalendarProposals';
 import { trackAuthed } from '../../services/eventsClient';
+import { getRoleForAssistant } from './assistantRole';
 
 interface Assistant {
   id: number;
@@ -36,15 +37,6 @@ interface Assistant {
   displayName?: string;
   description: string;
 }
-
-const getRoleForAssistant = (description: string, t: (k: string) => string): string => {
-  if (description.includes('Коуч')) return t('chat.assistant_role_coach');
-  if (description.includes('Психолог')) return t('chat.assistant_role_psych');
-  if (description.includes('Игропрактик')) return t('chat.assistant_role_gameplay');
-  if (description.includes('Астролог')) return t('chat.assistant_role_astro');
-  if (description.includes('Human Design')) return t('chat.assistant_role_hd');
-  return t('chat.assistant_role_default');
-};
 
 interface Message {
   id: string;
@@ -91,12 +83,14 @@ const stripCalendarProposalMarkers = (text: string): string => text.replace(CALE
 // Список намеренно держим в коде (быстрая правка через деплой); при желании
 // редактора Романа его можно вынести в БД/конфиг.
 const ROMAN_ASSISTANT_ID = 12;
-const ROMAN_SUGGESTIONS: string[] = [
-  'Помоги разобраться, с чего начать в моей ситуации',
-  'Разбери мою задачу по шагам',
-  'Какие специалисты платформы могут мне помочь?',
-  'Задай мне вопросы, чтобы лучше понять мой запрос',
-  'Дай конкретный план действий на неделю',
+// Ключи переводов вместо литералов — t() доступен только внутри компонента,
+// поэтому сами строки резолвятся в месте рендера (см. ROMAN_SUGGESTION_KEYS.map ниже).
+const ROMAN_SUGGESTION_KEYS: string[] = [
+  'chat.roman_suggestion_next_steps',
+  'chat.roman_suggestion_breakdown',
+  'chat.roman_suggestion_specialists',
+  'chat.roman_suggestion_clarify',
+  'chat.roman_suggestion_weekly_plan',
 ];
 const extractVideoJobIds = (text: string): string[] => {
   const ids: string[] = [];
@@ -129,6 +123,7 @@ const StreamingMessage = React.memo(({
   onLinkClick: (url: string) => void;
   onSendMessage?: (text: string) => void;
 }) => {
+  const { t } = useTranslation();
   const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
 
   const renderContent = () => {
@@ -233,7 +228,7 @@ const StreamingMessage = React.memo(({
           parts.push(
             <div key={`social-tg-${idx}`}>
               <TelegramConnectForm onConnected={(displayName) => {
-                onSendMessage?.(`Telegram подключил (${displayName}), продолжай.`);
+                onSendMessage?.(t('chat.telegram_connected_continue', { displayName }));
               }} />
             </div>
           );
@@ -1214,7 +1209,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   accumulatedContent += `\n\n{{smm_scenario:id=${sc.id}}}`;
                 }
               } else if (data.result?.error) {
-                accumulatedContent += `\n\n*Ошибка генерации сценариев: ${data.result.error}*`;
+                accumulatedContent += `\n\n*${t('chat.scenario_gen_error', { error: data.result.error })}*`;
               }
             }
             if (data.type === 'tool_result' && data.tool === 'approve_scenarios') {
@@ -1227,7 +1222,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               }
               if (Array.isArray(failed) && failed.length > 0) {
                 for (const f of failed) {
-                  accumulatedContent += `\n\n*Не утверждено (${f.reason}): ${f.scenarioId.slice(0, 8)}…*`;
+                  accumulatedContent += `\n\n*${t('chat.scenario_not_approved', { reason: f.reason, id: f.scenarioId.slice(0, 8) })}*`;
                 }
               }
             }
@@ -1249,7 +1244,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               if (data.result?.ok && data.result?.imageUrl) {
                 accumulatedContent += `\n\n${data.result.imageUrl}\n\n`;
               } else if (data.result?.error) {
-                accumulatedContent += `\n\n*Не удалось сделать баннер: ${data.result.error}*`;
+                accumulatedContent += `\n\n*${t('chat.banner_gen_error', { error: data.result.error })}*`;
               }
             }
           } catch (e) {
@@ -1376,13 +1371,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     if (success) {
       const label = PLATFORM_LABELS[success as SmmPlatform] ?? success;
-      toast.success(`${label} подключён`);
+      toast.success(t('chat.platform_connected_toast', { label }));
       // Resume the chat conversation
       setTimeout(() => {
-        sendMessageText(`Подключил ${label}, продолжай.`);
+        sendMessageText(t('chat.platform_connected_continue', { label }));
       }, 200);
     } else if (error) {
-      toast.error(`Не удалось подключить: ${decodeURIComponent(error)}`);
+      toast.error(t('chat.platform_connect_error_toast', { error: decodeURIComponent(error) }));
     }
     // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1530,7 +1525,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setIsRecording(false);
         // При авто-старте (шорткат «Голосом») не пугаем алертом — на Android без
         // жеста-активации mic может не стартовать; юзер просто тапнет микрофон.
-        if (msg === 'mic_denied') { if (!auto) alert('Нет доступа к микрофону. Разреши доступ в настройках браузера.'); }
+        if (msg === 'mic_denied') { if (!auto) alert(t('chat.mic_access_denied')); }
         else if (msg !== 'ws_error' && msg !== 'no_auth') console.warn('voice:', msg);
       },
       onClose: () => { setIsRecording(false); },
@@ -1624,6 +1619,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // sessionStorage, поэтому сверяемся именно с ним. Кап ~2с → текст НИКОГДА не теряется: если
     // ассистент так и не зарезолвился (плохой алиас), всё равно отправим, но не потеряем ввод.
     const ALIASES: Record<string, string> = {
+      // i18n-ignore: алиасы для ?assistant= в URL — сопоставляются с name
+      // ассистента с бэкенда. Это идентификаторы, перевод сломает deep-link.
       roman: 'роман', raya: 'райя', misha: 'миша', masha: 'маша',
       yulia: 'юля', julia: 'юля', yulya: 'юля',
     };
@@ -1728,12 +1725,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (!response.ok) {
         const errorText = await response.text();
         console.error('File upload error:', { status: response.status, errorText });
-        throw new Error(`Ошибка загрузки файла: ${response.status} ${response.statusText}`);
+        throw new Error(t('chat.file_upload_error_detail', { status: response.status, statusText: response.statusText }));
       }
 
       const result = await response.json();
       const profileData = result.output;
 
+      // i18n-ignore: это не UI, а текст промпта — уходит на бэк в chatInput
+      // и читается моделью. Системные промпты мы намеренно держим русскими:
+      // модель исполняет инструкции на одном языке, отвечая на языке юзера.
       let profileText = '📄 **Данные из документа обработаны:**\n\n';
       if (profileData.name && profileData.family_name) profileText += `**Имя:** ${profileData.name} ${profileData.family_name}\n`;
       for (const [key, label] of [['profile','Профиль'],['values','Ценности'],['skills','Навыки'],['beliefs','Убеждения'],['desires','Желания'],['interests','Интересы'],['intents','Поиск людей']] as const) {
@@ -1743,9 +1743,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
       }
 
-      const userMessage: Message = { id: generateMessageId(), type: 'user', content: `Загружен файл: ${file.name}`, timestamp: new Date() };
+      const userMessage: Message = { id: generateMessageId(), type: 'user', content: t('chat.file_uploaded_message', { name: file.name }), timestamp: new Date() };
       setMessages(prev => [...prev, userMessage]);
 
+      // i18n-ignore: текст промпта для модели, не UI (см. выше)
       const prompt = `Пользователь загрузил документ "${file.name}". Вот извлечённые данные:\n\n${profileText}\n\nЧто ты можешь предложить сделать с этой информацией?`;
       await sendMessageToAI(prompt);
 
@@ -1790,10 +1791,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const file = files[0];
       try {
         const text = await file.text();
-        const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
+        // i18n-ignore: текст промпта для модели, не UI (см. выше)
+      const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
         await sendMessageToAI(prompt);
       } catch {
-        await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
+        // i18n-ignore: текст промпта для модели, не UI (см. выше)
+      await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
       }
       return;
     }
@@ -1812,6 +1815,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // upload.any() и прокидывает на релей списком, без склейки в один файл.
       for (const f of files) formData.append('files', f);
       formData.append('message', task);
+      // i18n-ignore: значение поля API, не UI — имя ассистента по умолчанию
       formData.append('assistantId', String(selectedAssistant?.id || 'Роман'));
 
       const response = await apiClient.post('/webhook/agent/upload-and-chat', formData);
@@ -1871,13 +1875,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setCurrentStreamingMessage('');
     }
   };
-
-  const quickSuggestions = [
-    "Расскажи о моих ценностях",
-    "Какие у меня цели в жизни?",
-    "Что меня мотивирует?",
-    "Помоги найти единомышленников"
-  ];
 
   const handleSelectAssistant = async (assistant: Assistant) => {
     setSelectedAssistant(assistant);
@@ -1994,7 +1991,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   )}
                   <div className="flex flex-col items-start">
                     <span className="text-sm font-medium text-forest-900">{selectedAssistant.displayName ?? selectedAssistant.name}</span>
-                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.description, t)}</span>
+                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.id, t)}</span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-forest-700" />
                 </button>
@@ -2016,7 +2013,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       {customAgents.length > 0 && (
                         <>
                           <div className="px-4 py-1.5 text-[10px] uppercase tracking-wide font-semibold text-gray-500 bg-gray-50">
-                            ✨ Мои
+                            ✨ {t('chat.my_custom_assistants')}
                           </div>
                           {customAgents.map((c) => {
                             const synthetic: Assistant = {
@@ -2116,11 +2113,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   : 'border-gray-200 text-gray-500 hover:text-forest-700 hover:border-forest-300'
               )}
               title={freshTs
-                ? 'Чистый лист включён: ассистент не видит прошлую историю и задачи (профиль продолжает пополняться). Нажми, чтобы вернуться к обычному диалогу.'
-                : 'Чистый лист: начать разговор без прошлой истории и задач. Профиль продолжает пополняться.'}
+                ? t('chat.fresh_mode_on_title')
+                : t('chat.fresh_mode_off_title')}
             >
               <Eraser className="w-4 h-4" />
-              <span className="hidden md:inline text-xs font-medium">Чистый лист</span>
+              <span className="hidden md:inline text-xs font-medium">{t('chat.fresh_mode_label')}</span>
             </button>
             {messages.length > 1 && (
               <>
@@ -2303,7 +2300,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           parts.push(
                             <div key={`social-tg-${idx}`}>
                               <TelegramConnectForm onConnected={(displayName) => {
-                                sendMessageText(`Telegram подключил (${displayName}), продолжай.`);
+                                sendMessageText(t('chat.telegram_connected_continue', { displayName }));
                               }} />
                             </div>
                           );
@@ -2385,15 +2382,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <div className="max-w-lg">
                 <p className="text-xs text-gray-400 mb-1.5 px-1">{t('chat.suggestions_hint')}</p>
                 <div className="flex flex-wrap gap-2">
-                  {ROMAN_SUGGESTIONS.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => sendMessageText(s)}
-                      className="text-sm text-forest-700 bg-white border border-forest-300 hover:border-forest-400 hover:bg-forest-50 rounded-full px-3 py-1.5 transition-colors text-left"
-                    >
-                      {s}
-                    </button>
-                  ))}
+                  {ROMAN_SUGGESTION_KEYS.map((key) => {
+                    const s = t(key);
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => sendMessageText(s)}
+                        className="text-sm text-forest-700 bg-white border border-forest-300 hover:border-forest-400 hover:bg-forest-50 rounded-full px-3 py-1.5 transition-colors text-left"
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

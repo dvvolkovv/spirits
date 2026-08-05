@@ -19,18 +19,6 @@ interface ChatLayoutProps {
   children: (props: { selectedAssistant: Assistant | null; onSelectAssistant: (a: Assistant) => void; assistants: Assistant[] }) => React.ReactNode;
 }
 
-const getRoleBadge = (desc: string): string => {
-  if (desc.includes('Коуч')) return 'Коуч';
-  if (desc.includes('Психолог')) return 'Психолог';
-  if (desc.includes('Игропрактик')) return 'Игропрактик';
-  if (desc.includes('Бухгалтер')) return 'Бухгалтер';
-  if (desc.includes('Юрист')) return 'Юрист';
-  if (desc.includes('Нумеролог')) return 'Нумеролог';
-  if (desc.includes('Маркетолог')) return 'Маркетолог';
-  if (desc.includes('HR')) return 'HR';
-  return 'Ассистент';
-};
-
 const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   const { t, i18n } = useTranslation();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
@@ -128,6 +116,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
     if (q) {
       // Латинские алиасы для человекочитаемых шорткат-URL → к именам агентов.
       const ALIASES: Record<string, string> = {
+        // i18n-ignore: алиасы для ?assistant= в URL — сопоставляются с name
+        // ассистента с бэкенда. Это идентификаторы, перевод сломает deep-link.
         roman: 'роман', raya: 'райя', misha: 'миша', masha: 'маша',
         yulia: 'юля', julia: 'юля', yulya: 'юля',
       };
@@ -202,7 +192,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
         <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
           {customAgents.length > 0 && (
             <>
-              <p className="text-xs font-bold text-blue-700 uppercase tracking-wide px-3 pt-2 pb-1">✨ Мои</p>
+              <p className="text-xs font-bold text-blue-700 uppercase tracking-wide px-3 pt-2 pb-1">✨ {t('chat.my_assistants_label')}</p>
               {customAgents.map(c => {
                 const synthetic: Assistant = {
                   id: `custom:${c.id}` as unknown as number,

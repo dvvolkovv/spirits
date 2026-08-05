@@ -163,7 +163,7 @@ const ChatConversationView: React.FC<Props> = ({ chatId }) => {
         >
           <h1 className="text-sm font-semibold text-gray-900 truncate">{conv.peerName}</h1>
           <p className="text-[11px] text-gray-400 truncate">
-            {t('peer.chat.tapForProfile', 'Нажмите, чтобы открыть профиль')}
+            {t('peer.chat.tapForProfile')}
           </p>
         </button>
         <div className="relative">

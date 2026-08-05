@@ -32,10 +32,15 @@ export const IMAGE_MODELS: { value: ImageModel; label: string; description: stri
   { value: 'openai/gpt-5-image-mini', label: 'GPT-5 Image Mini', description: 'OpenAI · компактный' },
 ];
 
-export const IMAGE_SIZES: { value: ImageSize; label: string; aspect: string; w: number; h: number }[] = [
-  { value: '1024x1024', label: 'Квадрат', aspect: '1:1', w: 1, h: 1 },
-  { value: '1792x1024', label: 'Широкий', aspect: '16:9', w: 16, h: 9 },
-  { value: '1024x1792', label: 'Портрет', aspect: '9:16', w: 9, h: 16 },
+/**
+ * Формат изображения. `labelKey` — ключ локали, а не готовая подпись:
+ * константа объявлена вне компонента, где хук useTranslation недоступен,
+ * поэтому текст резолвится на месте отрисовки.
+ */
+export const IMAGE_SIZES: { value: ImageSize; labelKey: string; aspect: string; w: number; h: number }[] = [
+  { value: '1024x1024', labelKey: 'imagegen.size_square', aspect: '1:1', w: 1, h: 1 },
+  { value: '1792x1024', labelKey: 'imagegen.size_wide', aspect: '16:9', w: 16, h: 9 },
+  { value: '1024x1792', labelKey: 'imagegen.size_portrait', aspect: '9:16', w: 9, h: 16 },
 ];
 
 // Стоимость в токенах за 1 изображение

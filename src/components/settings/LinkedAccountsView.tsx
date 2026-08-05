@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Smartphone, Mail, Loader } from 'lucide-react';
 import { authService } from '../../services/authService';
 import type { Identity } from '../../types/auth';
+import type { TFunction } from 'i18next';
 
-const providerLabel = (p: Identity['provider']): string => {
-  if (p === 'phone')   return 'Телефон';
+const providerLabel = (t: TFunction, p: Identity['provider']): string => {
+  if (p === 'phone')   return t('profile.phone');
   if (p === 'email')   return 'Email';
   if (p === 'google')  return 'Google';
   if (p === 'talerid') return 'Taler ID';
@@ -23,6 +24,7 @@ const providerBadge = (p: Identity['provider']) => {
         p === 'google' ? 'bg-white border' : 'bg-red-600 text-white'
       }`}
     >
+      {/* i18n-ignore: брендовые глифы Google и Яндекса, не текст */}
       {p === 'google' ? 'G' : 'Я'}
     </span>
   );
@@ -89,7 +91,7 @@ const LinkedAccountsView: React.FC = () => {
                 id.provider === 'yandex' ||
                 id.provider === 'talerid') && providerBadge(id.provider)}
               <div>
-                <p className="text-sm font-medium">{providerLabel(id.provider)}</p>
+                <p className="text-sm font-medium">{providerLabel(t, id.provider)}</p>
                 <p className="text-xs text-gray-500">{id.providerSub}</p>
               </div>
             </div>
@@ -118,6 +120,7 @@ const LinkedAccountsView: React.FC = () => {
         {!linkedProviders.has('yandex') && (
           <div className="px-4 py-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
+              {/* i18n-ignore: брендовый глиф, не текст */}
               <span className="inline-flex w-5 h-5 rounded bg-red-600 text-white items-center justify-center text-xs font-bold">Я</span>
               <p className="text-sm">Yandex</p>
             </div>

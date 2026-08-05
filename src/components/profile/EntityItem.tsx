@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, X } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -21,6 +22,7 @@ interface Props {
  * персональный gloss и aliases (из каких исходных фраз собрана группа).
  */
 export const EntityItem: React.FC<Props> = ({ item, dotColor = 'bg-forest-500', isEditing, onRemove }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const rich = typeof item === 'string' ? { name: item } : item;
   const hasDetails = !!rich.gloss || (rich.aliases && rich.aliases.length > 1);
@@ -59,7 +61,7 @@ export const EntityItem: React.FC<Props> = ({ item, dotColor = 'bg-forest-500', 
               )}
               {rich.aliases && rich.aliases.length > 1 && (
                 <div className="text-xs text-gray-500">
-                  <span className="font-medium">Включает: </span>
+                  <span className="font-medium">{t('profile.entity_includes_label')} </span>
                   {rich.aliases.join(' · ')}
                 </div>
               )}
@@ -71,7 +73,7 @@ export const EntityItem: React.FC<Props> = ({ item, dotColor = 'bg-forest-500', 
             type="button"
             onClick={onRemove}
             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded flex-shrink-0"
-            title="Удалить"
+            title={t('common.delete')}
           >
             <X className="w-4 h-4 text-red-600" />
           </button>

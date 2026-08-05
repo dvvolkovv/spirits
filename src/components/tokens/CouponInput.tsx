@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Ticket, Loader, CheckCircle } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +9,7 @@ interface CouponInputProps {
 }
 
 const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
+  const { t } = useTranslation();
   const { refreshTokens } = useAuth();
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -15,15 +17,15 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
   const [success, setSuccess] = useState<{ tokens: number } | null>(null);
 
   const errorMessages: Record<string, string> = {
-    coupon_not_found: 'Купон не найден',
-    coupon_inactive: 'Купон неактивен',
-    coupon_already_used: 'Вы уже использовали этот купон',
-    no_code_provided: 'Введите код купона',
+    coupon_not_found: t('payment.coupon_not_found'),
+    coupon_inactive: t('payment.coupon_inactive'),
+    coupon_already_used: t('payment.coupon_already_used'),
+    no_code_provided: t('payment.coupon_enter_code_error'),
   };
 
   const handleSubmit = async () => {
     if (!code.trim()) {
-      setError('Введите код купона');
+      setError(t('payment.coupon_enter_code_error'));
       return;
     }
 
@@ -41,10 +43,10 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
         await refreshTokens();
         onSuccess?.();
       } else {
-        setError(errorMessages[data.error] || 'Ошибка при активации купона');
+        setError(errorMessages[data.error] || t('payment.coupon_generic_error'));
       }
     } catch {
-      setError('Ошибка при активации купона');
+      setError(t('payment.coupon_generic_error'));
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +58,7 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
         <div className="flex items-center space-x-2 text-green-700">
           <CheckCircle className="w-5 h-5" />
           <span data-testid="coupon-success-msg" className="font-medium">
-            Начислено {success.tokens.toLocaleString('ru-RU')} токенов!
+            {t('payment.coupon_success_message', { tokens: success.tokens.toLocaleString('ru-RU') })}
           </span>
         </div>
       </div>
@@ -67,7 +69,7 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
     <div data-testid="coupon-root" className="p-4 bg-warm-50 rounded-lg border border-warm-200">
       <div className="flex items-center space-x-2 mb-3">
         <Ticket className="w-5 h-5 text-warm-600" />
-        <span className="text-sm font-medium text-gray-700">Есть купон?</span>
+        <span className="text-sm font-medium text-gray-700">{t('payment.coupon_prompt_label')}</span>
       </div>
       <div className="flex space-x-2">
         <input
@@ -78,7 +80,7 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
             setCode(e.target.value.toUpperCase());
             setError('');
           }}
-          placeholder="Введите код купона"
+          placeholder={t('payment.coupon_enter_code_error')}
           className={`flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-forest-500 focus:border-transparent ${
             error ? 'border-red-400' : 'border-gray-300'
           }`}
@@ -94,7 +96,7 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
           {isLoading ? (
             <Loader className="w-4 h-4 animate-spin" />
           ) : (
-            <span>Активировать</span>
+            <span>{t('payment.coupon_activate_button')}</span>
           )}
         </button>
       </div>

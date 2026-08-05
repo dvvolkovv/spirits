@@ -112,7 +112,7 @@ const AppContent: React.FC = () => {
     };
 
     if (failed || !handoff) {
-      toast.error('Не удалось войти через Taler ID. Попробуйте ещё раз');
+      toast.error(t('pages.talerid_login_failed'));
       strip();
       return;
     }
@@ -122,7 +122,7 @@ const AppContent: React.FC = () => {
         const resp = await apiClient.post('/webhook/ecosystem/talerid/login/redeem', { handoff });
         const body = await resp.json().catch(() => ({} as Record<string, string>));
         if (!resp.ok || !body['access-token']) {
-          toast.error('Ссылка входа устарела — войдите заново');
+          toast.error(t('pages.talerid_login_expired'));
           strip();
           return;
         }
@@ -131,11 +131,11 @@ const AppContent: React.FC = () => {
         strip();
         await login('', body['access-token']);
       } catch {
-        toast.error('Не удалось войти через Taler ID. Попробуйте ещё раз');
+        toast.error(t('pages.talerid_login_failed'));
         strip();
       }
     })();
-  }, [login]);
+  }, [login, t]);
 
   // TalerID account-linking return: the OAuth callback redirects back to the SPA with
   // ?talerid_link=<status>. Turn it into a toast and strip the param so a refresh doesn't re-fire.
@@ -144,13 +144,13 @@ const AppContent: React.FC = () => {
     const link = params.get('talerid_link');
     if (!link) return;
     const M: Record<string, { kind: 'success' | 'error' | 'info'; text: string }> = {
-      linked: { kind: 'success', text: 'Аккаунт TalerID связан' },
-      cancelled: { kind: 'info', text: 'Связывание отменено' },
-      expired: { kind: 'error', text: 'Ссылка для связывания устарела — попробуйте ещё раз' },
-      different_phone: { kind: 'error', text: 'На этом аккаунте TalerID уже привязан другой номер' },
-      phone_taken: { kind: 'error', text: 'Этот номер уже привязан к другому аккаунту TalerID' },
-      has_messages: { kind: 'error', text: 'Не удалось связать: в текущем аккаунте уже есть переписка — напишите в поддержку' },
-      error: { kind: 'error', text: 'Не удалось связать аккаунт. Попробуйте позже' },
+      linked: { kind: 'success', text: t('pages.talerid_link_success') },
+      cancelled: { kind: 'info', text: t('pages.talerid_link_cancelled') },
+      expired: { kind: 'error', text: t('pages.talerid_link_expired') },
+      different_phone: { kind: 'error', text: t('pages.talerid_link_different_phone') },
+      phone_taken: { kind: 'error', text: t('pages.talerid_link_phone_taken') },
+      has_messages: { kind: 'error', text: t('pages.talerid_link_has_messages') },
+      error: { kind: 'error', text: t('pages.talerid_link_error') },
     };
     const m = M[link] || M.error;
     if (m.kind === 'success') toast.success(m.text);
@@ -159,7 +159,7 @@ const AppContent: React.FC = () => {
     params.delete('talerid_link');
     const qs = params.toString();
     window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
-  }, []);
+  }, [t]);
 
   if (isLoading) {
     return (

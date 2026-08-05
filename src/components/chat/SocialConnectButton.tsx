@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
 
 interface Props {
@@ -16,6 +17,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export const SocialConnectButton: React.FC<Props> = ({ platform, authorizeUrl }) => {
+  const { t } = useTranslation();
   const label = PLATFORM_LABELS[platform] ?? platform;
   const colorClass = PLATFORM_COLORS[platform] ?? 'bg-blue-600 hover:bg-blue-700';
 
@@ -26,10 +28,10 @@ export const SocialConnectButton: React.FC<Props> = ({ platform, authorizeUrl })
         className={`${colorClass} text-white px-5 py-3 rounded-lg font-medium flex items-center gap-2 transition`}
       >
         <ExternalLink className="w-4 h-4" />
-        Подключить {label}
+        {t('chat.social_connect_button', { platform: label })}
       </button>
       <p className="text-xs text-gray-500 mt-2">
-        Откроется страница авторизации {label}. После одобрения вернёшься в чат.
+        {t('chat.social_connect_hint', { platform: label })}
       </p>
     </div>
   );

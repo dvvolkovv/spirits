@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Trans, useTranslation } from 'react-i18next';
 import { socialAccountApi } from '../../services/socialAccountApi';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const TelegramConnectForm: React.FC<Props> = ({ onConnected }) => {
+  const { t } = useTranslation();
   const [botToken, setBotToken] = useState('');
   const [chatId, setChatId] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -20,7 +22,7 @@ export const TelegramConnectForm: React.FC<Props> = ({ onConnected }) => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!botToken.trim() || !chatId.trim()) {
-      setError('Заполни bot token и chat id');
+      setError(t('chat.telegram_fill_required'));
       return;
     }
     setLoading(true);
@@ -32,10 +34,10 @@ export const TelegramConnectForm: React.FC<Props> = ({ onConnected }) => {
         displayName: displayName.trim() || undefined,
       });
       setSuccess(true);
-      toast.success(`Telegram подключён: ${acc.displayName}`);
+      toast.success(t('chat.telegram_connected_toast', { name: acc.displayName }));
       onConnected?.(acc.displayName);
     } catch (e: any) {
-      setError(e?.message ?? 'Не удалось подключить');
+      setError(e?.message ?? t('chat.telegram_connect_error'));
     } finally {
       setLoading(false);
     }
@@ -45,18 +47,18 @@ export const TelegramConnectForm: React.FC<Props> = ({ onConnected }) => {
     return (
       <div className="my-3 p-4 rounded-lg border border-green-200 bg-green-50 flex items-center gap-2">
         <Check className="w-5 h-5 text-green-600" />
-        <span className="text-green-800 font-medium">Telegram подключён</span>
+        <span className="text-green-800 font-medium">{t('chat.telegram_connected')}</span>
       </div>
     );
   }
 
   return (
     <form onSubmit={submit} className="my-3 p-4 rounded-lg border border-gray-200 bg-white">
-      <div className="text-sm font-medium mb-3">Подключить Telegram-канал</div>
+      <div className="text-sm font-medium mb-3">{t('chat.telegram_connect_title')}</div>
 
       <input
         type="text"
-        placeholder="Bot token (от @BotFather)"
+        placeholder={t('chat.telegram_bot_token_placeholder')}
         value={botToken}
         onChange={(e) => setBotToken(e.target.value)}
         className="w-full mb-2 px-3 py-2 border border-gray-300 rounded text-sm font-mono"
@@ -65,7 +67,7 @@ export const TelegramConnectForm: React.FC<Props> = ({ onConnected }) => {
       />
       <input
         type="text"
-        placeholder="Chat ID или @username канала"
+        placeholder={t('chat.telegram_chat_id_placeholder')}
         value={chatId}
         onChange={(e) => setChatId(e.target.value)}
         className="w-full mb-2 px-3 py-2 border border-gray-300 rounded text-sm"
@@ -74,7 +76,7 @@ export const TelegramConnectForm: React.FC<Props> = ({ onConnected }) => {
       />
       <input
         type="text"
-        placeholder="Название (опционально)"
+        placeholder={t('chat.telegram_name_placeholder')}
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
         className="w-full mb-3 px-3 py-2 border border-gray-300 rounded text-sm"
@@ -88,13 +90,13 @@ export const TelegramConnectForm: React.FC<Props> = ({ onConnected }) => {
         className="text-xs text-blue-600 hover:underline flex items-center gap-1 mb-3"
       >
         {showHelp ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-        Как получить bot_token и chat_id?
+        {t('chat.telegram_help_toggle')}
       </button>
 
       {showHelp && (
         <div className="text-xs text-gray-600 mb-3 p-3 bg-gray-50 rounded space-y-1">
-          <p><strong>Bot token:</strong> Напиши @BotFather, команда /newbot, следуй инструкциям. Получишь токен вида <code>123:ABC-XYZ</code>.</p>
-          <p><strong>Chat ID:</strong> Создай канал, добавь своего бота как админа с правом постить, затем chat_id = <code>@my_channel</code> (для публичных) или числовой ID вида <code>-1001234567890</code> (получи через @userinfobot — добавь его в канал на минуту).</p>
+          <p><Trans i18nKey="chat.telegram_help_token_line"><strong>Bot token:</strong> Напиши @BotFather, команда /newbot, следуй инструкциям. Получишь токен вида <code>123:ABC-XYZ</code>.</Trans></p>
+          <p><Trans i18nKey="chat.telegram_help_chatid_line"><strong>Chat ID:</strong> Создай канал, добавь своего бота как админа с правом постить, затем chat_id = <code>@my_channel</code> (для публичных) или числовой ID вида <code>-1001234567890</code> (получи через @userinfobot — добавь его в канал на минуту).</Trans></p>
         </div>
       )}
 
@@ -111,7 +113,7 @@ export const TelegramConnectForm: React.FC<Props> = ({ onConnected }) => {
         className="bg-sky-500 hover:bg-sky-600 disabled:bg-gray-300 text-white px-4 py-2 rounded font-medium flex items-center gap-2 text-sm"
       >
         <Send className="w-4 h-4" />
-        {loading ? 'Подключаем…' : 'Подключить'}
+        {loading ? t('chat.telegram_connecting') : t('chat.telegram_submit')}
       </button>
     </form>
   );
