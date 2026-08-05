@@ -111,7 +111,8 @@ const ProfileView: React.FC = () => {
           profileRecord = responseData;
         } else {
           // Не user-facing: попадает только в console.error ниже, никогда не в alert/UI.
-          throw new Error('Неожиданный формат ответа сервера');
+          // i18n-ignore: сообщение уходит только в console.error, до UI не доходит
+        throw new Error('Неожиданный формат ответа сервера');
         }
 
         // Извлекаем данные профиля из записи

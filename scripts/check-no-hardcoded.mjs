@@ -32,6 +32,8 @@ const MIGRATED = [
   'src/components/settings/LanguageSelect.tsx',
   'src/components/onboarding',
   'src/components/chat',
+  'src/components/settings',
+  'src/components/profile',
 ];
 
 /**

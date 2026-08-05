@@ -24,6 +24,7 @@ const providerBadge = (p: Identity['provider']) => {
         p === 'google' ? 'bg-white border' : 'bg-red-600 text-white'
       }`}
     >
+      {/* i18n-ignore: брендовые глифы Google и Яндекса, не текст */}
       {p === 'google' ? 'G' : 'Я'}
     </span>
   );
@@ -119,6 +120,7 @@ const LinkedAccountsView: React.FC = () => {
         {!linkedProviders.has('yandex') && (
           <div className="px-4 py-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
+              {/* i18n-ignore: брендовый глиф, не текст */}
               <span className="inline-flex w-5 h-5 rounded bg-red-600 text-white items-center justify-center text-xs font-bold">Я</span>
               <p className="text-sm">Yandex</p>
             </div>
