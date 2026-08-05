@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { avatarService } from '../../services/avatarService';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 
@@ -19,51 +20,68 @@ interface AssistantSelectionProps {
   isLoading: boolean;
 }
 
-const getRoleForAssistant = (description: string): string => {
-  if (description.includes('Коуч')) return 'Коуч';
-  if (description.includes('Психолог')) return 'Психолог';
-  if (description.includes('Игропрактик')) return 'Игропрактик';
-  if (description.includes('Астролог')) return 'Астролог';
-  if (description.includes('Human Design')) return 'Human Design';
-  if (description.includes('Бухгалтер')) return 'Бухгалтер';
-  if (description.includes('Юрист')) return 'Юрист';
-  return 'Ассистент';
+/**
+ * Роль определяется по стабильному id ассистента, а НЕ по тексту описания.
+ *
+ * Раньше здесь был поиск русских подстрок (`description.includes('Коуч')`).
+ * После локализации карточек на бэкенде описание приходит на языке
+ * пользователя — испанец получает «Coach certificado…», подстрока не находится,
+ * и роль у всех сваливалась в дефолтную. id стабилен и не переводится.
+ *
+ * Ассистента без записи здесь показываем с общей ролью — это осознанный
+ * дефолт, а не ошибка: новый ассистент не должен ломать карточку.
+ */
+const ROLE_KEY_BY_AGENT_ID: Record<number, string> = {
+  1: 'chat.assistant_role_coach',
+  2: 'chat.assistant_role_psych',
+  3: 'chat.assistant_role_gameplay',
+  9: 'chat.assistant_role_accountant',
+  10: 'chat.assistant_role_lawyer',
+  13: 'chat.assistant_role_astro',
+  14: 'chat.assistant_role_hd',
 };
 
-const AssistantCard: React.FC<{ assistant: Assistant; avatarUrl?: string; onSelect: (a: Assistant) => void }> = ({ assistant, avatarUrl, onSelect }) => (
-  <button
-    onClick={() => onSelect(assistant)}
-    data-testid="assistant-card"
-    className="group bg-white rounded-2xl p-4 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 hover:scale-105 active:scale-95 text-left"
-  >
-    <div className="flex flex-col items-center text-center">
-      <div className="relative mb-3 md:mb-4">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt={assistant.displayName ?? assistant.name} className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-        ) : (
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300 flex items-center justify-center">
-            <span className="text-2xl md:text-3xl">👤</span>
+const getRoleForAssistant = (assistantId: number | string, t: (key: string) => string): string =>
+  t(ROLE_KEY_BY_AGENT_ID[Number(assistantId)] ?? 'chat.assistant_role_default');
+
+const AssistantCard: React.FC<{ assistant: Assistant; avatarUrl?: string; onSelect: (a: Assistant) => void }> = ({ assistant, avatarUrl, onSelect }) => {
+  const { t } = useTranslation();
+  return (
+    <button
+      onClick={() => onSelect(assistant)}
+      data-testid="assistant-card"
+      className="group bg-white rounded-2xl p-4 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-blue-500 hover:scale-105 active:scale-95 text-left"
+    >
+      <div className="flex flex-col items-center text-center">
+        <div className="relative mb-3 md:mb-4">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={assistant.displayName ?? assistant.name} className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          ) : (
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-500 to-pink-500 shadow-lg ring-4 ring-white group-hover:ring-blue-100 transition-all duration-300 flex items-center justify-center">
+              <span className="text-2xl md:text-3xl">👤</span>
+            </div>
+          )}
+          <div className="absolute -bottom-2 -right-2 w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
           </div>
-        )}
-        <div className="absolute -bottom-2 -right-2 w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-blue-500 to-pink-500 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-          <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
+        </div>
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">{assistant.displayName ?? assistant.name}</h3>
+        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full mb-3">{getRoleForAssistant(assistant.id, t)}</span>
+        <p className="text-xs md:text-sm text-gray-600 leading-relaxed line-clamp-3">{assistant.description}</p>
+        <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100 w-full">
+          <span className="text-xs md:text-sm font-medium text-blue-600 group-hover:text-blue-700 transition-colors">{t('chat.start_conversation_arrow')}</span>
         </div>
       </div>
-      <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">{assistant.displayName ?? assistant.name}</h3>
-      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full mb-3">{getRoleForAssistant(assistant.description)}</span>
-      <p className="text-xs md:text-sm text-gray-600 leading-relaxed line-clamp-3">{assistant.description}</p>
-      <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100 w-full">
-        <span className="text-xs md:text-sm font-medium text-blue-600 group-hover:text-blue-700 transition-colors">Начать общение →</span>
-      </div>
-    </div>
-  </button>
-);
+    </button>
+  );
+};
 
 export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
   assistants,
   onSelectAssistant,
   isLoading
 }) => {
+  const { t } = useTranslation();
   const visibleAssistants = assistants;
   const [avatarUrls, setAvatarUrls] = useState<Record<number, string>>({});
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
@@ -101,7 +119,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
       <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-pink-50">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Загружаем ассистентов...</p>
+          <p className="text-gray-600">{t('chat.loading_assistants')}</p>
         </div>
       </div>
     );
@@ -115,10 +133,10 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
             <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-white" />
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-            Выберите ассистента
+            {t('chat.select_assistant')}
           </h1>
           <p className="text-base md:text-lg text-gray-600">
-            С кем вы хотите начать общение?
+            {t('chat.who_to_start_with')}
           </p>
         </div>
 
@@ -126,7 +144,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         {customAgents.length > 0 && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="text-xl">✨</span> Мои
+              <span className="text-xl">✨</span> {t('chat.my_assistants_label')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {customAgents.map((c) => {
@@ -153,7 +171,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         {visibleAssistants.some(a => a.category === 'assistant') && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="text-xl">🤖</span> Личный ассистент
+              <span className="text-xl">🤖</span> {t('chat.personal_assistant')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {visibleAssistants.filter(a => a.category === 'assistant').map((assistant) => (
@@ -167,7 +185,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         {visibleAssistants.some(a => a.category === 'business') && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="text-xl">💼</span> Для роста бизнеса
+              <span className="text-xl">💼</span> {t('chat.section_business_growth')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {visibleAssistants.filter(a => a.category === 'business').map((assistant) => (
@@ -181,7 +199,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         {visibleAssistants.some(a => a.category === 'personal') && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="text-xl">🌱</span> Для личностного роста
+              <span className="text-xl">🌱</span> {t('chat.section_personal_growth')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {visibleAssistants.filter(a => a.category === 'personal').map((assistant) => (
@@ -195,7 +213,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
         {visibleAssistants.some(a => a.category === 'smm') && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="text-xl">🎬</span> SMM-продюсер
+              <span className="text-xl">🎬</span> {t('chat.section_smm_producer')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {visibleAssistants.filter(a => a.category === 'smm').map((assistant) => (
@@ -216,7 +234,7 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
 
         {assistants.length === 0 && !isLoading && (
           <div className="text-center py-12">
-            <p className="text-gray-500">Нет доступных ассистентов</p>
+            <p className="text-gray-500">{t('chat.no_assistants_available')}</p>
           </div>
         )}
       </div>

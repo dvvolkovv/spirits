@@ -2,6 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { X, Loader2, Save, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import {
   CreatorSettings,
   uploadCreatorLogo,
@@ -19,8 +20,9 @@ interface Props {
 }
 
 export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onClose, onSaved }) => {
+  const { t } = useTranslation();
   const [ctaHandle, setCtaHandle] = useState(initial.ctaHandle ?? '');
-  const [ctaLabel, setCtaLabel] = useState(initial.ctaLabel ?? 'Подписывайся');
+  const [ctaLabel, setCtaLabel] = useState(initial.ctaLabel ?? t('studio.cta_label_placeholder'));
   const [logoUrl, setLogoUrl] = useState<string | null>(initial.logoUrl);
   const [slogan, setSlogan] = useState(initial.ctaSlogan ?? '');
   const [caption, setCaption] = useState(initial.publishCaption ?? '');
@@ -34,52 +36,52 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
 
   const handleFile = async (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Файл больше 2 MB');
+      toast.error(t('studio.error_file_too_large'));
       return;
     }
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      toast.error('Допустимы PNG, JPEG, WebP');
+      toast.error(t('studio.error_file_type'));
       return;
     }
     setUploading(true);
     try {
       const r = await uploadCreatorLogo(campaignId, file);
       setLogoUrl(r.logoUrl);
-      toast.success('Логотип загружен');
+      toast.success(t('studio.logo_uploaded'));
     } catch (e: any) {
-      toast.error(`Не удалось загрузить: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('studio.upload_error', { error: e?.message ?? t('studio.error_fallback') }));
     } finally {
       setUploading(false);
     }
   };
 
   const handleClearLogo = async () => {
-    if (!window.confirm('Убрать логотип? CTA вернётся к стандартному Linkeon-брендингу.')) return;
+    if (!window.confirm(t('studio.confirm_clear_logo'))) return;
     try {
       await clearCreatorLogo(campaignId);
       setLogoUrl(null);
-      toast.success('Логотип убран');
+      toast.success(t('studio.logo_cleared'));
     } catch (e: any) {
-      toast.error(`Не удалось: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('studio.generic_error', { error: e?.message ?? t('studio.error_fallback') }));
     }
   };
 
   const handleBgFile = async (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Файл больше 2 MB');
+      toast.error(t('studio.error_file_too_large'));
       return;
     }
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      toast.error('Допустимы PNG, JPEG, WebP');
+      toast.error(t('studio.error_file_type'));
       return;
     }
     setBgUploading(true);
     try {
       const r = await uploadCreatorBackground(campaignId, file);
       setBgImageUrl(r.bgImageUrl);
-      toast.success('Фоновая картинка загружена');
+      toast.success(t('studio.bg_uploaded'));
     } catch (e: any) {
-      toast.error(`Не удалось загрузить: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('studio.upload_error', { error: e?.message ?? t('studio.error_fallback') }));
     } finally {
       setBgUploading(false);
     }
@@ -89,19 +91,19 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
     try {
       await clearCreatorBackground(campaignId);
       setBgImageUrl(null);
-      toast.success('Фон убран');
+      toast.success(t('studio.bg_cleared'));
     } catch (e: any) {
-      toast.error(`Не удалось: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('studio.generic_error', { error: e?.message ?? t('studio.error_fallback') }));
     }
   };
 
   const handleSave = async () => {
     if (!ctaHandle.trim()) {
-      toast.error('Куда вести аудиторию — обязательное поле');
+      toast.error(t('studio.error_cta_handle_required'));
       return;
     }
     if (!ctaLabel.trim()) {
-      toast.error('Призыв (например «Подписывайся») не может быть пустым');
+      toast.error(t('studio.error_cta_label_required'));
       return;
     }
     setSaving(true);
@@ -113,11 +115,11 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
         publishCaption: caption.trim() || null,
         bgColor: bgColor.trim() || null,
       });
-      toast.success('Сохранено');
+      toast.success(t('studio.saved'));
       onSaved(r.settings);
       onClose();
     } catch (e: any) {
-      toast.error(`Не удалось: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('studio.generic_error', { error: e?.message ?? t('studio.error_fallback') }));
     } finally {
       setSaving(false);
     }
@@ -130,7 +132,7 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
     >
       <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl">
         <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between">
-          <h3 className="text-base font-semibold">Брендинг последнего кадра</h3>
+          <h3 className="text-base font-semibold">{t('studio.branding_title')}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="h-5 w-5" />
           </button>
@@ -141,39 +143,39 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
           <div className="border border-forest-100 bg-forest-50/50 rounded-lg p-3 space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Куда вести аудиторию <span className="text-red-500">*</span>
+                {t('studio.cta_handle_label')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={ctaHandle}
                 onChange={(e) => setCtaHandle(e.target.value.slice(0, 120))}
-                placeholder="@my_channel или t.me/my_channel или example.com"
+                placeholder={t('studio.cta_handle_placeholder')}
                 className="w-full text-sm px-3 py-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Telegram-канал, сайт или соцсеть — появится крупным шрифтом в финале ролика.
+                {t('studio.cta_handle_hint')}
               </p>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Призыв
+                {t('studio.cta_label_label')}
               </label>
               <input
                 type="text"
                 value={ctaLabel}
                 onChange={(e) => setCtaLabel(e.target.value.slice(0, 60))}
-                placeholder="Подписывайся"
+                placeholder={t('studio.cta_label_placeholder')}
                 className="w-full text-sm px-3 py-2 border border-gray-300 rounded bg-white focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Например: «Подписывайся», «Жми», «Узнай больше», «Заходи». Выше handle'а на CTA-кадре.
+                {t('studio.cta_label_hint')}
               </p>
             </div>
           </div>
 
           {/* Logo */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">Логотип</label>
+            <label className="block text-xs font-medium text-gray-600 mb-2">{t('studio.logo_label')}</label>
             {logoUrl ? (
               <div className="flex items-center gap-3">
                 <img src={logoUrl} alt="logo" className="w-20 h-20 rounded-lg object-contain bg-gray-50 border border-gray-200" />
@@ -183,14 +185,14 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
                     disabled={uploading}
                     className="block w-full text-xs px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    {uploading ? 'Загружаем…' : 'Заменить'}
+                    {uploading ? t('studio.uploading') : t('studio.replace')}
                   </button>
                   <button
                     onClick={handleClearLogo}
                     className="block w-full text-xs px-3 py-1.5 rounded border border-red-300 text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="inline h-3 w-3 mr-1" />
-                    Убрать
+                    {t('studio.remove')}
                   </button>
                 </div>
               </div>
@@ -203,7 +205,7 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
                 {uploading
                   ? <Loader2 className="h-5 w-5 animate-spin" />
                   : <ImageIcon className="h-5 w-5" />}
-                <span>{uploading ? 'Загружаем…' : 'Загрузить логотип (PNG/JPG, до 2 MB)'}</span>
+                <span>{uploading ? t('studio.uploading') : t('studio.logo_upload_cta')}</span>
               </button>
             )}
             <input
@@ -218,47 +220,47 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
               }}
             />
             <p className="text-xs text-gray-400 mt-1">
-              Квадратное изображение, обычно крупный плотный логотип на прозрачном фоне.
+              {t('studio.logo_hint')}
             </p>
           </div>
 
           {/* Slogan */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              Слоган в кадре (до 120 символов)
+              {t('studio.slogan_label')}
             </label>
             <input
               type="text"
               value={slogan}
               onChange={(e) => setSlogan(e.target.value.slice(0, 120))}
-              placeholder="Например: Гид по Грузии · 7 лет в треккинге"
+              placeholder={t('studio.slogan_placeholder')}
               className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Появится в финальной плашке между логотипом и хэндлом.
+              {t('studio.slogan_hint')}
             </p>
           </div>
 
           {/* Default caption */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              Описание по умолчанию для публикации
+              {t('studio.default_caption_label')}
             </label>
             <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value.slice(0, 2000))}
               rows={4}
-              placeholder="Дефолтный текст под видео в соцсетях. Можно с эмодзи и хэштегами."
+              placeholder={t('studio.default_caption_placeholder')}
               className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none resize-none"
             />
             <p className="text-xs text-gray-400 mt-1">
-              Будет подставлен в окно «Опубликовать», но всегда можно изменить перед публикацией.
+              {t('studio.default_caption_hint')}
             </p>
           </div>
 
           {/* Background image */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">Фоновая картинка</label>
+            <label className="block text-xs font-medium text-gray-600 mb-2">{t('studio.bg_image_label')}</label>
             {bgImageUrl ? (
               <div className="flex items-center gap-3">
                 <img src={bgImageUrl} alt="bg" className="w-24 h-32 rounded-lg object-cover border border-gray-200" />
@@ -268,14 +270,14 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
                     disabled={bgUploading}
                     className="block w-full text-xs px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                   >
-                    {bgUploading ? 'Загружаем…' : 'Заменить'}
+                    {bgUploading ? t('studio.uploading') : t('studio.replace')}
                   </button>
                   <button
                     onClick={handleClearBg}
                     className="block w-full text-xs px-3 py-1.5 rounded border border-red-300 text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="inline h-3 w-3 mr-1" />
-                    Убрать
+                    {t('studio.remove')}
                   </button>
                 </div>
               </div>
@@ -288,7 +290,7 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
                 {bgUploading
                   ? <Loader2 className="h-5 w-5 animate-spin" />
                   : <Upload className="h-5 w-5" />}
-                <span>{bgUploading ? 'Загружаем…' : 'Загрузить фон (PNG/JPG, до 2 MB)'}</span>
+                <span>{bgUploading ? t('studio.uploading') : t('studio.bg_upload_cta')}</span>
               </button>
             )}
             <input
@@ -303,14 +305,14 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
               }}
             />
             <p className="text-xs text-gray-400 mt-1">
-              Вертикальное 9:16 (например, 1080×1920). Покрывает весь кадр под чат-пузырями.
+              {t('studio.bg_image_hint')}
             </p>
           </div>
 
           {/* Background color (fallback when no image) */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">
-              Цвет фона (если без картинки)
+              {t('studio.bg_color_label')}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -323,14 +325,14 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
                 type="text"
                 value={bgColor}
                 onChange={(e) => setBgColor(e.target.value.slice(0, 200))}
-                placeholder="#1a1a2e или linear-gradient(180deg, ...)"
+                placeholder={t('studio.bg_color_placeholder')}
                 className="flex-1 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none font-mono"
               />
               {bgColor && (
                 <button
                   onClick={() => setBgColor('')}
                   className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50"
-                  title="Очистить"
+                  title={t('studio.clear_title')}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -340,18 +342,18 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
               <div
                 className="mt-2 h-10 rounded border border-gray-200"
                 style={{ background: bgColor }}
-                title="Превью"
+                title={t('studio.preview_title')}
               />
             )}
             <p className="text-xs text-gray-400 mt-1">
-              HEX-цвет (#RRGGBB) или валидный CSS-градиент. Используется только если фоновая картинка не загружена.
+              {t('studio.bg_color_hint')}
             </p>
           </div>
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-3 flex items-center justify-end gap-2">
           <button onClick={onClose} disabled={saving} className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900">
-            Отмена
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -359,7 +361,7 @@ export const CreatorBrandingModal: React.FC<Props> = ({ campaignId, initial, onC
             className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Сохранить
+            {t('common.save')}
           </button>
         </div>
       </div>

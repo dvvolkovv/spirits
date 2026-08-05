@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { PremiumGenre } from './smm-api';
 import { Sparkles, User, Film } from 'lucide-react';
 
@@ -8,13 +9,15 @@ interface Props {
   disabled?: boolean;
 }
 
-const GENRES: Array<{ id: PremiumGenre; label: string; subtitle: string; Icon: React.ComponentType<{ className?: string }> }> = [
-  { id: 'surreal',   label: 'Surreal',   subtitle: 'Невозможные кадры',  Icon: Sparkles },
-  { id: 'pov',       label: 'POV',       subtitle: 'От лица предмета',   Icon: User },
-  { id: 'cinematic', label: 'Cinematic', subtitle: 'Киноязык',           Icon: Film },
-];
-
 export function PremiumGenreTabs({ selected, onChange, disabled }: Props) {
+  const { t } = useTranslation();
+
+  const GENRES: Array<{ id: PremiumGenre; label: string; subtitle: string; Icon: React.ComponentType<{ className?: string }> }> = [
+    { id: 'surreal',   label: 'Surreal',   subtitle: t('studio.genre_surreal_subtitle'),  Icon: Sparkles },
+    { id: 'pov',       label: 'POV',       subtitle: t('studio.genre_pov_subtitle'),   Icon: User },
+    { id: 'cinematic', label: 'Cinematic', subtitle: t('studio.genre_cinematic_subtitle'),           Icon: Film },
+  ];
+
   return (
     <div className="flex flex-wrap gap-2 mt-3">
       <button
@@ -27,7 +30,7 @@ export function PremiumGenreTabs({ selected, onChange, disabled }: Props) {
         onClick={() => onChange(null)}
         disabled={disabled}
       >
-        Классика
+        {t('studio.genre_classic')}
       </button>
       {GENRES.map(({ id, label, subtitle, Icon }) => (
         <button

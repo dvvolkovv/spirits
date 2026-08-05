@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, Send, X, Clock, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../../services/apiClient';
 import { socialAccountApi } from '../../../services/socialAccountApi';
 import { SmmPlatform, SocialAccount, PLATFORM_LABELS } from '../../../types/smm';
@@ -22,6 +23,7 @@ interface PublishResult {
 type TimeChoice = 'now' | '1h' | 'tomorrow18' | 'custom';
 
 export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished }) => {
+  const { t } = useTranslation();
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<SmmPlatform>>(new Set());
@@ -41,7 +43,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
         setSelectedPlatforms(new Set([active[0].platform]));
       }
     } catch (e: any) {
-      toast.error(`Не удалось загрузить аккаунты: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('studio.load_accounts_error', { error: e?.message ?? t('studio.error_fallback') }));
     } finally {
       setLoading(false);
     }
@@ -84,7 +86,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
       );
       window.location.href = authorizeUrl;
     } catch (e: any) {
-      toast.error(`${PLATFORM_LABELS[p]}: ${e?.message ?? 'ошибка'}`);
+      toast.error(`${PLATFORM_LABELS[p]}: ${e?.message ?? t('studio.error_fallback')}`);
       setConnectingPlatform(null);
     }
   };
@@ -104,7 +106,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
 
   const submit = async () => {
     if (selectedPlatforms.size === 0) {
-      toast.error('Выбери хотя бы одну платформу');
+      toast.error(t('studio.select_platform_required'));
       return;
     }
     setSubmitting(true);
@@ -121,16 +123,20 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
       const result: PublishResult = await r.json();
       if (result.failed.length > 0) {
         const fails = result.failed.map((f) => `${PLATFORM_LABELS[f.platform]}: ${f.reason}`).join(', ');
-        toast.error(`Не получилось на: ${fails}`);
+        toast.error(t('studio.publish_partial_fail', { fails }));
       }
       if (result.scheduled.length > 0) {
-        const when = timeChoice === 'now' ? 'опубликовано' : 'запланировано';
-        toast.success(`${result.scheduled.length} ${when} (${result.scheduled.map(s => PLATFORM_LABELS[s.platform]).join(', ')})`);
+        const when = timeChoice === 'now' ? t('studio.publish_state_published') : t('studio.publish_state_scheduled');
+        toast.success(t('studio.publish_success', {
+          count: result.scheduled.length,
+          state: when,
+          platforms: result.scheduled.map(s => PLATFORM_LABELS[s.platform]).join(', '),
+        }));
       }
       onPublished?.(result);
       onClose();
     } catch (e: any) {
-      toast.error(`Не удалось: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('studio.generic_error', { error: e?.message ?? t('studio.error_fallback') }));
     } finally {
       setSubmitting(false);
     }
@@ -147,7 +153,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
     >
       <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
-          <h3 className="text-base font-semibold">Опубликовать ролик</h3>
+          <h3 className="text-base font-semibold">{t('studio.publish_modal_title')}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="h-5 w-5" />
           </button>
@@ -156,10 +162,10 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
         <div className="px-5 py-4 space-y-4">
           {/* Platforms */}
           <div>
-            <div className="text-xs font-medium text-gray-600 mb-2">Куда публикуем?</div>
+            <div className="text-xs font-medium text-gray-600 mb-2">{t('studio.publish_where_label')}</div>
             {loading ? (
               <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> загружаем аккаунты…
+                <Loader2 className="h-4 w-4 animate-spin" /> {t('studio.loading_accounts')}
               </div>
             ) : (
               <div className="space-y-1">
@@ -197,7 +203,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
                         {connectingPlatform === p
                           ? <Loader2 className="h-3 w-3 animate-spin" />
                           : <Plus className="h-3 w-3" />}
-                        Подключить
+                        {t('studio.connect_button')}
                       </button>
                     </div>
                   );
@@ -209,14 +215,14 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
           {/* Time */}
           <div>
             <div className="text-xs font-medium text-gray-600 mb-2 flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Когда?
+              <Clock className="h-3 w-3" /> {t('studio.publish_when_label')}
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               {([
-                ['now', 'Сейчас'],
-                ['1h', 'Через час'],
-                ['tomorrow18', 'Завтра в 18:00'],
-                ['custom', 'Своё время'],
+                ['now', t('studio.time_now')],
+                ['1h', t('studio.time_1h')],
+                ['tomorrow18', t('studio.time_tomorrow18')],
+                ['custom', t('studio.time_custom')],
               ] as Array<[TimeChoice, string]>).map(([key, label]) => (
                 <button
                   key={key}
@@ -244,11 +250,11 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
 
           {/* Caption */}
           <div>
-            <div className="text-xs font-medium text-gray-600 mb-2">Подпись (опционально)</div>
+            <div className="text-xs font-medium text-gray-600 mb-2">{t('studio.caption_label')}</div>
             <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Текст под видео — для TG/VK/IG. Можно с эмодзи и хэштегами."
+              placeholder={t('studio.caption_placeholder')}
               rows={3}
               className="w-full text-sm px-3 py-2 border border-gray-300 rounded resize-none"
             />
@@ -263,7 +269,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
           >
             <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl p-5">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base font-semibold">Telegram-канал</h3>
+                <h3 className="text-base font-semibold">{t('studio.telegram_channel_title')}</h3>
                 <button onClick={() => setTgOpen(false)} className="text-gray-500 hover:text-gray-700">
                   <X className="h-5 w-5" />
                 </button>
@@ -272,7 +278,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
                 onConnected={() => {
                   setTgOpen(false);
                   refreshAccounts();
-                  toast.success('Telegram подключён');
+                  toast.success(t('studio.telegram_connected'));
                 }}
               />
             </div>
@@ -285,7 +291,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
             disabled={submitting}
             className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900"
           >
-            Отмена
+            {t('common.cancel')}
           </button>
           <button
             onClick={submit}
@@ -293,7 +299,7 @@ export const PublishModal: React.FC<Props> = ({ videoId, onClose, onPublished })
             className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {timeChoice === 'now' ? 'Опубликовать' : 'Запланировать'}
+            {timeChoice === 'now' ? t('studio.publish_button') : t('studio.schedule_button')}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Loader2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../../services/apiClient';
 import { ScenarioDetail, DialogTurn, BrollPrompt } from './smm-api';
 
@@ -13,33 +14,35 @@ interface Props {
   onSaved: (updated: ScenarioDetail) => void;
 }
 
-const MOODS: Array<{ value: ScenarioDetail['mood']; label: string; emoji: string }> = [
-  { value: 'dramatic',  label: 'Драматичное',  emoji: '🎭' },
-  { value: 'inspiring', label: 'Вдохновляющее', emoji: '✨' },
-  { value: 'calm',      label: 'Спокойное',     emoji: '🧘' },
-  { value: 'uplifting', label: 'Жизнерадостное', emoji: '🌟' },
-  { value: 'tense',     label: 'Напряжённое',   emoji: '⚡' },
-  { value: 'neutral',   label: 'Нейтральное',   emoji: '◽' },
-];
-
-const ROLES: Array<{ value: string; label: string }> = [
-  { value: 'psy',          label: 'Психолог' },
-  { value: 'coach',        label: 'Коуч' },
-  { value: 'lawyer',       label: 'Юрист' },
-  { value: 'accountant',   label: 'Бухгалтер' },
-  { value: 'marketer',     label: 'Маркетолог' },
-  { value: 'hr',           label: 'HR-эксперт' },
-  { value: 'business',     label: 'Бизнес-эксперт' },
-  { value: 'copywriter',   label: 'Копирайтер' },
-  { value: 'astrologer',   label: 'Астролог' },
-  { value: 'numerologist', label: 'Нумеролог' },
-  { value: 'humandesign',  label: 'Human Design' },
-  { value: 'gamepractic',  label: 'Игропрактик' },
-  { value: 'mindfulness',  label: 'Наставник осознанности' },
-  { value: 'assistant',    label: 'Универсальный ассистент' },
-];
-
 export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved }) => {
+  const { t } = useTranslation();
+
+  const MOODS: Array<{ value: ScenarioDetail['mood']; label: string; emoji: string }> = [
+    { value: 'dramatic',  label: t('studio.mood_dramatic'),  emoji: '🎭' },
+    { value: 'inspiring', label: t('studio.mood_inspiring'), emoji: '✨' },
+    { value: 'calm',      label: t('studio.mood_calm'),     emoji: '🧘' },
+    { value: 'uplifting', label: t('studio.mood_uplifting'), emoji: '🌟' },
+    { value: 'tense',     label: t('studio.mood_tense'),   emoji: '⚡' },
+    { value: 'neutral',   label: t('studio.mood_neutral'),   emoji: '◽' },
+  ];
+
+  const ROLES: Array<{ value: string; label: string }> = [
+    { value: 'psy',          label: t('chat.assistant_role_psych') },
+    { value: 'coach',        label: t('chat.assistant_role_coach') },
+    { value: 'lawyer',       label: t('studio.role_lawyer') },
+    { value: 'accountant',   label: t('studio.role_accountant') },
+    { value: 'marketer',     label: t('studio.role_marketer') },
+    { value: 'hr',           label: t('studio.role_hr') },
+    { value: 'business',     label: t('studio.role_business') },
+    { value: 'copywriter',   label: t('studio.role_copywriter') },
+    { value: 'astrologer',   label: t('chat.assistant_role_astro') },
+    { value: 'numerologist', label: t('studio.role_numerologist') },
+    { value: 'humandesign',  label: t('chat.assistant_role_hd') },
+    { value: 'gamepractic',  label: t('chat.assistant_role_gameplay') },
+    { value: 'mindfulness',  label: t('studio.role_mindfulness') },
+    { value: 'assistant',    label: t('studio.role_universal_assistant') },
+  ];
+
   const [title, setTitle] = useState(scenario.title);
   const [mood, setMood] = useState<ScenarioDetail['mood']>(scenario.mood);
   const [role, setRole] = useState(scenario.assistantRole);
@@ -93,14 +96,14 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
   const removeScene = (i: number) => setScenes(scenes.filter((_, idx) => idx !== i));
 
   const handleSave = async () => {
-    if (!title.trim()) { toast.error('Заголовок не может быть пустым'); return; }
-    if (dialog.length === 0) { toast.error('Нужна хотя бы одна реплика'); return; }
-    for (const t of dialog) {
-      if (!t.text.trim()) { toast.error('Все реплики должны быть с текстом'); return; }
-      if (t.tEnd <= t.tStart) { toast.error('tEnd должен быть больше tStart'); return; }
+    if (!title.trim()) { toast.error(t('studio.error_title_empty')); return; }
+    if (dialog.length === 0) { toast.error(t('studio.error_no_turns')); return; }
+    for (const turn of dialog) {
+      if (!turn.text.trim()) { toast.error(t('studio.error_turn_text_empty')); return; }
+      if (turn.tEnd <= turn.tStart) { toast.error(t('studio.error_tend_lte_tstart')); return; }
     }
     for (const b of broll) {
-      if (!b.prompt.trim()) { toast.error('B-roll промпт не может быть пустым'); return; }
+      if (!b.prompt.trim()) { toast.error(t('studio.error_broll_empty')); return; }
     }
     let klingCount = 0;
     let isFirstKling = true;
@@ -109,18 +112,18 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
         // keyframe_prompt обязателен ТОЛЬКО для первой kling-сцены — остальные получают
         // keyframe автоматически из последнего кадра предыдущей сцены (chain).
         if (isFirstKling && !(s.keyframe_prompt ?? '').trim()) {
-          toast.error('Первая kling-сцена: keyframe_prompt обязателен'); return;
+          toast.error(t('studio.error_first_kling_keyframe')); return;
         }
-        if (!(s.motion_prompt ?? '').trim()) { toast.error('Kling-сцена: motion_prompt обязателен'); return; }
+        if (!(s.motion_prompt ?? '').trim()) { toast.error(t('studio.error_kling_motion_required')); return; }
         klingCount++;
         isFirstKling = false;
       } else {
-        if (!(s.image_prompt ?? '').trim()) { toast.error('Imagen-сцена: image_prompt обязателен'); return; }
+        if (!(s.image_prompt ?? '').trim()) { toast.error(t('studio.error_imagen_prompt_required')); return; }
         // imagen-сцена разрывает chain — следующая kling снова требует keyframe_prompt
         isFirstKling = true;
       }
     }
-    if (klingCount > 6) { toast.error('Не больше 6 kling-сцен на ролик'); return; }
+    if (klingCount > 6) { toast.error(t('studio.error_max_kling_scenes')); return; }
     setSaving(true);
     try {
       const body: any = {
@@ -154,7 +157,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
         const err = await r.json().catch(() => ({}));
         throw new Error(err?.message ?? `HTTP ${r.status}`);
       }
-      toast.success('Сценарий обновлён');
+      toast.success(t('studio.scenario_edit_success'));
       onSaved({
         ...scenario,
         title: body.title,
@@ -166,7 +169,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
       });
       onClose();
     } catch (e: any) {
-      toast.error(`Не удалось сохранить: ${e?.message ?? 'ошибка'}`);
+      toast.error(t('studio.scenario_edit_save_error', { error: e?.message ?? t('studio.error_fallback') }));
     } finally {
       setSaving(false);
     }
@@ -179,7 +182,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
     >
       <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl">
         <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between">
-          <h3 className="text-base font-semibold">Редактирование сценария</h3>
+          <h3 className="text-base font-semibold">{t('studio.scenario_edit_title')}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="h-5 w-5" />
           </button>
@@ -188,7 +191,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
         <div className="px-5 py-4 space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Заголовок</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('studio.field_title')}</label>
             <input
               type="text"
               value={title}
@@ -199,7 +202,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
 
           {/* Mood */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Настроение</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('studio.field_mood')}</label>
             <select
               value={mood}
               onChange={(e) => setMood(e.target.value as ScenarioDetail['mood'])}
@@ -214,32 +217,32 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
           {/* Dialog */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium text-gray-600">Диалог</label>
+              <label className="text-xs font-medium text-gray-600">{t('studio.field_dialog')}</label>
               <button
                 onClick={addTurn}
                 className="text-xs text-forest-700 hover:text-forest-800 inline-flex items-center gap-1"
               >
-                <Plus className="h-3 w-3" /> Реплика
+                <Plus className="h-3 w-3" /> {t('studio.add_turn')}
               </button>
             </div>
             <div className="space-y-2">
-              {dialog.map((t, i) => (
+              {dialog.map((turn, i) => (
                 <div key={i} className="border border-gray-200 rounded p-2 space-y-1.5 bg-gray-50">
                   <div className="flex items-center gap-2">
                     <select
-                      value={t.speaker}
+                      value={turn.speaker}
                       onChange={(e) => updateTurn(i, { speaker: e.target.value as DialogTurn['speaker'] })}
                       className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
                     >
-                      <option value="hero">👤 Герой</option>
-                      <option value="assistant">🤖 Ассистент</option>
+                      <option value="hero">{t('studio.dialog_speaker_hero_option')}</option>
+                      <option value="assistant">{t('studio.dialog_speaker_assistant_option')}</option>
                     </select>
                     <div className="flex items-center gap-1 text-xs text-gray-500">
                       <input
                         type="number"
                         min={0}
                         step={0.5}
-                        value={t.tStart}
+                        value={turn.tStart}
                         onChange={(e) => updateTurn(i, { tStart: parseFloat(e.target.value) || 0 })}
                         className="w-16 px-1.5 py-1 border border-gray-300 rounded"
                       />
@@ -248,31 +251,31 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                         type="number"
                         min={0}
                         step={0.5}
-                        value={t.tEnd}
+                        value={turn.tEnd}
                         onChange={(e) => updateTurn(i, { tEnd: parseFloat(e.target.value) || 0 })}
                         className="w-16 px-1.5 py-1 border border-gray-300 rounded"
                       />
-                      <span>с</span>
+                      <span>{t('video.duration.suffix')}</span>
                     </div>
                     <button
                       onClick={() => removeTurn(i)}
                       className="ml-auto text-red-500 hover:text-red-700"
-                      title="Удалить реплику"
+                      title={t('studio.delete_turn_title')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                   <textarea
-                    value={t.text}
+                    value={turn.text}
                     onChange={(e) => updateTurn(i, { text: e.target.value })}
                     rows={2}
                     className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
-                    placeholder="Текст реплики"
+                    placeholder={t('studio.turn_text_placeholder')}
                   />
                 </div>
               ))}
               {dialog.length === 0 && (
-                <p className="text-xs text-gray-500 text-center py-3">Реплик нет — добавь хотя бы одну</p>
+                <p className="text-xs text-gray-500 text-center py-3">{t('studio.no_turns_hint')}</p>
               )}
             </div>
           </div>
@@ -281,12 +284,12 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
           {!isPremium && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium text-gray-600">Визуальные вставки (B-roll)</label>
+              <label className="text-xs font-medium text-gray-600">{t('studio.field_broll')}</label>
               <button
                 onClick={addBroll}
                 className="text-xs text-forest-700 hover:text-forest-800 inline-flex items-center gap-1"
               >
-                <Plus className="h-3 w-3" /> Вставка
+                <Plus className="h-3 w-3" /> {t('studio.add_broll')}
               </button>
             </div>
             <div className="space-y-2">
@@ -298,11 +301,11 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                       onChange={(e) => updateBroll(i, { type: e.target.value as BrollPrompt['type'] })}
                       className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
                     >
-                      <option value="ai_image">🎨 AI-картинка</option>
-                      <option value="stock_video">🎞️ Стоковое видео</option>
+                      <option value="ai_image">{t('studio.broll_type_ai_image')}</option>
+                      <option value="stock_video">{t('studio.broll_type_stock_video')}</option>
                     </select>
                     <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <span>в</span>
+                      <span>{t('studio.broll_at_prefix')}</span>
                       <input
                         type="number"
                         min={0}
@@ -311,12 +314,12 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                         onChange={(e) => updateBroll(i, { atSec: parseFloat(e.target.value) || 0 })}
                         className="w-16 px-1.5 py-1 border border-gray-300 rounded"
                       />
-                      <span>с</span>
+                      <span>{t('video.duration.suffix')}</span>
                     </div>
                     <button
                       onClick={() => removeBroll(i)}
                       className="ml-auto text-red-500 hover:text-red-700"
-                      title="Удалить вставку"
+                      title={t('studio.delete_broll_title')}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -326,12 +329,12 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                     value={b.prompt}
                     onChange={(e) => updateBroll(i, { prompt: e.target.value })}
                     className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded bg-white"
-                    placeholder="Промпт на английском для Imagen/Pexels"
+                    placeholder={t('studio.broll_prompt_placeholder')}
                   />
                 </div>
               ))}
               {broll.length === 0 && (
-                <p className="text-xs text-gray-500 text-center py-3">Вставок нет — фон будет только градиент</p>
+                <p className="text-xs text-gray-500 text-center py-3">{t('studio.no_broll_hint')}</p>
               )}
             </div>
           </div>
@@ -342,19 +345,17 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
             <div className="border-t border-purple-100 pt-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium text-purple-700">
-                  🎬 Premium-сцены ({scenario.premiumGenre})
+                  {t('studio.premium_scenes_label', { genre: scenario.premiumGenre })}
                 </label>
                 <button
                   onClick={addScene}
                   className="text-xs text-purple-700 hover:text-purple-800 inline-flex items-center gap-1"
                 >
-                  <Plus className="h-3 w-3" /> Сцена
+                  <Plus className="h-3 w-3" /> {t('studio.add_scene')}
                 </button>
               </div>
               <p className="text-xs text-gray-500 mb-2">
-                Каждая сцена = 5 сек kling-клипа. Сцены идут подряд и покрывают весь ролик.
-                Последний кадр предыдущей сцены автоматически становится стартовым следующей —
-                бесшовный переход. Для 30-сек ролика нужно 6 сцен, для 15-сек — 3.
+                {t('studio.premium_scenes_hint')}
               </p>
               <div className="space-y-2">
                 {scenes.map((s, i) => {
@@ -373,24 +374,24 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                         onChange={(e) => updateScene(i, { type: e.target.value as PremiumScene['type'] })}
                         className="text-xs px-2 py-1 border border-gray-300 rounded bg-white"
                       >
-                        <option value="kling">✨ Kling (animated)</option>
-                        <option value="imagen">🎨 Imagen (static)</option>
+                        <option value="kling">{t('studio.scene_type_kling')}</option>
+                        <option value="imagen">{t('studio.scene_type_imagen')}</option>
                       </select>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <span>длительность</span>
+                        <span>{t('studio.field_duration_label')}</span>
                         <select
                           value={s.duration === 10 ? 10 : 5}
                           onChange={(e) => updateScene(i, { duration: parseInt(e.target.value, 10) })}
                           className="text-xs px-1.5 py-1 border border-gray-300 rounded bg-white"
                         >
-                          <option value={5}>5 с</option>
-                          <option value={10}>10 с</option>
+                          <option value={5}>{t('studio.duration_5s')}</option>
+                          <option value={10}>{t('studio.duration_10s')}</option>
                         </select>
                       </div>
                       <button
                         onClick={() => removeScene(i)}
                         className="ml-auto text-red-500 hover:text-red-700"
-                        title="Удалить сцену"
+                        title={t('studio.delete_scene_title')}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -403,11 +404,11 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                             onChange={(e) => updateScene(i, { keyframe_prompt: e.target.value })}
                             rows={2}
                             className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
-                            placeholder="keyframe_prompt — СТАРТОВЫЙ кадр через nano-banana (только для первой kling-сцены)"
+                            placeholder={t('studio.keyframe_prompt_placeholder')}
                           />
                         ) : (
                           <div className="text-xs text-gray-500 italic px-2 py-1 bg-purple-100 rounded">
-                            ↳ keyframe = последний кадр предыдущей сцены (автоматически через ffmpeg)
+                            {t('studio.keyframe_auto_hint')}
                           </div>
                         )}
                         <textarea
@@ -415,7 +416,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                           onChange={(e) => updateScene(i, { motion_prompt: e.target.value })}
                           rows={2}
                           className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
-                          placeholder="motion_prompt — что происходит за 5 секунд (одно конкретное движение/превращение)"
+                          placeholder={t('studio.motion_prompt_placeholder')}
                         />
                       </>
                     ) : (
@@ -424,7 +425,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                         onChange={(e) => updateScene(i, { image_prompt: e.target.value })}
                         rows={2}
                         className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded resize-none bg-white"
-                        placeholder="image_prompt для Imagen — статичный кадр"
+                        placeholder={t('studio.image_prompt_placeholder')}
                       />
                     )}
                   </div>
@@ -432,7 +433,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
                 })}
                 {scenes.length === 0 && (
                   <p className="text-xs text-gray-500 text-center py-3">
-                    Сцен нет — премиум-сценарий рендерится как классика
+                    {t('studio.no_scenes_hint')}
                   </p>
                 )}
               </div>
@@ -446,7 +447,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
             disabled={saving}
             className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900"
           >
-            Отмена
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -454,7 +455,7 @@ export const ScenarioEditModal: React.FC<Props> = ({ scenario, onClose, onSaved 
             className="inline-flex items-center gap-1.5 rounded-lg bg-forest-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-forest-700 disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Сохранить
+            {t('common.save')}
           </button>
         </div>
       </div>
