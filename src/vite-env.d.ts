@@ -43,4 +43,4 @@ interface SpeechRecognitionAlternative {
 interface Window {
   SpeechRecognition: typeof SpeechRecognition;
   webkitSpeechRecognition: typeof SpeechRecognition;
-}</parameter>
+}

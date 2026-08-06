@@ -23,12 +23,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const termsContentRu = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Пользовательское соглашение</h2>
+      <p className="text-sm text-gray-500">Редакция от 5 августа 2026 г.</p>
 
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">1. Общие положения</h3>
         <p className="text-gray-700 leading-relaxed">
           Настоящее Пользовательское соглашение регулирует отношения между администрацией приложения
-          "Kindred Spirits" (далее - Приложение) и пользователями Приложения.
+          LINKEON.IO (далее - Приложение) и пользователями Приложения.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Приложение принадлежит и управляется <strong>Волковым Дмитрием Викторовичем
@@ -48,9 +49,14 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">2. Цель Приложения</h3>
         <p className="text-gray-700 leading-relaxed">
-          Приложение предназначено для поиска и общения с людьми, близкими по духу, ценностям и
-          интересам. Приложение использует искусственный интеллект для анализа и подбора совместимых
-          пользователей.
+          Приложение предоставляет пользователю доступ к AI-ассистентам, к генерации
+          контента (текст, изображения, видео) и к ведению единого профиля.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Приложение также обеспечивает нетворкинг: поиск других пользователей по
+          совместимости профилей, отправку откликов и переписку с ними. Нетворкинг
+          в Приложении направлен на профессиональные и дружеские контакты и не является
+          сервисом знакомств.
         </p>
       </section>
 
@@ -97,13 +103,24 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">4.1. Платные услуги и подписки</h3>
+        <h3 className="text-lg font-semibold text-gray-800">4.1. Платные услуги и токены</h3>
         <p className="text-gray-700 leading-relaxed">
-          Приложение предоставляет как бесплатные, так и платные услуги (премиум-подписка).
+          Приложение предоставляет как бесплатные, так и платные услуги. Основной расчетной
+          единицей внутри Приложения являются токены. Токены расходуются при обращении
+          к AI-ассистентам, при генерации изображений и видео и при использовании иных
+          функций Приложения, требующих вычислительных ресурсов.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Платные услуги включают, но не ограничиваются: расширенный доступ к просмотру профилей,
-          приоритет в результатах поиска, дополнительные фильтры, детальный анализ совместимости.
+          При регистрации пользователю единовременно начисляется приветственный бонус —
+          25 000 токенов. Дополнительные токены приобретаются пакетами: 50 000 токенов —
+          149 ₽, 200 000 токенов — 499 ₽, 1 000 000 токенов — 1 990 ₽. Актуальный состав
+          пакетов и цены отображаются в Приложении в разделе покупки токенов.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Покупка токенов является разовой операцией.</strong> Подписка, регулярные
+          платежи и автоматическое списание средств в Приложении не применяются. Каждое
+          списание производится только по инициативе пользователя при оформлении конкретной
+          покупки; платежные данные для последующих списаний не сохраняются.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Оплата производится через интегрированные платежные системы. Исполнитель не обрабатывает
@@ -111,14 +128,10 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           с требованиями законодательства РФ.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          При оформлении подписки пользователь соглашается с автоматическим списанием
-          средств по окончании оплаченного периода до момента отмены подписки.
-          Для отмены необходимо отключить подписку в настройках не позднее чем за 24 часа
-          до даты следующего списания.
-        </p>
-        <p className="text-gray-700 leading-relaxed">
-          Неиспользованный период подписки не продлевается, не компенсируется и не
-          возвращается, за исключением случаев, предусмотренных разделом 8.
+          Приобретенные токены не имеют срока действия и не сгорают. Неиспользованный
+          остаток токенов не подлежит возврату и не обменивается на денежные средства,
+          в том числе при удалении аккаунта, за исключением случаев, предусмотренных
+          разделом 8.
         </p>
       </section>
 
@@ -145,14 +158,16 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Исполнитель НЕ ГАРАНТИРУЕТ:</strong>
         </p>
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
-          <li>Что пользователь найдет совместимого партнера</li>
-          <li>Что знакомства приведут к долгосрочным отношениям</li>
-          <li>Точность и надежность AI-алгоритмов подбора</li>
+          <li>Что пользователь найдет подходящие контакты по результатам поиска совместимости</li>
+          <li>Что установленные через Приложение контакты приведут к сотрудничеству или иному результату</li>
+          <li>Точность и надежность ответов AI-ассистентов, сгенерированного контента и алгоритмов подбора</li>
           <li>Непрерывную и безошибочную работу Приложения</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Процент совместимости и рекомендации AI являются исключительно информационными
-          и не должны рассматриваться как гарантия успешных отношений.
+          Процент совместимости, ответы AI-ассистентов и иные рекомендации AI являются
+          исключительно информационными, не являются профессиональной консультацией
+          (в том числе юридической, медицинской, психологической или финансовой) и не
+          должны рассматриваться как гарантия результата.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Исполнитель НЕ НЕСЕТ ОТВЕТСТВЕННОСТИ за:</strong>
@@ -160,11 +175,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
           <li>Содержание профилей других пользователей и достоверность информации</li>
           <li>Действия и заявления пользователей</li>
-          <li>Результаты или последствия знакомств и встреч</li>
+          <li>Результаты и последствия контактов, переписки и встреч между пользователями</li>
+          <li>Решения, принятые пользователем на основании ответов AI-ассистентов</li>
           <li>Действия третьих лиц (платежные системы, хостинг, AI-сервисы)</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Исполнитель не проверяет личность, семейное положение, намерения пользователей.
+          Исполнитель не проверяет личность пользователей, достоверность указанных ими
+          сведений и их намерения.
         </p>
         <p className="text-gray-700 leading-relaxed">
           В любом случае максимальная ответственность Исполнителя ограничена суммой,
@@ -203,9 +220,12 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li>Двойное списание по технической ошибке</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Возврат НЕ ПРОИЗВОДИТСЯ при: субъективной неудовлетворенности, отсутствии результата
-          знакомств, блокировке за нарушение правил, добровольном удалении аккаунта,
-          частичном использовании подписки.
+          Возврат НЕ ПРОИЗВОДИТСЯ при: субъективной неудовлетворенности ответами
+          AI-ассистентов, сгенерированным контентом или результатами поиска контактов,
+          блокировке за нарушение правил, добровольном удалении аккаунта.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Неиспользованный остаток приобретенных токенов возврату не подлежит.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Претензия направляется на email support@linkeon.ru и рассматривается
@@ -244,6 +264,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const termsContentEn = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Terms of Service</h2>
+      <p className="text-sm text-gray-500">Last updated: 5 August 2026</p>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
         This English version is a courtesy translation. In case of any discrepancy, the Russian-language version is governing and legally binding under the laws of the Russian Federation.
@@ -253,7 +274,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <h3 className="text-lg font-semibold text-gray-800">1. General provisions</h3>
         <p className="text-gray-700 leading-relaxed">
           These Terms of Service govern the relationship between the administration of the
-          "Kindred Spirits" application (hereinafter — the Application) and users of the Application.
+          LINKEON.IO application (hereinafter — the Application) and users of the Application.
         </p>
         <p className="text-gray-700 leading-relaxed">
           The Application is owned and operated by <strong>Dmitry Viktorovich Volkov
@@ -273,9 +294,14 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">2. Purpose of the Application</h3>
         <p className="text-gray-700 leading-relaxed">
-          The Application is intended for finding and communicating with people who share similar
-          values, spirit and interests. The Application uses artificial intelligence to analyze
-          and match compatible users.
+          The Application gives the user access to AI assistants, to content generation
+          (text, images, video) and to a single unified user profile.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          The Application also provides networking features: searching for other users by
+          profile compatibility, sending them responses and exchanging messages. Networking
+          in the Application is aimed at professional and friendly contacts and is not a
+          dating service.
         </p>
       </section>
 
@@ -321,13 +347,24 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-800">4.1. Paid services and subscriptions</h3>
+        <h3 className="text-lg font-semibold text-gray-800">4.1. Paid services and tokens</h3>
         <p className="text-gray-700 leading-relaxed">
-          The Application provides both free and paid services (premium subscription).
+          The Application provides both free and paid services. The internal unit of account
+          is the token. Tokens are consumed when the user interacts with AI assistants,
+          generates images and video, and uses other features of the Application that require
+          computing resources.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Paid services include, but are not limited to: extended profile viewing, priority in
-          search results, additional filters, detailed compatibility analysis.
+          Upon registration the user receives a one-time welcome bonus of 25,000 tokens.
+          Additional tokens are purchased in packages: 50,000 tokens — RUB 149; 200,000
+          tokens — RUB 499; 1,000,000 tokens — RUB 1,990. The current package composition and
+          prices are displayed in the Application in the token purchase section.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>The purchase of tokens is a one-off transaction.</strong> The Application
+          does not use subscriptions, recurring payments or automatic charges. Every charge is
+          made solely on the user's initiative when placing a specific order; payment
+          credentials are not stored for subsequent charges.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Payment is made through integrated payment systems. The Operator does not process
@@ -335,13 +372,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           legislation of the Russian Federation.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          By subscribing, the user agrees to automatic charges at the end of the paid period
-          until the subscription is cancelled. To cancel, the subscription must be disabled in
-          settings no later than 24 hours before the next charge date.
-        </p>
-        <p className="text-gray-700 leading-relaxed">
-          Unused subscription time is not extended, compensated or refunded, except in the
-          cases provided for in Section 8.
+          Purchased tokens have no expiry date and do not lapse. Any unused token balance is
+          non-refundable and is not exchangeable for money, including upon deletion of the
+          account, except in the cases provided for in Section 8.
         </p>
       </section>
 
@@ -368,14 +401,16 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>The Operator DOES NOT GUARANTEE:</strong>
         </p>
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
-          <li>That the user will find a compatible partner</li>
-          <li>That matches will lead to long-term relationships</li>
-          <li>The accuracy and reliability of AI matching algorithms</li>
+          <li>That the user will find suitable contacts through the compatibility search</li>
+          <li>That contacts established through the Application will lead to cooperation or any other outcome</li>
+          <li>The accuracy and reliability of AI assistants' responses, generated content and matching algorithms</li>
           <li>Continuous and error-free operation of the Application</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Compatibility percentages and AI recommendations are informational only and should
-          not be treated as a guarantee of successful relationships.
+          Compatibility percentages, AI assistants' responses and other AI recommendations are
+          informational only, do not constitute professional advice (including legal, medical,
+          psychological or financial advice) and must not be treated as a guarantee of any
+          outcome.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>The Operator IS NOT LIABLE for:</strong>
@@ -383,11 +418,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
           <li>The content of other users' profiles and the accuracy of the information</li>
           <li>Actions and statements of users</li>
-          <li>The outcomes or consequences of introductions and meetings</li>
+          <li>The outcomes and consequences of contacts, correspondence and meetings between users</li>
+          <li>Decisions taken by the user on the basis of AI assistants' responses</li>
           <li>Actions of third parties (payment systems, hosting, AI services)</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          The Operator does not verify the identity, marital status, or intentions of users.
+          The Operator does not verify users' identity, the accuracy of the information they
+          provide, or their intentions.
         </p>
         <p className="text-gray-700 leading-relaxed">
           In any case, the Operator's maximum liability is limited to the amount paid by the
@@ -426,9 +463,12 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li>Duplicate charge due to a technical error</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
-          Refunds are NOT made for: subjective dissatisfaction, lack of dating results,
-          account blocking for rule violations, voluntary account deletion, or partial use
-          of a subscription.
+          Refunds are NOT made for: subjective dissatisfaction with AI assistants' responses,
+          generated content or contact search results; account blocking for rule violations;
+          or voluntary account deletion.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Any unused balance of purchased tokens is non-refundable.
         </p>
         <p className="text-gray-700 leading-relaxed">
           Complaints are submitted to support@linkeon.ru and reviewed within 10 business days.
@@ -465,6 +505,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentRu = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Политика конфиденциальности</h2>
+      <p className="text-sm text-gray-500">Редакция от 5 августа 2026 г.</p>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
         <h3 className="text-lg font-semibold text-gray-900">Оператор персональных данных</h3>
@@ -477,7 +518,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <p className="text-gray-700 leading-relaxed">
         Настоящая Политика конфиденциальности действует в отношении всех персональных
         данных, которые Оператор может получить о пользователе во время использования
-        Приложения "Kindred Spirits".
+        Приложения LINKEON.IO.
       </p>
 
       <section className="space-y-3">
@@ -535,21 +576,60 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">3. Обработка данных с помощью искусственного интеллекта</h3>
         <p className="text-gray-700 leading-relaxed">
-          Для анализа совместимости пользователей Приложение использует технологии
-          искусственного интеллекта, предоставляемые сторонними провайдерами.
+          Для работы AI-ассистентов, генерации контента, распознавания речи и анализа
+          совместимости пользователей Приложение использует технологии искусственного
+          интеллекта, предоставляемые сторонними провайдерами.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Используемые сервисы:</strong> OpenAI (ChatGPT, GPT-4), Anthropic (Claude),
-          другие AI-сервисы.
+          <strong>Используемые сервисы:</strong>
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+          <li><strong>OpenAI</strong> (ChatGPT, GPT-4) — обработка текстовых запросов</li>
+          <li><strong>Anthropic</strong> (Claude) — обработка текстовых запросов</li>
+          <li><strong>Google</strong> — Gemini (обработка текста и мультимодальных данных),
+            Imagen 4.0 Ultra и Nano Banana (генерация и редактирование изображений),
+            Veo (генерация видео)</li>
+          <li><strong>DeepSeek</strong> — формирование приветственных сообщений и части
+            ответов в чате</li>
+          <li><strong>Kling (Kuaishou)</strong> — генерация видео</li>
+          <li><strong>Яндекс SpeechKit</strong> — распознавание речи при голосовом вводе</li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Передаваемые данные:</strong> имя и фамилия (если указаны
+          пользователем), интересы, ценности, убеждения, желания, намерения и навыки
+          из профиля пользователя, содержание переписки и история диалога
+          с AI-ассистентом, файлы, которые пользователь прикрепляет к сообщениям
+          (документы, изображения, аудио), а также аудиопоток при использовании
+          голосового ввода.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Передаваемые данные:</strong> текст профиля, ответы на вопросы,
-          история сообщений, демографическая информация в обезличенном виде.
-          Номер телефона, фамилия и фотографии НЕ передаются AI-провайдерам.
+          <strong>Не передаются:</strong> номер телефона пользователя и идентификатор
+          его учетной записи — ни в составе профиля, ни в составе запроса
+          к AI-провайдеру. Данные банковских карт и иные платежные реквизиты
+          AI-провайдерам также не передаются.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Цели AI-обработки:</strong> определение ценностей и личностных
-          характеристик, расчет совместимости, персонализация опыта.
+          <strong>Цели AI-обработки:</strong> формирование ответов AI-ассистентов, генерация
+          изображений и видео по заданию пользователя, распознавание речи, определение
+          ценностей и личностных характеристик, расчет совместимости, персонализация опыта.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Трансграничная передача данных.</strong> Все перечисленные выше
+          AI-провайдеры находятся за пределами Российской Федерации, поэтому передача им
+          данных является трансграничной в значении статьи 12 Федерального закона
+          от 27.07.2006 № 152-ФЗ «О персональных данных».
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Передача данных в Китайскую Народную Республику.</strong> Данные
+          передаются в том числе на территорию <strong>КНР</strong>: в сервис
+          <strong> DeepSeek</strong> (приветственные сообщения и часть ответов в чате)
+          и в сервис <strong>Kling (Kuaishou)</strong> (генерация видео). КНР не является
+          участником Конвенции Совета Европы о защите физических лиц при автоматизированной
+          обработке персональных данных и не относится к государствам, обеспечивающим
+          адекватную защиту прав субъектов персональных данных. Такая передача
+          осуществляется на основании согласия пользователя в соответствии с частью 4
+          статьи 12 указанного закона. Пользователь вправе не использовать функции чата
+          и генерации видео, если не согласен с передачей своих данных в КНР.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>ВАЖНО:</strong> После передачи данных AI-провайдерам Оператор не контролирует
@@ -637,8 +717,35 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">8. Cookies и аналитика</h3>
         <p className="text-gray-700 leading-relaxed">
-          Мы используем cookies и аналогичные технологии для улучшения работы Приложения и анализа
-          использования. Вы можете управлять настройками cookies в своем браузере.
+          Мы используем cookies и аналогичные технологии (в том числе localStorage браузера)
+          для работы аутентификации, сохранения пользовательских настроек, анализа
+          использования Приложения и оценки эффективности рекламы.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          В Приложении установлены следующие сторонние счетчики и трекеры:
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+          <li>
+            <strong>Яндекс.Метрика</strong>, номер счетчика <strong>105897773</strong>.
+            Включены Вебвизор (запись действий пользователя на странице), карта кликов,
+            отслеживание переходов по ссылкам и передача данных электронной коммерции.
+          </li>
+          <li>
+            <strong>VK Ads / top.Mail.Ru</strong>, номер счетчика <strong>3773048</strong>.
+            Фиксирует просмотры страниц и событие регистрации нового пользователя
+            для оптимизации рекламных кампаний.
+          </li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed">
+          Указанные сервисы получают технические данные: IP-адрес, идентификаторы cookies,
+          тип и версию браузера и операционной системы, параметры экрана, источник перехода,
+          просмотренные страницы и совершенные в интерфейсе действия. В отношении собираемых
+          ими данных эти сервисы выступают самостоятельными операторами и обрабатывают данные
+          в соответствии со своими политиками конфиденциальности.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          Вы можете отключить cookies в настройках своего браузера. При этом часть функций
+          Приложения, включая вход в аккаунт, может стать недоступной.
         </p>
       </section>
 
@@ -663,6 +770,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentEn = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
+      <p className="text-sm text-gray-500">Last updated: 5 August 2026</p>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
         This English version is a courtesy translation. In case of any discrepancy, the Russian-language version is governing and legally binding under the laws of the Russian Federation.
@@ -678,7 +786,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
 
       <p className="text-gray-700 leading-relaxed">
         This Privacy Policy applies to all personal data that the Operator may receive about
-        the user during the use of the "Kindred Spirits" Application.
+        the user during the use of the LINKEON.IO Application.
       </p>
 
       <section className="space-y-3">
@@ -736,21 +844,60 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">3. Data processing via artificial intelligence</h3>
         <p className="text-gray-700 leading-relaxed">
-          To analyze user compatibility, the Application uses artificial-intelligence
+          For the operation of AI assistants, content generation, speech recognition and
+          analysis of user compatibility, the Application uses artificial-intelligence
           technologies provided by third-party vendors.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Services used:</strong> OpenAI (ChatGPT, GPT-4), Anthropic (Claude), other
-          AI services.
+          <strong>Services used:</strong>
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+          <li><strong>OpenAI</strong> (ChatGPT, GPT-4) — processing of text requests</li>
+          <li><strong>Anthropic</strong> (Claude) — processing of text requests</li>
+          <li><strong>Google</strong> — Gemini (processing of text and multimodal data),
+            Imagen 4.0 Ultra and Nano Banana (image generation and editing),
+            Veo (video generation)</li>
+          <li><strong>DeepSeek</strong> — generation of welcome messages and part of the
+            chat responses</li>
+          <li><strong>Kling (Kuaishou)</strong> — video generation</li>
+          <li><strong>Yandex SpeechKit</strong> — speech recognition for voice input</li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Data transmitted:</strong> first and last name (if provided by the user),
+          interests, values, beliefs, desires, intentions and skills from the user's profile,
+          the content of the correspondence and the dialogue history with the AI assistant,
+          files the user attaches to messages (documents, images, audio), and the audio
+          stream when voice input is used.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Data transmitted:</strong> profile text, answers to questions, message
-          history, demographic information in anonymized form. Phone number, last name and
-          photos are NOT transmitted to AI vendors.
+          <strong>Not transmitted:</strong> the user's phone number and account identifier —
+          neither as part of the profile nor as part of the request to the AI vendor. Bank
+          card data and other payment credentials are likewise NOT transmitted to AI vendors.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Purposes of AI processing:</strong> determining values and personality
-          traits, calculating compatibility, personalizing the experience.
+          <strong>Purposes of AI processing:</strong> generating AI assistants' responses,
+          generating images and video at the user's request, speech recognition, determining
+          values and personality traits, calculating compatibility, personalizing the
+          experience.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Cross-border data transfer.</strong> All the AI vendors listed above are
+          located outside the Russian Federation, and therefore the transfer of data to them
+          constitutes a cross-border transfer within the meaning of Article 12 of Federal Law
+          No. 152-FZ of 27 July 2006 "On Personal Data".
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Transfer of data to the People's Republic of China.</strong> Data is
+          transferred, among other destinations, to the territory of the
+          <strong> PRC</strong>: to <strong>DeepSeek</strong> (welcome messages and part of
+          the chat responses) and to <strong>Kling (Kuaishou)</strong> (video generation).
+          The PRC is not a party to the Council of Europe Convention for the Protection of
+          Individuals with regard to Automatic Processing of Personal Data and is not among
+          the states providing adequate protection of the rights of personal data subjects.
+          Such transfer is carried out on the basis of the user's consent pursuant to
+          Part 4 of Article 12 of that law. A user who does not agree to the transfer of
+          their data to the PRC may refrain from using the chat and video generation
+          features.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>IMPORTANT:</strong> After data is transmitted to AI vendors, the Operator
@@ -838,8 +985,35 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
       <section className="space-y-3">
         <h3 className="text-lg font-semibold text-gray-800">8. Cookies and analytics</h3>
         <p className="text-gray-700 leading-relaxed">
-          We use cookies and similar technologies to improve the Application and analyze
-          usage. You can manage cookie settings in your browser.
+          We use cookies and similar technologies (including the browser's localStorage) to
+          operate authentication, store user preferences, analyze use of the Application and
+          measure advertising performance.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          The following third-party counters and trackers are installed in the Application:
+        </p>
+        <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
+          <li>
+            <strong>Yandex.Metrica</strong>, counter number <strong>105897773</strong>.
+            Webvisor (recording of the user's actions on the page), click map, link-click
+            tracking and e-commerce data transmission are enabled.
+          </li>
+          <li>
+            <strong>VK Ads / top.Mail.Ru</strong>, counter number <strong>3773048</strong>.
+            Records page views and the new-user registration event in order to optimize
+            advertising campaigns.
+          </li>
+        </ul>
+        <p className="text-gray-700 leading-relaxed">
+          These services receive technical data: IP address, cookie identifiers, browser and
+          operating system type and version, screen parameters, referral source, pages viewed
+          and actions taken in the interface. With respect to the data they collect, these
+          services act as independent operators and process the data in accordance with their
+          own privacy policies.
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          You can disable cookies in your browser settings. Some features of the Application,
+          including signing in to your account, may then become unavailable.
         </p>
       </section>
 

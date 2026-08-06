@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint .",
     "check-hardcoded": "node scripts/check-no-hardcoded.mjs",
     "check-locales": "node scripts/check-locales.mjs",
