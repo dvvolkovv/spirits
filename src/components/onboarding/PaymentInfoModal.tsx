@@ -28,7 +28,7 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
           {t('payment.info.section1_title', 'Что предоставляет Linkeon')}
         </h3>
         <p className="text-gray-700 leading-relaxed">
-          {t('payment.info.section1_body', 'Linkeon — онлайн-платформа для подбора людей по ценностям, намерениям и личностным характеристикам. Пользователям предоставляются цифровые услуги, включающие:')}
+          {t('payment.info.section1_body', 'Linkeon — онлайн-платформа с AI-ассистентами, генерацией контента и единым профилем пользователя. Пользователям предоставляются цифровые услуги, включающие:')}
         </p>
         <ul className="space-y-2 ml-4">
           <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">{t('payment.info.section1_item1', 'анализ личного профиля')}</span></li>
@@ -48,7 +48,10 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
           {t('payment.info.section2_title', 'Модель оплаты')}
         </h3>
         <p className="text-gray-700 leading-relaxed">
-          {t('payment.info.section2_body_pre', 'В сервисе используется внутренняя единица учёта — ')}<strong>{t('payment.info.tokens_label', 'токены Linkeon')}</strong>{t('payment.info.section2_body_post', '. При выполнении различных действий расходуются токены (например: глубокий разбор профиля, совместимость, рекомендации ассистента и т.п.).')}
+          {t('payment.info.section2_body_pre', 'В сервисе используется внутренняя единица учёта — ')}<strong>{t('payment.info.tokens_label', 'токены Linkeon')}</strong>{t('payment.info.section2_body_post', '. При выполнении различных действий расходуются токены (например: ответ ассистента, генерация изображения или видео, глубокий разбор профиля, подбор совместимости).')}
+        </p>
+        <p className="text-gray-700 leading-relaxed">
+          {t('payment.info.section2_bonus', 'При регистрации пользователю единовременно начисляется приветственный бонус — 25 000 токенов.')}
         </p>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
           <p className="text-amber-900 text-sm">
@@ -73,7 +76,7 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.info.package_basic', 'Базовый')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_basic_amount', '50 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">149 ₽</td></tr>
+              <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.info.package_basic', 'Стартовый')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_basic_amount', '50 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">149 ₽</td></tr>
               <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.info.package_extended', 'Расширенный')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_extended_amount', '200 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">499 ₽</td></tr>
               <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.info.package_pro', 'Профессиональный')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_pro_amount', '1 000 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">1 990 ₽</td></tr>
             </tbody>
@@ -81,7 +84,8 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1">
           <p className="text-gray-700 text-sm">• {t('payment.info.section3_note1', 'Пакет токенов активируется сразу после успешной оплаты')}</p>
-          <p className="text-gray-700 text-sm">• {t('payment.info.section3_note2', 'Токены — это внутренняя расчётная единица, не имеющая денежного эквивалента; не подлежат обмену или возврату')}</p>
+          <p className="text-gray-700 text-sm">• {t('payment.info.section3_note2', 'Токены — это внутренняя расчётная единица, не имеющая денежного эквивалента; приобретённые токены не имеют срока действия и не сгорают')}</p>
+          <p className="text-gray-700 text-sm">• {t('payment.info.section3_note3', 'Неиспользованный остаток приобретённых токенов возврату не подлежит (порядок возврата денежных средств — в разделе 7)')}</p>
         </div>
       </section>
 
@@ -141,12 +145,12 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
           {t('payment.info.section7_title', 'Возвраты и отмены')}
         </h3>
         <p className="text-gray-700 leading-relaxed">
-          {t('payment.info.section7_intro', 'Так как услуга является цифровой и предоставляется пользователю немедленно:')}
+          {t('payment.info.section7_intro', 'Услуга является цифровой и предоставляется пользователю немедленно. Условия возврата установлены разделом 8 Пользовательского соглашения — возврат денежных средств производится только в следующих случаях:')}
         </p>
         <ul className="space-y-2 ml-4">
-          <li className="flex items-start"><span className="text-red-500 mr-2">•</span><span className="text-gray-700">{t('payment.info.section7_item1', 'возврат стоимости приобретённых пакетов токенов не предусмотрен')}</span></li>
-          <li className="flex items-start"><span className="text-red-500 mr-2">•</span><span className="text-gray-700">{t('payment.info.section7_item2', 'частичный возврат не предусмотрен')}</span></li>
-          <li className="flex items-start"><span className="text-green-500 mr-2">•</span><span className="text-gray-700">{t('payment.info.section7_item3', 'пользователь может прекратить использование сервиса в любой момент')}</span></li>
+          <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">{t('payment.info.section7_item1', 'технический сбой более 72 часов подряд')}</span></li>
+          <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">{t('payment.info.section7_item2', 'двойное списание по технической ошибке')}</span></li>
+          <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">{t('payment.info.section7_item3', 'неиспользованный остаток приобретённых токенов возврату не подлежит; пользователь может прекратить использование сервиса в любой момент')}</span></li>
         </ul>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-blue-900 text-sm">
