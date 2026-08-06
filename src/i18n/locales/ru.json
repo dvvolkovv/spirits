@@ -238,7 +238,10 @@
         "active": "активна",
         "done": "завершена",
         "archived": "архив"
-      }
+      },
+      "time_just_now": "только что",
+      "time_minutes_ago": "{{count}} мин назад",
+      "time_hours_ago": "{{count}} ч назад"
     },
     "refresh": "Обновить",
     "loading_from_server": "Загружаем профиль с сервера...",
@@ -1545,6 +1548,10 @@
       "introRequired": "Напишите короткое сообщение",
       "rateLimited": "Слишком много запросов, попробуйте позже",
       "sendFailed": "Не удалось отправить запрос"
+    },
+    "nav": {
+      "searchPeople": "Поиск людей",
+      "compatibility": "Совместимость"
     }
   },
   "customAgents": {
@@ -1793,7 +1800,8 @@
       "paymentLink": "порядком оплаты",
       "suffix": " и принимаю их.",
       "needToAccept": "Сначала примите условия выше"
-    }
+    },
+    "orPhoneEmail": "или по email / телефону"
   },
   "tgBot": {
     "nav": "Мои боты",

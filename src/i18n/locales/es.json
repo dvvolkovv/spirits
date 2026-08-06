@@ -237,7 +237,10 @@
         "active": "activa",
         "done": "completada",
         "archived": "archivada"
-      }
+      },
+      "time_just_now": "ahora mismo",
+      "time_minutes_ago": "hace {{count}} min",
+      "time_hours_ago": "hace {{count}} h"
     },
     "refresh": "Actualizar",
     "loading_from_server": "Cargando perfil desde el servidor...",
@@ -1235,6 +1238,10 @@
       "introRequired": "Escribe un mensaje breve",
       "rateLimited": "Demasiadas solicitudes, inténtalo más tarde",
       "sendFailed": "No se pudo enviar la solicitud"
+    },
+    "nav": {
+      "searchPeople": "Buscar personas",
+      "compatibility": "Compatibilidad"
     }
   },
   "customAgents": {
@@ -1483,7 +1490,8 @@
       "paymentLink": "la forma de pago",
       "suffix": " y los acepto.",
       "needToAccept": "Primero acepta las condiciones anteriores"
-    }
+    },
+    "orPhoneEmail": "o por email / teléfono"
   },
   "tgBot": {
     "nav": "Mis bots",

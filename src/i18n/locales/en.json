@@ -236,7 +236,10 @@
         "active": "active",
         "done": "done",
         "archived": "archived"
-      }
+      },
+      "time_just_now": "just now",
+      "time_minutes_ago": "{{count}} min ago",
+      "time_hours_ago": "{{count}} h ago"
     },
     "refresh": "Refresh",
     "loading_from_server": "Loading profile from server...",
@@ -1536,6 +1539,10 @@
       "introRequired": "Please write a short intro",
       "rateLimited": "Too many requests, try again later",
       "sendFailed": "Failed to send request"
+    },
+    "nav": {
+      "searchPeople": "Find people",
+      "compatibility": "Compatibility"
     }
   },
   "customAgents": {
@@ -1784,7 +1791,8 @@
       "paymentLink": "payment terms",
       "suffix": " and accept them.",
       "needToAccept": "Please accept the terms above first"
-    }
+    },
+    "orPhoneEmail": "or by email / phone"
   },
   "tgBot": {
     "nav": "My Bots",

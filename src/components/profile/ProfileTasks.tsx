@@ -12,14 +12,15 @@ const formatRelative = (iso: string | null): string => {
   const d = new Date(iso);
   const diffMs = Date.now() - d.getTime();
   const sec = Math.floor(diffMs / 1000);
-  // just_now/minutes_ago/hours_ago текстуально совпадают с уже существующими
-  // support.time.* — переиспользуем вместо дублирования. days_ago отличается
-  // сокращением («дн» вместо «д»), поэтому под него отдельный ключ.
-  if (sec < 60) return i18n.t('support.time.just_now');
+  // Раньше здесь звались support.time.* «как уже существующие» — такой секции
+  // в локалях нет вовсе (они лежат под admin.support.time.*, а админка не
+  // переводится). i18next молча показывал сам ключ: пользователь видел строку
+  // «support.time.just_now». Ключи заведены рядом с time_days_ago.
+  if (sec < 60) return i18n.t('profile.tasks.time_just_now');
   const min = Math.floor(sec / 60);
-  if (min < 60) return i18n.t('support.time.minutes_ago', { count: min });
+  if (min < 60) return i18n.t('profile.tasks.time_minutes_ago', { count: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return i18n.t('support.time.hours_ago', { count: hr });
+  if (hr < 24) return i18n.t('profile.tasks.time_hours_ago', { count: hr });
   const day = Math.floor(hr / 24);
   if (day < 7) return i18n.t('profile.tasks.time_days_ago', { count: day });
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });

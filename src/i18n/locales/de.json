@@ -236,7 +236,10 @@
         "active": "aktiv",
         "done": "abgeschlossen",
         "archived": "archiviert"
-      }
+      },
+      "time_just_now": "gerade eben",
+      "time_minutes_ago": "vor {{count}} Min.",
+      "time_hours_ago": "vor {{count}} Std."
     },
     "refresh": "Aktualisieren",
     "loading_from_server": "Profil wird vom Server geladen …",
@@ -1230,6 +1233,10 @@
       "introRequired": "Schreib eine kurze Nachricht",
       "rateLimited": "Zu viele Anfragen, versuch es später",
       "sendFailed": "Anfrage konnte nicht gesendet werden"
+    },
+    "nav": {
+      "searchPeople": "Leute finden",
+      "compatibility": "Übereinstimmung"
     }
   },
   "customAgents": {
@@ -1478,7 +1485,8 @@
       "paymentLink": "Zahlungsablauf",
       "suffix": " gelesen und akzeptiere sie.",
       "needToAccept": "Akzeptiere zuerst die Bedingungen oben"
-    }
+    },
+    "orPhoneEmail": "oder per E-Mail / Telefon"
   },
   "tgBot": {
     "nav": "Meine Bots",

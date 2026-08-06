@@ -14,9 +14,11 @@ type TabKey = 'sms' | 'email';
 // сразу, а SMS/email — вторичным блоком ниже. Все способы доступны.
 const LoginTabs: React.FC = () => {
   const { t } = useTranslation();
+  // Email — способ по умолчанию: SMS стоит денег на каждой попытке входа,
+  // а email — нет. Прошлый выбор пользователя всё равно уважаем.
   const [tab, setTab] = useState<TabKey>(() => {
     const saved = localStorage.getItem('lastLoginTab');
-    return saved === 'email' ? 'email' : 'sms';
+    return saved === 'sms' ? 'sms' : 'email';
   });
   useEffect(() => { localStorage.setItem('lastLoginTab', tab); }, [tab]);
 
@@ -28,8 +30,8 @@ const LoginTabs: React.FC = () => {
   }, [consentGiven]);
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    { key: 'sms',    label: t('auth.tabs.sms', 'По телефону'), icon: <Smartphone className="w-4 h-4" /> },
     { key: 'email',  label: t('auth.tabs.email', 'Email'),     icon: <Mail className="w-4 h-4" /> },
+    { key: 'sms',    label: t('auth.tabs.sms', 'По телефону'), icon: <Smartphone className="w-4 h-4" /> },
   ];
 
   return (
@@ -49,7 +51,7 @@ const LoginTabs: React.FC = () => {
 
         <div className="flex items-center gap-3 my-5">
           <div className="h-px flex-1 bg-gray-200" />
-          <span className="text-xs text-gray-400 whitespace-nowrap">{t('auth.orPhoneEmail', 'или по телефону / email')}</span>
+          <span className="text-xs text-gray-400 whitespace-nowrap">{t('auth.orPhoneEmail')}</span>
           <div className="h-px flex-1 bg-gray-200" />
         </div>
 
@@ -71,8 +73,8 @@ const LoginTabs: React.FC = () => {
           ))}
         </div>
 
-        {tab === 'sms'   && <SmsLoginPane />}
         {tab === 'email' && <EmailLoginPane />}
+        {tab === 'sms'   && <SmsLoginPane />}
       </div>
 
       {!consentGiven && (

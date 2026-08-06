@@ -235,7 +235,10 @@
         "active": "进行中",
         "done": "已完成",
         "archived": "已归档"
-      }
+      },
+      "time_just_now": "刚刚",
+      "time_minutes_ago": "{{count}} 分钟前",
+      "time_hours_ago": "{{count}} 小时前"
     },
     "refresh": "刷新",
     "loading_from_server": "正在从服务器加载资料…",
@@ -1225,6 +1228,10 @@
       "introRequired": "请填写一段简短留言",
       "rateLimited": "请求过多，请稍后再试",
       "sendFailed": "请求发送失败"
+    },
+    "nav": {
+      "searchPeople": "寻找人脉",
+      "compatibility": "匹配度"
     }
   },
   "customAgents": {
@@ -1473,7 +1480,8 @@
       "paymentLink": "付款方式",
       "suffix": " 并接受以上内容。",
       "needToAccept": "请先同意上述条款"
-    }
+    },
+    "orPhoneEmail": "或使用邮箱 / 手机号"
   },
   "tgBot": {
     "nav": "我的机器人",

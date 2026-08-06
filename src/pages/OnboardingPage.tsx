@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import LoginTabs from '../components/onboarding/LoginTabs';
+import { LanguageSelect } from '../components/settings/LanguageSelect';
 
 const REFERRAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
 
@@ -38,6 +39,11 @@ const OnboardingPage: React.FC = () => {
             <img src="/logo-Photoroom.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('onboarding.welcome')}</h1>
+          {/* Язык — сразу под заголовком, а не внутри SMS-вкладки: там его
+              видел только тот, кто уже выбрал вход по телефону. */}
+          <div className="flex justify-center mb-3">
+            <LanguageSelect className="text-sm px-2 py-1 border border-gray-200 rounded-lg bg-white/80 focus:ring-2 focus:ring-forest-500" />
+          </div>
           <p className="text-gray-600">{segSubtitle}</p>
           <p className="mt-3 text-sm font-medium text-forest-700">{t('onboarding.trust')}</p>
         </div>
