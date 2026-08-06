@@ -592,8 +592,23 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li><strong>DeepSeek</strong> — формирование приветственных сообщений и части
             ответов в чате</li>
           <li><strong>Kling (Kuaishou)</strong> — генерация видео</li>
+          <li><strong>ElevenLabs</strong> — создание голосовой модели по загруженному
+            пользователем образцу голоса и озвучивание видео этим голосом</li>
           <li><strong>Яндекс SpeechKit</strong> — распознавание речи при голосовом вводе</li>
         </ul>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Клонирование голоса.</strong> В разделе создания видео пользователь
+          может включить озвучивание собственным голосом. В этом случае загруженный им
+          аудиообразец голоса передаётся в Google (модель Gemini) — для составления
+          текстового описания голоса, и в ElevenLabs — для создания голосовой модели,
+          которой затем озвучивается сгенерированное видео. Образец загружается только
+          по инициативе пользователя и только при подтверждении им отдельного согласия;
+          без такого подтверждения загрузка не выполняется. Сам аудиофайл образца
+          Оператором не сохраняется — сохраняются идентификатор голосовой модели на
+          стороне ElevenLabs и текстовое описание голоса. Пользователь может удалить
+          голосовую модель в интерфейсе Приложения; при этом она удаляется и на стороне
+          ElevenLabs.
+        </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Передаваемые данные:</strong> имя и фамилия (если указаны
           пользователем), интересы, ценности, убеждения, желания, намерения и навыки
@@ -615,9 +630,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Трансграничная передача данных.</strong> Все перечисленные выше
-          AI-провайдеры находятся за пределами Российской Федерации, поэтому передача им
-          данных является трансграничной в значении статьи 12 Федерального закона
-          от 27.07.2006 № 152-ФЗ «О персональных данных».
+          AI-провайдеры, кроме Яндекс SpeechKit, находятся за пределами Российской
+          Федерации, поэтому передача им данных является трансграничной в значении
+          статьи 12 Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных».
+          Распознавание речи при голосовом вводе (Яндекс SpeechKit) выполняется на
+          территории Российской Федерации. Аудиообразец голоса при использовании функции
+          озвучивания видео собственным голосом передаётся за пределы Российской
+          Федерации (Google, ElevenLabs).
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Передача данных в Китайскую Народную Республику.</strong> Данные
@@ -860,8 +879,22 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li><strong>DeepSeek</strong> — generation of welcome messages and part of the
             chat responses</li>
           <li><strong>Kling (Kuaishou)</strong> — video generation</li>
+          <li><strong>ElevenLabs</strong> — creation of a voice model from the voice sample
+            uploaded by the user, and voicing of videos with that voice</li>
           <li><strong>Yandex SpeechKit</strong> — speech recognition for voice input</li>
         </ul>
+        <p className="text-gray-700 leading-relaxed">
+          <strong>Voice cloning.</strong> In the video creation section the user may enable
+          voicing with their own voice. In that case the audio sample they upload is
+          transmitted to Google (Gemini model) to produce a textual description of the voice,
+          and to ElevenLabs to create a voice model that is then used to voice the generated
+          video. The sample is uploaded only on the user's initiative and only after they
+          confirm a separate consent; without that confirmation no upload takes place. The
+          audio file of the sample is not retained by the Operator — what is stored is the
+          identifier of the voice model on the ElevenLabs side and the textual description of
+          the voice. The user may delete the voice model in the Application interface, upon
+          which it is also deleted on the ElevenLabs side.
+        </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Data transmitted:</strong> first and last name (if provided by the user),
           interests, values, beliefs, desires, intentions and skills from the user's profile,
@@ -881,10 +914,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           experience.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          <strong>Cross-border data transfer.</strong> All the AI vendors listed above are
-          located outside the Russian Federation, and therefore the transfer of data to them
-          constitutes a cross-border transfer within the meaning of Article 12 of Federal Law
-          No. 152-FZ of 27 July 2006 "On Personal Data".
+          <strong>Cross-border data transfer.</strong> All the AI vendors listed above,
+          except Yandex SpeechKit, are located outside the Russian Federation, and therefore
+          the transfer of data to them constitutes a cross-border transfer within the meaning
+          of Article 12 of Federal Law No. 152-FZ of 27 July 2006 "On Personal Data". Speech
+          recognition for voice input (Yandex SpeechKit) is performed within the Russian
+          Federation. The voice sample used for voicing videos with the user's own voice is
+          transferred outside the Russian Federation (Google, ElevenLabs).
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Transfer of data to the People's Republic of China.</strong> Data is
