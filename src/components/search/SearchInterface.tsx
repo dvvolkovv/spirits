@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useAuth } from '../../contexts/AuthContext';
 import UserProfileModal from './UserProfileModal';
-import { Search, Users, MessageCircle, Heart, X, Plus } from 'lucide-react';
+import { Search, Users, MessageCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 
@@ -23,7 +22,6 @@ interface UserMatch {
 
 const SearchInterface: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
 
   const intentPlaceholders = t('search.intent_placeholders', { returnObjects: true }) as string[];
 
@@ -76,70 +74,6 @@ const SearchInterface: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('has_searched', hasSearched.toString());
   }, [hasSearched]);
-
-  const handlePhoneSearch = async () => {
-    if (phoneNumbers.length === 0) return;
-
-    setIsSearching(true);
-    setSearchComment('');
-    setResults([]);
-    setHasSearched(true);
-
-    // Очищаем предыдущие результаты из localStorage
-    localStorage.removeItem('search_results');
-    localStorage.removeItem('search_comment');
-
-    // Prepare phone IDs list - remove '+' and format as needed
-    const phoneIds = phoneNumbers.map(phone => phone.replace(/\D/g, ''));
-
-    try {
-      const response = await apiClient.post('/webhook/analyze-compatibility', {
-        users: phoneIds
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body reader available');
-      }
-
-      let accumulatedText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
-
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line);
-
-            if (data.type === 'item' && data.content) {
-              accumulatedText += data.content;
-              setSearchComment(accumulatedText);
-            }
-          } catch (e) {
-            console.warn('Failed to parse streaming data:', line);
-          }
-        }
-      }
-
-      // No results list needed for compatibility analysis - just show the markdown text
-      setResults([]);
-
-    } catch (error) {
-      console.error('Error during phone search:', error);
-      setSearchComment(t('search.error_stream'));
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -322,52 +256,6 @@ const SearchInterface: React.FC = () => {
     }
   };
 
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-
-    if (digits.length === 0) return '';
-    if (digits.length <= 1) return '+7';
-    if (digits.length <= 4) return `+7 (${digits.slice(1)}`;
-    if (digits.length <= 7) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4)}`;
-    if (digits.length <= 9) return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
-    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
-  };
-
-  const handlePhoneInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setCurrentPhoneInput(formatted);
-    setPhoneError('');
-  };
-
-  const validatePhoneNumber = (phone: string): boolean => {
-    const digits = phone.replace(/\D/g, '');
-    return digits.length === 11 && digits.startsWith('7');
-  };
-
-  const addPhoneNumber = () => {
-    const trimmedPhone = currentPhoneInput.trim();
-
-    if (!trimmedPhone) {
-      return;
-    }
-
-    if (!validatePhoneNumber(trimmedPhone)) {
-      setPhoneError(t('search.phone_incomplete'));
-      return;
-    }
-
-    const cleanPhone = '+' + trimmedPhone.replace(/\D/g, '');
-
-    if (phoneNumbers.includes(cleanPhone)) {
-      setPhoneError(t('compatibility.error_already_added'));
-      return;
-    }
-
-    setPhoneNumbers([...phoneNumbers, cleanPhone]);
-    setCurrentPhoneInput('');
-    setPhoneError('');
-  };
-
   const getScoreColor = (score: number) => {
     if (score >= 0.9) return 'text-green-600 bg-green-100';
     if (score >= 0.8) return 'text-blue-600 bg-blue-100';
@@ -399,104 +287,32 @@ const SearchInterface: React.FC = () => {
         </h1>
 
         {/* Search Bar */}
-        {false ? (
-          <div>
-            <div className="flex space-x-2 mb-2">
-              <div className="flex-1 relative">
-                <input
-                  type="tel"
-                  value={currentPhoneInput}
-                  onChange={handlePhoneInputChange}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addPhoneNumber();
-                    }
-                  }}
-                  placeholder={t('onboarding.phone_placeholder')}
-                  className={clsx(
-                    "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                    phoneError ? "border-red-300" : "border-gray-300"
-                  )}
-                />
-              </div>
-              <button
-                onClick={addPhoneNumber}
-                disabled={!validatePhoneNumber(currentPhoneInput)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
-
-            {phoneError && (
-              <p className="text-red-600 text-sm mb-3">{phoneError}</p>
-            )}
-
-            {phoneNumbers.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {phoneNumbers.map((phone, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 text-forest-700 rounded-lg"
-                  >
-                    <span className="text-sm">{phone}</span>
-                    <button
-                      onClick={() => {
-                        setPhoneNumbers(phoneNumbers.filter((_, i) => i !== index));
-                      }}
-                      className="text-forest-600 hover:text-forest-800"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <button
-              onClick={handlePhoneSearch}
-              disabled={isSearching || phoneNumbers.length === 0}
-              className="w-full px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
-            >
-              {isSearching ? (
-                <div className="flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  {t('search.analyzing_short')}
-                </div>
-              ) : (
-                t('search.show_count', { count: phoneNumbers.length })
-              )}
-            </button>
+        <div className="flex space-x-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              data-testid="search-input"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={currentPlaceholder}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
-        ) : (
-          <div className="flex space-x-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                data-testid="search-input"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={currentPlaceholder}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              data-testid="search-submit-btn"
-              onClick={handleSearch}
-              disabled={isSearching}
-              className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
-            >
-              {isSearching ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Search className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        )}
+          <button
+            data-testid="search-submit-btn"
+            onClick={handleSearch}
+            disabled={isSearching}
+            className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50"
+          >
+            {isSearching ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Search className="w-5 h-5" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Results */}
