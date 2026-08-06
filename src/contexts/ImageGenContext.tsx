@@ -7,6 +7,7 @@ import {
   GeneratedImage,
   TOKEN_COST,
 } from '../types/imageGen';
+import { formatNumber } from '../utils/formatters';
 
 const DEFAULT_SETTINGS: ImageGenSettings = {
   model: 'google/gemini-3-pro-image-preview',
@@ -183,7 +184,7 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!editPrompt.trim()) return;
     const cost = quality === 'hd' ? 10000 : 5000;
     if ((user?.tokens ?? 0) < cost) {
-      setError(`Недостаточно токенов. Нужно ${cost.toLocaleString('ru-RU')}`);
+      setError(`Недостаточно токенов. Нужно ${formatNumber(cost)}`);
       return;
     }
     await runMutation('/webhook/imageedit', { prompt: editPrompt.trim(), sourceImageUrl, quality }, quality);
@@ -197,7 +198,7 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     const cost = quality === 'hd' ? 10000 : 5000;
     if ((user?.tokens ?? 0) < cost) {
-      setError(`Недостаточно токенов. Нужно ${cost.toLocaleString('ru-RU')}`);
+      setError(`Недостаточно токенов. Нужно ${formatNumber(cost)}`);
       return;
     }
     await runMutation('/webhook/imagecompose', { prompt: composePrompt.trim(), sourceImageUrls, quality }, quality);

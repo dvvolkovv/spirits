@@ -1062,7 +1062,7 @@
     "email_hint": "Enviaremos el recibo de pago a este email",
     "popular_badge": "Popular",
     "offer_badge": "🎁 +50%",
-    "approx_messages_label": "≈ {{count}} mensajes",
+    "approx_messages_label": "≈ {{formatted}} mensajes",
     "price_per_1000_tokens": "~{{price}} ₽ por 1000 tokens",
     "processing_label": "Procesando...",
     "buy_button": "Comprar",

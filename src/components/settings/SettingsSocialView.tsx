@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { socialAccountApi } from '../../services/socialAccountApi';
 import { SocialAccount, SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
 import TelegramConnectForm from '../chat/TelegramConnectForm';
+import { formatDate } from '../../utils/formatters';
 
 const PLATFORMS: SmmPlatform[] = ['telegram', 'vk', 'youtube', 'tiktok', 'instagram'];
 
@@ -131,7 +132,7 @@ const SettingsSocialView: React.FC = () => {
                   </span>
                 </td>
                 <td className="py-2 px-3 text-gray-500">
-                  {new Date(a.createdAt).toLocaleDateString('ru-RU')}
+                  {formatDate(a.createdAt)}
                 </td>
                 <td className="py-2 px-3">
                   <button

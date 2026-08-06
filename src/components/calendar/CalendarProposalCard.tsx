@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { CalendarPlus, CalendarCheck, AlertTriangle, X, Check, RotateCcw, Loader2 } from 'lucide-react';
 import { ConnectCalendarModal } from './ConnectCalendarModal';
 import { ApiPost, CalendarProposalEvent, CalendarConflict, CalendarProposalKind, CalendarRecurrence } from './types';
+import { formatDateTime } from '../../utils/formatters';
 
 export type { ApiPost, CalendarProposalEvent, CalendarConflict, CalendarProposalKind } from './types';
 
@@ -38,7 +39,7 @@ const toDatetimeLocalValue = (iso?: string): string => {
 
 const formatConflictTime = (iso: string): string => {
   try {
-    return new Date(iso).toLocaleString('ru-RU', {
+    return formatDateTime(iso, {
       timeZone: 'Asia/Yekaterinburg',
       day: '2-digit',
       month: '2-digit',

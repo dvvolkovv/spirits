@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../../services/apiClient';
 import { regenerateVideo } from './smm-api';
+import { formatDate } from '../../../utils/formatters';
 
 interface MyVideo {
   id: string;
@@ -137,7 +138,7 @@ export function MyVideosList() {
                       <Clock className="w-3 h-3" />{v.durationSec}{t('video.duration.suffix')}
                     </span>
                   )}
-                  <span>{new Date(v.createdAt).toLocaleDateString('ru-RU')}</span>
+                  <span>{formatDate(v.createdAt)}</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs mt-1">
                   {v.mp4Url && (

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Ticket, Loader, CheckCircle } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatNumber } from '../../utils/formatters';
 
 interface CouponInputProps {
   onSuccess?: () => void;
@@ -58,7 +59,7 @@ const CouponInput: React.FC<CouponInputProps> = ({ onSuccess }) => {
         <div className="flex items-center space-x-2 text-green-700">
           <CheckCircle className="w-5 h-5" />
           <span data-testid="coupon-success-msg" className="font-medium">
-            {t('payment.coupon_success_message', { tokens: success.tokens.toLocaleString('ru-RU') })}
+            {t('payment.coupon_success_message', { tokens: formatNumber(success.tokens) })}
           </span>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useTranslation, Trans } from 'react-i18next';
 import { Loader } from 'lucide-react';
 import { apiClient } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
+import { formatNumber } from '../utils/formatters';
 
 const AuthOAuthCallbackPage: React.FC = () => {
   const { t } = useTranslation();
@@ -91,7 +92,7 @@ const AuthOAuthCallbackPage: React.FC = () => {
             {mergeState.conflictTokens > 0 ? (
               <Trans
                 i18nKey="pages.oauth_merge_desc_tokens"
-                values={{ provider: providerLabel, tokens: mergeState.conflictTokens.toLocaleString('ru-RU') }}
+                values={{ provider: providerLabel, tokens: formatNumber(mergeState.conflictTokens) }}
                 components={{ bold: <strong /> }}
               />
             ) : (

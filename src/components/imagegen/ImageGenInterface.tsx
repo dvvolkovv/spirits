@@ -24,6 +24,7 @@ import {
   Type,
   Share2,
 } from 'lucide-react';
+import { formatDate, formatDateTime, formatNumber } from '../../utils/formatters';
 import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { useTranslation, Trans } from 'react-i18next';
@@ -241,14 +242,14 @@ const ImageGenInterface: React.FC = () => {
                 className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
                   editQuality === 'std' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
               >
-                {t('imagegen.quality_standard', { cost: EDIT_COST.toLocaleString('ru-RU') })}
+                {t('imagegen.quality_standard', { cost: formatNumber(EDIT_COST) })}
               </button>
               <button
                 onClick={() => setEditQuality('hd')}
                 className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
                   editQuality === 'hd' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
               >
-                {t('imagegen.quality_hd', { cost: UPSCALE_COST.toLocaleString('ru-RU') })}
+                {t('imagegen.quality_hd', { cost: formatNumber(UPSCALE_COST) })}
               </button>
             </div>
             <button
@@ -327,7 +328,7 @@ const ImageGenInterface: React.FC = () => {
                       <Coins className="w-3 h-3" /> {t('imagegen.tokens_spent_label')}
                     </p>
                     <p className="text-sm text-gray-800 font-semibold">
-                      {detailsItem.tokens_spent != null ? Number(detailsItem.tokens_spent).toLocaleString('ru-RU') : '—'}
+                      {detailsItem.tokens_spent != null ? formatNumber(Number(detailsItem.tokens_spent)) : '—'}
                     </p>
                   </div>
                   <div>
@@ -335,7 +336,7 @@ const ImageGenInterface: React.FC = () => {
                       <Calendar className="w-3 h-3" /> {t('imagegen.date_label')}
                     </p>
                     <p className="text-sm text-gray-800">
-                      {created.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' })}
+                      {formatDateTime(created, { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
                 </div>
@@ -459,14 +460,14 @@ const ImageGenInterface: React.FC = () => {
                 className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
                   composeQuality === 'std' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
               >
-                {t('imagegen.quality_standard', { cost: COMPOSE_COST.toLocaleString('ru-RU') })}
+                {t('imagegen.quality_standard', { cost: formatNumber(COMPOSE_COST) })}
               </button>
               <button
                 onClick={() => setComposeQuality('hd')}
                 className={clsx('flex-1 py-2 rounded-lg text-xs font-medium border',
                   composeQuality === 'hd' ? 'border-forest-400 bg-forest-50 text-forest-700' : 'border-gray-200 text-gray-600 hover:border-gray-300')}
               >
-                {t('imagegen.quality_hd', { cost: UPSCALE_COST.toLocaleString('ru-RU') })}
+                {t('imagegen.quality_hd', { cost: formatNumber(UPSCALE_COST) })}
               </button>
             </div>
             <button
@@ -512,7 +513,7 @@ const ImageGenInterface: React.FC = () => {
         {user?.tokens !== undefined && (
           <div className="flex items-center gap-1.5 text-sm text-gray-600">
             <Coins className="w-4 h-4 text-forest-600" />
-            <span className="font-medium">{user.tokens.toLocaleString('ru-RU')}</span>
+            <span className="font-medium">{formatNumber(user.tokens)}</span>
           </div>
         )}
       </div>
@@ -748,7 +749,7 @@ const ImageGenInterface: React.FC = () => {
                 <>
                   <Sparkles className="w-4 h-4" />
                   <span>{mode === 'banner' ? t('imagegen.create_banner_button') : t('studio.generate_button')}</span>
-                  <span className="text-xs opacity-70 ml-1">({tokenCost.toLocaleString('ru-RU')})</span>
+                  <span className="text-xs opacity-70 ml-1">({formatNumber(tokenCost)})</span>
                 </>
               )}
             </button>
@@ -770,7 +771,7 @@ const ImageGenInterface: React.FC = () => {
 
           {!hasEnoughTokens && !isGenerating && (
             <p className="text-xs text-red-500 text-center">
-              {t('imagegen.insufficient_tokens_message', { needed: tokenCost.toLocaleString('ru-RU'), available: (user?.tokens ?? 0).toLocaleString('ru-RU') })}
+              {t('imagegen.insufficient_tokens_message', { needed: formatNumber(tokenCost), available: formatNumber(user?.tokens ?? 0) })}
             </p>
           )}
 
@@ -801,21 +802,21 @@ const ImageGenInterface: React.FC = () => {
                     <button
                       onClick={() => openEdit(img.url)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title={t('imagegen.edit_action_title', { cost: EDIT_COST.toLocaleString('ru-RU') })}
+                      title={t('imagegen.edit_action_title', { cost: formatNumber(EDIT_COST) })}
                     >
                       <Wand2 className="w-4 h-4 text-forest-700" />
                     </button>
                     <button
                       onClick={() => openCompose(img.url)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title={t('imagegen.compose_action_title', { cost: COMPOSE_COST.toLocaleString('ru-RU') })}
+                      title={t('imagegen.compose_action_title', { cost: formatNumber(COMPOSE_COST) })}
                     >
                       <Layers className="w-4 h-4 text-forest-700" />
                     </button>
                     <button
                       onClick={() => handleUpscale(img.url)}
                       className="p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title={t('imagegen.upscale_action_title', { cost: UPSCALE_COST.toLocaleString('ru-RU') })}
+                      title={t('imagegen.upscale_action_title', { cost: formatNumber(UPSCALE_COST) })}
                     >
                       <Maximize2 className="w-4 h-4 text-forest-700" />
                     </button>
@@ -884,7 +885,7 @@ const ImageGenInterface: React.FC = () => {
                     </div>
                     <div className="p-2">
                       <p className="text-[10px] text-gray-500 line-clamp-2">{h.prompt}</p>
-                      <p className="text-[10px] text-gray-400 mt-1">{new Date(h.created_at).toLocaleDateString('ru-RU')}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">{formatDate(h.created_at)}</p>
                     </div>
                   </div>
                 ))}

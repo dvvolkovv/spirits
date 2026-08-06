@@ -7,6 +7,7 @@ import { useVideoJobs, VideoJob } from './useVideoJobs';
 import VideoCreateForm, { FormState } from './VideoCreateForm';
 import VideoGallery from './VideoGallery';
 import { MyVideosList } from '../chat/smm/MyVideosList';
+import { formatNumber } from '../../utils/formatters';
 
 type Tab = 'create' | 'gallery' | 'smm';
 
@@ -77,7 +78,7 @@ export default function VideoInterface() {
         {user?.tokens !== undefined && (
           <div className="flex items-center gap-1.5 text-sm text-gray-600">
             <Coins className="w-4 h-4 text-forest-600" />
-            <span className="font-medium">{user.tokens.toLocaleString('ru-RU')}</span>
+            <span className="font-medium">{formatNumber(user.tokens)}</span>
           </div>
         )}
       </div>

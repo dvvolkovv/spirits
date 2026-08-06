@@ -4,15 +4,19 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Send, Loader2, Headphones, Bot, UserCircle2, AlertTriangle, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSupport, SupportMessage, SupportTicket } from './useSupport';
+import { toIntlLocale } from '../../utils/formatters';
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
+// Раньше здесь было `locale === 'ru' ? 'ru-RU' : 'en-US'` — испанец, немец,
+// француз и китаец получали американский формат даты. toIntlLocale знает все
+// поддерживаемые языки.
 function formatDate(iso: string, locale: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', {
+  return d.toLocaleDateString(toIntlLocale(locale), {
     day: '2-digit', month: 'short', year: 'numeric',
   });
 }

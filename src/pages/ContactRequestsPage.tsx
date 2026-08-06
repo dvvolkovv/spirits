@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Check, X, Loader2, Inbox, Send, MessageCircle } from 'lucide-react';
 import { apiClient } from '../services/apiClient';
 import { clsx } from 'clsx';
+import { formatDateTime } from '../utils/formatters';
 
 type Status = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
@@ -55,7 +56,7 @@ const ContactRequestsPage: React.FC = () => {
   };
 
   const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    formatDateTime(iso, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   const statusBadge = (s: Status) => {
     const map: Record<Status, { label: string; cls: string }> = {

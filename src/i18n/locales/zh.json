@@ -1052,7 +1052,7 @@
     "email_hint": "支付收据将发送至该邮箱",
     "popular_badge": "热门",
     "offer_badge": "🎁 +50%",
-    "approx_messages_label": "≈ {{count}} 条消息",
+    "approx_messages_label": "≈ {{formatted}} 条消息",
     "price_per_1000_tokens": "约 {{price}} ₽ / 1000 代币",
     "processing_label": "处理中…",
     "buy_button": "购买",

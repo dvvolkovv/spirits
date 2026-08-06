@@ -27,8 +27,15 @@ export class VoiceDictation {
   }
 
   static get supported(): boolean {
-    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia &&
-      typeof AudioWorkletNode !== 'undefined' && 'WebSocket' in window);
+    // По типам getUserMedia на MediaDevices есть всегда, поэтому проверка
+    // `&& navigator.mediaDevices.getUserMedia` считалась заведомо истинной.
+    // В рантайме её может не быть — на старых браузерах и в небезопасном
+    // контексте (http). Проверяем через typeof: и работает, и типам честно.
+    return (
+      typeof navigator.mediaDevices?.getUserMedia === 'function' &&
+      typeof AudioWorkletNode !== 'undefined' &&
+      'WebSocket' in window
+    );
   }
 
   async start(cb: VoiceDictationCallbacks): Promise<void> {

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { PremiumPreview, PremiumGenre } from './smm-api';
 import { Film, Clock, Coins, Loader2 } from 'lucide-react';
+import { formatNumber } from '../../../utils/formatters';
 
 interface Props {
   genre: PremiumGenre;
@@ -37,7 +38,7 @@ export function PremiumPreviewBlock({ genre, preview, onGenerate, generating }: 
           <Film className="w-3.5 h-3.5" /> {preview.scenes.length} {t('studio.kling_frames_unit')}
         </span>
         <span className="flex items-center gap-1">
-          <Coins className="w-3.5 h-3.5" /> {preview.tokensCost.toLocaleString('ru-RU')} {t('chat.tokens_suffix')}
+          <Coins className="w-3.5 h-3.5" /> {formatNumber(preview.tokensCost)} {t('chat.tokens_suffix')}
         </span>
         <span className="flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" /> ~{preview.estimatedMinutes} {t('studio.minutes_suffix')}

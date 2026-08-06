@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import i18n from '../i18n';
-import { toIntlLocale, formatDate, formatNumber, formatCurrency } from './formatters';
+import { toIntlLocale, formatDate, formatDateTime, formatNumber, formatCurrency } from './formatters';
 
 describe('toIntlLocale', () => {
   it('разворачивает корень языка в полную Intl-локаль', () => {
@@ -42,5 +42,38 @@ describe('форматирование по активному языку', () =
   it('форматирует сумму в рублях', () => {
     expect(formatCurrency(1500)).toContain('1');
     expect(formatCurrency(1500)).toContain('₽');
+  });
+});
+
+describe('formatDateTime', () => {
+  const iso = '2026-03-09T14:05:00Z';
+
+  it('меняет порядок дня и месяца вместе с языком', async () => {
+    await i18n.changeLanguage('ru');
+    const ru = formatDateTime(iso);
+    await i18n.changeLanguage('en');
+    const en = formatDateTime(iso);
+
+    // ru: 09.03.2026, en: 3/9/26 — разделители и порядок разные.
+    expect(ru).not.toBe(en);
+    expect(ru).toContain('.');
+    expect(en).toContain('/');
+  });
+
+  it('РЕГРЕССИЯ: не отдаёт русский формат чужим языкам', async () => {
+    // 33 места в коде звали toLocaleString('ru-RU') напрямую, из-за чего
+    // немец видел русские разряды и русскую дату. Здесь это ловится.
+    await i18n.changeLanguage('de');
+    const de = formatDateTime(iso);
+    await i18n.changeLanguage('ru');
+    const ru = formatDateTime(iso);
+    expect(de).not.toBe(ru);
+  });
+
+  it('уважает переданные опции', async () => {
+    await i18n.changeLanguage('ru');
+    const short = formatDateTime(iso, { dateStyle: 'short', timeStyle: 'short' });
+    const medium = formatDateTime(iso, { dateStyle: 'medium', timeStyle: 'short' });
+    expect(short).not.toBe(medium);
   });
 });

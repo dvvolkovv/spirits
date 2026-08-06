@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
+import type { TaskListItem, TaskDetails } from '../../types/tasks';
 
 interface ActivityResp {
   user: {

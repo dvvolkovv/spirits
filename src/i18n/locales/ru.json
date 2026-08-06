@@ -1372,7 +1372,7 @@
     "email_hint": "На указанный email будет отправлен чек об оплате",
     "popular_badge": "Популярный",
     "offer_badge": "🎁 +50%",
-    "approx_messages_label": "≈ {{count}} сообщений",
+    "approx_messages_label": "≈ {{formatted}} сообщений",
     "price_per_1000_tokens": "~{{price}} ₽ за 1000 токенов",
     "processing_label": "Обработка...",
     "buy_button": "Купить",

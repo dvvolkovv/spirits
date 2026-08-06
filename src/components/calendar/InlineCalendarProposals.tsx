@@ -29,7 +29,12 @@ interface ProposalData {
   lastAt?: string;
 }
 
-type Entry = { status: 'loading' | 'error' } | { status: 'ok'; data: ProposalData };
+// Три отдельных варианта, а не { status: 'loading' | 'error' }: с составным
+// дискриминантом TypeScript не сужал тип и не видел поле data у ok-ветки.
+type Entry =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'ok'; data: ProposalData };
 
 export const InlineCalendarProposals = ({ ids, apiPost }: { ids: string[]; apiPost: ApiPost }) => {
   const [byId, setById] = useState<Record<string, Entry>>({});

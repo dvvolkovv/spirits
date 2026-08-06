@@ -4,6 +4,7 @@ import i18n from 'i18next';
 import { ClipboardList, Loader, ChevronRight, ChevronDown, Check, Archive, RotateCcw } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import type { TaskListItem, TaskStatus, TaskDetails } from '../../types/tasks';
+import { formatDate } from '../../utils/formatters';
 
 // Модульные функции без доступа к хуку useTranslation — используют
 // напрямую общий i18next-инстанс (тот же, что инициализирован в src/i18n).
@@ -23,7 +24,7 @@ const formatRelative = (iso: string | null): string => {
   if (hr < 24) return i18n.t('profile.tasks.time_hours_ago', { count: hr });
   const day = Math.floor(hr / 24);
   if (day < 7) return i18n.t('profile.tasks.time_days_ago', { count: day });
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  return formatDate(d, { day: '2-digit', month: '2-digit', year: '2-digit' });
 };
 
 const statusBadge = (status: TaskStatus): { cls: string; label: string } => {

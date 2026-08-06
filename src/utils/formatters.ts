@@ -42,6 +42,14 @@ export function formatTime(
   return new Date(value).toLocaleTimeString(activeLocale(), options);
 }
 
+/** Дата и время вместе — для отметок «когда пришло сообщение». */
+export function formatDateTime(
+  value: Date | string | number,
+  options: Intl.DateTimeFormatOptions = { dateStyle: 'short', timeStyle: 'short' },
+): string {
+  return new Date(value).toLocaleString(activeLocale(), options);
+}
+
 export function formatNumber(
   value: number,
   options: Intl.NumberFormatOptions = {},

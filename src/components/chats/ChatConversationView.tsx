@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePeerConversation, blockUser, reportUser } from '../peer/usePeer';
 import { AvatarBubble } from '../peer/PeerInboxPanels';
 import UserProfileModal from '../search/UserProfileModal';
+import { formatDate } from '../../utils/formatters';
 
 interface Props {
   chatId: string;
@@ -32,7 +33,7 @@ function dayLabel(iso: string, t: (k: string, f?: string) => string): string {
   if (sameDay(iso, now.toISOString())) return t('peer.chat.today', 'Сегодня');
   const y = new Date(); y.setDate(now.getDate() - 1);
   if (sameDay(iso, y.toISOString())) return t('peer.chat.yesterday', 'Вчера');
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  return formatDate(d, { day: 'numeric', month: 'long' });
 }
 
 const ChatConversationView: React.FC<Props> = ({ chatId }) => {

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { tgBotApi, type TgBotConfig } from '../../services/tgBotApi';
+import { formatDateTime, formatNumber } from '../../utils/formatters';
 
 interface Props {
   config: TgBotConfig;
@@ -69,11 +70,11 @@ export const TgBotMessagesView: React.FC<Props> = ({ config, onClose }) => {
                       {m.content_type === 'voice_transcript' && ' 🎙️'}
                       {m.content_type === 'voice_reply' && ' 🔊'}
                     </span>
-                    <span className="text-[10px] text-gray-400">{new Date(m.created_at).toLocaleString('ru-RU')}</span>
+                    <span className="text-[10px] text-gray-400">{formatDateTime(m.created_at)}</span>
                   </div>
                   <div className="whitespace-pre-wrap break-words text-gray-900">{m.content}</div>
                   {m.tokens_charged > 0 && (
-                    <div className="text-[10px] text-gray-400 mt-1">🪙 {m.tokens_charged.toLocaleString('ru-RU')}</div>
+                    <div className="text-[10px] text-gray-400 mt-1">🪙 {formatNumber(m.tokens_charged)}</div>
                   )}
                 </div>
               ))}

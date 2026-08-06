@@ -1363,7 +1363,7 @@
     "email_hint": "The payment receipt will be sent to this email",
     "popular_badge": "Popular",
     "offer_badge": "🎁 +50%",
-    "approx_messages_label": "≈ {{count}} messages",
+    "approx_messages_label": "≈ {{formatted}} messages",
     "price_per_1000_tokens": "~{{price}} ₽ per 1,000 tokens",
     "processing_label": "Processing...",
     "buy_button": "Buy",

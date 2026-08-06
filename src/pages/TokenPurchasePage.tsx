@@ -5,6 +5,7 @@ import { Coins, Check, Loader, ArrowLeft, Mail } from 'lucide-react';
 import CouponInput from '../components/tokens/CouponInput';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
+import { formatNumber } from '../utils/formatters';
 
 interface TokenPackage {
   id: string;
@@ -98,7 +99,7 @@ const TokenPurchasePage: React.FC = () => {
   }, [user?.id]);
 
   const formatTokens = (tokens: number) => {
-    return tokens.toLocaleString('ru-RU');
+    return formatNumber(tokens);
   };
 
   const validateEmail = (email: string): boolean => {
@@ -278,7 +279,10 @@ const TokenPurchasePage: React.FC = () => {
                     </div>
                     <p className="text-sm text-gray-600">{t('chat.tokens_suffix')}</p>
                     <p className="text-xs text-gray-400 mt-1">
-                      {t('payment.approx_messages_label', { count: Math.floor(pkg.tokens / 3500).toLocaleString('ru-RU') })}
+                      {t('payment.approx_messages_label', {
+                      count: Math.floor(pkg.tokens / 3500),
+                      formatted: formatNumber(Math.floor(pkg.tokens / 3500)),
+                    })}
                     </p>
                   </div>
 

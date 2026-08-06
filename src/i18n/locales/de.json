@@ -1057,7 +1057,7 @@
     "email_hint": "An diese E-Mail-Adresse wird der Zahlungsbeleg gesendet",
     "popular_badge": "Beliebt",
     "offer_badge": "🎁 +50%",
-    "approx_messages_label": "≈ {{count}} Nachrichten",
+    "approx_messages_label": "≈ {{formatted}} Nachrichten",
     "price_per_1000_tokens": "~{{price}} ₽ pro 1000 Tokens",
     "processing_label": "Wird verarbeitet...",
     "buy_button": "Kaufen",

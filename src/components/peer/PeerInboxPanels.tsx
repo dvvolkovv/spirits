@@ -1,6 +1,7 @@
 import React from 'react';
 import { Inbox, Check, X, Clock, Users, Eye, Heart } from 'lucide-react';
 import { ChatRequest, PeerConversation } from './usePeer';
+import { formatDate } from '../../utils/formatters';
 
 export function avatarInitials(name: string): string {
   return (name || '?').split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
@@ -53,7 +54,7 @@ export function timeAgo(iso: string, t: (k: string) => string): string {
   if (hours < 24) return `${hours} ${t('peer.time.hr')}`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} ${t('peer.time.day')}`;
-  return new Date(iso).toLocaleDateString('ru-RU');
+  return formatDate(iso);
 }
 
 type T = (k: string, fallback?: string) => string;

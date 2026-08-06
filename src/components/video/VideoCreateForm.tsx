@@ -8,6 +8,7 @@ import { apiClient } from '../../services/apiClient';
 import VideoExamples from './VideoExamples';
 import { useVoiceProfile } from './useVoiceProfile';
 import VoiceSamplePanel from './VoiceSamplePanel';
+import { formatNumber } from '../../utils/formatters';
 
 interface Props {
   onCreated: (jobId: string) => void;
@@ -921,7 +922,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
       {/* Insufficient tokens */}
       {insufficient && (
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-          {t('video.insufficientTokens.message', { cost: cost.toLocaleString('ru-RU'), balance: balance.toLocaleString('ru-RU') })}{' '}
+          {t('video.insufficientTokens.message', { cost: formatNumber(cost), balance: formatNumber(balance) })}{' '}
           <a href="/chat?view=tokens" className="underline font-medium">{t('video.insufficientTokens.cta')}</a>
         </div>
       )}
@@ -947,7 +948,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           <>
             <Sparkles className="w-4 h-4" />
             <span>{t('video.submit.create')}</span>
-            <span className="text-xs opacity-70 ml-1">{t('video.create.cost_suffix', { cost: cost.toLocaleString('ru-RU') })}</span>
+            <span className="text-xs opacity-70 ml-1">{t('video.create.cost_suffix', { cost: formatNumber(cost) })}</span>
           </>
         )}
       </button>
