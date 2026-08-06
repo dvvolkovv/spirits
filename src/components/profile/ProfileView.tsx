@@ -11,6 +11,7 @@ import ReferralDashboard from './ReferralDashboard';
 import ProfileTasks from './ProfileTasks';
 import InviteFriendBlock from './InviteFriendBlock';
 import { tgBotApi, type IdentityStatus } from '../../services/tgBotApi';
+import { LanguageSelect } from '../settings/LanguageSelect';
 
 interface ProfileData {
   profile?: string[];
@@ -349,7 +350,10 @@ const ProfileView: React.FC = () => {
           <h1 className="text-xl font-bold text-gray-900">
             {t('profile.title')}
           </h1>
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2">
+            {/* Язык — в шапке, а не только в свёрнутых настройках: там он
+                оказывался почти в самом низу панели, и найти его было нельзя. */}
+            <LanguageSelect className="px-2 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-forest-500" />
             <button
               onClick={loadProfileFromServer}
               disabled={isLoadingProfile}
