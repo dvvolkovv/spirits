@@ -59,7 +59,10 @@ const EmailLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    {/* space-y-3 на форме, а не отступы на детях: между полем, блоком согласия
+        и кнопкой получается одинаковый зазор независимо от того, передан
+        consent или нет. Отступ на самом consent дал бы двойной интервал. */}
+    <form onSubmit={handleSubmit} className="space-y-3">
       <TextField
         label={t('auth.email.label', 'Электронная почта')}
         type="email"
