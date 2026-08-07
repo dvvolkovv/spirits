@@ -38,13 +38,26 @@ const OTPInput: React.FC<OTPInputProps> = ({
     inputRefs.current[0]?.focus();
   }, []);
 
+  // Ошибка ОСТАЁТСЯ на экране, пока человек не начнёт вводить код заново.
+  //
+  // Здесь же раньше вызывался onErrorClear() — родитель тут же обнулял текст,
+  // и сообщение не доживало до следующей отрисовки. Замер 2026-08-07 через
+  // console.log показал последовательность целиком: otpError выставляется,
+  // рендерится, эффект его гасит, следующий рендер уже пустой. Человек видел,
+  // как ячейки молча обнуляются, без единого слова объяснения — и это же
+  // съедало сообщение про переполненный localStorage (auth.sms.storageUnavailable),
+  // добавленное утром того же дня.
+  //
+  // onErrorClear убран из зависимостей сознательно: SmsLoginPane передаёт
+  // стрелку, у которой на каждом рендере новая идентичность, из-за чего эффект
+  // срабатывал не «при появлении ошибки», а после каждого рендера подряд.
   useEffect(() => {
     if (error) {
       setCode(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
-      onErrorClear?.();
     }
-  }, [error, onErrorClear]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
 
   useEffect(() => {
     if ('OTPCredential' in window && navigator.credentials) {
@@ -83,6 +96,10 @@ const OTPInput: React.FC<OTPInputProps> = ({
   }, [onSubmit]);
 
   const handleInputChange = (index: number, value: string) => {
+    // Ошибку снимаем ЗДЕСЬ — когда человек начал вводить код заново, а не
+    // сразу после её появления. Так сообщение доживает до того, как его прочтут.
+    if (value) onErrorClear?.();
+
     // Handle paste of full code
     if (value.length > 1) {
       const digits = value.replace(/\D/g, '').slice(0, 6).split('');
