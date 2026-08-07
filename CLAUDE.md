@@ -166,7 +166,7 @@ src/
 **Защищённые эндпоинты (Bearer access-token):**
 - `POST /webhook/auth/refresh` — обновление токенов (тело: refresh-token в Authorization)
 - `GET /webhook/profile` — профиль + isAdmin
-- `PUT /webhook/profile-update` — обновление профиля
+- `POST /webhook/profile-update` — обновление профиля (именно POST: в контроллере `@Post`, `PUT` вернёт 404)
 - `DELETE /webhook/profile` — удаление аккаунта
 - `GET /webhook/user/tokens/` — баланс токенов
 - `GET /webhook/avatar` — получение аватара
