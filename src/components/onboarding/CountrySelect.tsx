@@ -44,7 +44,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({ value, onChange, d
       disabled={disabled}
       data-testid="country-select"
       aria-label={t('onboarding.country')}
-      className="px-2 py-3 border border-gray-300 rounded-l-lg border-r-0 bg-white text-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent max-w-[7.5rem]"
+      className="h-full bg-transparent pl-2 pr-1 text-sm text-gray-700 focus:outline-none cursor-pointer appearance-none"
     >
       {countries.map((c) => (
         <option key={c.iso} value={c.iso}>

@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight } from 'lucide-react';
-import { clsx } from 'clsx';
 import { AsYouType, parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
 import { CountrySelect } from './CountrySelect';
 import { defaultCountryForLanguage } from './phoneCountry';
+import { Button } from '../ui/Button';
+import { TextField } from '../ui/TextField';
 
 interface PhoneInputProps {
   onSubmit: (phone: string) => void;
   onDemoClick?: () => void;
   isLoading: boolean;
+  /** Согласие ещё не отмечено — отправлять нельзя. */
+  blocked?: boolean;
+  /** Блок согласия. Рендерится между полем и кнопкой; общий для обеих форм, поэтому приходит снаружи. */
+  consent?: React.ReactNode;
+  /** Рисуется под кнопкой: переключение на вход по почте. */
+  footer?: React.ReactNode;
 }
 
-const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
+const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading, blocked, consent, footer }) => {
   const { t, i18n } = useTranslation();
   const [country, setCountry] = useState<CountryCode>(() => defaultCountryForLanguage(i18n.language));
   const [national, setNational] = useState('');
@@ -51,54 +57,37 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading }) => {
     onSubmit(parsed.number);
   };
 
+  // space-y-3 на форме, а не отступы на детях — так же, как в форме почты:
+  // зазор между полем, блоком согласия и кнопкой одинаковый независимо от того,
+  // передан consent или нет.
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('onboarding.enter_phone')}
-          </label>
-          <div className="flex">
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <TextField
+        label={t('onboarding.enter_phone')}
+        type="tel"
+        value={national}
+        onChange={handleChange}
+        onBlur={() => setTouched(true)}
+        data-testid="phone-input"
+        placeholder={new AsYouType(country).input('0'.repeat(9))}
+        autoFocus
+        error={touched && national && !isValidPhone ? t('onboarding.phone_invalid') : null}
+        prefix={
+          <div className="flex items-center border-r border-gray-200 pl-1">
             <CountrySelect value={country} onChange={setCountry} disabled={isLoading} />
-            <input
-              type="tel"
-              value={national}
-              onChange={handleChange}
-              onBlur={() => setTouched(true)}
-              data-testid="phone-input"
-              placeholder={new AsYouType(country).input('0'.repeat(9))}
-              className="flex-1 min-w-0 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-lg"
-              autoFocus
-            />
           </div>
-          {touched && national && !isValidPhone && (
-            <p className="text-red-500 text-sm mt-1">
-              {t('onboarding.phone_invalid')}
-            </p>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          data-testid="phone-submit-btn"
-          disabled={!canSubmit}
-          className={clsx(
-            'w-full px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-200',
-            canSubmit
-              ? 'bg-forest-600 hover:bg-forest-700 text-white shadow-md hover:shadow-lg'
-              : 'bg-gray-200 text-gray-500 cursor-not-allowed',
-          )}
-        >
-          {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <>
-              <span>{t('onboarding.send_code')}</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
-      </div>
+        }
+      />
+      {consent}
+      <Button
+        type="submit"
+        data-testid="phone-submit-btn"
+        loading={isLoading}
+        disabled={!canSubmit || blocked}
+      >
+        {t('onboarding.send_code')}
+      </Button>
+      {footer}
     </form>
   );
 };
