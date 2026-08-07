@@ -503,6 +503,14 @@
       "private_title": "Privé",
       "private_desc": "Le téléphone est masqué. Les demandes de contact ne sont pas acceptées automatiquement."
     },
+    "voices": {
+      "title": "Voix des assistants",
+      "desc": "Choisis la voix avec laquelle chaque assistant lira ses réponses à voix haute. Le bouton à droite joue un échantillon.",
+      "default": "Par défaut",
+      "preview": "Écouter un échantillon",
+      "select_label": "Voix de {{assistant}}",
+      "save_error": "Impossible d'enregistrer la voix choisie. Réessaie."
+    },
     "footer_build": "Linkeon · build {{build}}",
     "social": {
       "title": "Réseaux sociaux",

@@ -502,6 +502,14 @@
       "private_title": "Privat",
       "private_desc": "Die Nummer ist verborgen. Kontaktanfragen werden nicht automatisch angenommen."
     },
+    "voices": {
+      "title": "Stimmen der Assistenten",
+      "desc": "Wähle, mit welcher Stimme jeder Assistent seine Antworten vorliest. Die Schaltfläche rechts spielt eine Hörprobe ab.",
+      "default": "Standard",
+      "preview": "Hörprobe abspielen",
+      "select_label": "Stimme für {{assistant}}",
+      "save_error": "Die Stimmauswahl konnte nicht gespeichert werden. Bitte versuche es erneut."
+    },
     "footer_build": "Linkeon · Build {{build}}",
     "social": {
       "title": "Soziale Netzwerke",

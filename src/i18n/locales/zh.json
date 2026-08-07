@@ -501,6 +501,14 @@
       "private_title": "私密",
       "private_desc": "电话号码已隐藏。联系请求不会被自动接受。"
     },
+    "voices": {
+      "title": "助手语音",
+      "desc": "选择每位助手朗读回复时使用的语音。右侧按钮可播放示例。",
+      "default": "默认",
+      "preview": "播放示例",
+      "select_label": "{{assistant}} 的语音",
+      "save_error": "语音选择保存失败，请重试。"
+    },
     "footer_build": "Linkeon · 构建 {{build}}",
     "social": {
       "title": "社交媒体",

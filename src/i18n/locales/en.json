@@ -808,6 +808,14 @@
       "private_title": "Private",
       "private_desc": "Your phone number is hidden. Contact requests are not accepted automatically."
     },
+    "voices": {
+      "title": "Assistant voices",
+      "desc": "Choose the voice each assistant uses to read its replies aloud. The button on the right plays a sample.",
+      "default": "Default",
+      "preview": "Play a sample",
+      "select_label": "Voice for {{assistant}}",
+      "save_error": "Could not save the voice choice. Please try again."
+    },
     "footer_build": "Linkeon · build {{build}}",
     "social": {
       "title": "Social accounts",
