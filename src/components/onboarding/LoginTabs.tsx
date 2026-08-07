@@ -60,6 +60,7 @@ const LoginTabs: React.FC = () => {
           {tabs.map(tabDef => (
             <button
               key={tabDef.key}
+              data-testid={tabDef.key === 'sms' ? 'switch-to-phone' : 'switch-to-email'}
               onClick={() => setTab(tabDef.key)}
               className={`flex-1 px-3 py-2 text-sm font-medium inline-flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
                 tab === tabDef.key

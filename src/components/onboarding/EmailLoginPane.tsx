@@ -54,6 +54,7 @@ const EmailLoginPane: React.FC = () => {
           type="email"
           value={email}
           onChange={e => setEmail(e.target.value)}
+          data-testid="email-input"
           required
           autoComplete="email"
           className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-forest-500 focus:ring-1 focus:ring-forest-500"
@@ -63,6 +64,7 @@ const EmailLoginPane: React.FC = () => {
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
+        data-testid="email-submit-btn"
         disabled={loading || !email}
         className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 disabled:opacity-50"
       >
