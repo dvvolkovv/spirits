@@ -43,7 +43,12 @@ const LoginTabs: React.FC = () => {
   const switchTo = (next: Method) => (
     <Button
       variant="ghost"
-      className="mt-2.5"
+      // Подпись тут самая длинная на экране («Mit Telefonnummer anmelden»,
+      // «Entrar con el número de teléfono»), и на 320 px она ломалась в две
+      // строки внутри кнопки высотой 44 px. Кегль и поля ужаты только у этой
+      // кнопки; `!` обязателен — у базовых утилит Button тот же вес, и без
+      // важности выигрывает та, что стоит позже в собранном CSS, а не в атрибуте.
+      className="mt-2.5 !text-[13px] !px-2"
       onClick={() => setMethod(next)}
       data-testid={next === 'sms' ? 'switch-to-phone' : 'switch-to-email'}
       leading={next === 'sms'

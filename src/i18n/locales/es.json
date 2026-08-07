@@ -1453,7 +1453,7 @@
   },
   "auth": {
     "switch": {
-      "toPhone": "Entrar con el número de teléfono",
+      "toPhone": "Entrar con el teléfono",
       "toEmail": "Entrar con el correo"
     },
     "email": {
