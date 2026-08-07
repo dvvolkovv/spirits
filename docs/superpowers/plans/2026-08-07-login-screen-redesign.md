@@ -75,22 +75,40 @@ Create `~/Downloads/spirits_back/tests/playwright/login-ui.spec.js`:
 const { test, expect } = require('@playwright/test');
 const axios = require('axios');
 
-const BASE = process.env.SMOKE_BASE_URL || 'https://my.linkeon.io';
+// Адрес СТРАНИЦЫ задаётся playwright.config.js через BASE_URL (не SMOKE_BASE_URL).
+// Для локального прогона: pnpm build && pnpm preview --port 4173,
+// затем BASE_URL=http://localhost:4173 npx playwright test.
+//
+// Адрес API — всегда прод и НЕ совпадает с адресом страницы: локальная сборка
+// собрана с VITE_BACKEND_URL=https://my.linkeon.io и ходит туда же.
+const API_BASE = process.env.API_BASE || 'https://my.linkeon.io';
 const TEST_PHONE = '79030169187';
 const NATIONAL = '9030169187';
 
+/**
+ * Basic Auth для test.linkeon.io — ТОЛЬКО через page.route().
+ *
+ * setExtraHTTPHeaders здесь использовать нельзя: заголовок применяется ко ВСЕМ
+ * запросам, включая fetch() из скриптов страницы, и перебивает
+ * Authorization: Bearer — API отдаёт 401 и разлогинивает. Это описано в
+ * playwright.config.js и уже один раз ломало smoke. Копируем рабочую
+ * реализацию из smoke.spec.js, а не пишем свою.
+ */
 async function applyBasicAuth(page) {
   const user = process.env.TEST_BASIC_USER;
   const pass = process.env.TEST_BASIC_PASS;
   if (!user || !pass) return;
-  await page.setExtraHTTPHeaders({
-    Authorization: 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64'),
+  const basic = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
+  await page.route('**/*', (route) => {
+    const headers = route.request().headers();
+    if (headers.authorization) return route.continue();
+    return route.continue({ headers: { ...headers, authorization: basic } });
   });
 }
 
 /** Свежий код из Redis. На тестовые номера реальная SMS не уходит by design. */
 async function debugCode() {
-  const r = await axios.get(`${BASE}/webhook/debug/sms-code/${TEST_PHONE}`);
+  const r = await axios.get(`${API_BASE}/webhook/debug/sms-code/${TEST_PHONE}`);
   return r.data.code;
 }
 
@@ -187,13 +205,26 @@ test.describe('экран входа', () => {
 <button type="submit" data-testid="email-submit-btn" ...>
 ```
 
-- [ ] **Step 4: Прогнать — все три должны быть ЗЕЛЁНЫМИ на текущей разметке**
+- [ ] **Step 4: Прогнать против ЛОКАЛЬНОЙ сборки — все три должны быть зелёными**
+
+Playwright ходит по сети, а не по файлам, поэтому проверять правки надо на локальной сборке, иначе тест увидит прод, где их ещё нет.
+
+Терминал 1:
 
 ```bash
-cd ~/Downloads/spirits_back/tests && npx playwright test playwright/login-ui.spec.js --reporter=list
+cd ~/Downloads/spirits_front/.worktrees/login-redesign && pnpm build && pnpm preview --port 4173
+```
+
+Терминал 2:
+
+```bash
+cd ~/Downloads/spirits_back/.worktrees/login-redesign/tests
+BASE_URL=http://localhost:4173 npx playwright test playwright/login-ui.spec.js --reporter=list
 ```
 
 Ожидается: `3 passed`. Если что-то красное — чинить тест, а не продукт: они описывают поведение, которое уже есть.
+
+> Тесты логинятся тестовым номером `79030169187` в БОЕВОЙ бэкенд: локально поднимается только статика фронта, API всегда прод. Это тот же номер, которым ходит smoke, реальная SMS на него не уходит.
 
 - [ ] **Step 5: Коммит**
 
@@ -411,7 +442,9 @@ Create `src/components/ui/TextField.tsx`:
 import React, { useId } from 'react';
 import { fieldClasses, CONTROL_HEIGHT, CONTROL_RADIUS } from './controlStyles';
 
-interface TextFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+// Omit<'prefix'> обязателен: в InputHTMLAttributes уже есть HTML-атрибут
+// prefix?: string, и наш ReactNode с ним не сходится (TS2430).
+interface TextFieldProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix'> {
   label: string;
   error?: string | null;
   /** Слот слева ВНУТРИ рамки — под выбор страны в поле телефона. */
@@ -477,10 +510,14 @@ export default TextField;
 - [ ] **Step 3: Проверить, что собирается**
 
 ```bash
-pnpm build
+pnpm typecheck && pnpm build
 ```
 
-Ожидается: `✓ built in …`, без ошибок TypeScript.
+Ожидается: `pnpm typecheck` молча завершается с кодом 0, затем `✓ built in …`.
+
+> **Только `pnpm typecheck`** (`tsc --noEmit -p tsconfig.app.json`). Голый `tsc --noEmit` в этом проекте — пустышка: корневой `tsconfig.json` это заглушка с `"files": []`, команда всегда возвращает 0 и не смотрит ни на один файл. `pnpm build` (vite) типы тоже не проверяет — он их просто стирает.
+>
+> В проекте есть 48 унаследованных ошибок типов (`ChatInterface`, `pushClient`, `VideoJobCard` и др.). Ориентир — не «ноль ошибок», а «мои файлы не добавили ни одной»: сравнивай вывод до и после своих правок.
 
 - [ ] **Step 4: Коммит**
 
@@ -550,7 +587,7 @@ export function providerMark(provider: OAuthProviderId): React.ReactNode {
 - [ ] **Step 2: Проверить сборку**
 
 ```bash
-pnpm build
+pnpm typecheck && pnpm build
 ```
 
 Ожидается: успешная сборка.
@@ -733,7 +770,7 @@ export default OAuthButton;
 - [ ] **Step 2: Сборка**
 
 ```bash
-pnpm build
+pnpm typecheck && pnpm build
 ```
 
 Ожидается: успешно.
@@ -867,7 +904,7 @@ interface Props {
 - [ ] **Step 3: Сборка**
 
 ```bash
-pnpm build
+pnpm typecheck && pnpm build
 ```
 
 - [ ] **Step 4: Коммит**
@@ -953,7 +990,7 @@ className="h-full bg-transparent pl-2 pr-1 text-sm text-gray-700 focus:outline-n
 - [ ] **Step 3: Сборка**
 
 ```bash
-pnpm build
+pnpm typecheck && pnpm build
 ```
 
 - [ ] **Step 4: Проверить руками, что валидация номера жива**
@@ -1034,7 +1071,7 @@ interface Props {
 - [ ] **Step 4: Сборка**
 
 ```bash
-pnpm build
+pnpm typecheck && pnpm build
 ```
 
 - [ ] **Step 5: Коммит**
@@ -1182,7 +1219,7 @@ export default LoginTabs;
 - [ ] **Step 3: Сборка**
 
 ```bash
-pnpm build
+pnpm typecheck && pnpm build
 ```
 
 - [ ] **Step 4: Проверить новое поведение руками**
