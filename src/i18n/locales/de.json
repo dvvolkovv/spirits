@@ -1447,11 +1447,9 @@
     "genre_cinematic_subtitle": "Filmsprache"
   },
   "auth": {
-    "tabs": {
-      "sms": "SMS",
-      "email": "E-Mail",
-      "google": "Google",
-      "yandex": "Yandex"
+    "switch": {
+      "toPhone": "Mit Telefonnummer anmelden",
+      "toEmail": "Mit E-Mail anmelden"
     },
     "email": {
       "label": "E-Mail-Adresse",
@@ -1484,10 +1482,9 @@
       "servicesLink": "Leistungsbeschreibung",
       "and": " und den ",
       "paymentLink": "Zahlungsablauf",
-      "suffix": " gelesen und akzeptiere sie.",
-      "needToAccept": "Akzeptiere zuerst die Bedingungen oben"
+      "suffix": " gelesen und akzeptiere sie."
     },
-    "orPhoneEmail": "oder per E-Mail / Telefon"
+    "or": "oder"
   },
   "tgBot": {
     "nav": "Meine Bots",

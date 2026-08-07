@@ -1442,11 +1442,9 @@
     "genre_cinematic_subtitle": "电影语言"
   },
   "auth": {
-    "tabs": {
-      "sms": "短信",
-      "email": "邮箱",
-      "google": "Google",
-      "yandex": "Yandex"
+    "switch": {
+      "toPhone": "使用手机号登录",
+      "toEmail": "使用邮箱登录"
     },
     "email": {
       "label": "电子邮箱",
@@ -1479,10 +1477,9 @@
       "servicesLink": "服务说明",
       "and": " 和 ",
       "paymentLink": "付款方式",
-      "suffix": " 并接受以上内容。",
-      "needToAccept": "请先同意上述条款"
+      "suffix": " 并接受以上内容。"
     },
-    "orPhoneEmail": "或使用邮箱 / 手机号"
+    "or": "或"
   },
   "tgBot": {
     "nav": "我的机器人",

@@ -1762,11 +1762,9 @@
     "genre_cinematic_subtitle": "Киноязык"
   },
   "auth": {
-    "tabs": {
-      "sms": "SMS",
-      "email": "Email",
-      "google": "Google",
-      "yandex": "Yandex"
+    "switch": {
+      "toPhone": "Войти по номеру телефона",
+      "toEmail": "Войти по почте"
     },
     "email": {
       "label": "Электронная почта",
@@ -1799,10 +1797,9 @@
       "servicesLink": "описанием услуг",
       "and": " и ",
       "paymentLink": "порядком оплаты",
-      "suffix": " и принимаю их.",
-      "needToAccept": "Сначала примите условия выше"
+      "suffix": " и принимаю их."
     },
-    "orPhoneEmail": "или по email / телефону"
+    "or": "или"
   },
   "tgBot": {
     "nav": "Мои боты",

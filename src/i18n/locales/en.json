@@ -1753,11 +1753,9 @@
     "genre_cinematic_subtitle": "Cinematic language"
   },
   "auth": {
-    "tabs": {
-      "sms": "SMS",
-      "email": "Email",
-      "google": "Google",
-      "yandex": "Yandex"
+    "switch": {
+      "toPhone": "Sign in with phone number",
+      "toEmail": "Sign in with email"
     },
     "email": {
       "label": "Email address",
@@ -1790,10 +1788,9 @@
       "servicesLink": "service description",
       "and": " and ",
       "paymentLink": "payment terms",
-      "suffix": " and accept them.",
-      "needToAccept": "Please accept the terms above first"
+      "suffix": " and accept them."
     },
-    "orPhoneEmail": "or by email / phone"
+    "or": "or"
   },
   "tgBot": {
     "nav": "My Bots",
