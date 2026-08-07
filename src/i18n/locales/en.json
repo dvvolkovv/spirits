@@ -113,6 +113,11 @@
     "generating_image": "Generating image...",
     "generating_image_error": "Failed to generate image",
     "video_gen_error": "Failed to generate video: {{error}}",
+    "audio_play": "Play",
+    "audio_pause": "Pause",
+    "audio_download": "Download audio",
+    "audio_load_error": "Couldn't load the audio",
+    "speech_gen_error": "Couldn't read it aloud: {{error}}",
     "ai_error_fallback": "Sorry, an error occurred while processing your message. Please try again.",
     "file_error_fallback": "An error occurred while processing the file. Please try again.",
     "file_upload_error_generic": "An error occurred while uploading the file: {{error}}. Please try again.",
@@ -802,6 +807,14 @@
       "match_desc": "Your phone number is hidden. Others see your profile and can send a contact request — you decide whether to accept.",
       "private_title": "Private",
       "private_desc": "Your phone number is hidden. Contact requests are not accepted automatically."
+    },
+    "voices": {
+      "title": "Assistant voices",
+      "desc": "Choose the voice each assistant uses to read its replies aloud. The button on the right plays a sample.",
+      "default": "Default",
+      "preview": "Play a sample",
+      "select_label": "Voice for {{assistant}}",
+      "save_error": "Could not save the voice choice. Please try again."
     },
     "footer_build": "Linkeon · build {{build}}",
     "social": {

@@ -113,6 +113,11 @@
     "generating_image": "Generando imagen...",
     "generating_image_error": "No se pudo generar la imagen",
     "video_gen_error": "No se pudo generar el vídeo: {{error}}",
+    "audio_play": "Reproducir",
+    "audio_pause": "Pausa",
+    "audio_download": "Descargar audio",
+    "audio_load_error": "No se pudo cargar el audio",
+    "speech_gen_error": "No se pudo generar la voz: {{error}}",
     "ai_error_fallback": "Lo sentimos, hubo un error al procesar tu mensaje. Inténtalo de nuevo.",
     "file_error_fallback": "Hubo un error al procesar el archivo. Inténtalo de nuevo.",
     "file_upload_error_generic": "Hubo un error al subir el archivo: {{error}}. Inténtalo de nuevo.",
@@ -497,6 +502,14 @@
       "match_desc": "El teléfono está oculto. Los demás ven tu perfil y pueden enviarte una solicitud de contacto; tú decides si aceptarla.",
       "private_title": "Privado",
       "private_desc": "El teléfono está oculto. Las solicitudes de contacto no se aceptan automáticamente."
+    },
+    "voices": {
+      "title": "Voces de los asistentes",
+      "desc": "Elige con qué voz cada asistente leerá sus respuestas en voz alta. El botón de la derecha reproduce una muestra.",
+      "default": "Predeterminada",
+      "preview": "Escuchar una muestra",
+      "select_label": "Voz de {{assistant}}",
+      "save_error": "No se pudo guardar la voz elegida. Inténtalo de nuevo."
     },
     "footer_build": "Linkeon · compilación {{build}}",
     "social": {

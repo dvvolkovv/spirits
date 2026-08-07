@@ -17,6 +17,7 @@ import { parseCustomMarkdown, createButtonComponent, createLinkComponent, create
 import { VoiceDictation } from '../../services/voiceDictation';
 import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
+import AudioClip from './AudioClip';
 import SocialConnectButton from './SocialConnectButton';
 import TelegramConnectForm from './TelegramConnectForm';
 import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
@@ -124,7 +125,7 @@ const StreamingMessage = React.memo(({
   onSendMessage?: (text: string) => void;
 }) => {
   const { t } = useTranslation();
-  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -135,10 +136,11 @@ const StreamingMessage = React.memo(({
     const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+)__/g)];
     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
+    const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
     const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -209,6 +211,16 @@ const StreamingMessage = React.memo(({
           parts.push(
             <div key={`smm-video-${idx}`}>
               <SmmVideoPlayer videoId={vid} />
+            </div>
+          );
+        }
+      } else if (match[0].startsWith('__AUDIO_CLIP_')) {
+        const key = match[1];
+        const clipId = audioClips.get(key);
+        if (clipId) {
+          parts.push(
+            <div key={`audio-clip-${idx}`}>
+              <AudioClip clipId={clipId} />
             </div>
           );
         }
@@ -1200,6 +1212,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   const msg = data.result?.error ? `\n\n*${t('chat.video_gen_error', { error: data.result.error })}*` : '';
                   accumulatedContent += msg;
                 }
+              }
+            }
+            // ВНИМАНИЕ: сегодня эта ветка НЕДОСТИЖИМА, и это архитектура, а не баг.
+            // generate_speech живёт только в MCP-наборе обычных ассистентов
+            // (spirits_back/src/chat/chat-tools.ts), а тот путь — relay
+            // r.linkeon.io → streamUniversalAgent — наружу пишет лишь
+            // begin/item/ping/end и структурных tool_result не отдаёт вовсе.
+            // События tool_result приходят только из ClaudeAgentService
+            // (SMM-продюсер), а его MCP-сервер озвучку не экспортирует.
+            //
+            // Плеер сейчас появляется иначе: после стрима бэкенд сам добирает
+            // из speech_clips клипы за время стрима и дописывает готовый
+            // markdown-маркер {{audio:id=<uuid>}} обычным текстом — он приходит
+            // как item и разбирается в customMarkdown.tsx (AUDIO_CLIP_REGEX).
+            //
+            // Если tool_result для generate_speech когда-нибудь появится в этом
+            // пути — эту ветку надо не «включать», а согласовывать с бэкендом:
+            // сейчас сработали бы обе подстановки и маркер задвоился бы, дав
+            // два одинаковых плеера. Что-то одно придётся убрать.
+            //
+            // Ветки для ошибок здесь СОЗНАТЕЛЬНО НЕТ: при недостижимых
+            // tool_result она создавала лишь иллюзию обработки. О сбое озвучки
+            // пользователю рассказывает сама модель — так прямо написано в
+            // описании инструмента («Если инструмент вернул ошибку — передай её
+            // текст пользователю»).
+            if (data.type === 'tool_result' && data.tool === 'generate_speech') {
+              // В текст кладём только clipId: URL клипа фронт запросит сам
+              // при рендере, поэтому плеер оживает и из сохранённой истории.
+              if (data.result?.ok && data.result?.kind === 'audio' && data.result?.clipId) {
+                accumulatedContent += `\n\n{{audio:id=${data.result.clipId}}}`;
               }
             }
             if (data.type === 'tool_result' && data.tool === 'generate_scenarios') {
@@ -2198,7 +2240,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const contentForRender = stripCalendarProposalMarkers(stripVideoJobMarkers(message.content));
-                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
@@ -2207,10 +2249,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+)__/g)];
                     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
                     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
+                    const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
                     const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
                     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -2281,6 +2324,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           parts.push(
                             <div key={`smm-video-${idx}`}>
                               <SmmVideoPlayer videoId={vid} />
+                            </div>
+                          );
+                        }
+                      } else if (match[0].startsWith('__AUDIO_CLIP_')) {
+                        const key = match[1];
+                        const clipId = audioClips.get(key);
+                        if (clipId) {
+                          parts.push(
+                            <div key={`audio-clip-${idx}`}>
+                              <AudioClip clipId={clipId} />
                             </div>
                           );
                         }

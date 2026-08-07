@@ -113,6 +113,11 @@
     "generating_image": "Bild wird generiert...",
     "generating_image_error": "Bild konnte nicht generiert werden",
     "video_gen_error": "Video konnte nicht generiert werden: {{error}}",
+    "audio_play": "Abspielen",
+    "audio_pause": "Pause",
+    "audio_download": "Audio herunterladen",
+    "audio_load_error": "Audio konnte nicht geladen werden",
+    "speech_gen_error": "Sprachausgabe fehlgeschlagen: {{error}}",
     "ai_error_fallback": "Entschuldigung, bei der Verarbeitung deiner Nachricht ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
     "file_error_fallback": "Bei der Verarbeitung der Datei ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
     "file_upload_error_generic": "Beim Hochladen der Datei ist ein Fehler aufgetreten: {{error}}. Bitte versuch es noch mal.",
@@ -496,6 +501,14 @@
       "match_desc": "Die Nummer ist verborgen. Andere sehen dein Profil und können eine Kontaktanfrage schicken — du entscheidest, ob du sie annimmst.",
       "private_title": "Privat",
       "private_desc": "Die Nummer ist verborgen. Kontaktanfragen werden nicht automatisch angenommen."
+    },
+    "voices": {
+      "title": "Stimmen der Assistenten",
+      "desc": "Wähle, mit welcher Stimme jeder Assistent seine Antworten vorliest. Die Schaltfläche rechts spielt eine Hörprobe ab.",
+      "default": "Standard",
+      "preview": "Hörprobe abspielen",
+      "select_label": "Stimme für {{assistant}}",
+      "save_error": "Die Stimmauswahl konnte nicht gespeichert werden. Bitte versuche es erneut."
     },
     "footer_build": "Linkeon · Build {{build}}",
     "social": {

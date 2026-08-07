@@ -113,6 +113,11 @@
     "generating_image": "Génération de l'image...",
     "generating_image_error": "Échec de la génération de l'image",
     "video_gen_error": "Échec de la génération vidéo : {{error}}",
+    "audio_play": "Lire",
+    "audio_pause": "Pause",
+    "audio_download": "Télécharger l'audio",
+    "audio_load_error": "Impossible de charger l'audio",
+    "speech_gen_error": "Échec de la synthèse vocale : {{error}}",
     "ai_error_fallback": "Désolé, une erreur est survenue. Réessaie.",
     "file_error_fallback": "Une erreur est survenue lors du traitement du fichier. Réessaie.",
     "file_upload_error_generic": "Erreur lors du chargement du fichier : {{error}}. Réessaie.",
@@ -497,6 +502,14 @@
       "match_desc": "Le téléphone est masqué. Les autres voient ton profil et peuvent envoyer une demande de contact — c'est toi qui décides de l'accepter ou non.",
       "private_title": "Privé",
       "private_desc": "Le téléphone est masqué. Les demandes de contact ne sont pas acceptées automatiquement."
+    },
+    "voices": {
+      "title": "Voix des assistants",
+      "desc": "Choisis la voix avec laquelle chaque assistant lira ses réponses à voix haute. Le bouton à droite joue un échantillon.",
+      "default": "Par défaut",
+      "preview": "Écouter un échantillon",
+      "select_label": "Voix de {{assistant}}",
+      "save_error": "Impossible d'enregistrer la voix choisie. Réessaie."
     },
     "footer_build": "Linkeon · build {{build}}",
     "social": {

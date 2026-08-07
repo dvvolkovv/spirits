@@ -17,6 +17,7 @@ import LinkedAccountsView from './LinkedAccountsView';
 import RoutinesManager from './RoutinesManager';
 import TalerIdEcosystemCard from './TalerIdEcosystemCard';
 import CalendarSourcesCard from './CalendarSourcesCard';
+import VoiceSettings from './VoiceSettings';
 import { LanguageSelect } from './LanguageSelect';
 import {
   pushSupported,
@@ -182,6 +183,9 @@ const SettingsView: React.FC = () => {
 
         {/* Календари — заметное место, чтобы добавить свой календарь (Яндекс по логину+паролю; Outlook/Google готовим) */}
         <CalendarSourcesCard />
+
+        {/* Голоса ассистентов — каким голосом озвучивать ответы каждого ассистента */}
+        <VoiceSettings />
 
         {/* Contact Visibility — кто может получить твой контакт (phone) через поиск */}
         <div className="bg-white rounded-lg shadow-sm">
