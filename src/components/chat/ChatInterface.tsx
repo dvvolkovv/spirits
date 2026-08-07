@@ -1214,13 +1214,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 }
               }
             }
+            // ВНИМАНИЕ: сегодня эта ветка НЕДОСТИЖИМА, и это архитектура, а не баг.
+            // generate_speech живёт только в MCP-наборе обычных ассистентов
+            // (spirits_back/src/chat/chat-tools.ts), а тот путь — relay
+            // r.linkeon.io → streamUniversalAgent — наружу пишет лишь
+            // begin/item/ping/end и структурных tool_result не отдаёт вовсе.
+            // События tool_result приходят только из ClaudeAgentService
+            // (SMM-продюсер), а его MCP-сервер озвучку не экспортирует.
+            //
+            // Плеер сейчас появляется иначе: после стрима бэкенд сам добирает
+            // из speech_clips клипы за время стрима и дописывает готовый
+            // markdown-маркер {{audio:id=<uuid>}} обычным текстом — он приходит
+            // как item и разбирается в customMarkdown.tsx (AUDIO_CLIP_REGEX).
+            //
+            // Если tool_result для generate_speech когда-нибудь появится в этом
+            // пути — эту ветку надо не «включать», а согласовывать с бэкендом:
+            // сейчас сработали бы обе подстановки и маркер задвоился бы, дав
+            // два одинаковых плеера. Что-то одно придётся убрать.
+            //
+            // Ветки для ошибок здесь СОЗНАТЕЛЬНО НЕТ: при недостижимых
+            // tool_result она создавала лишь иллюзию обработки. О сбое озвучки
+            // пользователю рассказывает сама модель — так прямо написано в
+            // описании инструмента («Если инструмент вернул ошибку — передай её
+            // текст пользователю»).
             if (data.type === 'tool_result' && data.tool === 'generate_speech') {
               // В текст кладём только clipId: URL клипа фронт запросит сам
               // при рендере, поэтому плеер оживает и из сохранённой истории.
               if (data.result?.ok && data.result?.kind === 'audio' && data.result?.clipId) {
                 accumulatedContent += `\n\n{{audio:id=${data.result.clipId}}}`;
-              } else if (data.result?.error) {
-                accumulatedContent += `\n\n*${t('chat.speech_gen_error', { error: data.result.error })}*`;
               }
             }
             if (data.type === 'tool_result' && data.tool === 'generate_scenarios') {
