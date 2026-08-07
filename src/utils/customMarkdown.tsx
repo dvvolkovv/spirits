@@ -27,6 +27,10 @@ const IMAGE_URL_REGEX = /(?<!\()https?:\/\/\S+?\.(?:png|jpe?g|webp|gif)(?:\?\S*)
 const SMM_SCENARIO_REGEX = /\{\{smm_scenario:id=([a-f0-9-]{36})\}\}/g;
 const SMM_VIDEO_REGEX = /\{\{smm_video:id=([a-f0-9-]{36})\}\}/g;
 
+// TTS-озвучка ответа ассистента: в текст пишется только clipId, чтобы плеер
+// оживал из сохранённой истории чата (а не протухшая ссылка на mp3).
+const AUDIO_CLIP_REGEX = /\{\{audio:id=([a-f0-9-]{36})\}\}/g;
+
 // SMM Producer Plan 4d — social connect blocks
 const SMM_SOCIAL_BUTTON_REGEX =
   /\{\{smm_social_connect_button:platform=([a-z]+),authorize_url=([^}]+)\}\}/g;
@@ -40,6 +44,7 @@ export const parseCustomMarkdown = (content: string): {
   images: Map<string, string>;
   smmScenarios: Map<string, string>;
   smmVideos: Map<string, string>;
+  audioClips: Map<string, string>;
   socialButtons: Map<string, { platform: string; authorizeUrl: string }>;
   socialTelegrams: Set<string>;
 } => {
@@ -49,6 +54,7 @@ export const parseCustomMarkdown = (content: string): {
   const images = new Map<string, string>();
   const smmScenarios = new Map<string, string>();
   const smmVideos = new Map<string, string>();
+  const audioClips = new Map<string, string>();
   const socialButtons = new Map<string, { platform: string; authorizeUrl: string }>();
   const socialTelegrams = new Set<string>();
 
@@ -100,6 +106,12 @@ export const parseCustomMarkdown = (content: string): {
     return `__SMM_VIDEO_${key}__`;
   });
 
+  parsedContent = parsedContent.replace(AUDIO_CLIP_REGEX, (_match, clipId) => {
+    const key = `audio_${clipId}`;
+    audioClips.set(key, clipId);
+    return `__AUDIO_CLIP_${key}__`;
+  });
+
   parsedContent = parsedContent.replace(SMM_SOCIAL_BUTTON_REGEX, (_m, platform, authorizeUrl) => {
     const id = `socbtn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     socialButtons.set(id, { platform: platform.trim(), authorizeUrl: authorizeUrl.trim() });
@@ -112,7 +124,7 @@ export const parseCustomMarkdown = (content: string): {
     return `__SOCIAL_TELEGRAM_${id}__`;
   });
 
-  return { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, socialButtons, socialTelegrams };
+  return { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, socialButtons, socialTelegrams };
 };
 
 export const createVideoComponent = (src: string, key?: string): React.ReactNode => {
