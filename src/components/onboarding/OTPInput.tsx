@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Shield, ArrowLeft, Clipboard } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 interface OTPInputProps {
   phone: string;
@@ -153,13 +154,16 @@ const OTPInput: React.FC<OTPInputProps> = ({
 
   return (
     <div data-testid="otp-root" className="w-full">
-      <button
-        onClick={onBack}
-        className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span className="text-sm">{t('common.back')}</span>
-      </button>
+      <div className="mb-6">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onBack}
+          leading={<ArrowLeft className="w-4 h-4" />}
+        >
+          {t('common.back')}
+        </Button>
+      </div>
 
       <div className="text-center mb-6">
         <div className="w-14 h-14 bg-forest-600 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -192,7 +196,12 @@ const OTPInput: React.FC<OTPInputProps> = ({
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
               data-testid={`otp-input-${index}`}
-              className="w-11 h-12 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-forest-500 focus:ring-2 focus:ring-forest-200 transition-colors"
+              // tabular-nums — чтобы цифры не прыгали по ширине при вводе.
+              className={`w-11 h-12 text-center text-xl font-semibold tabular-nums rounded-xl border bg-white transition-colors duration-150 focus:outline-none focus:ring-2 ${
+                error
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-gray-200 focus:border-forest-700 focus:ring-forest-700/20'
+              }`}
               disabled={isLoading}
               autoComplete={index === 0 ? 'one-time-code' : 'off'}
             />
@@ -216,18 +225,15 @@ const OTPInput: React.FC<OTPInputProps> = ({
               {t('onboarding.resend_in', { time: formatTime(resendTimer) })}
             </p>
           ) : (
-            <button
-              onClick={handleResend}
-              className="text-forest-600 hover:text-forest-700 text-sm font-medium hover:underline"
-            >
+            <Button type="button" variant="ghost" onClick={handleResend}>
               {t('onboarding.resend_code')}
-            </button>
+            </Button>
           )}
         </div>
 
         {error && (
           <div className="text-center">
-            <p className="text-red-600 text-sm">{error}</p>
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
 

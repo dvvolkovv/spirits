@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import PhoneInput from './PhoneInput';
 import OTPInput from './OTPInput';
@@ -8,7 +9,16 @@ import { authService, STORAGE_FULL } from '../../services/authService';
 
 type Step = 'phone' | 'otp';
 
-const SmsLoginPane: React.FC = () => {
+interface Props {
+  /** Согласие ещё не отмечено — отправлять нельзя. */
+  blocked?: boolean;
+  /** Блок согласия. Общий для обеих форм, поэтому приходит снаружи. */
+  consent?: React.ReactNode;
+  /** Рисуется под кнопкой: переключение на вход по почте. */
+  footer?: React.ReactNode;
+}
+
+const SmsLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -26,14 +36,14 @@ const SmsLoginPane: React.FC = () => {
         setStep('otp');
       } else {
         if (result.message === 'User blocked') {
-          alert(t('auth.sms.userBlocked', 'Ваш аккаунт заблокирован. Пожалуйста, свяжитесь с поддержкой.'));
+          toast.error(t('auth.sms.userBlocked', 'Ваш аккаунт заблокирован. Пожалуйста, свяжитесь с поддержкой.'));
         } else {
-          alert(t('auth.sms.sendError', 'Ошибка отправки СМС. Попробуйте еще раз.'));
+          toast.error(t('auth.sms.sendError', 'Ошибка отправки СМС. Попробуйте еще раз.'));
         }
       }
     } catch (error) {
       console.error('Error sending SMS:', error);
-      alert(t('auth.sms.sendError', 'Ошибка отправки СМС. Попробуйте еще раз.'));
+      toast.error(t('auth.sms.sendError', 'Ошибка отправки СМС. Попробуйте еще раз.'));
     } finally {
       setIsLoading(false);
     }
@@ -81,11 +91,11 @@ const SmsLoginPane: React.FC = () => {
     try {
       const result = await authService.requestSMSCode(phone);
       if (!result.success) {
-        alert(t('auth.sms.resendError', 'Ошибка повторной отправки СМС. Попробуйте еще раз.'));
+        toast.error(t('auth.sms.resendError', 'Ошибка повторной отправки СМС. Попробуйте еще раз.'));
       }
     } catch (error) {
       console.error('Error resending SMS:', error);
-      alert(t('auth.sms.resendError', 'Ошибка повторной отправки СМС. Попробуйте еще раз.'));
+      toast.error(t('auth.sms.resendError', 'Ошибка повторной отправки СМС. Попробуйте еще раз.'));
     }
   };
 
@@ -94,7 +104,16 @@ const SmsLoginPane: React.FC = () => {
   };
 
   if (step === 'phone') {
-    return <PhoneInput onSubmit={handlePhoneSubmit} isLoading={isLoading} onDemoClick={() => {}} />;
+    return (
+      <PhoneInput
+        onSubmit={handlePhoneSubmit}
+        isLoading={isLoading}
+        onDemoClick={() => {}}
+        blocked={blocked}
+        consent={consent}
+        footer={footer}
+      />
+    );
   }
   return (
     <OTPInput
