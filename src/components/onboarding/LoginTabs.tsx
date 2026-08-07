@@ -5,84 +5,78 @@ import SmsLoginPane from './SmsLoginPane';
 import EmailLoginPane from './EmailLoginPane';
 import OAuthButton from './OAuthButton';
 import LoginConsentBlock from './LoginConsentBlock';
+import { Button } from '../ui/Button';
 
-type TabKey = 'sms' | 'email';
+type Method = 'sms' | 'email';
 
-// DEV-6: вход без телефона (Яндекс/Google) — равноправный и более заметный.
-// Данные показали: холодные пользователи упираются в телефон-стену (0 начали
-// ввод телефона). Поэтому one-tap входы (без телефона) вынесены наверх и видны
-// сразу, а SMS/email — вторичным блоком ниже. Все способы доступны.
+/**
+ * Вкладок больше нет: в карточке всегда ровно ОДНА основная форма, переключение
+ * между почтой и телефоном идёт кнопкой на месте.
+ *
+ * Приоритет отдан почте — решение владельца продукта от 2026-08-07. Наблюдения
+ * по регистрациям за 30 дней говорят в пользу телефона (11 против 5), но
+ * стоимость SMS на каждой попытке в этих цифрах не отражена.
+ *
+ * Форма БОЛЬШЕ НЕ ГАСИТСЯ до галочки согласия. Раньше весь блок шёл под
+ * opacity-40 pointer-events-none, и первое, что видел человек, — серая
+ * нерабочая форма. Теперь неактивны только кнопки отправки.
+ */
 const LoginTabs: React.FC = () => {
   const { t } = useTranslation();
-  // Email — способ по умолчанию: SMS стоит денег на каждой попытке входа,
-  // а email — нет. Прошлый выбор пользователя всё равно уважаем.
-  const [tab, setTab] = useState<TabKey>(() => {
-    const saved = localStorage.getItem('lastLoginTab');
-    return saved === 'sms' ? 'sms' : 'email';
-  });
-  useEffect(() => { localStorage.setItem('lastLoginTab', tab); }, [tab]);
 
-  const [consentGiven, setConsentGiven] = useState<boolean>(() => {
-    return localStorage.getItem('loginConsent') === 'true';
-  });
+  const [method, setMethod] = useState<Method>(() =>
+    localStorage.getItem('lastLoginTab') === 'sms' ? 'sms' : 'email',
+  );
   useEffect(() => {
-    localStorage.setItem('loginConsent', consentGiven ? 'true' : 'false');
+    try { localStorage.setItem('lastLoginTab', method); } catch { /* приватный режим */ }
+  }, [method]);
+
+  const [consentGiven, setConsentGiven] = useState<boolean>(
+    () => localStorage.getItem('loginConsent') === 'true',
+  );
+  useEffect(() => {
+    try { localStorage.setItem('loginConsent', consentGiven ? 'true' : 'false'); } catch { /* приватный режим */ }
   }, [consentGiven]);
 
-  const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    { key: 'email',  label: t('auth.tabs.email', 'Email'),     icon: <Mail className="w-4 h-4" /> },
-    { key: 'sms',    label: t('auth.tabs.sms', 'По телефону'), icon: <Smartphone className="w-4 h-4" /> },
-  ];
+  const consent = <LoginConsentBlock checked={consentGiven} onChange={setConsentGiven} />;
+
+  const switchTo = (next: Method) => (
+    <Button
+      variant="ghost"
+      className="mt-2.5"
+      onClick={() => setMethod(next)}
+      data-testid={next === 'sms' ? 'switch-to-phone' : 'switch-to-email'}
+      leading={next === 'sms'
+        ? <Smartphone className="w-[18px] h-[18px]" aria-hidden />
+        : <Mail className="w-[18px] h-[18px]" aria-hidden />}
+    >
+      {next === 'sms'
+        ? t('auth.switch.toPhone', 'Войти по номеру телефона')
+        : t('auth.switch.toEmail', 'Войти по почте')}
+    </Button>
+  );
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <LoginConsentBlock checked={consentGiven} onChange={setConsentGiven} />
+    <div className="w-full">
+      {method === 'email' ? (
+        <EmailLoginPane blocked={!consentGiven} consent={consent} footer={null} />
+      ) : (
+        <SmsLoginPane blocked={!consentGiven} consent={consent} footer={null} />
+      )}
 
-      <div
-        className={consentGiven ? '' : 'opacity-40 pointer-events-none select-none'}
-        aria-disabled={!consentGiven}
-      >
-        {/* Быстрый вход без телефона — самые заметные */}
-        <div className="space-y-2.5">
-          <OAuthButton provider="yandex" />
-          <OAuthButton provider="google" />
-          <OAuthButton provider="talerid" />
-        </div>
-
-        <div className="flex items-center gap-3 my-5">
-          <div className="h-px flex-1 bg-gray-200" />
-          <span className="text-xs text-gray-400 whitespace-nowrap">{t('auth.orPhoneEmail')}</span>
-          <div className="h-px flex-1 bg-gray-200" />
-        </div>
-
-        {/* SMS / Email — вторичные способы */}
-        <div className="flex border-b border-gray-200 mb-4">
-          {tabs.map(tabDef => (
-            <button
-              key={tabDef.key}
-              data-testid={tabDef.key === 'sms' ? 'switch-to-phone' : 'switch-to-email'}
-              onClick={() => setTab(tabDef.key)}
-              className={`flex-1 px-3 py-2 text-sm font-medium inline-flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
-                tab === tabDef.key
-                  ? 'border-forest-600 text-forest-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tabDef.icon}
-              {tabDef.label}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'email' && <EmailLoginPane />}
-        {tab === 'sms'   && <SmsLoginPane />}
+      <div className="flex items-center gap-3 my-5">
+        <div className="h-px flex-1 bg-gray-100" />
+        <span className="text-xs text-gray-400">{t('auth.or', 'или')}</span>
+        <div className="h-px flex-1 bg-gray-100" />
       </div>
 
-      {!consentGiven && (
-        <p className="text-xs text-gray-500 text-center mt-3">
-          {t('auth.consent.needToAccept', 'Сначала примите условия выше')}
-        </p>
-      )}
+      <div className="space-y-2">
+        <OAuthButton provider="yandex"  disabled={!consentGiven} />
+        <OAuthButton provider="google"  disabled={!consentGiven} />
+        <OAuthButton provider="talerid" disabled={!consentGiven} />
+      </div>
+
+      {switchTo(method === 'email' ? 'sms' : 'email')}
     </div>
   );
 };
