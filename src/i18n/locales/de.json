@@ -1473,6 +1473,7 @@
       "userBlocked": "Dein Konto ist gesperrt. Bitte wende dich an den Support.",
       "sendError": "Fehler beim Senden der SMS. Bitte versuche es erneut.",
       "wrongCode": "Falscher Code. Bitte versuche es erneut.",
+      "storageUnavailable": "Der Code war richtig, aber der Browser hat keinen Platz mehr für deine Sitzung. Gib Speicher frei oder verlasse den privaten Modus und fordere einen neuen Code an.",
       "codeNotFound": "Code nicht gefunden. Bitte fordere einen neuen Code an.",
       "userDisabled": "Dein Konto ist deaktiviert. Bitte wende dich an den Support.",
       "verifyError": "Fehler bei der Codeprüfung. Bitte versuche es erneut.",

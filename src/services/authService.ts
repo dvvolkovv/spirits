@@ -9,6 +9,13 @@ import type { Identity, OAuthProviderId } from '../types/auth';
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 
+/**
+ * Код ошибки «вход прошёл, но сессию негде хранить»: localStorage переполнен
+ * или недоступен (приватный режим, встроенный webview). Отличается от ошибок
+ * самого кода — на экране это разные подсказки.
+ */
+export const STORAGE_FULL = 'Storage unavailable';
+
 // Атрибуция шага регистрации: прокидываем сессию и источник (utm:vk/cpc и пр.)
 // в otp_request/otp_verified, чтобы воронка ПОСЛЕ клика по рекламе перестала
 // быть слепой (видеть, где обрывается путь: телефон-стена vs SMS vs дальше).
@@ -65,7 +72,12 @@ class AuthService {
           const data = await response.json();
 
           if (data['access-token'] && data['refresh-token']) {
-            tokenManager.saveTokens(data['access-token'], data['refresh-token']);
+            // Сервер код уже принял и погасил — второй раз его не ввести.
+            // Если сессию некуда записать, это надо сказать прямо, а не выдавать
+            // за неверный код (инцидент 2026-08-07).
+            if (!tokenManager.saveTokens(data['access-token'], data['refresh-token'])) {
+              return { success: false, error: STORAGE_FULL };
+            }
             // Новый пользователь → фиксируем регистрацию в VK-пикселе (цель для
             // оптимизации рекламных кампаний на реальные регистрации).
             if (data['is-new-user']) vkReachGoal('registration');

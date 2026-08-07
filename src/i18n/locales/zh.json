@@ -1468,6 +1468,7 @@
       "userBlocked": "你的账户已被封禁，请联系客服。",
       "sendError": "短信发送失败，请重试。",
       "wrongCode": "验证码错误，请重试。",
+      "storageUnavailable": "验证码正确，但浏览器已无空间保存登录状态。请清理设备存储或退出隐私模式后重新获取验证码。",
       "codeNotFound": "未找到验证码，请重新获取。",
       "userDisabled": "你的账户已被禁用，请联系客服。",
       "verifyError": "验证码校验失败，请重试。",

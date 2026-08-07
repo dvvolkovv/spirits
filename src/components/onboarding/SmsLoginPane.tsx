@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import PhoneInput from './PhoneInput';
 import OTPInput from './OTPInput';
-import { authService } from '../../services/authService';
+import { authService, STORAGE_FULL } from '../../services/authService';
 
 type Step = 'phone' | 'otp';
 
@@ -54,7 +54,12 @@ const SmsLoginPane: React.FC = () => {
         // (покрывает SMS/OAuth/email) — здесь дублировать не нужно.
         navigate('/chat', { replace: true });
       } else {
-        if (result.error === 'Wrong code') {
+        if (result.error === STORAGE_FULL) {
+          // Код был верным и уже погашен сервером — предлагать «ввести ещё раз»
+          // бессмысленно, человеку надо освободить место или выйти из приватного
+          // режима, а потом запросить новый код.
+          setOtpError(t('auth.sms.storageUnavailable'));
+        } else if (result.error === 'Wrong code') {
           setOtpError(t('auth.sms.wrongCode', 'Неверный код. Попробуйте еще раз.'));
         } else if (result.error === 'Code not found') {
           setOtpError(t('auth.sms.codeNotFound', 'Код не найден. Запросите новый код.'));

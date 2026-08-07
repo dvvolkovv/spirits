@@ -3,6 +3,7 @@ import { tokenManager } from '../utils/tokenManager';
 import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
 import { clearAppStorage } from '../utils/clearAppStorage';
+import { setItemResilient } from '../utils/persistentStorage';
 import { attributeSource } from '../services/eventsClient';
 import i18n from '../i18n';
 import { resolveLanguage } from '../i18n/languages';
@@ -55,14 +56,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  */
 function persistUser(user: any): void {
   if (!user) return;
-  try {
-    const { avatar: _drop, ...rest } = user;
-    localStorage.setItem('userData', JSON.stringify(rest));
-  } catch (e: any) {
-    // Still too big (shouldn't happen without avatar) or storage blocked (e.g. private mode):
-    // silently drop — in-memory state stays correct; next load will re-fetch from server.
+  const { avatar: _drop, ...rest } = user;
+  // setItemResilient освобождает место за счёт восстановимого кеша (история
+  // чатов, результаты поиска) и повторяет запись. Если и это не помогло —
+  // storage заблокирован: in-memory состояние верно, следующая загрузка
+  // перезапросит профиль с сервера.
+  if (!setItemResilient('userData', JSON.stringify(rest))) {
     // eslint-disable-next-line no-console
-    console.warn('[auth] userData persist failed:', e?.name || e?.message);
+    console.warn('[auth] userData persist failed: storage unavailable');
     try { localStorage.removeItem('userData'); } catch {}
   }
 }
@@ -270,7 +271,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    localStorage.setItem('authToken', token);
+    // authToken — legacy-зеркало access-токена, гейт восстановления сессии в
+    // initAuth. Голый setItem здесь бросал QuotaExceededError ДО setUser, и
+    // успешный вход по SMS выглядел как «Неверный код» (инцидент 2026-08-07):
+    // сервер OTP принял и погасил, а человек запрашивал код по кругу.
+    // Настоящие токены уже сохранены tokenManager'ом, так что промах этой
+    // записи не повод ронять вход.
+    setItemResilient('authToken', token);
 
     // Привязать источник привлечения к юзеру (надёжная атрибуция рекламы:
     // session_id анонимного захода не доживает до регистрации). first-touch,

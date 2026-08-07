@@ -1478,6 +1478,7 @@
       "userBlocked": "Ton compte est bloqué. Contacte l'assistance.",
       "sendError": "Erreur lors de l'envoi du SMS. Réessaie.",
       "wrongCode": "Code incorrect. Réessaie.",
+      "storageUnavailable": "Le code était correct, mais le navigateur n'a plus de place pour enregistrer ta session. Libère de l'espace ou quitte le mode privé, puis demande un nouveau code.",
       "codeNotFound": "Code introuvable. Demande un nouveau code.",
       "userDisabled": "Ton compte est désactivé. Contacte l'assistance.",
       "verifyError": "Erreur lors de la vérification du code. Réessaie.",

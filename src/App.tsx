@@ -11,6 +11,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track, trackAuthed } from './services/eventsClient';
 import { apiClient } from './services/apiClient';
+import { tokenManager } from './utils/tokenManager';
 import { refreshWidget, initWidgetNavigation, onAppResume, initDeepLinks } from './services/widgetClient';
 import { registerNativePush } from './services/pushClient';
 import './i18n';
@@ -126,8 +127,13 @@ const AppContent: React.FC = () => {
           strip();
           return;
         }
-        localStorage.setItem('jwt_access_token', body['access-token']);
-        localStorage.setItem('jwt_refresh_token', body['refresh-token']);
+        // Через tokenManager: голый setItem бросал QuotaExceededError на
+        // переполненном localStorage, и вход падал в общий catch ниже.
+        if (!tokenManager.saveTokens(body['access-token'], body['refresh-token'])) {
+          toast.error(t('auth.sms.storageUnavailable'));
+          strip();
+          return;
+        }
         strip();
         await login('', body['access-token']);
       } catch {

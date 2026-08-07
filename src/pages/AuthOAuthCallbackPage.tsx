@@ -5,6 +5,7 @@ import { Loader } from 'lucide-react';
 import { apiClient } from '../services/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { formatNumber } from '../utils/formatters';
+import { tokenManager } from '../utils/tokenManager';
 
 const AuthOAuthCallbackPage: React.FC = () => {
   const { t } = useTranslation();
@@ -49,8 +50,13 @@ const AuthOAuthCallbackPage: React.FC = () => {
           return;
         }
 
-        localStorage.setItem('jwt_access_token', (body as any)['access-token']);
-        localStorage.setItem('jwt_refresh_token', (body as any)['refresh-token']);
+        // Через tokenManager, а не голым setItem: при переполненном localStorage
+        // тот бросал QuotaExceededError, вход обрывался общим «failed», и
+        // причина не читалась (инцидент 2026-08-07, тот же корень, что у SMS).
+        if (!tokenManager.saveTokens((body as any)['access-token'], (body as any)['refresh-token'])) {
+          setError(t('auth.sms.storageUnavailable'));
+          return;
+        }
         await login('', (body as any)['access-token']);
         navigate('/chat', { replace: true });
       } catch (e) {

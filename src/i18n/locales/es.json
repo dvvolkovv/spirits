@@ -1478,6 +1478,7 @@
       "userBlocked": "Tu cuenta está bloqueada. Ponte en contacto con soporte.",
       "sendError": "Error al enviar el SMS. Inténtalo de nuevo.",
       "wrongCode": "Código incorrecto. Inténtalo de nuevo.",
+      "storageUnavailable": "El código era correcto, pero el navegador no tiene espacio para guardar tu sesión. Libera espacio en el dispositivo o sal del modo privado y solicita un código nuevo.",
       "codeNotFound": "Código no encontrado. Solicita un nuevo código.",
       "userDisabled": "Tu cuenta está desactivada. Ponte en contacto con soporte.",
       "verifyError": "Error al verificar el código. Inténtalo de nuevo.",

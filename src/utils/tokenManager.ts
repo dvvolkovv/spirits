@@ -1,3 +1,5 @@
+import { setItemResilient } from './persistentStorage';
+
 interface JWTPayload {
   exp?: number;
   iat?: number;
@@ -8,13 +10,23 @@ class TokenManager {
   private readonly ACCESS_TOKEN_KEY = 'jwt_access_token';
   private readonly REFRESH_TOKEN_KEY = 'jwt_refresh_token';
 
-  saveTokens(accessToken: string, refreshToken: string): void {
-    try {
-      localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
-      localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
-    } catch (error) {
-      console.error('Error saving tokens:', error);
+  /**
+   * @returns удалось ли сохранить пару. Раньше метод молча глотал
+   * QuotaExceededError и возвращал void — вход «проходил», но токенов в
+   * хранилище не было, и дальше всё валилось в 401 без внятной причины.
+   */
+  saveTokens(accessToken: string, refreshToken: string): boolean {
+    const ok =
+      setItemResilient(this.ACCESS_TOKEN_KEY, accessToken) &&
+      setItemResilient(this.REFRESH_TOKEN_KEY, refreshToken);
+
+    if (!ok) {
+      // Половина пары хуже, чем ничего: apiClient уходит в цикл
+      // запрос → 401 → refresh без refresh-токена → принудительный логаут.
+      console.error('Не удалось сохранить токены: в localStorage нет места');
+      this.clearTokens();
     }
+    return ok;
   }
 
   getAccessToken(): string | null {

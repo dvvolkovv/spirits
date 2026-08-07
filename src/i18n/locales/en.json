@@ -1779,6 +1779,7 @@
       "userBlocked": "Your account is blocked. Please contact support.",
       "sendError": "Error sending SMS. Please try again.",
       "wrongCode": "Incorrect code. Please try again.",
+      "storageUnavailable": "The code was correct, but the browser has no room left to store your session. Free up device storage or leave private mode, then request a new code.",
       "codeNotFound": "Code not found. Please request a new code.",
       "userDisabled": "Your account is disabled. Please contact support.",
       "verifyError": "Error verifying code. Please try again.",
