@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Globe, ChevronDown } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, resolveLanguage } from '../../i18n/languages';
 import { apiClient } from '../../services/apiClient';
 import { tokenManager } from '../../utils/tokenManager';
@@ -8,6 +9,10 @@ import { persistLanguage } from '../../i18n/persistLanguage';
 interface LanguageSelectProps {
   onChange?: (lang: string) => void;
   className?: string;
+  /** 'pill' — компактный вид для экрана входа: поверх фона, со значком глобуса. */
+  variant?: 'default' | 'pill';
+  /** Флаг-эмодзи в подписях. На экране входа выключается: эмодзи выведены из системы иконок. */
+  showFlag?: boolean;
 }
 
 /**
@@ -24,7 +29,9 @@ interface LanguageSelectProps {
  * язык остаётся в localStorage, а в профиль его положит AuthContext сразу
  * после входа.
  */
-export const LanguageSelect: React.FC<LanguageSelectProps> = ({ onChange, className }) => {
+export const LanguageSelect: React.FC<LanguageSelectProps> = ({
+  onChange, className, variant = 'default', showFlag = true,
+}) => {
   const { i18n } = useTranslation();
   const current = resolveLanguage(i18n.language);
 
@@ -41,6 +48,31 @@ export const LanguageSelect: React.FC<LanguageSelectProps> = ({ onChange, classN
     onChange?.(lang);
   };
 
+  const options = SUPPORTED_LANGUAGES.map((lang) => (
+    <option key={lang.code} value={lang.code}>
+      {showFlag ? `${lang.flag} ${lang.nativeName}` : lang.nativeName}
+    </option>
+  ));
+
+  if (variant === 'pill') {
+    // Нативный <select> сохраняется намеренно: на мобильном он даёт системный
+    // пикер, который лучше любого самодельного дропдауна.
+    return (
+      <span className={`relative inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white/85 backdrop-blur-sm pl-2.5 pr-2 py-1 ${className ?? ''}`}>
+        <Globe className="w-3.5 h-3.5 text-gray-500 shrink-0" aria-hidden />
+        <select
+          value={current}
+          onChange={handleChange}
+          aria-label={i18n.t('settings.language_title')}
+          className="appearance-none bg-transparent pr-4 text-xs text-gray-600 focus:outline-none cursor-pointer"
+        >
+          {options}
+        </select>
+        <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2 pointer-events-none" aria-hidden />
+      </span>
+    );
+  }
+
   return (
     <select
       value={current}
@@ -51,11 +83,7 @@ export const LanguageSelect: React.FC<LanguageSelectProps> = ({ onChange, classN
         'px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent'
       }
     >
-      {SUPPORTED_LANGUAGES.map((lang) => (
-        <option key={lang.code} value={lang.code}>
-          {lang.flag} {lang.nativeName}
-        </option>
-      ))}
+      {options}
     </select>
   );
 };
