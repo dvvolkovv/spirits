@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mail, ArrowLeft, Loader } from 'lucide-react';
+import { MailCheck, ArrowLeft } from 'lucide-react';
 import { authService } from '../../services/authService';
+import { Button } from '../ui/Button';
+import { TextField } from '../ui/TextField';
 
-const EmailLoginPane: React.FC = () => {
+interface Props {
+  /** Согласие ещё не отмечено — отправлять нельзя. */
+  blocked?: boolean;
+  /** Блок согласия. Рендерится между полем и кнопкой; общий для обеих форм, поэтому приходит снаружи. */
+  consent?: React.ReactNode;
+  /** Рисуется под кнопкой: переключение на вход по телефону. */
+  footer?: React.ReactNode;
+}
+
+const EmailLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
   const { t } = useTranslation();
   const [step, setStep] = useState<'input' | 'sent'>('input');
   const [email, setEmail] = useState('');
@@ -29,17 +40,18 @@ const EmailLoginPane: React.FC = () => {
 
   if (step === 'sent') {
     return (
-      <div className="space-y-4 text-center py-6">
-        <Mail className="w-12 h-12 text-forest-600 mx-auto" />
-        <h3 className="text-lg font-medium">{t('auth.email.sentTitle', 'Проверь почту')}</h3>
-        <p className="text-sm text-gray-600">
-          {t('auth.email.sentBody', 'Мы отправили ссылку для входа на')} <span className="font-medium">{email}</span>
+      <div className="text-center py-4">
+        <MailCheck className="w-10 h-10 text-forest-700 mx-auto mb-3" aria-hidden />
+        <h3 className="text-base font-medium text-gray-900">{t('auth.email.sentTitle', 'Проверь почту')}</h3>
+        <p className="text-sm text-gray-600 mt-1.5">
+          {t('auth.email.sentBody', 'Мы отправили ссылку для входа на')}{' '}
+          <span className="font-medium text-gray-900">{email}</span>
         </p>
         <button
           onClick={() => setStep('input')}
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mt-4"
         >
-          <ArrowLeft className="w-3 h-3" />
+          <ArrowLeft className="w-3.5 h-3.5" aria-hidden />
           {t('common.back', 'Назад')}
         </button>
       </div>
@@ -47,30 +59,28 @@ const EmailLoginPane: React.FC = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <label className="block">
-        <span className="text-sm text-gray-700">{t('auth.email.label', 'Электронная почта')}</span>
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          data-testid="email-input"
-          required
-          autoComplete="email"
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-forest-500 focus:ring-1 focus:ring-forest-500"
-          placeholder="you@example.com"
-        />
-      </label>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
+    <form onSubmit={handleSubmit}>
+      <TextField
+        label={t('auth.email.label', 'Электронная почта')}
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        autoComplete="email"
+        placeholder="you@example.com"
+        data-testid="email-input"
+        error={error}
+      />
+      {consent}
+      <Button
         type="submit"
+        loading={loading}
+        disabled={!email || blocked}
         data-testid="email-submit-btn"
-        disabled={loading || !email}
-        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 disabled:opacity-50"
       >
-        {loading && <Loader className="w-4 h-4 animate-spin" />}
         {t('auth.email.submit', 'Получить ссылку для входа')}
-      </button>
+      </Button>
+      {footer}
     </form>
   );
 };
