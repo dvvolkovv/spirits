@@ -1,10 +1,18 @@
 import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Download } from 'lucide-react';
 import LoginTabs from '../components/onboarding/LoginTabs';
 import { LanguageSelect } from '../components/settings/LanguageSelect';
 
 const REFERRAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
+
+// Мобильное приложение раздаётся файлом, а не через Google Play, поэтому
+// найти его негде, кроме как по прямой ссылке. Файл лежит в том же публичном
+// бакете MinIO, откуда отдаются сэмплы озвучки (/smm-media/ проксируется
+// nginx только на чтение). Имя без версии — чтобы новая сборка не требовала
+// правки фронта и деплоя.
+const ANDROID_APK_URL = '/smm-media/linkeon-assets/app/linkeon-android.apk';
 
 const OnboardingPage: React.FC = () => {
   const { t } = useTranslation();
@@ -69,6 +77,17 @@ const OnboardingPage: React.FC = () => {
           <span className="inline-block rounded-full bg-forest-50 text-forest-800 text-xs font-medium px-3.5 py-1.5">
             {t('onboarding.trust')}
           </span>
+        </p>
+
+        <p className="text-center mt-3 animate-fade-in stagger-3">
+          <a
+            href={ANDROID_APK_URL}
+            download
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 underline underline-offset-2 hover:text-forest-700"
+          >
+            <Download className="w-3.5 h-3.5" aria-hidden />
+            {t('onboarding.android_app')}
+          </a>
         </p>
       </div>
     </div>
