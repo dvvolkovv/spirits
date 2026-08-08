@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Coins, Check, Loader, Mail } from 'lucide-react';
+import { X, Coins, Check, Loader, Mail, CreditCard } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
 import CouponInput from './CouponInput';
@@ -53,7 +53,7 @@ const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string)
 ];
 
 export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
 
@@ -113,11 +113,13 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   React.useEffect(() => {
     // До ответа считаем оплату рублёвой: это прежнее поведение, и если запрос
     // не дойдёт, российский пользователь ничего не заметит.
-    apiClient.get('/webhook/payments/methods')
+    apiClient.get(`/webhook/payments/methods?lang=${encodeURIComponent(i18n.language || 'ru')}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (data?.provider) setMethod(data); })
       .catch((e) => console.error('payment methods:', e));
-  }, []);
+    // Язык в зависимостях: витрина зависит от него, и при переключении
+    // языка в приложении рублёвые пакеты должны смениться долларовыми.
+  }, [i18n.language]);
 
   // Рублёвая витрина зашита на фронте, долларовая приходит с бэкенда.
   // Название берём именным ключом, а не строкой с числом: количество токенов
@@ -287,6 +289,16 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
             </p>
           </div>
 
+          {/* Через «Приём» можно платить и банковской картой: сервис сам купит
+              криптовалюту. Без этой подсказки человек без кошелька решит, что
+              оплата ему недоступна, и уйдёт. */}
+          {isCrypto && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 p-3">
+              <CreditCard className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+              <p className="text-sm text-gray-700">{t('payment.card_hint')}</p>
+            </div>
+          )}
+
           <div className="grid md:grid-cols-3 gap-6">
             {packages.map((pkg) => (
               <div
@@ -398,7 +410,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 mr-2">•</span>
-                <span>{t('payment.included_item_secure_payment')}</span>
+                <span>{t(isCrypto ? 'payment.included_item_secure_payment_crypto' : 'payment.included_item_secure_payment')}</span>
               </li>
               <li className="flex items-start">
                 <span className="text-blue-600 mr-2">•</span>

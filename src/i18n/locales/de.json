@@ -1111,7 +1111,10 @@
     "history_type_refund": "Erstattung",
     "history_type_adjustment": "Korrektur",
     "history_via_crypto": "per Krypto",
-    "history_incl_bonus": "inklusive {{formatted}} Bonus"
+    "history_incl_bonus": "inklusive {{formatted}} Bonus",
+    "included_item_secure_payment_crypto": "Zahlung per Karte oder Krypto über Priem",
+    "how_it_works_step2_crypto": "Zahle per Bankkarte oder mit Krypto",
+    "card_hint": "Du kannst per Bankkarte zahlen — Krypto ist nicht nötig, der Dienst kauft sie für dich."
   },
   "referral": {
     "loading": "Daten des Empfehlungsprogramms werden geladen...",

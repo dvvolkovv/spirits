@@ -1116,7 +1116,10 @@
     "history_type_refund": "Remboursement",
     "history_type_adjustment": "Ajustement",
     "history_via_crypto": "en crypto",
-    "history_incl_bonus": "dont {{formatted}} de bonus"
+    "history_incl_bonus": "dont {{formatted}} de bonus",
+    "included_item_secure_payment_crypto": "Paiement par carte ou crypto via Priem",
+    "how_it_works_step2_crypto": "Payez par carte bancaire ou en crypto",
+    "card_hint": "Vous pouvez payer par carte bancaire : pas besoin de crypto, le service l’achète pour vous."
   },
   "referral": {
     "loading": "Chargement du programme de parrainage...",

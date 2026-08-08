@@ -1426,7 +1426,10 @@
     "history_type_refund": "Возврат",
     "history_type_adjustment": "Корректировка",
     "history_via_crypto": "криптовалютой",
-    "history_incl_bonus": "включая бонус {{formatted}}"
+    "history_incl_bonus": "включая бонус {{formatted}}",
+    "included_item_secure_payment_crypto": "Оплата картой или криптовалютой через «Приём»",
+    "how_it_works_step2_crypto": "Оплатите банковской картой или криптовалютой",
+    "card_hint": "Можно оплатить банковской картой — криптовалюта не нужна, сервис купит её за вас."
   },
   "referral": {
     "loading": "Загружаем данные реферальной программы...",

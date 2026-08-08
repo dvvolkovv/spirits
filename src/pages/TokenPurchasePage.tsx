@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Coins, Check, Loader, ArrowLeft, Mail } from 'lucide-react';
+import { Coins, Check, Loader, ArrowLeft, Mail, CreditCard } from 'lucide-react';
 import CouponInput from '../components/tokens/CouponInput';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
@@ -49,7 +49,7 @@ const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string)
 ];
 
 const TokenPurchasePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -82,11 +82,13 @@ const TokenPurchasePage: React.FC = () => {
 
   useEffect(() => {
     // До ответа считаем оплату рублёвой — прежнее поведение.
-    apiClient.get('/webhook/payments/methods')
+    apiClient.get(`/webhook/payments/methods?lang=${encodeURIComponent(i18n.language || 'ru')}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (data?.provider) setMethod(data); })
       .catch((e) => console.error('payment methods:', e));
-  }, []);
+    // Язык в зависимостях: витрина зависит от него, и при переключении
+    // языка в приложении рублёвые пакеты должны смениться долларовыми.
+  }, [i18n.language]);
 
   useEffect(() => {
     const phoneParam = searchParams.get('phone');
@@ -302,6 +304,16 @@ const TokenPurchasePage: React.FC = () => {
               </div>
             </div>
 
+            {/* Через «Приём» можно платить и банковской картой: сервис сам купит
+                криптовалюту. Без этой подсказки человек без кошелька решит,
+                что оплата ему недоступна, и уйдёт. */}
+            {isCrypto && (
+              <div className="mb-4 flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 p-3">
+                <CreditCard className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-gray-700">{t('payment.card_hint')}</p>
+              </div>
+            )}
+
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               {packages.map((pkg) => (
                 <div
@@ -409,7 +421,7 @@ const TokenPurchasePage: React.FC = () => {
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">•</span>
-                    <span>{t('payment.included_item_secure_payment')}</span>
+                    <span>{t(isCrypto ? 'payment.included_item_secure_payment_crypto' : 'payment.included_item_secure_payment')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">•</span>
@@ -434,7 +446,7 @@ const TokenPurchasePage: React.FC = () => {
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold text-green-600 mr-2">2.</span>
-                    <span>{t('payment.how_it_works_step2')}</span>
+                    <span>{t(isCrypto ? 'payment.how_it_works_step2_crypto' : 'payment.how_it_works_step2')}</span>
                   </li>
                   <li className="flex items-start">
                     <span className="font-semibold text-green-600 mr-2">3.</span>
