@@ -374,6 +374,11 @@
     "allow_chats": "允许聊天",
     "allow_chats_desc": "谁可以向你发起聊天",
     "language": "界面语言",
+    "android": {
+      "title": "移动应用",
+      "desc": "Android 应用通过文件安装，不经由 Google Play。",
+      "download": "下载 APK"
+    },
     "language_title": "界面语言",
     "language_desc": "选择你偏好的语言",
     "notifications": "通知",

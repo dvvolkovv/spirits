@@ -375,6 +375,11 @@
     "allow_chats": "Chats erlauben",
     "allow_chats_desc": "Wer einen Chat mit dir starten kann",
     "language": "Sprache der Oberfläche",
+    "android": {
+      "title": "Mobile App",
+      "desc": "Die Android-App wird als Datei installiert, außerhalb von Google Play.",
+      "download": "APK herunterladen"
+    },
     "language_title": "Sprache der Oberfläche",
     "language_desc": "Wähle deine bevorzugte Sprache",
     "notifications": "Benachrichtigungen",

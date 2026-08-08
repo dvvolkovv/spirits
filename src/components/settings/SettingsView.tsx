@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { APP_BUILD } from '../../buildInfo';
+import { ANDROID_APK_URL } from '../../androidApp';
 import {
   Shield,
   Globe,
@@ -9,7 +10,9 @@ import {
   Eye,
   EyeOff,
   MessageCircle,
-  UserCheck
+  UserCheck,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
@@ -371,6 +374,31 @@ const SettingsView: React.FC = () => {
                 }
               />
             </div>
+          </div>
+        </div>
+
+        {/* Мобильное приложение. Ссылка на экране входа вошедшему не видна —
+            онбординг рендерится только при !isAuthenticated, — поэтому
+            действующему пользователю нужен свой вход к файлу. */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Smartphone className="w-5 h-5 mr-2 text-forest-600" />
+              {t('settings.android.title')}
+            </h2>
+          </div>
+          <div className="p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-600">
+              {t('settings.android.desc')}
+            </p>
+            <a
+              href={ANDROID_APK_URL}
+              download
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-forest-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-forest-700"
+            >
+              <Download className="w-4 h-4" aria-hidden />
+              {t('settings.android.download')}
+            </a>
           </div>
         </div>
 

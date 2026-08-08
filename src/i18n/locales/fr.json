@@ -376,6 +376,11 @@
     "allow_chats": "Autoriser les chats",
     "allow_chats_desc": "Qui peut démarrer un chat avec toi",
     "language": "Langue de l'interface",
+    "android": {
+      "title": "Application mobile",
+      "desc": "L'application Android s'installe depuis un fichier, hors Google Play.",
+      "download": "Télécharger l'APK"
+    },
     "language_title": "Langue de l'interface",
     "language_desc": "Choisis ta langue préférée",
     "notifications": "Notifications",

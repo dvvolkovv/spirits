@@ -376,6 +376,11 @@
     "allow_chats": "Permitir chats",
     "allow_chats_desc": "Quién puede iniciar un chat contigo",
     "language": "Idioma de la interfaz",
+    "android": {
+      "title": "Aplicación móvil",
+      "desc": "La app de Android se instala desde un archivo, fuera de Google Play.",
+      "download": "Descargar APK"
+    },
     "language_title": "Idioma de la interfaz",
     "language_desc": "Elige tu idioma preferido",
     "notifications": "Notificaciones",

@@ -682,6 +682,11 @@
     "allow_chats": "Разрешить чаты",
     "allow_chats_desc": "Кто может начать с вами чат",
     "language": "Язык интерфейса",
+    "android": {
+      "title": "Мобильное приложение",
+      "desc": "Приложение для Android — устанавливается файлом, вне Google Play.",
+      "download": "Скачать APK"
+    },
     "language_title": "Язык интерфейса",
     "language_desc": "Выберите предпочитаемый язык",
     "notifications": "Уведомления",

@@ -681,6 +681,11 @@
     "allow_chats": "Allow chats",
     "allow_chats_desc": "Who can start a chat with you",
     "language": "Interface language",
+    "android": {
+      "title": "Mobile app",
+      "desc": "The Android app is installed from a file, outside Google Play.",
+      "download": "Download APK"
+    },
     "language_title": "Interface language",
     "language_desc": "Select your preferred language",
     "notifications": "Notifications",

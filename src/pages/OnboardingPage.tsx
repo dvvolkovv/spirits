@@ -4,15 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
 import LoginTabs from '../components/onboarding/LoginTabs';
 import { LanguageSelect } from '../components/settings/LanguageSelect';
+import { ANDROID_APK_URL } from '../androidApp';
 
 const REFERRAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
-
-// Мобильное приложение раздаётся файлом, а не через Google Play, поэтому
-// найти его негде, кроме как по прямой ссылке. Файл лежит в том же публичном
-// бакете MinIO, откуда отдаются сэмплы озвучки (/smm-media/ проксируется
-// nginx только на чтение). Имя без версии — чтобы новая сборка не требовала
-// правки фронта и деплоя.
-const ANDROID_APK_URL = '/smm-media/linkeon-assets/app/linkeon-android.apk';
 
 const OnboardingPage: React.FC = () => {
   const { t } = useTranslation();
