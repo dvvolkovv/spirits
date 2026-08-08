@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Coins, Check, Loader, ArrowLeft, Mail, CreditCard } from 'lucide-react';
+import { Coins, Check, Loader, ArrowLeft, Mail } from 'lucide-react';
 import CouponInput from '../components/tokens/CouponInput';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
@@ -304,15 +304,9 @@ const TokenPurchasePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Через «Приём» можно платить и банковской картой: сервис сам купит
-                криптовалюту. Без этой подсказки человек без кошелька решит,
-                что оплата ему недоступна, и уйдёт. */}
-            {isCrypto && (
-              <div className="mb-4 flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-200 p-3">
-                <CreditCard className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                <p className="text-sm text-gray-700">{t('payment.card_hint')}</p>
-              </div>
-            )}
+            {/* Подсказка про оплату картой снята: касса «Приёма» её не предлагает
+                (проверено 2026-08-08 — только список монет и адрес для перевода).
+                Вернуть, когда кнопка «Картой» появится. */}
 
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               {packages.map((pkg) => (

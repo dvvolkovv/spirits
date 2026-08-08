@@ -1107,9 +1107,8 @@
     "history_type_adjustment": "调整",
     "history_via_crypto": "加密货币支付",
     "history_incl_bonus": "含赠送 {{formatted}}",
-    "included_item_secure_payment_crypto": "通过 Priem 使用银行卡或加密货币付款",
-    "how_it_works_step2_crypto": "使用银行卡或加密货币付款",
-    "card_hint": "可以使用银行卡付款——无需加密货币，服务会替你购买。"
+    "included_item_secure_payment_crypto": "通过 Priem 使用加密货币付款",
+    "how_it_works_step2_crypto": "使用加密货币付款"
   },
   "referral": {
     "loading": "正在加载推荐计划数据...",

@@ -1418,9 +1418,8 @@
     "history_type_adjustment": "Adjustment",
     "history_via_crypto": "via crypto",
     "history_incl_bonus": "including {{formatted}} bonus",
-    "included_item_secure_payment_crypto": "Card or crypto payment via Priem",
-    "how_it_works_step2_crypto": "Pay by bank card or with crypto",
-    "card_hint": "You can pay with a bank card — no crypto needed, the service buys it for you."
+    "included_item_secure_payment_crypto": "Crypto payment via Priem",
+    "how_it_works_step2_crypto": "Pay with crypto"
   },
   "referral": {
     "loading": "Loading referral program data...",
