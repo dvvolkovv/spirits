@@ -6,6 +6,14 @@ import CouponInput from '../components/tokens/CouponInput';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
 import { formatNumber } from '../utils/formatters';
+import { TopUpHistory } from '../components/tokens/TopUpHistory';
+
+/** Ответ /webhook/payments/methods — какой способ оплаты доступен юзеру. */
+interface PaymentMethod {
+  provider: 'yookassa' | 'priem';
+  currency: 'RUB' | 'USD';
+  packages: { id: string; tokens: number; usd: number }[];
+}
 
 interface TokenPackage {
   id: string;
@@ -45,7 +53,24 @@ const TokenPurchasePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const packages = getPackages(t);
+  // Способ оплаты решает бэкенд по языку профиля. Эта страница открывается по
+  // прямой ссылке с лендинга, то есть с другого origin, и своей догадки о языке
+  // у неё нет — спрашиваем.
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const isCrypto = method?.provider === 'priem';
+
+  const CRYPTO_NAME_KEY: Record<string, string> = {
+    pro_usd: 'payment.info.package_pro',
+    max_usd: 'payment.package_max_name',
+  };
+  const packages: TokenPackage[] = isCrypto
+    ? (method?.packages ?? []).map((p) => ({
+        id: p.id,
+        name: t(CRYPTO_NAME_KEY[p.id] ?? 'payment.info.package_pro'),
+        tokens: p.tokens,
+        price: p.usd,
+      }))
+    : getPackages(t);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [phone, setPhone] = useState('');
@@ -56,8 +81,15 @@ const TokenPurchasePage: React.FC = () => {
   const emailInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // До ответа считаем оплату рублёвой — прежнее поведение.
+    apiClient.get('/webhook/payments/methods')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.provider) setMethod(data); })
+      .catch((e) => console.error('payment methods:', e));
+  }, []);
+
+  useEffect(() => {
     const phoneParam = searchParams.get('phone');
-    const packageParam = searchParams.get('package');
 
     if (phoneParam) {
       setPhone(phoneParam);
@@ -67,10 +99,20 @@ const TokenPurchasePage: React.FC = () => {
       setEmail(user.email);
     }
 
+  }, [searchParams, user]);
+
+  // Предвыбор пакета из адреса — отдельным эффектом, завязанным на method.
+  // Список пакетов теперь приезжает с бэкенда, и на первом рендере он ещё
+  // рублёвый: ссылка вида ?package=pro_usd не нашла бы себя и молча потерялась.
+  // В зависимости стоит method, а не packages: последний — новый массив на
+  // каждый рендер, и эффект перезаписывал бы выбор пользователя.
+  useEffect(() => {
+    const packageParam = searchParams.get('package');
     if (packageParam && packages.some(pkg => pkg.id === packageParam)) {
       setSelectedPackage(packageParam);
     }
-  }, [searchParams, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, method]);
 
   useEffect(() => {
     const fetchUserEmail = async () => {
@@ -110,6 +152,24 @@ const TokenPurchasePage: React.FC = () => {
   const handlePurchase = async (packageId: string) => {
     const selectedPkg = packages.find(pkg => pkg.id === packageId);
     if (!selectedPkg) return;
+
+    if (isCrypto) {
+      // Почта нужна YooKassa для чека по 54-ФЗ, к криптоплатежу не относится.
+      setIsProcessing(true);
+      setSelectedPackage(packageId);
+      try {
+        const response = await apiClient.post('/webhook/priem/create-payment', { package: packageId });
+        const data = await response.json();
+        if (!response.ok || !data?.payment_url) throw new Error(data?.error || 'no payment_url');
+        window.location.href = data.payment_url;
+      } catch (error) {
+        console.error('Ошибка при создании крипто-платежа:', error);
+        alert(t('payment.create_payment_error'));
+        setIsProcessing(false);
+        setSelectedPackage(null);
+      }
+      return;
+    }
 
     if (!email.trim()) {
       setEmailError(t('payment.email_required_error'));
@@ -197,7 +257,9 @@ const TokenPurchasePage: React.FC = () => {
           </div>
 
           <div className="p-8">
-            <div className="mb-8">
+            {/* Почта нужна YooKassa для чека по 54-ФЗ; к криптоплатежу
+                отношения не имеет — для него поле не показываем. */}
+            <div className={`mb-8 ${isCrypto ? 'hidden' : ''}`}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <div className="flex items-center space-x-2">
                   <Mail className="w-4 h-4 text-gray-600" />
@@ -288,11 +350,14 @@ const TokenPurchasePage: React.FC = () => {
 
                   <div className="mb-6">
                     <div className="text-center">
-                      <span className="text-4xl font-bold text-gray-900">{pkg.price}</span>
-                      <span className="text-xl text-gray-600 ml-1">₽</span>
+                      {isCrypto && <span className="text-xl text-gray-600 mr-1">$</span>}
+                    <span className="text-4xl font-bold text-gray-900">{pkg.price}</span>
+                    {!isCrypto && <span className="text-xl text-gray-600 ml-1">₽</span>}
                     </div>
                     <p className="text-center text-xs text-gray-500 mt-1">
-                      {t('payment.price_per_1000_tokens', { price: (pkg.price / (pkg.tokens / 1000)).toFixed(2) })}
+                      {t(isCrypto ? 'payment.price_per_1000_tokens_usd' : 'payment.price_per_1000_tokens', {
+                        price: (pkg.price / (pkg.tokens / 1000)).toFixed(isCrypto ? 3 : 2),
+                      })}
                     </p>
                   </div>
 
@@ -320,6 +385,11 @@ const TokenPurchasePage: React.FC = () => {
                   </button>
                 </div>
               ))}
+            </div>
+
+            {/* История — под кнопками оплаты, а не перед ними. */}
+            <div className="mb-8">
+              <TopUpHistory />
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">

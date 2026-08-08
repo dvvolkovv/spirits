@@ -31,7 +31,13 @@ i18n
       ru: { translation: ru },
     },
     detection: {
-      order: ['localStorage', 'navigator'],
+      // querystring первым: лендинг живёт на linkeon.io, приложение на
+      // my.linkeon.io — это разные origin, и localStorage между ними не общий.
+      // Выбранный на лендинге язык доезжает только параметром в ссылке
+      // (?lang=en), иначе страница открывается на языке по умолчанию, то есть
+      // русском, даже у англоязычного посетителя.
+      order: ['querystring', 'localStorage', 'navigator'],
+      lookupQuerystring: 'lang',
       caches: ['localStorage'],
     },
     debug: false,

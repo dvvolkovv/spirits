@@ -248,8 +248,6 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
             <CouponInput />
           </div>
 
-          <TopUpHistory />
-
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200" />
@@ -376,6 +374,12 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                 </button>
               </div>
             ))}
+          </div>
+
+          {/* История — под кнопками оплаты: сначала то, ради чего пришли,
+              потом справка о прошлых пополнениях. */}
+          <div className="mt-8">
+            <TopUpHistory />
           </div>
 
           <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
