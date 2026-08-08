@@ -1100,7 +1100,9 @@
     "how_it_works_step1": "Elige el paquete de tokens que mejor te venga",
     "how_it_works_step2": "Paga con el método que prefieras a través de YooKassa",
     "how_it_works_step3": "Los tokens se acreditan al instante en tu cuenta",
-    "how_it_works_step4": "Empieza a hablar con los asistentes"
+    "how_it_works_step4": "Empieza a hablar con los asistentes",
+    "package_max_name": "Máximo",
+    "price_per_1000_tokens_usd": "~${{price}} por 1000 tokens"
   },
   "referral": {
     "loading": "Cargando datos del programa de referidos...",

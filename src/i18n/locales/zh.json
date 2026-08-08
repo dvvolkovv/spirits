@@ -1090,7 +1090,9 @@
     "how_it_works_step1": "选择合适的代币套餐",
     "how_it_works_step2": "通过 YooKassa 选择方便的方式付款",
     "how_it_works_step3": "代币将立即充值到您的账户",
-    "how_it_works_step4": "开始与助手交流"
+    "how_it_works_step4": "开始与助手交流",
+    "package_max_name": "至尊版",
+    "price_per_1000_tokens_usd": "每 1000 个 token 约 ${{price}}"
   },
   "referral": {
     "loading": "正在加载推荐计划数据...",

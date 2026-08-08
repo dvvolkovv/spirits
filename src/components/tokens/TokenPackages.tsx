@@ -19,6 +19,14 @@ interface TokenPackagesProps {
   onClose: () => void;
 }
 
+/** Ответ /webhook/payments/methods — какой способ оплаты доступен юзеру. */
+interface PaymentMethod {
+  provider: 'yookassa' | 'priem';
+  currency: 'RUB' | 'USD';
+  packages: { id: string; tokens: number; usd: number }[];
+  available: boolean;
+}
+
 const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string): TokenPackage[] => [
   {
     id: 'starter',
@@ -46,8 +54,17 @@ const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string)
 export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const packages = getPackages(t);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+
+  // Способ оплаты решает бэкенд по языку профиля: ru — YooKassa в рублях,
+  // остальные — «Приём» (криптовалюта) в долларах. Фронт не гадает сам, иначе
+  // правило пришлось бы держать в двух местах.
+  //
+  // Долларовые пакеты приходят оттуда же: они НЕ пересчитаны из рублёвых.
+  // Комиссия сети не зависит от суммы, поэтому на мелком чеке она разорительна
+  // (на $5 это +16% в TRON), а оплата картой у «Приёма» недоступна ниже $10.
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const isCrypto = method?.provider === 'priem';
   const [isProcessing, setIsProcessing] = useState(false);
   // Пришли из оффера (?offer=1) — показываем бейдж «+50% к первому пакету».
   // Реальный бонус всё равно начисляет бэкенд по факту первой оплаты вовлечённого.
@@ -92,9 +109,57 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
     fetchUserEmail();
   }, [user?.id]);
 
+  React.useEffect(() => {
+    // До ответа считаем оплату рублёвой: это прежнее поведение, и если запрос
+    // не дойдёт, российский пользователь ничего не заметит.
+    apiClient.get('/webhook/payments/methods')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data?.provider) setMethod(data); })
+      .catch((e) => console.error('payment methods:', e));
+  }, []);
+
+  // Рублёвая витрина зашита на фронте, долларовая приходит с бэкенда.
+  // Название берём именным ключом, а не строкой с числом: количество токенов
+  // карточка и так показывает отдельной строкой, а склонение «токенов» в шести
+  // языках устроено по-разному, и подставлять его в название незачем.
+  const CRYPTO_NAME_KEY: Record<string, string> = {
+    pro_usd: 'payment.info.package_pro',
+    max_usd: 'payment.package_max_name',
+  };
+  const packages: TokenPackage[] = isCrypto
+    ? (method?.packages ?? []).map((p) => ({
+        id: p.id,
+        name: t(CRYPTO_NAME_KEY[p.id] ?? 'payment.info.package_pro'),
+        tokens: p.tokens,
+        price: p.usd,
+      }))
+    : getPackages(t);
+
   const handlePurchase = async (packageId: string) => {
     const selectedPkg = packages.find(pkg => pkg.id === packageId);
     if (!selectedPkg) return;
+
+    if (isCrypto) {
+      // Почта здесь не спрашивается: она нужна YooKassa для фискального чека
+      // по 54-ФЗ, а к криптоплатежу отношения не имеет.
+      setIsProcessing(true);
+      setSelectedPackage(packageId);
+      try {
+        const response = await apiClient.post('/webhook/priem/create-payment', { package: packageId });
+        const data = await response.json();
+        if (!response.ok || !data?.payment_url) {
+          throw new Error(data?.error || 'no payment_url');
+        }
+        if (data.payment_id) localStorage.setItem('pending_payment_id', data.payment_id);
+        window.location.href = data.payment_url;
+      } catch (error) {
+        console.error('Ошибка при создании крипто-платежа:', error);
+        alert(t('payment.create_payment_error'));
+        setIsProcessing(false);
+        setSelectedPackage(null);
+      }
+      return;
+    }
 
     if (!email.trim()) {
       setEmailError(t('payment.email_required_error'));
@@ -191,7 +256,9 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
             </div>
           </div>
 
-          <div className="mb-6">
+          {/* Почта нужна YooKassa для фискального чека по 54-ФЗ. К криптоплатежу
+              она отношения не имеет — для него поле не показываем. */}
+          <div className={`mb-6 ${isCrypto ? 'hidden' : ''}`}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4 text-gray-600" />
@@ -272,11 +339,14 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
 
                 <div className="mb-6">
                   <div className="text-center">
+                    {isCrypto && <span className="text-xl text-gray-600 mr-1">$</span>}
                     <span className="text-4xl font-bold text-gray-900">{pkg.price}</span>
-                    <span className="text-xl text-gray-600 ml-1">₽</span>
+                    {!isCrypto && <span className="text-xl text-gray-600 ml-1">₽</span>}
                   </div>
                   <p className="text-center text-xs text-gray-500 mt-1">
-                    {t('payment.price_per_1000_tokens', { price: (pkg.price / (pkg.tokens / 1000)).toFixed(2) })}
+                    {t(isCrypto ? 'payment.price_per_1000_tokens_usd' : 'payment.price_per_1000_tokens', {
+                      price: (pkg.price / (pkg.tokens / 1000)).toFixed(isCrypto ? 3 : 2),
+                    })}
                   </p>
                 </div>
 

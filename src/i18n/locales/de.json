@@ -1095,7 +1095,9 @@
     "how_it_works_step1": "Wähle das passende Token-Paket",
     "how_it_works_step2": "Bezahle bequem über YooKassa",
     "how_it_works_step3": "Die Tokens werden sofort deinem Konto gutgeschrieben",
-    "how_it_works_step4": "Starte das Gespräch mit den Assistenten"
+    "how_it_works_step4": "Starte das Gespräch mit den Assistenten",
+    "package_max_name": "Maximum",
+    "price_per_1000_tokens_usd": "~${{price}} pro 1000 Tokens"
   },
   "referral": {
     "loading": "Daten des Empfehlungsprogramms werden geladen...",
