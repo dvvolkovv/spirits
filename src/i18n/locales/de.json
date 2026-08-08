@@ -1103,7 +1103,15 @@
     "how_it_works_step3": "Die Tokens werden sofort deinem Konto gutgeschrieben",
     "how_it_works_step4": "Starte das Gespräch mit den Assistenten",
     "package_max_name": "Maximum",
-    "price_per_1000_tokens_usd": "~${{price}} pro 1000 Tokens"
+    "price_per_1000_tokens_usd": "~${{price}} pro 1000 Tokens",
+    "history_title": "Aufladungsverlauf",
+    "history_type_purchase": "Paketkauf",
+    "history_type_coupon": "Gutscheincode",
+    "history_type_bonus": "Bonus",
+    "history_type_refund": "Erstattung",
+    "history_type_adjustment": "Korrektur",
+    "history_via_crypto": "per Krypto",
+    "history_incl_bonus": "inklusive {{formatted}} Bonus"
   },
   "referral": {
     "loading": "Daten des Empfehlungsprogramms werden geladen...",

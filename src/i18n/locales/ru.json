@@ -1418,7 +1418,15 @@
     "how_it_works_step3": "Токены мгновенно зачислятся на ваш счет",
     "how_it_works_step4": "Начните общение с ассистентами",
     "package_max_name": "Максимальный",
-    "price_per_1000_tokens_usd": "~${{price}} за 1000 токенов"
+    "price_per_1000_tokens_usd": "~${{price}} за 1000 токенов",
+    "history_title": "История пополнений",
+    "history_type_purchase": "Покупка пакета",
+    "history_type_coupon": "Промокод",
+    "history_type_bonus": "Бонус",
+    "history_type_refund": "Возврат",
+    "history_type_adjustment": "Корректировка",
+    "history_via_crypto": "криптовалютой",
+    "history_incl_bonus": "включая бонус {{formatted}}"
   },
   "referral": {
     "loading": "Загружаем данные реферальной программы...",

@@ -1409,7 +1409,15 @@
     "how_it_works_step3": "Tokens are credited to your account instantly",
     "how_it_works_step4": "Start chatting with the assistants",
     "package_max_name": "Maximum",
-    "price_per_1000_tokens_usd": "~${{price}} per 1,000 tokens"
+    "price_per_1000_tokens_usd": "~${{price}} per 1,000 tokens",
+    "history_title": "Top-up history",
+    "history_type_purchase": "Package purchase",
+    "history_type_coupon": "Promo code",
+    "history_type_bonus": "Bonus",
+    "history_type_refund": "Refund",
+    "history_type_adjustment": "Adjustment",
+    "history_via_crypto": "via crypto",
+    "history_incl_bonus": "including {{formatted}} bonus"
   },
   "referral": {
     "loading": "Loading referral program data...",

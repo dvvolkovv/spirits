@@ -1098,7 +1098,15 @@
     "how_it_works_step3": "代币将立即充值到您的账户",
     "how_it_works_step4": "开始与助手交流",
     "package_max_name": "至尊版",
-    "price_per_1000_tokens_usd": "每 1000 个 token 约 ${{price}}"
+    "price_per_1000_tokens_usd": "每 1000 个 token 约 ${{price}}",
+    "history_title": "充值记录",
+    "history_type_purchase": "购买套餐",
+    "history_type_coupon": "优惠码",
+    "history_type_bonus": "赠送",
+    "history_type_refund": "退款",
+    "history_type_adjustment": "调整",
+    "history_via_crypto": "加密货币支付",
+    "history_incl_bonus": "含赠送 {{formatted}}"
   },
   "referral": {
     "loading": "正在加载推荐计划数据...",

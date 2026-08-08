@@ -1108,7 +1108,15 @@
     "how_it_works_step3": "Les tokens sont crédités instantanément sur votre compte",
     "how_it_works_step4": "Commencez à discuter avec les assistants",
     "package_max_name": "Maximum",
-    "price_per_1000_tokens_usd": "~${{price}} pour 1000 jetons"
+    "price_per_1000_tokens_usd": "~${{price}} pour 1000 jetons",
+    "history_title": "Historique des recharges",
+    "history_type_purchase": "Achat de forfait",
+    "history_type_coupon": "Code promo",
+    "history_type_bonus": "Bonus",
+    "history_type_refund": "Remboursement",
+    "history_type_adjustment": "Ajustement",
+    "history_via_crypto": "en crypto",
+    "history_incl_bonus": "dont {{formatted}} de bonus"
   },
   "referral": {
     "loading": "Chargement du programme de parrainage...",

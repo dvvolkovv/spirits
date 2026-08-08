@@ -4,6 +4,7 @@ import { X, Coins, Check, Loader, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
 import CouponInput from './CouponInput';
+import { TopUpHistory } from './TopUpHistory';
 import { formatNumber } from '../../utils/formatters';
 
 interface TokenPackage {
@@ -246,6 +247,8 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
           <div className="mb-6">
             <CouponInput />
           </div>
+
+          <TopUpHistory />
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">

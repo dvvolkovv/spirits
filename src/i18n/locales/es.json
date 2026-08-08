@@ -1108,7 +1108,15 @@
     "how_it_works_step3": "Los tokens se acreditan al instante en tu cuenta",
     "how_it_works_step4": "Empieza a hablar con los asistentes",
     "package_max_name": "Máximo",
-    "price_per_1000_tokens_usd": "~${{price}} por 1000 tokens"
+    "price_per_1000_tokens_usd": "~${{price}} por 1000 tokens",
+    "history_title": "Historial de recargas",
+    "history_type_purchase": "Compra de paquete",
+    "history_type_coupon": "Código promocional",
+    "history_type_bonus": "Bonificación",
+    "history_type_refund": "Reembolso",
+    "history_type_adjustment": "Ajuste",
+    "history_via_crypto": "con cripto",
+    "history_incl_bonus": "incluye {{formatted}} de bonificación"
   },
   "referral": {
     "loading": "Cargando datos del programa de referidos...",
