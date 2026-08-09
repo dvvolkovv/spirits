@@ -6,37 +6,63 @@ import { track } from '../../services/eventsClient';
 
 // Session-peak soft-paywall для Романа (задача d6b733de): монетизация в момент
 // пика вовлечённости — когда в ТЕКУЩЕЙ сессии с Романом набрано ≥15 сообщений.
-// Мягкая закрываемая карточка в ленте чата (не модалка). Раз на сессию браузера.
-// Финансовые условия те же, что у обычного оффера (+50% к первому пакету).
+// Мягкая закрываемая карточка в ленте чата (не модалка).
+//
+// Ненавязчивость (задачи a8a6c2b5 / 8d787015):
+//  - Дисмисс ПЕРСИСТЕНТНЫЙ: пишем timestamp в localStorage и не показываем нудж
+//    [DISMISS_COOLDOWN] после закрытия. Раньше флаг жил в sessionStorage + локальном
+//    state — компонент рендерится в ленте без key и не размонтируется, так что state
+//    держался, НО закрытие не переживало перезагрузку/новую вкладку и не давало
+//    межсессионного cooldown'а. localStorage+timestamp закрывает и это, и делает
+//    дисмисс пуленепробиваемым к любому ремаунту (читаем хранилище, а не только init).
+//  - ТАЙМИНГ: нудж = оффер докупить токены; не показываем его тому, у кого баланс
+//    ещё большой (не потратил даже стартовые токены) — плохой момент для апселла.
 const ROMAN_ID = 12;
 const SESSION_MSG_THRESHOLD = 15;
-const DISMISS_KEY = 'roman_session_paywall_dismissed';
+// int16 плейсхолдер? нет — это токены: если у неплательщика ещё > этого на балансе,
+// апселл неуместен (стартовый пакет = 50 000, так что >30k = потрачено <40%).
+const HIGH_BALANCE_SUPPRESS = 30000;
+const DISMISS_UNTIL_KEY = 'roman_session_paywall_dismissed_until';
+const DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
 
-const SessionPaywallNudge: React.FC<{ assistantId: number | null; sessionUserMsgCount: number }> = ({
-  assistantId,
-  sessionUserMsgCount,
-}) => {
+function dismissedNow(): boolean {
+  try {
+    return Date.now() < Number(localStorage.getItem(DISMISS_UNTIL_KEY) || '0');
+  } catch {
+    return false;
+  }
+}
+
+const SessionPaywallNudge: React.FC<{
+  assistantId: number | null;
+  sessionUserMsgCount: number;
+  tokenBalance?: number | null;
+}> = ({ assistantId, sessionUserMsgCount, tokenBalance }) => {
   const navigate = useNavigate();
   const [paid, setPaid] = useState<boolean | null>(null);
-  const [dismissed, setDismissed] = useState<boolean>(() => !!sessionStorage.getItem(DISMISS_KEY));
+  const [dismissed, setDismissed] = useState<boolean>(dismissedNow);
   const [shown, setShown] = useState(false);
+
+  // Плохой момент для апселла, если баланс ещё большой (баланс неизвестен → не мешаем).
+  const balanceOk = tokenBalance == null || tokenBalance <= HIGH_BALANCE_SUPPRESS;
 
   const active =
     assistantId === ROMAN_ID &&
     sessionUserMsgCount >= SESSION_MSG_THRESHOLD &&
     paid === false &&
+    balanceOk &&
     !dismissed;
 
-  // Узнаём статус оплаты только когда дозрели по счётчику (не дёргаем зря).
+  // Узнаём статус оплаты только когда дозрели по счётчику и момент подходящий (не дёргаем зря).
   useEffect(() => {
-    if (paid !== null || dismissed || assistantId !== ROMAN_ID || sessionUserMsgCount < SESSION_MSG_THRESHOLD) return;
+    if (paid !== null || dismissed || !balanceOk || assistantId !== ROMAN_ID || sessionUserMsgCount < SESSION_MSG_THRESHOLD) return;
     let alive = true;
     apiClient.get('/webhook/offer/status')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (alive && d) setPaid(!!d.paid); })
       .catch(() => {});
     return () => { alive = false; };
-  }, [assistantId, sessionUserMsgCount, paid, dismissed]);
+  }, [assistantId, sessionUserMsgCount, paid, dismissed, balanceOk]);
 
   useEffect(() => {
     if (active && !shown) {
@@ -48,7 +74,7 @@ const SessionPaywallNudge: React.FC<{ assistantId: number | null; sessionUserMsg
   if (!active) return null;
 
   const dismiss = () => {
-    sessionStorage.setItem(DISMISS_KEY, '1');
+    try { localStorage.setItem(DISMISS_UNTIL_KEY, String(Date.now() + DISMISS_COOLDOWN_MS)); } catch { /* storage disabled */ }
     setDismissed(true);
     track('offer_dismissed', { kind: 'roman_session' });
   };
