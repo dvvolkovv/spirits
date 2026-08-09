@@ -1122,8 +1122,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const response = await apiClient.post('/webhook/soulmate/chat', {
         chatInput: userMessage,
         assistant: currentAssistantId,
-        // Быстрый путь: бэк не читает профиль лишний раз. Профиль остаётся
-        // авторитетным фолбэком, если поле не пришло.
+        // Подстраховка на случай, когда язык ещё не доехал до профиля:
+        // AuthContext пишет его без await, и первое сообщение новорега может
+        // уйти раньше записи. Профиль остаётся главным — приоритет разбирает
+        // LanguageService.resolveUserLanguage на бэке.
         lang: resolveLanguage(i18n.language),
         ...(freshTs ? { fresh: true, freshTs } : {})
       }, {
