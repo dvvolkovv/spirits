@@ -13,10 +13,17 @@ describe('defaultCountryForLanguage', () => {
     expect(defaultCountryForLanguage('es-MX')).toBe('ES');
   });
 
-  it('падает в RU для неизвестного и пустого языка', () => {
-    expect(defaultCountryForLanguage('pt')).toBe('RU');
-    expect(defaultCountryForLanguage(undefined)).toBe('RU');
-    expect(defaultCountryForLanguage(null)).toBe('RU');
+  it('для незнакомой локали предлагает США, а не Россию', () => {
+    // Следствие английского фолбэка (i18n/languages.ts): португалец больше не
+    // получает предзаполненный +7. Страна — лишь первый выбор, список открыт.
+    expect(defaultCountryForLanguage('pt')).toBe('US');
+    expect(defaultCountryForLanguage(undefined)).toBe('US');
+    expect(defaultCountryForLanguage(null)).toBe('US');
+  });
+
+  it('русский интерфейс по-прежнему даёт RU', () => {
+    expect(defaultCountryForLanguage('ru')).toBe('RU');
+    expect(defaultCountryForLanguage('ru-RU')).toBe('RU');
   });
 });
 
