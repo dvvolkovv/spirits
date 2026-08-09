@@ -4,7 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import resourcesToBackend from 'i18next-resources-to-backend';
 
 import ru from './locales/ru.json';
-import { SUPPORTED_CODES, DEFAULT_LANGUAGE } from './languages';
+import { SUPPORTED_CODES, DEFAULT_LANGUAGE, FALLBACK_CHAIN } from './languages';
 
 i18n
   // ru лежит в бандле как фолбэк, остальные локали Vite нарезает в отдельные
@@ -19,7 +19,11 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    fallbackLng: DEFAULT_LANGUAGE,
+    // Цепочка, а не один язык: незакрытый ключ в de/es/fr/zh раньше приходил
+    // русским прямо посреди чужого интерфейса (немец видел «Управление»
+    // вместо «Management»). Русский остаётся последним рубежом — он источник
+    // правды и заполнен целиком.
+    fallbackLng: FALLBACK_CHAIN,
     supportedLngs: SUPPORTED_CODES,
     // es-MX → es: без этого детектор навигатора уводит в фолбэк
     load: 'languageOnly',
