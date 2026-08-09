@@ -1117,8 +1117,11 @@
     "history_type_adjustment": "Ajuste",
     "history_via_crypto": "con cripto",
     "history_incl_bonus": "incluye {{formatted}} de bonificación",
-    "included_item_secure_payment_crypto": "Pago con cripto mediante Priem",
-    "how_it_works_step2_crypto": "Paga con cripto"
+    "included_item_secure_payment_crypto": "Pago con tarjeta o cripto mediante Priem",
+    "how_it_works_step2_crypto": "Paga con tarjeta bancaria o con cripto",
+    "pay_by_card": "Con tarjeta",
+    "pay_by_crypto": "Con cripto",
+    "card_note": "Pago con tarjeta: el servicio compra la cripto por ti. No cambies el importe del formulario: si lo reduces, el pago quedará incompleto."
   },
   "referral": {
     "loading": "Cargando datos del programa de referidos...",

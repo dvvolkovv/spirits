@@ -12,6 +12,8 @@ interface TokenPackage {
   name: string;
   tokens: number;
   price: number;
+  /** Только для крипто-витрины: проходит ли пакет порог оплаты картой. */
+  cardAvailable?: boolean;
   popular?: boolean;
   savings?: string;
 }
@@ -24,7 +26,7 @@ interface TokenPackagesProps {
 interface PaymentMethod {
   provider: 'yookassa' | 'priem';
   currency: 'RUB' | 'USD';
-  packages: { id: string; tokens: number; usd: number }[];
+  packages: { id: string; tokens: number; usd: number; cardAvailable?: boolean }[];
   available: boolean;
 }
 
@@ -135,10 +137,11 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
         name: t(CRYPTO_NAME_KEY[p.id] ?? 'payment.info.package_pro'),
         tokens: p.tokens,
         price: p.usd,
+        cardAvailable: p.cardAvailable,
       }))
     : getPackages(t);
 
-  const handlePurchase = async (packageId: string) => {
+  const handlePurchase = async (packageId: string, method: 'card' | 'crypto' = 'crypto') => {
     const selectedPkg = packages.find(pkg => pkg.id === packageId);
     if (!selectedPkg) return;
 
@@ -153,8 +156,13 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
         if (!response.ok || !data?.payment_url) {
           throw new Error(data?.error || 'no payment_url');
         }
+        // Обе ссылки ведут на ОДИН платёж — карточный путь не заводит второго
+        // счёта, и коллбэк придёт с тем же payment_id. Ссылку берём из свежего
+        // ответа и никуда не сохраняем: у зачисленного или истёкшего платежа
+        // card_url становится null, а страница отвечает 409.
+        const target = method === 'card' && data.card_url ? data.card_url : data.payment_url;
         if (data.payment_id) localStorage.setItem('pending_payment_id', data.payment_id);
-        window.location.href = data.payment_url;
+        window.location.href = target;
       } catch (error) {
         console.error('Ошибка при создании крипто-платежа:', error);
         alert(t('payment.create_payment_error'));
@@ -289,6 +297,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
             </p>
           </div>
 
+          {isCrypto && (
+            <p className="mt-4 text-xs text-gray-500">{t('payment.card_note')}</p>
+          )}
+
           {/* Подсказка про оплату картой снята: касса «Приёма» её не предлагает
               (проверено 2026-08-08 — только список монет и адрес для перевода).
               Вернуть, когда кнопка «Картой» появится. */}
@@ -357,6 +369,37 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                   </p>
                 </div>
 
+                {/* Для крипто-пути — две кнопки: «Приём» принимает и карту, и
+                    криптовалюту, это один и тот же платёж. Карту ставим первой:
+                    у большинства нет кошелька, и без неё оплата им недоступна.
+                    Кнопка карты показывается только если пакет выше порога
+                    (сейчас $10) — ниже него «Приём» отдаёт card_url = null,
+                    и кнопка вела бы в отказ. */}
+                {isCrypto && pkg.cardAvailable ? (
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => handlePurchase(pkg.id, 'card')}
+                      disabled={isProcessing}
+                      className="w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 bg-forest-600 text-white hover:bg-forest-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isProcessing && selectedPackage === pkg.id ? (
+                        <>
+                          <Loader className="w-5 h-5 animate-spin" />
+                          <span>{t('payment.processing_label')}</span>
+                        </>
+                      ) : (
+                        <span>{t('payment.pay_by_card')}</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handlePurchase(pkg.id, 'crypto')}
+                      disabled={isProcessing}
+                      className="w-full py-2.5 px-4 rounded-lg font-medium transition-all duration-200 border border-forest-600 text-forest-700 hover:bg-forest-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span>{t('payment.pay_by_crypto')}</span>
+                    </button>
+                  </div>
+                ) : (
                 <button
                   onClick={() => handlePurchase(pkg.id)}
                   disabled={isProcessing}
@@ -378,6 +421,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                     </>
                   )}
                 </button>
+                )}
               </div>
             ))}
           </div>

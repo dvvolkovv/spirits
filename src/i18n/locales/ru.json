@@ -1427,8 +1427,11 @@
     "history_type_adjustment": "Корректировка",
     "history_via_crypto": "криптовалютой",
     "history_incl_bonus": "включая бонус {{formatted}}",
-    "included_item_secure_payment_crypto": "Оплата криптовалютой через «Приём»",
-    "how_it_works_step2_crypto": "Оплатите криптовалютой"
+    "included_item_secure_payment_crypto": "Оплата картой или криптовалютой через «Приём»",
+    "how_it_works_step2_crypto": "Оплатите банковской картой или криптовалютой",
+    "pay_by_card": "Картой",
+    "pay_by_crypto": "Криптовалютой",
+    "card_note": "Оплата картой: сервис купит криптовалюту за вас. Не меняйте сумму в форме — при уменьшении платёж останется недоплаченным."
   },
   "referral": {
     "loading": "Загружаем данные реферальной программы...",

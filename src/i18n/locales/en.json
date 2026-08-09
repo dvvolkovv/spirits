@@ -1418,8 +1418,11 @@
     "history_type_adjustment": "Adjustment",
     "history_via_crypto": "via crypto",
     "history_incl_bonus": "including {{formatted}} bonus",
-    "included_item_secure_payment_crypto": "Crypto payment via Priem",
-    "how_it_works_step2_crypto": "Pay with crypto"
+    "included_item_secure_payment_crypto": "Card or crypto payment via Priem",
+    "how_it_works_step2_crypto": "Pay by bank card or with crypto",
+    "pay_by_card": "By card",
+    "pay_by_crypto": "With crypto",
+    "card_note": "Card payment: the service buys crypto for you. Do not change the amount in the form — lowering it leaves the payment underpaid."
   },
   "referral": {
     "loading": "Loading referral program data...",

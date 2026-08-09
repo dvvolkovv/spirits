@@ -1112,8 +1112,11 @@
     "history_type_adjustment": "Korrektur",
     "history_via_crypto": "per Krypto",
     "history_incl_bonus": "inklusive {{formatted}} Bonus",
-    "included_item_secure_payment_crypto": "Krypto-Zahlung über Priem",
-    "how_it_works_step2_crypto": "Zahle mit Krypto"
+    "included_item_secure_payment_crypto": "Zahlung per Karte oder Krypto über Priem",
+    "how_it_works_step2_crypto": "Zahle per Bankkarte oder mit Krypto",
+    "pay_by_card": "Mit Karte",
+    "pay_by_crypto": "Mit Krypto",
+    "card_note": "Kartenzahlung: Der Dienst kauft die Kryptowährung für dich. Ändere den Betrag im Formular nicht — bei einer Verringerung bleibt die Zahlung unvollständig."
   },
   "referral": {
     "loading": "Daten des Empfehlungsprogramms werden geladen...",
