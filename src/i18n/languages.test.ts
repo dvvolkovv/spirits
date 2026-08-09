@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SUPPORTED_LANGUAGES, SUPPORTED_CODES, DEFAULT_LANGUAGE, resolveLanguage } from './languages';
+import { SUPPORTED_LANGUAGES, SUPPORTED_CODES, DEFAULT_LANGUAGE, VISITOR_FALLBACK, resolveLanguage } from './languages';
 
 describe('SUPPORTED_LANGUAGES', () => {
   it('содержит шесть языков в фиксированном порядке', () => {
@@ -29,14 +29,20 @@ describe('resolveLanguage', () => {
     expect(resolveLanguage('ES')).toBe('es');
   });
 
-  it('возвращает дефолт для неподдерживаемого языка', () => {
-    expect(resolveLanguage('pt')).toBe(DEFAULT_LANGUAGE);
-    expect(resolveLanguage('ja-JP')).toBe(DEFAULT_LANGUAGE);
+  it('незнакомый язык уводит в английский, а не в русский', () => {
+    expect(resolveLanguage('pt')).toBe(VISITOR_FALLBACK);
+    expect(resolveLanguage('ja-JP')).toBe(VISITOR_FALLBACK);
+    expect(resolveLanguage('pt')).not.toBe(DEFAULT_LANGUAGE);
   });
 
-  it('возвращает дефолт для пустого значения', () => {
-    expect(resolveLanguage(undefined)).toBe('ru');
-    expect(resolveLanguage(null)).toBe('ru');
-    expect(resolveLanguage('')).toBe('ru');
+  it('пустое значение — тоже английский: языка посетителя мы не знаем', () => {
+    expect(resolveLanguage(undefined)).toBe('en');
+    expect(resolveLanguage(null)).toBe('en');
+    expect(resolveLanguage('')).toBe('en');
+  });
+
+  it('русский остаётся русским — фолбэк не подменяет явный язык', () => {
+    expect(resolveLanguage('ru')).toBe('ru');
+    expect(resolveLanguage('ru-RU')).toBe('ru');
   });
 });

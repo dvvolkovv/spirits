@@ -19,6 +19,24 @@ export const SUPPORTED_LANGUAGES: LanguageDef[] = [
 
 export const DEFAULT_LANGUAGE = 'ru';
 
+/**
+ * Что показать посетителю, чьей локали у нас нет (pt, uk, ja…).
+ *
+ * Отдельная константа, а не DEFAULT_LANGUAGE: у русского здесь другая роль —
+ * это язык-источник переводов и канонический корень лендинга. Смешивать две
+ * роли в одной константе нельзя, иначе португалец получает кириллицу просто
+ * потому, что русский оказался первым в реестре.
+ */
+export const VISITOR_FALLBACK = 'en';
+
+/**
+ * Чем закрывать ключ, которого нет в текущей локали. Сначала английский,
+ * русский — последним рубежом: в es/de/fr/zh не хватает по ~250 ключей из
+ * 1703, и немец на непереведённом экране должен видеть английский текст,
+ * а не русский.
+ */
+export const FALLBACK_CHAIN = ['en', 'ru'];
+
 export const SUPPORTED_CODES = SUPPORTED_LANGUAGES.map((l) => l.code);
 
 /**
@@ -26,7 +44,7 @@ export const SUPPORTED_CODES = SUPPORTED_LANGUAGES.map((l) => l.code);
  * navigator.language отдаёт es-MX / zh-Hans, профиль может отдать что угодно.
  */
 export function resolveLanguage(raw?: string | null): string {
-  if (!raw) return DEFAULT_LANGUAGE;
+  if (!raw) return VISITOR_FALLBACK;
   const root = raw.toLowerCase().split(/[-_]/)[0];
-  return SUPPORTED_CODES.includes(root) ? root : DEFAULT_LANGUAGE;
+  return SUPPORTED_CODES.includes(root) ? root : VISITOR_FALLBACK;
 }
