@@ -38,12 +38,15 @@
 - **WebView** используется только для OAuth-флоу (`lib/screens/auth/oauth_webview_screen.dart`), весь остальной UI нативный
 - **Бэкенд общий** с вебом — те же эндпоинты `/webhook/*` на `my.linkeon.io`
 
-⚠️ **Не путать с Capacitor.** В вебе остались хуки `@capgo/capacitor-updater`
-(`src/main.tsx:31-44`, OTA через `/webhook/app-ota/latest`) от старого приложения
-`io.linkeon.app`. Его сборочный проект и signing-ключ утеряны — см. отдельную заметку.
-По этим хукам легко ошибочно решить, что мобилка это Capacitor-обёртка и что языки
-приедут туда сами через OTA. **Это неверно:** актуальная мобилка — Flutter, и её UI
-надо локализовать отдельно.
+⚠️ **Две мобильные версии живут ПАРАЛЛЕЛЬНО (решение владельца, 2026-08-10).** Кроме
+Flutter-приложения выше (его ведёт коллега Дмитрий) есть ВТОРОЕ — React/Capacitor
+`io.linkeon.app`, которое развивается здесь. Именно оно использует хуки
+`@capgo/capacitor-updater` (`src/main.tsx`, OTA через `/webhook/app-ota/latest`). Владелец
+и Дмитрий договорились вести обе версии параллельно и позже выбрать одну — **сейчас обе
+валидны, ни одна не «старая/утерянная».** Проект Capacitor-версии восстановлен и лежит в git:
+`github.com/dvvolkovv/linkeon-mobile-ajax`, signing-keystore цел (`~/android-tools/linkeon-release.keystore`).
+⚠️ Локализация у версий РАЗДЕЛЬНАЯ: Flutter — свои `.arb`; React/Capacitor — i18next этого
+репо. (Прежняя редакция заметки называла Capacitor «старым, ключ утерян» — это неверно.)
 
 **Состояние i18n в мобилке (на 2026-08-07): сделано.** `flutter_localizations`
 подключён, `generate: true`, есть `l10n.yaml` и шесть `.arb` по 669 ключей
