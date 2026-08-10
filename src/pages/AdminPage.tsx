@@ -5,6 +5,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import AdminAssistantsView from '../components/admin/AdminAssistantsView';
 import AdminCouponsView from '../components/admin/AdminCouponsView';
+import AdminReportsView from '../components/admin/AdminReportsView';
 import AdminReferralsView from '../components/admin/AdminReferralsView';
 import AdminSupportView from '../components/admin/AdminSupportView';
 import AdminPaymentsView from '../components/admin/AdminPaymentsView';
@@ -16,7 +17,7 @@ import AdminProductManagementView from '../components/admin/AdminProductManageme
 import AdminRetentionView from '../components/admin/AdminRetentionView';
 import AdminActivationView from '../components/admin/AdminActivationView';
 
-type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals' | 'retention' | 'activation' | 'monitoring' | 'product';
+type AdminTab = 'support' | 'reports' | 'users' | 'payments' | 'tokens' | 'usage' | 'assistants' | 'coupons' | 'referrals' | 'retention' | 'activation' | 'monitoring' | 'product';
 
 // `?tab=backlog` used to point at a standalone Бэклог tab.
 // We folded backlog into Управление продуктом — keep the URL working.
@@ -28,7 +29,7 @@ const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t } = useTranslation();
   const [params, setSearchParams] = useSearchParams();
-  const KNOWN_TABS: AdminTab[] = ['support', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals', 'retention', 'activation', 'monitoring', 'product'];
+  const KNOWN_TABS: AdminTab[] = ['support', 'reports', 'users', 'payments', 'tokens', 'usage', 'assistants', 'coupons', 'referrals', 'retention', 'activation', 'monitoring', 'product'];
   const rawTab = params.get('tab') || '';
   const aliasResolved = TAB_ALIASES[rawTab] ?? (rawTab as AdminTab);
   const initialTab: AdminTab = KNOWN_TABS.includes(aliasResolved) ? aliasResolved : 'support';
@@ -77,6 +78,7 @@ const AdminPage: React.FC = () => {
 
   const tabs: { id: AdminTab; label: string }[] = [
     { id: 'support', label: t('admin.tabs.support') },
+    { id: 'reports', label: t('admin.tabs.reports') },
     { id: 'users', label: t('admin.tabs.users') },
     { id: 'payments', label: t('admin.tabs.payments') },
     { id: 'tokens', label: t('admin.tabs.tokens') },
@@ -117,6 +119,7 @@ const AdminPage: React.FC = () => {
       </div>
       <div className="flex-1 overflow-hidden">
         {activeTab === 'support' && <AdminSupportView />}
+        {activeTab === 'reports' && <AdminReportsView />}
         {activeTab === 'users' && <AdminUsersView />}
         {activeTab === 'payments' && <AdminPaymentsView />}
         {activeTab === 'tokens' && <AdminTokensView />}

@@ -369,7 +369,8 @@
       "activation": "Activation",
       "monitoring": "Monitoring",
       "backlog": "Backlog",
-      "product": "Product"
+      "product": "Product",
+      "reports": "Reports"
     },
     "product": {
       "tabs": {
@@ -657,6 +658,21 @@
         "failed": "Failed",
         "canceled": "Canceled"
       }
+    },
+    "reports": {
+      "title": "Reports",
+      "empty": "No open reports",
+      "show_all": "Show resolved",
+      "dismiss": "Dismiss",
+      "content_removed": "Content removed",
+      "block": "Block",
+      "confirm_block": "Block this account? The user will no longer be able to sign in.",
+      "already_blocked": "already blocked",
+      "overdue": "overdue: {{count}}",
+      "age_hours": "{{count}}h ago",
+      "load_error": "Failed to load reports: {{error}}",
+      "resolve_error": "Failed to apply the decision: {{error}}",
+      "resolved_by": "{{resolution}} · {{moderator}}"
     }
   },
   "chats": {

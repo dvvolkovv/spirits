@@ -370,7 +370,8 @@
       "activation": "Активация",
       "monitoring": "Мониторинг",
       "backlog": "Бэклог",
-      "product": "Управление продуктом"
+      "product": "Управление продуктом",
+      "reports": "Жалобы"
     },
     "product": {
       "tabs": {
@@ -658,6 +659,21 @@
         "failed": "Ошибка",
         "canceled": "Отменён"
       }
+    },
+    "reports": {
+      "title": "Жалобы",
+      "empty": "Неразобранных жалоб нет",
+      "show_all": "Показать разобранные",
+      "dismiss": "Отклонить",
+      "content_removed": "Контент удалён",
+      "block": "Заблокировать",
+      "confirm_block": "Заблокировать аккаунт нарушителя? Он потеряет возможность войти.",
+      "already_blocked": "уже заблокирован",
+      "overdue": "просрочено: {{count}}",
+      "age_hours": "{{count}} ч назад",
+      "load_error": "Не удалось загрузить жалобы: {{error}}",
+      "resolve_error": "Не удалось применить решение: {{error}}",
+      "resolved_by": "{{resolution}} · {{moderator}}"
     }
   },
   "chats": {
