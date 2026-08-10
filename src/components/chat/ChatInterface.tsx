@@ -2479,6 +2479,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <SessionPaywallNudge
           assistantId={selectedAssistant?.id ?? null}
           sessionUserMsgCount={messages.filter((m) => m.type === 'user').length}
+          tokenBalance={user?.tokens ?? null}
         />
 
         <div ref={messagesEndRef} />
