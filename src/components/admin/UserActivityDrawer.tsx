@@ -9,6 +9,7 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
 import type { TaskListItem, TaskDetails } from '../../types/tasks';
+import UserDevicesList from './devices/UserDevicesList';
 
 /**
  * Канал, в котором шёл диалог. Веб-чат и Telegram-бот — разные хранилища с
@@ -369,6 +370,9 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                   }
                 />
               </div>
+
+              {/* Devices — с чего сидит человек, если он жалуется */}
+              <UserDevicesList phone={phone} />
 
               {/* Chart */}
               <div className="bg-white border border-gray-200 rounded-xl p-4">
