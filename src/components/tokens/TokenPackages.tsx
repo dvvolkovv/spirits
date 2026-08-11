@@ -6,6 +6,7 @@ import { apiClient } from '../../services/apiClient';
 import CouponInput from './CouponInput';
 import { TopUpHistory } from './TopUpHistory';
 import { formatNumber } from '../../utils/formatters';
+import { RUB_PACKAGES, CRYPTO_NAME_KEY, CRYPTO_NAME_KEY_FALLBACK } from '../../config/tokenPackages';
 
 interface TokenPackage {
   id: string;
@@ -30,29 +31,17 @@ interface PaymentMethod {
   available: boolean;
 }
 
-const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string): TokenPackage[] => [
-  {
-    id: 'starter',
-    name: t('payment.package_starter_name'),
-    tokens: 50000,
-    price: 149,
-  },
-  {
-    id: 'extended',
-    name: t('payment.info.package_extended'),
-    tokens: 200000,
-    price: 499,
-    popular: true,
-    savings: t('payment.package_savings', { percent: 15 }),
-  },
-  {
-    id: 'professional',
-    name: t('payment.info.package_pro'),
-    tokens: 1000000,
-    price: 1990,
-    savings: t('payment.package_savings', { percent: 30 }),
-  },
-];
+const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string): TokenPackage[] =>
+  RUB_PACKAGES.map((p) => ({
+    id: p.id,
+    name: t(p.nameKey),
+    tokens: p.tokens,
+    price: p.priceRub,
+    popular: p.popular,
+    savings: p.savingsPct === undefined
+      ? undefined
+      : t('payment.package_savings', { percent: p.savingsPct }),
+  }));
 
 export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   const { t, i18n } = useTranslation();
@@ -124,17 +113,14 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   }, [i18n.language]);
 
   // Рублёвая витрина зашита на фронте, долларовая приходит с бэкенда.
-  // Название берём именным ключом, а не строкой с числом: количество токенов
-  // карточка и так показывает отдельной строкой, а склонение «токенов» в шести
-  // языках устроено по-разному, и подставлять его в название незачем.
-  const CRYPTO_NAME_KEY: Record<string, string> = {
-    pro_usd: 'payment.info.package_pro',
-    max_usd: 'payment.package_max_name',
-  };
   const packages: TokenPackage[] = isCrypto
     ? (method?.packages ?? []).map((p) => ({
         id: p.id,
-        name: t(CRYPTO_NAME_KEY[p.id] ?? 'payment.info.package_pro'),
+        // Название берём именным ключом, а не строкой с числом: количество
+        // токенов карточка и так показывает отдельной строкой, а склонение
+        // «токенов» в шести языках устроено по-разному, и подставлять его
+        // в название незачем.
+        name: t(CRYPTO_NAME_KEY[p.id] ?? CRYPTO_NAME_KEY_FALLBACK),
         tokens: p.tokens,
         price: p.usd,
         cardAvailable: p.cardAvailable,
@@ -305,7 +291,7 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               (проверено 2026-08-08 — только список монет и адрес для перевода).
               Вернуть, когда кнопка «Картой» появится. */}
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6">
             {packages.map((pkg) => (
               <div
                 key={pkg.id}
