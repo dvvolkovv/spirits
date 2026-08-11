@@ -169,8 +169,8 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
         <div className="space-y-3">
           <div className="flex items-center space-x-3">
             <Mail className="w-5 h-5 text-forest-600 flex-shrink-0" />
-            <a href="mailto:support@linkeon.ru" className="text-forest-600 hover:text-forest-700 font-medium">
-              support@linkeon.ru
+            <a href="mailto:support@linkeon.io" className="text-forest-600 hover:text-forest-700 font-medium">
+              support@linkeon.io
             </a>
           </div>
         </div>
@@ -335,8 +335,8 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
         <div className="space-y-3">
           <div className="flex items-center space-x-3">
             <Mail className="w-5 h-5 text-forest-600 flex-shrink-0" />
-            <a href="mailto:support@linkeon.ru" className="text-forest-600 hover:text-forest-700 font-medium">
-              support@linkeon.ru
+            <a href="mailto:support@linkeon.io" className="text-forest-600 hover:text-forest-700 font-medium">
+              support@linkeon.io
             </a>
           </div>
         </div>

@@ -37,7 +37,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           (самозанятый), далее - "Исполнитель" или "Администрация".
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Контактный email: support@linkeon.ru
+          Контактный email: support@linkeon.io
         </p>
         <p className="text-gray-700 leading-relaxed">
           Настоящее Соглашение является публичной офертой в соответствии со
@@ -229,7 +229,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           Неиспользованный остаток приобретенных токенов возврату не подлежит.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Претензия направляется на email support@linkeon.ru и рассматривается
+          Претензия направляется на email support@linkeon.io и рассматривается
           в течение 10 рабочих дней. Возврат производится в течение 30 дней за вычетом
           комиссий платежных систем (3-5%).
         </p>
@@ -243,7 +243,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         </p>
         <p className="text-gray-700 leading-relaxed">
           До обращения в суд пользователь обязан направить письменную претензию на
-          email support@linkeon.ru. Претензия рассматривается в течение 30 дней.
+          email support@linkeon.io. Претензия рассматривается в течение 30 дней.
         </p>
         <p className="text-gray-700 leading-relaxed">
           При недостижении согласия споры разрешаются в судебном порядке по месту
@@ -283,7 +283,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           hereinafter — the "Operator" or "Administration".
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Contact email: support@linkeon.ru
+          Contact email: support@linkeon.io
         </p>
         <p className="text-gray-700 leading-relaxed">
           These Terms constitute a public offer under Article 437 of the Civil Code of the
@@ -473,7 +473,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           Any unused balance of purchased tokens is non-refundable.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Complaints are submitted to support@linkeon.ru and reviewed within 10 business days.
+          Complaints are submitted to support@linkeon.io and reviewed within 10 business days.
           Refunds are processed within 30 days, less payment-system fees (3–5%).
         </p>
       </section>
@@ -485,7 +485,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           procedure.
         </p>
         <p className="text-gray-700 leading-relaxed">
-          Before going to court, the user must send a written claim to support@linkeon.ru.
+          Before going to court, the user must send a written claim to support@linkeon.io.
           The claim is reviewed within 30 days.
         </p>
         <p className="text-gray-700 leading-relaxed">
@@ -514,7 +514,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <p className="text-gray-700"><strong>Наименование:</strong> Волков Дмитрий Викторович</p>
         <p className="text-gray-700"><strong>ИНН:</strong> 463404496646</p>
         <p className="text-gray-700"><strong>Статус:</strong> Плательщик налога на профессиональный доход (самозанятый)</p>
-        <p className="text-gray-700"><strong>Контактный email:</strong> support@linkeon.ru</p>
+        <p className="text-gray-700"><strong>Контактный email:</strong> support@linkeon.io</p>
       </div>
 
       <p className="text-gray-700 leading-relaxed">
@@ -802,7 +802,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <p className="text-gray-700"><strong>Name:</strong> Dmitry Viktorovich Volkov</p>
         <p className="text-gray-700"><strong>INN:</strong> 463404496646</p>
         <p className="text-gray-700"><strong>Status:</strong> Payer of professional-income tax (self-employed)</p>
-        <p className="text-gray-700"><strong>Contact email:</strong> support@linkeon.ru</p>
+        <p className="text-gray-700"><strong>Contact email:</strong> support@linkeon.io</p>
       </div>
 
       <p className="text-gray-700 leading-relaxed">
