@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
 import { formatNumber } from '../utils/formatters';
 import { TopUpHistory } from '../components/tokens/TopUpHistory';
+import { RUB_PACKAGES, CRYPTO_NAME_KEY, CRYPTO_NAME_KEY_FALLBACK } from '../config/tokenPackages';
 
 /** Ответ /webhook/payments/methods — какой способ оплаты доступен юзеру. */
 interface PaymentMethod {
@@ -26,29 +27,17 @@ interface TokenPackage {
   savings?: string;
 }
 
-const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string): TokenPackage[] => [
-  {
-    id: 'starter',
-    name: t('payment.package_starter_name'),
-    tokens: 50000,
-    price: 149,
-  },
-  {
-    id: 'extended',
-    name: t('payment.info.package_extended'),
-    tokens: 200000,
-    price: 499,
-    popular: true,
-    savings: t('payment.package_savings', { percent: 15 }),
-  },
-  {
-    id: 'professional',
-    name: t('payment.info.package_pro'),
-    tokens: 1000000,
-    price: 1990,
-    savings: t('payment.package_savings', { percent: 30 }),
-  },
-];
+const getPackages = (t: (key: string, opts?: Record<string, unknown>) => string): TokenPackage[] =>
+  RUB_PACKAGES.map((p) => ({
+    id: p.id,
+    name: t(p.nameKey),
+    tokens: p.tokens,
+    price: p.priceRub,
+    popular: p.popular,
+    savings: p.savingsPct === undefined
+      ? undefined
+      : t('payment.package_savings', { percent: p.savingsPct }),
+  }));
 
 const TokenPurchasePage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -61,14 +50,10 @@ const TokenPurchasePage: React.FC = () => {
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const isCrypto = method?.provider === 'priem';
 
-  const CRYPTO_NAME_KEY: Record<string, string> = {
-    pro_usd: 'payment.info.package_pro',
-    max_usd: 'payment.package_max_name',
-  };
   const packages: TokenPackage[] = isCrypto
     ? (method?.packages ?? []).map((p) => ({
         id: p.id,
-        name: t(CRYPTO_NAME_KEY[p.id] ?? 'payment.info.package_pro'),
+        name: t(CRYPTO_NAME_KEY[p.id] ?? CRYPTO_NAME_KEY_FALLBACK),
         tokens: p.tokens,
         price: p.usd,
         cardAvailable: p.cardAvailable,
@@ -317,7 +302,10 @@ const TokenPurchasePage: React.FC = () => {
                 (проверено 2026-08-08 — только список монет и адрес для перевода).
                 Вернуть, когда кнопка «Картой» появится. */}
 
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {/* Сетку делят две витрины разной длины: рублёвая на пять пакетов
+                и валютная на три. Пять колонок на трёх карточках дали бы две
+                пустые — расширяем только когда карточек больше 3. */}
+            <div className={`grid md:grid-cols-3 gap-6 mb-8 ${packages.length > 3 ? 'lg:grid-cols-5' : ''}`}>
               {packages.map((pkg) => (
                 <div
                   key={pkg.id}

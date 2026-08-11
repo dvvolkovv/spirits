@@ -113,8 +113,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <p className="text-gray-700 leading-relaxed">
           При регистрации пользователю единовременно начисляется приветственный бонус —
           25 000 токенов. Дополнительные токены приобретаются пакетами: 50 000 токенов —
-          149 ₽, 200 000 токенов — 499 ₽, 1 000 000 токенов — 1 990 ₽. Актуальный состав
-          пакетов и цены отображаются в Приложении в разделе покупки токенов.
+          149 ₽, 200 000 токенов — 499 ₽, 1 000 000 токенов — 1 990 ₽, 3 000 000 токенов —
+          4 990 ₽, 7 000 000 токенов — 9 990 ₽. Актуальный состав пакетов и цены
+          отображаются в Приложении в разделе покупки токенов.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Покупка токенов является разовой операцией.</strong> Подписка, регулярные
@@ -357,8 +358,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <p className="text-gray-700 leading-relaxed">
           Upon registration the user receives a one-time welcome bonus of 25,000 tokens.
           Additional tokens are purchased in packages: 50,000 tokens — RUB 149; 200,000
-          tokens — RUB 499; 1,000,000 tokens — RUB 1,990. The current package composition and
-          prices are displayed in the Application in the token purchase section.
+          tokens — RUB 499; 1,000,000 tokens — RUB 1,990; 3,000,000 tokens — RUB 4,990;
+          7,000,000 tokens — RUB 9,990. The current package composition and prices are
+          displayed in the Application in the token purchase section.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>The purchase of tokens is a one-off transaction.</strong> The Application

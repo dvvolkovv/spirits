@@ -79,6 +79,8 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
               <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.info.package_basic', 'Стартовый')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_basic_amount', '50 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">149 ₽</td></tr>
               <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.info.package_extended', 'Расширенный')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_extended_amount', '200 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">499 ₽</td></tr>
               <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.info.package_pro', 'Профессиональный')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_pro_amount', '1 000 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">1 990 ₽</td></tr>
+              <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.info.package_business', 'Бизнес')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_business_amount', '3 000 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">4 990 ₽</td></tr>
+              <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">{t('payment.package_max_name', 'Максимальный')}</td><td className="px-4 py-3 text-gray-700">{t('payment.info.package_maximum_amount', '7 000 000 токенов')}</td><td className="px-4 py-3 text-forest-600 font-semibold">9 990 ₽</td></tr>
             </tbody>
           </table>
         </div>
@@ -244,6 +246,8 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
               <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">Basic</td><td className="px-4 py-3 text-gray-700">50,000 tokens</td><td className="px-4 py-3 text-forest-600 font-semibold">149 ₽</td></tr>
               <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">Extended</td><td className="px-4 py-3 text-gray-700">200,000 tokens</td><td className="px-4 py-3 text-forest-600 font-semibold">499 ₽</td></tr>
               <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">Professional</td><td className="px-4 py-3 text-gray-700">1,000,000 tokens</td><td className="px-4 py-3 text-forest-600 font-semibold">1,990 ₽</td></tr>
+              <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">Business</td><td className="px-4 py-3 text-gray-700">3,000,000 tokens</td><td className="px-4 py-3 text-forest-600 font-semibold">4,990 ₽</td></tr>
+              <tr className="hover:bg-gray-50"><td className="px-4 py-3 font-medium text-gray-900">Maximum</td><td className="px-4 py-3 text-gray-700">7,000,000 tokens</td><td className="px-4 py-3 text-forest-600 font-semibold">9,990 ₽</td></tr>
             </tbody>
           </table>
         </div>
