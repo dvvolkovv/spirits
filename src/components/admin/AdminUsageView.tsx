@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Loader, AlertCircle, RefreshCw, MessageSquare, Coins, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import DeviceStatsPanel from './devices/DeviceStatsPanel';
 
 interface AssistantRow {
   id: number;
@@ -122,6 +123,8 @@ const AdminUsageView: React.FC = () => {
             Обновить
           </button>
         </div>
+
+        <DeviceStatsPanel />
 
         {error && (
           <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">
