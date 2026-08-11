@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Loader, AlertCircle, RefreshCw, UserPlus, Activity, Calendar, Search } from 'lucide-react';
+import { Users, Loader, AlertCircle, RefreshCw, UserPlus, Activity, Calendar, Search, Send } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import UserActivityDrawer from './UserActivityDrawer';
@@ -15,6 +15,13 @@ interface UserRow {
   paid_count: number;
   paid_rub: number;
   referral_leader_name: string | null;
+  /**
+   * Реплики в Telegram-боте за то же окно. Отдельно от расхода: диалоги
+   * бота лежат в своей таблице, и по одному только списанию не видно, что
+   * человек вообще работает — а он может жить исключительно в боте.
+   */
+  tg_messages?: number;
+  tg_last_active?: string | null;
 }
 
 interface UsersResp {
@@ -397,7 +404,20 @@ const AdminUsersView: React.FC = () => {
                       className="hover:bg-forest-50 transition-colors cursor-pointer"
                     >
                       <td className="px-4 py-2.5 text-xs text-gray-400">{idx + 1}</td>
-                      <td className="px-4 py-2.5 font-mono text-xs text-gray-800">{formatPhone(u.phone)}</td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-gray-800">
+                        <span className="inline-flex items-center gap-1.5">
+                          {formatPhone(u.phone)}
+                          {(u.tg_messages ?? 0) > 0 && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-[10px] font-medium font-sans whitespace-nowrap"
+                              title={`${u.tg_messages} сообщений в Telegram-боте, последнее ${formatRelative(u.tg_last_active ?? null)}`}
+                            >
+                              <Send className="w-2.5 h-2.5" />
+                              {u.tg_messages}
+                            </span>
+                          )}
+                        </span>
+                      </td>
                       <td className="px-4 py-2.5 text-xs text-gray-600 whitespace-nowrap">{formatDateOnly(u.registered_at)}</td>
                       <td className="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">{formatRelative(u.last_active)}</td>
                       <td className="px-4 py-2.5 text-right text-amber-700 font-medium">

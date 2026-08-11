@@ -4,11 +4,18 @@ import { clsx } from 'clsx';
 import {
   X, Loader, AlertCircle, Coins, MessageSquare, Image as ImageIcon,
   Video, Phone, ArrowDown, ArrowUp, Activity, CreditCard, ClipboardList,
-  ChevronDown, ChevronRight, Lock,
+  ChevronDown, ChevronRight, Lock, Send,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
 import type { TaskListItem, TaskDetails } from '../../types/tasks';
+
+/**
+ * Канал, в котором шёл диалог. Веб-чат и Telegram-бот — разные хранилища с
+ * общим балансом, поэтому по одному только расходу не понять, где человек
+ * работает. 'both' бывает у ассистента, к которому обращались из обоих.
+ */
+type MessageSource = 'web' | 'telegram' | 'both';
 
 interface ActivityResp {
   user: {
@@ -33,11 +40,12 @@ interface ActivityResp {
     calls_count: number;
   };
   series: Array<{ day: string; tokens_spent: number; queries: number }>;
-  byAssistant: Array<{ id: number; name: string; queries: number; tokens: number; last_used: string | null }>;
+  byAssistant: Array<{ id: number; name: string; queries: number; tokens: number; last_used: string | null; source?: MessageSource }>;
   transactions: Array<{ id: string; created_at: string; amount: number; transaction_type: string; reason: string }>;
   recentMessages: Array<{
     id: string; created_at: string; agent_id: number | null;
     agent_name: string | null; role: string; preview: string;
+    source?: MessageSource; channel_title?: string | null;
   }>;
   payments?: Array<{
     id: string;
@@ -162,7 +170,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
 
   type AssistantSortKey = 'queries' | 'tokens' | 'last_used';
   const [assistantSort, setAssistantSort] = useState<SortState<AssistantSortKey>>({ key: 'tokens', dir: 'desc' });
-  type AssistantRow = { id: number; name: string; queries: number; tokens: number; last_used: string | null };
+  type AssistantRow = { id: number; name: string; queries: number; tokens: number; last_used: string | null; source?: MessageSource };
   const sortedByAssistant = useTableSort<AssistantRow, AssistantSortKey>(data?.byAssistant ?? [], assistantSort, {
     queries: cmp.num<AssistantRow>(a => a.queries),
     tokens: cmp.num<AssistantRow>(a => a.tokens),
@@ -516,7 +524,12 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                       <tbody className="divide-y divide-gray-100">
                         {sortedByAssistant.map(a => (
                           <tr key={a.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 text-gray-800">{a.name}</td>
+                            <td className="px-4 py-2 text-gray-800">
+                              <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                {a.name}
+                                <SourceBadge source={a.source} />
+                              </span>
+                            </td>
                             <td className="px-4 py-2 text-right text-gray-700 font-medium">{formatTokens(a.queries)}</td>
                             <td className="px-4 py-2 text-right text-amber-700 font-medium">
                               {a.tokens > 0 ? formatTokens(a.tokens) : <span className="text-gray-300 font-normal">—</span>}
@@ -750,10 +763,11 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                       {data.recentMessages.map(m => (
                         <div key={m.id} className="px-4 py-2 text-xs">
                           <div className="flex items-baseline gap-2 justify-between">
-                            <span className="font-medium text-gray-700 truncate">
+                            <span className="font-medium text-gray-700 truncate inline-flex items-center gap-1.5">
                               {m.role === 'human'
                                 ? t('admin.userActivity.role.user', 'Пользователь')
                                 : (m.agent_name || t('admin.userActivity.role.assistant', 'Ассистент'))}
+                              <SourceBadge source={m.source} title={m.channel_title} />
                             </span>
                             <span className="text-gray-400 text-[10px] whitespace-nowrap">{formatDateTime(m.created_at)}</span>
                           </div>
@@ -769,6 +783,23 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+/**
+ * Отметка «это из Telegram-бота». Молчит для веба, чтобы не зашумлять
+ * основной случай: интересна ровно аномалия — работа идёт мимо веб-чата.
+ */
+export const SourceBadge: React.FC<{ source?: MessageSource; title?: string | null }> = ({ source, title }) => {
+  if (source !== 'telegram' && source !== 'both') return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-[10px] font-medium align-middle whitespace-nowrap"
+      title={title || undefined}
+    >
+      <Send className="w-2.5 h-2.5" />
+      {source === 'both' ? 'Web + TG' : 'Telegram'}
+    </span>
   );
 };
 
