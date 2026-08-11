@@ -127,6 +127,19 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
       }))
     : getPackages(t);
 
+  /**
+   * Режим «пять карточек в ряд». Включается только на xl (1280px+) и только на
+   * рублёвой витрине: на 1024px пять колонок дают ~140px на карточку, из
+   * которых поля съедают 48px, и «Профессиональный» в text-xl (~175px) уезжал
+   * в соседнюю колонку. Валютная витрина из трёх пакетов сюда не попадает —
+   * иначе она ужалась бы без причины.
+   *
+   * Флагом помечены и сетка, и кегли: в пятиколоночном режиме типографика
+   * уменьшается, а не растёт, потому что колонка здесь уже, чем в трёх
+   * колонках на md. Запас считаем по немецкому — там слова длиннее русских.
+   */
+  const fiveUp = packages.length > 3;
+
   const handlePurchase = async (packageId: string, method: 'card' | 'crypto' = 'crypto') => {
     const selectedPkg = packages.find(pkg => pkg.id === packageId);
     if (!selectedPkg) return;
@@ -294,11 +307,16 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
           {/* Сетку делят две витрины разной длины: рублёвая на пять пакетов и
               валютная на три. Пять колонок на трёх карточках дали бы две
               пустые — поэтому расширяем сетку только когда карточек больше 3. */}
-          <div className={`grid md:grid-cols-3 gap-6 ${packages.length > 3 ? 'lg:grid-cols-5' : ''}`}>
+          <div className={`grid md:grid-cols-3 gap-6 ${fiveUp ? 'xl:grid-cols-5' : ''}`}>
             {packages.map((pkg) => (
               <div
                 key={pkg.id}
-                className={`relative rounded-xl border-2 p-6 transition-all duration-200 ${
+                /* min-w-0 обязателен: без него длинное слово задаёт колонке
+                   минимальную ширину по себе и распирает трек грида наружу,
+                   вместо того чтобы ужаться внутри карточки. */
+                className={`relative rounded-xl border-2 p-6 min-w-0 transition-all duration-200 ${
+                  fiveUp ? 'xl:p-4' : ''
+                } ${
                   pkg.popular
                     ? 'border-forest-500 shadow-lg scale-105'
                     : 'border-gray-200 hover:border-forest-300 hover:shadow-md'
@@ -329,10 +347,16 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                 )}
 
                 <div className="text-center mb-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
+                  <h3 className={`text-xl font-bold text-gray-900 mb-2 leading-tight ${
+                    fiveUp ? 'xl:text-sm' : ''
+                  }`}>{pkg.name}</h3>
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <Coins className="w-5 h-5 text-forest-600" />
-                    <span className="text-2xl font-bold text-forest-700">
+                    {/* shrink-0 — иначе на узкой колонке флексбокс сжимал
+                        иконку в ноль и она обрезалась половиной монеты. */}
+                    <Coins className="w-5 h-5 shrink-0 text-forest-600" />
+                    <span className={`text-2xl font-bold text-forest-700 ${
+                      fiveUp ? 'xl:text-xl' : ''
+                    }`}>
                       {formatTokens(pkg.tokens)}
                     </span>
                   </div>
@@ -348,7 +372,9 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                 <div className="mb-6">
                   <div className="text-center">
                     {isCrypto && <span className="text-xl text-gray-600 mr-1">$</span>}
-                    <span className="text-4xl font-bold text-gray-900">{pkg.price}</span>
+                    <span className={`text-4xl font-bold text-gray-900 ${
+                      fiveUp ? 'xl:text-3xl' : ''
+                    }`}>{pkg.price}</span>
                     {!isCrypto && <span className="text-xl text-gray-600 ml-1">₽</span>}
                   </div>
                   <p className="text-center text-xs text-gray-500 mt-1">
