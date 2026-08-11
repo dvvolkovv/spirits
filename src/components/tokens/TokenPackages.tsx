@@ -291,7 +291,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
               (проверено 2026-08-08 — только список монет и адрес для перевода).
               Вернуть, когда кнопка «Картой» появится. */}
 
-          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6">
+          {/* Сетку делят две витрины разной длины: рублёвая на пять пакетов и
+              валютная на три. Пять колонок на трёх карточках дали бы две
+              пустые — поэтому расширяем сетку только когда карточек больше 3. */}
+          <div className={`grid md:grid-cols-3 gap-6 ${packages.length > 3 ? 'lg:grid-cols-5' : ''}`}>
             {packages.map((pkg) => (
               <div
                 key={pkg.id}
