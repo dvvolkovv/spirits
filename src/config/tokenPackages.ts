@@ -46,7 +46,6 @@ export const RUB_PACKAGES: RubPackage[] = [
     nameKey: 'payment.info.package_extended',
     amountKey: 'payment.info.package_extended_amount',
     savingsPct: 15,
-    popular: true,
   },
   {
     id: 'professional',
@@ -55,6 +54,7 @@ export const RUB_PACKAGES: RubPackage[] = [
     nameKey: 'payment.info.package_pro',
     amountKey: 'payment.info.package_pro_amount',
     savingsPct: 30,
+    popular: true,
   },
   {
     id: 'business',
