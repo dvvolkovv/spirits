@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { SUPPORTED_LANGUAGES, SUPPORTED_CODES, DEFAULT_LANGUAGE, VISITOR_FALLBACK, resolveLanguage } from './languages';
 
 describe('SUPPORTED_LANGUAGES', () => {
-  it('содержит шесть языков в фиксированном порядке', () => {
-    expect(SUPPORTED_CODES).toEqual(['ru', 'en', 'es', 'de', 'fr', 'zh']);
+  it('содержит семь языков в фиксированном порядке', () => {
+    expect(SUPPORTED_CODES).toEqual(['ru', 'en', 'es', 'de', 'fr', 'zh', 'pt']);
   });
 
   it('у каждого языка есть родное название и флаг', () => {
@@ -30,9 +30,19 @@ describe('resolveLanguage', () => {
   });
 
   it('незнакомый язык уводит в английский, а не в русский', () => {
-    expect(resolveLanguage('pt')).toBe(VISITOR_FALLBACK);
+    expect(resolveLanguage('uk')).toBe(VISITOR_FALLBACK);
     expect(resolveLanguage('ja-JP')).toBe(VISITOR_FALLBACK);
-    expect(resolveLanguage('pt')).not.toBe(DEFAULT_LANGUAGE);
+    expect(resolveLanguage('uk')).not.toBe(DEFAULT_LANGUAGE);
+  });
+
+  // Раньше 'pt' стоял здесь как пример НЕподдерживаемого языка. Португальский
+  // добавлен — и тест обязан это заметить, иначе он молча охраняет обратное
+  // тому, что нужно продукту.
+  it('португальский поддержан и оба варианта схлопываются в pt', () => {
+    expect(resolveLanguage('pt')).toBe('pt');
+    expect(resolveLanguage('pt-PT')).toBe('pt');
+    expect(resolveLanguage('pt-BR')).toBe('pt');
+    expect(resolveLanguage('pt')).not.toBe(VISITOR_FALLBACK);
   });
 
   it('пустое значение — тоже английский: языка посетителя мы не знаем', () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
-import { defaultCountryForLanguage } from './phoneCountry';
+import { defaultCountryForLanguage, COUNTRY_BY_LANGUAGE } from './phoneCountry';
+import { SUPPORTED_CODES } from '../../i18n/languages';
 
 describe('defaultCountryForLanguage', () => {
   it('подбирает страну по языку интерфейса', () => {
@@ -14,11 +15,30 @@ describe('defaultCountryForLanguage', () => {
   });
 
   it('для незнакомой локали предлагает США, а не Россию', () => {
-    // Следствие английского фолбэка (i18n/languages.ts): португалец больше не
-    // получает предзаполненный +7. Страна — лишь первый выбор, список открыт.
-    expect(defaultCountryForLanguage('pt')).toBe('US');
+    // Следствие английского фолбэка (i18n/languages.ts): иностранец не должен
+    // получать предзаполненный +7. Страна — лишь первый выбор, список открыт.
+    expect(defaultCountryForLanguage('uk')).toBe('US');
     expect(defaultCountryForLanguage(undefined)).toBe('US');
     expect(defaultCountryForLanguage(null)).toBe('US');
+  });
+
+  // Раньше 'pt' стоял в примере выше как незнакомый код и давал 'US' через
+  // английский фолбэк. Как только португальский попал в реестр, он перестал
+  // проваливаться в фолбэк, промахнулся мимо карты стран и дал 'RU' — то есть
+  // ровно тот +7, от которого этот тест и защищал.
+  it('португальский интерфейс даёт PT, а не RU и не US', () => {
+    expect(defaultCountryForLanguage('pt')).toBe('PT');
+    expect(defaultCountryForLanguage('pt-PT')).toBe('PT');
+    // pt-BR схлопывается в европейский pt — страна тоже европейская.
+    expect(defaultCountryForLanguage('pt-BR')).toBe('PT');
+    expect(defaultCountryForLanguage('pt')).not.toBe('RU');
+  });
+
+  it('у каждого языка реестра есть своя страна — промах карты недопустим', () => {
+    // Без этого следующий добавленный язык молча получит страну-фолбэк.
+    for (const code of SUPPORTED_CODES) {
+      expect(COUNTRY_BY_LANGUAGE[code], `нет страны для «${code}»`).toBeDefined();
+    }
   });
 
   it('русский интерфейс по-прежнему даёт RU', () => {

@@ -369,8 +369,7 @@
       "activation": "Activation",
       "monitoring": "Monitoring",
       "backlog": "Backlog",
-      "product": "Product",
-      "reports": "Reports"
+      "product": "Product"
     },
     "product": {
       "tabs": {
@@ -609,7 +608,9 @@
       "reply_placeholder_internal": "Internal note (team only)…",
       "reply_placeholder_user": "Reply to user…",
       "internal_note_label": "Internal note (hidden from user)",
-      "tokens_unit": "tokens: {{value}}"
+      "tokens_unit": "tokens: {{value}}",
+      "section_tickets": "Tickets",
+      "section_reports": "Reports"
     },
     "userActivity": {
       "title": "User activity",

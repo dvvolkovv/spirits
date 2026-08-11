@@ -370,8 +370,7 @@
       "activation": "Активация",
       "monitoring": "Мониторинг",
       "backlog": "Бэклог",
-      "product": "Управление продуктом",
-      "reports": "Жалобы"
+      "product": "Управление продуктом"
     },
     "product": {
       "tabs": {
@@ -610,7 +609,9 @@
       "reply_placeholder_internal": "Внутренняя заметка (видна только команде)…",
       "reply_placeholder_user": "Ответ пользователю…",
       "internal_note_label": "Внутренняя заметка (не видна пользователю)",
-      "tokens_unit": "токены: {{value}}"
+      "tokens_unit": "токены: {{value}}",
+      "section_tickets": "Обращения",
+      "section_reports": "Жалобы"
     },
     "userActivity": {
       "title": "Активность пользователя",

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, Send, AlertTriangle, CheckCircle, Inbox, Clock, Bot, UserCircle2, Headphones, ArrowLeft, ListPlus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import AdminReportsView from './AdminReportsView';
 
 interface TicketListItem {
   id: string;
@@ -93,6 +94,12 @@ const AdminSupportView: React.FC = () => {
   const [replyInternal, setReplyInternal] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Жалобы живут здесь же, а не отдельной вкладкой: и то и другое —
+  // входящие обращения, которые кто-то должен разобрать. Разносить их по
+  // разным местам админки значило бы, что про одно из двух забудут.
+  const [section, setSection] = useState<'tickets' | 'reports'>('tickets');
+  const [openReports, setOpenReports] = useState<number | null>(null);
 
   const fetchList = useCallback(async () => {
     try {
@@ -233,8 +240,54 @@ const AdminSupportView: React.FC = () => {
     return Math.round((stats.ai_only_in_window / stats.resolved_in_window) * 100);
   })();
 
+  // Счётчик неразобранного на самой вкладке: иначе про жалобы вспоминают,
+  // только когда придёт напоминание в Telegram.
+  useEffect(() => {
+    let alive = true;
+    apiClient.get('/webhook/admin/reports/summary')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d) setOpenReports(d.open ?? 0); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [section]);
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
+      {/* Переключатель разделов */}
+      <div className="bg-white border-b border-gray-200 px-4 py-2 flex gap-2 flex-shrink-0">
+        {([
+          { id: 'tickets' as const, label: t('admin.support.section_tickets') },
+          { id: 'reports' as const, label: t('admin.support.section_reports'), badge: openReports },
+        ]).map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setSection(s.id)}
+            className={clsx(
+              'px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2',
+              section === s.id
+                ? 'bg-forest-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+            )}
+          >
+            {s.label}
+            {'badge' in s && s.badge != null && s.badge > 0 && (
+              <span className={clsx(
+                'px-1.5 py-0.5 rounded-full text-[10px]',
+                section === s.id ? 'bg-white/25' : 'bg-red-100 text-red-700',
+              )}>
+                {s.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {section === 'reports' ? (
+        <div className="flex-1 overflow-y-auto p-4">
+          <AdminReportsView />
+        </div>
+      ) : (
+      <>
       {/* KPI Bar */}
       {stats && (
         <div className="bg-white border-b border-gray-200 px-4 py-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-600 flex-shrink-0">
@@ -495,6 +548,8 @@ const AdminSupportView: React.FC = () => {
         )}
       </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

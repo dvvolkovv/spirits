@@ -11,7 +11,7 @@ import { flatten, missingKeys } from './locale-utils.mjs';
 // Список продублирован из src/i18n/languages.ts намеренно: тот файл —
 // TypeScript, node его не исполнит. check-locales.test.mjs следит,
 // чтобы дубль не разъехался с реестром.
-const SUPPORTED_CODES = ['ru', 'en', 'es', 'de', 'fr', 'zh'];
+const SUPPORTED_CODES = ['ru', 'en', 'es', 'de', 'fr', 'zh', 'pt'];
 const DEFAULT_LANGUAGE = 'ru';
 
 /**
