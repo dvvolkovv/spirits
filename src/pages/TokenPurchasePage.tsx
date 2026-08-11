@@ -349,7 +349,7 @@ const TokenPurchasePage: React.FC = () => {
                   )}
 
                   <div className="text-center mb-6">
-                    <h3 className={`text-xl font-bold text-gray-900 mb-2 leading-tight ${
+                    <h3 className={`text-xl font-bold text-gray-900 mb-2 leading-tight break-words ${
                       fiveUp ? 'xl:text-sm' : ''
                     }`}>{pkg.name}</h3>
                     <div className="flex items-center justify-center space-x-1 mb-2">
