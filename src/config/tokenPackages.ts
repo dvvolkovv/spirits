@@ -28,14 +28,14 @@ export interface RubPackage {
   popular?: boolean;
 }
 
-/** Базовая цена за 1000 токенов — стартовый пакет. От неё считаются скидки. */
-export const BASE_PRICE_PER_1000 = 149 / 50;
-
 export const RUB_PACKAGES: RubPackage[] = [
   {
     id: 'starter',
     priceRub: 149,
     tokens: 50_000,
+    // Ключ верхнеуровневый, а не payment.info.package_*, как у соседей: он
+    // старше выделения секции payment.info и уже переведён везде — заводить
+    // дубль незачем.
     nameKey: 'payment.package_starter_name',
     amountKey: 'payment.info.package_basic_amount',
   },
@@ -75,6 +75,16 @@ export const RUB_PACKAGES: RubPackage[] = [
     savingsPct: 50,
   },
 ];
+
+/**
+ * Базовая цена за 1000 токенов — стартовый пакет. От неё считаются скидки.
+ *
+ * Выводится из самого прайса, а не выписывается числом: иначе при снижении
+ * цены стартового пакета база осталась бы завышенной, «фактическая выгода»
+ * посчиталась бы больше настоящей, и тест честности ярлыков остался бы зелёным
+ * при завышенных обещаниях.
+ */
+export const BASE_PRICE_PER_1000 = RUB_PACKAGES[0].priceRub / (RUB_PACKAGES[0].tokens / 1000);
 
 /**
  * id валютного пакета → ключ названия. Сами пакеты (цена, объём) приходят с
