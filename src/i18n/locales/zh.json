@@ -192,7 +192,10 @@
     "telegram_connecting": "正在连接…",
     "telegram_submit": "连接",
     "social_connect_button": "连接 {{platform}}",
-    "social_connect_hint": "将打开 {{platform}} 的授权页面，授权完成后会返回聊天界面。"
+    "social_connect_hint": "将打开 {{platform}} 的授权页面，授权完成后会返回聊天界面。",
+    "files_too_large": "这些文件共 {{total}} MB，单条消息最多 {{max}} MB。请去掉一部分，其余的用下一条消息发送。",
+    "assistant_working": "助手正在处理你上一条消息",
+    "assistant_working_hint": "回复会自动出现在这里，你可以离开此页面。"
   },
   "profile": {
     "title": "我的个人资料",

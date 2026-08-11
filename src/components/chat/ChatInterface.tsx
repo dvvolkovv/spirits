@@ -23,6 +23,7 @@ import TelegramConnectForm from './TelegramConnectForm';
 import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
 import { avatarService } from '../../services/avatarService';
 import { apiClient } from '../../services/apiClient';
+import { MAX_UPLOAD_TOTAL_BYTES, totalSize, sizeInMb, clientTimeZone, UploadRejected } from '../../utils/uploadLimits';
 import { refreshWidget } from '../../services/widgetClient';
 import { useVideoJobs } from '../video/useVideoJobs';
 import VideoJobCard from '../video/VideoJobCard';
@@ -467,6 +468,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // chatContainerRef removed — using messagesContainerRef
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // Ход, который идёт на сервере, но НЕ в этой вкладке: пользователь перезагрузил
+  // страницу или вернулся с телефона, пока ассистент считает. Индикатор «печатает»
+  // жил только в памяти вкладки, и после F5 работающий чат выглядел мёртвым —
+  // человек ждал в тишине и в итоге слал «?», чем убивал собственный ход
+  // (релей пре-эмптит предыдущий процесс сессии). 19 таких «?» за неделю.
+  const [remoteTurnActive, setRemoteTurnActive] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
@@ -732,6 +739,37 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       clearInterval(id);
     };
   }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping, freshTs]);
+
+  // Идёт ли ход на сервере прямо сейчас. Спрашиваем только когда в этой вкладке
+  // стрима нет — иначе про свой же ход и спрашивать незачем. Отвечает бэкенд по
+  // реестру живых стримов, поэтому индикатор переживает и F5, и смену устройства.
+  // Готовый ответ подхватит соседний поллинг истории выше — здесь только признак
+  // «идёт работа», чтобы человек не думал, что чат завис.
+  useEffect(() => {
+    if (!selectedAssistant || !hasUserSelectedAssistant) return;
+    if (isTyping) { setRemoteTurnActive(false); return; }
+
+    let cancelled = false;
+    const assistantId = selectedAssistant.id;
+
+    const check = async () => {
+      try {
+        const r = await apiClient.get(`/webhook/chat/active-turn?assistantId=${assistantId}`);
+        if (cancelled || !r.ok) return;
+        const data = await r.json();
+        if (selectedAssistantRef.current?.id !== assistantId) return;
+        setRemoteTurnActive(Boolean(data?.active));
+      } catch { /* сеть моргнула — индикатор просто не обновится */ }
+    };
+
+    check();
+    const id = setInterval(check, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      setRemoteTurnActive(false);
+    };
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping]);
 
   const sendInitialGreeting = async () => {
     if (!selectedAssistant) return;
@@ -1127,6 +1165,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // уйти раньше записи. Профиль остаётся главным — приоритет разбирает
         // LanguageService.resolveUserLanguage на бэке.
         lang: resolveLanguage(i18n.language),
+        // Часовой пояс устройства. Без него ассистент считает время по UTC
+        // сервера и расходится с пользователем — у клиентки из ЯНАО разница
+        // была пять часов, и разбирать её приходилось прямо в переписке.
+        tz: clientTimeZone(),
         ...(freshTs ? { fresh: true, freshTs } : {})
       }, {
         signal: controller.signal
@@ -1806,9 +1848,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleFileTaskSubmit = async () => {
     if (!pendingFiles.length || !fileTaskInput.trim()) return;
 
-    setShowFileTaskModal(false);
     const files = pendingFiles;
     const task = fileTaskInput.trim();
+
+    // Отказ ДО выгрузки. Раньше пачка уезжала целиком, упиралась в
+    // client_max_body_size на nginx и возвращала 413, который фронт показывал
+    // как «не удалось обработать файл» — про размер не говорилось ни слова, и
+    // пользователь честно пробовал ещё и ещё (11.08: 56.6, 61.0 и снова 61.0 МБ).
+    const bytes = totalSize(files);
+    if (bytes > MAX_UPLOAD_TOTAL_BYTES) {
+      toast.error(
+        t('chat.files_too_large', {
+          total: sizeInMb(bytes),
+          max: sizeInMb(MAX_UPLOAD_TOTAL_BYTES),
+        }),
+        { duration: 7000 },
+      );
+      if (user?.phone) trackAuthed('file_upload_rejected_size', user.phone, {
+        count: files.length,
+        size: bytes,
+        assistant_id: selectedAssistant?.id,
+      });
+      return; // модалка остаётся открытой — файлы не потеряны, можно снять лишние
+    }
+
+    setShowFileTaskModal(false);
     setPendingFiles([]);
     setFileTaskInput('');
 
@@ -1864,6 +1928,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       const response = await apiClient.post('/webhook/agent/upload-and-chat', formData);
 
+      // 413 — единственный отказ, у которого есть понятная пользователю причина
+      // и понятное действие. Прятать его за общим «не удалось обработать файл»
+      // значило отправлять человека по кругу: ровно это и происходило 11.08.
+      if (response.status === 413) {
+        throw new UploadRejected(t('chat.files_too_large', {
+          total: sizeInMb(totalSize(files)),
+          max: sizeInMb(MAX_UPLOAD_TOTAL_BYTES),
+        }));
+      }
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const reader = response.body?.getReader();
@@ -1906,10 +1979,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setMessages(prev => [...prev, assistantMsg]);
     } catch (error) {
       if (user?.phone) trackAuthed('file_upload_error', user.phone, { count: files.length, name: files.map(f => f.name).join(', ').slice(0, 200), error: error instanceof Error ? error.message : String(error), assistant_id: selectedAssistant?.id });
+      // Свою внятную причину (превышен размер) показываем как есть. Общая
+      // заглушка остаётся только для того, чего мы объяснить не можем.
       const errMsg: Message = {
         id: assistantMsgId,
         type: 'assistant',
-        content: t('chat.file_error_fallback'),
+        content: error instanceof UploadRejected ? error.message : t('chat.file_error_fallback'),
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errMsg]);
@@ -2474,6 +2549,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onSendMessage={sendMessageText}
             />
           )
+        )}
+
+        {/* Ход идёт на сервере, но не в этой вкладке (перезагрузили страницу,
+            вернулись с другого устройства). Без этой карточки чат выглядел
+            зависшим, и пользователь слал «?» — обрывая собственный ответ. */}
+        {remoteTurnActive && !streamingMessageId && !isTyping && !historyLoading && (
+          <div className="flex justify-start">
+            <div className="max-w-lg px-4 py-3 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md">
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <div className="w-5 h-5 border-2 border-forest-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <span>{t('chat.assistant_working')}</span>
+              </div>
+              <p className="mt-1 text-xs text-gray-400">{t('chat.assistant_working_hint')}</p>
+            </div>
+          </div>
         )}
 
         {/* Session-peak soft-paywall для Романа (d6b733de): ≥15 сообщений в текущей

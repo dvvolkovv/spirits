@@ -194,7 +194,10 @@
     "telegram_submit": "Connecter",
     "social_connect_button": "Connecter {{platform}}",
     "social_connect_hint": "La page d'autorisation {{platform}} va s'ouvrir. Une fois validée, tu reviendras au chat.",
-    "file_count_many": "{{count}} de fichiers"
+    "file_count_many": "{{count}} de fichiers",
+    "files_too_large": "Ces fichiers totalisent {{total}} Mo, or la limite par message est de {{max}} Mo. Retires-en quelques-uns et envoie le reste dans un autre message.",
+    "assistant_working": "L'assistant travaille encore sur ton message précédent",
+    "assistant_working_hint": "La réponse apparaîtra ici toute seule — tu peux quitter cette page."
   },
   "profile": {
     "title": "Mon profil",

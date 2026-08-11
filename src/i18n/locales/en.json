@@ -193,7 +193,10 @@
     "telegram_connecting": "Connecting…",
     "telegram_submit": "Connect",
     "social_connect_button": "Connect {{platform}}",
-    "social_connect_hint": "The {{platform}} authorization page will open. Once approved, you'll return to the chat."
+    "social_connect_hint": "The {{platform}} authorization page will open. Once approved, you'll return to the chat.",
+    "files_too_large": "These files add up to {{total}} MB — the limit per message is {{max}} MB. Remove a few and send the rest in a follow-up message.",
+    "assistant_working": "The assistant is working on your previous message",
+    "assistant_working_hint": "The reply will appear here on its own — you can leave this page."
   },
   "profile": {
     "title": "My profile",

@@ -194,7 +194,10 @@
     "telegram_connecting": "A ligar…",
     "telegram_submit": "Ligar",
     "social_connect_button": "Ligar {{platform}}",
-    "social_connect_hint": "Vai abrir a página de autorização do {{platform}}. Depois de aprovares, voltas ao chat."
+    "social_connect_hint": "Vai abrir a página de autorização do {{platform}}. Depois de aprovares, voltas ao chat.",
+    "files_too_large": "Os ficheiros somam {{total}} MB — o limite por mensagem é de {{max}} MB. Retire alguns e envie o resto noutra mensagem.",
+    "assistant_working": "O assistente ainda está a trabalhar na sua mensagem anterior",
+    "assistant_working_hint": "A resposta aparecerá aqui sozinha — pode sair desta página."
   },
   "profile": {
     "title": "O meu perfil",

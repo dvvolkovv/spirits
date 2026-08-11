@@ -193,7 +193,10 @@
     "telegram_connecting": "Verbinde…",
     "telegram_submit": "Verbinden",
     "social_connect_button": "{{platform}} verbinden",
-    "social_connect_hint": "Die {{platform}}-Anmeldeseite öffnet sich. Nach der Freigabe kehrst du zum Chat zurück."
+    "social_connect_hint": "Die {{platform}}-Anmeldeseite öffnet sich. Nach der Freigabe kehrst du zum Chat zurück.",
+    "files_too_large": "Die Dateien ergeben zusammen {{total}} MB — pro Nachricht sind höchstens {{max}} MB möglich. Nimm ein paar heraus und schick den Rest in einer weiteren Nachricht.",
+    "assistant_working": "Die Assistenz arbeitet noch an deiner vorherigen Nachricht",
+    "assistant_working_hint": "Die Antwort erscheint von selbst hier — du kannst die Seite verlassen."
   },
   "profile": {
     "title": "Mein Profil",
