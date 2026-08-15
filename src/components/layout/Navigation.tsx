@@ -20,6 +20,7 @@ import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
 import LegalModal from '../onboarding/LegalModal';
 import { useUnreadSummary } from '../peer/usePeer';
+import { balanceLevel } from '../../config/balanceThresholds';
 
 const Navigation: React.FC = () => {
   const { t } = useTranslation();
@@ -158,7 +159,12 @@ const Navigation: React.FC = () => {
                 </div>
                 <Plus className="w-4 h-4 text-forest-600" />
               </div>
-              <div className="text-2xl font-bold text-forest-700">
+              <div className={clsx(
+                'text-2xl font-bold',
+                balanceLevel(user.tokens) === 'critical'
+                  ? 'text-red-700'
+                  : balanceLevel(user.tokens) === 'low' ? 'text-amber-700' : 'text-forest-700',
+              )}>
                 {formatTokens(user.tokens)}
               </div>
               <p className="text-xs text-forest-600 mt-1 font-medium">

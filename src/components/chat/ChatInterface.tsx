@@ -30,6 +30,7 @@ import VideoJobCard from '../video/VideoJobCard';
 import { InlineCalendarProposals } from '../calendar/InlineCalendarProposals';
 import { trackAuthed } from '../../services/eventsClient';
 import { getRoleForAssistant } from './assistantRole';
+import { balanceLevel } from '../../config/balanceThresholds';
 
 interface Assistant {
   id: number;
@@ -2213,11 +2214,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             {user?.tokens !== undefined && (
               <button
                 onClick={() => setShowTokenPackages(true)}
-                className="flex items-center space-x-1.5 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg border border-forest-200 hover:border-forest-300 transition-all cursor-pointer"
-                title={t('chat.tokens_top_up_title')}
+                className={clsx(
+                  'flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border transition-all cursor-pointer',
+                  balanceLevel(user.tokens) === 'critical'
+                    ? 'bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300'
+                    : balanceLevel(user.tokens) === 'low'
+                      ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 hover:border-amber-300'
+                      : 'bg-forest-50 hover:bg-forest-100 border-forest-200 hover:border-forest-300',
+                )}
+                title={
+                  balanceLevel(user.tokens) === 'critical'
+                    ? t('chat.tokens_critical_title')
+                    : balanceLevel(user.tokens) === 'low'
+                      ? t('chat.tokens_low_title')
+                      : t('chat.tokens_top_up_title')
+                }
               >
-                <Coins className="w-4 h-4 text-forest-600" />
-                <span className="text-sm font-semibold text-forest-700">
+                <Coins className={clsx(
+                  'w-4 h-4',
+                  balanceLevel(user.tokens) === 'critical'
+                    ? 'text-red-600'
+                    : balanceLevel(user.tokens) === 'low' ? 'text-amber-600' : 'text-forest-600',
+                )} />
+                <span className={clsx(
+                  'text-sm font-semibold',
+                  balanceLevel(user.tokens) === 'critical'
+                    ? 'text-red-700'
+                    : balanceLevel(user.tokens) === 'low' ? 'text-amber-700' : 'text-forest-700',
+                )}>
                   {formatTokens(user.tokens)}
                 </span>
               </button>
