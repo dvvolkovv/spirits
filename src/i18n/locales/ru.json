@@ -105,6 +105,8 @@
     "select_assistant_hint": "в панели слева",
     "upload_any_file": "Загрузить файл",
     "tokens_top_up_title": "Нажмите для пополнения токенов",
+    "tokens_low_title": "Токены заканчиваются",
+    "tokens_critical_title": "Токены почти закончились",
     "regenerate_title": "Перегенерировать ответ",
     "clear_title": "Очистить чат",
     "clear_confirm": "Очистить историю чата? Это действие нельзя отменить.",

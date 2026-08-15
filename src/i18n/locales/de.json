@@ -105,6 +105,8 @@
     "select_assistant_hint": "im linken Bereich",
     "upload_any_file": "Datei hochladen",
     "tokens_top_up_title": "Zum Aufladen von Tokens tippen",
+    "tokens_low_title": "Die Tokens gehen zur Neige",
+    "tokens_critical_title": "Die Tokens sind fast aufgebraucht",
     "regenerate_title": "Antwort neu generieren",
     "clear_title": "Chat löschen",
     "clear_confirm": "Chat-Verlauf löschen? Das lässt sich nicht rückgängig machen.",

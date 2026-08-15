@@ -105,6 +105,8 @@
     "select_assistant_hint": "no painel da esquerda",
     "upload_any_file": "Carregar ficheiro",
     "tokens_top_up_title": "Clique para carregar tokens",
+    "tokens_low_title": "Os tokens estão a acabar",
+    "tokens_critical_title": "Os tokens estão quase esgotados",
     "regenerate_title": "Gerar a resposta novamente",
     "clear_title": "Limpar o chat",
     "clear_confirm": "Limpar o histórico do chat? Esta ação não pode ser anulada.",

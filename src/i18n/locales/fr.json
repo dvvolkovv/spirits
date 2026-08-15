@@ -105,6 +105,8 @@
     "select_assistant_hint": "dans le panneau de gauche",
     "upload_any_file": "Charger un fichier",
     "tokens_top_up_title": "Clique pour recharger tes jetons",
+    "tokens_low_title": "Tes jetons s'épuisent",
+    "tokens_critical_title": "Tes jetons sont presque épuisés",
     "regenerate_title": "Régénérer la réponse",
     "clear_title": "Effacer le chat",
     "clear_confirm": "Effacer l'historique du chat ? Cette action est irréversible.",

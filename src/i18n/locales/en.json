@@ -105,6 +105,8 @@
     "select_assistant_hint": "from the panel on the left",
     "upload_any_file": "Upload file",
     "tokens_top_up_title": "Click to top up tokens",
+    "tokens_low_title": "Tokens are running low",
+    "tokens_critical_title": "Tokens are almost gone",
     "regenerate_title": "Regenerate response",
     "clear_title": "Clear chat",
     "clear_confirm": "Clear chat history? This action cannot be undone.",

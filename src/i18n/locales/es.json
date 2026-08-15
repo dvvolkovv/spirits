@@ -105,6 +105,8 @@
     "select_assistant_hint": "en el panel izquierdo",
     "upload_any_file": "Subir archivo",
     "tokens_top_up_title": "Toca para recargar tokens",
+    "tokens_low_title": "Los tokens se están agotando",
+    "tokens_critical_title": "Los tokens casi se han agotado",
     "regenerate_title": "Regenerar respuesta",
     "clear_title": "Vaciar chat",
     "clear_confirm": "¿Vaciar el historial del chat? Esta acción no se puede deshacer.",

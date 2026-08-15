@@ -105,6 +105,8 @@
     "select_assistant_hint": "在左侧面板中",
     "upload_any_file": "上传文件",
     "tokens_top_up_title": "点击充值代币",
+    "tokens_low_title": "代币即将用完",
+    "tokens_critical_title": "代币几乎用完了",
     "regenerate_title": "重新生成回复",
     "clear_title": "清空聊天",
     "clear_confirm": "确定要清空聊天记录吗？此操作无法撤销。",
