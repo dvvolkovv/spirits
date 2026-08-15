@@ -1071,6 +1071,7 @@
     "email_required_error": "请填写用于接收收据的邮箱",
     "email_invalid_error": "请填写有效的邮箱地址",
     "create_payment_error": "创建支付时出错，请稍后重试。",
+    "provider_unavailable": "支付服务方暂时无法处理付款。我们已经知悉此问题，请稍后重试。",
     "topup_modal_title": "充值代币",
     "topup_modal_subtitle": "选择代币套餐，继续与助手对话",
     "current_balance_label": "当前余额：",

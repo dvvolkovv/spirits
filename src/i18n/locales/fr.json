@@ -1081,6 +1081,7 @@
     "email_required_error": "Merci d'indiquer un email pour recevoir le reçu",
     "email_invalid_error": "Merci d'indiquer un email valide",
     "create_payment_error": "Une erreur est survenue lors de la création du paiement. Réessaie plus tard.",
+    "provider_unavailable": "Les paiements sont temporairement indisponibles du côté du prestataire. Nous sommes déjà au courant — réessaie plus tard.",
     "topup_modal_title": "Recharge de jetons",
     "topup_modal_subtitle": "Choisis un pack de jetons pour continuer à échanger avec les assistants",
     "current_balance_label": "Solde actuel :",

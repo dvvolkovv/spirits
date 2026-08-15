@@ -57,6 +57,12 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
   // (на $5 это +16% в TRON), а оплата картой у «Приёма» недоступна ниже $10.
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const isCrypto = method?.provider === 'priem';
+
+  // Провайдер лежит — это не наш баг и не проблема карты пользователя.
+  // Отличаем по коду из 503, чтобы показать причину вместо общего
+  // «что-то пошло не так»: 14.08.2026 магазин ЮKassa отключили, и люди двое
+  // суток видели «Произошла ошибка», не понимая, что платить бесполезно.
+  class ProviderDownError extends Error {}
   const [isProcessing, setIsProcessing] = useState(false);
   // Пришли из оффера (?offer=1) — показываем бейдж «+50% к первому пакету».
   // Реальный бонус всё равно начисляет бэкенд по факту первой оплаты вовлечённого.
@@ -151,7 +157,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
       setSelectedPackage(packageId);
       try {
         const response = await apiClient.post('/webhook/priem/create-payment', { package: packageId });
-        const data = await response.json();
+        const data = await response.json().catch(() => ({} as any));
+        if (response.status === 503 && data?.error === 'payment_provider_unavailable') {
+          throw new ProviderDownError();
+        }
         if (!response.ok || !data?.payment_url) {
           throw new Error(data?.error || 'no payment_url');
         }
@@ -164,7 +173,9 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
         window.location.href = target;
       } catch (error) {
         console.error('Ошибка при создании крипто-платежа:', error);
-        alert(t('payment.create_payment_error'));
+        alert(error instanceof ProviderDownError
+          ? t('payment.provider_unavailable')
+          : t('payment.create_payment_error'));
         setIsProcessing(false);
         setSelectedPackage(null);
       }
@@ -207,13 +218,18 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
           throw new Error('Не получена ссылка на оплату');
         }
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({} as any));
+        if (response.status === 503 && errorData?.error === 'payment_provider_unavailable') {
+          throw new ProviderDownError();
+        }
         // i18n-ignore: см. выше — до UI не доходит
         throw new Error(errorData.message || 'Ошибка создания платежа');
       }
     } catch (error) {
       console.error('Ошибка при создании платежа:', error);
-      alert(t('payment.create_payment_error'));
+      alert(error instanceof ProviderDownError
+        ? t('payment.provider_unavailable')
+        : t('payment.create_payment_error'));
       setIsProcessing(false);
       setSelectedPackage(null);
     }

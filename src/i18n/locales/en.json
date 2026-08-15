@@ -1399,6 +1399,7 @@
     "email_required_error": "Please provide an email to receive the receipt",
     "email_invalid_error": "Please provide a valid email",
     "create_payment_error": "An error occurred while creating the payment. Please try again later.",
+    "provider_unavailable": "Payments are temporarily unavailable on the provider's side. We're aware of the issue — please try again later.",
     "topup_modal_title": "Top up tokens",
     "topup_modal_subtitle": "Choose a token package to keep working with assistants",
     "current_balance_label": "Current balance:",

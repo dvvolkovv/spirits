@@ -1081,6 +1081,7 @@
     "email_required_error": "Indica un email para recibir el recibo",
     "email_invalid_error": "Indica un email válido",
     "create_payment_error": "Se produjo un error al crear el pago. Inténtalo más tarde.",
+    "provider_unavailable": "Los pagos no están disponibles temporalmente por parte del proveedor. Ya conocemos el problema; inténtalo más tarde.",
     "topup_modal_title": "Recarga de tokens",
     "topup_modal_subtitle": "Elige un paquete de tokens para seguir hablando con los asistentes",
     "current_balance_label": "Saldo actual:",

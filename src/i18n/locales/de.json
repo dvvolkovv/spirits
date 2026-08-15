@@ -1076,6 +1076,7 @@
     "email_required_error": "Bitte gib eine E-Mail-Adresse für den Beleg an",
     "email_invalid_error": "Bitte gib eine gültige E-Mail-Adresse an",
     "create_payment_error": "Beim Erstellen der Zahlung ist ein Fehler aufgetreten. Bitte versuche es später erneut.",
+    "provider_unavailable": "Zahlungen sind aufseiten des Zahlungsdienstleisters vorübergehend nicht verfügbar. Wir wissen bereits davon — bitte versuche es später erneut.",
     "topup_modal_title": "Tokens aufladen",
     "topup_modal_subtitle": "Wähle ein Token-Paket, um mit den Assistenten weiterzuarbeiten",
     "current_balance_label": "Aktuelles Guthaben:",
