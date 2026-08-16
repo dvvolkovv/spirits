@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { resolveLanguage } from '../../i18n/languages';
 import ReactMarkdown from 'react-markdown';
@@ -1531,6 +1531,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  // Высота поля — функция от текста, а не побочный эффект набора.
+  //
+  // Раньше её правил только onChange. Отправка чистит значение, но inline-height
+  // оставался прежним: после длинного сообщения поле держало все свои 200px,
+  // пока человек не начнёт печатать заново. На телефоне это половина экрана
+  // переписки — ровно там, где стримится ответ.
+  //
+  // Тот же эффект чинит и остальные пути, где текст ставится не с клавиатуры:
+  // голосовой ввод, ?say=, подсказки под приветствием.
+  useLayoutEffect(() => {
+    adjustTextareaHeight();
+  }, [input]);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -1538,15 +1551,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  // Высоту здесь не трогаем: её пересчитает эффект по [input] — в том числе
+  // после отправки, когда onChange уже не сработает.
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-    adjustTextareaHeight();
   };
 
   const insertSuggestion = (suggestion: string) => {
     setInput(suggestion);
     textareaRef.current?.focus();
-    adjustTextareaHeight();
   };
 
   const handleVoiceInput = async (auto = false) => {

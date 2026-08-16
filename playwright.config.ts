@@ -10,7 +10,9 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'https://my.linkeon.io',
+    // E2E_BASE_URL — прогнать те же сценарии против локального `pnpm dev`
+    // или test.linkeon.io, не выкатывая правку на прод (см. helpers/testData.ts).
+    baseURL: process.env.E2E_BASE_URL || 'https://my.linkeon.io',
     actionTimeout: 15_000,
     trace: 'on-first-retry',
     video: 'retain-on-failure',

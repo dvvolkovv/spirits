@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { BASE_URL } from '../helpers/testData';
+import { API_URL } from '../helpers/testData';
 
 // Run under chromium-admin project (storageState: test-admin.json)
 // The admin account (79030169187) is a referral leader, so /webhook/referral/stats
@@ -28,7 +28,7 @@ test.describe('Flow 09 — Referral', () => {
         status: res.status,
         body: await res.json().catch(() => null),
       };
-    }, BASE_URL);
+    }, API_URL);
 
     // Admin is a referral leader — expect 200
     expect(result.status).toBe(200);
@@ -69,7 +69,7 @@ test.describe('Flow 09 — Referral', () => {
         status: res.status,
         body: await res.json().catch(() => null),
       };
-    }, BASE_URL);
+    }, API_URL);
 
     expect(result.status).toBe(200);
     expect(result.body).not.toBeNull();

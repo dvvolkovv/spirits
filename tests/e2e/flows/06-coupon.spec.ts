@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
-import { BASE_URL } from '../helpers/testData';
+import { API_URL } from '../helpers/testData';
 
 // Run under chromium-user project (storageState: test-user.json).
 // Admin API calls are made directly via fetch using the admin storageState JSON.
@@ -25,7 +25,7 @@ function getAdminToken(): string {
 
 async function adminCreateCoupon(code: string, tokenAmount: number): Promise<void> {
   const adminToken = getAdminToken();
-  const res = await fetch(`${BASE_URL}/webhook/admin/coupons`, {
+  const res = await fetch(`${API_URL}/webhook/admin/coupons`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'create', code, token_amount: tokenAmount }),
@@ -35,7 +35,7 @@ async function adminCreateCoupon(code: string, tokenAmount: number): Promise<voi
 
 async function adminDeleteCoupon(code: string): Promise<void> {
   const adminToken = getAdminToken();
-  const res = await fetch(`${BASE_URL}/webhook/admin/coupons`, {
+  const res = await fetch(`${API_URL}/webhook/admin/coupons`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'delete', code }),
@@ -72,7 +72,7 @@ test.describe('Flow 06 — Coupon', () => {
         });
         const data = await res.json();
         return Number(data.tokens ?? data.balance ?? 0);
-      }, BASE_URL);
+      }, API_URL);
 
       // Redeem coupon
       await page.getByTestId('coupon-input').fill(uniqueCode);
@@ -90,7 +90,7 @@ test.describe('Flow 06 — Coupon', () => {
         });
         const data = await res.json();
         return Number(data.tokens ?? data.balance ?? 0);
-      }, BASE_URL);
+      }, API_URL);
 
       expect(tokensAfter).toBeGreaterThan(tokensBefore);
     } finally {

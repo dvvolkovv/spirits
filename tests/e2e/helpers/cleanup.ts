@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { BASE_URL } from './testData';
+import { API_URL } from './testData';
 import { assertIsTestPhone } from './guards';
 
 /**
@@ -20,7 +20,7 @@ async function getAccessToken(page: Page): Promise<string> {
 export async function clearChatHistory(page: Page, assistantId: string): Promise<void> {
   const token = await getAccessToken(page);
   const res = await fetch(
-    `${BASE_URL}/webhook/chat/history?assistantId=${encodeURIComponent(assistantId)}`,
+    `${API_URL}/webhook/chat/history?assistantId=${encodeURIComponent(assistantId)}`,
     {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
@@ -40,7 +40,7 @@ export async function updateProfile(
   payload: Record<string, unknown>,
 ): Promise<void> {
   const token = await getAccessToken(page);
-  const res = await fetch(`${BASE_URL}/webhook/profile-update`, {
+  const res = await fetch(`${API_URL}/webhook/profile-update`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -60,7 +60,7 @@ export async function updateProfile(
 export async function resetTokens(phone: string, delta: number): Promise<void> {
   assertIsTestPhone(phone);
   const res = await fetch(
-    `${BASE_URL}/webhook/debug/add-tokens/${phone}/${delta}`,
+    `${API_URL}/webhook/debug/add-tokens/${phone}/${delta}`,
     { method: 'POST' },
   );
   if (!res.ok) {
@@ -76,7 +76,7 @@ export async function createCoupon(
   params: { code: string; tokens: number },
 ): Promise<unknown> {
   const token = await getAccessToken(page);
-  const res = await fetch(`${BASE_URL}/webhook/admin/coupons`, {
+  const res = await fetch(`${API_URL}/webhook/admin/coupons`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -95,7 +95,7 @@ export async function createCoupon(
  */
 export async function deleteCoupon(page: Page, code: string): Promise<void> {
   const token = await getAccessToken(page);
-  const res = await fetch(`${BASE_URL}/webhook/admin/coupons`, {
+  const res = await fetch(`${API_URL}/webhook/admin/coupons`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

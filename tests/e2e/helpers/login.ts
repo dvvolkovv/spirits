@@ -1,4 +1,4 @@
-import { BASE_URL } from './testData';
+import { API_URL } from './testData';
 import { assertIsTestPhone } from './guards';
 import { fetchOtp } from './otp';
 
@@ -22,7 +22,7 @@ export async function loginViaApi(phone: string): Promise<LoginResult> {
   assertIsTestPhone(phone);
 
   // 1. Запрашиваем SMS-код.
-  const smsRes = await fetch(`${BASE_URL}/webhook/${SMS_WEBHOOK_UUID}/sms/${phone}`);
+  const smsRes = await fetch(`${API_URL}/webhook/${SMS_WEBHOOK_UUID}/sms/${phone}`);
   if (!smsRes.ok) {
     throw new Error(`login: SMS request failed ${smsRes.status} ${await smsRes.text()}`);
   }
@@ -32,7 +32,7 @@ export async function loginViaApi(phone: string): Promise<LoginResult> {
 
   // 3. Проверяем код → получаем токены.
   const checkRes = await fetch(
-    `${BASE_URL}/webhook/${CHECK_WEBHOOK_UUID}/check-code/${phone}/${code}`,
+    `${API_URL}/webhook/${CHECK_WEBHOOK_UUID}/check-code/${phone}/${code}`,
   );
   if (!checkRes.ok) {
     throw new Error(`login: check-code failed ${checkRes.status} ${await checkRes.text()}`);
@@ -45,7 +45,7 @@ export async function loginViaApi(phone: string): Promise<LoginResult> {
   }
 
   // 4. Грузим профиль, чтобы положить в localStorage 'userData'.
-  const profileRes = await fetch(`${BASE_URL}/webhook/profile`, {
+  const profileRes = await fetch(`${API_URL}/webhook/profile`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!profileRes.ok) {

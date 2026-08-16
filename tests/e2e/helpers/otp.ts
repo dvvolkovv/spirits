@@ -1,4 +1,4 @@
-import { BASE_URL } from './testData';
+import { API_URL } from './testData';
 import { assertIsTestPhone } from './guards';
 
 /**
@@ -18,7 +18,7 @@ export async function fetchOtp(
   const delayMs = opts.delayMs ?? 1000;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const res = await fetch(`${BASE_URL}/webhook/debug/sms-code/${phone}`);
+    const res = await fetch(`${API_URL}/webhook/debug/sms-code/${phone}`);
     if (res.ok) {
       const body = (await res.json()) as { code?: string };
       if (body.code) return body.code;

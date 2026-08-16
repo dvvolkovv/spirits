@@ -12,7 +12,18 @@ export default async function globalSetup(_config: FullConfig) {
 async function saveAuthState(phone: string, outPath: string): Promise<void> {
   if (fs.existsSync(outPath)) {
     const ageSec = (Date.now() - fs.statSync(outPath).mtimeMs) / 1000;
-    if (ageSec < 3600) {
+    // Кеш привязан к origin: localStorage у localhost и у прода — разные хранилища,
+    // и состояние от прошлого прогона против другого адреса даёт неотличимый от
+    // «протух токен» разлогин.
+    const cachedOrigin = (() => {
+      try {
+        const state = JSON.parse(fs.readFileSync(outPath, 'utf-8'));
+        return state.origins?.[0]?.origin as string | undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (ageSec < 3600 && cachedOrigin === new URL(BASE_URL).origin) {
       console.log(`[globalSetup] reusing cached auth for ${phone} (${Math.round(ageSec)}s old)`);
       return;
     }
