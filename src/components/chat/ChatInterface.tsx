@@ -30,6 +30,7 @@ import VideoJobCard from '../video/VideoJobCard';
 import { InlineCalendarProposals } from '../calendar/InlineCalendarProposals';
 import { trackAuthed } from '../../services/eventsClient';
 import { getRoleForAssistant } from './assistantRole';
+import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
 import { balanceLevel } from '../../config/balanceThresholds';
 
 interface Assistant {
@@ -681,39 +682,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // Если ассистент уже сменился пока fetch шёл — не вмешиваемся
           if (selectedAssistant?.id !== assistantId) return prev;
 
-          const lastLocal = prev[prev.length - 1];
-          const lastLocalTime = lastLocal.timestamp instanceof Date
-            ? lastLocal.timestamp.getTime()
-            : new Date(lastLocal.timestamp as any).getTime();
-
           // Дедуп: по id (если backend вернул тот же id, маловероятно но возможно)
           // и по content — локальные сообщения создаются с uuid, в БД хранятся
-          // с serial id, поэтому совпадение по id почти не работает. Контентный
-          // дедуп берёт последние 8 локальных сообщений с тем же sender_type
-          // и сравнивает строки, чтобы не задвоить только что отправленную
-          // пару (timestamps локального и БД-копии расходятся на ~50-200мс из-за
-          // setImmediate-persist на бэке).
-          const existingIds = new Set(prev.map(m => m.id));
-          const recentLocal = prev.slice(-8);
-          const localContentByRole = new Map<string, Set<string>>();
-          for (const m of recentLocal) {
-            const role = (m as any).type === 'user' ? 'human' : 'ai';
-            const c = (typeof m.content === 'string' ? m.content : '').trim();
-            if (!c) continue;
-            if (!localContentByRole.has(role)) localContentByRole.set(role, new Set());
-            localContentByRole.get(role)!.add(c);
-          }
-
-          const newer = fresh.filter((m: any) => {
-            const t = new Date(m.timestamp).getTime();
-            if (Number.isNaN(t)) return false;
-            if (m.id && existingIds.has(m.id)) return false;
-            if (t <= lastLocalTime) return false;
-            const role = m.type === 'user' ? 'human' : (m.type === 'assistant' ? 'ai' : (m.sender_type || 'ai'));
-            const content = (typeof m.content === 'string' ? m.content : '').trim();
-            if (content && localContentByRole.get(role)?.has(content)) return false;
-            return true;
-          });
+          // с serial id, поэтому совпадение по id почти не работает. Правило
+          // вынесено в historyMerge.ts и покрыто тестами: ошибка в нём не
+          // падает, а тихо задваивает ход — копия из БД встаёт ПОД ответом
+          // ассистента, и выглядит это как «мой вопрос уехал вниз».
+          const newer = selectNewPolledMessages(prev, fresh);
           if (newer.length === 0) return prev;
 
           const newMsgs: Message[] = newer.map((m: any) => {
@@ -1877,8 +1852,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setPendingFiles([]);
     setFileTaskInput('');
 
-    const fileList = files.map(f => `📎 ${f.name}`).join('\n');
-    const userMessage: Message = { id: generateMessageId(), type: 'user', content: `${fileList}\n\n${task}`, timestamp: new Date() };
+    // Пузырь пишем ровно тем же текстом, каким бэк сохранит ход в историю.
+    // Раньше здесь был список в столбик, а в БД уезжала строка через запятую —
+    // фоновый поллинг не узнавал в записи из истории собственную отправку и
+    // добавлял её копию ПОСЛЕ ответа ассистента.
+    const userMessage: Message = {
+      id: generateMessageId(),
+      type: 'user',
+      content: attachmentTurnText(files.map(f => f.name), task),
+      timestamp: new Date(),
+    };
     setMessages(prev => [...prev, userMessage]);
 
     if (user?.phone) trackAuthed('file_upload_start', user.phone, {
