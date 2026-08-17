@@ -54,6 +54,17 @@ export interface ReferralStats {
     upstream_pct: number;
     upstream_commission_rub: number;
   };
+  /**
+   * Условия вывода — курс и пороги. Приходят с бэкенда, потому что применяет их
+   * он; фронт держит только запасные значения (см. referralPayout.ts).
+   * Необязательное: ответ может приехать из кеша версии, где поля ещё не было.
+   */
+  payout?: {
+    rate_tokens_per_rub: number;
+    min_rub: number;
+    withdraw_min_rub: number;
+    withdraw_methods?: string[];
+  };
   referees: Array<{
     phone: string;
     registered_at: string;

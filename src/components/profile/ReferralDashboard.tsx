@@ -5,12 +5,7 @@ import { apiClient } from '../../services/apiClient';
 import { ReferralStats } from '../../types/auth';
 import { track } from '../../services/eventsClient';
 import { withTouch } from '../../services/shareReferral';
-
-// Курс/порог вывода комиссий токенами (совпадает с бэком).
-const PAYOUT_RATE = 600;
-const PAYOUT_MIN_RUB = 100;
-// Порог вывода ДЕНЬГАМИ (совпадает с WITHDRAW_MIN_RUB на бэке).
-const WITHDRAW_MIN_RUB = 1000;
+import { payoutTerms, rubToTokens, withdrawableRub } from './referralPayout';
 
 const ReferralDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -149,6 +144,12 @@ const ReferralDashboard: React.FC = () => {
 
   if (!stats) return null;
 
+  // Курс и пороги — из ответа бэкенда: применяет их он, значит и подписывать
+  // экран должен его числами (referralPayout.ts).
+  const terms = payoutTerms(stats.payout);
+  const PAYOUT_MIN_RUB = terms.minRub;
+  const WITHDRAW_MIN_RUB = terms.withdrawMinRub;
+
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       {/* Header */}
@@ -211,7 +212,7 @@ const ReferralDashboard: React.FC = () => {
         {/* Вывод вознаграждения — всегда видимое пояснение (даже при нулевом
             балансе), чтобы меню «токенами или деньгами» было обнаружимо. */}
         {(() => {
-          const w = Math.round(Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0)) * 100) / 100;
+          const w = withdrawableRub(stats.total_commission_rub, stats.paid_out_rub);
           if (w > 0 || payoutDone || withdrawDone) return null;
           return (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
@@ -226,8 +227,7 @@ const ReferralDashboard: React.FC = () => {
 
         {/* Вывод комиссий токенами */}
         {(() => {
-          const withdrawable = Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0));
-          const withdrawable2 = Math.round(withdrawable * 100) / 100;
+          const withdrawable2 = withdrawableRub(stats.total_commission_rub, stats.paid_out_rub);
           if (withdrawable2 <= 0 && !payoutDone) return null;
           return (
             <div className="rounded-lg border border-forest-200 bg-forest-50 p-4">
@@ -241,7 +241,7 @@ const ReferralDashboard: React.FC = () => {
                   <div>
                     <p className="text-xs text-forest-700 mb-0.5">{t('referral.payout_available')}</p>
                     <p className="text-lg font-bold text-forest-800">
-                      {formatRub(withdrawable2)} <span className="text-sm font-normal text-forest-600">→ {Math.round(withdrawable2 * PAYOUT_RATE).toLocaleString(i18n.language)} {t('referral.payout_tokens_word')}</span>
+                      {formatRub(withdrawable2)} <span className="text-sm font-normal text-forest-600">→ {rubToTokens(withdrawable2, terms).toLocaleString(i18n.language)} {t('referral.payout_tokens_word')}</span>
                     </p>
                   </div>
                   <button
@@ -263,7 +263,7 @@ const ReferralDashboard: React.FC = () => {
 
         {/* Вывод комиссий ДЕНЬГАМИ (DEV-3) */}
         {(() => {
-          const withdrawable = Math.round(Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0)) * 100) / 100;
+          const withdrawable = withdrawableRub(stats.total_commission_rub, stats.paid_out_rub);
           if (withdrawable <= 0 && !withdrawDone) return null;
           return (
             <div className="rounded-lg border border-warm-200 bg-warm-50 p-4">
@@ -427,8 +427,11 @@ const ReferralDashboard: React.FC = () => {
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               {t('referral.payout_confirm_body', {
-                rub: formatRub(Math.round(Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0)) * 100) / 100),
-                tokens: Math.round(Math.max(0, (stats.total_commission_rub || 0) - (stats.paid_out_rub || 0)) * PAYOUT_RATE).toLocaleString(i18n.language),
+                rub: formatRub(withdrawableRub(stats.total_commission_rub, stats.paid_out_rub)),
+                tokens: rubToTokens(
+                  withdrawableRub(stats.total_commission_rub, stats.paid_out_rub),
+                  terms,
+                ).toLocaleString(i18n.language),
               })}
             </p>
             {payoutError && (
