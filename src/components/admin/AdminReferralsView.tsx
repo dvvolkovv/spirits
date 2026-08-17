@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Users, Plus, ToggleLeft, ToggleRight, Copy, ChevronDown, ChevronUp, ChevronRight, CheckCircle, Loader, Send } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import { SortSelect, useTableSort, cmp, SortState } from './shared/sortableTable';
+import { visibleLeaderIds } from './referralLeaders';
 
 type LeaderSortKey = 'referees' | 'pending' | 'commission' | 'name';
 
@@ -89,6 +90,13 @@ const AdminReferralsView: React.FC = () => {
 
   // Сортировка таблицы лидеров. Дефолт — по числу рефералов (больше сверху).
   const [leaderSort, setLeaderSort] = useState<SortState<LeaderSortKey>>({ key: 'referees', dir: 'desc' });
+
+  // Реферальная запись есть у каждого пользователя, поэтому по умолчанию в
+  // списке остаются только лидеры с привязанными пользователями. Пустые не
+  // удаляются, а убираются под переключатель: их ссылки живые, и лидера,
+  // который пока никого не привёл, иногда нужно найти — например чтобы
+  // деактивировать или свериться со slug'ом.
+  const [onlyWithUsers, setOnlyWithUsers] = useState(true);
 
   const [newLeader, setNewLeader] = useState({
     name: '',
@@ -245,7 +253,16 @@ const AdminReferralsView: React.FC = () => {
     name: cmp.str<Leader>(l => l.name),
   });
   const level1Ids = new Set(level1Leaders.map(l => String(l.id)));
-  const orphanL2Leaders = stats?.leaders.filter(l => l.level === 2 && (l.parent_leader_id === null || !level1Ids.has(String(l.parent_leader_id)))) ?? [];
+  const allOrphanL2Leaders = stats?.leaders.filter(l => l.level === 2 && (l.parent_leader_id === null || !level1Ids.has(String(l.parent_leader_id)))) ?? [];
+
+  const withUsersIds = useMemo(() => visibleLeaderIds(stats?.leaders ?? []), [stats]);
+  const isListed = (l: Leader) => !onlyWithUsers || withUsersIds.has(String(l.id));
+  // Сколько лидеров прячет фильтр — считаем независимо от переключателя, чтобы
+  // в подписи было видно, что именно скрыто.
+  const emptyLeadersCount = (stats?.leaders.length ?? 0) - withUsersIds.size;
+
+  const listedL1 = sortedL1.filter(isListed);
+  const orphanL2Leaders = allOrphanL2Leaders.filter(isListed);
 
   const CommissionsTable = ({ leader }: { leader: Leader }) => {
     const unpaid = leader.commissions.filter(c => !c.paid_out);
@@ -324,7 +341,7 @@ const AdminReferralsView: React.FC = () => {
   }) => {
     const unpaid = leader.commissions.filter(c => !c.paid_out);
     return (
-      <div className={clsx('flex items-center gap-3 px-4 py-3', indent && 'pl-8 bg-blue-50/40')}>
+      <div className={clsx('flex items-center gap-3 px-4 py-3', indent && 'pl-8 bg-blue-50/40')} data-testid="leader-row">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {indent && <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />}
@@ -514,14 +531,28 @@ const AdminReferralsView: React.FC = () => {
             <h2 className="font-semibold text-gray-900 flex items-center gap-2">
               <Users className="w-5 h-5 text-forest-600" />
               Лидеры
+              <span className="text-xs font-normal text-gray-400">
+                {onlyWithUsers ? `с привязанными пользователями: ${withUsersIds.size}` : `всего: ${stats?.leaders.length ?? 0}`}
+              </span>
             </h2>
-            <button
-              onClick={() => setShowCreateForm(v => !v)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Добавить
-            </button>
+            <div className="flex items-center gap-2">
+              {emptyLeadersCount > 0 && (
+                <button
+                  onClick={() => setOnlyWithUsers(v => !v)}
+                  className="px-3 py-1.5 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                  title="Реферальная запись создаётся каждому пользователю — большинство никого не привело"
+                >
+                  {onlyWithUsers ? `Показать пустых (${emptyLeadersCount})` : 'Скрыть пустых'}
+                </button>
+              )}
+              <button
+                onClick={() => setShowCreateForm(v => !v)}
+                className="flex items-center gap-1 px-3 py-1.5 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Добавить
+              </button>
+            </div>
           </div>
 
           {showCreateForm && (
@@ -631,7 +662,7 @@ const AdminReferralsView: React.FC = () => {
           )}
 
           {/* Иерархия лидеров */}
-          {!isLoading && level1Leaders.length > 0 && (
+          {!isLoading && listedL1.length > 0 && (
             <div className="flex items-center justify-end px-1 pb-2">
               <SortSelect
                 state={leaderSort}
@@ -652,13 +683,19 @@ const AdminReferralsView: React.FC = () => {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {level1Leaders.length === 0 && (
-                <p className="text-center text-gray-500 py-8 text-sm">Лидеры не найдены</p>
+              {listedL1.length === 0 && (
+                <p className="text-center text-gray-500 py-8 text-sm">
+                  {level1Leaders.length === 0
+                    ? 'Лидеры не найдены'
+                    : 'Нет лидеров с привязанными пользователями'}
+                </p>
               )}
 
-              {sortedL1.map(l1 => {
+              {listedL1.map(l1 => {
                 const isL1Expanded = expandedL1 === l1.id;
-                const children = stats?.leaders.filter(l => l.level === 2 && String(l.parent_leader_id) === String(l1.id)) ?? [];
+                const allChildren = stats?.leaders.filter(l => l.level === 2 && String(l.parent_leader_id) === String(l1.id)) ?? [];
+                const children = allChildren.filter(isListed);
+                const hiddenChildren = allChildren.length - children.length;
                 const isL1CommExpanded = expandedL1Commissions === l1.id;
 
                 return (
@@ -709,6 +746,9 @@ const AdminReferralsView: React.FC = () => {
                           <div>
                             <p className="px-8 py-2 text-xs font-medium text-gray-500">
                               Суб-лидеры ({children.length})
+                              {hiddenChildren > 0 && (
+                                <span className="font-normal text-gray-400"> · ещё {hiddenChildren} без рефералов</span>
+                              )}
                             </p>
                             <div className="divide-y divide-gray-100">
                               {children.map(l2 => {
@@ -734,7 +774,11 @@ const AdminReferralsView: React.FC = () => {
                         )}
 
                         {children.length === 0 && (
-                          <p className="px-8 py-3 text-xs text-gray-400">Суб-лидеров нет</p>
+                          <p className="px-8 py-3 text-xs text-gray-400">
+                            {hiddenChildren > 0
+                              ? `Суб-лидеры есть (${hiddenChildren}), но ни один никого не привёл`
+                              : 'Суб-лидеров нет'}
+                          </p>
                         )}
                       </div>
                     )}
