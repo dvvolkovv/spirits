@@ -304,15 +304,27 @@ const AdminReferralsView: React.FC = () => {
                     <td className="py-1.5 pr-3 text-right font-medium">{formatRub(c.commission_rub)}</td>
                     <td className="py-1.5 pr-3 text-center">{c.level}</td>
                     <td className="py-1.5 text-center">
+                      {/* В колонке «Статус» кнопка действия называется в
+                          повелительном наклонении, а прошедшее время оставлено
+                          статусу. До 17.08.2026 неоплаченное начисление
+                          показывало зелёную кнопку «Выплачено» — ровно тем же
+                          словом и тем же цветом, что и настоящая выплата.
+                          Владелец так и прочитал: «почему у нас у всех
+                          рефералов стоит выплачено», хотя в БД из 24 начислений
+                          выплачены были 8, а долг составлял 1 781,20 ₽. */}
                       {c.paid_out ? (
-                        <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                        <span className="inline-flex items-center gap-1 text-green-600 whitespace-nowrap">
+                          <CheckCircle className="w-4 h-4" />
+                          Выплачено
+                        </span>
                       ) : (
                         <button
                           onClick={() => handleMarkPaid(c.id)}
                           disabled={markingPaid === c.id}
+                          title="Отметить это начисление выплаченным"
                           className="px-2 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50"
                         >
-                          {markingPaid === c.id ? '...' : 'Выплачено'}
+                          {markingPaid === c.id ? '...' : 'Выплатить'}
                         </button>
                       )}
                     </td>
