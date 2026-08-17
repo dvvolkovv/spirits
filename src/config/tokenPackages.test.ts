@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RUB_PACKAGES, BASE_PRICE_PER_1000, CRYPTO_NAME_KEY } from './tokenPackages';
+import { TOKENS_PER_MESSAGE_ESTIMATE, approxMessages, RUB_PACKAGES, BASE_PRICE_PER_1000, CRYPTO_NAME_KEY } from './tokenPackages';
 
 /**
  * Согласованный прайс, выписанный явно и отдельно от реализации.
@@ -72,5 +72,28 @@ describe('прайс токенов', () => {
   // Тест держит алиас: без него будущий рефакторинг удалит его молча.
   it('снятый с витрины max_usd всё ещё подписан', () => {
     expect(CRYPTO_NAME_KEY.max_usd).toBeTruthy();
+  });
+});
+
+describe('оценка «≈ N сообщений»', () => {
+  // Замер прода 11–16.08.2026: $0.798 за ход при курсе 4 500 токенов за доллар
+  // (spirits_back, common/billing-rates.ts) — это ~3 591 токен на сообщение.
+  const FACT_PER_MESSAGE = 3591;
+
+  it('обещание заведомо выполнимо: оценка не ниже фактического расхода', () => {
+    expect(TOKENS_PER_MESSAGE_ESTIMATE).toBeGreaterThanOrEqual(FACT_PER_MESSAGE);
+  });
+
+  it('и не завышена до бессмыслицы — запас в пределах 1.5x', () => {
+    expect(TOKENS_PER_MESSAGE_ESTIMATE).toBeLessThan(FACT_PER_MESSAGE * 1.5);
+  });
+
+  it('округляет вниз — обещать больше сообщений, чем влезает, нельзя', () => {
+    expect(approxMessages(TOKENS_PER_MESSAGE_ESTIMATE * 2 + 1)).toBe(2);
+  });
+
+  it('пакет за 1990 ₽ обещает ровно столько, сколько выдержит', () => {
+    const pro = RUB_PACKAGES.find((p) => p.id === 'professional')!;
+    expect(approxMessages(pro.tokens) * FACT_PER_MESSAGE).toBeLessThanOrEqual(pro.tokens);
   });
 });
