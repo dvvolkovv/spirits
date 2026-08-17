@@ -20,7 +20,6 @@ import LinkedAccountsView from './LinkedAccountsView';
 import RoutinesManager from './RoutinesManager';
 import TalerIdEcosystemCard from './TalerIdEcosystemCard';
 import CalendarSourcesCard from './CalendarSourcesCard';
-import LocalMindCard from './LocalMindCard';
 import VoiceSettings from './VoiceSettings';
 import { LanguageSelect } from './LanguageSelect';
 import {
@@ -178,9 +177,6 @@ const SettingsView: React.FC = () => {
             {pushMsg && <p className="text-xs text-gray-600">{pushMsg}</p>}
           </div>
         </div>
-
-        {/* Локальный разум — вход в нативную настройку on-device помощника (только в приложении) */}
-        <LocalMindCard />
 
         {/* Мои напоминания — проактивные рутинные пуши от ассистентов (Слой 3, обобщённые) */}
         <RoutinesManager />
