@@ -2057,6 +2057,32 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return tokens.toLocaleString();
   };
 
+  // Один тумблер «Чистый лист», но в шапке он живёт в двух местах: на десктопе
+  // справа с подписью, на мобиле — иконкой слева, на месте ссылки «Подобрать
+  // специалиста». Ссылка занимала всю свободную ширину и обрезала баланс
+  // токенов, а иконка помещается. Разметка общая, чтобы состояния тумблера не
+  // разъезжались между брейкпоинтами.
+  const renderFreshToggle = (testId: string, wrapperClass: string) => (
+    <button
+      onClick={toggleFreshMode}
+      data-testid={testId}
+      className={clsx(
+        'items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors',
+        wrapperClass,
+        freshTs
+          ? 'bg-forest-600 border-forest-600 text-white hover:bg-forest-700'
+          : 'border-gray-200 text-gray-500 hover:text-forest-700 hover:border-forest-300'
+      )}
+      title={freshTs
+        ? t('chat.fresh_mode_on_title')
+        : t('chat.fresh_mode_off_title')}
+      aria-label={t('chat.fresh_mode_label')}
+    >
+      <Eraser className="w-4 h-4" />
+      <span className="hidden md:inline text-xs font-medium">{t('chat.fresh_mode_label')}</span>
+    </button>
+  );
+
   return (
     <>
       {showTokenPackages && (
@@ -2112,11 +2138,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   <ChevronDown className="w-4 h-4 text-forest-700" />
                 </button>
 
+                {/* Мобила: вместо текстовой ссылки — иконка «Чистый лист».
+                    Десктопный вариант тумблера живёт справа (hidden md:flex). */}
+                {renderFreshToggle('fresh-mode-toggle-mobile', 'flex md:hidden')}
+
                 {onOpenMatch && (
                   <button
                     onClick={onOpenMatch}
                     data-testid="reopen-match"
-                    className="text-xs text-gray-500 hover:text-forest-700 underline whitespace-nowrap"
+                    className="hidden md:inline text-xs text-gray-500 hover:text-forest-700 underline whitespace-nowrap"
                   >
                     {t('onboarding.match.reopen')}
                   </button>
@@ -2242,22 +2272,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </span>
               </button>
             )}
-            <button
-              onClick={toggleFreshMode}
-              data-testid="fresh-mode-toggle"
-              className={clsx(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors',
-                freshTs
-                  ? 'bg-forest-600 border-forest-600 text-white hover:bg-forest-700'
-                  : 'border-gray-200 text-gray-500 hover:text-forest-700 hover:border-forest-300'
-              )}
-              title={freshTs
-                ? t('chat.fresh_mode_on_title')
-                : t('chat.fresh_mode_off_title')}
-            >
-              <Eraser className="w-4 h-4" />
-              <span className="hidden md:inline text-xs font-medium">{t('chat.fresh_mode_label')}</span>
-            </button>
+            {renderFreshToggle('fresh-mode-toggle', 'hidden md:flex')}
             {messages.length > 1 && (
               <>
                 <button
