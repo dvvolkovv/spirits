@@ -43,53 +43,48 @@ export const InlineCalendarProposals = ({ ids, apiPost }: { ids: string[]; apiPo
   const requestedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    let cancelled = false;
-
+    // Никакого `cancelled`-флага: он делал дедлок вместе с requestedRef. Маркеры
+    // приходят по мере стриминга, поэтому ids растёт ([A] → [A,B]) и эффект
+    // перезапускается. Старый cleanup ставил cancelled=true, из-за чего ответ по
+    // уже летящему запросу A отбрасывался, а перезапросить его было некому — id
+    // помечен в requestedRef. Карточка навсегда оставалась серым скелетоном.
+    // Ответы идемпотентны и разложены по id, гасить их не нужно; setState после
+    // размонтирования React 18 переносит молча.
     for (const id of ids) {
       if (requestedRef.current.has(id)) continue;
       requestedRef.current.add(id);
-      if (!cancelled) {
-        setById((prev) => ({ ...prev, [id]: { status: 'loading' } }));
-      }
+      setById((prev) => ({ ...prev, [id]: { status: 'loading' } }));
       apiClient
         .get(`/webhook/calendar/proposal/${id}`)
         .then(async (resp) => {
           if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
           const data = await resp.json();
           if (!data?.event) throw new Error('missing event');
-          if (!cancelled) {
-            setById((prev) => ({
-              ...prev,
-              [id]: {
-                status: 'ok',
-                data: {
-                  event: data.event,
-                  connected: !!data.connected,
-                  conflicts: Array.isArray(data.conflicts) ? data.conflicts : [],
-                  kind: data.kind === 'task' ? 'task' : 'event',
-                  occurrenceCount:
-                    typeof data.occurrenceCount === 'number' && data.occurrenceCount > 0
-                      ? data.occurrenceCount
-                      : 1,
-                  firstAt: typeof data.firstAt === 'string' ? data.firstAt : undefined,
-                  lastAt: typeof data.lastAt === 'string' ? data.lastAt : undefined,
-                },
+          setById((prev) => ({
+            ...prev,
+            [id]: {
+              status: 'ok',
+              data: {
+                event: data.event,
+                connected: !!data.connected,
+                conflicts: Array.isArray(data.conflicts) ? data.conflicts : [],
+                kind: data.kind === 'task' ? 'task' : 'event',
+                occurrenceCount:
+                  typeof data.occurrenceCount === 'number' && data.occurrenceCount > 0
+                    ? data.occurrenceCount
+                    : 1,
+                firstAt: typeof data.firstAt === 'string' ? data.firstAt : undefined,
+                lastAt: typeof data.lastAt === 'string' ? data.lastAt : undefined,
               },
-            }));
-          }
+            },
+          }));
         })
         .catch(() => {
           // Not found / expired / network error — skip this card gracefully,
           // same as InlineVideoCards rendering nothing for an unresolvable id.
-          if (!cancelled) {
-            setById((prev) => ({ ...prev, [id]: { status: 'error' } }));
-          }
+          setById((prev) => ({ ...prev, [id]: { status: 'error' } }));
         });
     }
-
-    return () => {
-      cancelled = true;
-    };
 
     // Re-run whenever the set of ids changes; dedup via requestedRef keeps it cheap.
     // eslint-disable-next-line react-hooks/exhaustive-deps

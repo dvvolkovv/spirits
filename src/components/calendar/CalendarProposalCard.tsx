@@ -207,13 +207,42 @@ export const CalendarProposalCard: React.FC<Props> = ({
 
   const handleDismiss = () => setStatus('dismissed');
 
+  // Короткая сводка «когда» для карточки без подключённого календаря: там нет
+  // полей редактирования, но пользователь должен видеть, что именно предложено.
+  // Все строки — наивное локальное время без зоны (см. комментарий у
+  // formatDateShort), поэтому режем строку, а не гоняем через Date.
+  const seriesStart = firstAt ?? event.datetime ?? '';
+  const whenSummary = isSeries
+    ? [
+        `${formatDateShort(seriesStart)}–${formatDateShort(lastAt ?? seriesStart)}`,
+        formatTimeShort(seriesStart),
+        event.recurrence
+          ? formatRecurrence(event.recurrence)
+          : `${occurrenceCount ?? event.dates?.length ?? 0} дат`,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : event.datetime
+      ? `${formatDateShort(event.datetime)} · ${formatTimeShort(event.datetime)}`
+      : 'без срока';
+
   if (!isConnected) {
     return (
       <div className="my-3 max-w-md rounded-xl border border-forest-200 bg-white shadow-sm px-4 py-3">
         <div className="flex items-start gap-3">
           <CalendarPlus className="w-5 h-5 text-forest-600 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm text-gray-800">Планируй время с Линкеоном — подключи календарь</p>
+            {/* Содержимое предложения показываем и без подключённого календаря.
+                Раньше эта ветка выбрасывала event целиком и рисовала один и тот
+                же generic-баннер: два разных предложения в одном ответе (агент
+                вправе вызвать инструмент дважды на разные дела) выглядели как
+                продублированное сообщение. */}
+            <p className="text-sm font-semibold text-forest-900">{event.title}</p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {isTask ? 'Дело' : 'Событие'} · {whenSummary}
+            </p>
+            {event.note && <p className="mt-1 text-xs text-gray-500">{event.note}</p>}
+            <p className="mt-2 text-sm text-gray-800">Планируй время с Линкеоном — подключи календарь</p>
             <button
               type="button"
               onClick={() => setShowConnectModal(true)}
