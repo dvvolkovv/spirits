@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Trash2, ToggleLeft, ToggleRight, Save, Loader } from 'lucide-react';
+import { Shield, Plus, Trash2, ToggleLeft, ToggleRight, Save, Loader, History } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 
@@ -11,7 +11,42 @@ interface Coupon {
   usage_count: number;
   created_at: string;
   updated_at: string;
+  /** null у купонов, заведённых до появления журнала. */
+  created_by?: string | null;
+  /** Фактические строки применений — в отличие от usage_count показывает дубли. */
+  redeemed_count?: number;
 }
+
+interface CouponHistory {
+  id: number;
+  code: string | null;
+  deleted: boolean;
+  createdBy: string | null;
+  redemptions: Array<{ userId: string; at: string; tokens: number; email: string | null }>;
+  audit: Array<{ action: string; actor: string | null; at: string; code: string; details: any }>;
+}
+
+interface AuditEntry {
+  id: number;
+  couponId: number | null;
+  code: string;
+  action: string;
+  actor: string | null;
+  tokens: number | null;
+  at: string;
+  stillExists: boolean;
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  create: 'создан',
+  update: 'изменён',
+  delete: 'удалён',
+};
+const ACTION_CLASSES: Record<string, string> = {
+  create: 'bg-green-100 text-green-700',
+  update: 'bg-amber-100 text-amber-700',
+  delete: 'bg-red-100 text-red-700',
+};
 
 const AdminCouponsView: React.FC = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -28,6 +63,37 @@ const AdminCouponsView: React.FC = () => {
 
   // Edit state
   const [editTokenAmount, setEditTokenAmount] = useState(0);
+
+  // История выбранного купона и общий журнал (в нём видны и удалённые)
+  const [history, setHistory] = useState<CouponHistory | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [audit, setAudit] = useState<AuditEntry[] | null>(null);
+  const [showAudit, setShowAudit] = useState(false);
+
+  const loadHistory = async (id: number) => {
+    setHistoryLoading(true);
+    setHistory(null);
+    try {
+      const resp = await apiClient.post('/webhook/admin/coupons', { action: 'history', id });
+      if (resp.ok) setHistory(await resp.json());
+    } catch {
+      // История — справочная: её отсутствие не должно ломать редактирование.
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const loadAudit = async () => {
+    setShowAudit(true);
+    setSelectedCoupon(null);
+    setShowCreateForm(false);
+    try {
+      const resp = await apiClient.post('/webhook/admin/coupons', { action: 'audit', limit: 100 });
+      if (resp.ok) setAudit(await resp.json());
+    } catch {
+      setAudit([]);
+    }
+  };
 
   useEffect(() => {
     loadCoupons();
@@ -52,6 +118,8 @@ const AdminCouponsView: React.FC = () => {
     setSelectedCoupon(coupon);
     setEditTokenAmount(coupon.token_amount);
     setShowCreateForm(false);
+    setShowAudit(false);
+    void loadHistory(coupon.id);
   };
 
   const handleCreate = async () => {
@@ -139,8 +207,13 @@ const AdminCouponsView: React.FC = () => {
         id: coupon.id,
       });
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+      // Бэк отвечает 200 и при «купона нет» — например, если его удалила
+      // соседняя вкладка. Убирать строку из списка в этом случае честно,
+      // а вот молча считать операцию успешной — нет.
+      const body = await response.json().catch(() => ({ success: true }));
       setCoupons(coupons.filter((c) => c.id !== coupon.id));
       if (selectedCoupon?.id === coupon.id) setSelectedCoupon(null);
+      if (body?.success === false) setError(body.error || 'Купон уже был удалён');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка удаления');
     }
@@ -359,7 +432,74 @@ const AdminCouponsView: React.FC = () => {
                   <span className="ml-2 text-sm text-gray-900 font-semibold">
                     {selectedCoupon.usage_count}
                   </span>
+                  {/* Счётчик в строке и фактические применения расходятся при
+                      дублях — как у купона id=4, где одно применение легло
+                      тремя строками и дало втрое больше токенов. */}
+                  {typeof selectedCoupon.redeemed_count === 'number'
+                    && selectedCoupon.redeemed_count !== selectedCoupon.usage_count && (
+                    <span className="ml-2 text-xs text-amber-700">
+                      записей о применении: {selectedCoupon.redeemed_count}
+                    </span>
+                  )}
                 </div>
+
+                {/* Кто создал */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <span className="text-sm font-medium text-gray-700">Создал:</span>
+                  <span className="ml-2 text-sm text-gray-900 font-mono">
+                    {history?.createdBy ?? selectedCoupon.created_by ?? '—'}
+                  </span>
+                  {!history?.createdBy && !selectedCoupon.created_by && (
+                    // Купоны до появления журнала автора не сохраняли —
+                    // честнее сказать это, чем оставить пустое место.
+                    <span className="ml-2 text-xs text-gray-400">заведён до журнала</span>
+                  )}
+                </div>
+
+                {/* Кто применял */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Кто применял</h3>
+                  {historyLoading ? (
+                    <div className="flex items-center text-sm text-gray-400">
+                      <Loader className="w-4 h-4 animate-spin mr-2" /> Загрузка…
+                    </div>
+                  ) : !history || history.redemptions.length === 0 ? (
+                    <p className="text-sm text-gray-400">Пока никто не применял</p>
+                  ) : (
+                    <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                      {history.redemptions.map((r, i) => (
+                        <div key={`${r.userId}-${i}`} className="px-3 py-2 flex items-center justify-between gap-2 text-xs">
+                          <div className="min-w-0">
+                            <div className="font-mono text-gray-800">{r.userId}</div>
+                            {r.email && <div className="text-gray-400 truncate">{r.email}</div>}
+                          </div>
+                          <div className="text-right whitespace-nowrap">
+                            <div className="text-amber-700 tabular-nums">+{formatTokens(r.tokens)}</div>
+                            <div className="text-gray-400">{formatDate(r.at)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Что делали администраторы */}
+                {history && history.audit.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Действия администраторов</h3>
+                    <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+                      {history.audit.map((a, i) => (
+                        <div key={i} className="px-3 py-2 flex items-center justify-between gap-2 text-xs">
+                          <span className={clsx('px-2 py-0.5 rounded-full', ACTION_CLASSES[a.action] ?? 'bg-gray-100 text-gray-600')}>
+                            {ACTION_LABELS[a.action] ?? a.action}
+                          </span>
+                          <span className="font-mono text-gray-700">{a.actor ?? '—'}</span>
+                          <span className="text-gray-400">{formatDate(a.at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <button
                   onClick={() => handleDelete(selectedCoupon)}
@@ -370,11 +510,57 @@ const AdminCouponsView: React.FC = () => {
                 </button>
               </div>
             </div>
+          ) : showAudit ? (
+            <div className="p-6 overflow-y-auto pb-20 md:pb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Журнал купонов</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Создание, изменение и удаление — включая купоны, которых уже нет.
+              </p>
+              {!audit ? (
+                <div className="flex items-center text-sm text-gray-400">
+                  <Loader className="w-4 h-4 animate-spin mr-2" /> Загрузка…
+                </div>
+              ) : audit.length === 0 ? (
+                <p className="text-sm text-gray-400">
+                  Журнал пуст: он ведётся с 21.08.2026, действия до этой даты не сохранялись.
+                </p>
+              ) : (
+                <div className="border border-gray-200 rounded-lg divide-y divide-gray-100">
+                  {audit.map((a) => (
+                    <div key={a.id} className="px-3 py-2 flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={clsx('px-2 py-0.5 rounded-full whitespace-nowrap', ACTION_CLASSES[a.action] ?? 'bg-gray-100 text-gray-600')}>
+                          {ACTION_LABELS[a.action] ?? a.action}
+                        </span>
+                        <span className="font-mono text-gray-800 truncate">{a.code}</span>
+                        {!a.stillExists && (
+                          <span className="text-[10px] text-gray-400 whitespace-nowrap">нет в базе</span>
+                        )}
+                      </div>
+                      <div className="text-right whitespace-nowrap">
+                        {a.tokens != null && (
+                          <div className="text-gray-600 tabular-nums">{formatTokens(a.tokens)}</div>
+                        )}
+                        <div className="font-mono text-gray-500">{a.actor ?? '—'}</div>
+                        <div className="text-gray-400">{formatDate(a.at)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">Выберите купон или создайте новый</p>
+                <button
+                  onClick={loadAudit}
+                  className="mt-4 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center"
+                >
+                  <History className="w-4 h-4 mr-1.5" />
+                  Журнал купонов
+                </button>
               </div>
             </div>
           )}
