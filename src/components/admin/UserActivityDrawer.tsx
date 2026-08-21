@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import {
   X, Loader, AlertCircle, Coins, MessageSquare, Image as ImageIcon,
   Video, Phone, ArrowDown, ArrowUp, Activity, CreditCard, ClipboardList,
-  ChevronDown, ChevronRight, Lock, Send,
+  ChevronDown, ChevronRight, Lock, Send, Wallet,
 } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
@@ -58,6 +58,27 @@ interface ActivityResp {
     created_at: string;
     completed_at: string | null;
   }>;
+  /**
+   * Пополнения баланса: покупки, промокоды, бонусы, возвраты, корректировки.
+   * Отдельно от `transactions` — там последние 20 строк вперемешку со
+   * списаниями, и у активного пользователя пополнения в них не попадают.
+   */
+  topups?: Array<{
+    at: string;
+    type: string;
+    tokens: number;
+    /** null у строк, восстановленных миграцией задним числом. */
+    balanceAfter: number | null;
+    description: string;
+    couponId: number | null;
+    /** null, если купон после раздачи удалили. */
+    couponCode: string | null;
+    rub: number | null;
+    provider: string | null;
+    packageId: string | null;
+    reconstructed: boolean;
+  }>;
+  topupTotals?: Array<{ type: string; tokens: number; count: number }>;
 }
 
 const PACKAGE_LABEL_RU: Record<string, string> = {
@@ -82,6 +103,22 @@ const formatPhone = (raw: string) => {
 };
 const formatTokens = (n: number) => n.toLocaleString('ru-RU');
 const formatRub = (n: number) => `${n.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`;
+
+/** Виды пополнений из transaction_type_enum. */
+const TOPUP_LABELS: Record<string, string> = {
+  purchase: 'Покупка',
+  coupon: 'Промокод',
+  bonus: 'Бонус',
+  refund: 'Возврат',
+  adjustment: 'Корректировка',
+};
+const TOPUP_CLASSES: Record<string, string> = {
+  purchase: 'bg-emerald-50 text-emerald-700',
+  coupon: 'bg-indigo-50 text-indigo-700',
+  bonus: 'bg-sky-50 text-sky-700',
+  refund: 'bg-amber-50 text-amber-700',
+  adjustment: 'bg-gray-100 text-gray-600',
+};
 const niceCeil = (v: number) => {
   if (v <= 0) return 1;
   const exp = Math.pow(10, Math.floor(Math.log10(v)));
@@ -590,6 +627,87 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                         <span className="text-gray-400 text-[10px] whitespace-nowrap pt-0.5">
                           {formatRelative(p.created_at)}
                         </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Пополнения баланса: деньги, промокоды, бонусы, возвраты */}
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between gap-2">
+                  <div className="text-sm font-medium text-gray-900 inline-flex items-center gap-1.5">
+                    <Wallet className="w-4 h-4 text-forest-600" />
+                    {t('admin.userActivity.sections.topups', 'Пополнения баланса')}
+                  </div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[11px] font-medium tabular-nums">
+                    {data.topups?.length ?? 0}
+                  </span>
+                </div>
+
+                {/* Итоги по видам — по всей истории, а не по показанным строкам */}
+                {data.topupTotals && data.topupTotals.length > 0 && (
+                  <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-x-4 gap-y-1">
+                    {data.topupTotals.map(tt => (
+                      <span key={tt.type} className="text-[11px] text-gray-600">
+                        {TOPUP_LABELS[tt.type] ?? tt.type}:{' '}
+                        <span className="tabular-nums font-medium text-gray-800">
+                          +{formatTokens(tt.tokens)}
+                        </span>
+                        <span className="text-gray-400"> ×{tt.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {!data.topups || data.topups.length === 0 ? (
+                  <p className="text-sm text-gray-400 py-6 text-center">
+                    {t('admin.userActivity.noTopups', 'Пополнений не было')}
+                  </p>
+                ) : (
+                  <div className="divide-y divide-gray-100 max-h-[420px] overflow-y-auto">
+                    {data.topups.map((tp, i) => (
+                      <div key={`${tp.at}-${i}`} className="px-4 py-2.5 flex items-start gap-3 text-xs">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span
+                              className={clsx(
+                                'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                TOPUP_CLASSES[tp.type] ?? 'bg-gray-100 text-gray-600',
+                              )}
+                            >
+                              {TOPUP_LABELS[tp.type] ?? tp.type}
+                            </span>
+                            <span className="text-amber-700 tabular-nums font-medium">
+                              +{formatTokens(tp.tokens)}
+                            </span>
+                            {tp.rub != null && (
+                              <span className="text-gray-700 tabular-nums">{formatRub(tp.rub)}</span>
+                            )}
+                            {tp.type === 'coupon' && (
+                              <span className="text-gray-600 font-mono text-[11px]">
+                                {/* Код удалённого купона восстановить нельзя — показываем id */}
+                                {tp.couponCode ?? (tp.couponId != null ? `#${tp.couponId}` : '—')}
+                              </span>
+                            )}
+                            {tp.packageId && <span className="text-gray-500">{tp.packageId}</span>}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-gray-500 flex items-center gap-2 flex-wrap">
+                            <span>{formatDateTime(tp.at)}</span>
+                            {tp.balanceAfter != null && (
+                              <span className="tabular-nums">
+                                {t('admin.userActivity.balanceAfter', 'остаток')}: {formatTokens(tp.balanceAfter)}
+                              </span>
+                            )}
+                            {tp.reconstructed && (
+                              // Строка восстановлена миграцией: остатка на тот момент
+                              // в базе нет, и показывать ноль как факт нельзя.
+                              <span className="text-gray-400">
+                                {t('admin.userActivity.reconstructed', 'восстановлено задним числом')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

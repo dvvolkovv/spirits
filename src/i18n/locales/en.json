@@ -646,7 +646,8 @@
         "byAssistant": "By assistant",
         "transactions": "Transactions",
         "messages": "Recent messages",
-        "payments": "Payments"
+        "payments": "Payments",
+        "topups": "Balance top-ups"
       },
       "col": {
         "assistant": "Assistant",
@@ -663,7 +664,10 @@
         "pending": "Pending",
         "failed": "Failed",
         "canceled": "Canceled"
-      }
+      },
+      "noTopups": "No top-ups yet",
+      "balanceAfter": "balance",
+      "reconstructed": "backfilled later"
     },
     "reports": {
       "title": "Reports",

@@ -647,7 +647,8 @@
         "byAssistant": "По ассистентам",
         "transactions": "Транзакции",
         "messages": "Последние сообщения",
-        "payments": "Платежи"
+        "payments": "Платежи",
+        "topups": "Пополнения баланса"
       },
       "col": {
         "assistant": "Ассистент",
@@ -664,7 +665,10 @@
         "pending": "Ожидает",
         "failed": "Ошибка",
         "canceled": "Отменён"
-      }
+      },
+      "noTopups": "Пополнений не было",
+      "balanceAfter": "остаток",
+      "reconstructed": "восстановлено задним числом"
     },
     "reports": {
       "title": "Жалобы",
