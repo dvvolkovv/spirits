@@ -155,9 +155,25 @@ describe('verifyInitData — негативные случаи', () => {
     expect(verifyInitData(raw, BOT_TOKEN)).toBeNull();
   });
 
-  it('отвергает user с нечисловым id', () => {
-    const raw = signInitData(validFields({ user: JSON.stringify({ id: 'abc', first_name: 'X' }) }));
-    expect(verifyInitData(raw, BOT_TOKEN)).toBeNull();
+  // Length-guard существует, чтобы timingSafeEqual не бросал на разной длине.
+  // Без этого теста ветка не покрыта: единственная подмена hash выше берёт те
+  // же 64 символа. not.toThrow() здесь и есть смысл теста — контроллеры задач
+  // 3 и 4 рассчитывают на null, а не на исключение.
+  it('отвергает hash неверной длины, а не падает', () => {
+    const raw = signInitData(validFields());
+    const short = raw.replace(/hash=[0-9a-f]+/, 'hash=abcd');
+    expect(() => verifyInitData(short, BOT_TOKEN)).not.toThrow();
+    expect(verifyInitData(short, BOT_TOKEN)).toBeNull();
+  });
+
+  it.each([
+    ['строку',              JSON.stringify({ id: 'abc', first_name: 'X' })],
+    ['дробное число',       JSON.stringify({ id: 42.5, first_name: 'X' })],
+    ['отрицательное',       JSON.stringify({ id: -42, first_name: 'X' })],
+    ['ноль',                JSON.stringify({ id: 0, first_name: 'X' })],
+    ['небезопасное целое',  JSON.stringify({ id: 9007199254740993, first_name: 'X' })],
+  ])('отвергает user с id: %s', (_label, user) => {
+    expect(verifyInitData(signInitData(validFields({ user })), BOT_TOKEN)).toBeNull();
   });
 });
 
@@ -253,7 +269,11 @@ export function verifyInitData(raw: string, botToken: string): TgInitDataUser | 
   } catch {
     return null;
   }
-  if (typeof user?.id !== 'number' || !Number.isFinite(user.id)) return null;
+  // Telegram id — положительное целое. Number.isFinite пропускал бы 42.5 и
+  // отрицательные, а за пределами MAX_SAFE_INTEGER два разных id склеились бы
+  // в одно значение ещё на JSON.parse. Для поля, по которому потом ищут
+  // аккаунт, этого достаточно, чтобы завести чужой.
+  if (!Number.isSafeInteger(user?.id) || user.id <= 0) return null;
 
   return {
     tgUserId: user.id,
@@ -269,13 +289,23 @@ export function verifyInitData(raw: string, botToken: string): TgInitDataUser | 
 cd ~/Downloads/spirits_back && npx jest src/tma/init-data.spec.ts --runInBand
 ```
 
-Ожидается: PASS, 10 тестов.
+Ожидается: PASS, 15 тестов (`it.each` разворачивается в пять отдельных).
 
 - [ ] **Step 5: Сломать проверку нарочно и убедиться, что тесты краснеют**
 
 Временно заменить в `init-data.ts` строку сравнения на `if (false) return null;`, прогнать тесты снова.
 
-Ожидается: FAIL минимум в 4 тестах (подменённый hash, подменённый user, подпись другого бота, строка без hash).
+Ожидается: FAIL ровно в 4 тестах — подменённый hash, подменённый user при
+валидном hash, подпись другого бота и hash неверной длины.
+
+Именно четыре, а не больше. «Пустая строка», «строка без hash», «без поля user»
+и невалидные `id` отсекаются более ранними самостоятельными проверками и до
+сравнения подписи не доходят; просроченный `auth_date` ловится отдельной
+проверкой ниже. Если упало меньше четырёх — тесты не проверяют подпись.
+
+У теста про длину падает половина: `not.toThrow()` проходит и со снятой
+проверкой (строка не бросает, а просто пропускает), а `toBeNull()` ловит
+пролезшую подделку. Так и задумано — эти две половины сторожат разное.
 
 Вернуть строку обратно, прогнать ещё раз — PASS.
 
@@ -689,7 +719,7 @@ import { TmaModule } from './tma/tma.module';
 cd ~/Downloads/spirits_back && npx jest src/tma --runInBand
 ```
 
-Ожидается: PASS, 15 тестов (10 из Task 1 + 5 новых).
+Ожидается: PASS, 20 тестов (15 из Task 1 + 5 новых).
 
 - [ ] **Step 6: Коммит**
 
