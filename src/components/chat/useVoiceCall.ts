@@ -105,6 +105,10 @@ export function useVoiceCall() {
         if (topic !== 'linkeon') return;
         let msg: LinkeonDataMessage;
         try { msg = JSON.parse(new TextDecoder().decode(payload)); } catch { return; }
+        // Контракт версионирован: подсистемы Zoom и телефонии будут слушать
+        // тот же канал. Чужая версия — не наша схема, молча игнорируем,
+        // иначе старая вкладка нарисует плашки по неизвестным правилам.
+        if (msg?.v !== 1) return;
         if (msg.type === 'specialist_pending') {
           setThinking((prev) => [...prev, { jobId: msg.jobId, specialist: msg.specialist }]);
         } else if (msg.type === 'specialist_answer' || msg.type === 'specialist_failed') {

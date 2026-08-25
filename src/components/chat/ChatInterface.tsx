@@ -1,4 +1,13 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+
+/**
+ * Модалка тянет за собой livekit-client (~1.3 МБ несжатыми). Кнопка «Позвонить»
+ * видна только админам и только в чате Романа, поэтому грузим по требованию,
+ * а не кладём всем в основной бандл.
+ */
+const VoiceCallModal = React.lazy(() =>
+  import('./VoiceCallModal').then((m) => ({ default: m.VoiceCallModal })),
+);
 import { useTranslation } from 'react-i18next';
 import { resolveLanguage } from '../../i18n/languages';
 import ReactMarkdown from 'react-markdown';
@@ -10,7 +19,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { TokenPackages } from '../tokens/TokenPackages';
-import { VoiceCallModal } from './VoiceCallModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
@@ -2125,10 +2133,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       )}
 
       {showVoiceCall && selectedAssistant && (
+        <React.Suspense fallback={null}>
         <VoiceCallModal
           assistantName={selectedAssistant.displayName ?? selectedAssistant.name}
           onClose={() => setShowVoiceCall(false)}
         />
+        </React.Suspense>
       )}
 
       <div className="flex flex-col h-full bg-gray-50 relative" data-testid="chat-root">
