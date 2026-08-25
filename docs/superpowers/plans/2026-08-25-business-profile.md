@@ -595,8 +595,11 @@ git commit -m "feat(business-profile): чтение, запись и защит�
 
 Два формата: полная карточка для `category='business'`, одна строка для всех прочих.
 
+**Рендер — чистая функция, а не метод сервиса.** Первая редакция плана прятала его в `BusinessProfileService.renderForPrompt(userId, category)`, то есть за походом в базу. Из-за этого все семь тестов рендера требовали бы мока Postgres, чтобы проверить форматирование строки. Разделяем: чистый `renderBusinessBlock(profile, category)` живёт в `business-profile.types.ts` рядом с `renderEnum` и `isBusinessProfileEmpty`, а сервис получает тонкую обёртку `renderForPrompt(userId, category)`, которая читает карточку и делегирует. Тесты рендера становятся чистыми.
+
 **Файлы:**
-- Изменить: `src/business-profile/business-profile.service.ts`
+- Изменить: `src/business-profile/business-profile.types.ts` (чистая функция)
+- Изменить: `src/business-profile/business-profile.service.ts` (обёртка)
 - Тест: `src/business-profile/render-for-prompt.spec.ts`
 
 - [ ] **Шаг 1: написать падающий тест**
@@ -605,7 +608,7 @@ git commit -m "feat(business-profile): чтение, запись и защит�
 
 ```typescript
 import { BusinessProfileService } from './business-profile.service';
-import { BusinessProfile } from './business-profile.types';
+import { BusinessProfile, renderBusinessBlock } from './business-profile.types';
 
 const FULL: BusinessProfile = {
   what:       { value: 'студия маникюра, 2 точки в Казани', source: 'user', updated_at: 'x' },
@@ -617,6 +620,12 @@ const FULL: BusinessProfile = {
   customers:  { value: 'B2C, женщины 25-45', source: 'assistant', updated_at: 'x' },
 };
 
+/**
+ * Рендер — чистая функция, поэтому основная батарея тестов идёт без мока
+ * Postgres вовсе. `svcWith` нужен только последнему тесту, который проверяет
+ * саму обёртку сервиса: что она читает карточку и делегирует, а не рендерит
+ * во второй раз по-своему.
+ */
 function svcWith(profile: BusinessProfile) {
   const pg = {
     query: jest.fn(async () => ({ rows: [{ profile_data: { business: profile } }] })),
@@ -624,9 +633,9 @@ function svcWith(profile: BusinessProfile) {
   return new BusinessProfileService(pg);
 }
 
-describe('renderForPrompt', () => {
-  it('для business отдаёт полный блок с человекочитаемыми enum', async () => {
-    const out = await svcWith(FULL).renderForPrompt('u1', 'business');
+describe('renderBusinessBlock', () => {
+  it('для business отдаёт полный блок с человекочитаемыми enum', () => {
+    const out = renderBusinessBlock(FULL, 'business');
 
     expect(out).toContain('Business profile:');
     expect(out).toContain('студия маникюра, 2 точки в Казани');
@@ -635,22 +644,22 @@ describe('renderForPrompt', () => {
     expect(out).toContain('1–3 млн ₽/мес'); // не '1m_3m'
   });
 
-  it('для business перечисляет незаполненное', async () => {
-    const out = await svcWith(FULL).renderForPrompt('u1', 'business');
+  it('для business перечисляет незаполненное', () => {
+    const out = renderBusinessBlock(FULL, 'business');
     expect(out).toContain('Not filled in');
     expect(out).toContain('Current focus');
   });
 
-  it('когда заполнено всё, строки про незаполненное нет', async () => {
-    const out = await svcWith({
+  it('когда заполнено всё, строки про незаполненное нет', () => {
+    const out = renderBusinessBlock({
       ...FULL,
       focus: { value: 'кассовый разрыв', source: 'user', updated_at: 'x' },
-    }).renderForPrompt('u1', 'business');
+    }, 'business');
     expect(out).not.toContain('Not filled in');
   });
 
-  it('для personal отдаёт одну строку без цифр', async () => {
-    const out = await svcWith(FULL).renderForPrompt('u1', 'personal');
+  it('для personal отдаёт одну строку без цифр', () => {
+    const out = renderBusinessBlock(FULL, 'personal');
 
     expect(out.trim().split('\n')).toHaveLength(1);
     expect(out).toContain('студия маникюра');
@@ -659,105 +668,132 @@ describe('renderForPrompt', () => {
     expect(out).not.toContain('1m_3m');
   });
 
-  it('для assistant и для кастомных ассистентов — тоже строка', async () => {
+  it('для assistant и для кастомных ассистентов — тоже строка', () => {
     for (const cat of ['assistant', 'custom', null, undefined] as any[]) {
-      const out = await svcWith(FULL).renderForPrompt('u1', cat);
+      const out = renderBusinessBlock(FULL, cat);
       expect(out.trim().split('\n')).toHaveLength(1);
       expect(out).not.toContain('УСН');
     }
   });
 
-  it('пустая карточка не даёт ничего ни в одном режиме', async () => {
-    expect(await svcWith({}).renderForPrompt('u1', 'business')).toBe('');
-    expect(await svcWith({}).renderForPrompt('u1', 'personal')).toBe('');
+  it('пустая карточка не даёт ничего ни в одном режиме', () => {
+    expect(renderBusinessBlock({}, 'business')).toBe('');
+    expect(renderBusinessBlock({}, 'personal')).toBe('');
   });
 
-  it('карточка без what не даёт строку-резюме — резюмировать нечего', async () => {
-    const out = await svcWith({
+  it('карточка без what не даёт строку-резюме — резюмировать нечего', () => {
+    expect(renderBusinessBlock({
       tax_mode: { value: 'usn_d', source: 'user', updated_at: 'x' },
-    }).renderForPrompt('u1', 'personal');
-    expect(out).toBe('');
+    }, 'personal')).toBe('');
+  });
+});
+
+describe('BusinessProfileService.renderForPrompt', () => {
+  it('читает карточку пользователя и отдаёт тот же блок, что и чистая функция', async () => {
+    const out = await svcWith(FULL).renderForPrompt('u1', 'business');
+    expect(out).toBe(renderBusinessBlock(FULL, 'business'));
+  });
+
+  it('без подключения к базе не падает, а отдаёт пусто', async () => {
+    const svc = new BusinessProfileService(undefined);
+    expect(await svc.renderForPrompt('u1', 'business')).toBe('');
+    expect(await svc.read('u1')).toEqual({});
+    expect(await svc.merge('u1', { what: 'студия' }, 'user')).toEqual({});
   });
 });
 ```
 
+Последний тест закрывает дыру, найденную ревьюером задачи 3: ветка `if (!this.pg)` есть во всех методах сервиса, но её не проверял ни один тест — то есть единственная защита от падения в контексте без Postgres тихо сломалась бы при рефакторинге.
+
 - [ ] **Шаг 2: убедиться, что тест падает**
 
 Запустить: `npx jest src/business-profile/render-for-prompt.spec.ts`
-Ожидаемо: FAIL, `svc.renderForPrompt is not a function`
+Ожидаемо: FAIL, `renderBusinessBlock is not a function`
 
-- [ ] **Шаг 3: добавить метод в сервис**
+- [ ] **Шаг 3: добавить чистую функцию в `business-profile.types.ts`**
 
-В `src/business-profile/business-profile.service.ts` дописать импорт `renderEnum` и метод:
+В конец файла, рядом с `renderEnum` и `isBusinessProfileEmpty`:
 
 ```typescript
-import {
-  BUSINESS_FIELDS,
-  BusinessFieldKey,
-  BusinessProfile,
-  FieldSource,
-  isBusinessProfileEmpty,
-  renderEnum,
-} from './business-profile.types';
+/**
+ * Блок карточки для системного промпта.
+ *
+ * Чистая функция без похода в базу: форматирование строки тестируется
+ * без мока Postgres, а сервис остаётся тонким слоем персистентности.
+ *
+ * Лейблы английские — как соседний блок `User profile:` в chat.service.
+ * Переводить их на семь локалей не нужно: русский хвост промпта уже
+ * однажды заставил ассистента отвечать по-русски аккаунту с language=en,
+ * и повторять эту ошибку блоком побольше незачем.
+ *
+ * Единственная точка рендера на все три пути сборки промпта. В
+ * chat.service.ts на строке 1643 стоит комментарий о том, что сборка уже
+ * продублирована трижды — это предупреждение, а не наблюдение.
+ */
+export function renderBusinessBlock(
+  p: BusinessProfile,
+  category: string | null | undefined,
+): string {
+  if (isBusinessProfileEmpty(p)) return '';
+
+  if (category !== 'business') {
+    // Психологу и коучу полезно знать, что человек ведёт дело, но оборот
+    // и налоговый режим им не нужны — только суть и размер команды.
+    const what = (p.what?.value || '').trim();
+    if (!what) return '';
+    const team = (p.team?.value || '').trim();
+    return team
+      ? `Пользователь ведёт свой бизнес — ${what}; команда: ${team}.`
+      : `Пользователь ведёт свой бизнес — ${what}.`;
+  }
+
+  const lines: string[] = ['Business profile:'];
+  const missing: string[] = [];
+
+  for (const f of BUSINESS_FIELDS) {
+    const raw = (p[f.key]?.value || '').trim();
+    if (!raw) {
+      missing.push(f.promptLabel);
+      continue;
+    }
+    lines.push(`${f.promptLabel}: ${renderEnum(f.key, raw)}`);
+  }
+
+  if (missing.length > 0) {
+    lines.push(`Not filled in: ${missing.join(', ')}.`);
+  }
+
+  return lines.join('\n');
+}
 ```
 
+- [ ] **Шаг 3б: добавить обёртку в сервис**
+
+В `src/business-profile/business-profile.service.ts` дописать `renderBusinessBlock` в импорт из `./business-profile.types` и метод:
+
 ```typescript
-  /**
-   * Блок для системного промпта.
-   *
-   * Лейблы английские — как соседний блок `User profile:` в chat.service.
-   * Переводить их на семь локалей не нужно: русский хвост промпта уже
-   * однажды заставил ассистента отвечать по-русски аккаунту с language=en,
-   * и повторять эту ошибку большим блоком незачем.
-   *
-   * Единственная точка рендера на все три пути сборки промпта. В
-   * chat.service.ts на строке 1643 стоит комментарий о том, что сборка уже
-   * продублирована трижды — это предупреждение, а не наблюдение.
-   */
+  /** Прочитать карточку и отрендерить блок для промпта. Вся логика формата —
+   *  в чистой renderBusinessBlock; здесь только чтение. */
   async renderForPrompt(userId: string, category: string | null | undefined): Promise<string> {
-    const p = await this.read(userId);
-    if (isBusinessProfileEmpty(p)) return '';
-
-    if (category !== 'business') {
-      // Психологу и коучу полезно знать, что человек ведёт дело, но оборот
-      // и налоговый режим им не нужны — только суть и размер команды.
-      const what = (p.what?.value || '').trim();
-      if (!what) return '';
-      const team = (p.team?.value || '').trim();
-      return team
-        ? `Пользователь ведёт свой бизнес — ${what}; команда: ${team}.`
-        : `Пользователь ведёт свой бизнес — ${what}.`;
-    }
-
-    const lines: string[] = ['Business profile:'];
-    const missing: string[] = [];
-
-    for (const f of BUSINESS_FIELDS) {
-      const raw = (p[f.key]?.value || '').trim();
-      if (!raw) {
-        missing.push(f.promptLabel);
-        continue;
-      }
-      lines.push(`${f.promptLabel}: ${renderEnum(f.key, raw)}`);
-    }
-
-    if (missing.length > 0) {
-      lines.push(`Not filled in: ${missing.join(', ')}.`);
-    }
-
-    return lines.join('\n');
+    return renderBusinessBlock(await this.read(userId), category);
   }
+```
 ```
 
 - [ ] **Шаг 4: убедиться, что тест проходит**
 
 Запустить: `npx jest src/business-profile/render-for-prompt.spec.ts`
-Ожидаемо: PASS, 7 тестов
+Ожидаемо: PASS, 9 тестов (семь на чистую функцию, два на обёртку сервиса)
+
+Затем прогнать весь модуль, чтобы убедиться, что правка типов не сломала соседей:
+
+Запустить: `npx jest src/business-profile`
+Ожидаемо: PASS, все файлы модуля
 
 - [ ] **Шаг 5: коммит**
 
 ```bash
-git add src/business-profile/business-profile.service.ts src/business-profile/render-for-prompt.spec.ts
+git add src/business-profile/business-profile.types.ts src/business-profile/business-profile.service.ts src/business-profile/render-for-prompt.spec.ts
 git commit -m "feat(business-profile): рендер блока для промпта — полный и строка-резюме"
 ```
 
