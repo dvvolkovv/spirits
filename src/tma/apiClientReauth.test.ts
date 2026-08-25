@@ -27,6 +27,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { apiClient, pickRedirectTarget } from '../services/apiClient';
 import { authService } from '../services/authService';
 import { tokenManager } from '../utils/tokenManager';
+import { tmaLogin } from './tmaAuth';
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -233,6 +234,54 @@ describe('reauthHandler ведёт себя плохо — очередь не �
 
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401, {}));
     global.fetch = fetchMock as any;
+
+    const results = await withTimeout(
+      Promise.allSettled([
+        apiClient.get('/webhook/profile'),
+        apiClient.get('/webhook/user/tokens/'),
+      ]),
+      1000,
+    );
+
+    expect(results[0].status).toBe('rejected');
+    expect(results[1].status).toBe('rejected');
+  });
+});
+
+describe('reauthHandler = tmaLogin() — реальная композиция (Task 9)', () => {
+  // Это ровно то, что заведёт Task 9:
+  // setReauthHandler(async () => (await tmaLogin()).status === 'authenticated').
+  // Проверяем сквозной путь целиком: backend /webhook/tma/auth завис — не
+  // ответил и не упал сам — AbortController внутри tmaLogin обрывает fetch
+  // по таймауту, tmaLogin отдаёт notInTelegram (не бросает), reauthHandler
+  // возвращает false, handleTokenRefresh штатно доходит до
+  // resolvePendingRequests(). Без таймаута в tmaLogin это ровно тот сценарий,
+  // который вешает очередь навсегда — тест на самом дальнем от unit
+  // уровне composition, где и был обнаружен баг.
+  it('backend /webhook/tma/auth завис: очередь всё равно settled, а не виснет', async () => {
+    tokenManager.saveTokens('OLD_ACCESS', 'OLD_REFRESH');
+    vi.spyOn(authService, 'refreshTokens').mockResolvedValue(null); // ветка "invalid response"
+    (globalThis as any).window.Telegram = { WebApp: { initData: 'auth_date=1&hash=abc' } };
+
+    const fetchMock = vi.fn().mockImplementation((url: string, options: RequestInit = {}) => {
+      if (typeof url === 'string' && url.includes('/webhook/tma/auth')) {
+        // "Завис": не отвечает и не падает сам — размыкает его только abort,
+        // как настоящий fetch на дохлом соединении.
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => {
+            const err = new Error('aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        });
+      }
+      // Исходные защищённые запросы apiClient — всегда 401.
+      return Promise.resolve(jsonResponse(401, {}));
+    });
+    global.fetch = fetchMock as any;
+
+    // Крошечный timeoutMs вместо прод-значения (8с) — тест не должен ждать.
+    apiClient.setReauthHandler(async () => (await tmaLogin({}, 20)).status === 'authenticated');
 
     const results = await withTimeout(
       Promise.allSettled([

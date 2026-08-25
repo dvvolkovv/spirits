@@ -21,6 +21,41 @@ function mockFetch(status: number, body: unknown) {
   });
 }
 
+/**
+ * Мок fetch, который никогда сам не ответит — как реальный fetch на
+ * зависшем соединении. Единственный способ его развязать — прерывание через
+ * тот же AbortSignal, что передаёт вызывающий код: так тест бьёт по
+ * настоящему механизму (controller.abort() → fetch реджектится), а не по
+ * подделке таймаута.
+ */
+function neverSettlingFetch() {
+  return vi.fn().mockImplementation((_url: string, options: RequestInit = {}) => {
+    return new Promise((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => {
+        const err = new Error('The operation was aborted.');
+        err.name = 'AbortError';
+        reject(err);
+      });
+    });
+  });
+}
+
+/**
+ * Страховка на случай регрессии в самой обвязке таймаута (например, если
+ * кто-то в будущем уберёт `signal` из fetch-опций): без неё сломанный код
+ * реально повесил бы прогон тестов на дефолтный таймаут vitest вместо
+ * понятного сообщения об ошибке.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`завис: не settled за ${ms}мс`)), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 describe('tmaLogin', () => {
   it('сохраняет пару токенов при успехе', async () => {
     globalThis.fetch = mockFetch(200, { 'access-token': 'ACC', 'refresh-token': 'REF' }) as any;
@@ -66,6 +101,32 @@ describe('tmaLogin', () => {
     expect(await tmaLogin()).toEqual({ status: 'notInTelegram' });
     expect(tokenManager.hasTokens()).toBe(false);
   });
+
+  it('РЕГРЕССИЯ: fetch, который никогда не отвечает, не вешает — таймаут даёт notInTelegram', async () => {
+    // Маленький timeoutMs вместо прод-значения (8с) — тест не должен реально
+    // ждать. Дефолт (без параметра) вызывающий код в проде не переопределяет.
+    globalThis.fetch = neverSettlingFetch() as any;
+    const r = await withTimeout(tmaLogin({}, 15), 500);
+    expect(r).toEqual({ status: 'notInTelegram' });
+  });
+
+  it('быстрый ответ не задет таймаутом и не оставляет висящий таймер', async () => {
+    // 401 вместо успеха: tokenManager.saveTokens() внутри jsdom сам планирует
+    // свои setTimeout(0) на диспатч 'storage' — это шум jsdom, а не то, что
+    // проверяет тест. 401 не трогает localStorage.setItem вообще, поэтому
+    // единственный таймер в игре — наш собственный из tmaLogin.
+    vi.useFakeTimers();
+    try {
+      globalThis.fetch = mockFetch(401, { error: 'invalid initData' }) as any;
+      const r = await tmaLogin();
+      expect(r).toEqual({ status: 'notInTelegram' });
+      // clearTimeout в finally должен снять таймер сразу после ответа —
+      // иначе он висел бы в очереди ещё 8 секунд без дела.
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('tmaLinkExisting', () => {
@@ -82,5 +143,23 @@ describe('tmaLinkExisting', () => {
   it('на прочих неуспешных статусах возвращает failed', async () => {
     globalThis.fetch = mockFetch(500, { error: 'server error' }) as any;
     expect(await tmaLinkExisting()).toEqual({ status: 'failed' });
+  });
+
+  it('РЕГРЕССИЯ: fetch, который никогда не отвечает, не вешает — таймаут даёт failed', async () => {
+    globalThis.fetch = neverSettlingFetch() as any;
+    const r = await withTimeout(tmaLinkExisting(15), 500);
+    expect(r).toEqual({ status: 'failed' });
+  });
+
+  it('быстрый ответ не задет таймаутом и не оставляет висящий таймер', async () => {
+    vi.useFakeTimers();
+    try {
+      globalThis.fetch = mockFetch(200, { ok: true }) as any;
+      const r = await tmaLinkExisting();
+      expect(r).toEqual({ status: 'ok' });
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
