@@ -10,6 +10,7 @@ class APIClient {
   private baseURL: string;
   private isRefreshing: boolean = false;
   private pendingRequests: Array<() => void> = [];
+  private reauthHandler: (() => Promise<boolean>) | null = null;
 
   constructor() {
     this.baseURL = import.meta.env.VITE_BACKEND_URL || '';
@@ -35,6 +36,17 @@ class APIClient {
     this.pendingRequests = [];
   }
 
+  /**
+   * Запасной способ восстановить сессию, когда refresh-токен не сработал.
+   *
+   * Нужен Mini App: там initData доступен всегда, поэтому протухшая сессия
+   * лечится молча, без экрана входа. Веб этот колбэк не ставит и ведёт себя
+   * по-прежнему — выкидывает на онбординг.
+   */
+  setReauthHandler(handler: (() => Promise<boolean>) | null): void {
+    this.reauthHandler = handler;
+  }
+
   private async handleTokenRefresh(): Promise<boolean> {
     // Если уже идет обновление токенов, ждем его завершения
     if (this.isRefreshing) {
@@ -49,6 +61,13 @@ class APIClient {
       
       if (!refreshToken) {
         console.warn('No refresh token available for token refresh');
+        if (this.reauthHandler) {
+          const restored = await this.reauthHandler();
+          if (restored) {
+            this.resolvePendingRequests();
+            return true;
+          }
+        }
         this.resolvePendingRequests();
         return false;
       }
@@ -62,11 +81,25 @@ class APIClient {
         return true;
       } else {
         console.error('Failed to refresh tokens: invalid response from server');
+        if (this.reauthHandler) {
+          const restored = await this.reauthHandler();
+          if (restored) {
+            this.resolvePendingRequests();
+            return true;
+          }
+        }
         this.resolvePendingRequests();
         return false;
       }
     } catch (error) {
       console.error('Error during token refresh:', error);
+      if (this.reauthHandler) {
+        const restored = await this.reauthHandler();
+        if (restored) {
+          this.resolvePendingRequests();
+          return true;
+        }
+      }
       this.resolvePendingRequests();
       return false;
     } finally {
@@ -109,7 +142,9 @@ class APIClient {
               localStorage.removeItem('authToken');
               localStorage.removeItem('userData');
               tokenManager.clearTokens();
-              window.location.href = '/';
+              // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
+              // Mini App в веб-SPA прямо внутри Telegram.
+              window.location.href = window.location.pathname.startsWith('/tma') ? '/tma/' : '/';
             }
             throw new Error('Authentication failed: no token provided');
           }
@@ -135,7 +170,9 @@ class APIClient {
               localStorage.removeItem('authToken');
               localStorage.removeItem('userData');
               tokenManager.clearTokens();
-              window.location.href = '/';
+              // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
+              // Mini App в веб-SPA прямо внутри Telegram.
+              window.location.href = window.location.pathname.startsWith('/tma') ? '/tma/' : '/';
             }
             throw new Error('Authentication failed: new token not available');
           }
@@ -145,7 +182,9 @@ class APIClient {
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
             tokenManager.clearTokens();
-            window.location.href = '/';
+            // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
+            // Mini App в веб-SPA прямо внутри Telegram.
+            window.location.href = window.location.pathname.startsWith('/tma') ? '/tma/' : '/';
           }
           throw new Error('Authentication failed: token refresh unsuccessful');
         }
