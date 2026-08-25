@@ -64,3 +64,25 @@ describe('parseCustomMarkdown: видео и markdown-ссылки', () => {
     expect(images.size).toBe(1);
   });
 });
+
+describe('parseCustomMarkdown: карточка голосового звонка', () => {
+  const ID = 'caa29d32-f925-43ae-9d73-98ef88ba1b5c';
+
+  it('вытаскивает id звонка и подменяет тег маркером', () => {
+    const { content, voiceCalls } = parseCustomMarkdown(`{{voice_call: id=${ID}}}\n\nРазговор 12 мин.`);
+    expect(voiceCalls.size).toBe(1);
+    expect([...voiceCalls.values()][0]).toBe(ID);
+    expect(content).not.toContain('{{voice_call');
+    expect(content).toContain('Разговор 12 мин.');
+  });
+
+  it('текст без тега не трогает', () => {
+    const { voiceCalls } = parseCustomMarkdown('обычное сообщение про voice_call');
+    expect(voiceCalls.size).toBe(0);
+  });
+
+  it('кривой id не считает карточкой', () => {
+    const { voiceCalls } = parseCustomMarkdown('{{voice_call: id=не-uuid}}');
+    expect(voiceCalls.size).toBe(0);
+  });
+});
