@@ -46,6 +46,22 @@ function mockFetchFailThenSucceed(failCount: number) {
   });
 }
 
+/**
+ * Гонит промис наперегонки с реальным таймером. Нужен именно для теста
+ * зависания: без него сломанный код молча ждал бы дефолтный таймаут vitest
+ * (5с) и тест «прошёл» бы по чистой случайности задержки CI, а не потому что
+ * баг действительно починен. Здесь по истечении `ms` тест валится явно.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`завис: не settled за ${ms}мс`)), ms);
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
+
 beforeEach(() => {
   tokenManager.clearTokens();
   apiClient.setReauthHandler(null);
@@ -149,6 +165,88 @@ describe('apiClient + reauthHandler (Mini App путь)', () => {
   });
 });
 
+describe('reauthHandler ведёт себя плохо — очередь не должна виснуть', () => {
+  // РЕГРЕССИЯ: reauthHandler звался внутри try без своего catch. Бросивший
+  // handler на ветке "нет refresh-токена"/"невалидный ответ" улетал в общий
+  // catch handleTokenRefresh, где handler звался ВТОРОЙ раз; если он бросал
+  // и там — исключение уходило из handleTokenRefresh мимо
+  // resolvePendingRequests(), и второй (очередь) запрос не settled никогда.
+  // Один запрос эту дыру не ловит — нужен второй, ждущий в очереди.
+  //
+  // Каждый сценарий обёрнут в withTimeout: если очередь всё-таки повиснет,
+  // тест упадёт по таймауту, а не подвесит прогон.
+
+  it('handler бросает синхронно: оба параллельных запроса settled, не виснут', async () => {
+    tokenManager.saveTokens('OLD_ACCESS', 'OLD_REFRESH');
+    vi.spyOn(authService, 'refreshTokens').mockResolvedValue(null); // ветка "invalid response"
+
+    const reauth = vi.fn(() => {
+      throw new Error('handler boom');
+    });
+    apiClient.setReauthHandler(reauth as any);
+
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401, {}));
+    global.fetch = fetchMock as any;
+
+    const results = await withTimeout(
+      Promise.allSettled([
+        apiClient.get('/webhook/profile'),
+        apiClient.get('/webhook/user/tokens/'),
+      ]),
+      1000,
+    );
+
+    expect(results[0].status).toBe('rejected');
+    expect(results[1].status).toBe('rejected');
+  });
+
+  it('handler возвращает не-boolean (undefined): оба запроса settled, не виснут', async () => {
+    tokenManager.saveTokens('OLD_ACCESS', 'OLD_REFRESH');
+    vi.spyOn(authService, 'refreshTokens').mockResolvedValue(null);
+
+    // Нарушает объявленный тип (() => Promise<boolean>), но JS этого не
+    // проверяет в рантайме — реальный колбэк вполне может так ошибиться.
+    const reauth = vi.fn().mockResolvedValue(undefined as unknown as boolean);
+    apiClient.setReauthHandler(reauth);
+
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401, {}));
+    global.fetch = fetchMock as any;
+
+    const results = await withTimeout(
+      Promise.allSettled([
+        apiClient.get('/webhook/profile'),
+        apiClient.get('/webhook/user/tokens/'),
+      ]),
+      1000,
+    );
+
+    expect(results[0].status).toBe('rejected');
+    expect(results[1].status).toBe('rejected');
+  });
+
+  it('handler реджектится: оба запроса settled, не виснут', async () => {
+    tokenManager.saveTokens('OLD_ACCESS', 'OLD_REFRESH');
+    vi.spyOn(authService, 'refreshTokens').mockResolvedValue(null);
+
+    const reauth = vi.fn().mockRejectedValue(new Error('network down in handler'));
+    apiClient.setReauthHandler(reauth);
+
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401, {}));
+    global.fetch = fetchMock as any;
+
+    const results = await withTimeout(
+      Promise.allSettled([
+        apiClient.get('/webhook/profile'),
+        apiClient.get('/webhook/user/tokens/'),
+      ]),
+      1000,
+    );
+
+    expect(results[0].status).toBe('rejected');
+    expect(results[1].status).toBe('rejected');
+  });
+});
+
 describe('apiClient без reauthHandler — поведение веба не меняется (регрессионный барьер my.linkeon.io)', () => {
   it('провал refresh: исходная ошибка, без повторного запроса, токены очищены', async () => {
     tokenManager.saveTokens('OLD_ACCESS', 'OLD_REFRESH');
@@ -220,5 +318,14 @@ describe('pickRedirectTarget', () => {
     expect(pickRedirectTarget('/chat')).toBe('/');
     expect(pickRedirectTarget('/admin')).toBe('/');
     expect(pickRedirectTarget('')).toBe('/');
+  });
+
+  it('РЕГРЕССИЯ: не путает /tma с похожими префиксами', () => {
+    // pathname.startsWith('/tma') матчил бы и /tmarketing, и /tma-referral —
+    // таких роутов сегодня нет (см. src/App.tsx), но это дешёвая мина на
+    // будущее. Граница — точное '/tma' или '/tma/...'.
+    expect(pickRedirectTarget('/tmarketing')).toBe('/');
+    expect(pickRedirectTarget('/tma-referral')).toBe('/');
+    expect(pickRedirectTarget('/tma')).toBe('/tma/');
   });
 });

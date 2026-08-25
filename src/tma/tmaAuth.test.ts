@@ -58,6 +58,14 @@ describe('tmaLogin', () => {
     expect(await tmaLogin()).toEqual({ status: 'notInTelegram' });
     expect(f).not.toHaveBeenCalled();
   });
+
+  it('200, но в теле нет токенов: notInTelegram, токены не трогает', async () => {
+    // Сервер ответил ok, но без пары токенов — не тот формат, на который
+    // рассчитывает клиент. Не должно ронять и не должно писать в tokenManager.
+    globalThis.fetch = mockFetch(200, { some: 'unexpected shape' }) as any;
+    expect(await tmaLogin()).toEqual({ status: 'notInTelegram' });
+    expect(tokenManager.hasTokens()).toBe(false);
+  });
 });
 
 describe('tmaLinkExisting', () => {
@@ -69,5 +77,10 @@ describe('tmaLinkExisting', () => {
   it('на 409 возвращает conflict', async () => {
     globalThis.fetch = mockFetch(409, { error: 'conflict' }) as any;
     expect(await tmaLinkExisting()).toEqual({ status: 'conflict' });
+  });
+
+  it('на прочих неуспешных статусах возвращает failed', async () => {
+    globalThis.fetch = mockFetch(500, { error: 'server error' }) as any;
+    expect(await tmaLinkExisting()).toEqual({ status: 'failed' });
   });
 });

@@ -16,7 +16,7 @@ interface RequestOptions extends RequestInit {
  * остаются на прежнем поведении: без Mini App это просто было `'/'`.
  */
 export function pickRedirectTarget(pathname: string): string {
-  return pathname.startsWith('/tma') ? '/tma/' : '/';
+  return pathname === '/tma' || pathname.startsWith('/tma/') ? '/tma/' : '/';
 }
 
 class APIClient {
@@ -75,7 +75,16 @@ class APIClient {
       if (!refreshToken) {
         console.warn('No refresh token available for token refresh');
         if (this.reauthHandler) {
-          const restored = await this.reauthHandler();
+          // Колбэк чужой: бросил — считаем, что не восстановил. Без этого
+          // исключение уходило в общий catch, там handler звался ВТОРОЙ раз,
+          // и при повторном броске метод выходил мимо resolvePendingRequests() —
+          // очередь ожидающих запросов зависала навсегда.
+          let restored = false;
+          try {
+            restored = await this.reauthHandler();
+          } catch {
+            restored = false;
+          }
           if (restored) {
             this.resolvePendingRequests();
             return true;
@@ -95,7 +104,14 @@ class APIClient {
       } else {
         console.error('Failed to refresh tokens: invalid response from server');
         if (this.reauthHandler) {
-          const restored = await this.reauthHandler();
+          // См. комментарий выше: свой try/catch, чтобы бросивший handler не
+          // улетал во внешний catch и не звался там повторно.
+          let restored = false;
+          try {
+            restored = await this.reauthHandler();
+          } catch {
+            restored = false;
+          }
           if (restored) {
             this.resolvePendingRequests();
             return true;
@@ -107,7 +123,16 @@ class APIClient {
     } catch (error) {
       console.error('Error during token refresh:', error);
       if (this.reauthHandler) {
-        const restored = await this.reauthHandler();
+        // Сюда попадаем при реальной ошибке refresh (не от reauthHandler —
+        // те уже погашены на месте выше). Свой try/catch по той же причине:
+        // это последний рубеж перед resolvePendingRequests(), бросить наружу
+        // нельзя — очередь останется висеть навсегда.
+        let restored = false;
+        try {
+          restored = await this.reauthHandler();
+        } catch {
+          restored = false;
+        }
         if (restored) {
           this.resolvePendingRequests();
           return true;
