@@ -216,7 +216,9 @@
       "card_no_transcript": "Nenhuma transcrição salva",
       "card_load_failed": "Não foi possível carregar a transcrição",
       "speaker_you": "Você",
-      "speaker_assistant": "Assistente"
+      "speaker_assistant": "Assistente",
+      "waiting_agent": "Aguardando Roman…",
+      "agent_no_show": "Roman não atendeu. Tente novamente."
     }
   },
   "profile": {
@@ -2100,17 +2102,30 @@
       "focus": "Foco atual"
     },
     "option": {
-      "legal_form": { "self_employed": "Autônomo", "ip": "Empresário individual", "ooo": "Sociedade limitada" },
+      "legal_form": {
+        "self_employed": "Autônomo",
+        "ip": "Empresário individual",
+        "ooo": "Sociedade limitada"
+      },
       "tax_mode": {
-        "npd": "Imposto sobre renda profissional", "usn_d": "Simplificado (receita)",
-        "usn_dr": "Simplificado (receita menos despesas)", "patent": "Patente", "osno": "Regime geral"
+        "npd": "Imposto sobre renda profissional",
+        "usn_d": "Simplificado (receita)",
+        "usn_dr": "Simplificado (receita menos despesas)",
+        "patent": "Patente",
+        "osno": "Regime geral"
       },
       "stage": {
-        "idea": "Ideia", "year_one": "Primeiro ano", "stable": "Estável", "growth": "Crescimento"
+        "idea": "Ideia",
+        "year_one": "Primeiro ano",
+        "stable": "Estável",
+        "growth": "Crescimento"
       },
       "revenue": {
-        "lt_300k": "Até 300 mil ₽", "300k_1m": "300 mil – 1 mi ₽",
-        "1m_3m": "1–3 mi ₽", "3m_10m": "3–10 mi ₽", "gt_10m": "Mais de 10 mi ₽"
+        "lt_300k": "Até 300 mil ₽",
+        "300k_1m": "300 mil – 1 mi ₽",
+        "1m_3m": "1–3 mi ₽",
+        "3m_10m": "3–10 mi ₽",
+        "gt_10m": "Mais de 10 mi ₽"
       }
     }
   }

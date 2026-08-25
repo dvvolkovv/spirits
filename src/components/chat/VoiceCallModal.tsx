@@ -14,6 +14,7 @@ interface VoiceCallModalProps {
 const STATE_LABEL_KEY: Record<CallState, string> = {
   idle: 'ready',
   connecting: 'connecting',
+  waiting_agent: 'waiting_agent',
   active: 'active',
   ended: 'ended',
   error: 'error',

@@ -215,7 +215,9 @@
       "card_no_transcript": "No transcript saved",
       "card_load_failed": "Could not load the transcript",
       "speaker_you": "You",
-      "speaker_assistant": "Assistant"
+      "speaker_assistant": "Assistant",
+      "waiting_agent": "Waiting for Roman…",
+      "agent_no_show": "Roman did not pick up. Please try again."
     }
   },
   "profile": {
@@ -2101,17 +2103,30 @@
       "focus": "Current focus"
     },
     "option": {
-      "legal_form": { "self_employed": "Self-employed", "ip": "Sole proprietor", "ooo": "LLC" },
+      "legal_form": {
+        "self_employed": "Self-employed",
+        "ip": "Sole proprietor",
+        "ooo": "LLC"
+      },
       "tax_mode": {
-        "npd": "Professional income tax", "usn_d": "Simplified (income)",
-        "usn_dr": "Simplified (income minus expenses)", "patent": "Patent", "osno": "General"
+        "npd": "Professional income tax",
+        "usn_d": "Simplified (income)",
+        "usn_dr": "Simplified (income minus expenses)",
+        "patent": "Patent",
+        "osno": "General"
       },
       "stage": {
-        "idea": "Idea", "year_one": "First year", "stable": "Stable", "growth": "Growing"
+        "idea": "Idea",
+        "year_one": "First year",
+        "stable": "Stable",
+        "growth": "Growing"
       },
       "revenue": {
-        "lt_300k": "Under ₽300k", "300k_1m": "₽300k–1M",
-        "1m_3m": "₽1–3M", "3m_10m": "₽3–10M", "gt_10m": "Over ₽10M"
+        "lt_300k": "Under ₽300k",
+        "300k_1m": "₽300k–1M",
+        "1m_3m": "₽1–3M",
+        "3m_10m": "₽3–10M",
+        "gt_10m": "Over ₽10M"
       }
     }
   }

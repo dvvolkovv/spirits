@@ -215,7 +215,9 @@
       "card_no_transcript": "Kein Transkript gespeichert",
       "card_load_failed": "Transkript konnte nicht geladen werden",
       "speaker_you": "Sie",
-      "speaker_assistant": "Assistent"
+      "speaker_assistant": "Assistent",
+      "waiting_agent": "Warte auf Roman…",
+      "agent_no_show": "Roman ist nicht ans Telefon gegangen. Bitte erneut versuchen."
     }
   },
   "profile": {
@@ -1774,17 +1776,30 @@
       "focus": "Aktueller Fokus"
     },
     "option": {
-      "legal_form": { "self_employed": "Selbstständig", "ip": "Einzelunternehmer", "ooo": "GmbH" },
+      "legal_form": {
+        "self_employed": "Selbstständig",
+        "ip": "Einzelunternehmer",
+        "ooo": "GmbH"
+      },
       "tax_mode": {
-        "npd": "Steuer auf Berufseinkommen", "usn_d": "Vereinfacht (Einnahmen)",
-        "usn_dr": "Vereinfacht (Einnahmen minus Ausgaben)", "patent": "Patent", "osno": "Regelbesteuerung"
+        "npd": "Steuer auf Berufseinkommen",
+        "usn_d": "Vereinfacht (Einnahmen)",
+        "usn_dr": "Vereinfacht (Einnahmen minus Ausgaben)",
+        "patent": "Patent",
+        "osno": "Regelbesteuerung"
       },
       "stage": {
-        "idea": "Idee", "year_one": "Erstes Jahr", "stable": "Stabil", "growth": "Wachstum"
+        "idea": "Idee",
+        "year_one": "Erstes Jahr",
+        "stable": "Stabil",
+        "growth": "Wachstum"
       },
       "revenue": {
-        "lt_300k": "Unter 300 Tsd. ₽", "300k_1m": "300 Tsd. – 1 Mio. ₽",
-        "1m_3m": "1–3 Mio. ₽", "3m_10m": "3–10 Mio. ₽", "gt_10m": "Über 10 Mio. ₽"
+        "lt_300k": "Unter 300 Tsd. ₽",
+        "300k_1m": "300 Tsd. – 1 Mio. ₽",
+        "1m_3m": "1–3 Mio. ₽",
+        "3m_10m": "3–10 Mio. ₽",
+        "gt_10m": "Über 10 Mio. ₽"
       }
     }
   }

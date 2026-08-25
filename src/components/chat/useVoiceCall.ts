@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import { apiClient } from '../../services/apiClient';
 
-export type CallState = 'idle' | 'connecting' | 'active' | 'ended' | 'error';
+export type CallState = 'idle' | 'connecting' | 'waiting_agent' | 'active' | 'ended' | 'error';
+
+/** Сколько ждём, пока воркер войдёт в комнату, прежде чем признать неудачу. */
+const AGENT_WAIT_MS = 15_000;
 
 export interface ThinkingSpecialist {
   jobId: string;
@@ -116,14 +119,42 @@ export function useVoiceCall() {
         }
       });
 
+      // Агент вышел из комнаты — разговор окончен, даже если наш сокет жив.
+      room.on(RoomEvent.ParticipantDisconnected, () => {
+        if (room.remoteParticipants.size === 0) {
+          setState('ended');
+          setThinking([]);
+          cleanupAudioElements();
+        }
+      });
+
       room.on(RoomEvent.Disconnected, () => {
         setState('ended');
         setThinking([]);
         cleanupAudioElements();
       });
 
+      // «Разговор идёт» только когда в комнате реально есть собеседник.
+      //
+      // Раньше здесь стоял setState('active') сразу после connect(): фронт
+      // объявлял звонок состоявшимся, подключившись к ПУСТОЙ комнате. Если
+      // воркер не поднялся или не успел войти, пользователь видел «разговор
+      // идёт» и слушал тишину, неотличимую от рабочего звонка. Поймано живым
+      // звонком на проде 25.08.2026 — ни один тест такого не покажет.
+      const agentJoined = new Promise<boolean>((resolve) => {
+        if (room.remoteParticipants.size > 0) { resolve(true); return; }
+        const onJoin = () => { room.off(RoomEvent.ParticipantConnected, onJoin); resolve(true); };
+        room.on(RoomEvent.ParticipantConnected, onJoin);
+        setTimeout(() => { room.off(RoomEvent.ParticipantConnected, onJoin); resolve(false); }, AGENT_WAIT_MS);
+      });
+
       await room.connect(wsUrl, token);
       await room.localParticipant.setMicrophoneEnabled(true);
+      setState('waiting_agent');
+
+      if (!(await agentJoined)) {
+        throw new Error(t('chat.voice_call.agent_no_show'));
+      }
       setState('active');
     } catch (e) {
       const message = e instanceof Error ? e.message : undefined;

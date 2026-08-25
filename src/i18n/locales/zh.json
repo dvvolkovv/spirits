@@ -214,7 +214,9 @@
       "card_no_transcript": "未保存文字记录",
       "card_load_failed": "无法加载文字记录",
       "speaker_you": "您",
-      "speaker_assistant": "助手"
+      "speaker_assistant": "助手",
+      "waiting_agent": "正在等待罗曼…",
+      "agent_no_show": "罗曼没有接听，请重试。"
     }
   },
   "profile": {
@@ -1769,17 +1771,30 @@
       "focus": "当前重点"
     },
     "option": {
-      "legal_form": { "self_employed": "自雇", "ip": "个体经营者", "ooo": "有限责任公司" },
+      "legal_form": {
+        "self_employed": "自雇",
+        "ip": "个体经营者",
+        "ooo": "有限责任公司"
+      },
       "tax_mode": {
-        "npd": "职业收入税", "usn_d": "简易计税（收入）",
-        "usn_dr": "简易计税（收入减支出）", "patent": "专利税制", "osno": "一般税制"
+        "npd": "职业收入税",
+        "usn_d": "简易计税（收入）",
+        "usn_dr": "简易计税（收入减支出）",
+        "patent": "专利税制",
+        "osno": "一般税制"
       },
       "stage": {
-        "idea": "构想", "year_one": "第一年", "stable": "稳定", "growth": "增长"
+        "idea": "构想",
+        "year_one": "第一年",
+        "stable": "稳定",
+        "growth": "增长"
       },
       "revenue": {
-        "lt_300k": "30万卢布以下", "300k_1m": "30万–100万卢布",
-        "1m_3m": "100万–300万卢布", "3m_10m": "300万–1000万卢布", "gt_10m": "1000万卢布以上"
+        "lt_300k": "30万卢布以下",
+        "300k_1m": "30万–100万卢布",
+        "1m_3m": "100万–300万卢布",
+        "3m_10m": "300万–1000万卢布",
+        "gt_10m": "1000万卢布以上"
       }
     }
   }
