@@ -21,6 +21,7 @@ vi.mock('../services/authService', () => ({
 vi.mock('../utils/tokenManager', () => ({
   tokenManager: {
     clearTokens: vi.fn(),
+    getAccessToken: vi.fn(),
   },
 }));
 
@@ -31,6 +32,9 @@ import { runStart, runSendCode, runConfirmLink } from './choiceFlow';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // По умолчанию — как будто verifyCode уже сохранил токен (обычный путь).
+  // Тест на «токена нет» ниже переопределяет это явно на null.
+  (tokenManager.getAccessToken as any).mockReturnValue('tok_from_verify_code');
 });
 
 describe('runStart', () => {
@@ -93,6 +97,21 @@ describe('runConfirmLink — порядок вход-потом-привязка
     const r = await runConfirmLink('79991234567', '0000');
     expect(r).toEqual({ status: 'wrongCode' });
     expect(tmaLinkExisting).not.toHaveBeenCalled();
+  });
+
+  it('verifyCode вернул success:true, но токена в tokenManager нет (легаси-ветка text/plain "Confirmed" без JWT): tmaLinkExisting НЕ вызывается, результат — failed', async () => {
+    // Пин на латентный путь: authService.verifyCode может в теории вернуть
+    // success:true, не сохранив токен (см. комментарий в choiceFlow.ts). Без
+    // явной проверки tmaLinkExisting() ушёл бы с тем токеном, что случайно
+    // лежит в сторадже (чужим или отсутствующим) — привязка чужого Telegram
+    // к чужому аккаунту, ровно тот баг, который весь этот флоу предотвращает.
+    (authService.verifyCode as any).mockResolvedValue({ success: true });
+    (tokenManager.getAccessToken as any).mockReturnValue(null);
+
+    const r = await runConfirmLink('79991234567', '1234');
+
+    expect(tmaLinkExisting).not.toHaveBeenCalled();
+    expect(r).toEqual({ status: 'failed' });
   });
 
   it('успешный вход + успешная привязка: status ok, токены НЕ гасятся', async () => {

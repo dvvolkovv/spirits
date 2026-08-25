@@ -48,6 +48,19 @@ export async function runConfirmLink(phone: string, code: string): Promise<Confi
   const auth = await authService.verifyCode(phone, code);
   if (!auth.success) return { status: 'wrongCode' };
 
+  // Страховка: authService.verifyCode() при success:true в подавляющем
+  // большинстве случаев уже сохранил токены (см. коммент выше), НО есть
+  // легаси-ветка — ответ text/plain "Confirmed" без JSON с токенами, где
+  // success:true возвращается, а tokenManager.saveTokens() не вызывается
+  // вовсе (см. authService.ts). Сегодня бэкенд check-code всегда отвечает
+  // JSON, так что эта ветка не срабатывает — но если она когда-нибудь
+  // сработает, tmaLinkExisting() ниже привяжет Telegram к ЧУЖОМУ токену,
+  // который случайно оказался в сторадже (или ни к какому, если стораджа
+  // пуст) — это ровно тот баг с чужим аккаунтом, ради предотвращения
+  // которого вообще существует порядок вход-потом-привязка. Без свежего
+  // access-токена от ЭТОГО verifyCode привязка не делается вовсе.
+  if (!tokenManager.getAccessToken()) return { status: 'failed' };
+
   const linked = await tmaLinkExisting();
   if (linked.status === 'ok') return { status: 'ok' };
 

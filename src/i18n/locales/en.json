@@ -17,6 +17,11 @@
       "title": "Open this app from Telegram",
       "body": "This page only works inside Telegram."
     },
+    "retry": {
+      "title": "Couldn't connect",
+      "body": "Check your connection and try again.",
+      "action": "Retry"
+    },
     "nav": {
       "day": "Today",
       "assistants": "Assistants",
