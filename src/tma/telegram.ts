@@ -1,0 +1,54 @@
+/**
+ * Тонкая обёртка над window.Telegram.WebApp.
+ *
+ * Существует ради одного: весь остальной код Mini App не должен трогать
+ * глобальный объект напрямую. Вне Telegram (дев-сервер, случайный заход
+ * браузером) каждая функция обязана деградировать молча, а не падать —
+ * иначе разработка превращается в отладку белого экрана.
+ */
+
+interface TelegramWebApp {
+  initData: string;
+  themeParams: Record<string, string>;
+  colorScheme: 'light' | 'dark';
+  ready(): void;
+  expand(): void;
+  close(): void;
+}
+
+function webApp(): TelegramWebApp | null {
+  return (window as any)?.Telegram?.WebApp ?? null;
+}
+
+export function getInitData(): string {
+  return webApp()?.initData ?? '';
+}
+
+/**
+ * Пустой initData означает открытие вне Telegram: сам объект WebApp
+ * существует и в обычном браузере, если подключён их скрипт.
+ */
+export function isInsideTelegram(): boolean {
+  return getInitData().length > 0;
+}
+
+export function applyTelegramTheme(): void {
+  const app = webApp();
+  if (!app) return;
+  const root = document.documentElement;
+  for (const [key, value] of Object.entries(app.themeParams || {})) {
+    root.style.setProperty(`--tg-${key.replace(/_/g, '-')}`, value);
+  }
+  root.setAttribute('data-theme', app.colorScheme || 'light');
+}
+
+export function readyAndExpand(): void {
+  const app = webApp();
+  if (!app) return;
+  app.ready();
+  app.expand();
+}
+
+export function closeApp(): void {
+  webApp()?.close();
+}
