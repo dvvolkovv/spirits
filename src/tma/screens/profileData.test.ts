@@ -40,7 +40,10 @@ describe('saveProfile', () => {
 
 describe('uploadAvatar', () => {
   it('идёт через putForm с multipart-полем file, не через apiClient.put', async () => {
-    const putForm = vi.fn(async () => ({ success: true }));
+    // Явная сигнатура важна: без неё vi.fn() выводит тип параметров из
+    // тела (пустой), а putForm.mock.calls[0] превращается в пустой
+    // кортеж — деструктуризация ниже не типизируется.
+    const putForm = vi.fn(async (_url: string, _body: FormData) => ({ success: true }));
     const blob = new Blob(['x']);
     const getAvatarBlob = vi.fn(async () => blob);
 
