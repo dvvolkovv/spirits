@@ -418,11 +418,11 @@ cd ~/Downloads/spirits_back && npx jest src/identity/identity.telegram.spec.ts -
 --
 -- Добавляет провайдера 'telegram' для входа из Mini App.
 --
--- ВАЖНО: констрейнт перечисляется ЦЕЛИКОМ, все семь провайдеров.
--- 002_talerid_provider.sql перезаписал констрейнт без 'apple', хотя 001 его
--- перечислял, — вход через Apple ломался бы на вставке. Эта миграция чинит
--- заодно и его. Любая следующая миграция обязана поступать так же:
--- перечислять всех, а не дописывать одного.
+-- ВАЖНО: констрейнт перечисляется ЦЕЛИКОМ, все семь провайдеров, а не
+-- дописывается «ещё один». Именно на дописывании погорел 002: он перечислил
+-- пять провайдеров и потерял apple. В живой базе это не выстрелило только
+-- потому, что загрузчик его никогда не запускал, а 001 переутверждает
+-- констрейнт на каждом старте. Следующая миграция обязана перечислять всех.
 
 ALTER TABLE user_identities DROP CONSTRAINT IF EXISTS user_identities_provider_check;
 ALTER TABLE user_identities ADD CONSTRAINT user_identities_provider_check
@@ -431,13 +431,37 @@ ALTER TABLE user_identities ADD CONSTRAINT user_identities_provider_check
 
 - [ ] **Step 7: Подключить миграцию к загрузчику**
 
-В `spirits_back/src/identity/identity.service.ts` метод `onModuleInit` читает ровно один файл — `001_identity_init.sql` — и выходит по `return`. Заменить тело метода так, чтобы он катал все миграции по порядку:
+`onModuleInit` в `spirits_back/src/identity/identity.service.ts` читает ровно один файл — `001_identity_init.sql` — и выходит по `return`. Из-за этого `002` **никогда не исполнялся**, и `apple` в живой базе уцелел только потому, что `001` переутверждает констрейнт на каждом старте.
+
+Отсюда важное следствие: эти файлы — не история миграций (таблицы `schema_migrations` здесь нет), а идемпотентные утверждения схемы, накатываемые при каждом запуске. Значит в списке должны быть только актуальные утверждения. **`002` в список не включаем** — он перезаписывает констрейнт без `apple`, и его целиком заменяет `003`. Включить его означало бы впервые запустить заведомо устаревшее утверждение ради того, чтобы следующей строкой откатить.
+
+Список выносится на уровень модуля — иначе решение похоронено внутри метода и не проверяется тестом. Над классом:
+
+```typescript
+/**
+ * Файлы схемы, переутверждаемые при каждом старте.
+ *
+ * Это НЕ история миграций: таблицы schema_migrations здесь нет, каждый файл
+ * идемпотентен и накатывается заново на каждом запуске. Поэтому в списке
+ * только актуальные утверждения, а не всё, что когда-либо писалось.
+ *
+ * 002_talerid_provider.sql сюда намеренно не входит. Он перезаписывает
+ * констрейнт провайдеров БЕЗ apple, и его целиком заменяет 003. До 25.08.2026
+ * загрузчик катал только 001 и выходил, поэтому 002 никогда не исполнялся —
+ * apple уцелел лишь потому, что 001 переутверждает констрейнт на каждом старте.
+ */
+export const IDENTITY_MIGRATIONS = [
+  '001_identity_init.sql',
+  '003_telegram_provider.sql',
+];
+```
+
+Тело метода:
 
 ```typescript
   async onModuleInit() {
     if (!this.pg) return;
-    const files = ['001_identity_init.sql', '002_talerid_provider.sql', '003_telegram_provider.sql'];
-    for (const file of files) {
+    for (const file of IDENTITY_MIGRATIONS) {
       const candidates = [
         path.join(__dirname, 'migrations', file),
         path.join(__dirname, '..', '..', 'src', 'identity', 'migrations', file),
@@ -468,22 +492,88 @@ ALTER TABLE user_identities ADD CONSTRAINT user_identities_provider_check
   }
 ```
 
-Порядок в массиве важен: `003` обязана идти после `002`, иначе `002` снова снесёт `apple` и `telegram`.
+Порядок в массиве важен: `003` идёт после `001`, потому что `001` тоже переутверждает констрейнт.
 
-- [ ] **Step 8: Проверить миграцию на живой базе тест-ноды**
+- [ ] **Step 8: Закрепить решение тестом, ловящим класс ошибки**
 
-```bash
-ssh dv@85.192.61.231 "psql -U linkeon -d linkeon -c \"SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'user_identities_provider_check';\""
+Добавить в `src/identity/identity.telegram.spec.ts`:
+
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+import { IDENTITY_MIGRATIONS } from './identity.service';
+
+describe('список переутверждаемых файлов схемы', () => {
+  const ALL_PROVIDERS = ['phone', 'email', 'google', 'yandex', 'talerid', 'apple', 'telegram'];
+
+  it('не катает 002 — он снял бы apple', () => {
+    expect(IDENTITY_MIGRATIONS).not.toContain('002_talerid_provider.sql');
+  });
+
+  // Ловит класс ошибки, а не конкретный файл: любой катаемый файл, который
+  // трогает констрейнт провайдеров, обязан перечислить всех до единого.
+  // Именно из-за дописывания «ещё одного» 002 и потерял apple.
+  //
+  // Ищем в самом CHECK-выражении, а не во всём тексте файла. Первая редакция
+  // грепала файл целиком и была зелёной даже с урезанным констрейнтом: имена
+  // провайдеров случайно упоминались в комментарии-шапке того же файла — тест
+  // «проверял» комментарий.
+  it.each(IDENTITY_MIGRATIONS)('%s перечисляет всех провайдеров, если трогает констрейнт', (file) => {
+    const sql = fs.readFileSync(path.join(__dirname, 'migrations', file), 'utf8');
+    if (!sql.includes('user_identities_provider_check')) return;
+
+    const clauses = sql
+      .replace(/--[^\n]*/g, '')
+      .split(/CHECK\s*\(\s*provider\s+IN\s*\(/i)
+      .slice(1)
+      .map((chunk) => chunk.split(')')[0]);
+
+    // Файл, объявляющий констрейнт, обязан содержать хотя бы одно
+    // CHECK-выражение — иначе регулярка молча ничего не нашла бы и тест
+    // прошёл бы на пустом месте.
+    expect(clauses.length).toBeGreaterThan(0);
+
+    for (const clause of clauses) {
+      for (const p of ALL_PROVIDERS) {
+        expect(clause).toContain(`'${p}'`);
+      }
+    }
+  });
+});
 ```
 
-Ожидается после рестарта API: в выводе присутствуют все семь провайдеров, включая `apple` и `telegram`.
+В `001` таких выражений **два** — инлайновое в `CREATE TABLE` и внутри `DO $$`-блока самолечения. Проверяются оба: урезанным может оказаться любое.
 
-- [ ] **Step 9: Коммит**
+Проверить, что тест кусается — тремя мутациями, каждую откатывать:
+
+1. Убрать `'apple'` из настоящего `CHECK` в `003`, комментарии не трогать. Ожидается FAIL. Именно этот случай раньше проскакивал.
+2. Убрать `'telegram'` только из `CHECK` внутри `DO $$` в `001`, инлайновый оставить целым. Ожидается FAIL — покрытие второго вхождения.
+3. Дописать `'002_talerid_provider.sql'` в `IDENTITY_MIGRATIONS`. Ожидается FAIL обоих пинящих тестов.
+
+Проверено 25.08.2026: все три упали как ожидалось.
+
+- [ ] **Step 9: Проверить миграцию на живой базе тест-ноды**
+
+**Внутри транзакции с откатом** — тестовый стенд живой, оставлять за собой DDL нельзя, рестартовать там API не нужно.
+
+Реквизиты БД взять из `.env`, которым пользуется `~/spirits_back` на ноде. Затем:
+
+```
+BEGIN;
+-- содержимое 003_telegram_provider.sql
+SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'user_identities_provider_check';
+ROLLBACK;
+```
+
+Записать определение констрейнта **до** и **внутри** транзакции.
+
+Проверено 25.08.2026: до миграции в живой базе шесть провайдеров, `apple` присутствует, `telegram` отсутствует; внутри транзакции — все семь.
+
+- [ ] **Step 10: Коммит**
 
 ```bash
-cd ~/Downloads/spirits_back
 git add src/identity/
-git commit -m "feat(identity): провайдер telegram + починка констрейнта, потерявшего apple"
+git commit -m "feat(identity): провайдер telegram, 002 выведен из загрузчика"
 ```
 
 ---
