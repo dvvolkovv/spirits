@@ -36,7 +36,10 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, o
     onClose();
   };
 
-  const canCall = state === 'idle' || state === 'error';
+  // 'ended' тоже: после завершённого звонка модалка иначе показывала кнопку
+  // «Положить трубку», которой уже нечего класть, и позвонить повторно было
+  // нельзя, не закрыв и не открыв её заново.
+  const canCall = state === 'idle' || state === 'error' || state === 'ended';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">

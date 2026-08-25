@@ -126,9 +126,18 @@ export function useVoiceCall() {
       setError(message || t('chat.voice_call.error'));
       setState('error');
       cleanupAudioElements();
+
+      // Обязательно отключаемся, а не только обнуляем ref. Самый частый сбой
+      // здесь — пользователь запретил микрофон: connect() уже прошёл, воркер
+      // задиспатчен, Realtime-сессия тарифицируется. Просто забыв про Room,
+      // мы оставляли её подключённой навсегда, а кнопка «Позвонить» снова
+      // становилась активной и заводила вторую такую же.
+      const orphan = roomRef.current;
       roomRef.current = null;
+      if (orphan) { try { await orphan.disconnect(); } catch { /* уже отключились */ } }
+      if (callId) { try { await apiClient.post(`/webhook/voice-call/${callId}/end`); } catch { /* best-effort */ } }
     }
-  }, [t, cleanupAudioElements]);
+  }, [t, cleanupAudioElements, callId]);
 
   // Уходя со страницы, кладём трубку: иначе комната живёт до таймаута воркера.
   useEffect(() => () => { void roomRef.current?.disconnect(); }, []);
