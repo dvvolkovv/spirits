@@ -1,4 +1,29 @@
 {
+  "tma": {
+    "choice": {
+      "title": "Welcome to Linkeon",
+      "subtitle": "Assistants that remember your context and work alongside you.",
+      "start": "Get started",
+      "haveAccount": "I already have an account",
+      "phoneLabel": "Phone number",
+      "codeLabel": "SMS code",
+      "sendCode": "Send code",
+      "confirm": "Confirm",
+      "back": "Back",
+      "conflict": "This Telegram is already linked to another Linkeon account.",
+      "failed": "That didn't work. Please try again."
+    },
+    "outside": {
+      "title": "Open this app from Telegram",
+      "body": "This page only works inside Telegram."
+    },
+    "nav": {
+      "day": "Today",
+      "assistants": "Assistants",
+      "wallet": "Wallet",
+      "profile": "Profile"
+    }
+  },
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "AI for growing and scaling your business",
