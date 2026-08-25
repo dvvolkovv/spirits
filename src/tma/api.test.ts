@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getJson, postJson, putForm } from './api';
+import { getJson, postJson, putForm, getBlob } from './api';
 import { apiClient } from '../services/apiClient';
 
 function resp(status: number, body: unknown) {
@@ -43,5 +43,24 @@ describe('putForm', () => {
     const fd = new FormData();
     await putForm('/webhook/avatar', fd);
     expect(spy).toHaveBeenCalledWith('/webhook/avatar', { method: 'PUT', body: fd });
+  });
+});
+
+describe('getBlob', () => {
+  // /webhook/avatar отдаёт либо байты картинки, либо 204 без тела — не JSON.
+  it('возвращает blob на успешном ответе', async () => {
+    const blob = new Blob(['x']);
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ ok: true, status: 200, blob: async () => blob } as any);
+    expect(await getBlob('/webhook/avatar')).toBe(blob);
+  });
+
+  it('возвращает null на 204 (аватар не выставлен)', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ ok: true, status: 204, blob: async () => { throw new Error('no body'); } } as any);
+    expect(await getBlob('/webhook/avatar')).toBeNull();
+  });
+
+  it('возвращает null на неуспешном статусе, не бросает', async () => {
+    vi.spyOn(apiClient, 'get').mockResolvedValue({ ok: false, status: 500, blob: async () => { throw new Error('x'); } } as any);
+    expect(await getBlob('/webhook/avatar')).toBeNull();
   });
 });
