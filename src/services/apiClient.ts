@@ -6,6 +6,19 @@ interface RequestOptions extends RequestInit {
   isRetry?: boolean;
 }
 
+/**
+ * Куда вести человека при провале авторизации: свой entry point, а не всегда '/'.
+ *
+ * Вынесено в чистую функцию ради тестируемости — jsdom не позволяет проверить
+ * результат присваивания window.location.href (навигация там no-op с логом
+ * «Not implemented»), а сам выбор цели — это то место, которое реально можно
+ * сломать при рефакторинге. Три вызывающих места в APIClient.request()
+ * остаются на прежнем поведении: без Mini App это просто было `'/'`.
+ */
+export function pickRedirectTarget(pathname: string): string {
+  return pathname.startsWith('/tma') ? '/tma/' : '/';
+}
+
 class APIClient {
   private baseURL: string;
   private isRefreshing: boolean = false;
@@ -144,7 +157,7 @@ class APIClient {
               tokenManager.clearTokens();
               // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
               // Mini App в веб-SPA прямо внутри Telegram.
-              window.location.href = window.location.pathname.startsWith('/tma') ? '/tma/' : '/';
+              window.location.href = pickRedirectTarget(window.location.pathname);
             }
             throw new Error('Authentication failed: no token provided');
           }
@@ -172,7 +185,7 @@ class APIClient {
               tokenManager.clearTokens();
               // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
               // Mini App в веб-SPA прямо внутри Telegram.
-              window.location.href = window.location.pathname.startsWith('/tma') ? '/tma/' : '/';
+              window.location.href = pickRedirectTarget(window.location.pathname);
             }
             throw new Error('Authentication failed: new token not available');
           }
@@ -184,7 +197,7 @@ class APIClient {
             tokenManager.clearTokens();
             // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
             // Mini App в веб-SPA прямо внутри Telegram.
-            window.location.href = window.location.pathname.startsWith('/tma') ? '/tma/' : '/';
+            window.location.href = pickRedirectTarget(window.location.pathname);
           }
           throw new Error('Authentication failed: token refresh unsuccessful');
         }
