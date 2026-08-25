@@ -199,7 +199,19 @@
     "file_count_many": "{{count}} de fichiers",
     "files_too_large": "Ces fichiers totalisent {{total}} Mo, or la limite par message est de {{max}} Mo. Retires-en quelques-uns et envoie le reste dans un autre message.",
     "assistant_working": "L'assistant travaille encore sur ton message précédent",
-    "assistant_working_hint": "La réponse apparaîtra ici toute seule — tu peux quitter cette page."
+    "assistant_working_hint": "La réponse apparaîtra ici toute seule — tu peux quitter cette page.",
+    "voice_call": {
+      "start": "Appeler",
+      "ready": "Prêt à appeler",
+      "connecting": "Connexion...",
+      "active": "Appel en cours",
+      "ended": "Appel terminé",
+      "error": "Erreur",
+      "hang_up": "Raccrocher",
+      "specialist_thinking": "{{name}} réfléchit...",
+      "button_title": "Appeler Roman",
+      "admin_only": "Les appels vocaux sont pour l'instant réservés aux administrateurs"
+    }
   },
   "profile": {
     "title": "Mon profil",

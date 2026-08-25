@@ -199,7 +199,19 @@
     "social_connect_hint": "Vai abrir a página de autorização do {{platform}}. Depois de aprovares, voltas ao chat.",
     "files_too_large": "Os ficheiros somam {{total}} MB — o limite por mensagem é de {{max}} MB. Retire alguns e envie o resto noutra mensagem.",
     "assistant_working": "O assistente ainda está a trabalhar na sua mensagem anterior",
-    "assistant_working_hint": "A resposta aparecerá aqui sozinha — pode sair desta página."
+    "assistant_working_hint": "A resposta aparecerá aqui sozinha — pode sair desta página.",
+    "voice_call": {
+      "start": "Ligar",
+      "ready": "Pronto para ligar",
+      "connecting": "A ligar...",
+      "active": "Chamada em curso",
+      "ended": "Chamada terminada",
+      "error": "Erro",
+      "hang_up": "Desligar",
+      "specialist_thinking": "{{name}} está a pensar...",
+      "button_title": "Ligar ao Roman",
+      "admin_only": "Por agora, as chamadas de voz estão disponíveis apenas para administradores"
+    }
   },
   "profile": {
     "title": "O meu perfil",

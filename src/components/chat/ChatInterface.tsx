@@ -3,13 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { resolveLanguage } from '../../i18n/languages';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X } from 'lucide-react';
+import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X, Phone } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { TokenPackages } from '../tokens/TokenPackages';
+import { VoiceCallModal } from './VoiceCallModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
@@ -541,6 +542,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     initialScrollDoneForAssistantRef.current = null;
     historyLoadedForRef.current = null;
   };
+
+  // Голосовой звонок Роману (id 12, только для админов) — модалка над чатом,
+  // весь жизненный цикл звонка живёт внутри неё через useVoiceCall.
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
 
   // Initial load + refetch когда открывается дропдаун (пользователь мог
   // создать кастомного ассистента в /my-agents и тут же вернуться).
@@ -2083,10 +2088,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     </button>
   );
 
+  // Кнопка звонка Роману — видна только админам и только в чате с Романом
+  // (id 12). Тот же тумблер-стиль, что и «Чистый лист», в двух местах шапки.
+  const renderCallButton = (testId: string, wrapperClass: string) => {
+    if (!user?.isAdmin || selectedAssistant?.id !== 12) return null;
+    return (
+      <button
+        onClick={() => setShowVoiceCall(true)}
+        data-testid={testId}
+        className={clsx(
+          'items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors',
+          wrapperClass,
+          'border-gray-200 text-gray-500 hover:text-forest-700 hover:border-forest-300'
+        )}
+        title={t('chat.voice_call.button_title')}
+        aria-label={t('chat.voice_call.button_title')}
+      >
+        <Phone className="w-4 h-4" />
+        <span className="hidden md:inline text-xs font-medium">{t('chat.voice_call.start')}</span>
+      </button>
+    );
+  };
+
   return (
     <>
       {showTokenPackages && (
         <TokenPackages onClose={() => setShowTokenPackages(false)} />
+      )}
+
+      {showVoiceCall && selectedAssistant && (
+        <VoiceCallModal
+          assistantName={selectedAssistant.displayName ?? selectedAssistant.name}
+          onClose={() => setShowVoiceCall(false)}
+        />
       )}
 
       <div className="flex flex-col h-full bg-gray-50 relative" data-testid="chat-root">
@@ -2141,6 +2175,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {/* Мобила: вместо текстовой ссылки — иконка «Чистый лист».
                     Десктопный вариант тумблера живёт справа (hidden md:flex). */}
                 {renderFreshToggle('fresh-mode-toggle-mobile', 'flex md:hidden')}
+                {renderCallButton('voice-call-toggle-mobile', 'flex md:hidden')}
 
                 {onOpenMatch && (
                   <button
@@ -2273,6 +2308,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </button>
             )}
             {renderFreshToggle('fresh-mode-toggle', 'hidden md:flex')}
+            {renderCallButton('voice-call-toggle', 'hidden md:flex')}
             {messages.length > 1 && (
               <>
                 <button

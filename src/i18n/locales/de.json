@@ -198,7 +198,19 @@
     "social_connect_hint": "Die {{platform}}-Anmeldeseite öffnet sich. Nach der Freigabe kehrst du zum Chat zurück.",
     "files_too_large": "Die Dateien ergeben zusammen {{total}} MB — pro Nachricht sind höchstens {{max}} MB möglich. Nimm ein paar heraus und schick den Rest in einer weiteren Nachricht.",
     "assistant_working": "Die Assistenz arbeitet noch an deiner vorherigen Nachricht",
-    "assistant_working_hint": "Die Antwort erscheint von selbst hier — du kannst die Seite verlassen."
+    "assistant_working_hint": "Die Antwort erscheint von selbst hier — du kannst die Seite verlassen.",
+    "voice_call": {
+      "start": "Anrufen",
+      "ready": "Bereit für den Anruf",
+      "connecting": "Verbindung wird hergestellt...",
+      "active": "Gespräch läuft",
+      "ended": "Anruf beendet",
+      "error": "Fehler",
+      "hang_up": "Auflegen",
+      "specialist_thinking": "{{name}} denkt nach...",
+      "button_title": "Roman anrufen",
+      "admin_only": "Anrufe sind derzeit nur für Admins verfügbar"
+    }
   },
   "profile": {
     "title": "Mein Profil",

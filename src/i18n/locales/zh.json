@@ -197,7 +197,19 @@
     "social_connect_hint": "将打开 {{platform}} 的授权页面，授权完成后会返回聊天界面。",
     "files_too_large": "这些文件共 {{total}} MB，单条消息最多 {{max}} MB。请去掉一部分，其余的用下一条消息发送。",
     "assistant_working": "助手正在处理你上一条消息",
-    "assistant_working_hint": "回复会自动出现在这里，你可以离开此页面。"
+    "assistant_working_hint": "回复会自动出现在这里，你可以离开此页面。",
+    "voice_call": {
+      "start": "拨打",
+      "ready": "准备通话",
+      "connecting": "连接中...",
+      "active": "通话中",
+      "ended": "通话已结束",
+      "error": "出错了",
+      "hang_up": "挂断",
+      "specialist_thinking": "{{name}}正在思考...",
+      "button_title": "呼叫罗曼",
+      "admin_only": "语音通话目前仅对管理员开放"
+    }
   },
   "profile": {
     "title": "我的个人资料",
