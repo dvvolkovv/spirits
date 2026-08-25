@@ -66,6 +66,9 @@ export function useVoiceCall() {
   }, [callId, cleanupAudioElements]);
 
   const start = useCallback(async () => {
+    // Второй клик по «Позвонить», пока первый ещё соединяется, создал бы вторую
+    // Room и потерял ссылку на первую — она осталась бы висеть подключённой.
+    if (roomRef.current) return;
     setState('connecting');
     setError(null);
     try {

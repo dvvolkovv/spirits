@@ -210,7 +210,13 @@
       "hang_up": "Raccrocher",
       "specialist_thinking": "{{name}} réfléchit...",
       "button_title": "Appeler Roman",
-      "admin_only": "Les appels vocaux sont pour l'instant réservés aux administrateurs"
+      "admin_only": "Les appels vocaux sont pour l'instant réservés aux administrateurs",
+      "card_title": "Appel vocal",
+      "card_minutes": "{{count}} min",
+      "card_no_transcript": "Aucune transcription enregistrée",
+      "card_load_failed": "Impossible de charger la transcription",
+      "speaker_you": "Vous",
+      "speaker_assistant": "Assistant"
     }
   },
   "profile": {

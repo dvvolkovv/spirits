@@ -211,7 +211,13 @@
       "hang_up": "Положить трубку",
       "specialist_thinking": "{{name}} думает...",
       "button_title": "Позвонить Роману",
-      "admin_only": "Звонки пока доступны только админам"
+      "admin_only": "Звонки пока доступны только админам",
+      "card_title": "Голосовой разговор",
+      "card_minutes": "{{count}} мин",
+      "card_no_transcript": "Расшифровка не сохранилась",
+      "card_load_failed": "Не удалось загрузить расшифровку",
+      "speaker_you": "Вы",
+      "speaker_assistant": "Ассистент"
     }
   },
   "profile": {

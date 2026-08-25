@@ -209,7 +209,13 @@
       "hang_up": "Auflegen",
       "specialist_thinking": "{{name}} denkt nach...",
       "button_title": "Roman anrufen",
-      "admin_only": "Anrufe sind derzeit nur für Admins verfügbar"
+      "admin_only": "Anrufe sind derzeit nur für Admins verfügbar",
+      "card_title": "Sprachanruf",
+      "card_minutes": "{{count}} Min.",
+      "card_no_transcript": "Kein Transkript gespeichert",
+      "card_load_failed": "Transkript konnte nicht geladen werden",
+      "speaker_you": "Sie",
+      "speaker_assistant": "Assistent"
     }
   },
   "profile": {

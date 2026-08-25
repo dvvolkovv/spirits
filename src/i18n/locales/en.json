@@ -209,7 +209,13 @@
       "hang_up": "Hang up",
       "specialist_thinking": "{{name}} is thinking...",
       "button_title": "Call Roman",
-      "admin_only": "Voice calls are currently available to admins only"
+      "admin_only": "Voice calls are currently available to admins only",
+      "card_title": "Voice call",
+      "card_minutes": "{{count}} min",
+      "card_no_transcript": "No transcript saved",
+      "card_load_failed": "Could not load the transcript",
+      "speaker_you": "You",
+      "speaker_assistant": "Assistant"
     }
   },
   "profile": {

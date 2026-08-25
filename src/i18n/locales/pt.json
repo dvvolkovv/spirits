@@ -210,7 +210,13 @@
       "hang_up": "Desligar",
       "specialist_thinking": "{{name}} está a pensar...",
       "button_title": "Ligar ao Roman",
-      "admin_only": "Por agora, as chamadas de voz estão disponíveis apenas para administradores"
+      "admin_only": "Por agora, as chamadas de voz estão disponíveis apenas para administradores",
+      "card_title": "Chamada de voz",
+      "card_minutes": "{{count}} min",
+      "card_no_transcript": "Nenhuma transcrição salva",
+      "card_load_failed": "Não foi possível carregar a transcrição",
+      "speaker_you": "Você",
+      "speaker_assistant": "Assistente"
     }
   },
   "profile": {

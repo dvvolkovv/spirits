@@ -19,6 +19,7 @@ import { VoiceDictation } from '../../services/voiceDictation';
 import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
 import AudioClip from './AudioClip';
+import VoiceCallCard from './VoiceCallCard';
 import SocialConnectButton from './SocialConnectButton';
 import TelegramConnectForm from './TelegramConnectForm';
 import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
@@ -129,7 +130,7 @@ const StreamingMessage = React.memo(({
   onSendMessage?: (text: string) => void;
 }) => {
   const { t } = useTranslation();
-  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -141,10 +142,11 @@ const StreamingMessage = React.memo(({
     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
+    const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
     const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -227,6 +229,12 @@ const StreamingMessage = React.memo(({
               <AudioClip clipId={clipId} />
             </div>
           );
+        }
+      } else if (match[0].startsWith('__VOICECALL_')) {
+        const key = match[1];
+        const callId = voiceCalls.get(key);
+        if (callId) {
+          parts.push(<VoiceCallCard key={`voice-call-${idx}`} callId={callId} />);
         }
       } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
         const key = match[1];
@@ -2388,7 +2396,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const contentForRender = stripCalendarProposalMarkers(stripVideoJobMarkers(message.content));
-                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
@@ -2398,10 +2406,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
                     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
                     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
+                    const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
                     const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
                     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -2484,6 +2493,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                               <AudioClip clipId={clipId} />
                             </div>
                           );
+                        }
+                      } else if (match[0].startsWith('__VOICECALL_')) {
+                        const key = match[1];
+                        const callId = voiceCalls.get(key);
+                        if (callId) {
+                          parts.push(<VoiceCallCard key={`voice-call-${idx}`} callId={callId} />);
                         }
                       } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
                         const key = match[1];
