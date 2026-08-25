@@ -311,7 +311,7 @@ cd ~/Downloads/spirits_back && npx jest src/tma/init-data.spec.ts --runInBand
 
 Зелёный прогон без этого шага ничего не доказывает: тесты проходят и при `return true`.
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_back
@@ -806,12 +806,28 @@ import { TmaModule } from './tma/tma.module';
 - [ ] **Step 5: Прогнать — убедиться, что проходит**
 
 ```bash
-cd ~/Downloads/spirits_back && npx jest src/tma --runInBand
+npx jest src/tma --runInBand
 ```
 
 Ожидается: PASS, 20 тестов (15 из Task 1 + 5 новых).
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 6: Три доработки по итогам ревью**
+
+Все три — в `tma.controller.ts`.
+
+**`last_used_at` в обеих ветках поиска.** `IdentityService.listIdentities` отдаёт это поле наружу как `lastUsedAt`, поэтому у человека, входящего только через Mini App, оно осталось бы пустым навсегда. Вызвать существующий `await this.identity.touchIdentity('telegram', sub)` после попадания в `user_identities` и после бэкфилла. Своего SQL не писать. Тонкость: бэкфилл идёт с `ON CONFLICT DO NOTHING` и проставляет `last_used_at` только при первой вставке — на последующих входах нужен именно явный вызов.
+
+**Сигнал об отсутствующем `TG_BOT_TOKEN` — на старте, не на запросе.** Без переменной `verifyInitData` вернёт `null`, и каждый вход отдаст 401 неотличимо от подделки. Ответ оставляем неразличимым намеренно (иначе ручка станет оракулом для подбора), а на старте — `OnModuleInit` с громким `logger.error`, называющим переменную.
+
+**Логировать, а не бросать.** Исключение остановило бы загрузку всего API, обслуживающего живой веб и бота, ради ещё не запущенной фичи.
+
+**`try/catch` со стадией.** Одна обёртка вокруг трёх веток, переменная `stage` продвигается по ходу; при ошибке в лог уходят стадия и `tgUserId`, затем ошибка **пробрасывается неизменной** — Nest по-прежнему отдаёт 500. Заодно перестаёт быть мёртвым полем `logger`.
+
+Тест на boot-проверку: убрать `TG_BOT_TOKEN`, подсмотреть за `logger.error`, дёрнуть хук, убедиться что записал; затем выставить переменную и убедиться что молчит. Переменную восстановить в `finally`.
+
+Ожидается после доработок: PASS, 21 тест.
+
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_back
@@ -986,7 +1002,7 @@ cd ~/Downloads/spirits_back && npx jest src/auth --runInBand
 
 Ожидается: столько же падений, сколько было до задачи. Зафиксировать число до правки и сравнить — полный прогон в этом репозитории красный by design.
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_back
@@ -1810,7 +1826,7 @@ cd ~/Downloads/spirits_front && pnpm typecheck
 
 Ожидается: без ошибок.
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_front
@@ -1976,7 +1992,7 @@ cd ~/Downloads/spirits_front && grep -n "^export" src/services/apiClient.ts
 
 Если экспорт по умолчанию, а не именованный `apiClient`, — поправить импорт в `main.tsx`.
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_front
@@ -2105,7 +2121,7 @@ cd ~/Downloads/spirits_back && sed -n '21,40p' src/agents/agents.controller.ts
 cd ~/Downloads/spirits_front && pnpm typecheck
 ```
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_front
@@ -2246,7 +2262,7 @@ cd ~/Downloads/spirits_front && grep -rniE "купить|buy|цена|price|₽|
 
 Ожидается: пусто. Любое совпадение — нарушение требования спеки.
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_front
@@ -2426,7 +2442,7 @@ cd ~/Downloads/spirits_front && grep -n "export" src/i18n/languages.ts | head
 cd ~/Downloads/spirits_front && pnpm typecheck
 ```
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_front
@@ -2592,7 +2608,7 @@ ssh dv@85.192.61.231 'cd ~/ci/spirits_front && source ~/.nvm/nvm.sh && git fetch
 
 Ожидается: тесты зелёные, сборка проходит, оба бандла на месте.
 
-- [ ] **Step 6: Коммит**
+- [ ] **Step 7: Коммит**
 
 ```bash
 cd ~/Downloads/spirits_front
