@@ -2063,5 +2063,37 @@
     "voice": "Voz",
     "voice_long": "Dizer em voz alta",
     "open_named": "Abrir: {{name}}"
+  },
+  "businessCard": {
+    "title": "Meu negócio",
+    "subtitle": "Os assistentes usam isto para não perguntarem de novo",
+    "addMore": "Completar",
+    "filledByAssistant": "Preenchido a partir da conversa",
+    "empty": "Ainda vazio — conte a qualquer assistente de negócios o que você faz",
+    "saveError": "Não foi possível salvar",
+    "field": {
+      "what": "O que você faz",
+      "legal_form": "Forma jurídica",
+      "tax_mode": "Regime tributário",
+      "stage": "Estágio",
+      "revenue": "Faturamento mensal",
+      "team": "Equipe",
+      "customers": "Clientes",
+      "focus": "Foco atual"
+    },
+    "option": {
+      "legal_form": { "self_employed": "Autônomo", "ip": "Empresário individual", "ooo": "Sociedade limitada" },
+      "tax_mode": {
+        "npd": "Imposto sobre renda profissional", "usn_d": "Simplificado (receita)",
+        "usn_dr": "Simplificado (receita menos despesas)", "patent": "Patente", "osno": "Regime geral"
+      },
+      "stage": {
+        "idea": "Ideia", "year_one": "Primeiro ano", "stable": "Estável", "growth": "Crescimento"
+      },
+      "revenue": {
+        "lt_300k": "Até 300 mil ₽", "300k_1m": "300 mil – 1 mi ₽",
+        "1m_3m": "1–3 mi ₽", "3m_10m": "3–10 mi ₽", "gt_10m": "Mais de 10 mi ₽"
+      }
+    }
   }
 }

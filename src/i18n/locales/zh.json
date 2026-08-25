@@ -1732,5 +1732,37 @@
     "voice": "语音",
     "voice_long": "语音朗读",
     "open_named": "打开：{{name}}"
+  },
+  "businessCard": {
+    "title": "我的生意",
+    "subtitle": "助手会参考这些信息，不再重复询问",
+    "addMore": "补充",
+    "filledByAssistant": "根据对话自动填写",
+    "empty": "暂时为空 —— 向任意商务助手介绍你的业务",
+    "saveError": "保存失败",
+    "field": {
+      "what": "业务内容",
+      "legal_form": "经营形式",
+      "tax_mode": "税务模式",
+      "stage": "阶段",
+      "revenue": "月营业额",
+      "team": "团队",
+      "customers": "客户",
+      "focus": "当前重点"
+    },
+    "option": {
+      "legal_form": { "self_employed": "自雇", "ip": "个体经营者", "ooo": "有限责任公司" },
+      "tax_mode": {
+        "npd": "职业收入税", "usn_d": "简易计税（收入）",
+        "usn_dr": "简易计税（收入减支出）", "patent": "专利税制", "osno": "一般税制"
+      },
+      "stage": {
+        "idea": "构想", "year_one": "第一年", "stable": "稳定", "growth": "增长"
+      },
+      "revenue": {
+        "lt_300k": "30万卢布以下", "300k_1m": "30万–100万卢布",
+        "1m_3m": "100万–300万卢布", "3m_10m": "300万–1000万卢布", "gt_10m": "1000万卢布以上"
+      }
+    }
   }
 }
