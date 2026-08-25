@@ -2082,5 +2082,37 @@
     "voice": "Voice",
     "voice_long": "Speak aloud",
     "open_named": "Open: {{name}}"
+  },
+  "businessCard": {
+    "title": "My business",
+    "subtitle": "Assistants use this so you don't repeat yourself",
+    "addMore": "Add more",
+    "filledByAssistant": "Filled in from your conversation",
+    "empty": "Empty for now — tell any business assistant about your work",
+    "saveError": "Could not save",
+    "field": {
+      "what": "What you do",
+      "legal_form": "Legal form",
+      "tax_mode": "Tax mode",
+      "stage": "Stage",
+      "revenue": "Monthly revenue",
+      "team": "Team",
+      "customers": "Customers",
+      "focus": "Current focus"
+    },
+    "option": {
+      "legal_form": { "self_employed": "Self-employed", "ip": "Sole proprietor", "ooo": "LLC" },
+      "tax_mode": {
+        "npd": "Professional income tax", "usn_d": "Simplified (income)",
+        "usn_dr": "Simplified (income minus expenses)", "patent": "Patent", "osno": "General"
+      },
+      "stage": {
+        "idea": "Idea", "year_one": "First year", "stable": "Stable", "growth": "Growing"
+      },
+      "revenue": {
+        "lt_300k": "Under ₽300k", "300k_1m": "₽300k–1M",
+        "1m_3m": "₽1–3M", "3m_10m": "₽3–10M", "gt_10m": "Over ₽10M"
+      }
+    }
   }
 }

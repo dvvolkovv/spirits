@@ -1755,5 +1755,37 @@
     "voice": "Stimme",
     "voice_long": "Vorlesen lassen",
     "open_named": "Öffnen: {{name}}"
+  },
+  "businessCard": {
+    "title": "Mein Unternehmen",
+    "subtitle": "Die Assistenten nutzen das, damit du dich nicht wiederholen musst",
+    "addMore": "Ergänzen",
+    "filledByAssistant": "Aus dem Gespräch übernommen",
+    "empty": "Noch leer – erzähl einem Business-Assistenten von deiner Arbeit",
+    "saveError": "Speichern fehlgeschlagen",
+    "field": {
+      "what": "Womit du dich beschäftigst",
+      "legal_form": "Rechtsform",
+      "tax_mode": "Steuerregime",
+      "stage": "Phase",
+      "revenue": "Monatsumsatz",
+      "team": "Team",
+      "customers": "Kunden",
+      "focus": "Aktueller Fokus"
+    },
+    "option": {
+      "legal_form": { "self_employed": "Selbstständig", "ip": "Einzelunternehmer", "ooo": "GmbH" },
+      "tax_mode": {
+        "npd": "Steuer auf Berufseinkommen", "usn_d": "Vereinfacht (Einnahmen)",
+        "usn_dr": "Vereinfacht (Einnahmen minus Ausgaben)", "patent": "Patent", "osno": "Regelbesteuerung"
+      },
+      "stage": {
+        "idea": "Idee", "year_one": "Erstes Jahr", "stable": "Stabil", "growth": "Wachstum"
+      },
+      "revenue": {
+        "lt_300k": "Unter 300 Tsd. ₽", "300k_1m": "300 Tsd. – 1 Mio. ₽",
+        "1m_3m": "1–3 Mio. ₽", "3m_10m": "3–10 Mio. ₽", "gt_10m": "Über 10 Mio. ₽"
+      }
+    }
   }
 }
