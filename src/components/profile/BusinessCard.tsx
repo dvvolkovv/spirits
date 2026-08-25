@@ -134,6 +134,16 @@ const BusinessCard: React.FC = () => {
                             <option key={o} value={o}>{t(`businessCard.option.${f.key}.${o}`)}</option>
                           ))}
                         </select>
+                      ) : f.multiline ? (
+                        <textarea
+                          autoFocus
+                          rows={3}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none"
+                          value={draft}
+                          onChange={e => setDraft(e.target.value)}
+                          onBlur={() => save(f.key, draft)}
+                          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save(f.key, draft); }}
+                        />
                       ) : (
                         <input
                           autoFocus
