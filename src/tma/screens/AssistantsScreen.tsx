@@ -30,8 +30,6 @@ export function AssistantsScreen() {
     setSwitching(name);
     try {
       await chooseAssistant(name, {
-        getAgents: () => getJson('/webhook/agents'),
-        getProfile: () => getJson('/webhook/profile'),
         changeAgent: (n) => postJson('/webhook/change-agent', { agent: n }),
         closeApp,
       });

@@ -38,8 +38,6 @@ describe('chooseAssistant', () => {
   it('сначала меняет ассистента на сервере, потом закрывает — порядок важен', async () => {
     const order: string[] = [];
     const deps = {
-      getAgents: vi.fn(),
-      getProfile: vi.fn(),
       changeAgent: vi.fn(async () => { order.push('changeAgent'); }),
       closeApp: vi.fn(() => { order.push('closeApp'); }),
     };
@@ -50,8 +48,6 @@ describe('chooseAssistant', () => {
 
   it('не закрывает приложение, если change-agent упал', async () => {
     const deps = {
-      getAgents: vi.fn(),
-      getProfile: vi.fn(),
       changeAgent: vi.fn(async () => { throw new Error('network'); }),
       closeApp: vi.fn(),
     };

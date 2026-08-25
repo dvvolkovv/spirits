@@ -24,8 +24,6 @@ export interface Agent {
 }
 
 export interface AssistantsDeps {
-  getAgents: () => Promise<unknown>;
-  getProfile: () => Promise<unknown>;
   changeAgent: (name: string) => Promise<unknown>;
   closeApp: () => void;
 }
