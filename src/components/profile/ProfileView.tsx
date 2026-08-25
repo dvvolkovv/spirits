@@ -9,6 +9,7 @@ import { EntityItem, EntityRich } from './EntityItem';
 import SettingsView from '../settings/SettingsView';
 import ReferralDashboard from './ReferralDashboard';
 import ProfileTasks from './ProfileTasks';
+import BusinessCard from './BusinessCard';
 import InviteFriendBlock from './InviteFriendBlock';
 import { tgBotApi, type IdentityStatus } from '../../services/tgBotApi';
 import { LanguageSelect } from '../settings/LanguageSelect';
@@ -813,6 +814,9 @@ const ProfileView: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Business card — общий контекст для восьми бизнес-ассистентов */}
+        <BusinessCard />
 
         {/* Tasks */}
         <ProfileTasks />
