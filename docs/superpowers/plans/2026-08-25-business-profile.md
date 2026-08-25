@@ -496,7 +496,7 @@ export class BusinessProfileService {
   async read(userId: string): Promise<BusinessProfile> {
     if (!this.pg) return {};
     const res = await this.pg.query(
-      `SELECT profile_data FROM profiles WHERE user_id = $1`,
+      `SELECT profile_data FROM ai_profiles_consolidated WHERE user_id = $1`,
       [userId],
     );
     return (res.rows[0]?.profile_data?.business as BusinessProfile) || {};
@@ -551,8 +551,9 @@ export class BusinessProfileService {
     if (!changed) return current;
 
     await this.pg.query(
-      `UPDATE profiles
-          SET profile_data = jsonb_set(
+      `UPDATE ai_profiles_consolidated
+          SET updated_at = now(),
+              profile_data = jsonb_set(
                 COALESCE(profile_data, '{}'::jsonb), '{business}', $1::jsonb, true)
         WHERE user_id = $2`,
       [JSON.stringify(next), userId],
@@ -1073,16 +1074,21 @@ describe('BusinessProfileController', () => {
    *
    * Нужно фронту, чтобы решить, показывать блок карточки. Разбор истории
    * держим на бэке: фронт не должен знать про категории агентов.
+   *
+   * У custom_chat_history НЕТ колонки user_id — связь с пользователем идёт
+   * через session_id вида `{userId}_{assistantId}` (см. chat.service.ts:431
+   * и profile.service.ts, где удаление ходит тем же LIKE). Колонка агента
+   * называется `agent` и она integer, а не текстовый `agent_id`.
    */
   async hasBusinessHistory(userId: string): Promise<boolean> {
     if (!this.pg) return false;
     const res = await this.pg.query(
       `SELECT 1
          FROM custom_chat_history h
-         JOIN agents a ON a.id::text = h.agent_id
-        WHERE h.user_id = $1 AND a.category = 'business'
+         JOIN agents a ON a.id = h.agent
+        WHERE h.session_id LIKE $1 AND a.category = 'business'
         LIMIT 1`,
-      [userId],
+      [`${userId}_%`],
     );
     return res.rows.length > 0;
   }
@@ -1178,15 +1184,15 @@ import { BusinessProfileModule } from './business-profile/business-profile.modul
 Запустить: `npx tsc --noEmit -p tsconfig.json`
 Ожидаемо: без ошибок
 
-- [ ] **Шаг 8: сверить имена таблицы и колонок истории**
+- [ ] **Шаг 8: проверить запрос против живой базы**
 
-`hasBusinessHistory` написан по памяти о схеме. Проверить:
+Схема уже сверена: `custom_chat_history` — `session_id text`, `agent integer`, колонки `user_id` нет. Но сам JOIN надо прогнать, а не поверить в него:
 
 ```bash
-ssh dvolkov@212.113.106.202 "cd ~/spirits_back && export \$(grep -E '^DATABASE_URL=' .env | xargs) && psql \"\$DATABASE_URL\" -c '\\d custom_chat_history'"
+ssh dvolkov@212.113.106.202 "cd ~/spirits_back && export \$(grep -E '^DATABASE_URL=' .env | xargs) && psql \"\$DATABASE_URL\" -tAc \"SELECT count(*) FROM custom_chat_history h JOIN agents a ON a.id = h.agent WHERE h.session_id LIKE '79030169187_%' AND a.category = 'business'\""
 ```
 
-Ожидаемо: есть `user_id` и колонка с идентификатором агента. Если она называется иначе (`assistant_id`) — поправить SQL.
+`79030169187` — тестовый админ-аккаунт. Ожидаемо: запрос выполняется без ошибки и отдаёт число. Ноль — тоже валидный ответ (значит этот аккаунт к бизнес-ассистентам не ходил); важно, что нет ошибки про несуществующую колонку. Для контроля прогнать тот же запрос без условия `a.category` — если и там ноль, взять другой userId из `SELECT DISTINCT split_part(session_id,'_',1) FROM custom_chat_history LIMIT 5`.
 
 - [ ] **Шаг 9: коммит**
 
@@ -1547,58 +1553,97 @@ git commit -m "test(business-profile): golden-набор из двадцати �
 
 ## Задача 10: удаление аккаунта уносит карточку
 
-Карточка — персональные данные о юрлице. Она лежит внутри `profile_data`, поэтому должна удаляться заодно, но это надо доказать, а не предположить.
+Карточка — персональные данные о юрлице. Она лежит внутри `profile_data`, поэтому должна уходить вместе с аккаунтом, но это надо доказать, а не предположить.
+
+**Уже установленные факты** (сверено с прод-базой и кодом, повторно выяснять не нужно):
+
+- Таблица профилей — `ai_profiles_consolidated`, не `profiles`.
+- `ProfileService.deleteProfile` (`src/profile/profile.service.ts:167`) строку **не удаляет**, а делает `UPDATE ai_profiles_consolidated SET profile_data = '{}', … WHERE user_id = $1`. Карточку это стирает, но проверять надо именно поведение, а не текст SQL.
+- В репозитории **уже есть** `src/profile/account-deletion.spec.ts` с моделью базы `FakeDb`. Его комментарий прямо формулирует принцип: «Здесь не проверяется текст SQL: он может быть любым, важно наблюдаемое поведение». Новый тест дописывается туда же и следует тому же принципу.
+- `FakeDb` сейчас `ai_profiles_consolidated` не моделирует — неизвестные запросы падают в `return { rows: [] }`. Значит модель надо расширить, иначе тест окажется ложно-зелёным: он «пройдёт» на базе, которая вообще ничего не хранит.
 
 **Файлы:**
-- Тест: `src/business-profile/deletion.spec.ts`
+- Изменить: `src/profile/account-deletion.spec.ts`
 
-- [ ] **Шаг 1: посмотреть, как реализовано удаление**
+- [ ] **Шаг 1: расширить модель базы**
 
-```bash
-grep -rn "DELETE FROM profiles\|deleteProfile" src/profile/ | head
-```
-
-- [ ] **Шаг 2: написать тест**
-
-`src/business-profile/deletion.spec.ts`:
+В классе `FakeDb` добавить поле рядом с `users` и `identities`:
 
 ```typescript
-import * as fs from 'fs';
-import * as path from 'path';
+  /** user_id → profile_data. Моделирует ai_profiles_consolidated. */
+  profiles = new Map<string, any>();
+```
 
-/**
- * Карточка бизнеса — персональные данные о юрлице пользователя. Она внутри
- * profile_data, так что удаление профиля уносит её автоматически — ровно до
- * того дня, когда удаление перепишут на выборочную очистку полей.
- */
-describe('удаление аккаунта уносит бизнес-карточку', () => {
-  it('удаление профиля сносит строку целиком, а не чистит отдельные ключи', () => {
-    const src = fs.readFileSync(
-      path.join(__dirname, '..', 'profile', 'profile.service.ts'), 'utf8',
-    );
-    expect(src).toMatch(/DELETE\s+FROM\s+profiles/i);
+И три ветки в `query`, **выше** финального `return { rows: [] }`:
+
+```typescript
+    if (s.startsWith('SELECT profile_data FROM ai_profiles_consolidated')) {
+      const p = this.profiles.get(params[0]);
+      return { rows: p ? [{ profile_data: p }] : [] };
+    }
+    if (s.startsWith("UPDATE ai_profiles_consolidated SET profile_data = '{}'")) {
+      if (this.profiles.has(params[0])) this.profiles.set(params[0], {});
+      return { rows: [] };
+    }
+    if (s.startsWith('UPDATE ai_profiles_consolidated SET updated_at')) {
+      // merge: jsonb_set(profile_data, '{business}', $1)
+      const prev = this.profiles.get(params[1]) || {};
+      this.profiles.set(params[1], { ...prev, business: JSON.parse(params[0]) });
+      return { rows: [] };
+    }
+```
+
+Порядок веток важен: обе `UPDATE ai_profiles_consolidated` начинаются одинаково, поэтому различай их по продолжению строки, как сделано выше.
+
+- [ ] **Шаг 2: написать падающий тест**
+
+В конец `describe('удаление аккаунта', …)` в `src/profile/account-deletion.spec.ts` добавить, не трогая существующие тесты:
+
+```typescript
+  it('уносит бизнес-карточку — она персональные данные о юрлице', async () => {
+    const userId = 'u-biz-1';
+    db.profiles.set(userId, {});
+    const business = new BusinessProfileService(db as any);
+
+    await business.merge(userId, { what: 'студия маникюра', tax_mode: 'usn_d' }, 'user');
+    // Убеждаемся, что до удаления карточка действительно есть: иначе тест
+    // «после удаления пусто» прошёл бы и на пустой с самого начала базе.
+    expect(await business.read(userId)).toMatchObject({
+      what: { value: 'студия маникюра' },
+    });
+
+    await profile.deleteProfile(userId);
+
+    expect(await business.read(userId)).toEqual({});
   });
-});
 ```
 
-- [ ] **Шаг 3: прогнать**
+И импорт в шапку файла:
 
-Запустить: `npx jest src/business-profile/deletion.spec.ts`
-Ожидаемо: PASS. Если FAIL — удаление устроено иначе; прочитать код и либо поправить тест под реальную реализацию, либо, если карточка действительно переживает удаление аккаунта, дописать её очистку.
-
-- [ ] **Шаг 4: проверить руками на тестовом стенде**
-
-Завести пользователя, заполнить карточку через `POST /webhook/business-profile`, удалить аккаунт, убедиться, что записи нет:
-
-```bash
-ssh dv@85.192.61.231 "cd ~/spirits_back && export \$(grep -E '^DATABASE_URL=' .env | xargs) && psql \"\$DATABASE_URL\" -tAc \"SELECT count(*) FROM profiles WHERE profile_data ? 'business'\""
+```typescript
+import { BusinessProfileService } from '../business-profile/business-profile.service';
 ```
+
+- [ ] **Шаг 3: убедиться, что тест падает по правильной причине**
+
+Сначала прогнать **до** правки `FakeDb` (шаг 1) — тест должен упасть на первом `expect`, потому что модель ничего не хранит. Это доказывает, что проверка «после удаления пусто» без расширения модели была бы ложно-зелёной.
+
+Запустить: `npx jest src/profile/account-deletion.spec.ts`
+
+Затем применить шаг 1 и прогнать снова.
+
+- [ ] **Шаг 4: убедиться, что тест проходит и что он ловит регресс**
+
+Запустить: `npx jest src/profile/account-deletion.spec.ts`
+Ожидаемо: PASS, шесть прежних тестов плюс новый.
+
+Сломать в обратную сторону: временно закомментировать в `profile.service.ts` строку `UPDATE ai_profiles_consolidated SET profile_data = '{}'…` и убедиться, что новый тест краснеет. Вернуть как было.
 
 - [ ] **Шаг 5: коммит**
 
 ```bash
-git add src/business-profile/deletion.spec.ts
-git commit -m "test(business-profile): удаление аккаунта уносит карточку"
+git add src/profile/account-deletion.spec.ts
+git commit -m "test(business-profile): удаление аккаунта уносит бизнес-карточку"
 ```
 
 ---
@@ -2379,7 +2424,7 @@ git -C /Users/dmitry/Downloads/spirits_front worktree remove .worktrees/business
 SELECT count(*) FILTER (
          WHERE (SELECT count(*) FROM jsonb_each(profile_data->'business')) >= 3
        )::float / NULLIF(count(*), 0)
-  FROM profiles
+  FROM ai_profiles_consolidated
  WHERE profile_data ? 'business';
 ```
 
