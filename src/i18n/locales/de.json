@@ -220,7 +220,11 @@
       "agent_no_show": "Roman ist nicht ans Telefon gegangen. Bitte erneut versuchen.",
       "consultations_title": "Anfragen an Fachleute",
       "specialist_answered": "Antwort von {{name}} · {{seconds}} s",
-      "specialist_no_answer": "Keine Antwort von {{name}}"
+      "specialist_no_answer": "Keine Antwort von {{name}}",
+      "documents_title": "Dokumente",
+      "document_pending": "„{{title}}“ — wird erstellt",
+      "document_ready": "„{{title}}“ — im Chat",
+      "document_failed": "„{{title}}“ — fehlgeschlagen"
     }
   },
   "profile": {

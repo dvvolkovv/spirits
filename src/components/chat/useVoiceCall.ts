@@ -27,6 +27,16 @@ export interface Consultation {
   finishedAt?: number;
 }
 
+/**
+ * Документ, надиктованный за звонок. Готовый текст уходит в ленту чата с
+ * Романом; здесь только строка о том, что он заказан и готов.
+ */
+export interface CallDocument {
+  docId: string;
+  title: string;
+  status: 'pending' | 'ready' | 'failed';
+}
+
 /** Data-сообщения из комнаты LiveKit, topic `linkeon` (контракт бэкенда). */
 interface LinkeonDataMessageBase {
   v: number;
@@ -44,7 +54,36 @@ interface SpecialistFailedMessage extends LinkeonDataMessageBase {
   type: 'specialist_failed';
   reason: string;
 }
-export type LinkeonDataMessage = SpecialistPendingMessage | SpecialistAnswerMessage | SpecialistFailedMessage;
+interface DocumentMessage {
+  v: number;
+  type: 'document_pending' | 'document_ready' | 'document_failed';
+  docId: string;
+  title: string;
+  reason?: string;
+}
+export type LinkeonDataMessage =
+  | SpecialistPendingMessage
+  | SpecialistAnswerMessage
+  | SpecialistFailedMessage
+  | DocumentMessage;
+
+/** Относится ли сообщение к документам, а не к специалистам. */
+export function isDocumentMessage(msg: LinkeonDataMessage): msg is DocumentMessage {
+  return msg.type === 'document_pending' || msg.type === 'document_ready' || msg.type === 'document_failed';
+}
+
+/**
+ * Свести сообщение о документе в список. Как и у консультаций, строка не
+ * исчезает: заказал документ — видно, что он заказан и чем кончилось.
+ */
+export function applyDocumentMessage(prev: CallDocument[], msg: DocumentMessage): CallDocument[] {
+  const status: CallDocument['status'] =
+    msg.type === 'document_ready' ? 'ready' : msg.type === 'document_failed' ? 'failed' : 'pending';
+  if (!prev.some((d) => d.docId === msg.docId)) {
+    return [...prev, { docId: msg.docId, title: msg.title, status }];
+  }
+  return prev.map((d) => (d.docId === msg.docId ? { ...d, status } : d));
+}
 
 /**
  * Свести очередное сообщение из комнаты в список консультаций.
@@ -60,7 +99,7 @@ export type LinkeonDataMessage = SpecialistPendingMessage | SpecialistAnswerMess
  */
 export function applyConsultationMessage(
   prev: Consultation[],
-  msg: LinkeonDataMessage,
+  msg: SpecialistPendingMessage | SpecialistAnswerMessage | SpecialistFailedMessage,
   now: number,
 ): Consultation[] {
   if (msg.type === 'specialist_pending') {
@@ -107,6 +146,7 @@ export function useVoiceCall() {
   const [state, setState] = useState<CallState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [documents, setDocuments] = useState<CallDocument[]>([]);
   const [callId, setCallId] = useState<string | null>(null);
   const roomRef = useRef<Room | null>(null);
   const ringbackRef = useRef<Ringback | null>(null);
@@ -152,6 +192,7 @@ export function useVoiceCall() {
     // Новый звонок — новый список консультаций. Единственное место, где он
     // сбрасывается: после разговора он должен оставаться на экране.
     setConsultations([]);
+    setDocuments([]);
     // Гудки — сразу по клику: это единственный момент, когда браузер точно
     // разрешит звук (пользовательский жест), и именно с этой секунды идёт
     // дозвон, о котором пользователю надо сообщить.
@@ -194,6 +235,10 @@ export function useVoiceCall() {
         // тот же канал. Чужая версия — не наша схема, молча игнорируем,
         // иначе старая вкладка нарисует плашки по неизвестным правилам.
         if (msg?.v !== 1) return;
+        if (isDocumentMessage(msg)) {
+          setDocuments((prev) => applyDocumentMessage(prev, msg));
+          return;
+        }
         const now = Date.now();
         setConsultations((prev) => applyConsultationMessage(prev, msg, now));
       });
@@ -261,5 +306,5 @@ export function useVoiceCall() {
   // Уходя со страницы, кладём трубку: иначе комната живёт до таймаута воркера.
   useEffect(() => () => { void roomRef.current?.disconnect(); ringbackRef.current?.stop(); }, []);
 
-  return { state, error, consultations, callId, start, hangUp };
+  return { state, error, consultations, documents, callId, start, hangUp };
 }

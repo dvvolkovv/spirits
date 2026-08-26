@@ -221,7 +221,11 @@
       "agent_no_show": "Roman não atendeu. Tente novamente.",
       "consultations_title": "Pedidos a especialistas",
       "specialist_answered": "Resposta de {{name}} · {{seconds}} s",
-      "specialist_no_answer": "Sem resposta de {{name}}"
+      "specialist_no_answer": "Sem resposta de {{name}}",
+      "documents_title": "Documentos",
+      "document_pending": "«{{title}}» — a preparar",
+      "document_ready": "«{{title}}» — no chat",
+      "document_failed": "«{{title}}» — falhou"
     }
   },
   "profile": {

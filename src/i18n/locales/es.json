@@ -221,7 +221,11 @@
       "agent_no_show": "Román no contestó. Inténtalo de nuevo.",
       "consultations_title": "Consultas a especialistas",
       "specialist_answered": "Respuesta de {{name}} · {{seconds}} s",
-      "specialist_no_answer": "Sin respuesta de {{name}}"
+      "specialist_no_answer": "Sin respuesta de {{name}}",
+      "documents_title": "Documentos",
+      "document_pending": "«{{title}}» — en preparación",
+      "document_ready": "«{{title}}» — en el chat",
+      "document_failed": "«{{title}}» — no se pudo crear"
     }
   },
   "profile": {

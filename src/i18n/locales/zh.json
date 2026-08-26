@@ -219,7 +219,11 @@
       "agent_no_show": "罗曼没有接听，请重试。",
       "consultations_title": "向专家提问",
       "specialist_answered": "{{name}} 的回复 · {{seconds}} 秒",
-      "specialist_no_answer": "{{name}} 未回复"
+      "specialist_no_answer": "{{name}} 未回复",
+      "documents_title": "文档",
+      "document_pending": "《{{title}}》— 正在生成",
+      "document_ready": "《{{title}}》— 已在聊天中",
+      "document_failed": "《{{title}}》— 生成失败"
     }
   },
   "profile": {

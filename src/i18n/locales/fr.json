@@ -221,7 +221,11 @@
       "agent_no_show": "Roman n'a pas décroché. Réessayez.",
       "consultations_title": "Demandes aux spécialistes",
       "specialist_answered": "Réponse de {{name}} · {{seconds}} s",
-      "specialist_no_answer": "Pas de réponse de {{name}}"
+      "specialist_no_answer": "Pas de réponse de {{name}}",
+      "documents_title": "Documents",
+      "document_pending": "« {{title}} » — en préparation",
+      "document_ready": "« {{title}} » — dans le chat",
+      "document_failed": "« {{title}} » — échec"
     }
   },
   "profile": {

@@ -220,7 +220,11 @@
       "agent_no_show": "Roman did not pick up. Please try again.",
       "consultations_title": "Specialist requests",
       "specialist_answered": "Reply from {{name}} · {{seconds}}s",
-      "specialist_no_answer": "No reply from {{name}}"
+      "specialist_no_answer": "No reply from {{name}}",
+      "documents_title": "Documents",
+      "document_pending": "“{{title}}” — in progress",
+      "document_ready": "“{{title}}” — in the chat",
+      "document_failed": "“{{title}}” — failed"
     }
   },
   "profile": {

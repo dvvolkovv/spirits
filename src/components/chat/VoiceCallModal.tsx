@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
-import { Phone, PhoneOff, Mic, Loader2, X, Check, AlertTriangle } from 'lucide-react';
+import { Phone, PhoneOff, Mic, Loader2, X, Check, AlertTriangle, FileText } from 'lucide-react';
 import { useVoiceCall, CallState, type Consultation } from './useVoiceCall';
 
 interface VoiceCallModalProps {
@@ -32,7 +32,7 @@ function elapsedSec(c: Consultation): number {
  */
 export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, onClose }) => {
   const { t } = useTranslation();
-  const { state, error, consultations, start, hangUp } = useVoiceCall();
+  const { state, error, consultations, documents, start, hangUp } = useVoiceCall();
 
   // Закрытие крестиком обязано класть трубку: иначе комната и микрофон
   // остаются активными до таймаута воркера, а бэкенд не узнаёт, что звонок
@@ -128,7 +128,41 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, o
             </div>
           )}
 
-          <div className={clsx(consultations.length === 0 && 'mt-4')}>
+          {/* Документы, надиктованные за звонок. Готовый текст уходит в ленту
+              чата с Романом — здесь только видно, что он заказан и готов. */}
+          {documents.length > 0 && (
+            <div className="space-y-2 mb-6 mt-4">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                {t('chat.voice_call.documents_title')}
+              </p>
+              {documents.map((doc) => (
+                <div
+                  key={doc.docId}
+                  data-testid="voice-call-document"
+                  data-status={doc.status}
+                  className={clsx(
+                    'flex items-center gap-2 px-3 py-2 border rounded-lg text-sm',
+                    doc.status === 'pending' && 'bg-warm-50 border-warm-200 text-warm-800',
+                    doc.status === 'ready' && 'bg-forest-50 border-forest-200 text-forest-800',
+                    doc.status === 'failed' && 'bg-red-50 border-red-200 text-red-700',
+                  )}
+                >
+                  {doc.status === 'pending' ? (
+                    <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+                  ) : (
+                    <FileText className="w-4 h-4 flex-shrink-0" />
+                  )}
+                  <span>
+                    {doc.status === 'pending' && t('chat.voice_call.document_pending', { title: doc.title })}
+                    {doc.status === 'ready' && t('chat.voice_call.document_ready', { title: doc.title })}
+                    {doc.status === 'failed' && t('chat.voice_call.document_failed', { title: doc.title })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className={clsx(consultations.length === 0 && documents.length === 0 && 'mt-4')}>
             {canCall ? (
               <button
                 onClick={() => start()}

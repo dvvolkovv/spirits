@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { applyConsultationMessage, type Consultation } from './useVoiceCall';
+import {
+  applyConsultationMessage, applyDocumentMessage, isDocumentMessage, type Consultation,
+} from './useVoiceCall';
 
 const T0 = 1_700_000_000_000;
 
@@ -92,5 +94,37 @@ describe('applyConsultationMessage', () => {
     expect(out).toEqual([
       { jobId: 'j9', specialist: 'Оля', status: 'answered', askedAt: T0, finishedAt: T0 },
     ]);
+  });
+});
+
+describe('applyDocumentMessage', () => {
+  const DOC = { v: 1 as const, docId: 'd1', title: 'План запуска' };
+
+  it('заказанный документ появляется строкой «готовится»', () => {
+    const out = applyDocumentMessage([], { ...DOC, type: 'document_pending' });
+    expect(out).toEqual([{ docId: 'd1', title: 'План запуска', status: 'pending' }]);
+  });
+
+  it('готовый документ помечает ту же строку, а не заводит вторую', () => {
+    const pending = applyDocumentMessage([], { ...DOC, type: 'document_pending' });
+    const out = applyDocumentMessage(pending, { ...DOC, type: 'document_ready' });
+    expect(out).toHaveLength(1);
+    expect(out[0].status).toBe('ready');
+  });
+
+  it('провал видно отдельным статусом', () => {
+    const pending = applyDocumentMessage([], { ...DOC, type: 'document_pending' });
+    const out = applyDocumentMessage(pending, { ...DOC, type: 'document_failed', reason: 'timeout' });
+    expect(out[0].status).toBe('failed');
+  });
+
+  it('готовый без потерянного pending всё равно виден', () => {
+    const out = applyDocumentMessage([], { ...DOC, type: 'document_ready' });
+    expect(out).toEqual([{ docId: 'd1', title: 'План запуска', status: 'ready' }]);
+  });
+
+  it('документы и консультации не путаются между собой', () => {
+    expect(isDocumentMessage({ ...DOC, type: 'document_pending' })).toBe(true);
+    expect(isDocumentMessage({ v: 1, type: 'specialist_pending', jobId: 'j1', specialist: 'Алексей' })).toBe(false);
   });
 });
