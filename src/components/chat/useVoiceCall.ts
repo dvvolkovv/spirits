@@ -33,6 +33,30 @@ interface SpecialistFailedMessage extends LinkeonDataMessageBase {
 type LinkeonDataMessage = SpecialistPendingMessage | SpecialistAnswerMessage | SpecialistFailedMessage;
 
 /**
+ * Дождаться, пока в комнате появится собеседник. Проверяет уже вошедших ДО
+ * подписки на событие и ещё раз сразу после — участник может войти ровно
+ * между этими двумя шагами.
+ */
+export function waitForAgent(room: Room): Promise<boolean> {
+  if (room.remoteParticipants.size > 0) return Promise.resolve(true);
+  return new Promise<boolean>((resolve) => {
+    let done = false;
+    const finish = (ok: boolean) => {
+      if (done) return;
+      done = true;
+      room.off(RoomEvent.ParticipantConnected, onJoin);
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const onJoin = () => finish(true);
+    room.on(RoomEvent.ParticipantConnected, onJoin);
+    const timer = setTimeout(() => finish(false), AGENT_WAIT_MS);
+    // Повторная проверка: участник мог войти между первой проверкой и подпиской.
+    if (room.remoteParticipants.size > 0) finish(true);
+  });
+}
+
+/**
  * Звонок Роману. Комната LiveKit, воркер уже в ней; наше дело — отдать
  * микрофон, играть входящий звук и показывать, кого Роман сейчас спрашивает.
  */
@@ -141,18 +165,21 @@ export function useVoiceCall() {
       // воркер не поднялся или не успел войти, пользователь видел «разговор
       // идёт» и слушал тишину, неотличимую от рабочего звонка. Поймано живым
       // звонком на проде 25.08.2026 — ни один тест такого не покажет.
-      const agentJoined = new Promise<boolean>((resolve) => {
-        if (room.remoteParticipants.size > 0) { resolve(true); return; }
-        const onJoin = () => { room.off(RoomEvent.ParticipantConnected, onJoin); resolve(true); };
-        room.on(RoomEvent.ParticipantConnected, onJoin);
-        setTimeout(() => { room.off(RoomEvent.ParticipantConnected, onJoin); resolve(false); }, AGENT_WAIT_MS);
-      });
-
       await room.connect(wsUrl, token);
       await room.localParticipant.setMicrophoneEnabled(true);
       setState('waiting_agent');
 
-      if (!(await agentJoined)) {
+      // Ждать агента можно только ПОСЛЕ connect, и обязательно с повторной
+      // проверкой уже присутствующих участников.
+      //
+      // Первая версия создавала промис до connect: проверка
+      // remoteParticipants.size там всегда давала 0 (комнаты ещё нет), а если
+      // воркер успевал войти раньше нас, событие ParticipantConnected уже не
+      // приходило. Пользователь видел «Ждём Романа…» пятнадцать секунд, слушая,
+      // как Роман говорит, а потом звонок обрывался по таймауту. Проявилось
+      // ровно тогда, когда убрали 40-секундную паузу на preamble и воркер стал
+      // успевать первым. Живой звонок 26.08.2026.
+      if (!(await waitForAgent(room))) {
         throw new Error(t('chat.voice_call.agent_no_show'));
       }
       setState('active');
