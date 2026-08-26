@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getJson, postJson } from '../api';
 import { closeApp } from '../telegram';
 import { resolveLanguage } from '../../i18n/languages';
-import { parseAgents, extractPreferredAgent, chooseAssistant, type Agent } from './assistantsFlow';
+import { parseAgents, extractPreferredAgent, chooseAssistant, describeAgent, type Agent } from './assistantsFlow';
 
 export function AssistantsScreen() {
   const { t, i18n } = useTranslation();
@@ -50,8 +50,7 @@ export function AssistantsScreen() {
 
       <ul className="mt-4 flex flex-col gap-2">
         {agents?.map((a) => {
-          const label = a.displayName || a.name;
-          const isCurrent = current !== null && a.name === current;
+          const { label, isCurrent } = describeAgent(a, current);
           return (
             <li key={a.id}>
               <button

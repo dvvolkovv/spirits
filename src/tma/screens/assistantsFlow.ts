@@ -28,6 +28,35 @@ export interface AssistantsDeps {
   closeApp: () => void;
 }
 
+export interface AgentCard {
+  label: string;
+  isCurrent: boolean;
+}
+
+/**
+ * Данные карточки одного ассистента для рендера: подпись и признак «текущий».
+ * Раньше обе строчки жили прямо в JSX (AssistantsScreen) без единого теста —
+ * ревью показало это мутацией `a.id === current` (сравнение id с именем-
+ * строкой): бейдж «Текущий» тихо переставал появляться, и ни один тест
+ * этого не ловил. Одна функция вместо двух отдельных геттеров — потому что
+ * вызывающей стороне (map по списку карточек) нужны обе величины сразу, и
+ * незачем гонять a.displayName?.trim() дважды.
+ *
+ * displayName у /webhook/agents формально всегда строка — agents.service.ts
+ * getAgents строит её через COALESCE(t.display_name, a.display_name, a.name),
+ * так что NULL невозможен. Но COALESCE не спасает от ПУСТОЙ строки: если в
+ * agent_translations перевод сохранён как '' или пробелы (было — не
+ * заполнили), COALESCE отдаст именно её, и `a.displayName || a.name` эту
+ * пустую строку не поймает. Поэтому здесь trim(), а не просто `||`.
+ */
+export function describeAgent(a: Agent, current: string | null): AgentCard {
+  const displayName = a.displayName?.trim();
+  return {
+    label: displayName || a.name,
+    isCurrent: current !== null && a.name === current,
+  };
+}
+
 /** GET /webhook/agents — массив без обёртки; на всякий случай терпим и {agents:[...]}. */
 export function parseAgents(raw: unknown): Agent[] {
   if (Array.isArray(raw)) return raw as Agent[];
