@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import { apiClient } from '../../services/apiClient';
+import { startRingback, type Ringback } from './ringback';
 
 export type CallState = 'idle' | 'connecting' | 'waiting_agent' | 'active' | 'ended' | 'error';
 
@@ -67,6 +68,13 @@ export function useVoiceCall() {
   const [thinking, setThinking] = useState<ThinkingSpecialist[]>([]);
   const [callId, setCallId] = useState<string | null>(null);
   const roomRef = useRef<Room | null>(null);
+  const ringbackRef = useRef<Ringback | null>(null);
+
+  /** Гудки глушим ровно в одном месте, чтобы не остались звучать после ошибки. */
+  const stopRingback = useCallback(() => {
+    ringbackRef.current?.stop();
+    ringbackRef.current = null;
+  }, []);
 
   // track.attach() (см. исходник livekit-client) только создаёт <audio> и
   // назначает ему srcObject — в document его никто не вставляет. Без
@@ -86,11 +94,12 @@ export function useVoiceCall() {
     const room = roomRef.current;
     roomRef.current = null;
     if (room) { try { await room.disconnect(); } catch { /* уже отключились */ } }
+    stopRingback();
     cleanupAudioElements();
     if (callId) { try { await apiClient.post(`/webhook/voice-call/${callId}/end`); } catch { /* best-effort */ } }
     setState('ended');
     setThinking([]);
-  }, [callId, cleanupAudioElements]);
+  }, [callId, cleanupAudioElements, stopRingback]);
 
   const start = useCallback(async () => {
     // Второй клик по «Позвонить», пока первый ещё соединяется, создал бы вторую
@@ -98,6 +107,10 @@ export function useVoiceCall() {
     if (roomRef.current) return;
     setState('connecting');
     setError(null);
+    // Гудки — сразу по клику: это единственный момент, когда браузер точно
+    // разрешит звук (пользовательский жест), и именно с этой секунды идёт
+    // дозвон, о котором пользователю надо сообщить.
+    ringbackRef.current = startRingback();
     try {
       const res = await apiClient.post('/webhook/voice-call/start');
       if (!res.ok) {
@@ -155,6 +168,7 @@ export function useVoiceCall() {
       room.on(RoomEvent.Disconnected, () => {
         setState('ended');
         setThinking([]);
+        stopRingback();
         cleanupAudioElements();
       });
 
@@ -179,7 +193,9 @@ export function useVoiceCall() {
       // как Роман говорит, а потом звонок обрывался по таймауту. Проявилось
       // ровно тогда, когда убрали 40-секундную паузу на preamble и воркер стал
       // успевать первым. Живой звонок 26.08.2026.
-      if (!(await waitForAgent(room))) {
+      const joined = await waitForAgent(room);
+      stopRingback();
+      if (!joined) {
         throw new Error(t('chat.voice_call.agent_no_show'));
       }
       setState('active');
@@ -187,6 +203,7 @@ export function useVoiceCall() {
       const message = e instanceof Error ? e.message : undefined;
       setError(message || t('chat.voice_call.error'));
       setState('error');
+      stopRingback();
       cleanupAudioElements();
 
       // Обязательно отключаемся, а не только обнуляем ref. Самый частый сбой
@@ -199,10 +216,10 @@ export function useVoiceCall() {
       if (orphan) { try { await orphan.disconnect(); } catch { /* уже отключились */ } }
       if (callId) { try { await apiClient.post(`/webhook/voice-call/${callId}/end`); } catch { /* best-effort */ } }
     }
-  }, [t, cleanupAudioElements, callId]);
+  }, [t, cleanupAudioElements, callId, stopRingback]);
 
   // Уходя со страницы, кладём трубку: иначе комната живёт до таймаута воркера.
-  useEffect(() => () => { void roomRef.current?.disconnect(); }, []);
+  useEffect(() => () => { void roomRef.current?.disconnect(); ringbackRef.current?.stop(); }, []);
 
   return { state, error, thinking, callId, start, hangUp };
 }
