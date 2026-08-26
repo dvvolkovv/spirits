@@ -111,7 +111,15 @@ const AdminAssistantsView: React.FC = () => {
   );
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    // h-full, а НЕ h-screen. Вкладка живёт внутри AdminPage, где над ней
+    // строка вкладок, а контейнер содержимого — flex-1 с overflow-hidden.
+    // При h-screen вкладка занимала всю высоту окна, то есть на высоту строки
+    // вкладок больше, чем ей отведено, и этот избыток родитель обрезал: низ
+    // списка ассистентов уезжал за границу и не докручивался. Заметно стало,
+    // когда появился девятнадцатый ассистент — до него нельзя было добраться.
+    // У остальных десяти вкладок админки h-full, эта была единственным
+    // исключением.
+    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
       <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900 flex items-center">
