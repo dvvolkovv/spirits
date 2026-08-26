@@ -1,4 +1,71 @@
 {
+  "tma": {
+    "choice": {
+      "title": "Willkommen bei Linkeon",
+      "subtitle": "Assistenten, die sich an deinen Kontext erinnern und mit dir zusammenarbeiten.",
+      "start": "Loslegen",
+      "haveAccount": "Ich habe schon ein Konto",
+      "phoneLabel": "Telefonnummer",
+      "codeLabel": "SMS-Code",
+      "sendCode": "Code senden",
+      "confirm": "Bestätigen",
+      "back": "Zurück",
+      "conflict": "Dieser Telegram-Account ist bereits mit einem anderen Linkeon-Konto verknüpft.",
+      "failed": "Das hat nicht geklappt. Bitte versuche es erneut."
+    },
+    "outside": {
+      "title": "Öffne die App über Telegram",
+      "body": "Diese Seite funktioniert nur innerhalb von Telegram."
+    },
+    "retry": {
+      "title": "Verbindung fehlgeschlagen",
+      "body": "Prüfe deine Verbindung und versuche es erneut.",
+      "action": "Erneut versuchen"
+    },
+    "nav": {
+      "day": "Heute",
+      "assistants": "Assistenten",
+      "wallet": "Wallet",
+      "profile": "Profil"
+    },
+    "assistants": {
+      "title": "Assistenten",
+      "hint": "Wähle einen aus und führe das Gespräch im Bot-Chat fort.",
+      "current": "Aktuell",
+      "empty": "Hier ist noch nichts.",
+      "failed": "Laden fehlgeschlagen."
+    },
+    "wallet": {
+      "title": "Wallet",
+      "balance": "Guthaben",
+      "tokens_one": "{{count}} Token",
+      "tokens_other": "{{count}} Tokens",
+      "history": "Aufladungen",
+      "empty": "Noch keine Aufladungen.",
+      "failed": "Laden fehlgeschlagen."
+    },
+    "profile": {
+      "title": "Profil",
+      "name": "Name",
+      "birthday": "Geburtsdatum",
+      "language": "Sprache",
+      "avatar": "Foto",
+      "avatarChange": "Foto ändern",
+      "save": "Speichern",
+      "saved": "Gespeichert",
+      "failed": "Speichern fehlgeschlagen."
+    },
+    "day": {
+      "title": "Heute",
+      "focus": "Fokus des Tages",
+      "events": "Demnächst",
+      "tasks": "Aufgaben",
+      "calendarOff": "Kalender nicht verbunden",
+      "calendarConnect": "In der Web-Version verbinden",
+      "eventsUnavailable": "Die Ereignisliste ist in der Mini-App noch nicht verfügbar.",
+      "noTasks": "Keine aktiven Aufgaben."
+    }
+  },
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "Die KI für Wachstum und Entwicklung deines Business",

@@ -1,4 +1,70 @@
 {
+  "tma": {
+    "choice": {
+      "title": "欢迎使用 Linkeon",
+      "subtitle": "记得你的上下文、与你并肩工作的助手。",
+      "start": "开始使用",
+      "haveAccount": "我已经有账号",
+      "phoneLabel": "手机号码",
+      "codeLabel": "短信验证码",
+      "sendCode": "发送验证码",
+      "confirm": "确认",
+      "back": "返回",
+      "conflict": "该 Telegram 账号已绑定到另一个 Linkeon 账号。",
+      "failed": "未成功，请重试。"
+    },
+    "outside": {
+      "title": "请通过 Telegram 打开此应用",
+      "body": "此页面仅在 Telegram 内可用。"
+    },
+    "retry": {
+      "title": "连接失败",
+      "body": "请检查网络连接后重试。",
+      "action": "重试"
+    },
+    "nav": {
+      "day": "今日",
+      "assistants": "助手",
+      "wallet": "钱包",
+      "profile": "个人资料"
+    },
+    "assistants": {
+      "title": "助手",
+      "hint": "选择一个助手，然后在机器人聊天中继续对话。",
+      "current": "当前",
+      "empty": "暂时还没有内容。",
+      "failed": "加载失败。"
+    },
+    "wallet": {
+      "title": "钱包",
+      "balance": "余额",
+      "tokens_other": "{{count}} 代币",
+      "history": "充值记录",
+      "empty": "还没有充值记录。",
+      "failed": "加载失败。"
+    },
+    "profile": {
+      "title": "个人资料",
+      "name": "姓名",
+      "birthday": "出生日期",
+      "language": "语言",
+      "avatar": "照片",
+      "avatarChange": "更换照片",
+      "save": "保存",
+      "saved": "已保存",
+      "failed": "保存失败。"
+    },
+    "day": {
+      "title": "今日",
+      "focus": "今日焦点",
+      "events": "即将到来",
+      "tasks": "任务",
+      "calendarOff": "日历未连接",
+      "calendarConnect": "在网页版中连接",
+      "eventsUnavailable": "事件列表暂时无法在小程序中使用。",
+      "noTasks": "没有进行中的任务。"
+    }
+  },
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "赋能企业成长与发展的智能引擎",

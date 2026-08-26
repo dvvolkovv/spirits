@@ -1,4 +1,72 @@
 {
+  "tma": {
+    "choice": {
+      "title": "Bienvenue sur Linkeon",
+      "subtitle": "Des assistants qui se souviennent de ton contexte et travaillent avec toi.",
+      "start": "Commencer",
+      "haveAccount": "J'ai déjà un compte",
+      "phoneLabel": "Numéro de téléphone",
+      "codeLabel": "Code SMS",
+      "sendCode": "Envoyer le code",
+      "confirm": "Confirmer",
+      "back": "Retour",
+      "conflict": "Ce compte Telegram est déjà lié à un autre compte Linkeon.",
+      "failed": "Ça n'a pas marché. Réessaie."
+    },
+    "outside": {
+      "title": "Ouvre l'application depuis Telegram",
+      "body": "Cette page ne fonctionne que dans Telegram."
+    },
+    "retry": {
+      "title": "Connexion impossible",
+      "body": "Vérifie ta connexion et réessaie.",
+      "action": "Réessayer"
+    },
+    "nav": {
+      "day": "Aujourd'hui",
+      "assistants": "Assistants",
+      "wallet": "Portefeuille",
+      "profile": "Profil"
+    },
+    "assistants": {
+      "title": "Assistants",
+      "hint": "Choisis-en un et continue la conversation dans le chat du bot.",
+      "current": "Actuel",
+      "empty": "Rien ici pour l'instant.",
+      "failed": "Échec du chargement."
+    },
+    "wallet": {
+      "title": "Portefeuille",
+      "balance": "Solde",
+      "tokens_one": "{{count}} jeton",
+      "tokens_many": "{{count}} de jetons",
+      "tokens_other": "{{count}} jetons",
+      "history": "Recharges",
+      "empty": "Pas encore de recharges.",
+      "failed": "Échec du chargement."
+    },
+    "profile": {
+      "title": "Profil",
+      "name": "Nom",
+      "birthday": "Date de naissance",
+      "language": "Langue",
+      "avatar": "Photo",
+      "avatarChange": "Changer la photo",
+      "save": "Enregistrer",
+      "saved": "Enregistré",
+      "failed": "Échec de l'enregistrement."
+    },
+    "day": {
+      "title": "Aujourd'hui",
+      "focus": "Focus du jour",
+      "events": "À venir",
+      "tasks": "Tâches",
+      "calendarOff": "Calendrier non connecté",
+      "calendarConnect": "Connecte-le depuis la version web",
+      "eventsUnavailable": "La liste des événements n'est pas encore disponible dans la mini-app.",
+      "noTasks": "Aucune tâche active."
+    }
+  },
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "L'IA pour développer ton business",
