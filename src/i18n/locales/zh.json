@@ -216,7 +216,10 @@
       "speaker_you": "您",
       "speaker_assistant": "助手",
       "waiting_agent": "正在等待罗曼…",
-      "agent_no_show": "罗曼没有接听，请重试。"
+      "agent_no_show": "罗曼没有接听，请重试。",
+      "consultations_title": "向专家提问",
+      "specialist_answered": "{{name}} 的回复 · {{seconds}} 秒",
+      "specialist_no_answer": "{{name}} 未回复"
     }
   },
   "profile": {

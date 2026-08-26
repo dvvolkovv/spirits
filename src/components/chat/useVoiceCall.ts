@@ -9,9 +9,22 @@ export type CallState = 'idle' | 'connecting' | 'waiting_agent' | 'active' | 'en
 /** Сколько ждём, пока воркер войдёт в комнату, прежде чем признать неудачу. */
 const AGENT_WAIT_MS = 15_000;
 
-export interface ThinkingSpecialist {
+/**
+ * Обращение к специалисту за время звонка. Строка НЕ исчезает после ответа.
+ *
+ * Раньше здесь был список только «сейчас думающих», и он работал, пока
+ * специалисты отвечали по две-три минуты. После того как ответы стали
+ * приходить за 12–15 секунд, плашка гасла раньше, чем на неё успевали
+ * посмотреть: владелец сообщил, что Роман отправил вопросы, а по экрану
+ * этого не видно вообще (звонок 26.08.2026). Информация была — не было
+ * времени её прочитать.
+ */
+export interface Consultation {
   jobId: string;
   specialist: string;
+  status: 'pending' | 'answered' | 'failed';
+  askedAt: number;
+  finishedAt?: number;
 }
 
 /** Data-сообщения из комнаты LiveKit, topic `linkeon` (контракт бэкенда). */
@@ -31,7 +44,35 @@ interface SpecialistFailedMessage extends LinkeonDataMessageBase {
   type: 'specialist_failed';
   reason: string;
 }
-type LinkeonDataMessage = SpecialistPendingMessage | SpecialistAnswerMessage | SpecialistFailedMessage;
+export type LinkeonDataMessage = SpecialistPendingMessage | SpecialistAnswerMessage | SpecialistFailedMessage;
+
+/**
+ * Свести очередное сообщение из комнаты в список консультаций.
+ *
+ * Чистая функция и экспорт — ради проверяемости: сам обработчик живёт в
+ * замыкании внутри start(), тестами до него не добраться.
+ *
+ * Ответ на неизвестный jobId не игнорируем, а добавляем строкой сразу в
+ * финальном статусе. Доставка `specialist_pending` — best-effort: бэкенд шлёт
+ * его через safeSend, который глотает сбой отправки (job уже записан в БД и
+ * продолжает работать). Без этой ветки потерянный pending делал бы невидимой
+ * всю консультацию, включая пришедший ответ.
+ */
+export function applyConsultationMessage(
+  prev: Consultation[],
+  msg: LinkeonDataMessage,
+  now: number,
+): Consultation[] {
+  if (msg.type === 'specialist_pending') {
+    if (prev.some((c) => c.jobId === msg.jobId)) return prev;
+    return [...prev, { jobId: msg.jobId, specialist: msg.specialist, status: 'pending', askedAt: now }];
+  }
+  const status: Consultation['status'] = msg.type === 'specialist_answer' ? 'answered' : 'failed';
+  if (!prev.some((c) => c.jobId === msg.jobId)) {
+    return [...prev, { jobId: msg.jobId, specialist: msg.specialist, status, askedAt: now, finishedAt: now }];
+  }
+  return prev.map((c) => (c.jobId === msg.jobId ? { ...c, status, finishedAt: now } : c));
+}
 
 /**
  * Дождаться, пока в комнате появится собеседник. Проверяет уже вошедших ДО
@@ -65,7 +106,7 @@ export function useVoiceCall() {
   const { t } = useTranslation();
   const [state, setState] = useState<CallState>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [thinking, setThinking] = useState<ThinkingSpecialist[]>([]);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [callId, setCallId] = useState<string | null>(null);
   const roomRef = useRef<Room | null>(null);
   const ringbackRef = useRef<Ringback | null>(null);
@@ -98,7 +139,8 @@ export function useVoiceCall() {
     cleanupAudioElements();
     if (callId) { try { await apiClient.post(`/webhook/voice-call/${callId}/end`); } catch { /* best-effort */ } }
     setState('ended');
-    setThinking([]);
+    // consultations НЕ чистим: после разговора список «кого спрашивали» —
+    // единственное место, где это видно. Сбрасывается в start() новым звонком.
   }, [callId, cleanupAudioElements, stopRingback]);
 
   const start = useCallback(async () => {
@@ -107,6 +149,9 @@ export function useVoiceCall() {
     if (roomRef.current) return;
     setState('connecting');
     setError(null);
+    // Новый звонок — новый список консультаций. Единственное место, где он
+    // сбрасывается: после разговора он должен оставаться на экране.
+    setConsultations([]);
     // Гудки — сразу по клику: это единственный момент, когда браузер точно
     // разрешит звук (пользовательский жест), и именно с этой секунды идёт
     // дозвон, о котором пользователю надо сообщить.
@@ -149,25 +194,20 @@ export function useVoiceCall() {
         // тот же канал. Чужая версия — не наша схема, молча игнорируем,
         // иначе старая вкладка нарисует плашки по неизвестным правилам.
         if (msg?.v !== 1) return;
-        if (msg.type === 'specialist_pending') {
-          setThinking((prev) => [...prev, { jobId: msg.jobId, specialist: msg.specialist }]);
-        } else if (msg.type === 'specialist_answer' || msg.type === 'specialist_failed') {
-          setThinking((prev) => prev.filter((item) => item.jobId !== msg.jobId));
-        }
+        const now = Date.now();
+        setConsultations((prev) => applyConsultationMessage(prev, msg, now));
       });
 
       // Агент вышел из комнаты — разговор окончен, даже если наш сокет жив.
       room.on(RoomEvent.ParticipantDisconnected, () => {
         if (room.remoteParticipants.size === 0) {
           setState('ended');
-          setThinking([]);
           cleanupAudioElements();
         }
       });
 
       room.on(RoomEvent.Disconnected, () => {
         setState('ended');
-        setThinking([]);
         stopRingback();
         cleanupAudioElements();
       });
@@ -221,5 +261,5 @@ export function useVoiceCall() {
   // Уходя со страницы, кладём трубку: иначе комната живёт до таймаута воркера.
   useEffect(() => () => { void roomRef.current?.disconnect(); ringbackRef.current?.stop(); }, []);
 
-  return { state, error, thinking, callId, start, hangUp };
+  return { state, error, consultations, callId, start, hangUp };
 }

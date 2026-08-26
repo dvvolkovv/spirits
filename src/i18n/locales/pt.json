@@ -218,7 +218,10 @@
       "speaker_you": "Você",
       "speaker_assistant": "Assistente",
       "waiting_agent": "Aguardando Roman…",
-      "agent_no_show": "Roman não atendeu. Tente novamente."
+      "agent_no_show": "Roman não atendeu. Tente novamente.",
+      "consultations_title": "Pedidos a especialistas",
+      "specialist_answered": "Resposta de {{name}} · {{seconds}} s",
+      "specialist_no_answer": "Sem resposta de {{name}}"
     }
   },
   "profile": {

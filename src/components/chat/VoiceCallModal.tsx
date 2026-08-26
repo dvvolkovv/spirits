@@ -1,8 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
-import { Phone, PhoneOff, Mic, Loader2, X } from 'lucide-react';
-import { useVoiceCall, CallState } from './useVoiceCall';
+import { Phone, PhoneOff, Mic, Loader2, X, Check, AlertTriangle } from 'lucide-react';
+import { useVoiceCall, CallState, type Consultation } from './useVoiceCall';
 
 interface VoiceCallModalProps {
   /** Отображаемое имя ассистента (Роман) — заголовок модалки. */
@@ -20,6 +20,11 @@ const STATE_LABEL_KEY: Record<CallState, string> = {
   error: 'error',
 };
 
+/** Секунды от вопроса до ответа — показываем, чтобы ожидание было измеримым. */
+function elapsedSec(c: Consultation): number {
+  return Math.max(1, Math.round(((c.finishedAt ?? Date.now()) - c.askedAt) / 1000));
+}
+
 /**
  * Модалка голосового звонка Роману поверх экрана чата. Владеет всем
  * жизненным циклом звонка через useVoiceCall — снаружи только имя
@@ -27,7 +32,7 @@ const STATE_LABEL_KEY: Record<CallState, string> = {
  */
 export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, onClose }) => {
   const { t } = useTranslation();
-  const { state, error, thinking, start, hangUp } = useVoiceCall();
+  const { state, error, consultations, start, hangUp } = useVoiceCall();
 
   // Закрытие крестиком обязано класть трубку: иначе комната и микрофон
   // остаются активными до таймаута воркера, а бэкенд не узнаёт, что звонок
@@ -85,22 +90,45 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, o
             <p className="text-sm text-red-600 text-center mb-4">{error}</p>
           )}
 
-          {thinking.length > 0 && (
+          {/* Список за весь звонок, а не «кто думает прямо сейчас»: ответы
+              приходят за 12–15 секунд, и исчезающую плашку не успеть прочитать. */}
+          {consultations.length > 0 && (
             <div className="space-y-2 mb-6 mt-4">
-              {thinking.map((item) => (
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                {t('chat.voice_call.consultations_title')}
+              </p>
+              {consultations.map((item) => (
                 <div
                   key={item.jobId}
-                  data-testid="voice-call-thinking"
-                  className="flex items-center gap-2 px-3 py-2 bg-warm-50 border border-warm-200 rounded-lg text-sm text-warm-800"
+                  data-testid="voice-call-consultation"
+                  data-status={item.status}
+                  className={clsx(
+                    'flex items-center gap-2 px-3 py-2 border rounded-lg text-sm',
+                    item.status === 'pending' && 'bg-warm-50 border-warm-200 text-warm-800',
+                    item.status === 'answered' && 'bg-forest-50 border-forest-200 text-forest-800',
+                    item.status === 'failed' && 'bg-red-50 border-red-200 text-red-700',
+                  )}
                 >
-                  <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-                  <span>{t('chat.voice_call.specialist_thinking', { name: item.specialist })}</span>
+                  {item.status === 'pending' && <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />}
+                  {item.status === 'answered' && <Check className="w-4 h-4 flex-shrink-0" />}
+                  {item.status === 'failed' && <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
+                  <span>
+                    {item.status === 'pending' &&
+                      t('chat.voice_call.specialist_thinking', { name: item.specialist })}
+                    {item.status === 'answered' &&
+                      t('chat.voice_call.specialist_answered', {
+                        name: item.specialist,
+                        seconds: elapsedSec(item),
+                      })}
+                    {item.status === 'failed' &&
+                      t('chat.voice_call.specialist_no_answer', { name: item.specialist })}
+                  </span>
                 </div>
               ))}
             </div>
           )}
 
-          <div className={clsx(thinking.length === 0 && 'mt-4')}>
+          <div className={clsx(consultations.length === 0 && 'mt-4')}>
             {canCall ? (
               <button
                 onClick={() => start()}

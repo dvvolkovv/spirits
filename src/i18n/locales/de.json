@@ -217,7 +217,10 @@
       "speaker_you": "Sie",
       "speaker_assistant": "Assistent",
       "waiting_agent": "Warte auf Roman…",
-      "agent_no_show": "Roman ist nicht ans Telefon gegangen. Bitte erneut versuchen."
+      "agent_no_show": "Roman ist nicht ans Telefon gegangen. Bitte erneut versuchen.",
+      "consultations_title": "Anfragen an Fachleute",
+      "specialist_answered": "Antwort von {{name}} · {{seconds}} s",
+      "specialist_no_answer": "Keine Antwort von {{name}}"
     }
   },
   "profile": {

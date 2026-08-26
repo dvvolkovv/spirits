@@ -219,7 +219,10 @@
       "speaker_you": "Вы",
       "speaker_assistant": "Ассистент",
       "waiting_agent": "Ждём Романа…",
-      "agent_no_show": "Роман не подошёл к телефону. Попробуйте ещё раз."
+      "agent_no_show": "Роман не подошёл к телефону. Попробуйте ещё раз.",
+      "consultations_title": "Обращения к специалистам",
+      "specialist_answered": "Ответ от {{name}} · {{seconds}} с",
+      "specialist_no_answer": "Нет ответа от {{name}}"
     }
   },
   "profile": {
