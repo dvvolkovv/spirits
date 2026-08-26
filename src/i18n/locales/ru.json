@@ -226,7 +226,8 @@
       "documents_title": "Документы",
       "document_pending": "«{{title}}» — готовится",
       "document_ready": "«{{title}}» — в чате",
-      "document_failed": "«{{title}}» — не получился"
+      "document_failed": "«{{title}}» — не получился",
+      "tokens_spent": "{{tokens}} токенов"
     }
   },
   "profile": {

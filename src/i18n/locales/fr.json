@@ -225,7 +225,8 @@
       "documents_title": "Documents",
       "document_pending": "« {{title}} » — en préparation",
       "document_ready": "« {{title}} » — dans le chat",
-      "document_failed": "« {{title}} » — échec"
+      "document_failed": "« {{title}} » — échec",
+      "tokens_spent": "{{tokens}} jetons"
     }
   },
   "profile": {

@@ -225,7 +225,8 @@
       "documents_title": "Documentos",
       "document_pending": "«{{title}}» — a preparar",
       "document_ready": "«{{title}}» — no chat",
-      "document_failed": "«{{title}}» — falhou"
+      "document_failed": "«{{title}}» — falhou",
+      "tokens_spent": "{{tokens}} tokens"
     }
   },
   "profile": {

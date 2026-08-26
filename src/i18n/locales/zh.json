@@ -223,7 +223,8 @@
       "documents_title": "文档",
       "document_pending": "《{{title}}》— 正在生成",
       "document_ready": "《{{title}}》— 已在聊天中",
-      "document_failed": "《{{title}}》— 生成失败"
+      "document_failed": "《{{title}}》— 生成失败",
+      "tokens_spent": "{{tokens}} 个令牌"
     }
   },
   "profile": {

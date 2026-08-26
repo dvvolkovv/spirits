@@ -20,6 +20,11 @@ const STATE_LABEL_KEY: Record<CallState, string> = {
   error: 'error',
 };
 
+/** Разряды пробелами: 3200 → «3 200». В ленте чата принят тот же вид. */
+function formatTokens(n: number): string {
+  return n.toLocaleString('ru-RU').replace(/\u00A0/g, ' ');
+}
+
 /** Секунды от вопроса до ответа — показываем, чтобы ожидание было измеримым. */
 function elapsedSec(c: Consultation): number {
   return Math.max(1, Math.round(((c.finishedAt ?? Date.now()) - c.askedAt) / 1000));
@@ -115,11 +120,16 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, o
                   <span>
                     {item.status === 'pending' &&
                       t('chat.voice_call.specialist_thinking', { name: item.specialist })}
-                    {item.status === 'answered' &&
-                      t('chat.voice_call.specialist_answered', {
-                        name: item.specialist,
-                        seconds: elapsedSec(item),
-                      })}
+                    {item.status === 'answered' && (
+                      <>
+                        {t('chat.voice_call.specialist_answered', {
+                          name: item.specialist,
+                          seconds: elapsedSec(item),
+                        })}
+                        {item.tokens != null && item.tokens > 0 &&
+                          ` · ${t('chat.voice_call.tokens_spent', { tokens: formatTokens(item.tokens) })}`}
+                      </>
+                    )}
                     {item.status === 'failed' &&
                       t('chat.voice_call.specialist_no_answer', { name: item.specialist })}
                   </span>
@@ -154,7 +164,13 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, o
                   )}
                   <span>
                     {doc.status === 'pending' && t('chat.voice_call.document_pending', { title: doc.title })}
-                    {doc.status === 'ready' && t('chat.voice_call.document_ready', { title: doc.title })}
+                    {doc.status === 'ready' && (
+                      <>
+                        {t('chat.voice_call.document_ready', { title: doc.title })}
+                        {doc.tokens != null && doc.tokens > 0 &&
+                          ` · ${t('chat.voice_call.tokens_spent', { tokens: formatTokens(doc.tokens) })}`}
+                      </>
+                    )}
                     {doc.status === 'failed' && t('chat.voice_call.document_failed', { title: doc.title })}
                   </span>
                 </div>

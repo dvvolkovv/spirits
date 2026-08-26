@@ -128,3 +128,43 @@ describe('applyDocumentMessage', () => {
     expect(isDocumentMessage({ v: 1, type: 'specialist_pending', jobId: 'j1', specialist: 'Алексей' })).toBe(false);
   });
 });
+
+describe('расход токенов', () => {
+  it('ответ приносит списанные токены в строку консультации', () => {
+    const pending = applyConsultationMessage(
+      [],
+      { v: 1, type: 'specialist_pending', jobId: 'j1', specialist: 'Виталий' },
+      T0,
+    );
+    const out = applyConsultationMessage(
+      pending,
+      { v: 1, type: 'specialist_answer', jobId: 'j1', specialist: 'Виталий', text: 'ответ', tokens: 3200 },
+      T0 + 14_000,
+    );
+    expect(out[0].tokens).toBe(3200);
+  });
+
+  it('токены не теряются при повторном сообщении без них', () => {
+    // Порядок доставки не гарантирован: строка уже могла получить цифру.
+    let list = applyConsultationMessage([], { v: 1, type: 'specialist_pending', jobId: 'j1', specialist: 'Анна' }, T0);
+    list = applyConsultationMessage(list, { v: 1, type: 'specialist_answer', jobId: 'j1', specialist: 'Анна', text: 'ok', tokens: 900 }, T0 + 1);
+    list = applyConsultationMessage(list, { v: 1, type: 'specialist_answer', jobId: 'j1', specialist: 'Анна', text: 'ok' }, T0 + 2);
+    expect(list[0].tokens).toBe(900);
+  });
+
+  it('готовый документ приносит свои токены', () => {
+    const pending = applyDocumentMessage([], { v: 1, type: 'document_pending', docId: 'd1', title: 'План' });
+    const out = applyDocumentMessage(pending, { v: 1, type: 'document_ready', docId: 'd1', title: 'План', tokens: 5400 });
+    expect(out[0]).toMatchObject({ status: 'ready', tokens: 5400 });
+  });
+
+  it('у неотвеченной консультации токенов нет — списывать не за что', () => {
+    const pending = applyConsultationMessage([], { v: 1, type: 'specialist_pending', jobId: 'j1', specialist: 'Оля' }, T0);
+    const out = applyConsultationMessage(
+      pending,
+      { v: 1, type: 'specialist_failed', jobId: 'j1', specialist: 'Оля', reason: 'timeout' },
+      T0 + 240_000,
+    );
+    expect(out[0].tokens).toBeUndefined();
+  });
+});

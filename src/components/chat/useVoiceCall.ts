@@ -25,6 +25,8 @@ export interface Consultation {
   status: 'pending' | 'answered' | 'failed';
   askedAt: number;
   finishedAt?: number;
+  /** Списано за консультацию. Приходит вместе с ответом. */
+  tokens?: number;
 }
 
 /**
@@ -35,6 +37,8 @@ export interface CallDocument {
   docId: string;
   title: string;
   status: 'pending' | 'ready' | 'failed';
+  /** Списано за документ. Приходит вместе с готовностью. */
+  tokens?: number;
 }
 
 /** Data-сообщения из комнаты LiveKit, topic `linkeon` (контракт бэкенда). */
@@ -49,6 +53,7 @@ interface SpecialistPendingMessage extends LinkeonDataMessageBase {
 interface SpecialistAnswerMessage extends LinkeonDataMessageBase {
   type: 'specialist_answer';
   text: string;
+  tokens?: number;
 }
 interface SpecialistFailedMessage extends LinkeonDataMessageBase {
   type: 'specialist_failed';
@@ -60,6 +65,7 @@ interface DocumentMessage {
   docId: string;
   title: string;
   reason?: string;
+  tokens?: number;
 }
 export type LinkeonDataMessage =
   | SpecialistPendingMessage
@@ -80,9 +86,9 @@ export function applyDocumentMessage(prev: CallDocument[], msg: DocumentMessage)
   const status: CallDocument['status'] =
     msg.type === 'document_ready' ? 'ready' : msg.type === 'document_failed' ? 'failed' : 'pending';
   if (!prev.some((d) => d.docId === msg.docId)) {
-    return [...prev, { docId: msg.docId, title: msg.title, status }];
+    return [...prev, { docId: msg.docId, title: msg.title, status, tokens: msg.tokens }];
   }
-  return prev.map((d) => (d.docId === msg.docId ? { ...d, status } : d));
+  return prev.map((d) => (d.docId === msg.docId ? { ...d, status, tokens: msg.tokens ?? d.tokens } : d));
 }
 
 /**
@@ -107,10 +113,11 @@ export function applyConsultationMessage(
     return [...prev, { jobId: msg.jobId, specialist: msg.specialist, status: 'pending', askedAt: now }];
   }
   const status: Consultation['status'] = msg.type === 'specialist_answer' ? 'answered' : 'failed';
+  const tokens = msg.type === 'specialist_answer' ? msg.tokens : undefined;
   if (!prev.some((c) => c.jobId === msg.jobId)) {
-    return [...prev, { jobId: msg.jobId, specialist: msg.specialist, status, askedAt: now, finishedAt: now }];
+    return [...prev, { jobId: msg.jobId, specialist: msg.specialist, status, askedAt: now, finishedAt: now, tokens }];
   }
-  return prev.map((c) => (c.jobId === msg.jobId ? { ...c, status, finishedAt: now } : c));
+  return prev.map((c) => (c.jobId === msg.jobId ? { ...c, status, finishedAt: now, tokens: tokens ?? c.tokens } : c));
 }
 
 /**

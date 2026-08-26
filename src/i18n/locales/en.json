@@ -224,7 +224,8 @@
       "documents_title": "Documents",
       "document_pending": "“{{title}}” — in progress",
       "document_ready": "“{{title}}” — in the chat",
-      "document_failed": "“{{title}}” — failed"
+      "document_failed": "“{{title}}” — failed",
+      "tokens_spent": "{{tokens}} tokens"
     }
   },
   "profile": {
