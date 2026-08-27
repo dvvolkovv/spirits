@@ -1813,5 +1813,21 @@
         "gt_10m": "Über 10 Mio. ₽"
       }
     }
+  },
+  "room": {
+    "default_title": "Besprechung",
+    "audio_only": "Sprachbesprechung — nur Ton, kein Video",
+    "your_name": "Wie heißen Sie?",
+    "join": "Beitreten",
+    "joining": "Verbindung…",
+    "join_failed": "Verbindung fehlgeschlagen. Bitte erneut versuchen.",
+    "connect_failed": "Verbindung fehlgeschlagen. Mikrofonzugriff prüfen.",
+    "not_found": "Besprechung nicht gefunden oder bereits beendet",
+    "you_left": "Sie haben die Besprechung verlassen",
+    "you": "Sie",
+    "participants": "Teilnehmer",
+    "mic_on": "Mikrofon einschalten",
+    "mic_off": "Mikrofon ausschalten",
+    "leave": "Verlassen"
   }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast, { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -38,6 +38,9 @@ const ContactRequestsPage = lazy(() => import('./pages/ContactRequestsPage'));
 const SettingsSocialPage = lazy(() => import('./pages/SettingsSocialPage'));
 const StudioPage = lazy(() => import('./pages/StudioPage'));
 const TelegramBotsNewPage = lazy(() => import('./pages/TelegramBotsPage').then((m) => ({ default: m.TelegramBotsNewPage })));
+// Голосовая комната. Ленивая намеренно: тянет за собой livekit-client, а
+// открывают её единицы — грузить его всем в основном чанке незачем.
+const RoomPage = lazy(() => import('./pages/RoomPage'));
 
 // Лёгкий fallback, пока подгружается ленивый чанк раздела.
 const RouteFallback: React.FC = () => (
@@ -50,6 +53,7 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, user, login } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const widgetInit = React.useRef(false);
 
   // Домашний виджет [Натив 4] (натив-приложение; на вебе — no-op): обновляем
@@ -166,6 +170,24 @@ const AppContent: React.FC = () => {
     const qs = params.toString();
     window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
   }, [t]);
+
+  // Комната — единственный публичный маршрут приложения.
+  //
+  // Проверка стоит ДО isLoading и до экрана регистрации сознательно: в комнату
+  // приходят по присланной ссылке люди, которые в Linkeon не заводились, и
+  // упереться в онбординг вместо встречи они не должны. Ждать загрузку
+  // авторизации им тоже незачем — она к ним не относится.
+  //
+  // Хуки выше вызваны безусловно, порядок не нарушается.
+  if (location.pathname.startsWith('/room/')) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/room/:code" element={<RoomPage />} />
+        </Routes>
+      </Suspense>
+    );
+  }
 
   if (isLoading) {
     return (

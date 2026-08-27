@@ -1808,5 +1808,21 @@
         "gt_10m": "1000万卢布以上"
       }
     }
+  },
+  "room": {
+    "default_title": "会议",
+    "audio_only": "语音会议 — 仅音频，无视频",
+    "your_name": "您怎么称呼？",
+    "join": "加入",
+    "joining": "连接中…",
+    "join_failed": "无法连接，请重试。",
+    "connect_failed": "无法连接，请检查麦克风权限。",
+    "not_found": "会议不存在或已结束",
+    "you_left": "您已离开会议",
+    "you": "我",
+    "participants": "参与者",
+    "mic_on": "打开麦克风",
+    "mic_off": "关闭麦克风",
+    "leave": "离开"
   }
 }

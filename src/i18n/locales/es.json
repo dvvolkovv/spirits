@@ -1818,5 +1818,21 @@
         "gt_10m": "Más de 10 M ₽"
       }
     }
+  },
+  "room": {
+    "default_title": "Reunión",
+    "audio_only": "Reunión de voz: solo audio, sin vídeo",
+    "your_name": "¿Cómo te llamas?",
+    "join": "Entrar",
+    "joining": "Conectando…",
+    "join_failed": "No se pudo conectar. Inténtalo de nuevo.",
+    "connect_failed": "No se pudo conectar. Revisa el acceso al micrófono.",
+    "not_found": "La reunión no existe o ya terminó",
+    "you_left": "Has salido de la reunión",
+    "you": "Tú",
+    "participants": "Participantes",
+    "mic_on": "Activar micrófono",
+    "mic_off": "Silenciar micrófono",
+    "leave": "Salir"
   }
 }

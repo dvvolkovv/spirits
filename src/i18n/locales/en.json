@@ -2140,5 +2140,21 @@
         "gt_10m": "Over ₽10M"
       }
     }
+  },
+  "room": {
+    "default_title": "Meeting",
+    "audio_only": "Voice meeting — audio only, no video",
+    "your_name": "What is your name?",
+    "join": "Join",
+    "joining": "Connecting…",
+    "join_failed": "Could not connect. Please try again.",
+    "connect_failed": "Could not connect. Check microphone access.",
+    "not_found": "Meeting not found or already ended",
+    "you_left": "You left the meeting",
+    "you": "You",
+    "participants": "Participants",
+    "mic_on": "Turn on microphone",
+    "mic_off": "Turn off microphone",
+    "leave": "Leave"
   }
 }
