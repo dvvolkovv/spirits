@@ -75,7 +75,6 @@ interface ChatInterfaceProps {
   preSelectedAssistant?: { id: number; name: string; description: string } | null;
   onAssistantSelected?: (a: any) => void;
   allAssistants?: any[];
-  onOpenMatch?: () => void;
 }
 
 // Backend tags streamed text with `[VIDEO_JOB:<uuid>]` markers so the frontend
@@ -351,7 +350,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   preSelectedAssistant,
   onAssistantSelected,
   allAssistants,
-  onOpenMatch,
 }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -865,7 +863,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // Header может рендерить ассистента уже сейчас — буквенный fallback
           // заменится картинкой по мере загрузки. Не блокируем UI на 16 avatar-fetches:
           // при медленной сети/нестабильном CDN один зависший запрос замораживал
-          // хедер на «Loading…» и ронял onboarding-смок (reopen-match не появлялся).
+          // хедер на «Loading…» и ронял browser-смок: шапка чата не появлялась.
           setIsLoadingAssistants(false);
 
           Promise.all(
@@ -2194,16 +2192,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     Десктопный вариант тумблера живёт справа (hidden md:flex). */}
                 {renderFreshToggle('fresh-mode-toggle-mobile', 'flex md:hidden')}
                 {renderCallButton('voice-call-toggle-mobile', 'flex md:hidden')}
-
-                {onOpenMatch && (
-                  <button
-                    onClick={onOpenMatch}
-                    data-testid="reopen-match"
-                    className="hidden md:inline text-xs text-gray-500 hover:text-forest-700 underline whitespace-nowrap"
-                  >
-                    {t('onboarding.match.reopen')}
-                  </button>
-                )}
 
                 {showAssistantDropdown && (
                   <div data-testid="assistant-dropdown-list" className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
