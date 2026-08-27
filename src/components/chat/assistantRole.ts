@@ -24,6 +24,7 @@ export const ROLE_KEY_BY_AGENT_ID: Record<number, string> = {
   14: 'chat.assistant_role_hd',
   20: 'chat.assistant_role_sales',
   21: 'chat.assistant_role_lifestyle',
+  22: 'chat.assistant_role_designer',
 };
 
 export const getRoleForAssistant = (
