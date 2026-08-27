@@ -1833,6 +1833,7 @@
     "participants": "Participants",
     "mic_on": "Activer le micro",
     "mic_off": "Couper le micro",
-    "leave": "Quitter"
+    "leave": "Quitter",
+    "mic_blocked": "Micro indisponible : personne ne vous entend. Vérifiez l’autorisation du navigateur et touchez l’icône du micro."
   }
 }

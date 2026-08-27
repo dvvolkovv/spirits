@@ -1833,6 +1833,7 @@
     "participants": "Participantes",
     "mic_on": "Activar micrófono",
     "mic_off": "Silenciar micrófono",
-    "leave": "Salir"
+    "leave": "Salir",
+    "mic_blocked": "Micrófono no disponible: no te oyen. Revisa el permiso del navegador y toca el icono del micrófono."
   }
 }

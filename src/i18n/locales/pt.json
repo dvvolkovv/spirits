@@ -2154,6 +2154,7 @@
     "participants": "Participantes",
     "mic_on": "Ligar microfone",
     "mic_off": "Desligar microfone",
-    "leave": "Sair"
+    "leave": "Sair",
+    "mic_blocked": "Microfone indisponível — ninguém ouve você. Verifique a permissão do navegador e toque no ícone do microfone."
   }
 }

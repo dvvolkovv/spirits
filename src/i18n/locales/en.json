@@ -2155,6 +2155,7 @@
     "participants": "Participants",
     "mic_on": "Turn on microphone",
     "mic_off": "Turn off microphone",
-    "leave": "Leave"
+    "leave": "Leave",
+    "mic_blocked": "Microphone unavailable — others cannot hear you. Check the browser permission and tap the microphone icon."
   }
 }

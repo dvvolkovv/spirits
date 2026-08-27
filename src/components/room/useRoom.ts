@@ -24,6 +24,8 @@ export function useRoom(code: string) {
   const [state, setState] = useState<RoomState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [micOn, setMicOn] = useState(true);
+  /** Микрофон недоступен: отказали в доступе или его нет. Слушать это не мешает. */
+  const [micBlocked, setMicBlocked] = useState(false);
 
   // track.attach() (см. исходник livekit-client) только создаёт <audio> и
   // назначает srcObject — в document его никто не вставляет, и без appendChild
@@ -109,10 +111,28 @@ export function useRoom(code: string) {
       });
 
       await room.connect(wsUrl, token);
-      await room.localParticipant.setMicrophoneEnabled(true);
-      setMicOn(true);
+
+      // В комнате мы уже — показываем встречу немедленно.
+      //
+      // Микрофон включаем ОТДЕЛЬНО и не ждём его успеха. Раньше вход был
+      // завязан на него, и если человек отказал в доступе, микрофона нет
+      // вовсе или браузер завис на запросе разрешения — страница оставалась
+      // на «Подключение…» навсегда, хотя участник в комнате уже был.
+      // Поймано живой проверкой на проде 27.08.2026.
+      //
+      // Слушать без микрофона — нормальный сценарий: на встречу можно прийти
+      // молча.
       setState('connected');
       refresh();
+
+      try {
+        await room.localParticipant.setMicrophoneEnabled(true);
+        setMicOn(true);
+      } catch {
+        // Не ошибка встречи: человек внутри, просто пока молчит.
+        setMicOn(false);
+        setMicBlocked(true);
+      }
     } catch (e) {
       roomRef.current = null;
       cleanupAudio();
@@ -129,8 +149,16 @@ export function useRoom(code: string) {
     const room = roomRef.current;
     if (!room) return;
     const next = !micOn;
-    await room.localParticipant.setMicrophoneEnabled(next);
-    setMicOn(next);
+    try {
+      await room.localParticipant.setMicrophoneEnabled(next);
+      setMicOn(next);
+      setMicBlocked(false);
+    } catch {
+      // Повторная попытка включить — единственный способ переспросить
+      // разрешение, если в первый раз отказали.
+      setMicOn(false);
+      setMicBlocked(true);
+    }
     refresh();
   }, [micOn, refresh]);
 
@@ -162,5 +190,5 @@ export function useRoom(code: string) {
     };
   }, []);
 
-  return { peers, state, error, micOn, join, toggleMic, leave };
+  return { peers, state, error, micOn, micBlocked, join, toggleMic, leave };
 }

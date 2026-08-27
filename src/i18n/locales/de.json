@@ -1828,6 +1828,7 @@
     "participants": "Teilnehmer",
     "mic_on": "Mikrofon einschalten",
     "mic_off": "Mikrofon ausschalten",
-    "leave": "Verlassen"
+    "leave": "Verlassen",
+    "mic_blocked": "Mikrofon nicht verfügbar — Sie sind nicht zu hören. Prüfen Sie die Browser-Berechtigung und tippen Sie auf das Mikrofonsymbol."
   }
 }

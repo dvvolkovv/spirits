@@ -6,6 +6,8 @@ interface Props {
   title: string;
   peers: Peer[];
   micOn: boolean;
+  /** Микрофона нет или в доступе отказали. Слушать это не мешает. */
+  micBlocked: boolean;
   onToggleMic: () => void;
   onLeave: () => void;
 }
@@ -15,7 +17,7 @@ function Initial({ name }: { name: string }) {
   return <span className="text-sm font-semibold text-forest-800">{(name || '?').charAt(0).toUpperCase()}</span>;
 }
 
-export default function RoomStage({ title, peers, micOn, onToggleMic, onLeave }: Props) {
+export default function RoomStage({ title, peers, micOn, micBlocked, onToggleMic, onLeave }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -26,6 +28,14 @@ export default function RoomStage({ title, peers, micOn, onToggleMic, onLeave }:
           {t('room.participants')}: {peers.length}
         </p>
       </header>
+
+      {micBlocked && (
+        <div className="px-4 py-2 bg-amber-50 border-b border-amber-200">
+          <p className="text-xs text-amber-900 max-w-md mx-auto" data-testid="room-mic-blocked">
+            {t('room.mic_blocked')}
+          </p>
+        </div>
+      )}
 
       <main className="flex-1 overflow-y-auto p-4">
         <ul className="space-y-2 max-w-md mx-auto">

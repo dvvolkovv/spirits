@@ -21,7 +21,7 @@ export default function RoomPage() {
   const { t } = useTranslation();
   const [title, setTitle] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const { peers, state, error, micOn, join, toggleMic, leave } = useRoom(code);
+  const { peers, state, error, micOn, micBlocked, join, toggleMic, leave } = useRoom(code);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +68,7 @@ export default function RoomPage() {
         title={title}
         peers={peers}
         micOn={micOn}
+        micBlocked={micBlocked}
         onToggleMic={toggleMic}
         onLeave={leave}
       />
