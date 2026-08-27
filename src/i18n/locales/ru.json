@@ -231,6 +231,16 @@
       "document_ready": "«{{title}}» — в чате",
       "document_failed": "«{{title}}» — не получился",
       "tokens_spent": "{{tokens}} токенов"
+    },
+    "meeting": {
+      "join": "Зайти",
+      "in_progress": "Ассистент на встрече",
+      "leave": "Выйти",
+      "already_in": "Ассистент уже на другой встрече или на звонке",
+      "join_failed": "Не удалось зайти во встречу",
+      "create": "Создать встречу",
+      "create_failed": "Не удалось создать встречу",
+      "copy_link": "Скопировать ссылку"
     }
   },
   "profile": {

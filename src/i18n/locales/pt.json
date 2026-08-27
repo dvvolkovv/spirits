@@ -230,6 +230,16 @@
       "document_ready": "«{{title}}» — no chat",
       "document_failed": "«{{title}}» — falhou",
       "tokens_spent": "{{tokens}} tokens"
+    },
+    "meeting": {
+      "join": "Entrar",
+      "in_progress": "O assistente está em uma reunião",
+      "leave": "Sair",
+      "already_in": "O assistente já está em outra reunião ou chamada",
+      "join_failed": "Não foi possível entrar na reunião",
+      "create": "Criar reunião",
+      "create_failed": "Não foi possível criar a reunião",
+      "copy_link": "Copiar link"
     }
   },
   "profile": {

@@ -229,6 +229,16 @@
       "document_ready": "“{{title}}” — in the chat",
       "document_failed": "“{{title}}” — failed",
       "tokens_spent": "{{tokens}} tokens"
+    },
+    "meeting": {
+      "join": "Join",
+      "in_progress": "Assistant is in a meeting",
+      "leave": "Leave",
+      "already_in": "The assistant is already in another meeting or on a call",
+      "join_failed": "Could not join the meeting",
+      "create": "Create meeting",
+      "create_failed": "Could not create the meeting",
+      "copy_link": "Copy link"
     }
   },
   "profile": {

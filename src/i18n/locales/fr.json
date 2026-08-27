@@ -230,6 +230,16 @@
       "document_ready": "« {{title}} » — dans le chat",
       "document_failed": "« {{title}} » — échec",
       "tokens_spent": "{{tokens}} jetons"
+    },
+    "meeting": {
+      "join": "Rejoindre",
+      "in_progress": "L’assistant est en réunion",
+      "leave": "Quitter",
+      "already_in": "L’assistant est déjà dans une autre réunion ou en appel",
+      "join_failed": "Impossible de rejoindre la réunion",
+      "create": "Créer une réunion",
+      "create_failed": "Impossible de créer la réunion",
+      "copy_link": "Copier le lien"
     }
   },
   "profile": {

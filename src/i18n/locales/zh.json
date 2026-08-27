@@ -228,6 +228,16 @@
       "document_ready": "《{{title}}》— 已在聊天中",
       "document_failed": "《{{title}}》— 生成失败",
       "tokens_spent": "{{tokens}} 个令牌"
+    },
+    "meeting": {
+      "join": "加入",
+      "in_progress": "助手正在会议中",
+      "leave": "离开",
+      "already_in": "助手已在其他会议或通话中",
+      "join_failed": "无法加入会议",
+      "create": "创建会议",
+      "create_failed": "无法创建会议",
+      "copy_link": "复制链接"
     }
   },
   "profile": {

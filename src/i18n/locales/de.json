@@ -229,6 +229,16 @@
       "document_ready": "„{{title}}“ — im Chat",
       "document_failed": "„{{title}}“ — fehlgeschlagen",
       "tokens_spent": "{{tokens}} Tokens"
+    },
+    "meeting": {
+      "join": "Beitreten",
+      "in_progress": "Assistent ist in einer Besprechung",
+      "leave": "Verlassen",
+      "already_in": "Der Assistent ist bereits in einer anderen Besprechung oder in einem Anruf",
+      "join_failed": "Beitritt zur Besprechung fehlgeschlagen",
+      "create": "Besprechung erstellen",
+      "create_failed": "Besprechung konnte nicht erstellt werden",
+      "copy_link": "Link kopieren"
     }
   },
   "profile": {

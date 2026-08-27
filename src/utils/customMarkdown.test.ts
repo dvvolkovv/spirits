@@ -86,3 +86,29 @@ describe('parseCustomMarkdown: карточка голосового звонк�
     expect(voiceCalls.size).toBe(0);
   });
 });
+
+describe('meeting_join', () => {
+  it('вынимает код и название встречи', () => {
+    const { meetings } = parseCustomMarkdown('{{meeting_join: code=ABC234 title=Планёрка}}');
+    expect([...meetings.values()][0]).toEqual({ code: 'ABC234', title: 'Планёрка' });
+  });
+
+  it('название из нескольких слов не обрывается', () => {
+    const { meetings } = parseCustomMarkdown('{{meeting_join: code=ABC234 title=Планёрка во вторник}}');
+    expect([...meetings.values()][0].title).toBe('Планёрка во вторник');
+  });
+
+  it('подменяет тег маркером, а не оставляет сырым', () => {
+    const { content } = parseCustomMarkdown('{{meeting_join: code=ABC234 title=Встреча}}');
+    expect(content).not.toContain('meeting_join');
+    expect(content).toMatch(/__MEETING_/);
+  });
+
+  it('не трогает обычный текст', () => {
+    expect(parseCustomMarkdown('просто сообщение').meetings.size).toBe(0);
+  });
+
+  it('игнорирует код неверной длины — такого мы не выдаём', () => {
+    expect(parseCustomMarkdown('{{meeting_join: code=ABC title=Встреча}}').meetings.size).toBe(0);
+  });
+});

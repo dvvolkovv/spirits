@@ -28,6 +28,8 @@ import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
 import AudioClip from './AudioClip';
 import VoiceCallCard from './VoiceCallCard';
+import MeetingJoinCard from './MeetingJoinCard';
+import MeetingStatusBar from './MeetingStatusBar';
 import SocialConnectButton from './SocialConnectButton';
 import TelegramConnectForm from './TelegramConnectForm';
 import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
@@ -129,15 +131,20 @@ const StreamingMessage = React.memo(({
   onButtonClick,
   onLinkClick,
   onSendMessage,
+  meetingAgentId,
+  onJoinMeeting,
 }: {
   content: string;
   components: any;
   onButtonClick: (action: string) => void;
   onLinkClick: (url: string) => void;
   onSendMessage?: (text: string) => void;
+  /** Ассистент текущего чата — он и пойдёт на встречу по карточке. */
+  meetingAgentId: number;
+  onJoinMeeting?: (callId: string) => void;
 }) => {
   const { t } = useTranslation();
-  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, meetings, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -150,10 +157,11 @@ const StreamingMessage = React.memo(({
     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
+    const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
     const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -242,6 +250,20 @@ const StreamingMessage = React.memo(({
         const callId = voiceCalls.get(key);
         if (callId) {
           parts.push(<VoiceCallCard key={`voice-call-${idx}`} callId={callId} />);
+        }
+      } else if (match[0].startsWith('__MEETING_')) {
+        const key = match[1];
+        const meeting = meetings.get(key);
+        if (meeting && onJoinMeeting) {
+          parts.push(
+            <MeetingJoinCard
+              key={`meeting-${idx}`}
+              code={meeting.code}
+              title={meeting.title}
+              agentId={meetingAgentId}
+              onJoined={onJoinMeeting}
+            />,
+          );
         }
       } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
         const key = match[1];
@@ -485,6 +507,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // chatContainerRef removed — using messagesContainerRef
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  /** Ассистент сидит во внешней встрече. null — не сидит. */
+  const [meetingCallId, setMeetingCallId] = useState<string | null>(null);
   // Ход, который идёт на сервере, но НЕ в этой вкладке: пользователь перезагрузил
   // страницу или вернулся с телефона, пока ассистент считает. Индикатор «печатает»
   // жил только в памяти вкладки, и после F5 работающий чат выглядел мёртвым —
@@ -2394,7 +2418,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const contentForRender = stripCalendarProposalMarkers(stripVideoJobMarkers(message.content));
-                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, meetings, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
@@ -2405,10 +2429,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
                     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
                     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
-                    const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
+                    const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
+    const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
                     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -2497,6 +2522,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         const callId = voiceCalls.get(key);
                         if (callId) {
                           parts.push(<VoiceCallCard key={`voice-call-${idx}`} callId={callId} />);
+                        }
+                      } else if (match[0].startsWith('__MEETING_')) {
+                        const key = match[1];
+                        const meeting = meetings.get(key);
+                        if (meeting) {
+                          parts.push(
+                            <MeetingJoinCard
+                              key={`meeting-${idx}`}
+                              code={meeting.code}
+                              title={meeting.title}
+                              agentId={Number(selectedAssistant?.id) || 0}
+                              onJoined={setMeetingCallId}
+                            />,
+                          );
                         }
                       } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
                         const key = match[1];
@@ -2631,6 +2670,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onButtonClick={handleButtonAction}
               onLinkClick={handleLinkNavigation}
               onSendMessage={sendMessageText}
+              meetingAgentId={Number(selectedAssistant?.id) || 0}
+              onJoinMeeting={setMeetingCallId}
             />
           )
         )}
@@ -2638,6 +2679,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {/* Ход идёт на сервере, но не в этой вкладке (перезагрузили страницу,
             вернулись с другого устройства). Без этой карточки чат выглядел
             зависшим, и пользователь слал «?» — обрывая собственный ответ. */}
+        {/* Ассистент сидит во внешней встрече и всё это время тарифицируется —
+            кнопка выхода должна быть на виду, а не спрятана в меню. */}
+        {meetingCallId && (
+          <MeetingStatusBar callId={meetingCallId} onLeft={() => setMeetingCallId(null)} />
+        )}
+
         {remoteTurnActive && !streamingMessageId && !isTyping && !historyLoading && (
           <div className="flex justify-start">
             <div className="max-w-lg px-4 py-3 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md">
