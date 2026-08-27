@@ -7,6 +7,8 @@ interface VoiceCallDetails {
   duration_sec: number | null;
   status: string;
   transcript: { role: 'user' | 'assistant'; text: string; ts: number }[] | null;
+  /** Списано за разговор. Считает бэкенд — курс живёт там и меняется. */
+  tokens_charged?: number | null;
 }
 
 /**
@@ -43,6 +45,11 @@ export default function VoiceCallCard({ callId }: { callId: string }) {
 
   const minutes =
     details?.duration_sec != null ? Math.max(1, Math.round(details.duration_sec / 60)) : null;
+  // Разряды пробелами, как в остальной ленте.
+  const tokens =
+    details?.tokens_charged != null && details.tokens_charged > 0
+      ? details.tokens_charged.toLocaleString('ru-RU').replace(/\u00A0/g, ' ')
+      : null;
 
   return (
     <div className="my-2 rounded-xl border border-forest-200 bg-forest-50 overflow-hidden">
@@ -56,6 +63,11 @@ export default function VoiceCallCard({ callId }: { callId: string }) {
           {t('chat.voice_call.card_title')}
           {minutes !== null && ` · ${t('chat.voice_call.card_minutes', { count: minutes })}`}
         </span>
+        {tokens && (
+          <span className="text-xs text-gray-500 flex-shrink-0">
+            {t('chat.voice_call.tokens_spent', { tokens })}
+          </span>
+        )}
         {open ? (
           <ChevronUp className="w-4 h-4 text-forest-700" />
         ) : (
