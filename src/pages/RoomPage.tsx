@@ -5,13 +5,16 @@ import { Loader2 } from 'lucide-react';
 import JoinForm from '../components/room/JoinForm';
 import RoomStage from '../components/room/RoomStage';
 import { useRoom } from '../components/room/useRoom';
+import { apiClient } from '../services/apiClient';
 
 /**
  * Публичная страница голосовой комнаты.
  *
  * Гости — не пользователи Linkeon, авторизации у них нет и взяться ей неоткуда:
- * человеку просто прислали ссылку. Поэтому маршрут вынесен в App.tsx ДО
- * проверки авторизации, а данные тянутся публичными ручками.
+ * человеку просто прислали ссылку. Поэтому маршрут объявлен в App.tsx соседом
+ * AppContent, рядом с /tokens, а не веткой внутри него — иначе страница
+ * унаследовала бы его жизненный цикл (deep-links, виджет, аналитику), и
+ * появление авторизации уводило бы навигацию из-под смонтированной комнаты.
  */
 export default function RoomPage() {
   const { code = '' } = useParams();
@@ -24,7 +27,7 @@ export default function RoomPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/webhook/room/public/${encodeURIComponent(code)}`);
+        const res = await apiClient.get(`/webhook/room/public/${encodeURIComponent(code)}`);
         if (!res.ok) throw new Error('not found');
         const data = await res.json();
         if (!cancelled) setTitle(data.title || t('room.default_title'));

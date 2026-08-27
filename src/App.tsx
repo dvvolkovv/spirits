@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast, { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -53,7 +53,6 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, user, login } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
   const widgetInit = React.useRef(false);
 
   // Домашний виджет [Натив 4] (натив-приложение; на вебе — no-op): обновляем
@@ -171,24 +170,6 @@ const AppContent: React.FC = () => {
     window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
   }, [t]);
 
-  // Комната — единственный публичный маршрут приложения.
-  //
-  // Проверка стоит ДО isLoading и до экрана регистрации сознательно: в комнату
-  // приходят по присланной ссылке люди, которые в Linkeon не заводились, и
-  // упереться в онбординг вместо встречи они не должны. Ждать загрузку
-  // авторизации им тоже незачем — она к ним не относится.
-  //
-  // Хуки выше вызваны безусловно, порядок не нарушается.
-  if (location.pathname.startsWith('/room/')) {
-    return (
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route path="/room/:code" element={<RoomPage />} />
-        </Routes>
-      </Suspense>
-    );
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -268,6 +249,17 @@ const App: React.FC = () => {
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/tokens" element={<TokenPurchasePage />} />
+            {/*
+              Комната — публичная: по присланной ссылке приходят люди, которые
+              в Linkeon не заводились. Маршрут ОБЯЗАН быть здесь, соседом
+              AppContent, а не веткой внутри него. Внутри гостевая страница
+              унаследовала бы весь его жизненный цикл — deep-links, виджет,
+              аналитику, — и при появлении авторизации (например, у владельца
+              комнаты остались токены) эти эффекты уводят навигацию из-под
+              смонтированной страницы. Проверено на test 27.08.2026: страница
+              падала с React #321 ровно через секунду после обновления токенов.
+            */}
+            <Route path="/room/:code" element={<RoomPage />} />
             <Route path="/auth/:provider/callback" element={<AuthOAuthCallbackPage />} />
             <Route path="/auth/email/confirm" element={<AuthEmailConfirmPage />} />
             <Route path="*" element={<AppContent />} />
