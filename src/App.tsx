@@ -12,7 +12,7 @@ import MaintenancePage from './pages/MaintenancePage';          // eager: гей
 import { track, trackAuthed } from './services/eventsClient';
 import { apiClient } from './services/apiClient';
 import { tokenManager } from './utils/tokenManager';
-import { refreshWidget, initWidgetNavigation, onAppResume, initDeepLinks } from './services/widgetClient';
+import { refreshWidget, initWidgetNavigation, onAppResume, initDeepLinks, openLauncherOnboarding } from './services/widgetClient';
 import { registerNativePush } from './services/pushClient';
 import './i18n';
 
@@ -69,6 +69,33 @@ const AppContent: React.FC = () => {
       // Нативные пуши [Натив 3]: запрос разрешения + регистрация FCM-токена (натив; на вебе no-op).
       registerNativePush();
     }
+  }, [isAuthenticated]);
+
+  // Онбординг лаунчера [2026-08-27]: если компаньон открыли по linkeon://login из мастера, надо
+  // вернуть человека в мастер лаунчера сразу после входа. Детект launch-url НЕ завязан на auth —
+  // мастер шлёт login именно неавторизованному; флаг ставим до входа.
+  useEffect(() => {
+    const app = (window as any).Capacitor?.Plugins?.App;
+    if (!app) return;
+    const markIfLogin = (url?: string) => {
+      if (url && /^linkeon:\/\/login(\b|\/|\?|$)/i.test(url)) {
+        try { sessionStorage.setItem('return_to_onboarding', '1'); } catch {}
+      }
+    };
+    try { app.getLaunchUrl?.().then((r: any) => markIfLogin(r?.url)).catch(() => {}); } catch {}
+    let sub: any;
+    try { sub = app.addListener?.('appUrlOpen', (ev: any) => markIfLogin(ev?.url)); } catch {}
+    return () => { try { sub?.remove?.(); } catch {} };
+  }, []);
+
+  // После успешного входа — вернуть в мастер лаунчера (нативный VIEW linkeon://onboarding).
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let flag = false;
+    try { flag = sessionStorage.getItem('return_to_onboarding') === '1'; } catch {}
+    if (!flag) return;
+    try { sessionStorage.removeItem('return_to_onboarding'); } catch {}
+    void openLauncherOnboarding();
   }, [isAuthenticated]);
 
   // app_open: открытие приложения авторизованным юзером, раз на сессию браузера

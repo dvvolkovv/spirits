@@ -99,13 +99,30 @@ export function initDeepLinks(onNavigate: (path: string) => void): void {
     if (!url || url.indexOf('linkeon://') !== 0) return;
     const m = url.match(/^linkeon:\/\/([^?]*)(\?.*)?$/i);
     if (!m) return;
-    const path = '/' + (m[1] || 'chat').replace(/^\/+/, '');
-    onNavigate(path + (m[2] || ''));
+    const host = (m[1] || 'chat').replace(/^\/+/, '');
+    // Онбординг лаунчера [2026-08-27]: лаунчер прислал linkeon://login на шаге входа. Показываем
+    // логин (при !auth приложение и так рендерит OnboardingPage) и запоминаем, что нужно вернуться
+    // в мастер лаунчера сразу после успешного входа (App.tsx следит за auth → openLauncherOnboarding).
+    if (host === 'login') {
+      try { sessionStorage.setItem('return_to_onboarding', '1'); } catch {}
+      onNavigate('/');
+      return;
+    }
+    onNavigate('/' + host + (m[2] || ''));
   };
   // cold start: приложение открыли по linkeon:// из закрытого состояния
   try { app.getLaunchUrl?.().then((r: any) => { if (r && r.url) handle(r.url); }).catch(() => {}); } catch {}
   // warm: пришёл новый intent
   app.addListener('appUrlOpen', (ev: any) => { if (ev && ev.url) handle(ev.url); });
+}
+
+// Онбординг лаунчера [2026-08-27]: вернуть человека в мастер лаунчера после входа в компаньоне.
+// Нативный плагин шлёт VIEW linkeon://onboarding (кастомную схему WebView надёжно не откроет).
+// На вебе/без плагина — no-op. Возвращает true, если вызов ушёл в натив.
+export async function openLauncherOnboarding(): Promise<boolean> {
+  const wb = (window as any).Capacitor?.Plugins?.WidgetBridge;
+  if (!wb?.openLauncherOnboarding) return false;
+  try { await wb.openLauncherOnboarding(); return true; } catch { return false; }
 }
 
 // Подписка на возврат приложения на передний план (обновляем виджет свежими данными).
