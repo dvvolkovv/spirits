@@ -1,3 +1,4 @@
+import { downscaleImage } from '../../utils/downscaleImage';
 /**
  * Логика экрана «Профиль» (Task 12), вынесенная из JSX ради тестов без
  * рендера React-дерева.
@@ -67,7 +68,16 @@ export interface AvatarUploadDeps {
  */
 export async function uploadAvatar(file: File, deps: AvatarUploadDeps): Promise<Blob | null> {
   const body = new FormData();
-  body.append('file', file);
+  // Уменьшаем перед отправкой: сервер картинки не обрабатывает и потом
+  // отдаёт ровно то, что мы загрузили, — в мобильный WebView это уезжало
+  // мегабайтами (см. downscaleImage).
+  //
+  // Имя файла подменяем ТОЛЬКО когда реально пережали: downscaleImage
+  // возвращает исходный File, если уменьшать нечего, и FormData.append с
+  // третьим аргументом завернул бы его в новый File с чужим именем.
+  const prepared = await downscaleImage(file);
+  if (prepared === file) body.append('file', file);
+  else body.append('file', prepared, 'avatar.jpg');
   await deps.putForm('/webhook/avatar', body);
   return deps.getAvatarBlob();
 }
