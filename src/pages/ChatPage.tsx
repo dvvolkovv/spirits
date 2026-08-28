@@ -13,7 +13,6 @@ const ChatPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, completeOnboarding } = useAuth();
   const [openTokens, setOpenTokens] = useState(false);
-  const [matchOpen, setMatchOpen] = useState(false);   // принудительное открытие по кнопке
   const [dismissed, setDismissed] = useState(false);    // прошёл match в этой сессии
   const [greeting, setGreeting] = useState<string | undefined>(undefined);
 
@@ -26,7 +25,9 @@ const ChatPage: React.FC = () => {
 
   // Показ ТОЛЬКО при onboarded === false (явно). undefined/неизвестно
   // (профиль не догрузился) → fail-open в чат, возвращающихся не блокируем.
-  const showMatch = matchOpen || (user?.onboarded === false && !dismissed);
+  // Ручного переоткрытия нет: ссылка «Подобрать специалиста» убрана из шапки,
+  // смена ассистента живёт в выпадающем списке.
+  const showMatch = user?.onboarded === false && !dismissed;
 
   return (
     <>
@@ -67,12 +68,10 @@ const ChatPage: React.FC = () => {
               );
               onSelectAssistant(a);
               setDismissed(true);
-              setMatchOpen(false);
               if (user?.onboarded === false) completeOnboarding();
             }}
             onShowAll={() => {
               setDismissed(true);
-              setMatchOpen(false);
               if (user?.onboarded === false) completeOnboarding();
             }}
           />
@@ -83,7 +82,6 @@ const ChatPage: React.FC = () => {
             preSelectedAssistant={selectedAssistant}
             onAssistantSelected={onSelectAssistant}
             allAssistants={assistants}
-            onOpenMatch={() => setMatchOpen(true)}
           />
         )
       }

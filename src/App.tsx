@@ -38,6 +38,9 @@ const ContactRequestsPage = lazy(() => import('./pages/ContactRequestsPage'));
 const SettingsSocialPage = lazy(() => import('./pages/SettingsSocialPage'));
 const StudioPage = lazy(() => import('./pages/StudioPage'));
 const TelegramBotsNewPage = lazy(() => import('./pages/TelegramBotsPage').then((m) => ({ default: m.TelegramBotsNewPage })));
+// Голосовая комната. Ленивая намеренно: тянет за собой livekit-client, а
+// открывают её единицы — грузить его всем в основном чанке незачем.
+const RoomPage = lazy(() => import('./pages/RoomPage'));
 
 // Лёгкий fallback, пока подгружается ленивый чанк раздела.
 const RouteFallback: React.FC = () => (
@@ -246,6 +249,17 @@ const App: React.FC = () => {
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/tokens" element={<TokenPurchasePage />} />
+            {/*
+              Комната — публичная: по присланной ссылке приходят люди, которые
+              в Linkeon не заводились. Маршрут ОБЯЗАН быть здесь, соседом
+              AppContent, а не веткой внутри него. Внутри гостевая страница
+              унаследовала бы весь его жизненный цикл — deep-links, виджет,
+              аналитику, — и при появлении авторизации (например, у владельца
+              комнаты остались токены) эти эффекты уводят навигацию из-под
+              смонтированной страницы. Проверено на test 27.08.2026: страница
+              падала с React #321 ровно через секунду после обновления токенов.
+            */}
+            <Route path="/room/:code" element={<RoomPage />} />
             <Route path="/auth/:provider/callback" element={<AuthOAuthCallbackPage />} />
             <Route path="/auth/email/confirm" element={<AuthEmailConfirmPage />} />
             <Route path="*" element={<AppContent />} />

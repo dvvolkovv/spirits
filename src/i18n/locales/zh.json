@@ -100,7 +100,6 @@
       "subtitle": "选择当前最贴近你的选项——我们将为你匹配合适的助手，马上开始对话",
       "show_all": "查看全部助手 →",
       "greeting": "你好！我是{{name}}，{{role}}。我们从哪里开始？",
-      "reopen": "匹配助手",
       "theme_self": "了解自己，梳理情绪",
       "theme_growth": "目标与个人成长",
       "theme_career": "职业与工作",
@@ -239,6 +238,10 @@
     "my_assistants_label": "我的",
     "assistant_role_accountant": "会计",
     "assistant_role_lawyer": "律师",
+    "assistant_role_founder": "创业启动",
+    "assistant_role_sales": "销售",
+    "assistant_role_lifestyle": "生活方式",
+    "assistant_role_designer": "设计师",
     "start_conversation_arrow": "开始对话 →",
     "loading_assistants": "正在加载助手…",
     "who_to_start_with": "你想先和谁聊聊？",
@@ -263,7 +266,48 @@
     "social_connect_hint": "将打开 {{platform}} 的授权页面，授权完成后会返回聊天界面。",
     "files_too_large": "这些文件共 {{total}} MB，单条消息最多 {{max}} MB。请去掉一部分，其余的用下一条消息发送。",
     "assistant_working": "助手正在处理你上一条消息",
-    "assistant_working_hint": "回复会自动出现在这里，你可以离开此页面。"
+    "assistant_working_hint": "回复会自动出现在这里，你可以离开此页面。",
+    "voice_call": {
+      "start": "拨打",
+      "ready": "准备通话",
+      "connecting": "连接中...",
+      "active": "通话中",
+      "ended": "通话已结束",
+      "error": "出错了",
+      "hang_up": "挂断",
+      "specialist_thinking": "{{name}}正在思考...",
+      "button_title": "呼叫罗曼",
+      "admin_only": "语音通话目前仅对管理员开放",
+      "card_title": "语音通话",
+      "card_minutes": "{{count}} 分钟",
+      "card_no_transcript": "未保存文字记录",
+      "card_load_failed": "无法加载文字记录",
+      "speaker_you": "您",
+      "speaker_assistant": "助手",
+      "waiting_agent": "正在等待罗曼…",
+      "agent_no_show": "罗曼没有接听，请重试。",
+      "consultations_title": "向专家提问",
+      "specialist_answered": "{{name}} 的回复 · {{seconds}} 秒",
+      "specialist_no_answer": "{{name}} 未回复",
+      "documents_title": "文档",
+      "document_pending": "《{{title}}》— 正在生成",
+      "document_ready": "《{{title}}》— 已在聊天中",
+      "document_failed": "《{{title}}》— 生成失败",
+      "tokens_spent": "{{tokens}} 个令牌",
+      "mic_on": "打开麦克风",
+      "mic_off": "关闭麦克风",
+      "mic_blocked": "麦克风不可用，其他人听不到您。请点按麦克风图标。"
+    },
+    "meeting": {
+      "join": "加入",
+      "in_progress": "助手正在会议中",
+      "leave": "离开",
+      "already_in": "助手已在其他会议或通话中",
+      "join_failed": "无法加入会议",
+      "create": "创建会议",
+      "create_failed": "无法创建会议",
+      "copy_link": "复制链接"
+    }
   },
   "profile": {
     "title": "我的个人资料",
@@ -1798,5 +1842,67 @@
     "voice": "语音",
     "voice_long": "语音朗读",
     "open_named": "打开：{{name}}"
+  },
+  "businessCard": {
+    "title": "我的生意",
+    "subtitle": "助手会参考这些信息，不再重复询问",
+    "addMore": "补充",
+    "filledByAssistant": "根据对话自动填写",
+    "empty": "暂时为空 —— 向任意商务助手介绍你的业务",
+    "saveError": "保存失败",
+    "field": {
+      "what": "业务内容",
+      "legal_form": "经营形式",
+      "tax_mode": "税务模式",
+      "stage": "阶段",
+      "revenue": "月营业额",
+      "team": "团队",
+      "customers": "客户",
+      "focus": "当前重点"
+    },
+    "option": {
+      "legal_form": {
+        "self_employed": "自雇",
+        "ip": "个体经营者",
+        "ooo": "有限责任公司"
+      },
+      "tax_mode": {
+        "npd": "职业收入税",
+        "usn_d": "简易计税（收入）",
+        "usn_dr": "简易计税（收入减支出）",
+        "patent": "专利税制",
+        "osno": "一般税制"
+      },
+      "stage": {
+        "idea": "构想",
+        "year_one": "第一年",
+        "stable": "稳定",
+        "growth": "增长"
+      },
+      "revenue": {
+        "lt_300k": "30万卢布以下",
+        "300k_1m": "30万–100万卢布",
+        "1m_3m": "100万–300万卢布",
+        "3m_10m": "300万–1000万卢布",
+        "gt_10m": "1000万卢布以上"
+      }
+    }
+  },
+  "room": {
+    "default_title": "会议",
+    "audio_only": "语音会议 — 仅音频，无视频",
+    "your_name": "您怎么称呼？",
+    "join": "加入",
+    "joining": "连接中…",
+    "join_failed": "无法连接，请重试。",
+    "connect_failed": "无法连接，请检查麦克风权限。",
+    "not_found": "会议不存在或已结束",
+    "you_left": "您已离开会议",
+    "you": "我",
+    "participants": "参与者",
+    "mic_on": "打开麦克风",
+    "mic_off": "关闭麦克风",
+    "leave": "离开",
+    "mic_blocked": "麦克风不可用，其他人听不到您。请检查浏览器权限并点按麦克风图标。"
   }
 }

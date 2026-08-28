@@ -101,7 +101,6 @@
       "subtitle": "Pick what's closest right now — we'll match you with a specialist and start the conversation",
       "show_all": "Show all specialists →",
       "greeting": "Hello! I'm {{name}} — {{role}}. Where shall we start?",
-      "reopen": "Find a specialist",
       "theme_self": "Understand myself, emotions",
       "theme_growth": "Goals and personal growth",
       "theme_career": "Career and work",
@@ -241,6 +240,10 @@
     "my_assistants_label": "Mine",
     "assistant_role_accountant": "Accountant",
     "assistant_role_lawyer": "Lawyer",
+    "assistant_role_founder": "Business Launch",
+    "assistant_role_sales": "Sales",
+    "assistant_role_lifestyle": "Lifestyle",
+    "assistant_role_designer": "Designer",
     "start_conversation_arrow": "Start chatting →",
     "loading_assistants": "Loading assistants...",
     "who_to_start_with": "Who would you like to start with?",
@@ -265,7 +268,48 @@
     "social_connect_hint": "The {{platform}} authorization page will open. Once approved, you'll return to the chat.",
     "files_too_large": "These files add up to {{total}} MB — the limit per message is {{max}} MB. Remove a few and send the rest in a follow-up message.",
     "assistant_working": "The assistant is working on your previous message",
-    "assistant_working_hint": "The reply will appear here on its own — you can leave this page."
+    "assistant_working_hint": "The reply will appear here on its own — you can leave this page.",
+    "voice_call": {
+      "start": "Call",
+      "ready": "Ready to call",
+      "connecting": "Connecting...",
+      "active": "Call in progress",
+      "ended": "Call ended",
+      "error": "Error",
+      "hang_up": "Hang up",
+      "specialist_thinking": "{{name}} is thinking...",
+      "button_title": "Call Roman",
+      "admin_only": "Voice calls are currently available to admins only",
+      "card_title": "Voice call",
+      "card_minutes": "{{count}} min",
+      "card_no_transcript": "No transcript saved",
+      "card_load_failed": "Could not load the transcript",
+      "speaker_you": "You",
+      "speaker_assistant": "Assistant",
+      "waiting_agent": "Waiting for Roman…",
+      "agent_no_show": "Roman did not pick up. Please try again.",
+      "consultations_title": "Specialist requests",
+      "specialist_answered": "Reply from {{name}} · {{seconds}}s",
+      "specialist_no_answer": "No reply from {{name}}",
+      "documents_title": "Documents",
+      "document_pending": "“{{title}}” — in progress",
+      "document_ready": "“{{title}}” — in the chat",
+      "document_failed": "“{{title}}” — failed",
+      "tokens_spent": "{{tokens}} tokens",
+      "mic_on": "Turn on microphone",
+      "mic_off": "Turn off microphone",
+      "mic_blocked": "Microphone unavailable — others cannot hear you. Tap the microphone icon."
+    },
+    "meeting": {
+      "join": "Join",
+      "in_progress": "Assistant is in a meeting",
+      "leave": "Leave",
+      "already_in": "The assistant is already in another meeting or on a call",
+      "join_failed": "Could not join the meeting",
+      "create": "Create meeting",
+      "create_failed": "Could not create the meeting",
+      "copy_link": "Copy link"
+    }
   },
   "profile": {
     "title": "My profile",
@@ -2131,5 +2175,67 @@
     "voice": "Voice",
     "voice_long": "Speak aloud",
     "open_named": "Open: {{name}}"
+  },
+  "businessCard": {
+    "title": "My business",
+    "subtitle": "Assistants use this so you don't repeat yourself",
+    "addMore": "Add more",
+    "filledByAssistant": "Filled in from your conversation",
+    "empty": "Empty for now — tell any business assistant about your work",
+    "saveError": "Could not save",
+    "field": {
+      "what": "What you do",
+      "legal_form": "Legal form",
+      "tax_mode": "Tax mode",
+      "stage": "Stage",
+      "revenue": "Monthly revenue",
+      "team": "Team",
+      "customers": "Customers",
+      "focus": "Current focus"
+    },
+    "option": {
+      "legal_form": {
+        "self_employed": "Self-employed",
+        "ip": "Sole proprietor",
+        "ooo": "LLC"
+      },
+      "tax_mode": {
+        "npd": "Professional income tax",
+        "usn_d": "Simplified (income)",
+        "usn_dr": "Simplified (income minus expenses)",
+        "patent": "Patent",
+        "osno": "General"
+      },
+      "stage": {
+        "idea": "Idea",
+        "year_one": "First year",
+        "stable": "Stable",
+        "growth": "Growing"
+      },
+      "revenue": {
+        "lt_300k": "Under ₽300k",
+        "300k_1m": "₽300k–1M",
+        "1m_3m": "₽1–3M",
+        "3m_10m": "₽3–10M",
+        "gt_10m": "Over ₽10M"
+      }
+    }
+  },
+  "room": {
+    "default_title": "Meeting",
+    "audio_only": "Voice meeting — audio only, no video",
+    "your_name": "What is your name?",
+    "join": "Join",
+    "joining": "Connecting…",
+    "join_failed": "Could not connect. Please try again.",
+    "connect_failed": "Could not connect. Check microphone access.",
+    "not_found": "Meeting not found or already ended",
+    "you_left": "You left the meeting",
+    "you": "You",
+    "participants": "Participants",
+    "mic_on": "Turn on microphone",
+    "mic_off": "Turn off microphone",
+    "leave": "Leave",
+    "mic_blocked": "Microphone unavailable — others cannot hear you. Check the browser permission and tap the microphone icon."
   }
 }

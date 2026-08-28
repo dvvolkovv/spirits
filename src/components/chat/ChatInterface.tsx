@@ -1,9 +1,18 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+
+/**
+ * Модалка тянет за собой livekit-client (~1.3 МБ несжатыми). Кнопка «Позвонить»
+ * видна только админам и только в чате Романа, поэтому грузим по требованию,
+ * а не кладём всем в основной бандл.
+ */
+const VoiceCallModal = React.lazy(() =>
+  import('./VoiceCallModal').then((m) => ({ default: m.VoiceCallModal })),
+);
 import { useTranslation } from 'react-i18next';
 import { resolveLanguage } from '../../i18n/languages';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X } from 'lucide-react';
+import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X, Phone } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -18,6 +27,9 @@ import { VoiceDictation } from '../../services/voiceDictation';
 import { ScenarioCard } from './smm/ScenarioCard';
 import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
 import AudioClip from './AudioClip';
+import VoiceCallCard from './VoiceCallCard';
+import MeetingJoinCard from './MeetingJoinCard';
+import MeetingStatusBar from './MeetingStatusBar';
 import SocialConnectButton from './SocialConnectButton';
 import TelegramConnectForm from './TelegramConnectForm';
 import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
@@ -65,7 +77,6 @@ interface ChatInterfaceProps {
   preSelectedAssistant?: { id: number; name: string; description: string } | null;
   onAssistantSelected?: (a: any) => void;
   allAssistants?: any[];
-  onOpenMatch?: () => void;
 }
 
 // Backend tags streamed text with `[VIDEO_JOB:<uuid>]` markers so the frontend
@@ -120,15 +131,20 @@ const StreamingMessage = React.memo(({
   onButtonClick,
   onLinkClick,
   onSendMessage,
+  meetingAgentId,
+  onJoinMeeting,
 }: {
   content: string;
   components: any;
   onButtonClick: (action: string) => void;
   onLinkClick: (url: string) => void;
   onSendMessage?: (text: string) => void;
+  /** Ассистент текущего чата — он и пойдёт на встречу по карточке. */
+  meetingAgentId: number;
+  onJoinMeeting?: (callId: string) => void;
 }) => {
   const { t } = useTranslation();
-  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, meetings, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -140,10 +156,12 @@ const StreamingMessage = React.memo(({
     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
+    const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
+    const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
     const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -225,6 +243,26 @@ const StreamingMessage = React.memo(({
             <div key={`audio-clip-${idx}`}>
               <AudioClip clipId={clipId} />
             </div>
+          );
+        }
+      } else if (match[0].startsWith('__VOICECALL_')) {
+        const key = match[1];
+        const callId = voiceCalls.get(key);
+        if (callId) {
+          parts.push(<VoiceCallCard key={`voice-call-${idx}`} callId={callId} />);
+        }
+      } else if (match[0].startsWith('__MEETING_')) {
+        const key = match[1];
+        const meeting = meetings.get(key);
+        if (meeting && onJoinMeeting) {
+          parts.push(
+            <MeetingJoinCard
+              key={`meeting-${idx}`}
+              code={meeting.code}
+              title={meeting.title}
+              agentId={meetingAgentId}
+              onJoined={onJoinMeeting}
+            />,
           );
         }
       } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
@@ -334,7 +372,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   preSelectedAssistant,
   onAssistantSelected,
   allAssistants,
-  onOpenMatch,
 }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -470,6 +507,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // chatContainerRef removed — using messagesContainerRef
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  /** Ассистент сидит во внешней встрече. null — не сидит. */
+  const [meetingCallId, setMeetingCallId] = useState<string | null>(null);
   // Ход, который идёт на сервере, но НЕ в этой вкладке: пользователь перезагрузил
   // страницу или вернулся с телефона, пока ассистент считает. Индикатор «печатает»
   // жил только в памяти вкладки, и после F5 работающий чат выглядел мёртвым —
@@ -541,6 +580,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     initialScrollDoneForAssistantRef.current = null;
     historyLoadedForRef.current = null;
   };
+
+  // Голосовой звонок Роману (id 12, только для админов) — модалка над чатом,
+  // весь жизненный цикл звонка живёт внутри неё через useVoiceCall.
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
 
   // Initial load + refetch когда открывается дропдаун (пользователь мог
   // создать кастомного ассистента в /my-agents и тут же вернуться).
@@ -844,7 +887,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // Header может рендерить ассистента уже сейчас — буквенный fallback
           // заменится картинкой по мере загрузки. Не блокируем UI на 16 avatar-fetches:
           // при медленной сети/нестабильном CDN один зависший запрос замораживал
-          // хедер на «Loading…» и ронял onboarding-смок (reopen-match не появлялся).
+          // хедер на «Loading…» и ронял browser-смок: шапка чата не появлялась.
           setIsLoadingAssistants(false);
 
           Promise.all(
@@ -2083,10 +2126,41 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     </button>
   );
 
+  // Кнопка звонка Роману — видна только админам и только в чате с Романом
+  // (id 12). Тот же тумблер-стиль, что и «Чистый лист», в двух местах шапки.
+  const renderCallButton = (testId: string, wrapperClass: string) => {
+    if (!user?.isAdmin || selectedAssistant?.id !== 12) return null;
+    return (
+      <button
+        onClick={() => setShowVoiceCall(true)}
+        data-testid={testId}
+        className={clsx(
+          'items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors',
+          wrapperClass,
+          'border-gray-200 text-gray-500 hover:text-forest-700 hover:border-forest-300'
+        )}
+        title={t('chat.voice_call.button_title')}
+        aria-label={t('chat.voice_call.button_title')}
+      >
+        <Phone className="w-4 h-4" />
+        <span className="hidden md:inline text-xs font-medium">{t('chat.voice_call.start')}</span>
+      </button>
+    );
+  };
+
   return (
     <>
       {showTokenPackages && (
         <TokenPackages onClose={() => setShowTokenPackages(false)} />
+      )}
+
+      {showVoiceCall && selectedAssistant && (
+        <React.Suspense fallback={null}>
+        <VoiceCallModal
+          assistantName={selectedAssistant.displayName ?? selectedAssistant.name}
+          onClose={() => setShowVoiceCall(false)}
+        />
+        </React.Suspense>
       )}
 
       <div className="flex flex-col h-full bg-gray-50 relative" data-testid="chat-root">
@@ -2141,16 +2215,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {/* Мобила: вместо текстовой ссылки — иконка «Чистый лист».
                     Десктопный вариант тумблера живёт справа (hidden md:flex). */}
                 {renderFreshToggle('fresh-mode-toggle-mobile', 'flex md:hidden')}
-
-                {onOpenMatch && (
-                  <button
-                    onClick={onOpenMatch}
-                    data-testid="reopen-match"
-                    className="hidden md:inline text-xs text-gray-500 hover:text-forest-700 underline whitespace-nowrap"
-                  >
-                    {t('onboarding.match.reopen')}
-                  </button>
-                )}
+                {renderCallButton('voice-call-toggle-mobile', 'flex md:hidden')}
 
                 {showAssistantDropdown && (
                   <div data-testid="assistant-dropdown-list" className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
@@ -2273,6 +2338,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </button>
             )}
             {renderFreshToggle('fresh-mode-toggle', 'hidden md:flex')}
+            {renderCallButton('voice-call-toggle', 'hidden md:flex')}
             {messages.length > 1 && (
               <>
                 <button
@@ -2352,7 +2418,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const contentForRender = stripCalendarProposalMarkers(stripVideoJobMarkers(message.content));
-                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, meetings, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
@@ -2362,10 +2428,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
                     const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
                     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
-                    const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
+                    const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
+                    const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
+    const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
                     const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -2447,6 +2515,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             <div key={`audio-clip-${idx}`}>
                               <AudioClip clipId={clipId} />
                             </div>
+                          );
+                        }
+                      } else if (match[0].startsWith('__VOICECALL_')) {
+                        const key = match[1];
+                        const callId = voiceCalls.get(key);
+                        if (callId) {
+                          parts.push(<VoiceCallCard key={`voice-call-${idx}`} callId={callId} />);
+                        }
+                      } else if (match[0].startsWith('__MEETING_')) {
+                        const key = match[1];
+                        const meeting = meetings.get(key);
+                        if (meeting) {
+                          parts.push(
+                            <MeetingJoinCard
+                              key={`meeting-${idx}`}
+                              code={meeting.code}
+                              title={meeting.title}
+                              agentId={Number(selectedAssistant?.id) || 0}
+                              onJoined={setMeetingCallId}
+                            />,
                           );
                         }
                       } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
@@ -2582,6 +2670,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onButtonClick={handleButtonAction}
               onLinkClick={handleLinkNavigation}
               onSendMessage={sendMessageText}
+              meetingAgentId={Number(selectedAssistant?.id) || 0}
+              onJoinMeeting={setMeetingCallId}
             />
           )
         )}
@@ -2589,6 +2679,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {/* Ход идёт на сервере, но не в этой вкладке (перезагрузили страницу,
             вернулись с другого устройства). Без этой карточки чат выглядел
             зависшим, и пользователь слал «?» — обрывая собственный ответ. */}
+        {/* Ассистент сидит во внешней встрече и всё это время тарифицируется —
+            кнопка выхода должна быть на виду, а не спрятана в меню. */}
+        {meetingCallId && (
+          <MeetingStatusBar callId={meetingCallId} onLeft={() => setMeetingCallId(null)} />
+        )}
+
         {remoteTurnActive && !streamingMessageId && !isTyping && !historyLoading && (
           <div className="flex justify-start">
             <div className="max-w-lg px-4 py-3 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md">

@@ -8,6 +8,12 @@ export interface ButtonConfig {
   icon?: string;
 }
 
+/** Встреча из тега {{meeting_join:…}} в ленте чата. */
+export interface MeetingCard {
+  code: string;
+  title: string;
+}
+
 export interface LinkConfig {
   text: string;
   url: string;
@@ -37,6 +43,21 @@ const SMM_VIDEO_REGEX = /\{\{smm_video:id=([a-f0-9-]{36})\}\}/g;
 // оживал из сохранённой истории чата (а не протухшая ссылка на mp3).
 const AUDIO_CLIP_REGEX = /\{\{audio:id=([a-f0-9-]{36})\}\}/g;
 
+// Карточка голосового звонка (Роман, voice-call feature): бэкенд кладёт в
+// историю чата сообщение ассистента, где текст начинается с этого тега —
+// дальше идёт человекочитаемое резюме звонка. Тег подменяется маркером,
+// чтобы карточка ожила из сохранённой истории (как audio/smm-блоки выше).
+const VOICE_CALL_REGEX = /\{\{voice_call:\s*id=([a-f0-9-]{36})\}\}/g;
+
+// Карточка входа во встречу. Бэкенд, увидев в сообщении ссылку на комнату,
+// кладёт в историю сообщение ассистента с этим тегом ВМЕСТО ответа модели.
+// Как и у voice_call, тег подменяется маркером — тогда карточка оживает и при
+// перезагрузке истории, а не только в момент отправки.
+//
+// Код ровно шесть знаков из нашего алфавита: другого мы не выдаём, и ловить
+// произвольную строку значило бы рисовать карточку по мусору.
+const MEETING_JOIN_REGEX = /\{\{meeting_join:\s*code=([2-9A-HJ-NP-Z]{6})\s+title=([^}]*?)\}\}/g;
+
 // SMM Producer Plan 4d — social connect blocks
 const SMM_SOCIAL_BUTTON_REGEX =
   /\{\{smm_social_connect_button:platform=([a-z]+),authorize_url=([^}]+)\}\}/g;
@@ -51,6 +72,8 @@ export const parseCustomMarkdown = (content: string): {
   smmScenarios: Map<string, string>;
   smmVideos: Map<string, string>;
   audioClips: Map<string, string>;
+  voiceCalls: Map<string, string>;
+  meetings: Map<string, MeetingCard>;
   socialButtons: Map<string, { platform: string; authorizeUrl: string }>;
   socialTelegrams: Set<string>;
 } => {
@@ -61,6 +84,8 @@ export const parseCustomMarkdown = (content: string): {
   const smmScenarios = new Map<string, string>();
   const smmVideos = new Map<string, string>();
   const audioClips = new Map<string, string>();
+  const voiceCalls = new Map<string, string>();
+  const meetings = new Map<string, MeetingCard>();
   const socialButtons = new Map<string, { platform: string; authorizeUrl: string }>();
   const socialTelegrams = new Set<string>();
 
@@ -118,6 +143,18 @@ export const parseCustomMarkdown = (content: string): {
     return `__AUDIO_CLIP_${key}__`;
   });
 
+  parsedContent = parsedContent.replace(VOICE_CALL_REGEX, (_match, callId) => {
+    const key = `voicecall_${callId}`;
+    voiceCalls.set(key, callId);
+    return `__VOICECALL_${key}__`;
+  });
+
+  parsedContent = parsedContent.replace(MEETING_JOIN_REGEX, (_match, code, title) => {
+    const key = `meeting_${code}`;
+    meetings.set(key, { code, title: String(title || '').trim() || 'Встреча' });
+    return `__MEETING_${key}__`;
+  });
+
   parsedContent = parsedContent.replace(SMM_SOCIAL_BUTTON_REGEX, (_m, platform, authorizeUrl) => {
     const id = `socbtn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     socialButtons.set(id, { platform: platform.trim(), authorizeUrl: authorizeUrl.trim() });
@@ -130,7 +167,7 @@ export const parseCustomMarkdown = (content: string): {
     return `__SOCIAL_TELEGRAM_${id}__`;
   });
 
-  return { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, socialButtons, socialTelegrams };
+  return { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, meetings, socialButtons, socialTelegrams };
 };
 
 export const createVideoComponent = (src: string, key?: string): React.ReactNode => {

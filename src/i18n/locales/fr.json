@@ -102,7 +102,6 @@
       "subtitle": "Choisis ce qui te correspond — on te trouve un spécialiste et on démarre tout de suite",
       "show_all": "Voir tous les spécialistes →",
       "greeting": "Bonjour ! Je suis {{name}}, {{role}}. Par où commence-t-on ?",
-      "reopen": "Trouver un spécialiste",
       "theme_self": "Mieux se comprendre, émotions",
       "theme_growth": "Objectifs et développement personnel",
       "theme_career": "Carrière et travail",
@@ -242,6 +241,10 @@
     "my_assistants_label": "Les miens",
     "assistant_role_accountant": "Comptable",
     "assistant_role_lawyer": "Juriste",
+    "assistant_role_founder": "Création d'entreprise",
+    "assistant_role_sales": "Ventes",
+    "assistant_role_lifestyle": "Mode de vie",
+    "assistant_role_designer": "Designer",
     "start_conversation_arrow": "Discuter →",
     "loading_assistants": "Chargement des assistants...",
     "who_to_start_with": "Avec qui veux-tu commencer ?",
@@ -267,7 +270,48 @@
     "file_count_many": "{{count}} de fichiers",
     "files_too_large": "Ces fichiers totalisent {{total}} Mo, or la limite par message est de {{max}} Mo. Retires-en quelques-uns et envoie le reste dans un autre message.",
     "assistant_working": "L'assistant travaille encore sur ton message précédent",
-    "assistant_working_hint": "La réponse apparaîtra ici toute seule — tu peux quitter cette page."
+    "assistant_working_hint": "La réponse apparaîtra ici toute seule — tu peux quitter cette page.",
+    "voice_call": {
+      "start": "Appeler",
+      "ready": "Prêt à appeler",
+      "connecting": "Connexion...",
+      "active": "Appel en cours",
+      "ended": "Appel terminé",
+      "error": "Erreur",
+      "hang_up": "Raccrocher",
+      "specialist_thinking": "{{name}} réfléchit...",
+      "button_title": "Appeler Roman",
+      "admin_only": "Les appels vocaux sont pour l'instant réservés aux administrateurs",
+      "card_title": "Appel vocal",
+      "card_minutes": "{{count}} min",
+      "card_no_transcript": "Aucune transcription enregistrée",
+      "card_load_failed": "Impossible de charger la transcription",
+      "speaker_you": "Vous",
+      "speaker_assistant": "Assistant",
+      "waiting_agent": "En attente de Roman…",
+      "agent_no_show": "Roman n'a pas décroché. Réessayez.",
+      "consultations_title": "Demandes aux spécialistes",
+      "specialist_answered": "Réponse de {{name}} · {{seconds}} s",
+      "specialist_no_answer": "Pas de réponse de {{name}}",
+      "documents_title": "Documents",
+      "document_pending": "« {{title}} » — en préparation",
+      "document_ready": "« {{title}} » — dans le chat",
+      "document_failed": "« {{title}} » — échec",
+      "tokens_spent": "{{tokens}} jetons",
+      "mic_on": "Activer le micro",
+      "mic_off": "Couper le micro",
+      "mic_blocked": "Micro indisponible : personne ne vous entend. Touchez l’icône du micro."
+    },
+    "meeting": {
+      "join": "Rejoindre",
+      "in_progress": "L’assistant est en réunion",
+      "leave": "Quitter",
+      "already_in": "L’assistant est déjà dans une autre réunion ou en appel",
+      "join_failed": "Impossible de rejoindre la réunion",
+      "create": "Créer une réunion",
+      "create_failed": "Impossible de créer la réunion",
+      "copy_link": "Copier le lien"
+    }
   },
   "profile": {
     "title": "Mon profil",
@@ -1810,5 +1854,67 @@
     "voice": "Voix",
     "voice_long": "Dire à voix haute",
     "open_named": "Ouvrir : {{name}}"
+  },
+  "businessCard": {
+    "title": "Mon entreprise",
+    "subtitle": "Les assistants s'en servent pour ne pas vous le redemander",
+    "addMore": "Compléter",
+    "filledByAssistant": "Rempli à partir de votre conversation",
+    "empty": "Vide pour l'instant — parlez de votre activité à un assistant business",
+    "saveError": "Échec de l'enregistrement",
+    "field": {
+      "what": "Votre activité",
+      "legal_form": "Forme juridique",
+      "tax_mode": "Régime fiscal",
+      "stage": "Stade",
+      "revenue": "Chiffre d'affaires mensuel",
+      "team": "Équipe",
+      "customers": "Clients",
+      "focus": "Priorité actuelle"
+    },
+    "option": {
+      "legal_form": {
+        "self_employed": "Travailleur indépendant",
+        "ip": "Entrepreneur individuel",
+        "ooo": "SARL"
+      },
+      "tax_mode": {
+        "npd": "Impôt sur les revenus professionnels",
+        "usn_d": "Simplifié (revenus)",
+        "usn_dr": "Simplifié (revenus moins dépenses)",
+        "patent": "Patente",
+        "osno": "Régime général"
+      },
+      "stage": {
+        "idea": "Idée",
+        "year_one": "Première année",
+        "stable": "Stable",
+        "growth": "Croissance"
+      },
+      "revenue": {
+        "lt_300k": "Moins de 300 k ₽",
+        "300k_1m": "300 k – 1 M ₽",
+        "1m_3m": "1–3 M ₽",
+        "3m_10m": "3–10 M ₽",
+        "gt_10m": "Plus de 10 M ₽"
+      }
+    }
+  },
+  "room": {
+    "default_title": "Réunion",
+    "audio_only": "Réunion vocale — audio uniquement, sans vidéo",
+    "your_name": "Quel est votre nom ?",
+    "join": "Rejoindre",
+    "joining": "Connexion…",
+    "join_failed": "Connexion impossible. Réessayez.",
+    "connect_failed": "Connexion impossible. Vérifiez l’accès au micro.",
+    "not_found": "Réunion introuvable ou déjà terminée",
+    "you_left": "Vous avez quitté la réunion",
+    "you": "Vous",
+    "participants": "Participants",
+    "mic_on": "Activer le micro",
+    "mic_off": "Couper le micro",
+    "leave": "Quitter",
+    "mic_blocked": "Micro indisponible : personne ne vous entend. Vérifiez l’autorisation du navigateur et touchez l’icône du micro."
   }
 }

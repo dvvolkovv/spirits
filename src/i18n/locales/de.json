@@ -101,7 +101,6 @@
       "subtitle": "Wähle, was gerade zu dir passt — wir finden den passenden Assistenten und starten sofort",
       "show_all": "Alle Assistenten anzeigen →",
       "greeting": "Hallo! Ich bin {{name}} — {{role}}. Womit fangen wir an?",
-      "reopen": "Assistenten auswählen",
       "theme_self": "Mich selbst verstehen, Emotionen",
       "theme_growth": "Ziele und persönliches Wachstum",
       "theme_career": "Karriere und Arbeit",
@@ -241,6 +240,10 @@
     "my_assistants_label": "Meine",
     "assistant_role_accountant": "Buchhalter",
     "assistant_role_lawyer": "Anwalt",
+    "assistant_role_founder": "Unternehmensgründung",
+    "assistant_role_sales": "Vertrieb",
+    "assistant_role_lifestyle": "Lebensstil",
+    "assistant_role_designer": "Designerin",
     "start_conversation_arrow": "Chat starten →",
     "loading_assistants": "Assistenten werden geladen...",
     "who_to_start_with": "Mit wem möchtest du starten?",
@@ -265,7 +268,48 @@
     "social_connect_hint": "Die {{platform}}-Anmeldeseite öffnet sich. Nach der Freigabe kehrst du zum Chat zurück.",
     "files_too_large": "Die Dateien ergeben zusammen {{total}} MB — pro Nachricht sind höchstens {{max}} MB möglich. Nimm ein paar heraus und schick den Rest in einer weiteren Nachricht.",
     "assistant_working": "Die Assistenz arbeitet noch an deiner vorherigen Nachricht",
-    "assistant_working_hint": "Die Antwort erscheint von selbst hier — du kannst die Seite verlassen."
+    "assistant_working_hint": "Die Antwort erscheint von selbst hier — du kannst die Seite verlassen.",
+    "voice_call": {
+      "start": "Anrufen",
+      "ready": "Bereit für den Anruf",
+      "connecting": "Verbindung wird hergestellt...",
+      "active": "Gespräch läuft",
+      "ended": "Anruf beendet",
+      "error": "Fehler",
+      "hang_up": "Auflegen",
+      "specialist_thinking": "{{name}} denkt nach...",
+      "button_title": "Roman anrufen",
+      "admin_only": "Anrufe sind derzeit nur für Admins verfügbar",
+      "card_title": "Sprachanruf",
+      "card_minutes": "{{count}} Min.",
+      "card_no_transcript": "Kein Transkript gespeichert",
+      "card_load_failed": "Transkript konnte nicht geladen werden",
+      "speaker_you": "Sie",
+      "speaker_assistant": "Assistent",
+      "waiting_agent": "Warte auf Roman…",
+      "agent_no_show": "Roman ist nicht ans Telefon gegangen. Bitte erneut versuchen.",
+      "consultations_title": "Anfragen an Fachleute",
+      "specialist_answered": "Antwort von {{name}} · {{seconds}} s",
+      "specialist_no_answer": "Keine Antwort von {{name}}",
+      "documents_title": "Dokumente",
+      "document_pending": "„{{title}}“ — wird erstellt",
+      "document_ready": "„{{title}}“ — im Chat",
+      "document_failed": "„{{title}}“ — fehlgeschlagen",
+      "tokens_spent": "{{tokens}} Tokens",
+      "mic_on": "Mikrofon einschalten",
+      "mic_off": "Mikrofon ausschalten",
+      "mic_blocked": "Mikrofon nicht verfügbar — Sie sind nicht zu hören. Tippen Sie auf das Mikrofonsymbol."
+    },
+    "meeting": {
+      "join": "Beitreten",
+      "in_progress": "Assistent ist in einer Besprechung",
+      "leave": "Verlassen",
+      "already_in": "Der Assistent ist bereits in einer anderen Besprechung oder in einem Anruf",
+      "join_failed": "Beitritt zur Besprechung fehlgeschlagen",
+      "create": "Besprechung erstellen",
+      "create_failed": "Besprechung konnte nicht erstellt werden",
+      "copy_link": "Link kopieren"
+    }
   },
   "profile": {
     "title": "Mein Profil",
@@ -1804,5 +1848,67 @@
     "voice": "Stimme",
     "voice_long": "Vorlesen lassen",
     "open_named": "Öffnen: {{name}}"
+  },
+  "businessCard": {
+    "title": "Mein Unternehmen",
+    "subtitle": "Die Assistenten nutzen das, damit du dich nicht wiederholen musst",
+    "addMore": "Ergänzen",
+    "filledByAssistant": "Aus dem Gespräch übernommen",
+    "empty": "Noch leer – erzähl einem Business-Assistenten von deiner Arbeit",
+    "saveError": "Speichern fehlgeschlagen",
+    "field": {
+      "what": "Womit du dich beschäftigst",
+      "legal_form": "Rechtsform",
+      "tax_mode": "Steuerregime",
+      "stage": "Phase",
+      "revenue": "Monatsumsatz",
+      "team": "Team",
+      "customers": "Kunden",
+      "focus": "Aktueller Fokus"
+    },
+    "option": {
+      "legal_form": {
+        "self_employed": "Selbstständig",
+        "ip": "Einzelunternehmer",
+        "ooo": "GmbH"
+      },
+      "tax_mode": {
+        "npd": "Steuer auf Berufseinkommen",
+        "usn_d": "Vereinfacht (Einnahmen)",
+        "usn_dr": "Vereinfacht (Einnahmen minus Ausgaben)",
+        "patent": "Patent",
+        "osno": "Regelbesteuerung"
+      },
+      "stage": {
+        "idea": "Idee",
+        "year_one": "Erstes Jahr",
+        "stable": "Stabil",
+        "growth": "Wachstum"
+      },
+      "revenue": {
+        "lt_300k": "Unter 300 Tsd. ₽",
+        "300k_1m": "300 Tsd. – 1 Mio. ₽",
+        "1m_3m": "1–3 Mio. ₽",
+        "3m_10m": "3–10 Mio. ₽",
+        "gt_10m": "Über 10 Mio. ₽"
+      }
+    }
+  },
+  "room": {
+    "default_title": "Besprechung",
+    "audio_only": "Sprachbesprechung — nur Ton, kein Video",
+    "your_name": "Wie heißen Sie?",
+    "join": "Beitreten",
+    "joining": "Verbindung…",
+    "join_failed": "Verbindung fehlgeschlagen. Bitte erneut versuchen.",
+    "connect_failed": "Verbindung fehlgeschlagen. Mikrofonzugriff prüfen.",
+    "not_found": "Besprechung nicht gefunden oder bereits beendet",
+    "you_left": "Sie haben die Besprechung verlassen",
+    "you": "Sie",
+    "participants": "Teilnehmer",
+    "mic_on": "Mikrofon einschalten",
+    "mic_off": "Mikrofon ausschalten",
+    "leave": "Verlassen",
+    "mic_blocked": "Mikrofon nicht verfügbar — Sie sind nicht zu hören. Prüfen Sie die Browser-Berechtigung und tippen Sie auf das Mikrofonsymbol."
   }
 }

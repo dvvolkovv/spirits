@@ -102,7 +102,6 @@
       "subtitle": "Escolha o que lhe faz mais sentido agora — encontramos o especialista certo e começamos já a conversa",
       "show_all": "Ver todos os especialistas →",
       "greeting": "Olá! Sou {{name}} — {{role}}. Por onde começamos?",
-      "reopen": "Encontrar um especialista",
       "theme_self": "Perceber-me melhor, emoções",
       "theme_growth": "Objetivos e crescimento pessoal",
       "theme_career": "Carreira e trabalho",
@@ -243,6 +242,10 @@
     "my_assistants_label": "Meus",
     "assistant_role_accountant": "Contabilista",
     "assistant_role_lawyer": "Advogado",
+    "assistant_role_founder": "Lançamento de negócio",
+    "assistant_role_sales": "Vendas",
+    "assistant_role_lifestyle": "Estilo de vida",
+    "assistant_role_designer": "Designer",
     "start_conversation_arrow": "Começar a conversa →",
     "loading_assistants": "A carregar os assistentes...",
     "who_to_start_with": "Com quem quer começar a conversar?",
@@ -267,7 +270,48 @@
     "social_connect_hint": "Vai abrir a página de autorização do {{platform}}. Depois de aprovares, voltas ao chat.",
     "files_too_large": "Os ficheiros somam {{total}} MB — o limite por mensagem é de {{max}} MB. Retire alguns e envie o resto noutra mensagem.",
     "assistant_working": "O assistente ainda está a trabalhar na sua mensagem anterior",
-    "assistant_working_hint": "A resposta aparecerá aqui sozinha — pode sair desta página."
+    "assistant_working_hint": "A resposta aparecerá aqui sozinha — pode sair desta página.",
+    "voice_call": {
+      "start": "Ligar",
+      "ready": "Pronto para ligar",
+      "connecting": "A ligar...",
+      "active": "Chamada em curso",
+      "ended": "Chamada terminada",
+      "error": "Erro",
+      "hang_up": "Desligar",
+      "specialist_thinking": "{{name}} está a pensar...",
+      "button_title": "Ligar ao Roman",
+      "admin_only": "Por agora, as chamadas de voz estão disponíveis apenas para administradores",
+      "card_title": "Chamada de voz",
+      "card_minutes": "{{count}} min",
+      "card_no_transcript": "Nenhuma transcrição salva",
+      "card_load_failed": "Não foi possível carregar a transcrição",
+      "speaker_you": "Você",
+      "speaker_assistant": "Assistente",
+      "waiting_agent": "Aguardando Roman…",
+      "agent_no_show": "Roman não atendeu. Tente novamente.",
+      "consultations_title": "Pedidos a especialistas",
+      "specialist_answered": "Resposta de {{name}} · {{seconds}} s",
+      "specialist_no_answer": "Sem resposta de {{name}}",
+      "documents_title": "Documentos",
+      "document_pending": "«{{title}}» — a preparar",
+      "document_ready": "«{{title}}» — no chat",
+      "document_failed": "«{{title}}» — falhou",
+      "tokens_spent": "{{tokens}} tokens",
+      "mic_on": "Ligar microfone",
+      "mic_off": "Desligar microfone",
+      "mic_blocked": "Microfone indisponível — ninguém ouve você. Toque no ícone do microfone."
+    },
+    "meeting": {
+      "join": "Entrar",
+      "in_progress": "O assistente está em uma reunião",
+      "leave": "Sair",
+      "already_in": "O assistente já está em outra reunião ou chamada",
+      "join_failed": "Não foi possível entrar na reunião",
+      "create": "Criar reunião",
+      "create_failed": "Não foi possível criar a reunião",
+      "copy_link": "Copiar link"
+    }
   },
   "profile": {
     "title": "O meu perfil",
@@ -2131,5 +2175,67 @@
     "voice": "Voz",
     "voice_long": "Dizer em voz alta",
     "open_named": "Abrir: {{name}}"
+  },
+  "businessCard": {
+    "title": "Meu negócio",
+    "subtitle": "Os assistentes usam isto para não perguntarem de novo",
+    "addMore": "Completar",
+    "filledByAssistant": "Preenchido a partir da conversa",
+    "empty": "Ainda vazio — conte a qualquer assistente de negócios o que você faz",
+    "saveError": "Não foi possível salvar",
+    "field": {
+      "what": "O que você faz",
+      "legal_form": "Forma jurídica",
+      "tax_mode": "Regime tributário",
+      "stage": "Estágio",
+      "revenue": "Faturamento mensal",
+      "team": "Equipe",
+      "customers": "Clientes",
+      "focus": "Foco atual"
+    },
+    "option": {
+      "legal_form": {
+        "self_employed": "Autônomo",
+        "ip": "Empresário individual",
+        "ooo": "Sociedade limitada"
+      },
+      "tax_mode": {
+        "npd": "Imposto sobre renda profissional",
+        "usn_d": "Simplificado (receita)",
+        "usn_dr": "Simplificado (receita menos despesas)",
+        "patent": "Patente",
+        "osno": "Regime geral"
+      },
+      "stage": {
+        "idea": "Ideia",
+        "year_one": "Primeiro ano",
+        "stable": "Estável",
+        "growth": "Crescimento"
+      },
+      "revenue": {
+        "lt_300k": "Até 300 mil ₽",
+        "300k_1m": "300 mil – 1 mi ₽",
+        "1m_3m": "1–3 mi ₽",
+        "3m_10m": "3–10 mi ₽",
+        "gt_10m": "Mais de 10 mi ₽"
+      }
+    }
+  },
+  "room": {
+    "default_title": "Reunião",
+    "audio_only": "Reunião por voz — apenas áudio, sem vídeo",
+    "your_name": "Como você se chama?",
+    "join": "Entrar",
+    "joining": "Conectando…",
+    "join_failed": "Não foi possível conectar. Tente novamente.",
+    "connect_failed": "Não foi possível conectar. Verifique o acesso ao microfone.",
+    "not_found": "Reunião não encontrada ou já encerrada",
+    "you_left": "Você saiu da reunião",
+    "you": "Você",
+    "participants": "Participantes",
+    "mic_on": "Ligar microfone",
+    "mic_off": "Desligar microfone",
+    "leave": "Sair",
+    "mic_blocked": "Microfone indisponível — ninguém ouve você. Verifique a permissão do navegador e toque no ícone do microfone."
   }
 }
