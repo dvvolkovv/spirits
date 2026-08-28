@@ -349,25 +349,32 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
               {isPhoneId(phone) && (
                 <span className="font-mono text-gray-700">{formatPhone(phone)}</span>
               )}
-              {(data?.user?.identities ?? []).length > 0 ? (
-                (data!.user!.identities ?? []).map((id, i) => (
-                  <span
-                    key={`${id.provider}-${i}`}
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[11px] whitespace-nowrap"
-                    title={isAppleRelay(id.email) ? 'Приватный адрес Apple: письма доходят, но владельца по нему не опознать' : undefined}
-                  >
-                    <span className="font-medium">{PROVIDER_LABELS[id.provider] ?? id.provider}</span>
-                    {id.email && (
-                      <>
-                        <span className="text-gray-300">·</span>
-                        <span className={isAppleRelay(id.email) ? 'text-gray-400 italic' : ''}>{id.email}</span>
-                      </>
-                    )}
-                  </span>
-                ))
-              ) : (
-                data?.user?.email && <span className="text-gray-500">{data.user.email}</span>
+              {/*
+                Email показываем всегда, когда он известен, и независимо от привязок:
+                у регистраций по SMS привязка одна («phone», без адреса), а почта
+                живёт в профиле — раньше на таких карточках email исчезал.
+              */}
+              {data?.user?.email && (
+                <span className={clsx('text-gray-500', isAppleRelay(data.user.email) && 'text-gray-400 italic')}>
+                  {data.user.email}
+                </span>
               )}
+              {(data?.user?.identities ?? []).map((id, i) => (
+                <span
+                  key={`${id.provider}-${i}`}
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[11px] whitespace-nowrap"
+                  title={isAppleRelay(id.email) ? 'Приватный адрес Apple: письма доходят, но владельца по нему не опознать' : undefined}
+                >
+                  <span className="font-medium">{PROVIDER_LABELS[id.provider] ?? id.provider}</span>
+                  {/* Адрес в чипе — только если он отличается от основного, иначе дубль. */}
+                  {id.email && id.email !== data?.user?.email && (
+                    <>
+                      <span className="text-gray-300">·</span>
+                      <span className={isAppleRelay(id.email) ? 'text-gray-400 italic' : ''}>{id.email}</span>
+                    </>
+                  )}
+                </span>
+              ))}
               {data?.user?.registered_at && (
                 <span className="text-gray-400">
                   {t('admin.userActivity.registeredOn', 'с')} {formatDateOnly(data.user.registered_at)}
