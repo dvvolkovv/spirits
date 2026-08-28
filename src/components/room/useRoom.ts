@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Room, RoomEvent, Track } from 'livekit-client';
+import { Room, RoomEvent, Track, TrackEvent, type LocalAudioTrack } from 'livekit-client';
 import { apiClient } from '../../services/apiClient';
 
 export interface Peer {
@@ -96,6 +96,38 @@ export function useRoom(code: string) {
           audioElsRef.current.delete(el);
           el.remove();
         });
+      });
+
+      // Микрофон отвалился на ходу — самый частый случай на телефоне.
+      //
+      // Пришло уведомление, наушники переключили маршрут звука, дорожка
+      // умерла — а сессия об этом не знает, и человек остаётся в комнате
+      // немым, не понимая почему. Поймано на живой встрече 27.08.2026:
+      // пришлось выходить и заходить заново.
+      //
+      // Пробуем поднять дорожку сами; не вышло — показываем плашку, чтобы
+      // человек мог вернуть микрофон кнопкой, а не выходом из встречи.
+      const revive = async () => {
+        const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+        const track = pub?.track as LocalAudioTrack | undefined;
+        if (!track) return;
+        try {
+          await track.restartTrack();
+          setMicOn(true);
+          setMicBlocked(false);
+        } catch {
+          setMicOn(false);
+          setMicBlocked(true);
+        }
+        refresh();
+      };
+
+      room.on(RoomEvent.MediaDevicesChanged, () => { void revive(); });
+      room.on(RoomEvent.LocalTrackPublished, (pub) => {
+        if (pub.kind !== Track.Kind.Audio) return;
+        // Дорожка может закончиться и без смены устройств: отобрали доступ,
+        // устройство исчезло, вкладка ушла в фон на iOS.
+        pub.track?.once(TrackEvent.Ended, () => { void revive(); });
       });
 
       room.on(RoomEvent.ParticipantConnected, refresh);
