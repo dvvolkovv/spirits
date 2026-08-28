@@ -4,6 +4,8 @@ import { getJson, postJson } from '../api';
 import { closeApp } from '../telegram';
 import { resolveLanguage } from '../../i18n/languages';
 import { parseAgents, extractPreferredAgent, chooseAssistant, describeAgent, type Agent } from './assistantsFlow';
+import { Card } from '../../shared/ui/Card';
+import { Avatar } from '../../shared/ui/Avatar';
 
 export function AssistantsScreen() {
   const { t, i18n } = useTranslation();
@@ -11,6 +13,7 @@ export function AssistantsScreen() {
   const [current, setCurrent] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [switchFailed, setSwitchFailed] = useState(false);
 
   useEffect(() => {
     const lang = resolveLanguage(i18n.language);
@@ -28,13 +31,18 @@ export function AssistantsScreen() {
 
   const choose = async (name: string) => {
     setSwitching(name);
+    setSwitchFailed(false);
     try {
       await chooseAssistant(name, {
         changeAgent: (n) => postJson('/webhook/change-agent', { agent: n }),
         closeApp,
       });
+      // Подтверждение на месте: окно больше не закрывается само, человек
+      // должен увидеть, что смена произошла.
+      setCurrent(name);
     } catch {
-      // Смена не применилась — остаёмся на экране, ничего не закрываем.
+      setSwitchFailed(true);
+    } finally {
       setSwitching(null);
     }
   };
@@ -42,35 +50,43 @@ export function AssistantsScreen() {
   return (
     <div className="p-4">
       <h1 className="text-xl font-semibold">{t('tma.assistants.title')}</h1>
-      <p className="mt-1 text-sm opacity-70">{t('tma.assistants.hint')}</p>
+      <p className="mt-1 text-sm text-gray-500">{t('tma.assistants.hint')}</p>
 
-      {failed && <p className="mt-4 text-red-500">{t('tma.assistants.failed')}</p>}
-      {!failed && agents === null && <p className="mt-4 opacity-60">…</p>}
-      {agents?.length === 0 && <p className="mt-4 opacity-60">{t('tma.assistants.empty')}</p>}
+      {failed && <p className="mt-4 text-red-600">{t('tma.assistants.failed')}</p>}
+      {switchFailed && <p className="mt-4 text-red-600">{t('tma.assistants.switchFailed')}</p>}
+      {!failed && agents === null && <p className="mt-4 text-gray-400">…</p>}
+      {agents?.length === 0 && <p className="mt-4 text-gray-400">{t('tma.assistants.empty')}</p>}
+
+      {current && (
+        <button
+          className="mt-4 w-full rounded-2xl bg-green-600 px-4 py-3 font-medium text-white"
+          onClick={closeApp}
+        >
+          {t('tma.assistants.writeTo', { name: current })}
+        </button>
+      )}
 
       <ul className="mt-4 flex flex-col gap-2">
         {agents?.map((a) => {
           const { label, isCurrent } = describeAgent(a, current);
           return (
             <li key={a.id}>
-              <button
-                className="flex w-full items-center gap-3 rounded-xl border p-3 text-left disabled:opacity-50"
-                onClick={() => choose(a.name)}
-                disabled={switching !== null}
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-semibold text-green-700">
-                  {label.charAt(0).toUpperCase()}
-                </span>
-                <span className="flex-1">
-                  <span className="font-medium">{label}</span>
-                  {a.description && <span className="block text-sm opacity-70">{a.description}</span>}
-                </span>
-                {isCurrent && (
-                  <span className="rounded-full bg-green-600 px-2 py-0.5 text-xs text-white">
-                    {t('tma.assistants.current')}
+              <Card onClick={() => choose(a.name)} disabled={switching !== null}>
+                <span className="flex items-center gap-3">
+                  <Avatar name={label} />
+                  <span className="flex-1">
+                    <span className="font-medium">{label}</span>
+                    {a.description && (
+                      <span className="block text-sm text-gray-500">{a.description}</span>
+                    )}
                   </span>
-                )}
-              </button>
+                  {isCurrent && (
+                    <span className="rounded-full bg-green-600 px-2 py-0.5 text-xs text-white">
+                      {t('tma.assistants.current')}
+                    </span>
+                  )}
+                </span>
+              </Card>
             </li>
           );
         })}

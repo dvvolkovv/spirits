@@ -91,18 +91,19 @@ describe('describeAgent — isCurrent', () => {
 });
 
 describe('chooseAssistant', () => {
-  it('сначала меняет ассистента на сервере, потом закрывает — порядок важен', async () => {
-    const order: string[] = [];
+  it('переключает и НЕ закрывает приложение', async () => {
+    // Раньше окно захлопывалось сразу после смены, и снаружи это выглядело
+    // как «ничего не произошло»: владелец тапнул дважды (логи прода 28.08).
     const deps = {
-      changeAgent: vi.fn(async () => { order.push('changeAgent'); }),
-      closeApp: vi.fn(() => { order.push('closeApp'); }),
+      changeAgent: vi.fn(async () => {}),
+      closeApp: vi.fn(),
     };
     await chooseAssistant('psy_marina', deps);
-    expect(order).toEqual(['changeAgent', 'closeApp']);
     expect(deps.changeAgent).toHaveBeenCalledWith('psy_marina');
+    expect(deps.closeApp).not.toHaveBeenCalled();
   });
 
-  it('не закрывает приложение, если change-agent упал', async () => {
+  it('ошибка переключения пробрасывается — экран покажет её сам', async () => {
     const deps = {
       changeAgent: vi.fn(async () => { throw new Error('network'); }),
       closeApp: vi.fn(),

@@ -33,7 +33,9 @@
       "hint": "Elige uno y continúa la conversación en el chat del bot.",
       "current": "Actual",
       "empty": "Todavía no hay nada aquí.",
-      "failed": "No se pudo cargar."
+      "failed": "No se pudo cargar.",
+      "switchFailed": "No se pudo cambiar. Inténtalo de nuevo.",
+      "writeTo": "Escribir a {{name}}"
     },
     "wallet": {
       "title": "Cartera",
@@ -43,7 +45,8 @@
       "tokens_other": "{{count}} tokens",
       "history": "Recargas",
       "empty": "Todavía no hay recargas.",
-      "failed": "No se pudo cargar."
+      "failed": "No se pudo cargar.",
+      "topUp": "Recargar"
     },
     "profile": {
       "title": "Perfil",

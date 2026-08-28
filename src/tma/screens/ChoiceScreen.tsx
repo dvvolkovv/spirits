@@ -55,7 +55,7 @@ export function ChoiceScreen({ onAuthenticated }: Props) {
     <div className="flex min-h-screen flex-col justify-center gap-6 p-6">
       <div>
         <h1 className="text-2xl font-semibold">{t('tma.choice.title')}</h1>
-        <p className="mt-2 opacity-70">{t('tma.choice.subtitle')}</p>
+        <p className="mt-2 text-gray-500">{t('tma.choice.subtitle')}</p>
       </div>
 
       {error && <p className="text-red-500">{error}</p>}
@@ -63,14 +63,14 @@ export function ChoiceScreen({ onAuthenticated }: Props) {
       {stage === 'choice' && (
         <div className="flex flex-col gap-3">
           <button
-            className="rounded-xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
+            className="rounded-2xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
             onClick={handleStart}
             disabled={busy}
           >
             {t('tma.choice.start')}
           </button>
           <button
-            className="rounded-xl border px-4 py-3 font-medium disabled:opacity-50"
+            className="rounded-2xl border border-gray-200 bg-white px-4 py-3 font-medium disabled:opacity-50"
             onClick={() => setStage('phone')}
             disabled={busy}
           >
@@ -81,15 +81,15 @@ export function ChoiceScreen({ onAuthenticated }: Props) {
 
       {stage === 'phone' && (
         <div className="flex flex-col gap-3">
-          <label className="text-sm opacity-70">{t('tma.choice.phoneLabel')}</label>
+          <label className="text-sm text-gray-500">{t('tma.choice.phoneLabel')}</label>
           <input
-            className="rounded-xl border px-4 py-3"
+            className="rounded-2xl border border-gray-200 bg-white px-4 py-3"
             inputMode="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
           <button
-            className="rounded-xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
+            className="rounded-2xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
             onClick={handleSendCode}
             disabled={busy || phone.length < 10}
           >
@@ -103,15 +103,15 @@ export function ChoiceScreen({ onAuthenticated }: Props) {
 
       {stage === 'code' && (
         <div className="flex flex-col gap-3">
-          <label className="text-sm opacity-70">{t('tma.choice.codeLabel')}</label>
+          <label className="text-sm text-gray-500">{t('tma.choice.codeLabel')}</label>
           <input
-            className="rounded-xl border px-4 py-3 tracking-[0.5em]"
+            className="rounded-2xl border border-gray-200 bg-white px-4 py-3 tracking-[0.5em]"
             inputMode="numeric"
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
           <button
-            className="rounded-xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
+            className="rounded-2xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
             onClick={handleConfirm}
             disabled={busy || code.length < 4}
           >

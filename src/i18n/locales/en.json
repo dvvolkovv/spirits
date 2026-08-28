@@ -33,7 +33,9 @@
       "hint": "Pick one and continue the conversation in the bot chat.",
       "current": "Current",
       "empty": "Nothing here yet.",
-      "failed": "Failed to load."
+      "failed": "Failed to load.",
+      "switchFailed": "Could not switch. Please try again.",
+      "writeTo": "Message {{name}}"
     },
     "wallet": {
       "title": "Wallet",
@@ -42,7 +44,8 @@
       "tokens_other": "{{count}} tokens",
       "history": "Top-ups",
       "empty": "No top-ups yet.",
-      "failed": "Failed to load."
+      "failed": "Failed to load.",
+      "topUp": "Top up"
     },
     "profile": {
       "title": "Profile",

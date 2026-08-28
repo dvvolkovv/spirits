@@ -27,9 +27,12 @@
  * нажатие кнопки, автоматических ретраев нет: ретрай-шторм по живому, но
  * недоступному бэкенду хуже, чем кнопка, которую человек нажимает сам.
  */
+import i18n from 'i18next';
 import { apiClient } from '../services/apiClient';
-import { applyTelegramTheme, readyAndExpand, isInsideTelegram } from './telegram';
+import { applyTelegramTheme, readyAndExpand, isInsideTelegram, getTelegramLanguage } from './telegram';
 import { tmaLogin, TmaLoginResult } from './tmaAuth';
+import { getJson } from './api';
+import { resolveTmaLanguage, extractProfileLanguage } from './tmaLanguage';
 
 export type BootState = 'authenticated' | 'needsChoice' | 'outside' | 'retry';
 
@@ -47,6 +50,9 @@ export interface BootDeps {
   isInsideTelegram: () => boolean;
   tmaLogin: typeof tmaLogin;
   setReauthHandler: (handler: (() => Promise<boolean>) | null) => void;
+  getProfile: () => Promise<unknown>;
+  getTelegramLanguage: () => string | null;
+  changeLanguage: (lang: string) => Promise<unknown>;
 }
 
 const defaultDeps: BootDeps = {
@@ -55,6 +61,9 @@ const defaultDeps: BootDeps = {
   isInsideTelegram,
   tmaLogin,
   setReauthHandler: (h) => apiClient.setReauthHandler(h),
+  getProfile: () => getJson('/webhook/profile'),
+  getTelegramLanguage,
+  changeLanguage: (lang) => i18n.changeLanguage(lang),
 };
 
 export async function runBoot(deps: BootDeps = defaultDeps): Promise<BootState> {
@@ -68,6 +77,24 @@ export async function runBoot(deps: BootDeps = defaultDeps): Promise<BootState> 
   deps.setReauthHandler(async () => (await deps.tmaLogin()).status === 'authenticated');
 
   const r = await deps.tmaLogin();
+
+  // Язык применяем ПОСЛЕ входа: profile_data.language доступен только с
+  // токеном. До этого момента интерфейс живёт на языке устройства — это видно
+  // доли секунды на экране загрузки и лучше, чем ждать профиль перед первым
+  // рендером.
+  if (r.status === 'authenticated') {
+    try {
+      const profile = await deps.getProfile();
+      const lang = resolveTmaLanguage({
+        profileLanguage: extractProfileLanguage(profile),
+        telegramLanguage: deps.getTelegramLanguage(),
+      });
+      if (lang) await deps.changeLanguage(lang);
+    } catch {
+      // Язык — не повод не пустить человека внутрь.
+    }
+  }
+
   return decideBootState(true, r.status);
 }
 

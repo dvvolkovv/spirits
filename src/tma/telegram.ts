@@ -14,6 +14,7 @@ interface TelegramWebApp {
   ready(): void;
   expand(): void;
   close(): void;
+  openLink?(url: string): void;
 }
 
 function webApp(): TelegramWebApp | null {
@@ -30,6 +31,21 @@ export function getInitData(): string {
  */
 export function isInsideTelegram(): boolean {
   return getInitData().length > 0;
+}
+
+/**
+ * Язык приложения Telegram. initData — обычная query-строка, поле `user` в
+ * ней это JSON. Битый JSON здесь не исключение, а норма для чужих клиентов:
+ * молча отдаём null, интерфейс просто останется на языке устройства.
+ */
+export function getTelegramLanguage(): string | null {
+  try {
+    const raw = new URLSearchParams(getInitData()).get('user');
+    if (!raw) return null;
+    return JSON.parse(raw)?.language_code ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function applyTelegramTheme(): void {
@@ -51,4 +67,15 @@ export function readyAndExpand(): void {
 
 export function closeApp(): void {
   webApp()?.close();
+}
+
+/**
+ * Внешняя ссылка. Через WebApp.openLink она открывается в системном браузере
+ * поверх Telegram; window.open внутри WebView в лучшем случае не делает
+ * ничего. Фолбэк на window.open — для дев-сервера и обычного браузера.
+ */
+export function openLink(url: string): void {
+  const app = webApp();
+  if (app?.openLink) app.openLink(url);
+  else window.open(url, '_blank');
 }

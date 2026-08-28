@@ -5,22 +5,25 @@ import { DayScreen } from './screens/DayScreen';
 import { AssistantsScreen } from './screens/AssistantsScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
+import { BottomNav, type NavTab } from '../shared/ui/BottomNav';
 
 type Tab = 'day' | 'assistants' | 'wallet' | 'profile';
 
-const TABS: Array<{ id: Tab; icon: typeof CalendarDays }> = [
-  { id: 'day', icon: CalendarDays },
-  { id: 'assistants', icon: Users },
-  { id: 'wallet', icon: Wallet },
-  { id: 'profile', icon: User },
-];
+const ICONS = { day: CalendarDays, assistants: Users, wallet: Wallet, profile: User } as const;
+const ORDER: Tab[] = ['day', 'assistants', 'wallet', 'profile'];
 
 export function App() {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('day');
 
+  const tabs: Array<NavTab<Tab>> = ORDER.map((id) => ({
+    id,
+    icon: ICONS[id],
+    label: t(`tma.nav.${id}`),
+  }));
+
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex-1 overflow-y-auto pb-20">
         {tab === 'day' && <DayScreen />}
         {tab === 'assistants' && <AssistantsScreen />}
@@ -28,20 +31,7 @@ export function App() {
         {tab === 'profile' && <ProfileScreen />}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 flex border-t bg-[var(--tg-bg-color,#fff)] pb-[env(safe-area-inset-bottom)]">
-        {TABS.map(({ id, icon: Icon }) => (
-          <button
-            key={id}
-            className={`flex flex-1 flex-col items-center gap-1 py-2 text-xs ${
-              tab === id ? 'text-green-600' : 'opacity-60'
-            }`}
-            onClick={() => setTab(id)}
-          >
-            <Icon size={20} />
-            {t(`tma.nav.${id}`)}
-          </button>
-        ))}
-      </nav>
+      <BottomNav tabs={tabs} active={tab} onSelect={setTab} />
     </div>
   );
 }
