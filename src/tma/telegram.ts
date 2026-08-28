@@ -32,6 +32,21 @@ export function isInsideTelegram(): boolean {
   return getInitData().length > 0;
 }
 
+/**
+ * Язык приложения Telegram. initData — обычная query-строка, поле `user` в
+ * ней это JSON. Битый JSON здесь не исключение, а норма для чужих клиентов:
+ * молча отдаём null, интерфейс просто останется на языке устройства.
+ */
+export function getTelegramLanguage(): string | null {
+  try {
+    const raw = new URLSearchParams(getInitData()).get('user');
+    if (!raw) return null;
+    return JSON.parse(raw)?.language_code ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function applyTelegramTheme(): void {
   const app = webApp();
   if (!app) return;

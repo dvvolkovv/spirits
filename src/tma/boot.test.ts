@@ -46,11 +46,40 @@ function makeDeps(overrides: Partial<BootDeps> = {}): BootDeps {
     isInsideTelegram: vi.fn().mockReturnValue(true),
     tmaLogin: vi.fn().mockResolvedValue({ status: 'authenticated' }),
     setReauthHandler: vi.fn(),
+    getProfile: vi.fn().mockResolvedValue([{ profileJson: { profile_data: {} } }]),
+    getTelegramLanguage: vi.fn().mockReturnValue(null),
+    changeLanguage: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
 
 describe('runBoot', () => {
+  it('после входа применяется язык профиля, а не язык Telegram', async () => {
+    // Ровно тот случай, что дал английский интерфейс на проде: телефон
+    // англоязычный, профиль русский. Побеждать обязан профиль.
+    const deps = makeDeps({
+      getProfile: vi.fn().mockResolvedValue([{ profileJson: { profile_data: { language: 'ru' } } }]),
+      getTelegramLanguage: vi.fn().mockReturnValue('en'),
+    });
+    await runBoot(deps);
+    expect(deps.changeLanguage).toHaveBeenCalledWith('ru');
+  });
+
+  it('падение запроса профиля не мешает войти', async () => {
+    const deps = makeDeps({
+      getProfile: vi.fn().mockRejectedValue(new Error('сеть легла')),
+    });
+    const state = await runBoot(deps);
+    expect(state).toBe('authenticated');
+    expect(deps.changeLanguage).not.toHaveBeenCalled();
+  });
+
+  it('needsChoice — язык не трогаем: профиля ещё нет', async () => {
+    const deps = makeDeps({ tmaLogin: vi.fn().mockResolvedValue({ status: 'needsChoice' }) });
+    await runBoot(deps);
+    expect(deps.getProfile).not.toHaveBeenCalled();
+  });
+
   it('вне Telegram: тема и ready всё равно применяются, но вход не вызывается', async () => {
     const deps = makeDeps({ isInsideTelegram: vi.fn().mockReturnValue(false) });
     const state = await runBoot(deps);
