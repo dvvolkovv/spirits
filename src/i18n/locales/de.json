@@ -33,7 +33,9 @@
       "hint": "Wähle einen aus und führe das Gespräch im Bot-Chat fort.",
       "current": "Aktuell",
       "empty": "Hier ist noch nichts.",
-      "failed": "Laden fehlgeschlagen."
+      "failed": "Laden fehlgeschlagen.",
+      "switchFailed": "Wechsel fehlgeschlagen. Bitte erneut versuchen.",
+      "writeTo": "{{name}} schreiben"
     },
     "wallet": {
       "title": "Wallet",
@@ -42,7 +44,8 @@
       "tokens_other": "{{count}} Tokens",
       "history": "Aufladungen",
       "empty": "Noch keine Aufladungen.",
-      "failed": "Laden fehlgeschlagen."
+      "failed": "Laden fehlgeschlagen.",
+      "topUp": "Aufladen"
     },
     "profile": {
       "title": "Profil",

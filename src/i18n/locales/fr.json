@@ -33,7 +33,9 @@
       "hint": "Choisis-en un et continue la conversation dans le chat du bot.",
       "current": "Actuel",
       "empty": "Rien ici pour l'instant.",
-      "failed": "Échec du chargement."
+      "failed": "Échec du chargement.",
+      "switchFailed": "Le changement a échoué. Réessayez.",
+      "writeTo": "Écrire à {{name}}"
     },
     "wallet": {
       "title": "Portefeuille",
@@ -43,7 +45,8 @@
       "tokens_other": "{{count}} jetons",
       "history": "Recharges",
       "empty": "Pas encore de recharges.",
-      "failed": "Échec du chargement."
+      "failed": "Échec du chargement.",
+      "topUp": "Recharger"
     },
     "profile": {
       "title": "Profil",

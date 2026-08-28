@@ -5,7 +5,7 @@
 // которому нужны document/window, поэтому переопределяем окружение точечно,
 // а не глобально для всех 18 файлов тестов.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { getInitData, isInsideTelegram, applyTelegramTheme, closeApp } from './telegram';
+import { getInitData, isInsideTelegram, applyTelegramTheme, closeApp, openLink } from './telegram';
 
 function mockWebApp(overrides: Record<string, unknown> = {}) {
   const webApp = {
@@ -63,5 +63,20 @@ describe('telegram wrapper', () => {
 
   it('closeApp не падает вне Telegram', () => {
     expect(() => closeApp()).not.toThrow();
+  });
+
+  it('openLink открывает ссылку через Telegram, а не window.open', () => {
+    const webApp = mockWebApp();
+    (webApp as any).openLink = vi.fn();
+    openLink('https://my.linkeon.io/tokens');
+    expect((webApp as any).openLink).toHaveBeenCalledWith('https://my.linkeon.io/tokens');
+  });
+
+  it('вне Telegram деградирует до window.open, а не падает', () => {
+    (window as any).Telegram = undefined;
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    openLink('https://my.linkeon.io/tokens');
+    expect(openSpy).toHaveBeenCalled();
+    openSpy.mockRestore();
   });
 });

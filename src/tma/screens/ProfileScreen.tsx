@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Avatar } from '../../shared/ui/Avatar';
 import { getJson, postJson, putForm, getBlob } from '../api';
 import { SUPPORTED_LANGUAGES } from '../../i18n/languages';
 import { extractProfile, saveProfile, uploadAvatar } from './profileData';
@@ -66,11 +67,7 @@ export function ProfileScreen() {
 
       <div className="mt-4 flex flex-col gap-4">
         <div className="flex items-center gap-4">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={t('tma.profile.avatar')} className="h-16 w-16 rounded-full object-cover" />
-          ) : (
-            <div className="h-16 w-16 rounded-full border" />
-          )}
+          <Avatar src={avatarUrl} name={name || t('tma.profile.avatar')} size={64} />
           <label className="cursor-pointer text-green-600">
             {t('tma.profile.avatarChange')}
             <input
@@ -86,18 +83,18 @@ export function ProfileScreen() {
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">{t('tma.profile.name')}</span>
-          <input className="rounded-xl border px-4 py-3" value={name} onChange={(e) => setName(e.target.value)} />
+          <span className="text-sm text-gray-500">{t('tma.profile.name')}</span>
+          <input className="rounded-2xl border border-gray-200 bg-white px-4 py-3" value={name} onChange={(e) => setName(e.target.value)} />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">{t('tma.profile.birthday')}</span>
-          <input type="date" className="rounded-xl border px-4 py-3" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+          <span className="text-sm text-gray-500">{t('tma.profile.birthday')}</span>
+          <input type="date" className="rounded-2xl border border-gray-200 bg-white px-4 py-3" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm opacity-70">{t('tma.profile.language')}</span>
-          <select className="rounded-xl border px-4 py-3" value={language} onChange={(e) => setLanguage(e.target.value)}>
+          <span className="text-sm text-gray-500">{t('tma.profile.language')}</span>
+          <select className="rounded-2xl border border-gray-200 bg-white px-4 py-3" value={language} onChange={(e) => setLanguage(e.target.value)}>
             {SUPPORTED_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>{l.nativeName}</option>
             ))}
@@ -105,7 +102,7 @@ export function ProfileScreen() {
         </label>
 
         <button
-          className="rounded-xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
+          className="rounded-2xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
           onClick={save}
           disabled={status === 'saving'}
         >

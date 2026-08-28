@@ -33,7 +33,9 @@
       "hint": "选择一个助手，然后在机器人聊天中继续对话。",
       "current": "当前",
       "empty": "暂时还没有内容。",
-      "failed": "加载失败。"
+      "failed": "加载失败。",
+      "switchFailed": "切换失败，请重试。",
+      "writeTo": "给 {{name}} 发消息"
     },
     "wallet": {
       "title": "钱包",
@@ -41,7 +43,8 @@
       "tokens_other": "{{count}} 代币",
       "history": "充值记录",
       "empty": "还没有充值记录。",
-      "failed": "加载失败。"
+      "failed": "加载失败。",
+      "topUp": "充值"
     },
     "profile": {
       "title": "个人资料",

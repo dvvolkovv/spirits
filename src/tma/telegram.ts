@@ -14,6 +14,7 @@ interface TelegramWebApp {
   ready(): void;
   expand(): void;
   close(): void;
+  openLink?(url: string): void;
 }
 
 function webApp(): TelegramWebApp | null {
@@ -66,4 +67,15 @@ export function readyAndExpand(): void {
 
 export function closeApp(): void {
   webApp()?.close();
+}
+
+/**
+ * Внешняя ссылка. Через WebApp.openLink она открывается в системном браузере
+ * поверх Telegram; window.open внутри WebView в лучшем случае не делает
+ * ничего. Фолбэк на window.open — для дев-сервера и обычного браузера.
+ */
+export function openLink(url: string): void {
+  const app = webApp();
+  if (app?.openLink) app.openLink(url);
+  else window.open(url, '_blank');
 }
