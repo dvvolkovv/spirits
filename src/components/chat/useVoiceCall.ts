@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Room, RoomEvent, Track } from 'livekit-client';
+import { Room, RoomEvent, Track, TrackEvent, type LocalAudioTrack } from 'livekit-client';
 import { apiClient } from '../../services/apiClient';
 import { startRingback, type Ringback } from './ringback';
 
@@ -155,6 +155,9 @@ export function useVoiceCall() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [documents, setDocuments] = useState<CallDocument[]>([]);
   const [callId, setCallId] = useState<string | null>(null);
+  const [micOn, setMicOn] = useState(true);
+  /** Микрофон недоступен: отказали, отобрали или устройство исчезло. */
+  const [micBlocked, setMicBlocked] = useState(false);
   const roomRef = useRef<Room | null>(null);
   const ringbackRef = useRef<Ringback | null>(null);
 
@@ -273,6 +276,32 @@ export function useVoiceCall() {
       // звонком на проде 25.08.2026 — ни один тест такого не покажет.
       await room.connect(wsUrl, token);
       await room.localParticipant.setMicrophoneEnabled(true);
+      setMicOn(true);
+      setMicBlocked(false);
+
+      // Микрофон может отвалиться посреди разговора: пришло уведомление,
+      // наушники переключили маршрут звука, отобрали доступ. Дорожка умирает,
+      // а звонок продолжается — человек говорит в пустоту и не понимает,
+      // почему его не слышат. Поймано на живой встрече 27.08.2026.
+      const revive = async () => {
+        const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+        const track = pub?.track as LocalAudioTrack | undefined;
+        if (!track) return;
+        try {
+          await track.restartTrack();
+          setMicOn(true);
+          setMicBlocked(false);
+        } catch {
+          setMicOn(false);
+          setMicBlocked(true);
+        }
+      };
+      room.on(RoomEvent.MediaDevicesChanged, () => { void revive(); });
+      room.on(RoomEvent.LocalTrackPublished, (pub) => {
+        if (pub.kind !== Track.Kind.Audio) return;
+        pub.track?.once(TrackEvent.Ended, () => { void revive(); });
+      });
+
       setState('waiting_agent');
 
       // Ждать агента можно только ПОСЛЕ connect, и обязательно с повторной
@@ -313,5 +342,25 @@ export function useVoiceCall() {
   // Уходя со страницы, кладём трубку: иначе комната живёт до таймаута воркера.
   useEffect(() => () => { void roomRef.current?.disconnect(); ringbackRef.current?.stop(); }, []);
 
-  return { state, error, consultations, documents, callId, start, hangUp };
+  /**
+   * Выключить и включить микрофон посреди звонка.
+   *
+   * Нужен не только ради удобства: при неудаче это единственный способ
+   * переспросить разрешение, не завершая разговор.
+   */
+  const toggleMic = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    const next = !micOn;
+    try {
+      await room.localParticipant.setMicrophoneEnabled(next);
+      setMicOn(next);
+      setMicBlocked(false);
+    } catch {
+      setMicOn(false);
+      setMicBlocked(true);
+    }
+  }, [micOn]);
+
+  return { state, error, consultations, documents, callId, micOn, micBlocked, start, hangUp, toggleMic };
 }

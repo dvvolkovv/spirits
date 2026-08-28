@@ -227,7 +227,10 @@
       "document_pending": "《{{title}}》— 正在生成",
       "document_ready": "《{{title}}》— 已在聊天中",
       "document_failed": "《{{title}}》— 生成失败",
-      "tokens_spent": "{{tokens}} 个令牌"
+      "tokens_spent": "{{tokens}} 个令牌",
+      "mic_on": "打开麦克风",
+      "mic_off": "关闭麦克风",
+      "mic_blocked": "麦克风不可用，其他人听不到您。请点按麦克风图标。"
     },
     "meeting": {
       "join": "加入",

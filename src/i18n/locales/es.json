@@ -229,7 +229,10 @@
       "document_pending": "«{{title}}» — en preparación",
       "document_ready": "«{{title}}» — en el chat",
       "document_failed": "«{{title}}» — no se pudo crear",
-      "tokens_spent": "{{tokens}} tokens"
+      "tokens_spent": "{{tokens}} tokens",
+      "mic_on": "Activar micrófono",
+      "mic_off": "Silenciar micrófono",
+      "mic_blocked": "Micrófono no disponible: no te oyen. Toca el icono del micrófono."
     },
     "meeting": {
       "join": "Entrar",

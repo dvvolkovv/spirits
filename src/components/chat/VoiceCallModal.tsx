@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
-import { Phone, PhoneOff, Mic, Loader2, X, Check, AlertTriangle, FileText } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, Loader2, X, Check, AlertTriangle, FileText } from 'lucide-react';
 import { useVoiceCall, CallState, type Consultation } from './useVoiceCall';
 
 interface VoiceCallModalProps {
@@ -37,7 +37,7 @@ function elapsedSec(c: Consultation): number {
  */
 export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, onClose }) => {
   const { t } = useTranslation();
-  const { state, error, consultations, documents, start, hangUp } = useVoiceCall();
+  const { state, error, consultations, documents, micOn, micBlocked, start, hangUp, toggleMic } = useVoiceCall();
 
   // Закрытие крестиком обязано класть трубку: иначе комната и микрофон
   // остаются активными до таймаута воркера, а бэкенд не узнаёт, что звонок
@@ -189,14 +189,38 @@ export const VoiceCallModal: React.FC<VoiceCallModalProps> = ({ assistantName, o
                 <span>{t('chat.voice_call.start')}</span>
               </button>
             ) : (
-              <button
-                onClick={() => hangUp()}
-                data-testid="voice-call-hangup"
-                className="w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 bg-red-600 text-white hover:bg-red-700"
-              >
-                <PhoneOff className="w-5 h-5" />
-                <span>{t('chat.voice_call.hang_up')}</span>
-              </button>
+              <div>
+              {micBlocked && (
+                <p className="mb-2 text-xs text-amber-700" data-testid="voice-call-mic-blocked">
+                  {t('chat.voice_call.mic_blocked')}
+                </p>
+              )}
+              <div className="flex items-center gap-2">
+                {/* Микрофон отдельной кнопкой: посреди разговора бывает нужно
+                    отключиться, не завершая звонок. Она же — способ вернуть
+                    микрофон, если устройство сменилось и дорожка умерла. */}
+                <button
+                  onClick={() => toggleMic()}
+                  data-testid="voice-call-mic"
+                  aria-label={micOn ? t('chat.voice_call.mic_off') : t('chat.voice_call.mic_on')}
+                  title={micOn ? t('chat.voice_call.mic_off') : t('chat.voice_call.mic_on')}
+                  className={clsx(
+                    'py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center',
+                    micOn ? 'bg-forest-600 text-white hover:bg-forest-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
+                  )}
+                >
+                  {micOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                </button>
+                <button
+                  onClick={() => hangUp()}
+                  data-testid="voice-call-hangup"
+                  className="flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 bg-red-600 text-white hover:bg-red-700"
+                >
+                  <PhoneOff className="w-5 h-5" />
+                  <span>{t('chat.voice_call.hang_up')}</span>
+                </button>
+              </div>
+              </div>
             )}
           </div>
         </div>

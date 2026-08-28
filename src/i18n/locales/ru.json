@@ -230,7 +230,10 @@
       "document_pending": "«{{title}}» — готовится",
       "document_ready": "«{{title}}» — в чате",
       "document_failed": "«{{title}}» — не получился",
-      "tokens_spent": "{{tokens}} токенов"
+      "tokens_spent": "{{tokens}} токенов",
+      "mic_on": "Включить микрофон",
+      "mic_off": "Выключить микрофон",
+      "mic_blocked": "Микрофон недоступен — вас не слышно. Нажмите на значок микрофона."
     },
     "meeting": {
       "join": "Зайти",

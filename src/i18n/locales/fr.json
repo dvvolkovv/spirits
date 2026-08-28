@@ -229,7 +229,10 @@
       "document_pending": "« {{title}} » — en préparation",
       "document_ready": "« {{title}} » — dans le chat",
       "document_failed": "« {{title}} » — échec",
-      "tokens_spent": "{{tokens}} jetons"
+      "tokens_spent": "{{tokens}} jetons",
+      "mic_on": "Activer le micro",
+      "mic_off": "Couper le micro",
+      "mic_blocked": "Micro indisponible : personne ne vous entend. Touchez l’icône du micro."
     },
     "meeting": {
       "join": "Rejoindre",

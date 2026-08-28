@@ -228,7 +228,10 @@
       "document_pending": "“{{title}}” — in progress",
       "document_ready": "“{{title}}” — in the chat",
       "document_failed": "“{{title}}” — failed",
-      "tokens_spent": "{{tokens}} tokens"
+      "tokens_spent": "{{tokens}} tokens",
+      "mic_on": "Turn on microphone",
+      "mic_off": "Turn off microphone",
+      "mic_blocked": "Microphone unavailable — others cannot hear you. Tap the microphone icon."
     },
     "meeting": {
       "join": "Join",

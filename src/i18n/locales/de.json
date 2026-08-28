@@ -228,7 +228,10 @@
       "document_pending": "„{{title}}“ — wird erstellt",
       "document_ready": "„{{title}}“ — im Chat",
       "document_failed": "„{{title}}“ — fehlgeschlagen",
-      "tokens_spent": "{{tokens}} Tokens"
+      "tokens_spent": "{{tokens}} Tokens",
+      "mic_on": "Mikrofon einschalten",
+      "mic_off": "Mikrofon ausschalten",
+      "mic_blocked": "Mikrofon nicht verfügbar — Sie sind nicht zu hören. Tippen Sie auf das Mikrofonsymbol."
     },
     "meeting": {
       "join": "Beitreten",
