@@ -1,4 +1,72 @@
 {
+  "tma": {
+    "choice": {
+      "title": "Bem-vindo ao Linkeon",
+      "subtitle": "Assistentes que se lembram do teu contexto e trabalham contigo.",
+      "start": "Começar",
+      "haveAccount": "Já tenho conta",
+      "phoneLabel": "Número de telemóvel",
+      "codeLabel": "Código SMS",
+      "sendCode": "Enviar código",
+      "confirm": "Confirmar",
+      "back": "Voltar",
+      "conflict": "Este Telegram já está associado a outra conta Linkeon.",
+      "failed": "Não funcionou. Tenta novamente."
+    },
+    "outside": {
+      "title": "Abre a aplicação a partir do Telegram",
+      "body": "Esta página só funciona dentro do Telegram."
+    },
+    "retry": {
+      "title": "Não foi possível ligar",
+      "body": "Verifica a tua ligação e tenta novamente.",
+      "action": "Tentar novamente"
+    },
+    "nav": {
+      "day": "Hoje",
+      "assistants": "Assistentes",
+      "wallet": "Carteira",
+      "profile": "Perfil"
+    },
+    "assistants": {
+      "title": "Assistentes",
+      "hint": "Escolhe um e continua a conversa no chat do bot.",
+      "current": "Atual",
+      "empty": "Ainda não há nada aqui.",
+      "failed": "Não foi possível carregar."
+    },
+    "wallet": {
+      "title": "Carteira",
+      "balance": "Saldo",
+      "tokens_one": "{{count}} token",
+      "tokens_many": "{{count}} de tokens",
+      "tokens_other": "{{count}} tokens",
+      "history": "Carregamentos",
+      "empty": "Ainda não há carregamentos.",
+      "failed": "Não foi possível carregar."
+    },
+    "profile": {
+      "title": "Perfil",
+      "name": "Nome",
+      "birthday": "Data de nascimento",
+      "language": "Idioma",
+      "avatar": "Foto",
+      "avatarChange": "Alterar foto",
+      "save": "Guardar",
+      "saved": "Guardado",
+      "failed": "Não foi possível guardar."
+    },
+    "day": {
+      "title": "Hoje",
+      "focus": "Foco do dia",
+      "events": "Em breve",
+      "tasks": "Tarefas",
+      "calendarOff": "Calendário não associado",
+      "calendarConnect": "Associa-o na versão web",
+      "eventsUnavailable": "A lista de eventos ainda não está disponível na mini app.",
+      "noTasks": "Não há tarefas ativas."
+    }
+  },
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "Rede neuronal para o crescimento e o desenvolvimento do negócio",

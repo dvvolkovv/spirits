@@ -1,4 +1,71 @@
 {
+  "tma": {
+    "choice": {
+      "title": "Welcome to Linkeon",
+      "subtitle": "Assistants that remember your context and work alongside you.",
+      "start": "Get started",
+      "haveAccount": "I already have an account",
+      "phoneLabel": "Phone number",
+      "codeLabel": "SMS code",
+      "sendCode": "Send code",
+      "confirm": "Confirm",
+      "back": "Back",
+      "conflict": "This Telegram is already linked to another Linkeon account.",
+      "failed": "That didn't work. Please try again."
+    },
+    "outside": {
+      "title": "Open this app from Telegram",
+      "body": "This page only works inside Telegram."
+    },
+    "retry": {
+      "title": "Couldn't connect",
+      "body": "Check your connection and try again.",
+      "action": "Retry"
+    },
+    "nav": {
+      "day": "Today",
+      "assistants": "Assistants",
+      "wallet": "Wallet",
+      "profile": "Profile"
+    },
+    "assistants": {
+      "title": "Assistants",
+      "hint": "Pick one and continue the conversation in the bot chat.",
+      "current": "Current",
+      "empty": "Nothing here yet.",
+      "failed": "Failed to load."
+    },
+    "wallet": {
+      "title": "Wallet",
+      "balance": "Balance",
+      "tokens_one": "{{count}} token",
+      "tokens_other": "{{count}} tokens",
+      "history": "Top-ups",
+      "empty": "No top-ups yet.",
+      "failed": "Failed to load."
+    },
+    "profile": {
+      "title": "Profile",
+      "name": "Name",
+      "birthday": "Date of birth",
+      "language": "Language",
+      "avatar": "Photo",
+      "avatarChange": "Change photo",
+      "save": "Save",
+      "saved": "Saved",
+      "failed": "Couldn't save."
+    },
+    "day": {
+      "title": "Today",
+      "focus": "Focus of the day",
+      "events": "Coming up",
+      "tasks": "Tasks",
+      "calendarOff": "Calendar not connected",
+      "calendarConnect": "Connect it in the web app",
+      "eventsUnavailable": "Event list isn't available in the mini app yet.",
+      "noTasks": "No active tasks."
+    }
+  },
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "AI for growing and scaling your business",

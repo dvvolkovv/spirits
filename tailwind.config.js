@@ -4,6 +4,7 @@ import typography from '@tailwindcss/typography';
 export default {
   content: [
     "./index.html",
+    "./tma.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {

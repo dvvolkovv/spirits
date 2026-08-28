@@ -6,10 +6,24 @@ interface RequestOptions extends RequestInit {
   isRetry?: boolean;
 }
 
+/**
+ * Куда вести человека при провале авторизации: свой entry point, а не всегда '/'.
+ *
+ * Вынесено в чистую функцию ради тестируемости — jsdom не позволяет проверить
+ * результат присваивания window.location.href (навигация там no-op с логом
+ * «Not implemented»), а сам выбор цели — это то место, которое реально можно
+ * сломать при рефакторинге. Три вызывающих места в APIClient.request()
+ * остаются на прежнем поведении: без Mini App это просто было `'/'`.
+ */
+export function pickRedirectTarget(pathname: string): string {
+  return pathname === '/tma' || pathname.startsWith('/tma/') ? '/tma/' : '/';
+}
+
 class APIClient {
   private baseURL: string;
   private isRefreshing: boolean = false;
   private pendingRequests: Array<() => void> = [];
+  private reauthHandler: (() => Promise<boolean>) | null = null;
 
   constructor() {
     this.baseURL = import.meta.env.VITE_BACKEND_URL || '';
@@ -35,6 +49,17 @@ class APIClient {
     this.pendingRequests = [];
   }
 
+  /**
+   * Запасной способ восстановить сессию, когда refresh-токен не сработал.
+   *
+   * Нужен Mini App: там initData доступен всегда, поэтому протухшая сессия
+   * лечится молча, без экрана входа. Веб этот колбэк не ставит и ведёт себя
+   * по-прежнему — выкидывает на онбординг.
+   */
+  setReauthHandler(handler: (() => Promise<boolean>) | null): void {
+    this.reauthHandler = handler;
+  }
+
   private async handleTokenRefresh(): Promise<boolean> {
     // Если уже идет обновление токенов, ждем его завершения
     if (this.isRefreshing) {
@@ -49,6 +74,22 @@ class APIClient {
       
       if (!refreshToken) {
         console.warn('No refresh token available for token refresh');
+        if (this.reauthHandler) {
+          // Колбэк чужой: бросил — считаем, что не восстановил. Без этого
+          // исключение уходило в общий catch, там handler звался ВТОРОЙ раз,
+          // и при повторном броске метод выходил мимо resolvePendingRequests() —
+          // очередь ожидающих запросов зависала навсегда.
+          let restored = false;
+          try {
+            restored = await this.reauthHandler();
+          } catch {
+            restored = false;
+          }
+          if (restored) {
+            this.resolvePendingRequests();
+            return true;
+          }
+        }
         this.resolvePendingRequests();
         return false;
       }
@@ -62,11 +103,41 @@ class APIClient {
         return true;
       } else {
         console.error('Failed to refresh tokens: invalid response from server');
+        if (this.reauthHandler) {
+          // См. комментарий выше: свой try/catch, чтобы бросивший handler не
+          // улетал во внешний catch и не звался там повторно.
+          let restored = false;
+          try {
+            restored = await this.reauthHandler();
+          } catch {
+            restored = false;
+          }
+          if (restored) {
+            this.resolvePendingRequests();
+            return true;
+          }
+        }
         this.resolvePendingRequests();
         return false;
       }
     } catch (error) {
       console.error('Error during token refresh:', error);
+      if (this.reauthHandler) {
+        // Сюда попадаем при реальной ошибке refresh (не от reauthHandler —
+        // те уже погашены на месте выше). Свой try/catch по той же причине:
+        // это последний рубеж перед resolvePendingRequests(), бросить наружу
+        // нельзя — очередь останется висеть навсегда.
+        let restored = false;
+        try {
+          restored = await this.reauthHandler();
+        } catch {
+          restored = false;
+        }
+        if (restored) {
+          this.resolvePendingRequests();
+          return true;
+        }
+      }
       this.resolvePendingRequests();
       return false;
     } finally {
@@ -109,7 +180,9 @@ class APIClient {
               localStorage.removeItem('authToken');
               localStorage.removeItem('userData');
               tokenManager.clearTokens();
-              window.location.href = '/';
+              // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
+              // Mini App в веб-SPA прямо внутри Telegram.
+              window.location.href = pickRedirectTarget(window.location.pathname);
             }
             throw new Error('Authentication failed: no token provided');
           }
@@ -135,7 +208,9 @@ class APIClient {
               localStorage.removeItem('authToken');
               localStorage.removeItem('userData');
               tokenManager.clearTokens();
-              window.location.href = '/';
+              // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
+              // Mini App в веб-SPA прямо внутри Telegram.
+              window.location.href = pickRedirectTarget(window.location.pathname);
             }
             throw new Error('Authentication failed: new token not available');
           }
@@ -145,7 +220,9 @@ class APIClient {
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
             tokenManager.clearTokens();
-            window.location.href = '/';
+            // Возвращаемся в СВОЙ entry point. Жёсткий '/' выбрасывал
+            // Mini App в веб-SPA прямо внутри Telegram.
+            window.location.href = pickRedirectTarget(window.location.pathname);
           }
           throw new Error('Authentication failed: token refresh unsuccessful');
         }
