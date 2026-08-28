@@ -11,7 +11,8 @@
       "confirm": "Confirm",
       "back": "Back",
       "conflict": "This Telegram is already linked to another Linkeon account.",
-      "failed": "That didn't work. Please try again."
+      "failed": "That didn't work. Please try again.",
+      "language": "Language"
     },
     "outside": {
       "title": "Open this app from Telegram",

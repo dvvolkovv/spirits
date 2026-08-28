@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import { runStart, runSendCode, runConfirmLink } from '../choiceFlow';
+import { SUPPORTED_LANGUAGES } from '../../i18n/languages';
 
 interface Props {
   onAuthenticated: () => void;
@@ -62,6 +64,26 @@ export function ChoiceScreen({ onAuthenticated }: Props) {
 
       {stage === 'choice' && (
         <div className="flex flex-col gap-3">
+          {/*
+            Язык спрашиваем ДО регистрации, а не угадываем: у нового человека
+            профиля ещё нет, и остаётся только язык устройства — на общем или
+            англоязычном телефоне это промах. Список тот же, что на сайте.
+            Выбор применяется сразу и уедет в profile_data.language при
+            сохранении профиля.
+          */}
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-500">{t('tma.choice.language')}</span>
+            <select
+              className="rounded-2xl border border-gray-200 bg-white px-4 py-3"
+              value={SUPPORTED_LANGUAGES.some((l) => l.code === i18n.language) ? i18n.language : 'ru'}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+            >
+              {SUPPORTED_LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>{l.nativeName}</option>
+              ))}
+            </select>
+          </label>
+
           <button
             className="rounded-2xl bg-green-600 px-4 py-3 font-medium text-white disabled:opacity-50"
             onClick={handleStart}

@@ -11,7 +11,8 @@
       "confirm": "Confirmar",
       "back": "Atrás",
       "conflict": "Este Telegram ya está vinculado a otra cuenta de Linkeon.",
-      "failed": "No ha funcionado. Inténtalo de nuevo."
+      "failed": "No ha funcionado. Inténtalo de nuevo.",
+      "language": "Idioma"
     },
     "outside": {
       "title": "Abre la app desde Telegram",
