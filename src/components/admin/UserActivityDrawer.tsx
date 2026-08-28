@@ -24,6 +24,13 @@ interface ActivityResp {
     registered_at: string | null;
     balance: number;
     email: string | null;
+    /** Способы входа: телефон и/или OAuth-провайдеры. Может быть несколько. */
+    identities?: Array<{
+      provider: string;
+      email: string | null;
+      email_verified: boolean;
+      last_used_at: string | null;
+    }>;
     isadmin: boolean;
     preferred_agent: string | null;
     paid_count: number;
@@ -101,6 +108,25 @@ const formatPhone = (raw: string) => {
   }
   return raw;
 };
+/**
+ * user_id — телефон только у регистраций по SMS. У email/OAuth это UUID, и
+ * печатать его как «телефон» бессмысленно: человека опознают по привязкам.
+ */
+const isPhoneId = (raw: string) => /^\d{10,15}$/.test((raw || '').replace(/\D/g, '')) && !/-/.test(raw || '');
+
+const PROVIDER_LABELS: Record<string, string> = {
+  phone: 'телефон',
+  email: 'email',
+  google: 'Google',
+  yandex: 'Яндекс',
+  apple: 'Apple',
+  talerid: 'TalerID',
+  telegram: 'Telegram',
+};
+
+/** Apple с «Скрыть мою почту» отдаёт релей — письмо дойдёт, человека не опознать. */
+const isAppleRelay = (email: string | null) => !!email && /@privaterelay\.appleid\.com$/i.test(email);
+
 const formatTokens = (n: number) => n.toLocaleString('ru-RU');
 const formatRub = (n: number) => `${n.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`;
 
@@ -320,9 +346,27 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
               )}
             </div>
             <div className="mt-1 flex items-center gap-3 flex-wrap text-xs">
-              <span className="font-mono text-gray-700">{formatPhone(phone)}</span>
-              {data?.user?.email && (
-                <span className="text-gray-500">{data.user.email}</span>
+              {isPhoneId(phone) && (
+                <span className="font-mono text-gray-700">{formatPhone(phone)}</span>
+              )}
+              {(data?.user?.identities ?? []).length > 0 ? (
+                (data!.user!.identities ?? []).map((id, i) => (
+                  <span
+                    key={`${id.provider}-${i}`}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[11px] whitespace-nowrap"
+                    title={isAppleRelay(id.email) ? 'Приватный адрес Apple: письма доходят, но владельца по нему не опознать' : undefined}
+                  >
+                    <span className="font-medium">{PROVIDER_LABELS[id.provider] ?? id.provider}</span>
+                    {id.email && (
+                      <>
+                        <span className="text-gray-300">·</span>
+                        <span className={isAppleRelay(id.email) ? 'text-gray-400 italic' : ''}>{id.email}</span>
+                      </>
+                    )}
+                  </span>
+                ))
+              ) : (
+                data?.user?.email && <span className="text-gray-500">{data.user.email}</span>
               )}
               {data?.user?.registered_at && (
                 <span className="text-gray-400">
