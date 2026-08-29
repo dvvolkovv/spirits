@@ -184,13 +184,17 @@ export const CalendarProposalCard: React.FC<Props> = ({
     setStatus('saving');
     setError(null);
     try {
-      const r = await apiPost('/webhook/calendar/events', {
+      // Роутим по выбранному типу: ДЕЛО (task) → /calendar/tasks (рекуррентная серия = ОДНА
+      // строка-рутина в «доме дел»), СОБЫТИЕ → /calendar/events. Раньше тут был жёстко
+      // /calendar/events, поэтому «Дело» на повторяющейся карточке всё равно создавало события.
+      const path = isTask ? '/webhook/calendar/tasks' : '/webhook/calendar/events';
+      const r = await apiPost(path, {
         title: event.title,
         datetime: event.datetime,
-        durationMin: event.durationMin,
         note: event.note,
         recurrence: event.recurrence,
         dates: event.dates,
+        ...(isTask ? {} : { durationMin: event.durationMin }),
       });
       if (r?.ok) {
         setAddedInfo({ created: r.created ?? 0, failed: r.failed ?? 0 });
