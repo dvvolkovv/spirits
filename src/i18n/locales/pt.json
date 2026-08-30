@@ -2025,6 +2025,7 @@
     "history_title": "Histórico",
     "history_empty": "O histórico está vazio.",
     "bot_label": "Bot",
+    "system_label": "Falha",
     "reconnect_modal_title": "Voltar a ligar «{{name}}»",
     "list_load_error": "Não foi possível carregar os bots",
     "archive_confirm": "Arquivar «{{name}}»?\nO bot vai sair do grupo. A configuração pode ser recuperada.",

@@ -62,11 +62,23 @@ export const TgBotMessagesView: React.FC<Props> = ({ config, onClose }) => {
               {messages.map(m => (
                 <div
                   key={m.id}
-                  className={`p-3 rounded-xl text-sm ${m.role === 'assistant' ? 'bg-forest-50 ml-6' : 'bg-gray-50 mr-6'}`}
+                  className={`p-3 rounded-xl text-sm ${
+                    m.role === 'assistant'
+                      ? 'bg-forest-50 ml-6'
+                      : m.role === 'system'
+                        ? 'bg-amber-50 border border-amber-200'
+                        : 'bg-gray-50 mr-6'
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-xs font-semibold text-gray-700">
-                      {m.role === 'assistant' ? t('tgBot.bot_label') : (m.tg_user_name ?? t('profile.default_user_name'))}
+                      {/* system — след упавшего хода. Без своей ветки он подписывался
+                          именем пользователя, будто это его сообщение. */}
+                      {m.role === 'system'
+                        ? t('tgBot.system_label')
+                        : m.role === 'assistant'
+                          ? t('tgBot.bot_label')
+                          : (m.tg_user_name ?? t('profile.default_user_name'))}
                       {m.content_type === 'voice_transcript' && ' 🎙️'}
                       {m.content_type === 'voice_reply' && ' 🔊'}
                     </span>

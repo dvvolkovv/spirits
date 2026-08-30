@@ -1698,6 +1698,7 @@
     "history_title": "Verlauf",
     "history_empty": "Der Verlauf ist leer.",
     "bot_label": "Bot",
+    "system_label": "Fehler",
     "reconnect_modal_title": "„{{name}}“ neu verbinden",
     "list_load_error": "Bots konnten nicht geladen werden",
     "archive_confirm": "„{{name}}“ archivieren?\nDer Bot verlässt die Gruppe. Die Konfiguration lässt sich wiederherstellen.",

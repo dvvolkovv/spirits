@@ -2025,6 +2025,7 @@
     "history_title": "History",
     "history_empty": "History is empty.",
     "bot_label": "Bot",
+    "system_label": "Failure",
     "reconnect_modal_title": "Reconnecting “{{name}}”",
     "list_load_error": "Couldn't load the bots",
     "archive_confirm": "Archive “{{name}}”?\nThe bot will leave the group. The config can be restored.",

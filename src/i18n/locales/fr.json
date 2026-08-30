@@ -1704,6 +1704,7 @@
     "history_title": "Historique",
     "history_empty": "L’historique est vide.",
     "bot_label": "Bot",
+    "system_label": "Échec",
     "reconnect_modal_title": "Reconnexion de « {{name}} »",
     "list_load_error": "Échec du chargement des bots",
     "archive_confirm": "Archiver « {{name}} » ?\nLe bot quittera le groupe. La configuration pourra être restaurée.",

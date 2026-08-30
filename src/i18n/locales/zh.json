@@ -1692,6 +1692,7 @@
     "history_title": "历史",
     "history_empty": "暂无历史记录。",
     "bot_label": "机器人",
+    "system_label": "故障",
     "reconnect_modal_title": "重新连接「{{name}}」",
     "list_load_error": "加载机器人列表失败",
     "archive_confirm": "确定要归档「{{name}}」吗？\n机器人将退出群组。配置可以恢复。",

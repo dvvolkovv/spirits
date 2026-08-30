@@ -2036,6 +2036,7 @@
     "history_title": "История",
     "history_empty": "История пуста.",
     "bot_label": "Бот",
+    "system_label": "Сбой",
     "reconnect_modal_title": "Переподключение «{{name}}»",
     "list_load_error": "Не удалось загрузить ботов",
     "archive_confirm": "Архивировать «{{name}}»?\nБот выйдет из группы. Конфиг можно восстановить.",
