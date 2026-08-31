@@ -19,6 +19,24 @@ export function hasWidgetBridge(): boolean {
 export async function refreshWidget(): Promise<void> {
   const bridge = wb();
   if (!bridge) return;
+
+  // Токен в нативное хранилище (SharedPreferences) плумим ВСЕГДА и ПЕРВЫМ — до и НЕЗАВИСИМО от
+  // content-фетча ниже. Лаунчер выводит loggedIn из наличия accessToken в prefs; раньше запись
+  // токена жила ПОСЛЕ `if (!r.ok) return`, поэтому любой сбой /webhook/app-widget/content
+  // (офлайн, OEM-троттлинг WebView, 5xx) оставлял лаунчер БЕЗ токена → экран «Вход», хотя веб-сессия
+  // жива и чат работает (owner 2026-08-31, Vivo). update() только с auth-полями безопасен: нативный
+  // WidgetBridgePlugin пишет токены + пинает WidgetRefreshWorker, контент виджета не трогает.
+  try {
+    const access = tokenManager.getAccessToken() || '';
+    if (access) {
+      await bridge.update({
+        accessToken: access,
+        refreshToken: tokenManager.getRefreshToken() || '',
+        backendUrl: BACKEND,
+      });
+    }
+  } catch { /* мост недоступен — тихо */ }
+
   try {
     const r = await apiClient.get('/webhook/app-widget/content');
     if (!r.ok) return;
