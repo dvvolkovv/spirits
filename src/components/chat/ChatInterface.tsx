@@ -260,6 +260,7 @@ const StreamingMessage = React.memo(({
               key={`meeting-${idx}`}
               code={meeting.code}
               title={meeting.title}
+              provider={meeting.provider}
               agentId={meetingAgentId}
               onJoined={onJoinMeeting}
             />,
@@ -2532,6 +2533,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                               key={`meeting-${idx}`}
                               code={meeting.code}
                               title={meeting.title}
+                              provider={meeting.provider}
                               agentId={Number(selectedAssistant?.id) || 0}
                               onJoined={setMeetingCallId}
                             />,

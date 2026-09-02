@@ -6,6 +6,8 @@ import { apiClient } from '../../services/apiClient';
 interface Props {
   code: string;
   title: string;
+  /** Чья встреча. Без него — своя, как было до появления чужих комнат. */
+  provider?: 'linkeon' | 'talerid';
   /** Ассистент, в чьём чате лежит карточка — он и пойдёт на встречу. */
   agentId: number;
   onJoined: (callId: string) => void;
@@ -17,7 +19,7 @@ interface Props {
  * Появляется, когда пользователь кинул в чат ссылку на комнату Linkeon.
  * Заходит именно тот ассистент, в чьём чате она лежит.
  */
-export default function MeetingJoinCard({ code, title, agentId, onJoined }: Props) {
+export default function MeetingJoinCard({ code, title, provider = 'linkeon', agentId, onJoined }: Props) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export default function MeetingJoinCard({ code, title, agentId, onJoined }: Prop
     setBusy(true);
     setError(null);
     try {
-      const res = await apiClient.post('/webhook/meeting/join', { agentId, code });
+      const res = await apiClient.post('/webhook/meeting/join', { agentId, code, provider });
       if (!res.ok) {
         // 409 — ассистент уже на другой встрече или на звонке. Это не поломка,
         // и текст должен объяснять, что делать, а не пугать.

@@ -12,6 +12,8 @@ export interface ButtonConfig {
 export interface MeetingCard {
   code: string;
   title: string;
+  /** Чья встреча. Своя по умолчанию — старые карточки в истории провайдера не несут. */
+  provider?: 'linkeon' | 'talerid';
 }
 
 export interface LinkConfig {
@@ -56,7 +58,12 @@ const VOICE_CALL_REGEX = /\{\{voice_call:\s*id=([a-f0-9-]{36})\}\}/g;
 //
 // Код ровно шесть знаков из нашего алфавита: другого мы не выдаём, и ловить
 // произвольную строку значило бы рисовать карточку по мусору.
-const MEETING_JOIN_REGEX = /\{\{meeting_join:\s*code=([2-9A-HJ-NP-Z]{6})\s+title=([^}]*?)\}\}/g;
+// Провайдер необязателен и идёт перед кодом: свои карточки бэкенд шлёт без
+// него, и в истории их уже накопилось — старый формат обязан разбираться.
+// Код у нас из алфавита без похожих знаков, у Taler ID — hex, отсюда две
+// альтернативы вместо одной широкой: широкая приняла бы и мусор.
+const MEETING_JOIN_REGEX =
+  /\{\{meeting_join:\s*(?:provider=(talerid)\s+)?code=([2-9A-HJ-NP-Z]{6}|[A-Fa-f0-9]{6,64})\s+title=([^}]*?)\}\}/g;
 
 // SMM Producer Plan 4d — social connect blocks
 const SMM_SOCIAL_BUTTON_REGEX =
@@ -149,9 +156,13 @@ export const parseCustomMarkdown = (content: string): {
     return `__VOICECALL_${key}__`;
   });
 
-  parsedContent = parsedContent.replace(MEETING_JOIN_REGEX, (_match, code, title) => {
+  parsedContent = parsedContent.replace(MEETING_JOIN_REGEX, (_match, provider, code, title) => {
     const key = `meeting_${code}`;
-    meetings.set(key, { code, title: String(title || '').trim() || 'Встреча' });
+    meetings.set(key, {
+      code,
+      title: String(title || '').trim() || 'Встреча',
+      provider: provider === 'talerid' ? 'talerid' : 'linkeon',
+    });
     return `__MEETING_${key}__`;
   });
 
