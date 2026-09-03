@@ -2130,7 +2130,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Кнопка звонка Роману — видна только админам и только в чате с Романом
   // (id 12). Тот же тумблер-стиль, что и «Чистый лист», в двух местах шапки.
   const renderCallButton = (testId: string, wrapperClass: string) => {
-    if (!user?.isAdmin || selectedAssistant?.id !== 12) return null;
+    // Звонок открыт всем вошедшим: бэкенд снял админскую проверку 28.08
+    // (voice-call), встречи — 03.09. Здесь условие оставалось и прятало
+    // кнопку у обычных пользователей — на проде её не видел аккаунт с
+    // непустым балансом, хотя сервер звонок бы принял.
+    //
+    // Привязка к Роману остаётся: голосом пока разговаривает только он.
+    if (selectedAssistant?.id !== 12) return null;
     return (
       <button
         onClick={() => setShowVoiceCall(true)}
