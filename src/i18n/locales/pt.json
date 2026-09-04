@@ -304,7 +304,8 @@
       "tokens_spent": "{{tokens}} tokens",
       "mic_on": "Ligar microfone",
       "mic_off": "Desligar microfone",
-      "mic_blocked": "Microfone indisponível — ninguém ouve você. Toque no ícone do microfone."
+      "mic_blocked": "Microfone indisponível — ninguém ouve você. Toque no ícone do microfone.",
+      "assistant_name": "Roman"
     },
     "meeting": {
       "join": "Entrar",

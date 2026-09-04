@@ -302,7 +302,8 @@
       "tokens_spent": "{{tokens}} Tokens",
       "mic_on": "Mikrofon einschalten",
       "mic_off": "Mikrofon ausschalten",
-      "mic_blocked": "Mikrofon nicht verfügbar — Sie sind nicht zu hören. Tippen Sie auf das Mikrofonsymbol."
+      "mic_blocked": "Mikrofon nicht verfügbar — Sie sind nicht zu hören. Tippen Sie auf das Mikrofonsymbol.",
+      "assistant_name": "Roman"
     },
     "meeting": {
       "join": "Beitreten",

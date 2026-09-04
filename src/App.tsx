@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
 import ReferralWelcomeBanner from './components/referral/ReferralWelcomeBanner';
+import { FloatingCallButton } from './components/chat/FloatingCallButton';
 import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
@@ -257,6 +258,16 @@ const AppContent: React.FC = () => {
       <div className="md:hidden">
         <Navigation />
       </div>
+
+      {/*
+        Звонок Роману — плавающей кнопкой поверх всех экранов. Смонтирована
+        здесь, а не внутри чата: раньше кнопка жила в шапке ChatInterface и
+        только при выбранном Романе, то есть попасть на неё можно было лишь
+        зная о ней заранее. Внутри layout, а не рядом с Routes — иначе она
+        появилась бы и на публичной странице комнаты, куда приходят люди без
+        аккаунта в Linkeon.
+      */}
+      <FloatingCallButton />
     </div>
   );
 };

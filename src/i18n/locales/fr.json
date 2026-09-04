@@ -304,7 +304,8 @@
       "tokens_spent": "{{tokens}} jetons",
       "mic_on": "Activer le micro",
       "mic_off": "Couper le micro",
-      "mic_blocked": "Micro indisponible : personne ne vous entend. Touchez l’icône du micro."
+      "mic_blocked": "Micro indisponible : personne ne vous entend. Touchez l’icône du micro.",
+      "assistant_name": "Roman"
     },
     "meeting": {
       "join": "Rejoindre",

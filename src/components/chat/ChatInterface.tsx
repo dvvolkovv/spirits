@@ -2135,16 +2135,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     </button>
   );
 
-  // Кнопка звонка Роману — видна только админам и только в чате с Романом
-  // (id 12). Тот же тумблер-стиль, что и «Чистый лист», в двух местах шапки.
+  // Кнопка звонка Роману в шапке чата. Тот же тумблер-стиль, что и
+  // «Чистый лист», в двух местах шапки.
   const renderCallButton = (testId: string, wrapperClass: string) => {
     // Звонок открыт всем вошедшим: бэкенд снял админскую проверку 28.08
     // (voice-call), встречи — 03.09. Здесь условие оставалось и прятало
     // кнопку у обычных пользователей — на проде её не видел аккаунт с
     // непустым балансом, хотя сервер звонок бы принял.
     //
-    // Привязка к Роману остаётся: голосом пока разговаривает только он.
-    if (selectedAssistant?.id !== 12) return null;
+    // Условие «только в чате с Романом» тоже снято: голосом по-прежнему
+    // разговаривает только он, но начинать разговор логично из любого чата —
+    // иначе кнопку находил лишь тот, кто заранее знал, где она. На остальных
+    // экранах ту же роль играет FloatingCallButton; в чате плавающую не
+    // показываем, чтобы не перекрывать поле ввода.
+    //
+    // Имя в модалке — всегда Роман, а не выбранный ассистент: звонок уходит
+    // к нему независимо от того, чей чат открыт, и подписать окно чужим
+    // именем значило бы соврать.
     return (
       <button
         onClick={() => setShowVoiceCall(true)}
@@ -2172,7 +2179,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {showVoiceCall && selectedAssistant && (
         <React.Suspense fallback={null}>
         <VoiceCallModal
-          assistantName={selectedAssistant.displayName ?? selectedAssistant.name}
+          assistantName={t('chat.voice_call.assistant_name')}
           onClose={() => setShowVoiceCall(false)}
         />
         </React.Suspense>
@@ -2237,7 +2244,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                 {/* Мобила: вместо текстовой ссылки — иконка «Чистый лист».
                     Десктопный вариант тумблера живёт справа (hidden md:flex). */}
-                {renderFreshToggle('fresh-mode-toggle-mobile', 'flex md:hidden')}
+                {renderFreshToggle('fresh-mode-toggle-mobile', 'hidden sm:flex md:hidden')}
                 {renderCallButton('voice-call-toggle-mobile', 'flex md:hidden')}
 
                 {showAssistantDropdown && (
@@ -2403,6 +2410,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       role="menu"
                       className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg z-50"
                     >
+                      {/* «Чистый лист» тоже сюда: с ним в шапке имени
+                          ассистента доставалось 15 px из нужных 45. Кнопка
+                          звонка осталась снаружи — у Романа это основное
+                          действие, а не настройка. */}
+                      <button
+                        role="menuitem"
+                        onClick={() => { setShowChatActions(false); toggleFreshMode(); }}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Eraser className="w-4 h-4" />
+                        {freshTs ? t('chat.fresh_mode_on_title') : t('chat.fresh_mode_label')}
+                      </button>
                       <button
                         role="menuitem"
                         onClick={() => { setShowChatActions(false); handleRegenerateResponse(); }}

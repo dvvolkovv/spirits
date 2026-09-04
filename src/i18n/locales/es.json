@@ -304,7 +304,8 @@
       "tokens_spent": "{{tokens}} tokens",
       "mic_on": "Activar micrófono",
       "mic_off": "Silenciar micrófono",
-      "mic_blocked": "Micrófono no disponible: no te oyen. Toca el icono del micrófono."
+      "mic_blocked": "Micrófono no disponible: no te oyen. Toca el icono del micrófono.",
+      "assistant_name": "Román"
     },
     "meeting": {
       "join": "Entrar",
