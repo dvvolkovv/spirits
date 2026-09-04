@@ -78,7 +78,11 @@
       "searching": "Procurando…",
       "empty": "Ninguém encontrado. Tente descrever de outro jeito.",
       "failed": "Não foi possível realizar a busca",
-      "found": "Encontrados: {{count}}"
+      "found": "Encontrados: {{count}}",
+      "showCompat": "Compatibilidade",
+      "hideCompat": "Ocultar",
+      "compatBusy": "Analisando compatibilidade…",
+      "compatFailed": "Não foi possível analisar a compatibilidade"
     }
   },
   "onboarding": {

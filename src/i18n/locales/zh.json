@@ -76,7 +76,11 @@
       "searching": "搜索中…",
       "empty": "没有找到。换个说法试试。",
       "failed": "搜索失败",
-      "found": "找到：{{count}}"
+      "found": "找到：{{count}}",
+      "showCompat": "匹配度",
+      "hideCompat": "收起",
+      "compatBusy": "正在分析匹配度…",
+      "compatFailed": "无法分析匹配度"
     }
   },
   "onboarding": {

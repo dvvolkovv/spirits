@@ -77,7 +77,11 @@
       "searching": "Searching…",
       "empty": "Nobody found. Try describing it differently.",
       "failed": "Search failed",
-      "found": "Found: {{count}}"
+      "found": "Found: {{count}}",
+      "showCompat": "Compatibility",
+      "hideCompat": "Hide",
+      "compatBusy": "Analysing compatibility…",
+      "compatFailed": "Could not analyse compatibility"
     }
   },
   "onboarding": {

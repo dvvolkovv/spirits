@@ -78,7 +78,11 @@
       "searching": "Recherche…",
       "empty": "Personne trouvée. Essayez une autre description.",
       "failed": "La recherche a échoué",
-      "found": "Trouvés : {{count}}"
+      "found": "Trouvés : {{count}}",
+      "showCompat": "Compatibilité",
+      "hideCompat": "Masquer",
+      "compatBusy": "Analyse de la compatibilité…",
+      "compatFailed": "Impossible d’analyser la compatibilité"
     }
   },
   "onboarding": {

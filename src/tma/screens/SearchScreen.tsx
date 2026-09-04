@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search as SearchIcon, Loader2 } from 'lucide-react';
 import { runSearch, mergeMatch, type SearchMatch } from './searchFlow';
+import { runCompat, toCompatId } from './compatFlow';
 
 /**
  * Поиск людей в мини-аппе.
@@ -18,6 +19,17 @@ export function SearchScreen() {
   const [failed, setFailed] = useState(false);
   /** Был ли хоть один поиск: до него «никого не нашлось» показывать нельзя. */
   const [searched, setSearched] = useState(false);
+  /**
+   * Разбор совместимости показывается прямо в карточке, а не отдельным
+   * экраном: он считается для конкретного человека, и уводить ради него с
+   * выдачи — значит терять контекст, к кому он относится.
+   *
+   * Открыт один за раз: два растущих текста рядом читать невозможно.
+   */
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [compat, setCompat] = useState('');
+  const [compatBusy, setCompatBusy] = useState(false);
+  const [compatFailed, setCompatFailed] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,6 +46,23 @@ export function SearchScreen() {
       setFailed(true);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function analyse(m: SearchMatch) {
+    // Повторное нажатие закрывает — иначе от раскрытой карточки не избавиться.
+    if (openId === m.userId) { setOpenId(null); return; }
+    setOpenId(m.userId);
+    setCompat('');
+    setCompatFailed(false);
+    setCompatBusy(true);
+    try {
+      const ok = await runCompat(m.userId, setCompat);
+      if (!ok) setCompatFailed(true);
+    } catch {
+      setCompatFailed(true);
+    } finally {
+      setCompatBusy(false);
     }
   }
 
@@ -72,6 +101,28 @@ export function SearchScreen() {
           <li key={m.userId} className="rounded-lg border border-gray-200 bg-white p-3">
             <p className="text-sm font-medium">{m.name}</p>
             {m.reason && <p className="mt-1 text-xs text-gray-500">{m.reason}</p>}
+
+            {/* Кнопки нет у тех, с кем сравнить нельзя: userId при входе через
+                почту или OAuth — UUID, а ручка ждёт телефон. Показать кнопку
+                и отказать по нажатию было бы обманом ожидания. */}
+            {toCompatId(m.userId) && (
+              <button
+                onClick={() => analyse(m)}
+                className="mt-2 text-xs text-forest-700 underline"
+              >
+                {openId === m.userId ? t('tma.search.hideCompat') : t('tma.search.showCompat')}
+              </button>
+            )}
+
+            {openId === m.userId && (
+              <div className="mt-2 border-t border-gray-100 pt-2">
+                {compatFailed && <p className="text-xs text-red-600">{t('tma.search.compatFailed')}</p>}
+                {!compatFailed && !compat && compatBusy && (
+                  <p className="text-xs text-gray-400">{t('tma.search.compatBusy')}</p>
+                )}
+                {compat && <p className="whitespace-pre-wrap text-xs text-gray-700">{compat}</p>}
+              </div>
+            )}
           </li>
         ))}
       </ul>
