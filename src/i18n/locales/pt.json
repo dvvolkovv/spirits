@@ -315,7 +315,8 @@
       "create": "Criar reunião",
       "create_failed": "Não foi possível criar a reunião",
       "copy_link": "Copiar link"
-    }
+    },
+    "actions_title": "Ações do chat"
   },
   "profile": {
     "title": "O meu perfil",

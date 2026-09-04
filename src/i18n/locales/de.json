@@ -313,7 +313,8 @@
       "create": "Besprechung erstellen",
       "create_failed": "Besprechung konnte nicht erstellt werden",
       "copy_link": "Link kopieren"
-    }
+    },
+    "actions_title": "Chat-Aktionen"
   },
   "profile": {
     "title": "Mein Profil",

@@ -313,7 +313,8 @@
       "create": "Create meeting",
       "create_failed": "Could not create the meeting",
       "copy_link": "Copy link"
-    }
+    },
+    "actions_title": "Chat actions"
   },
   "profile": {
     "title": "My profile",

@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { resolveLanguage } from '../../i18n/languages';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X, Phone } from 'lucide-react';
+import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X, Phone, MoreHorizontal } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -546,6 +546,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return null;
   });
   const [showAssistantDropdown, setShowAssistantDropdown] = useState(false);
+  // Меню «⋯» на мобиле: перегенерация и очистка не влезают в шапку рядом с
+  // балансом и именем ассистента (на 390 px не хватало 45 px — замер 04.09.2026).
+  const [showChatActions, setShowChatActions] = useState(false);
+  const chatActionsRef = useRef<HTMLDivElement>(null);
 
   // Актуальный ассистент для async-колбэков (loadMoreHistory): state в замыкании
   // устаревает, пока fetch в полёте, а ref всегда свежий.
@@ -976,6 +980,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowAssistantDropdown(false);
+      }
+      if (chatActionsRef.current && !chatActionsRef.current.contains(event.target as Node)) {
+        setShowChatActions(false);
       }
     };
 
@@ -2361,21 +2368,61 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             {renderCallButton('voice-call-toggle', 'hidden md:flex')}
             {messages.length > 1 && (
               <>
+                {/* Десктоп: обе кнопки в ряд. */}
                 <button
                   onClick={handleRegenerateResponse}
                   disabled={isTyping}
-                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                   title={t('chat.regenerate_title')}
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleClearChat}
-                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="hidden sm:block p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title={t('chat.clear_title')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
+
+                {/* Мобила: те же действия под «⋯». Обе редкие, а места в шапке
+                    нет: с ними имени ассистента доставалось ноль пикселей. */}
+                <div className="relative sm:hidden" ref={chatActionsRef}>
+                  <button
+                    data-testid="chat-actions-toggle"
+                    onClick={() => setShowChatActions((v) => !v)}
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    title={t('chat.actions_title')}
+                    aria-haspopup="menu"
+                    aria-expanded={showChatActions}
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                  {showChatActions && (
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg z-50"
+                    >
+                      <button
+                        role="menuitem"
+                        onClick={() => { setShowChatActions(false); handleRegenerateResponse(); }}
+                        disabled={isTyping}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        {t('chat.regenerate_title')}
+                      </button>
+                      <button
+                        role="menuitem"
+                        onClick={() => { setShowChatActions(false); handleClearChat(); }}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        {t('chat.clear_title')}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
