@@ -8,6 +8,8 @@ import { extractProfile, saveProfile, uploadAvatar } from './profileData';
 export function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const [name, setName] = useState('');
+  const [familyName, setFamilyName] = useState('');
+  const [nickname, setNickname] = useState('');
   const [birthday, setBirthday] = useState('');
   const [language, setLanguage] = useState(i18n.language);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -21,6 +23,8 @@ export function ProfileScreen() {
     getJson('/webhook/profile').then((r) => {
       const p = extractProfile(r);
       setName(p.name);
+      setFamilyName(p.familyName);
+      setNickname(p.nickname);
       setBirthday(p.birthday);
       if (p.language) setLanguage(p.language);
     }).catch(() => {});
@@ -49,7 +53,7 @@ export function ProfileScreen() {
     setStatus('saving');
     try {
       await saveProfile(
-        { name, birthday, language },
+        { name, familyName, nickname, birthday, language },
         {
           postJson: (url, body) => postJson(url, body),
           changeLanguage: (lang) => i18n.changeLanguage(lang),
@@ -88,6 +92,24 @@ export function ProfileScreen() {
         </label>
 
         <label className="flex flex-col gap-1">
+          <span className="text-sm text-gray-500">{t('tma.profile.familyName')}</span>
+          <input
+            value={familyName}
+            onChange={(e) => setFamilyName(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        </label>
+
+        <label className="mt-3 block">
+          <span className="text-sm text-gray-500">{t('tma.profile.nickname')}</span>
+          <input
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        </label>
+
+        <label className="mt-3 block">
           <span className="text-sm text-gray-500">{t('tma.profile.birthday')}</span>
           <input type="date" className="rounded-2xl border border-gray-200 bg-white px-4 py-3" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
         </label>

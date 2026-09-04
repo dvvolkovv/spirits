@@ -18,6 +18,9 @@ import { downscaleImage } from '../../utils/downscaleImage';
  */
 export interface ProfileFields {
   name: string;
+  /** Фамилия и никнейм — как в веб-профиле, те же ключи profile_data. */
+  familyName: string;
+  nickname: string;
   birthday: string;
   language: string | null;
 }
@@ -27,6 +30,11 @@ export function extractProfile(raw: unknown): ProfileFields {
   const data = (record as any)?.profileJson ?? (record as any)?.profile_data ?? record ?? {};
   return {
     name: typeof data.name === 'string' ? data.name : '',
+    // Ключи снимаются с веб-профиля один в один: он пишет family_name и
+    // user_nickname в тот же свободный JSONB. Назвать их иначе значило бы
+    // завести второй набор полей о том же человеке.
+    familyName: typeof data.family_name === 'string' ? data.family_name : '',
+    nickname: typeof data.user_nickname === 'string' ? data.user_nickname : '',
     birthday: typeof data.birthday === 'string' ? data.birthday : '',
     language: typeof data.language === 'string' ? data.language : null,
   };
@@ -48,6 +56,8 @@ export async function saveProfile(
 ): Promise<void> {
   await deps.postJson('/webhook/profile-update', {
     name: fields.name,
+    family_name: fields.familyName,
+    user_nickname: fields.nickname,
     birthday: fields.birthday,
     language: fields.language,
   });

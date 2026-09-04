@@ -58,7 +58,9 @@
       "avatarChange": "Foto ändern",
       "save": "Speichern",
       "saved": "Gespeichert",
-      "failed": "Speichern fehlgeschlagen."
+      "failed": "Speichern fehlgeschlagen.",
+      "familyName": "Nachname",
+      "nickname": "Spitzname"
     },
     "day": {
       "title": "Heute",

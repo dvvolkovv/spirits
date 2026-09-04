@@ -58,7 +58,9 @@
       "avatarChange": "Change photo",
       "save": "Save",
       "saved": "Saved",
-      "failed": "Couldn't save."
+      "failed": "Couldn't save.",
+      "familyName": "Last name",
+      "nickname": "Nickname"
     },
     "day": {
       "title": "Today",

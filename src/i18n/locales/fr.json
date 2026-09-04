@@ -59,7 +59,9 @@
       "avatarChange": "Changer la photo",
       "save": "Enregistrer",
       "saved": "Enregistré",
-      "failed": "Échec de l'enregistrement."
+      "failed": "Échec de l'enregistrement.",
+      "familyName": "Nom de famille",
+      "nickname": "Pseudo"
     },
     "day": {
       "title": "Aujourd'hui",

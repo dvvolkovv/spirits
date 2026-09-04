@@ -57,7 +57,9 @@
       "avatarChange": "更换照片",
       "save": "保存",
       "saved": "已保存",
-      "failed": "保存失败。"
+      "failed": "保存失败。",
+      "familyName": "姓氏",
+      "nickname": "昵称"
     },
     "day": {
       "title": "今日",

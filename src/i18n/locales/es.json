@@ -59,7 +59,9 @@
       "avatarChange": "Cambiar foto",
       "save": "Guardar",
       "saved": "Guardado",
-      "failed": "No se pudo guardar."
+      "failed": "No se pudo guardar.",
+      "familyName": "Apellido",
+      "nickname": "Apodo"
     },
     "day": {
       "title": "Hoy",
