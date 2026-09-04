@@ -37,7 +37,14 @@
       "empty": "暂时还没有内容。",
       "failed": "加载失败。",
       "switchFailed": "切换失败，请重试。",
-      "writeTo": "给 {{name}} 发消息"
+      "writeTo": "给 {{name}} 发消息",
+      "group": {
+        "assistant": "助手",
+        "business": "商务",
+        "personal": "个人",
+        "smm": "社交媒体",
+        "other": "其他"
+      }
     },
     "wallet": {
       "title": "钱包",

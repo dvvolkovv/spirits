@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parseAgents, extractPreferredAgent, chooseAssistant, describeAgent } from './assistantsFlow';
+import { parseAgents, extractPreferredAgent, chooseAssistant, describeAgent, groupAgents } from './assistantsFlow';
 
 describe('parseAgents', () => {
   it('принимает голый массив — реальную форму /webhook/agents', () => {
@@ -110,5 +110,37 @@ describe('chooseAssistant', () => {
     };
     await expect(chooseAssistant('psy_marina', deps)).rejects.toThrow('network');
     expect(deps.closeApp).not.toHaveBeenCalled();
+  });
+});
+
+describe('groupAgents', () => {
+  const a = (id: number, name: string, category?: string) => ({ id, name, category });
+
+  it('раскладывает в порядке веба', () => {
+    const got = groupAgents([
+      a(1, 'Оля', 'personal'), a(2, 'Роман', 'assistant'), a(3, 'Юля', 'smm'),
+      a(4, 'Виталий', 'business'),
+    ]);
+    expect(got.map((g) => g.category)).toEqual(['assistant', 'business', 'personal', 'smm']);
+  });
+
+  it('пустые группы не показываются', () => {
+    expect(groupAgents([a(1, 'Роман', 'assistant')]).map((g) => g.category)).toEqual(['assistant']);
+  });
+
+  it('без категории — последней группой, а не пропадают', () => {
+    // Новый ассистент появляется в базе раньше, чем ему проставят категорию.
+    const got = groupAgents([a(1, 'Новый'), a(2, 'Роман', 'assistant')]);
+    expect(got.map((g) => g.category)).toEqual(['assistant', 'other']);
+    expect(got[1].agents[0].name).toBe('Новый');
+  });
+
+  it('неизвестная категория тоже не теряется', () => {
+    expect(groupAgents([a(1, 'Х', 'какая-то')]).map((g) => g.category)).toEqual(['other']);
+  });
+
+  it('порядок внутри группы сохраняется', () => {
+    const got = groupAgents([a(1, 'Первый', 'business'), a(2, 'Второй', 'business')]);
+    expect(got[0].agents.map((x) => x.name)).toEqual(['Первый', 'Второй']);
   });
 });

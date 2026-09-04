@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getJson, postJson } from '../api';
 import { closeApp } from '../telegram';
 import { resolveLanguage } from '../../i18n/languages';
-import { parseAgents, extractPreferredAgent, chooseAssistant, describeAgent, type Agent } from './assistantsFlow';
+import { parseAgents, extractPreferredAgent, chooseAssistant, describeAgent, groupAgents, type Agent } from './assistantsFlow';
 import { Card } from '../../shared/ui/Card';
 import { Avatar } from '../../shared/ui/Avatar';
 import { loadAgentAvatars, releaseAvatars } from './agentAvatars';
@@ -86,8 +86,15 @@ export function AssistantsScreen() {
         </button>
       )}
 
-      <ul className="mt-4 flex flex-col gap-2">
-        {agents?.map((a) => {
+      {/* Группы те же, что в вебе: иначе один и тот же список выглядит
+          по-разному в двух местах, и человек не понимает, где он. */}
+      {agents && groupAgents(agents).map((group) => (
+        <section key={group.category} className="mt-5">
+          <h2 className="mb-2 text-sm font-semibold text-gray-700">
+            {t(`tma.assistants.group.${group.category}`)}
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {group.agents.map((a) => {
           const { label, isCurrent } = describeAgent(a, current);
           return (
             <li key={a.id}>
@@ -109,8 +116,10 @@ export function AssistantsScreen() {
               </Card>
             </li>
           );
-        })}
-      </ul>
+            })}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

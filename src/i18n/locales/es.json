@@ -37,7 +37,14 @@
       "empty": "Todavía no hay nada aquí.",
       "failed": "No se pudo cargar.",
       "switchFailed": "No se pudo cambiar. Inténtalo de nuevo.",
-      "writeTo": "Escribir a {{name}}"
+      "writeTo": "Escribir a {{name}}",
+      "group": {
+        "assistant": "Asistentes",
+        "business": "Negocios",
+        "personal": "Personal",
+        "smm": "Redes sociales",
+        "other": "Otros"
+      }
     },
     "wallet": {
       "title": "Cartera",

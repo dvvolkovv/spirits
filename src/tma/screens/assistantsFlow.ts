@@ -93,3 +93,30 @@ export function extractPreferredAgent(raw: unknown): string | null {
 export async function chooseAssistant(name: string, deps: AssistantsDeps): Promise<void> {
   await deps.changeAgent(name);
 }
+
+/**
+ * Порядок групп на экране выбора — тот же, что в вебе.
+ *
+ * Роман попадает в 'assistant' вместе с ведущими: отдельной категории у него
+ * нет, и заводить её ради одного ассистента значит разойтись с бэкендом,
+ * который эту раскладку и отдаёт.
+ *
+ * Ассистенты без категории показываются последней группой, а не прячутся:
+ * новый ассистент появляется в базе раньше, чем ему проставят категорию, и
+ * молча пропасть с экрана он не должен.
+ */
+export const CATEGORY_ORDER = ['assistant', 'business', 'personal', 'smm'] as const;
+
+export type AgentGroup = { category: string; agents: Agent[] };
+
+/** Разложить список по группам, сохраняя порядок внутри каждой. */
+export function groupAgents(agents: Agent[]): AgentGroup[] {
+  const out: AgentGroup[] = [];
+  for (const c of CATEGORY_ORDER) {
+    const inGroup = agents.filter((a) => a.category === c);
+    if (inGroup.length) out.push({ category: c, agents: inGroup });
+  }
+  const rest = agents.filter((a) => !a.category || !CATEGORY_ORDER.includes(a.category as any));
+  if (rest.length) out.push({ category: 'other', agents: rest });
+  return out;
+}

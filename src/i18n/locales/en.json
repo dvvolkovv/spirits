@@ -37,7 +37,14 @@
       "empty": "Nothing here yet.",
       "failed": "Failed to load.",
       "switchFailed": "Could not switch. Please try again.",
-      "writeTo": "Message {{name}}"
+      "writeTo": "Message {{name}}",
+      "group": {
+        "assistant": "Assistants",
+        "business": "Business",
+        "personal": "Personal",
+        "smm": "Social media",
+        "other": "Other"
+      }
     },
     "wallet": {
       "title": "Wallet",

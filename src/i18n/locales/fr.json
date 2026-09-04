@@ -37,7 +37,14 @@
       "empty": "Rien ici pour l'instant.",
       "failed": "Échec du chargement.",
       "switchFailed": "Le changement a échoué. Réessayez.",
-      "writeTo": "Écrire à {{name}}"
+      "writeTo": "Écrire à {{name}}",
+      "group": {
+        "assistant": "Assistants",
+        "business": "Business",
+        "personal": "Personnel",
+        "smm": "Réseaux sociaux",
+        "other": "Autres"
+      }
     },
     "wallet": {
       "title": "Portefeuille",

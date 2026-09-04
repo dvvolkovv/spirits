@@ -37,7 +37,14 @@
       "empty": "Hier ist noch nichts.",
       "failed": "Laden fehlgeschlagen.",
       "switchFailed": "Wechsel fehlgeschlagen. Bitte erneut versuchen.",
-      "writeTo": "{{name}} schreiben"
+      "writeTo": "{{name}} schreiben",
+      "group": {
+        "assistant": "Assistenten",
+        "business": "Business",
+        "personal": "Persönlich",
+        "smm": "Social Media",
+        "other": "Weitere"
+      }
     },
     "wallet": {
       "title": "Wallet",
