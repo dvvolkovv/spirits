@@ -6,6 +6,7 @@ import { resolveLanguage } from '../../i18n/languages';
 import { parseAgents, extractPreferredAgent, chooseAssistant, describeAgent, type Agent } from './assistantsFlow';
 import { Card } from '../../shared/ui/Card';
 import { Avatar } from '../../shared/ui/Avatar';
+import { loadAgentAvatars, releaseAvatars } from './agentAvatars';
 
 export function AssistantsScreen() {
   const { t, i18n } = useTranslation();
@@ -28,6 +29,25 @@ export function AssistantsScreen() {
       .then((r) => setCurrent(extractPreferredAgent(r)))
       .catch(() => {});
   }, [i18n.language]);
+
+  /**
+   * Фото ассистентов. Грузятся отдельно от списка: ручка отдаёт байты по
+   * одному, и ждать их все, прежде чем показать имена, незачем — список
+   * появляется сразу, фото подтягиваются следом.
+   */
+  const [avatars, setAvatars] = useState<Record<number, string>>({});
+  useEffect(() => {
+    if (!agents?.length) return;
+    let alive = true;
+    let loaded: Record<number, string> = {};
+    loadAgentAvatars(agents.map((a) => Number(a.id))).then((urls) => {
+      loaded = urls;
+      // Экран могли покинуть, пока грузилось: тогда сразу отзываем, иначе
+      // блобы повиснут до перезагрузки страницы.
+      if (alive) setAvatars(urls); else releaseAvatars(urls);
+    });
+    return () => { alive = false; releaseAvatars(loaded); };
+  }, [agents]);
 
   const choose = async (name: string) => {
     setSwitching(name);
@@ -73,7 +93,7 @@ export function AssistantsScreen() {
             <li key={a.id}>
               <Card onClick={() => choose(a.name)} disabled={switching !== null}>
                 <span className="flex items-center gap-3">
-                  <Avatar name={label} />
+                  <Avatar name={label} src={avatars[Number(a.id)]} />
                   <span className="flex-1">
                     <span className="font-medium">{label}</span>
                     {a.description && (
