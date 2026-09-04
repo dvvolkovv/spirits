@@ -29,12 +29,13 @@ export const FloatingCallButton: React.FC = () => {
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
 
-  // В чате кнопка живёт в шапке — там она не спорит с полем ввода. Плавающая
-  // на мобиле встала бы ровно поверх строки ввода и кнопки отправки: нижняя
-  // навигация занимает ~64px, поле ввода — следующие ~60, а кнопка поднята
-  // всего на 96. Поэтому на /chat её не показываем, а в шапке чата снято
-  // условие «только у Романа», из-за которого её там раньше не было видно.
-  if (pathname.startsWith('/chat')) return null;
+  // В чате кнопка тоже нужна (решение владельца 04.09.2026), но там низ экрана
+  // занят: навигация ~65px, над ней строка ввода до y=678 при экране 844.
+  // Кнопка на bottom-24 встала бы на 692–748 — ровно поверх поля ввода и
+  // «отправить» (замер на проде). Поэтому в чате поднимаем её выше строки
+  // ввода, а на десктопе в чате не показываем вовсе: там она есть в шапке и
+  // плавающая была бы вторым таким же действием на одном экране.
+  const inChat = pathname.startsWith('/chat');
 
   return (
     <>
@@ -43,9 +44,9 @@ export const FloatingCallButton: React.FC = () => {
         data-testid="floating-call-button"
         title={t('chat.voice_call.button_title')}
         aria-label={t('chat.voice_call.button_title')}
-        className="fixed right-4 bottom-24 md:bottom-6 z-40 flex items-center justify-center
-                   w-14 h-14 rounded-full bg-forest-600 text-white shadow-lg
-                   hover:bg-forest-700 active:scale-95 transition"
+        className={`fixed right-4 z-40 flex items-center justify-center ${
+          inChat ? 'bottom-44 md:hidden' : 'bottom-24 md:bottom-6'
+        } w-14 h-14 rounded-full bg-forest-600 text-white shadow-lg hover:bg-forest-700 active:scale-95 transition`}
       >
         <Phone className="w-6 h-6" />
       </button>

@@ -2245,7 +2245,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {/* Мобила: вместо текстовой ссылки — иконка «Чистый лист».
                     Десктопный вариант тумблера живёт справа (hidden md:flex). */}
                 {renderFreshToggle('fresh-mode-toggle-mobile', 'hidden sm:flex md:hidden')}
-                {renderCallButton('voice-call-toggle-mobile', 'flex md:hidden')}
+                {/* На мобиле звонок теперь у плавающей кнопки (FloatingCallButton
+                    поднята над строкой ввода) — вторая такая же в шапке только
+                    отбирала бы место у имени ассистента. На десктопе кнопка
+                    осталась справа, там ширины хватает. */}
 
                 {showAssistantDropdown && (
                   <div data-testid="assistant-dropdown-list" className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[60vh] overflow-y-auto">
