@@ -64,3 +64,27 @@ export function formatCurrency(value: number, currency = 'RUB'): string {
     maximumFractionDigits: 0,
   });
 }
+
+/**
+ * Компактный баланс для узких экранов: 97 083 375 → «97,1 млн».
+ *
+ * Нужен ровно в одном месте — шапке чата на мобиле. Там на 390 px
+ * фиксированные элементы (аватар, кнопки «чистый лист» и «позвонить», баланс,
+ * перегенерация, очистка) съедали всю ширину, правый блок уезжал за экран, а
+ * имени ассистента не оставалось ни пикселя (замер на проде 04.09.2026).
+ * Полное число занимает вчетверо больше места, чем компактное, и именно оно
+ * было самым дорогим элементом.
+ *
+ * Разряды подписываем словом, а не буквой: «97,1M» на кириллическом экране
+ * читается как латиница посреди русского текста.
+ */
+export function formatTokensCompact(tokens: number): string {
+  const abs = Math.abs(tokens);
+  if (abs >= 1_000_000) {
+    return `${formatNumber(tokens / 1_000_000, { maximumFractionDigits: 1 })} млн`;
+  }
+  if (abs >= 10_000) {
+    return `${formatNumber(Math.round(tokens / 1000), { maximumFractionDigits: 0 })} тыс`;
+  }
+  return formatNumber(tokens);
+}
