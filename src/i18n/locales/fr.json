@@ -66,7 +66,10 @@
       "deleteConfirm": "Votre compte et toutes les conversations seront définitivement supprimés.",
       "deleteYes": "Supprimer",
       "deleteNo": "Annuler",
-      "deleteFailed": "Impossible de supprimer le compte"
+      "deleteFailed": "Impossible de supprimer le compte",
+      "balance": "Solde",
+      "topUp": "Recharger",
+      "inviteFriend": "Inviter un ami"
     },
     "day": {
       "title": "Aujourd'hui",

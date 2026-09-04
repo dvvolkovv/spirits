@@ -65,7 +65,10 @@
       "deleteConfirm": "Your account and all conversations will be permanently deleted.",
       "deleteYes": "Delete",
       "deleteNo": "Cancel",
-      "deleteFailed": "Could not delete the account"
+      "deleteFailed": "Could not delete the account",
+      "balance": "Balance",
+      "topUp": "Top up",
+      "inviteFriend": "Invite a friend"
     },
     "day": {
       "title": "Today",

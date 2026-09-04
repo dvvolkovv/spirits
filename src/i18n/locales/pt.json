@@ -66,7 +66,10 @@
       "deleteConfirm": "Sua conta e todas as conversas serão excluídas permanentemente.",
       "deleteYes": "Excluir",
       "deleteNo": "Cancelar",
-      "deleteFailed": "Não foi possível excluir a conta"
+      "deleteFailed": "Não foi possível excluir a conta",
+      "balance": "Saldo",
+      "topUp": "Recarregar",
+      "inviteFriend": "Convidar um amigo"
     },
     "day": {
       "title": "Hoje",

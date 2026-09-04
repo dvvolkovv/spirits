@@ -66,7 +66,10 @@
       "deleteConfirm": "Tu cuenta y todas las conversaciones se eliminarán de forma irreversible.",
       "deleteYes": "Eliminar",
       "deleteNo": "Cancelar",
-      "deleteFailed": "No se pudo eliminar la cuenta"
+      "deleteFailed": "No se pudo eliminar la cuenta",
+      "balance": "Saldo",
+      "topUp": "Recargar",
+      "inviteFriend": "Invitar a un amigo"
     },
     "day": {
       "title": "Hoy",

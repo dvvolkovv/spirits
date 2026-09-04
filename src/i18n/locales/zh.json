@@ -64,7 +64,10 @@
       "deleteConfirm": "您的账户及全部对话将被永久删除。",
       "deleteYes": "删除",
       "deleteNo": "取消",
-      "deleteFailed": "无法删除账户"
+      "deleteFailed": "无法删除账户",
+      "balance": "余额",
+      "topUp": "充值",
+      "inviteFriend": "邀请好友"
     },
     "day": {
       "title": "今日",

@@ -65,7 +65,10 @@
       "deleteConfirm": "Ihr Konto und alle Unterhaltungen werden unwiderruflich gelöscht.",
       "deleteYes": "Löschen",
       "deleteNo": "Abbrechen",
-      "deleteFailed": "Konto konnte nicht gelöscht werden"
+      "deleteFailed": "Konto konnte nicht gelöscht werden",
+      "balance": "Guthaben",
+      "topUp": "Aufladen",
+      "inviteFriend": "Freund einladen"
     },
     "day": {
       "title": "Heute",
