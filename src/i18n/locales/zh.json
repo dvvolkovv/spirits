@@ -91,6 +91,20 @@
       "hideCompat": "收起",
       "compatBusy": "正在分析匹配度…",
       "compatFailed": "无法分析匹配度"
+    },
+    "call": {
+      "callRoman": "呼叫 Roman",
+      "title": "Roman",
+      "hint": "点击拨打",
+      "connecting": "连接中…",
+      "active": "通话中",
+      "close": "关闭",
+      "start": "拨打",
+      "hangUp": "挂断",
+      "micOn": "打开麦克风",
+      "micOff": "关闭麦克风",
+      "micBlocked": "麦克风不可用 — 请在设置中允许访问",
+      "failed": "拨打失败"
     }
   },
   "onboarding": {

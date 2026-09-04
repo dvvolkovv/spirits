@@ -92,6 +92,20 @@
       "hideCompat": "Hide",
       "compatBusy": "Analysing compatibility…",
       "compatFailed": "Could not analyse compatibility"
+    },
+    "call": {
+      "callRoman": "Call Roman",
+      "title": "Roman",
+      "hint": "Tap to call",
+      "connecting": "Connecting…",
+      "active": "In conversation",
+      "close": "Close",
+      "start": "Call",
+      "hangUp": "Hang up",
+      "micOn": "Turn microphone on",
+      "micOff": "Turn microphone off",
+      "micBlocked": "Microphone unavailable — allow access in settings",
+      "failed": "Could not place the call"
     }
   },
   "onboarding": {

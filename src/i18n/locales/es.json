@@ -93,6 +93,20 @@
       "hideCompat": "Ocultar",
       "compatBusy": "Analizando compatibilidad…",
       "compatFailed": "No se pudo analizar la compatibilidad"
+    },
+    "call": {
+      "callRoman": "Llamar a Roman",
+      "title": "Roman",
+      "hint": "Toca para llamar",
+      "connecting": "Conectando…",
+      "active": "Conversación en curso",
+      "close": "Cerrar",
+      "start": "Llamar",
+      "hangUp": "Colgar",
+      "micOn": "Activar micrófono",
+      "micOff": "Silenciar micrófono",
+      "micBlocked": "Micrófono no disponible: permite el acceso en ajustes",
+      "failed": "No se pudo llamar"
     }
   },
   "onboarding": {

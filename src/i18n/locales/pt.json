@@ -93,6 +93,20 @@
       "hideCompat": "Ocultar",
       "compatBusy": "Analisando compatibilidade…",
       "compatFailed": "Não foi possível analisar a compatibilidade"
+    },
+    "call": {
+      "callRoman": "Ligar para Roman",
+      "title": "Roman",
+      "hint": "Toque para ligar",
+      "connecting": "Conectando…",
+      "active": "Conversa em andamento",
+      "close": "Fechar",
+      "start": "Ligar",
+      "hangUp": "Desligar",
+      "micOn": "Ligar microfone",
+      "micOff": "Desligar microfone",
+      "micBlocked": "Microfone indisponível — permita o acesso nas configurações",
+      "failed": "Não foi possível ligar"
     }
   },
   "onboarding": {

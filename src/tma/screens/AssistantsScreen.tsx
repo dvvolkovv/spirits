@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getJson, postJson } from '../api';
 import { closeApp } from '../telegram';
@@ -7,6 +7,13 @@ import { parseAgents, extractPreferredAgent, chooseAssistant, describeAgent, typ
 import { Card } from '../../shared/ui/Card';
 import { Avatar } from '../../shared/ui/Avatar';
 import { loadAgentAvatars, releaseAvatars } from './agentAvatars';
+
+/**
+ * Экран звонка грузится только по нажатию: он тянет livekit-client весом
+ * около полутора мегабайт, а мини-апп открывают с телефона. В стартовом
+ * бандле ему делать нечего — звонят не при каждом открытии.
+ */
+const CallSheet = lazy(() => import('./CallSheet').then((m) => ({ default: m.CallSheet })));
 
 export function AssistantsScreen() {
   const { t, i18n } = useTranslation();
@@ -49,6 +56,8 @@ export function AssistantsScreen() {
     return () => { alive = false; releaseAvatars(loaded); };
   }, [agents]);
 
+  const [calling, setCalling] = useState(false);
+
   const choose = async (name: string) => {
     setSwitching(name);
     setSwitchFailed(false);
@@ -76,6 +85,21 @@ export function AssistantsScreen() {
       {switchFailed && <p className="mt-4 text-red-600">{t('tma.assistants.switchFailed')}</p>}
       {!failed && agents === null && <p className="mt-4 text-gray-400">…</p>}
       {agents?.length === 0 && <p className="mt-4 text-gray-400">{t('tma.assistants.empty')}</p>}
+
+      {/* Звонок ведущему. Стоит рядом с «Написать»: это два способа начать
+          один и тот же разговор, и разносить их по экрану незачем. */}
+      <button
+        onClick={() => setCalling(true)}
+        className="mt-4 w-full rounded-2xl border border-forest-700 px-4 py-3 font-medium text-forest-700"
+      >
+        {t('tma.call.callRoman')}
+      </button>
+
+      {calling && (
+        <Suspense fallback={null}>
+          <CallSheet onClose={() => setCalling(false)} />
+        </Suspense>
+      )}
 
       {current && (
         <button
