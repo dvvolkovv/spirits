@@ -27,7 +27,8 @@
       "day": "Today",
       "assistants": "Assistants",
       "wallet": "Wallet",
-      "profile": "Profile"
+      "profile": "Profile",
+      "search": "Search"
     },
     "assistants": {
       "title": "Assistants",
@@ -68,6 +69,15 @@
       "calendarConnect": "Connect it in the web app",
       "eventsUnavailable": "Event list isn't available in the mini app yet.",
       "noTasks": "No active tasks."
+    },
+    "search": {
+      "title": "Find people",
+      "hint": "Describe who you are looking for, in your own words",
+      "placeholder": "e.g. someone into hiking",
+      "searching": "Searching…",
+      "empty": "Nobody found. Try describing it differently.",
+      "failed": "Search failed",
+      "found": "Found: {{count}}"
     }
   },
   "onboarding": {

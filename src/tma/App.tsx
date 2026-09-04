@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, Users, Wallet, User } from 'lucide-react';
+import { CalendarDays, Users, Search, Wallet, User } from 'lucide-react';
 import { DayScreen } from './screens/DayScreen';
 import { AssistantsScreen } from './screens/AssistantsScreen';
+import { SearchScreen } from './screens/SearchScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { BottomNav, type NavTab } from '../shared/ui/BottomNav';
 
-type Tab = 'day' | 'assistants' | 'wallet' | 'profile';
+type Tab = 'day' | 'assistants' | 'search' | 'wallet' | 'profile';
 
-const ICONS = { day: CalendarDays, assistants: Users, wallet: Wallet, profile: User } as const;
-const ORDER: Tab[] = ['day', 'assistants', 'wallet', 'profile'];
+const ICONS = { day: CalendarDays, assistants: Users, search: Search, wallet: Wallet, profile: User } as const;
+// Поиск — между ассистентами и кошельком: это работа с людьми, а не с
+// деньгами, и рядом с ассистентами читается как продолжение той же темы.
+const ORDER: Tab[] = ['day', 'assistants', 'search', 'wallet', 'profile'];
 
 export function App() {
   const { t } = useTranslation();
@@ -27,6 +30,7 @@ export function App() {
       <main className="flex-1 overflow-y-auto pb-20">
         {tab === 'day' && <DayScreen />}
         {tab === 'assistants' && <AssistantsScreen />}
+        {tab === 'search' && <SearchScreen />}
         {tab === 'wallet' && <WalletScreen />}
         {tab === 'profile' && <ProfileScreen />}
       </main>

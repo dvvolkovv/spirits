@@ -27,7 +27,8 @@
       "day": "今日",
       "assistants": "助手",
       "wallet": "钱包",
-      "profile": "个人资料"
+      "profile": "个人资料",
+      "search": "搜索"
     },
     "assistants": {
       "title": "助手",
@@ -67,6 +68,15 @@
       "calendarConnect": "在网页版中连接",
       "eventsUnavailable": "事件列表暂时无法在小程序中使用。",
       "noTasks": "没有进行中的任务。"
+    },
+    "search": {
+      "title": "寻找他人",
+      "hint": "用你自己的话描述你要找的人",
+      "placeholder": "例如：喜欢登山的人",
+      "searching": "搜索中…",
+      "empty": "没有找到。换个说法试试。",
+      "failed": "搜索失败",
+      "found": "找到：{{count}}"
     }
   },
   "onboarding": {

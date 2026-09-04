@@ -27,7 +27,8 @@
       "day": "Hoy",
       "assistants": "Asistentes",
       "wallet": "Cartera",
-      "profile": "Perfil"
+      "profile": "Perfil",
+      "search": "Búsqueda"
     },
     "assistants": {
       "title": "Asistentes",
@@ -69,6 +70,15 @@
       "calendarConnect": "Conéctalo desde la versión web",
       "eventsUnavailable": "La lista de eventos aún no está disponible en la mini app.",
       "noTasks": "No hay tareas activas."
+    },
+    "search": {
+      "title": "Buscar personas",
+      "hint": "Describe a quién buscas con tus palabras",
+      "placeholder": "p. ej.: alguien a quien le guste la montaña",
+      "searching": "Buscando…",
+      "empty": "No se encontró a nadie. Prueba a describirlo de otra forma.",
+      "failed": "No se pudo realizar la búsqueda",
+      "found": "Encontrados: {{count}}"
     }
   },
   "onboarding": {
