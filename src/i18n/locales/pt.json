@@ -61,7 +61,12 @@
       "saved": "Guardado",
       "failed": "Não foi possível guardar.",
       "familyName": "Sobrenome",
-      "nickname": "Apelido"
+      "nickname": "Apelido",
+      "deleteAccount": "Excluir conta",
+      "deleteConfirm": "Sua conta e todas as conversas serão excluídas permanentemente.",
+      "deleteYes": "Excluir",
+      "deleteNo": "Cancelar",
+      "deleteFailed": "Não foi possível excluir a conta"
     },
     "day": {
       "title": "Hoje",

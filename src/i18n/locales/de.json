@@ -60,7 +60,12 @@
       "saved": "Gespeichert",
       "failed": "Speichern fehlgeschlagen.",
       "familyName": "Nachname",
-      "nickname": "Spitzname"
+      "nickname": "Spitzname",
+      "deleteAccount": "Konto löschen",
+      "deleteConfirm": "Ihr Konto und alle Unterhaltungen werden unwiderruflich gelöscht.",
+      "deleteYes": "Löschen",
+      "deleteNo": "Abbrechen",
+      "deleteFailed": "Konto konnte nicht gelöscht werden"
     },
     "day": {
       "title": "Heute",

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '../../shared/ui/Avatar';
-import { getJson, postJson, putForm, getBlob } from '../api';
+import { getJson, postJson, putForm, getBlob, del } from '../api';
+import { closeApp } from '../telegram';
 import { SUPPORTED_LANGUAGES } from '../../i18n/languages';
 import { extractProfile, saveProfile, uploadAvatar } from './profileData';
 
@@ -13,6 +14,16 @@ export function ProfileScreen() {
   const [birthday, setBirthday] = useState('');
   const [language, setLanguage] = useState(i18n.language);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  /**
+   * Удаление аккаунта — двухшаговое, как в вебе.
+   *
+   * В вебе стоит window.confirm, но в телеграмном вебвью системные диалоги
+   * ведут себя непредсказуемо, а необратимое действие подтверждать надо.
+   * Поэтому подтверждение своё, прямо на экране.
+   */
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
 
   const loadAvatar = () => {
@@ -133,6 +144,53 @@ export function ProfileScreen() {
 
         {status === 'saved' && <p className="text-green-600">{t('tma.profile.saved')}</p>}
         {status === 'failed' && <p className="text-red-500">{t('tma.profile.failed')}</p>}
+      </div>
+
+      {/* Опасное действие — отдельно от формы и последним: чтобы палец не
+          попал в него, промахнувшись мимо «Сохранить». */}
+      <div className="mt-8 border-t border-gray-200 pt-4">
+        {!confirmDelete && (
+          <button onClick={() => setConfirmDelete(true)} className="text-sm text-red-600">
+            {t('tma.profile.deleteAccount')}
+          </button>
+        )}
+
+        {confirmDelete && (
+          <div>
+            <p className="text-sm text-gray-700">{t('tma.profile.deleteConfirm')}</p>
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={async () => {
+                  setDeleting(true);
+                  setDeleteFailed(false);
+                  try {
+                    await del('/webhook/profile');
+                    // Аккаунта больше нет — держать приложение открытым не на
+                    // чем: любой следующий запрос упрётся в чужую пустоту.
+                    closeApp();
+                  } catch {
+                    setDeleteFailed(true);
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                disabled={deleting}
+                className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white disabled:opacity-40"
+              >
+                {t('tma.profile.deleteYes')}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              >
+                {t('tma.profile.deleteNo')}
+              </button>
+            </div>
+            {deleteFailed && (
+              <p className="mt-2 text-sm text-red-500">{t('tma.profile.deleteFailed')}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

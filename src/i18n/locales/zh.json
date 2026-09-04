@@ -59,7 +59,12 @@
       "saved": "已保存",
       "failed": "保存失败。",
       "familyName": "姓氏",
-      "nickname": "昵称"
+      "nickname": "昵称",
+      "deleteAccount": "删除账户",
+      "deleteConfirm": "您的账户及全部对话将被永久删除。",
+      "deleteYes": "删除",
+      "deleteNo": "取消",
+      "deleteFailed": "无法删除账户"
     },
     "day": {
       "title": "今日",

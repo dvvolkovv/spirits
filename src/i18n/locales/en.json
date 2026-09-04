@@ -60,7 +60,12 @@
       "saved": "Saved",
       "failed": "Couldn't save.",
       "familyName": "Last name",
-      "nickname": "Nickname"
+      "nickname": "Nickname",
+      "deleteAccount": "Delete account",
+      "deleteConfirm": "Your account and all conversations will be permanently deleted.",
+      "deleteYes": "Delete",
+      "deleteNo": "Cancel",
+      "deleteFailed": "Could not delete the account"
     },
     "day": {
       "title": "Today",

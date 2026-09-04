@@ -61,7 +61,12 @@
       "saved": "Enregistré",
       "failed": "Échec de l'enregistrement.",
       "familyName": "Nom de famille",
-      "nickname": "Pseudo"
+      "nickname": "Pseudo",
+      "deleteAccount": "Supprimer le compte",
+      "deleteConfirm": "Votre compte et toutes les conversations seront définitivement supprimés.",
+      "deleteYes": "Supprimer",
+      "deleteNo": "Annuler",
+      "deleteFailed": "Impossible de supprimer le compte"
     },
     "day": {
       "title": "Aujourd'hui",
