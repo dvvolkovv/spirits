@@ -42,6 +42,7 @@ import VideoJobCard from '../video/VideoJobCard';
 import { InlineCalendarProposals } from '../calendar/InlineCalendarProposals';
 import { trackAuthed } from '../../services/eventsClient';
 import { getRoleForAssistant } from './assistantRole';
+import { formatTokensCompact } from '../../utils/formatters';
 import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
 import { balanceLevel } from '../../config/balanceThresholds';
 
@@ -2183,8 +2184,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 border-b flex-shrink-0 fixed md:relative top-0 left-0 right-0 z-40">
-        <div className="flex items-center justify-between max-w-full">
-          <div className="relative flex items-center gap-2" ref={dropdownRef}>
+        <div className="flex items-center justify-between max-w-full gap-2">
+          {/* min-w-0 обязателен: без него флекс-элемент не сжимается меньше
+              своего содержимого, левый блок занимает сколько хочет и выдавливает
+              правый за экран. На 390 px у Романа (у него есть ещё кнопка
+              звонка) кнопки «перегенерировать» и «очистить» уезжали целиком,
+              баланс упирался в край — замер на проде 04.09.2026. */}
+          <div className="relative flex min-w-0 items-center gap-2" ref={dropdownRef}>
             {isLoadingAssistants ? (
               <div className="flex items-center space-x-2 px-3 py-1.5 bg-gray-100 rounded-lg">
                 <div className="w-4 h-4 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
@@ -2195,7 +2201,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <button
                   data-testid="assistant-dropdown-btn"
                   onClick={() => setShowAssistantDropdown(!showAssistantDropdown)}
-                  className="flex items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
+                  className="flex min-w-0 items-center space-x-2 px-3 py-1.5 bg-forest-50 hover:bg-forest-100 rounded-lg transition-colors border border-forest-200"
                 >
                   {avatarUrls[selectedAssistant.id] ? (
                     <img
@@ -2212,11 +2218,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       <span className="text-lg">👤</span>
                     </div>
                   )}
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm font-medium text-forest-900">{selectedAssistant.displayName ?? selectedAssistant.name}</span>
-                    <span className="text-xs text-forest-600">{getRoleForAssistant(selectedAssistant.id, t)}</span>
+                  <div className="flex min-w-0 flex-col items-start">
+                    <span className="w-full truncate text-left text-sm font-medium text-forest-900">{selectedAssistant.displayName ?? selectedAssistant.name}</span>
+                    {/* Роль прячем на узких экранах: она декоративна, а место
+                        забирает у имени ассистента, которому иначе не остаётся
+                        ничего (замер шапки на 390 px, 04.09.2026). */}
+                    <span className="hidden w-full truncate text-left text-xs text-forest-600 sm:block">{getRoleForAssistant(selectedAssistant.id, t)}</span>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-forest-700" />
+                  <ChevronDown className="w-4 h-4 flex-shrink-0 text-forest-700" />
                 </button>
 
                 {/* Мобила: вместо текстовой ссылки — иконка «Чистый лист».
@@ -2308,7 +2317,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </>
             ) : null}
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-shrink-0 items-center space-x-3">
             {user?.tokens !== undefined && (
               <button
                 onClick={() => setShowTokenPackages(true)}
@@ -2340,7 +2349,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     ? 'text-red-700'
                     : balanceLevel(user.tokens) === 'low' ? 'text-amber-700' : 'text-forest-700',
                 )}>
-                  {formatTokens(user.tokens)}
+                  {/* Полное число — самый широкий элемент шапки; на мобиле
+                      показываем компактное, иначе правый блок уезжает за
+                      экран вместе с перегенерацией и очисткой. */}
+                  <span className="sm:hidden">{formatTokensCompact(user.tokens)}</span>
+                  <span className="hidden sm:inline">{formatTokens(user.tokens)}</span>
                 </span>
               </button>
             )}

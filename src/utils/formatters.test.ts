@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import i18n from '../i18n';
-import { toIntlLocale, formatDate, formatDateTime, formatNumber, formatCurrency } from './formatters';
+import { toIntlLocale, formatDate, formatDateTime, formatNumber, formatCurrency, formatTokensCompact } from './formatters';
 
 describe('toIntlLocale', () => {
   it('разворачивает корень языка в полную Intl-локаль', () => {
@@ -75,5 +75,27 @@ describe('formatDateTime', () => {
     const short = formatDateTime(iso, { dateStyle: 'short', timeStyle: 'short' });
     const medium = formatDateTime(iso, { dateStyle: 'medium', timeStyle: 'short' });
     expect(short).not.toBe(medium);
+  });
+});
+
+describe('formatTokensCompact', () => {
+  beforeEach(() => { i18n.changeLanguage('ru'); });
+
+  it('миллионы — с одним знаком после запятой', () => {
+    expect(formatTokensCompact(97_083_375)).toBe('97,1 млн');
+  });
+
+  it('десятки тысяч — без дробной части', () => {
+    expect(formatTokensCompact(23_456)).toBe('23 тыс');
+  });
+
+  it('мелкие остатки показываем целиком: у них цена решения выше', () => {
+    // Ниже 10 000 человек уже считает каждую тысячу — округление до «9 тыс»
+    // скрыло бы разницу между 9 400 и 9 900 ровно там, где она важна.
+    expect(formatTokensCompact(9_400)).toBe(formatNumber(9_400));
+  });
+
+  it('ноль остаётся нулём, а не «0 тыс»', () => {
+    expect(formatTokensCompact(0)).toBe('0');
   });
 });
