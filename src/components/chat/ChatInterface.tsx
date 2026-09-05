@@ -2176,14 +2176,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   return (
     <>
-      {/* В переписке плавающая кнопка только на мобиле: на десктопе звонок
-          есть в шапке, и вторая такая же на одном экране лишняя. Обёртка
-          нужна потому, что сама кнопка position: fixed и брейкпоинтов не
-          знает — их знает эта обёртка. */}
-      <div className="md:hidden">
-        <FloatingCallButton />
-      </div>
-
       {showTokenPackages && (
         <TokenPackages onClose={() => setShowTokenPackages(false)} />
       )}
@@ -2346,6 +2338,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </>
             ) : null}
           </div>
+          {/* Звонок между именем ассистента и балансом: плавающая мешала на
+              мобиле, закрывая содержимое переписки (репорт владельца
+              05.09.2026). flex-shrink-0 — кнопку сжимать нельзя, иначе она
+              превратится в полоску. */}
+          {renderCallButton('voice-call-toggle-header', 'flex flex-shrink-0')}
+
           <div className="flex flex-shrink-0 items-center space-x-3">
             {user?.tokens !== undefined && (
               <button
@@ -2387,7 +2385,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </button>
             )}
             {renderFreshToggle('fresh-mode-toggle', 'hidden md:flex')}
-            {renderCallButton('voice-call-toggle', 'hidden md:flex')}
             {messages.length > 1 && (
               <>
                 {/* Десктоп: обе кнопки в ряд. */}
