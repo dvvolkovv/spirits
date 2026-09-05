@@ -336,11 +336,11 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 md:px-6 py-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900">
                 {t('admin.userActivity.title', 'Активность пользователя')}
               </h2>
               {data?.user?.isadmin && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-semibold">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-xs font-semibold">
                   ADMIN
                 </span>
               )}
@@ -362,7 +362,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
               {(data?.user?.identities ?? []).map((id, i) => (
                 <span
                   key={`${id.provider}-${i}`}
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[11px] whitespace-nowrap"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-xs whitespace-nowrap"
                   title={isAppleRelay(id.email) ? 'Приватный адрес Apple: письма доходят, но владельца по нему не опознать' : undefined}
                 >
                   <span className="font-medium">{PROVIDER_LABELS[id.provider] ?? id.provider}</span>
@@ -381,7 +381,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                 </span>
               )}
               {data?.user?.referral_leader_name && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-medium">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-medium">
                   {data.user.referral_leader_name}
                 </span>
               )}
@@ -524,7 +524,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                   const ticks = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0];
                   return (
                     <div className="flex gap-2 min-w-0">
-                      <div className="flex flex-col justify-between text-[10px] text-gray-400 h-44 pb-5 text-right shrink-0 w-12">
+                      <div className="flex flex-col justify-between text-xs text-gray-400 h-44 pb-5 text-right shrink-0 w-12">
                         {ticks.map((tk, i) => (
                           <span key={i} className="leading-none">{formatTokens(Math.round(tk))}</span>
                         ))}
@@ -538,7 +538,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                                 ? `−${formatTokens(data.series[hoveredIdx].tokens_spent)} ток.`
                                 : `${formatTokens(data.series[hoveredIdx].queries)} запр.`}
                             </div>
-                            <div className="text-gray-300 text-[10px]">
+                            <div className="text-gray-300 text-xs">
                               {metric === 'tokens'
                                 ? `${data.series[hoveredIdx].queries} запросов`
                                 : `−${formatTokens(data.series[hoveredIdx].tokens_spent)} ток.`}
@@ -626,7 +626,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                             <td className="px-4 py-2 text-right text-amber-700 font-medium">
                               {a.tokens > 0 ? formatTokens(a.tokens) : <span className="text-gray-300 font-normal">—</span>}
                             </td>
-                            <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{formatRelative(a.last_used)}</td>
+                            <td className="px-4 py-2 text-gray-500 whitespace-nowrap">{formatRelative(a.last_used)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -642,7 +642,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                     <CreditCard className="w-4 h-4 text-forest-600" />
                     {t('admin.userActivity.sections.payments', 'Платежи')}
                   </div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[11px] font-medium tabular-nums">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-medium tabular-nums">
                     {data.payments?.length ?? 0}
                   </span>
                 </div>
@@ -667,7 +667,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                             </span>
                             <span
                               className={clsx(
-                                'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                'inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium',
                                 paymentStatusClass(p.status),
                               )}
                             >
@@ -675,7 +675,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                             </span>
                           </div>
                         </div>
-                        <span className="text-gray-400 text-[10px] whitespace-nowrap pt-0.5">
+                        <span className="text-gray-400 text-xs whitespace-nowrap pt-0.5">
                           {formatRelative(p.created_at)}
                         </span>
                       </div>
@@ -691,7 +691,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                     <Wallet className="w-4 h-4 text-forest-600" />
                     {t('admin.userActivity.sections.topups', 'Пополнения баланса')}
                   </div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[11px] font-medium tabular-nums">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-medium tabular-nums">
                     {data.topups?.length ?? 0}
                   </span>
                 </div>
@@ -700,7 +700,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                 {data.topupTotals && data.topupTotals.length > 0 && (
                   <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-x-4 gap-y-1">
                     {data.topupTotals.map(tt => (
-                      <span key={tt.type} className="text-[11px] text-gray-600">
+                      <span key={tt.type} className="text-xs text-gray-600">
                         {TOPUP_LABELS[tt.type] ?? tt.type}:{' '}
                         <span className="tabular-nums font-medium text-gray-800">
                           +{formatTokens(tt.tokens)}
@@ -723,7 +723,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                           <div className="flex items-baseline gap-2 flex-wrap">
                             <span
                               className={clsx(
-                                'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                'inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium',
                                 TOPUP_CLASSES[tp.type] ?? 'bg-gray-100 text-gray-600',
                               )}
                             >
@@ -736,14 +736,14 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                               <span className="text-gray-700 tabular-nums">{formatRub(tp.rub)}</span>
                             )}
                             {tp.type === 'coupon' && (
-                              <span className="text-gray-600 font-mono text-[11px]">
+                              <span className="text-gray-600 font-mono text-xs">
                                 {/* Код удалённого купона восстановить нельзя — показываем id */}
                                 {tp.couponCode ?? (tp.couponId != null ? `#${tp.couponId}` : '—')}
                               </span>
                             )}
                             {tp.packageId && <span className="text-gray-500">{tp.packageId}</span>}
                           </div>
-                          <div className="mt-0.5 text-[11px] text-gray-500 flex items-center gap-2 flex-wrap">
+                          <div className="mt-0.5 text-xs text-gray-500 flex items-center gap-2 flex-wrap">
                             <span>{formatDateTime(tp.at)}</span>
                             {tp.balanceAfter != null && (
                               <span className="tabular-nums">
@@ -772,7 +772,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                     <ClipboardList className="w-4 h-4 text-forest-600" />
                     Задачи (операционная память)
                   </div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[11px] font-medium tabular-nums">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-medium tabular-nums">
                     {tasks?.length ?? 0}
                   </span>
                 </div>
@@ -803,7 +803,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                                 <span className="text-sm font-medium text-gray-800 truncate">{task.title}</span>
                                 <span
                                   className={clsx(
-                                    'inline-block px-1.5 py-0.5 rounded text-[10px] font-medium',
+                                    'inline-block px-1.5 py-0.5 rounded text-xs font-medium',
                                     task.status === 'active'
                                       ? 'bg-forest-50 text-forest-700'
                                       : task.status === 'archived'
@@ -814,7 +814,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                                   {task.status}
                                 </span>
                                 {task.claudemd_locked && (
-                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700">
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
                                     <Lock className="w-2.5 h-2.5" /> locked
                                   </span>
                                 )}
@@ -822,7 +822,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                               {task.summary && (
                                 <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{task.summary}</p>
                               )}
-                              <p className="text-[10px] text-gray-400 mt-1">
+                              <p className="text-xs text-gray-400 mt-1">
                                 {formatRelative(task.last_active_at)}
                               </p>
                             </div>
@@ -841,20 +841,20 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                                 <>
                                   {details.task.claudemd && (
                                     <div className="mt-2">
-                                      <p className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">CLAUDE.md (manual)</p>
-                                      <pre className="text-[11px] text-gray-700 bg-white border border-gray-200 rounded p-2 whitespace-pre-wrap font-mono leading-relaxed max-h-48 overflow-y-auto">
+                                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">CLAUDE.md (manual)</p>
+                                      <pre className="text-xs text-gray-700 bg-white border border-gray-200 rounded p-2 whitespace-pre-wrap font-mono leading-relaxed max-h-48 overflow-y-auto">
                                         {details.task.claudemd}
                                       </pre>
                                     </div>
                                   )}
                                   <div className="mt-2">
-                                    <p className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
+                                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
                                       События ({details.events.length})
                                     </p>
                                     <div className="space-y-1">
                                       {details.events.map(ev => (
-                                        <div key={ev.id} className="text-[11px] bg-white border border-gray-200 rounded p-2">
-                                          <div className="flex items-baseline gap-2 text-[10px] text-gray-400 mb-0.5">
+                                        <div key={ev.id} className="text-xs bg-white border border-gray-200 rounded p-2">
+                                          <div className="flex items-baseline gap-2 text-xs text-gray-400 mb-0.5">
                                             <span className={clsx(
                                               'inline-block px-1 py-0 rounded',
                                               ev.kind === 'milestone' ? 'bg-amber-50 text-amber-700'
@@ -909,7 +909,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                                 <span className={clsx('font-medium tabular-nums', isTopup ? 'text-forest-700' : 'text-amber-700')}>
                                   {tx.amount > 0 ? '+' : ''}{formatTokens(tx.amount)}
                                 </span>
-                                <span className="text-gray-400 text-[10px] whitespace-nowrap">{formatDateTime(tx.created_at)}</span>
+                                <span className="text-gray-400 text-xs whitespace-nowrap">{formatDateTime(tx.created_at)}</span>
                               </div>
                               {tx.reason && (
                                 <p className="text-gray-500 truncate mt-0.5" title={tx.reason}>{tx.reason}</p>
@@ -942,7 +942,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                                 : (m.agent_name || t('admin.userActivity.role.assistant', 'Ассистент'))}
                               <SourceBadge source={m.source} title={m.channel_title} />
                             </span>
-                            <span className="text-gray-400 text-[10px] whitespace-nowrap">{formatDateTime(m.created_at)}</span>
+                            <span className="text-gray-400 text-xs whitespace-nowrap">{formatDateTime(m.created_at)}</span>
                           </div>
                           <p className="text-gray-600 mt-0.5 line-clamp-2 break-words">{m.preview}</p>
                         </div>
@@ -967,7 +967,7 @@ export const SourceBadge: React.FC<{ source?: MessageSource; title?: string | nu
   if (source !== 'telegram' && source !== 'both') return null;
   return (
     <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-[10px] font-medium align-middle whitespace-nowrap"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-xs font-medium align-middle whitespace-nowrap"
       title={title || undefined}
     >
       <Send className="w-2.5 h-2.5" />
@@ -983,7 +983,7 @@ const KPI: React.FC<{ icon?: React.ReactNode; label: string; value: string; hint
       <span>{label}</span>
     </div>
     <p className={clsx('text-lg font-semibold', accent ? 'text-forest-800' : 'text-gray-900')}>{value}</p>
-    {hint && <p className="text-[10px] text-gray-400 mt-1 leading-tight">{hint}</p>}
+    {hint && <p className="text-xs text-gray-400 mt-1 leading-tight">{hint}</p>}
   </div>
 );
 

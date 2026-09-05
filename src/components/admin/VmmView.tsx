@@ -227,12 +227,12 @@ const VmmView: React.FC = () => {
                   : <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className={clsx('text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded', st.pill)}>
+                    <span className={clsx('text-xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded', st.pill)}>
                       {t(`admin.product.vmm.priority.${rec.priority}`)}
                     </span>
-                    <h3 className="font-medium text-gray-900">{rec.title}</h3>
+                    <h3 className="text-sm font-medium text-gray-900">{rec.title}</h3>
                     {rec.status !== 'pending' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
                         {t(`admin.product.vmm.status.${rec.status}`)}
                       </span>
                     )}

@@ -87,7 +87,7 @@ const AdminRetentionView: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-4 flex items-center justify-between border-b border-gray-100">
             <div>
-              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Send className="w-5 h-5 text-forest-600" />
                 Retention-аутрич
               </h2>
@@ -169,11 +169,11 @@ const AdminRetentionView: React.FC = () => {
                           {d.assistant_name && <span className="text-gray-400 font-normal"> · {d.assistant_name}</span>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" />{d.hours_inactive != null ? `${d.hours_inactive}ч` : `${d.days_inactive} дн`}
                           </span>
                           {d.in_cooldown && (
-                            <span className="text-[10px] text-amber-600" title={d.last_sent_at || ''}>cooldown</span>
+                            <span className="text-xs text-amber-600" title={d.last_sent_at || ''}>cooldown</span>
                           )}
                           <button
                             onClick={() => send([d.phone], d.in_cooldown)}

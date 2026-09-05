@@ -184,12 +184,12 @@ const MonitoringFunnelView: React.FC = () => {
                             </span>
                           )}
                           {step.identity === 'session' && (
-                            <span className="text-[10px] uppercase tracking-wide text-gray-400 border border-gray-200 rounded px-1 py-0.5">
+                            <span className="text-xs uppercase tracking-wide text-gray-400 border border-gray-200 rounded px-1 py-0.5">
                               сессии
                             </span>
                           )}
                           {identityChanged && (
-                            <span className="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1 py-0.5">
+                            <span className="text-xs text-amber-700 border border-amber-200 bg-amber-50 rounded px-1 py-0.5">
                               ↓ переход на user_id
                             </span>
                           )}

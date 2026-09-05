@@ -105,7 +105,7 @@ const AdminReportsView: React.FC = () => {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-5 h-5 text-gray-600" />
-          <h3 className="font-semibold text-gray-900">{t('admin.reports.title')}</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('admin.reports.title')}</h3>
           {overdue > 0 && (
             // Просрочка видна числом, а не вычисляется глазами: срок в
             // 24 часа обещан офертой, и его нарушение — факт, а не оттенок.

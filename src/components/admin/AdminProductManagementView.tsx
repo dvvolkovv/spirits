@@ -65,7 +65,7 @@ const AdminProductManagementView: React.FC = () => {
             >
               {s.label}
               {!s.ready && (
-                <span className="text-[10px] uppercase tracking-wider text-gray-400 border border-gray-300 rounded px-1">
+                <span className="text-xs uppercase tracking-wider text-gray-400 border border-gray-300 rounded px-1">
                   {t('admin.product.coming_soon')}
                 </span>
               )}

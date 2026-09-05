@@ -42,7 +42,7 @@ const acceptColor = (pct: number | null): string => {
 const Stat: React.FC<{ icon: React.ReactNode; label: string; value: string; sub?: string; valueClass?: string }> = ({ icon, label, value, sub, valueClass }) => (
   <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
     <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">{icon}{label}</div>
-    <div className={clsx('text-2xl font-semibold text-gray-900', valueClass)}>{value}</div>
+    <div className={clsx('text-lg font-semibold text-gray-900', valueClass)}>{value}</div>
     {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
   </div>
 );
@@ -166,7 +166,7 @@ const MonitoringNetworkingView: React.FC = () => {
                   <tbody className="divide-y divide-gray-100">
                     {sortedSenders.map((r) => (
                       <tr key={r.userId}>
-                        <td className="px-3 py-2 font-mono text-xs">{r.userId}</td>
+                        <td className="px-3 py-2 font-mono">{r.userId}</td>
                         <td className="px-3 py-2 text-right">{r.sent}</td>
                         <td className="px-3 py-2 text-right text-emerald-700">{r.accepted}</td>
                       </tr>
@@ -192,7 +192,7 @@ const MonitoringNetworkingView: React.FC = () => {
                   <tbody className="divide-y divide-gray-100">
                     {sortedReceivers.map((r) => (
                       <tr key={r.userId}>
-                        <td className="px-3 py-2 font-mono text-xs">{r.userId}</td>
+                        <td className="px-3 py-2 font-mono">{r.userId}</td>
                         <td className="px-3 py-2 text-right">{r.received}</td>
                         <td className="px-3 py-2 text-right text-emerald-700">{r.accepted}</td>
                       </tr>

@@ -534,7 +534,7 @@ const AdminCouponsView: React.FC = () => {
                         </span>
                         <span className="font-mono text-gray-800 truncate">{a.code}</span>
                         {!a.stillExists && (
-                          <span className="text-[10px] text-gray-400 whitespace-nowrap">нет в базе</span>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">нет в базе</span>
                         )}
                       </div>
                       <div className="text-right whitespace-nowrap">

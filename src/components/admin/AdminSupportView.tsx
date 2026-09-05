@@ -272,7 +272,7 @@ const AdminSupportView: React.FC = () => {
             {s.label}
             {'badge' in s && s.badge != null && s.badge > 0 && (
               <span className={clsx(
-                'px-1.5 py-0.5 rounded-full text-[10px]',
+                'px-1.5 py-0.5 rounded-full text-xs',
                 section === s.id ? 'bg-white/25' : 'bg-red-100 text-red-700',
               )}>
                 {s.badge}
@@ -321,7 +321,7 @@ const AdminSupportView: React.FC = () => {
               key={f.id}
               onClick={() => setFilter(f.id)}
               className={clsx(
-                'px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
+                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                 filter === f.id
                   ? 'bg-forest-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
@@ -354,14 +354,14 @@ const AdminSupportView: React.FC = () => {
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={clsx('text-[10px] px-1.5 py-0.5 rounded', badge.cls)}>{badge.label}</span>
+                          <span className={clsx('text-xs px-1.5 py-0.5 rounded', badge.cls)}>{badge.label}</span>
                           {ticket.urgency && (
-                            <span className={clsx('text-[10px] px-1.5 py-0.5 rounded', URGENCY_BADGE[ticket.urgency] || 'bg-gray-100 text-gray-600')}>
+                            <span className={clsx('text-xs px-1.5 py-0.5 rounded', URGENCY_BADGE[ticket.urgency] || 'bg-gray-100 text-gray-600')}>
                               {ticket.urgency}
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-gray-400 flex-shrink-0 flex items-center gap-1">
+                        <span className="text-xs text-gray-400 flex-shrink-0 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {timeAgo(ticket.updatedAt)}
                         </span>
@@ -370,14 +370,14 @@ const AdminSupportView: React.FC = () => {
                         {ticket.userName || `+${ticket.userId.slice(0, 1)} *** *** ${ticket.userId.slice(-2)}`}
                       </div>
                       {ticket.escalationReason && (
-                        <div className="text-[11px] text-red-700 truncate mt-0.5">
+                        <div className="text-xs text-red-700 truncate mt-0.5">
                           ⚠ {ticket.escalationReason}
                         </div>
                       )}
                       <div className="text-xs text-gray-500 truncate mt-0.5">
                         {ticket.lastMessage || t('admin.support.no_messages')}
                       </div>
-                      <div className="text-[10px] text-gray-400 mt-1">
+                      <div className="text-xs text-gray-400 mt-1">
                         {t('admin.support.message_count', { count: ticket.messageCount, tokens: ticket.userTokens.toLocaleString() })}
                       </div>
                     </button>
@@ -412,12 +412,12 @@ const AdminSupportView: React.FC = () => {
                     {selected?.user?.profile_data?.name || selected?.ticket?.user_id || '...'}
                   </h2>
                   {selected?.ticket && (
-                    <span className={clsx('text-[10px] px-1.5 py-0.5 rounded', STATUS_BADGE[selected.ticket.status]?.cls)}>
+                    <span className={clsx('text-xs px-1.5 py-0.5 rounded', STATUS_BADGE[selected.ticket.status]?.cls)}>
                       {STATUS_BADGE[selected.ticket.status]?.label}
                     </span>
                   )}
                 </div>
-                <div className="text-[11px] text-gray-400">
+                <div className="text-xs text-gray-400">
                   id: {selected?.ticket?.id?.slice(0, 8)} · {t('admin.support.tokens_unit', { value: Number(selected?.user?.tokens || 0).toLocaleString() })}
                   {selected?.user?.email && ` · ${selected.user.email}`}
                 </div>
@@ -477,7 +477,7 @@ const AdminSupportView: React.FC = () => {
                     return (
                       <div key={m.id} className="flex justify-center">
                         <div className={clsx(
-                          'px-3 py-1.5 rounded-lg text-[11px] italic max-w-md text-center',
+                          'px-3 py-1.5 rounded-lg text-xs italic max-w-md text-center',
                           m.visible_to_user ? 'bg-gray-200 text-gray-600' : 'bg-amber-50 text-amber-800 border border-amber-200',
                         )}>
                           {!m.visible_to_user && '🔒 '}{m.content}
@@ -492,7 +492,7 @@ const AdminSupportView: React.FC = () => {
                       : 'bg-white text-gray-900 rounded-bl-sm border border-gray-100';
                   return (
                     <div key={m.id} className={clsx('flex flex-col', isUser ? 'items-end' : 'items-start')}>
-                      <div className="text-[10px] text-gray-500 mb-0.5 px-1 flex items-center gap-1">
+                      <div className="text-xs text-gray-500 mb-0.5 px-1 flex items-center gap-1">
                         {isAi && <><Bot className="w-3 h-3 text-forest-600" /> AI</>}
                         {isOwner && <><UserCircle2 className="w-3 h-3" /> {t('admin.support.sender_team')}</>}
                         {isUser && <>{t('admin.support.sender_user')}</>}
@@ -525,7 +525,7 @@ const AdminSupportView: React.FC = () => {
                       replyInternal ? 'border-amber-300 bg-amber-50' : 'border-gray-300',
                     )}
                   />
-                  <label className="flex items-center gap-1.5 text-[11px] text-gray-500 select-none cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-500 select-none cursor-pointer">
                     <input
                       type="checkbox"
                       checked={replyInternal}

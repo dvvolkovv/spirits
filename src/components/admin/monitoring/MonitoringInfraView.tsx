@@ -749,7 +749,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             )}>
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Wallet className="w-3.5 h-3.5" />Баланс</div>
               <div className={clsx(
-                'text-2xl font-semibold',
+                'text-lg font-semibold',
                 smsData.balance.rub === null ? 'text-gray-500'
                   : smsData.balance.rub <= smsData.alertThresholdRub ? 'text-rose-600'
                   : smsData.balance.rub <= smsData.alertThresholdRub * 2 ? 'text-amber-600'
@@ -766,7 +766,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><CheckCircle2 className="w-3.5 h-3.5" />Успехов за 24 ч</div>
-              <div className="text-2xl font-semibold text-emerald-700">{smsData.success24h}</div>
+              <div className="text-lg font-semibold text-emerald-700">{smsData.success24h}</div>
               <div className="text-xs text-gray-400 mt-1">всего попыток: {smsData.success24h + smsData.failure24h}</div>
             </div>
             <div className={clsx(
@@ -774,7 +774,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
               smsData.failure24h > 0 ? 'border-amber-200' : 'border-gray-200',
             )}>
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><XCircle className="w-3.5 h-3.5" />Ошибок за 24 ч</div>
-              <div className={clsx('text-2xl font-semibold', smsData.failure24h > 0 ? 'text-amber-700' : 'text-gray-700')}>
+              <div className={clsx('text-lg font-semibold', smsData.failure24h > 0 ? 'text-amber-700' : 'text-gray-700')}>
                 {smsData.failure24h}
               </div>
               <div className="text-xs text-gray-400 mt-1">
@@ -819,7 +819,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 )}>
                   <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><CheckCircle2 className="w-3.5 h-3.5" />Состояние</div>
                   <div className={clsx(
-                    'text-2xl font-semibold',
+                    'text-lg font-semibold',
                     backupsData.latest.healthy ? 'text-emerald-600'
                       : backupsData.latest.fresh ? 'text-amber-600'
                       : 'text-rose-600',
@@ -836,7 +836,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Возраст</div>
-                  <div className="text-2xl font-semibold text-gray-800">
+                  <div className="text-lg font-semibold text-gray-800">
                     {backupsData.latest.ageHours < 1
                       ? `${Math.round(backupsData.latest.ageHours * 60)} мин`
                       : `${backupsData.latest.ageHours.toFixed(1)} ч`}
@@ -847,7 +847,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Размер последнего</div>
-                  <div className="text-2xl font-semibold text-gray-800">
+                  <div className="text-lg font-semibold text-gray-800">
                     {(backupsData.latest.totalBytes / 1024 / 1024).toFixed(1)} МБ
                   </div>
                   <div className="text-xs text-gray-400 mt-1">
@@ -856,7 +856,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">7-дневное окно</div>
-                  <div className="text-2xl font-semibold text-gray-800">
+                  <div className="text-lg font-semibold text-gray-800">
                     {backupsData.weekSnapshotCount} / 7
                   </div>
                   <div className="text-xs text-gray-400 mt-1">
@@ -865,9 +865,9 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 </div>
               </div>
 
-              <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm overflow-x-auto">
                 <div className="text-xs text-gray-500 mb-2">Артефакты последнего снапшота</div>
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                   <thead className="text-gray-500">
                     <tr>
                       <th className="text-left py-1">Файл</th>
@@ -951,7 +951,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             )}>
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-1"><Wallet className="w-3.5 h-3.5" />Расход за 30 дней</div>
               <div className={clsx(
-                'text-2xl font-semibold',
+                'text-lg font-semibold',
                 claudeData.usage.cost30dUsd === null ? 'text-gray-500'
                   : claudeData.usage.cost30dUsd >= claudeData.alertThreshold30dUsd ? 'text-rose-600'
                   : claudeData.usage.cost30dUsd >= claudeData.alertThreshold30dUsd * 0.7 ? 'text-amber-600'
@@ -965,14 +965,14 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Расход за 24 ч</div>
-              <div className="text-2xl font-semibold text-gray-800">
+              <div className="text-lg font-semibold text-gray-800">
                 {claudeData.usage.cost24hUsd === null ? '—' : `$${claudeData.usage.cost24hUsd.toFixed(2)}`}
               </div>
               <div className="text-xs text-gray-400 mt-1">{claudeData.usage.calls24h ?? 0} вызовов</div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Подписка CLI</div>
-              <div className="text-2xl font-semibold text-gray-800 capitalize">
+              <div className="text-lg font-semibold text-gray-800 capitalize">
                 {claudeData.usage.subscriptionType || '—'}
               </div>
               <div className="text-xs text-gray-400 mt-1">
@@ -989,7 +989,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             )}>
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">Anthropic API key</div>
               <div className={clsx(
-                'text-2xl font-semibold',
+                'text-lg font-semibold',
                 claudeData.usage.apiKeyValid === true ? 'text-emerald-600'
                   : claudeData.usage.apiKeyValid === false ? 'text-rose-600'
                   : 'text-gray-500',
@@ -1008,9 +1008,9 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             </div>
           </div>
           {claudeData.usage.topModels30d.length > 0 && (
-            <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm overflow-x-auto">
               <div className="text-xs text-gray-500 mb-2">Модели по расходу (30 дней)</div>
-              <table className="w-full text-xs">
+              <table className="w-full text-sm">
                 <thead className="text-gray-500">
                   <tr><th className="text-left py-1">Модель</th><th className="text-right py-1">Вызовов</th><th className="text-right py-1">Расход</th></tr>
                 </thead>
@@ -1042,7 +1042,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                   replData.healthy ? 'border-emerald-200' : 'border-rose-300 bg-rose-50',
                 )}>
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Состояние</div>
-                  <div className={clsx('text-2xl font-semibold', replData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
+                  <div className={clsx('text-lg font-semibold', replData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
                     {replData.healthy ? '✓ healthy' : '✗ problem'}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
@@ -1051,14 +1051,14 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Replay lag</div>
-                  <div className="text-2xl font-semibold text-gray-800">
+                  <div className="text-lg font-semibold text-gray-800">
                     {replData.maxReplayLagSec === null ? '—' : `${replData.maxReplayLagSec.toFixed(2)} с`}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">max по standby'ям</div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Слоты</div>
-                  <div className="text-2xl font-semibold text-gray-800">
+                  <div className="text-lg font-semibold text-gray-800">
                     {replData.slots.filter((s) => s.active).length} / {replData.slots.length}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">активны / всего</div>
@@ -1066,8 +1066,8 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
               </div>
 
               {replData.standbys.length > 0 && (
-                <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-                  <table className="w-full text-xs">
+                <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto">
+                  <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-gray-500">
                       <tr>
                         <th className="text-left px-3 py-2 font-medium">Адрес</th>
@@ -1086,7 +1086,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                           <td className="px-3 py-1.5">{sb.application_name}</td>
                           <td className="px-3 py-1.5">
                             <span className={clsx(
-                              'px-1.5 py-0.5 rounded text-[10px]',
+                              'px-1.5 py-0.5 rounded text-xs',
                               sb.state === 'streaming' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
                             )}>{sb.state}</span>
                           </td>
@@ -1114,7 +1114,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                       Standby node-3 (со стороны реплики)
                     </div>
                     <span className={clsx(
-                      'px-1.5 py-0.5 rounded text-[10px]',
+                      'px-1.5 py-0.5 rounded text-xs',
                       replData.standby.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700',
                     )}>
                       {replData.standby.healthy ? '✓ healthy' : replData.standby.reachable ? '✗ problem' : '✗ unreachable'}
@@ -1171,15 +1171,15 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                       </div>
                     </div>
                   )}
-                  <div className="text-[10px] text-gray-400 mt-2">
+                  <div className="text-xs text-gray-400 mt-2">
                     * растёт во время простоя записи — справочно, не влияет на health
                   </div>
                 </div>
               )}
 
               {replData.slots.length > 0 && (
-                <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-                  <table className="w-full text-xs">
+                <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto">
+                  <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-gray-500">
                       <tr>
                         <th className="text-left px-3 py-2 font-medium">Слот</th>
@@ -1202,7 +1202,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                           </td>
                           <td className="px-3 py-1.5">
                             <span className={clsx(
-                              'px-1.5 py-0.5 rounded text-[10px]',
+                              'px-1.5 py-0.5 rounded text-xs',
                               s.wal_status === 'reserved' || s.wal_status === 'extended' ? 'bg-emerald-100 text-emerald-700'
                                 : s.wal_status === 'unreserved' ? 'bg-amber-100 text-amber-700'
                                 : 'bg-rose-100 text-rose-700',
@@ -1238,7 +1238,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                   neoDrData.healthy ? 'border-emerald-200' : 'border-rose-300 bg-rose-50',
                 )}>
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Состояние</div>
-                  <div className={clsx('text-2xl font-semibold', neoDrData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
+                  <div className={clsx('text-lg font-semibold', neoDrData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
                     {neoDrData.healthy ? '✓ в синхроне' : '✗ проблема'}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
@@ -1252,7 +1252,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                       <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                         <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Возраст копии</div>
                         <div className={clsx(
-                          'text-2xl font-semibold',
+                          'text-lg font-semibold',
                           dump?.remoteAgeHours != null && dump.remoteAgeHours > neoDrData.freshHours ? 'text-rose-600' : 'text-gray-800',
                         )}>
                           {dump?.remoteAgeHours == null ? '—' : `${dump.remoteAgeHours.toFixed(1)} ч`}
@@ -1261,7 +1261,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                       </div>
                       <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                         <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Размер дампа</div>
-                        <div className="text-2xl font-semibold text-gray-800">
+                        <div className="text-lg font-semibold text-gray-800">
                           {neoDrData.dumpSizeBytes === null ? '—' : formatBytes(neoDrData.dumpSizeBytes)}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
@@ -1279,8 +1279,8 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 })()}
               </div>
 
-              <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <table className="w-full text-xs">
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto">
+                <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-500">
                     <tr>
                       <th className="text-left px-3 py-2 font-medium">Файл</th>
@@ -1309,7 +1309,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                         </td>
                         <td className="px-3 py-1.5">
                           <span className={clsx(
-                            'px-1.5 py-0.5 rounded text-[10px]',
+                            'px-1.5 py-0.5 rounded text-xs',
                             f.inSync ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700',
                           )}>{f.inSync ? 'совпадает' : 'рассинхрон'}</span>
                         </td>
@@ -1318,7 +1318,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                   </tbody>
                 </table>
               </div>
-              <div className="text-[10px] text-gray-400">
+              <div className="text-xs text-gray-400">
                 Цель: {neoDrData.host}:{neoDrData.dir} · md5 совпадает ⇒ копия байт-в-байт (прод-дамп уже прошёл gunzip-проверку)
               </div>
             </div>
@@ -1339,7 +1339,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                   <span className="text-gray-400 font-mono">— mc mirror →</span>
                   <span className="px-2 py-1 rounded-md bg-sky-100 text-sky-800 font-medium">node-3 · реплика (DR)</span>
                 </div>
-                <div className="text-[11px] text-gray-500 mt-2">
+                <div className="text-xs text-gray-500 mt-2">
                   Это <b>двухузловое DR-зеркало</b>: прод — единственный боевой MinIO (источник истины), node-3 хранит ежечасную копию на случай потери прода.
                   Это <b>не распределённый кластер</b> (данные не шардируются по узлам). node-3 показан как единственная цель репликации — так и задумано.
                 </div>
@@ -1350,7 +1350,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                   minioDrData.healthy ? 'border-emerald-200' : 'border-rose-300 bg-rose-50',
                 )}>
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Состояние</div>
-                  <div className={clsx('text-2xl font-semibold', minioDrData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
+                  <div className={clsx('text-lg font-semibold', minioDrData.healthy ? 'text-emerald-600' : 'text-rose-600')}>
                     {minioDrData.healthy ? '✓ покрыто' : '✗ проблема'}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
@@ -1360,7 +1360,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Последний sync</div>
                   <div className={clsx(
-                    'text-2xl font-semibold',
+                    'text-lg font-semibold',
                     minioDrData.ageMin != null && minioDrData.ageMin > minioDrData.freshMin ? 'text-rose-600' : 'text-gray-800',
                   )}>
                     {minioDrData.ageMin == null ? '—' : minioDrData.ageMin >= 60 ? `${(minioDrData.ageMin / 60).toFixed(1)} ч` : `${minioDrData.ageMin.toFixed(0)} мин`}
@@ -1371,7 +1371,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Объекты (node-3 / прод)</div>
-                  <div className="text-2xl font-semibold text-gray-800">
+                  <div className="text-lg font-semibold text-gray-800">
                     {minioDrData.totalDstObjects ?? '—'} / {minioDrData.totalSrcObjects ?? '—'}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
@@ -1389,8 +1389,8 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                 </div>
               )}
 
-              <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-                <table className="w-full text-xs">
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto">
+                <table className="w-full text-sm">
                   <thead className="bg-gray-50 text-gray-500">
                     <tr>
                       <th className="text-left px-3 py-2 font-medium">Бакет</th>
@@ -1407,7 +1407,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                         <td className="px-3 py-1.5 text-right text-gray-600">{formatBytes(b.dstBytes)} / {formatBytes(b.srcBytes)}</td>
                         <td className="px-3 py-1.5">
                           <span className={clsx(
-                            'px-1.5 py-0.5 rounded text-[10px]',
+                            'px-1.5 py-0.5 rounded text-xs',
                             b.inSync ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
                           )}>{b.inSync ? 'покрыт' : 'отстаёт'}</span>
                         </td>
@@ -1416,7 +1416,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                   </tbody>
                 </table>
               </div>
-              <div className="text-[10px] text-gray-400">
+              <div className="text-xs text-gray-400">
                 {minioDrData.drEndpoint} · mirror без --remove ⇒ прод-удаления не каскадятся в DR (покрытие = node-3 содержит всё, что на проде)
               </div>
             </div>
@@ -1435,17 +1435,17 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             )}>
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Видео-задачи</div>
               <div className={clsx(
-                'text-2xl font-semibold',
+                'text-lg font-semibold',
                 jobsData.video.stuck ? 'text-rose-600' : jobsData.video.pending_total > 0 ? 'text-amber-600' : 'text-gray-800',
               )}>
-                {jobsData.video.pending_total} <span className="text-base text-gray-400 font-normal">в работе</span>
+                {jobsData.video.pending_total} <span className="text-sm text-gray-400 font-normal">в работе</span>
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {jobsData.video.oldest_pending_age_min === null
                   ? 'очередь пуста'
                   : `старейшее: ${jobsData.video.oldest_pending_age_min} мин${jobsData.video.stuck ? ` (порог ${jobsData.video.threshold_min})` : ''}`}
               </div>
-              <div className="text-[10px] text-gray-400 mt-1.5 flex flex-wrap gap-1.5">
+              <div className="text-xs text-gray-400 mt-1.5 flex flex-wrap gap-1.5">
                 {Object.entries(jobsData.video.status_counts).map(([s, n]) => (
                   <span key={s} className="px-1.5 py-0.5 rounded bg-gray-100">{s}: {n}</span>
                 ))}
@@ -1459,17 +1459,17 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             )}>
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Списание токенов</div>
               <div className={clsx(
-                'text-2xl font-semibold',
+                'text-lg font-semibold',
                 jobsData.tokens.stuck ? 'text-rose-600' : 'text-gray-800',
               )}>
-                {jobsData.tokens.pending_total} <span className="text-base text-gray-400 font-normal">pending</span>
+                {jobsData.tokens.pending_total} <span className="text-sm text-gray-400 font-normal">pending</span>
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {jobsData.tokens.oldest_pending_age_sec === null
                   ? 'очередь чиста'
                   : `старейшее: ${jobsData.tokens.oldest_pending_age_sec}с (порог ${jobsData.tokens.threshold_sec}с)`}
               </div>
-              <div className="text-[10px] text-gray-400 mt-1.5 flex flex-wrap gap-1.5">
+              <div className="text-xs text-gray-400 mt-1.5 flex flex-wrap gap-1.5">
                 {Object.entries(jobsData.tokens.status_counts).slice(0, 4).map(([s, n]) => (
                   <span key={s} className="px-1.5 py-0.5 rounded bg-gray-100">{s}: {n}</span>
                 ))}
@@ -1479,11 +1479,11 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             {/* Profile compaction card */}
             <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Сжатие профилей</div>
-              <div className="text-2xl font-semibold text-gray-800">
+              <div className="text-lg font-semibold text-gray-800">
                 {jobsData.compaction.active_profiles}
               </div>
               <div className="text-xs text-gray-500 mt-1">{jobsData.compaction.schedule_human}</div>
-              <div className="text-[10px] text-gray-400 mt-1.5">
+              <div className="text-xs text-gray-400 mt-1.5">
                 {jobsData.compaction.next_run_in_h != null && `следующий запуск через ${jobsData.compaction.next_run_in_h.toFixed(1)}ч`}
               </div>
             </div>
@@ -1491,13 +1491,13 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
             {/* VPM runs card */}
             <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Виртуальный PM</div>
-              <div className="text-2xl font-semibold text-gray-800">
+              <div className="text-lg font-semibold text-gray-800">
                 {jobsData.vpm_recent.length}
               </div>
               <div className="text-xs text-gray-500 mt-1">генераций (показано 5 последних)</div>
               <div className="mt-1.5 space-y-0.5 max-h-[60px] overflow-hidden">
                 {jobsData.vpm_recent.slice(0, 3).map((r) => (
-                  <div key={r.id} className="text-[10px] text-gray-500 flex items-center gap-1">
+                  <div key={r.id} className="text-xs text-gray-500 flex items-center gap-1">
                     <span className={clsx('inline-block w-1.5 h-1.5 rounded-full', r.ok ? 'bg-emerald-500' : 'bg-rose-500')} />
                     <span>{new Date(r.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
                     <span className="text-gray-400">·</span>
@@ -1505,7 +1505,7 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
                     {r.cost_usd != null && <><span className="text-gray-400">·</span><span>${r.cost_usd.toFixed(3)}</span></>}
                   </div>
                 ))}
-                {jobsData.vpm_recent.length === 0 && <div className="text-[10px] text-gray-400">пока ни одного</div>}
+                {jobsData.vpm_recent.length === 0 && <div className="text-xs text-gray-400">пока ни одного</div>}
               </div>
             </div>
           </div>
@@ -1526,8 +1526,8 @@ const MonitoringInfraView: React.FC<{ tab: InfraTab }> = ({ tab }) => {
               </div>
             )}
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <table className="w-full text-xs">
+          <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto">
+            <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
                   <th className="text-left px-3 py-2 font-medium">Провайдер</th>

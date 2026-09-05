@@ -231,7 +231,7 @@ const AdminBacklogView: React.FC = () => {
                     : <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="font-medium text-gray-900 truncate">{item.title}</h3>
+                      <h3 className="text-sm font-medium text-gray-900 truncate">{item.title}</h3>
                       <span className={clsx('text-xs px-2 py-0.5 rounded-full border', STATUS_PILL[item.status])}>
                         {t(`admin.backlog.status.${item.status}`)}
                       </span>

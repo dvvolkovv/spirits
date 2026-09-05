@@ -282,7 +282,7 @@ const AdminReferralsView: React.FC = () => {
           <p className="text-sm text-gray-400 text-center py-2">Начислений нет</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="text-gray-500 border-b border-gray-200">
                   <th className="text-left pb-2 pr-3">Дата</th>
@@ -469,7 +469,7 @@ const AdminReferralsView: React.FC = () => {
         {/* Аутрич лидерам (82cda5af) — персональный пинг по SMS */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-4 flex items-center justify-between border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Send className="w-5 h-5 text-forest-600" />
               Аутрич лидерам
               <span className="text-xs font-normal text-gray-400 hidden sm:inline">персональный пинг по SMS</span>
@@ -512,7 +512,7 @@ const AdminReferralsView: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {d.already_sent_at && (
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-xs text-gray-400">
                             отправлено {new Date(d.already_sent_at).toLocaleDateString('ru-RU')}
                           </span>
                         )}
@@ -526,7 +526,7 @@ const AdminReferralsView: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    <div className="text-[11px] text-gray-400 mb-1.5">
+                    <div className="text-xs text-gray-400 mb-1.5">
                       {d.total_referees} реф. · {formatRub(d.total_commission_rub)} начислено · {formatRub(d.pending_rub)} к выплате
                     </div>
                     <p className="text-xs text-gray-600 bg-gray-50 rounded p-2 whitespace-pre-wrap">{d.message}</p>
@@ -540,7 +540,7 @@ const AdminReferralsView: React.FC = () => {
         {/* Кнопка + форма создания */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="p-4 flex items-center justify-between border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Users className="w-5 h-5 text-forest-600" />
               Лидеры
               <span className="text-xs font-normal text-gray-400">

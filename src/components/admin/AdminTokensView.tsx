@@ -126,7 +126,7 @@ const AdminTokensView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <Coins className="w-5 h-5 text-forest-600" />
-            <h1 className="text-lg font-semibold text-gray-900">Токены</h1>
+            <h1 className="text-xl font-bold text-gray-900">Токены</h1>
           </div>
           <button
             onClick={load}
@@ -176,7 +176,7 @@ const AdminTokensView: React.FC = () => {
           <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
               <div>
-                <h2 className="text-sm font-medium text-gray-900">Списания токенов по {bucket === 'hour' ? 'часам' : 'дням'}</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Списания токенов по {bucket === 'hour' ? 'часам' : 'дням'}</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Только транзакции типа «consumed»</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -222,7 +222,7 @@ const AdminTokensView: React.FC = () => {
               const ticks = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0];
               return (
                 <div className="flex gap-2 min-w-0">
-                  <div className="flex flex-col justify-between text-[10px] text-gray-400 h-56 pb-5 text-right shrink-0 w-16">
+                  <div className="flex flex-col justify-between text-xs text-gray-400 h-56 pb-5 text-right shrink-0 w-16">
                     {ticks.map((t, i) => (
                       <span key={i} className="leading-none">{formatTokens(Math.round(t))}</span>
                     ))}
@@ -232,7 +232,7 @@ const AdminTokensView: React.FC = () => {
                       <div className="absolute -top-1 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs whitespace-nowrap shadow-lg pointer-events-none z-20 -translate-y-full">
                         <div className="font-medium">{formatBucket(spendStats.series[hoveredIdx].bucket, bucket)}</div>
                         <div className="text-amber-300 font-semibold">−{formatTokens(spendStats.series[hoveredIdx].spent)} токенов</div>
-                        <div className="text-gray-300 text-[10px]">{spendStats.series[hoveredIdx].tx_count} транзакций</div>
+                        <div className="text-gray-300 text-xs">{spendStats.series[hoveredIdx].tx_count} транзакций</div>
                       </div>
                     )}
                     <div className="overflow-x-auto">
@@ -320,11 +320,11 @@ const AdminTokensView: React.FC = () => {
                       onClick={() => setSelectedPhone(u.phone)}
                       className="hover:bg-forest-50 transition-colors cursor-pointer"
                     >
-                      <td className="px-4 py-2.5 text-xs text-gray-400">{idx + 1}</td>
-                      <td className="px-4 py-2.5 font-mono text-xs text-gray-800">{formatPhone(u.phone)}</td>
+                      <td className="px-4 py-2.5 text-gray-400">{idx + 1}</td>
+                      <td className="px-4 py-2.5 font-mono text-gray-800">{formatPhone(u.phone)}</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-forest-700">{formatTokens(u.balance)}</td>
                       <td className="px-4 py-2.5 text-right text-amber-700 font-medium">{u.spent_period > 0 ? `−${formatTokens(u.spent_period)}` : <span className="text-gray-300 font-normal">—</span>}</td>
-                      <td className="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
                         {u.last_active ? new Date(u.last_active).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-2.5 text-right text-gray-600">{u.spent_total > 0 ? formatTokens(u.spent_total) : <span className="text-gray-300">—</span>}</td>
@@ -362,7 +362,7 @@ const StatCard: React.FC<{ label: string; value: string; icon?: React.ReactNode;
       <span>{label}</span>
     </div>
     <p className={clsx('text-lg font-semibold', accent ? 'text-amber-800' : 'text-gray-900')}>{value}</p>
-    {hint && <p className="text-[10px] text-gray-400 mt-1 leading-tight">{hint}</p>}
+    {hint && <p className="text-xs text-gray-400 mt-1 leading-tight">{hint}</p>}
   </div>
 );
 

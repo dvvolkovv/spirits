@@ -84,7 +84,7 @@ const STATE_STYLE: Record<AdState, string> = {
 };
 
 const StatusBadge: React.FC<{ state: AdState; label: string }> = ({ state, label }) => (
-  <span className={clsx('inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border', STATE_STYLE[state] || STATE_STYLE.unknown)}>
+  <span className={clsx('inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border', STATE_STYLE[state] || STATE_STYLE.unknown)}>
     {state === 'delivering' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
     {label}
   </span>
@@ -111,7 +111,7 @@ const fmtRub = (n: number | null | undefined): string =>
 
 const Metric: React.FC<{ label: string; value: string; accent?: boolean }> = ({ label, value, accent }) => (
   <div className="flex flex-col">
-    <span className="text-[11px] uppercase tracking-wider text-gray-400">{label}</span>
+    <span className="text-xs uppercase tracking-wider text-gray-400">{label}</span>
     <span className={clsx('text-sm font-semibold', accent ? 'text-forest-700' : 'text-gray-900')}>{value}</span>
   </div>
 );
@@ -260,7 +260,7 @@ const AdsView: React.FC = () => {
           <div className="flex items-center gap-2">
             <Megaphone className="w-5 h-5 text-forest-600" />
             <div>
-              <h2 className="text-base font-semibold text-gray-900">{t('admin.product.ads.title')}</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('admin.product.ads.title')}</h2>
               <p className="text-xs text-gray-500">{t('admin.product.ads.subtitle')}</p>
             </div>
           </div>
@@ -327,10 +327,10 @@ const AdsView: React.FC = () => {
           <div key={c.planId ?? c.campaign} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
+                <span className="text-xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
                   {c.channel}
                 </span>
-                <h3 className="font-semibold text-gray-900">{c.planName || c.campaign}</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{c.planName || c.campaign}</h3>
                 <StatusBadge state={c.state} label={t(`admin.product.ads.state.${c.state}`)} />
               </div>
               <div className="flex items-center gap-3 flex-wrap mb-2 text-xs text-gray-500">
@@ -360,7 +360,7 @@ const AdsView: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-100">
+                  <tr className="text-left text-xs uppercase tracking-wider text-gray-400 border-b border-gray-100">
                     <th className="px-4 py-2 font-medium">{t('admin.product.ads.creative')}</th>
                     <th className="px-3 py-2 font-medium">{t('admin.product.ads.status')}</th>
                     <SortableTh sortKey="shows" state={sort} onSort={setSort} align="right" className="!px-3 !py-2">{t('admin.product.ads.shows')}</SortableTh>

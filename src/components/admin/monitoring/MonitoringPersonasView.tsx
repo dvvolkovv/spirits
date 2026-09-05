@@ -76,7 +76,7 @@ const PersonaCard: React.FC<{ bucket: PersonaBucket }> = ({ bucket }) => {
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-gray-900">{bucket.label}</div>
           <div className="flex items-baseline gap-2 mt-0.5">
-            <span className="text-2xl font-semibold text-gray-900">{bucket.users}</span>
+            <span className="text-lg font-semibold text-gray-900">{bucket.users}</span>
             <span className="text-sm text-gray-500">юзеров · {bucket.sharePct.toFixed(0)}%</span>
           </div>
         </div>

@@ -112,7 +112,7 @@ const AdminUsageView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-forest-600" />
-            <h1 className="text-lg font-semibold text-gray-900">Использование ассистентов</h1>
+            <h1 className="text-xl font-bold text-gray-900">Использование ассистентов</h1>
           </div>
           <button
             onClick={load}
@@ -172,7 +172,7 @@ const AdminUsageView: React.FC = () => {
           <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
               <div>
-                <h2 className="text-sm font-medium text-gray-900">
+                <h2 className="text-lg font-semibold text-gray-900">
                   {metric === 'tokens' ? 'Токены' : 'Запросы'} по дням
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
@@ -222,7 +222,7 @@ const AdminUsageView: React.FC = () => {
               const ticks = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0];
               return (
                 <div className="flex gap-2 min-w-0">
-                  <div className="flex flex-col justify-between text-[10px] text-gray-400 h-56 pb-5 text-right shrink-0 w-16">
+                  <div className="flex flex-col justify-between text-xs text-gray-400 h-56 pb-5 text-right shrink-0 w-16">
                     {ticks.map((t, i) => (
                       <span key={i} className="leading-none">{formatTokens(Math.round(t))}</span>
                     ))}
@@ -236,10 +236,10 @@ const AdminUsageView: React.FC = () => {
                           {metric === 'tokens' ? 'токенов' : 'запросов'}
                         </div>
                         {metric === 'tokens' && (
-                          <div className="text-gray-300 text-[10px]">{data.series[hoveredIdx].queries} запросов</div>
+                          <div className="text-gray-300 text-xs">{data.series[hoveredIdx].queries} запросов</div>
                         )}
                         {metric === 'queries' && (
-                          <div className="text-gray-300 text-[10px]">{formatTokens(data.series[hoveredIdx].tokens)} токенов</div>
+                          <div className="text-gray-300 text-xs">{formatTokens(data.series[hoveredIdx].tokens)} токенов</div>
                         )}
                       </div>
                     )}
@@ -295,7 +295,7 @@ const AdminUsageView: React.FC = () => {
         {/* Per-assistant table */}
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-medium text-gray-900">Разбивка по ассистентам</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Разбивка по ассистентам</h2>
             <span className="text-xs text-gray-400">за {days} дней</span>
           </div>
           {isLoading && !data && (
@@ -332,7 +332,7 @@ const AdminUsageView: React.FC = () => {
                     const avg = a.queries > 0 ? Math.round(a.tokens / a.queries) : 0;
                     return (
                       <tr key={a.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-2.5 text-xs text-gray-400">{idx + 1}</td>
+                        <td className="px-4 py-2.5 text-gray-400">{idx + 1}</td>
                         <td className="px-4 py-2.5">
                           <div className="font-medium text-gray-900">{a.name}</div>
                           {a.description && <div className="text-xs text-gray-500 truncate max-w-xs">{a.description}</div>}
@@ -346,7 +346,7 @@ const AdminUsageView: React.FC = () => {
                         <td className="px-4 py-2.5 text-right text-forest-700">
                           {a.unique_users > 0 ? a.unique_users : <span className="text-gray-300">—</span>}
                         </td>
-                        <td className="px-4 py-2.5 text-right text-gray-500 text-xs">
+                        <td className="px-4 py-2.5 text-right text-gray-500">
                           {avg > 0 ? formatTokens(avg) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-2.5">
@@ -357,10 +357,10 @@ const AdminUsageView: React.FC = () => {
                                 style={{ width: `${barPct}%` }}
                               />
                             </div>
-                            <span className="text-[10px] text-gray-400 w-9 text-right">{pct.toFixed(pct < 10 ? 1 : 0)}%</span>
+                            <span className="text-xs text-gray-400 w-9 text-right">{pct.toFixed(pct < 10 ? 1 : 0)}%</span>
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 text-right text-xs text-gray-500">
+                        <td className="px-4 py-2.5 text-right text-gray-500">
                           {formatRelative(a.last_used)}
                         </td>
                       </tr>
@@ -383,7 +383,7 @@ const StatCard: React.FC<{ label: string; value: string; icon?: React.ReactNode;
       <span>{label}</span>
     </div>
     <p className={clsx('text-lg font-semibold', accent ? 'text-forest-800' : 'text-gray-900')}>{value}</p>
-    {hint && <p className="text-[10px] text-gray-400 mt-1 leading-tight">{hint}</p>}
+    {hint && <p className="text-xs text-gray-400 mt-1 leading-tight">{hint}</p>}
   </div>
 );
 

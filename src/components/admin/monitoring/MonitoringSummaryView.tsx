@@ -301,7 +301,7 @@ const MonitoringSummaryView: React.FC = () => {
           {bk?.latest ? (
             <>
               <div className={clsx(
-                'text-xl font-semibold',
+                'text-lg font-semibold',
                 bk.latest.healthy ? 'text-emerald-600'
                   : bk.latest.fresh ? 'text-amber-600'
                   : 'text-rose-600',
@@ -512,7 +512,7 @@ const BalanceTile: React.FC<{ label: string; value: string; tone: Tone }> = ({ l
   return (
     <div className={clsx('rounded border bg-white px-3 py-2 shadow-sm', t.card)}>
       <div className="text-xs text-gray-500 truncate" title={label}>{label}</div>
-      <div className={clsx('text-xl font-semibold mt-0.5 truncate', t.value)} title={value}>{value}</div>
+      <div className={clsx('text-lg font-semibold mt-0.5 truncate', t.value)} title={value}>{value}</div>
     </div>
   );
 };

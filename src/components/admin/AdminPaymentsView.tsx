@@ -161,7 +161,7 @@ const AdminPaymentsView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-forest-600" />
-            <h1 className="text-lg font-semibold text-gray-900">Платежи</h1>
+            <h1 className="text-xl font-bold text-gray-900">Платежи</h1>
           </div>
           <button
             onClick={load}
@@ -220,7 +220,7 @@ const AdminPaymentsView: React.FC = () => {
           <div className="bg-white border border-gray-200 rounded-xl p-4 md:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
               <div>
-                <h2 className="text-sm font-medium text-gray-900">Выручка по дням</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Выручка по дням</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
                   Только успешно оплаченные транзакции{stats.currencies.length > 1 ? ` · ${activeCurrency}` : ''}
                 </p>
@@ -274,7 +274,7 @@ const AdminPaymentsView: React.FC = () => {
               const ticks = [yMax, yMax * 0.75, yMax * 0.5, yMax * 0.25, 0];
               return (
                 <div className="flex gap-2 min-w-0">
-                  <div className="flex flex-col justify-between text-[10px] text-gray-400 h-56 pb-5 text-right shrink-0 w-14">
+                  <div className="flex flex-col justify-between text-xs text-gray-400 h-56 pb-5 text-right shrink-0 w-14">
                     {ticks.map((t, i) => (
                       <span key={i} className="leading-none">{formatMoney(t, activeCurrency)}</span>
                     ))}
@@ -286,7 +286,7 @@ const AdminPaymentsView: React.FC = () => {
                         <div className="text-emerald-300 font-semibold">
                           {formatMoney(stats.daily[hoveredIdx].revenue[activeCurrency] ?? 0, activeCurrency)}
                         </div>
-                        <div className="text-gray-300 text-[10px]">{stats.daily[hoveredIdx].succeeded} платеж(ей)</div>
+                        <div className="text-gray-300 text-xs">{stats.daily[hoveredIdx].succeeded} платеж(ей)</div>
                       </div>
                     )}
                     <div className="overflow-x-auto">
@@ -400,17 +400,17 @@ const AdminPaymentsView: React.FC = () => {
                         onClick={() => setSelectedPhone(p.phone)}
                         className="hover:bg-forest-50 transition-colors cursor-pointer"
                       >
-                        <td className="px-4 py-2.5 font-mono text-xs text-gray-800">
+                        <td className="px-4 py-2.5 font-mono text-gray-800">
                           <span className="inline-flex items-center gap-1.5">
                             {formatPhone(p.phone)}
                             {p.is_test && (
-                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-sans font-medium">тест</span>
+                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-xs font-sans font-medium">тест</span>
                             )}
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-right font-semibold text-gray-900">{formatMoney(p.amount, p.currency)}</td>
-                        <td className="px-4 py-2.5 text-xs text-gray-500">{PROVIDER_LABEL[p.provider] || p.provider}</td>
-                        <td className="px-4 py-2.5 text-right text-gray-600 text-xs">{p.tokens.toLocaleString('ru-RU')}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{PROVIDER_LABEL[p.provider] || p.provider}</td>
+                        <td className="px-4 py-2.5 text-right text-gray-600">{p.tokens.toLocaleString('ru-RU')}</td>
                         <td className="px-4 py-2.5">
                           {p.referral_leader ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-medium" title={`/${p.referral_leader.slug}`}>
@@ -425,7 +425,7 @@ const AdminPaymentsView: React.FC = () => {
                             {meta.label}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">
+                        <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
                           {formatDateTime(p.completed_at || p.created_at)}
                         </td>
                       </tr>
@@ -453,7 +453,7 @@ const StatCard: React.FC<{ label: string; value: string; icon?: React.ReactNode;
       <span>{label}</span>
     </div>
     <p className={clsx('text-lg font-semibold', accent ? 'text-forest-800' : 'text-gray-900')}>{value}</p>
-    {hint && <p className="text-[10px] text-gray-400 mt-1 leading-tight">{hint}</p>}
+    {hint && <p className="text-xs text-gray-400 mt-1 leading-tight">{hint}</p>}
   </div>
 );
 
