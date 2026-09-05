@@ -65,7 +65,17 @@
       "avatarChange": "Change photo",
       "save": "Save",
       "saved": "Saved",
-      "failed": "Couldn't save."
+      "failed": "Couldn't save.",
+      "familyName": "Last name",
+      "nickname": "Nickname",
+      "deleteAccount": "Delete account",
+      "deleteConfirm": "Your account and all conversations will be permanently deleted.",
+      "deleteYes": "Delete",
+      "deleteNo": "Cancel",
+      "deleteFailed": "Could not delete the account",
+      "balance": "Balance",
+      "topUp": "Top up",
+      "inviteFriend": "Invite a friend"
     },
     "day": {
       "title": "Today",
@@ -89,6 +99,20 @@
       "hideCompat": "Hide",
       "compatBusy": "Analysing compatibility…",
       "compatFailed": "Could not analyse compatibility"
+    },
+    "call": {
+      "callRoman": "Call Roman",
+      "title": "Roman",
+      "hint": "Tap to call",
+      "connecting": "Connecting…",
+      "active": "In conversation",
+      "close": "Close",
+      "start": "Call",
+      "hangUp": "Hang up",
+      "micOn": "Turn microphone on",
+      "micOff": "Turn microphone off",
+      "micBlocked": "Microphone unavailable — allow access in settings",
+      "failed": "Could not place the call"
     }
   },
   "onboarding": {

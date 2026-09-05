@@ -64,7 +64,17 @@
       "avatarChange": "更换照片",
       "save": "保存",
       "saved": "已保存",
-      "failed": "保存失败。"
+      "failed": "保存失败。",
+      "familyName": "姓氏",
+      "nickname": "昵称",
+      "deleteAccount": "删除账户",
+      "deleteConfirm": "您的账户及全部对话将被永久删除。",
+      "deleteYes": "删除",
+      "deleteNo": "取消",
+      "deleteFailed": "无法删除账户",
+      "balance": "余额",
+      "topUp": "充值",
+      "inviteFriend": "邀请好友"
     },
     "day": {
       "title": "今日",
@@ -88,6 +98,20 @@
       "hideCompat": "收起",
       "compatBusy": "正在分析匹配度…",
       "compatFailed": "无法分析匹配度"
+    },
+    "call": {
+      "callRoman": "呼叫 Roman",
+      "title": "Roman",
+      "hint": "点击拨打",
+      "connecting": "连接中…",
+      "active": "通话中",
+      "close": "关闭",
+      "start": "拨打",
+      "hangUp": "挂断",
+      "micOn": "打开麦克风",
+      "micOff": "关闭麦克风",
+      "micBlocked": "麦克风不可用 — 请在设置中允许访问",
+      "failed": "拨打失败"
     }
   },
   "onboarding": {

@@ -65,7 +65,17 @@
       "avatarChange": "Foto ändern",
       "save": "Speichern",
       "saved": "Gespeichert",
-      "failed": "Speichern fehlgeschlagen."
+      "failed": "Speichern fehlgeschlagen.",
+      "familyName": "Nachname",
+      "nickname": "Spitzname",
+      "deleteAccount": "Konto löschen",
+      "deleteConfirm": "Ihr Konto und alle Unterhaltungen werden unwiderruflich gelöscht.",
+      "deleteYes": "Löschen",
+      "deleteNo": "Abbrechen",
+      "deleteFailed": "Konto konnte nicht gelöscht werden",
+      "balance": "Guthaben",
+      "topUp": "Aufladen",
+      "inviteFriend": "Freund einladen"
     },
     "day": {
       "title": "Heute",
@@ -89,6 +99,20 @@
       "hideCompat": "Ausblenden",
       "compatBusy": "Kompatibilität wird berechnet…",
       "compatFailed": "Kompatibilität konnte nicht berechnet werden"
+    },
+    "call": {
+      "callRoman": "Roman anrufen",
+      "title": "Roman",
+      "hint": "Zum Anrufen tippen",
+      "connecting": "Verbindung…",
+      "active": "Gespräch läuft",
+      "close": "Schließen",
+      "start": "Anrufen",
+      "hangUp": "Auflegen",
+      "micOn": "Mikrofon einschalten",
+      "micOff": "Mikrofon ausschalten",
+      "micBlocked": "Mikrofon nicht verfügbar — Zugriff in den Einstellungen erlauben",
+      "failed": "Anruf fehlgeschlagen"
     }
   },
   "onboarding": {

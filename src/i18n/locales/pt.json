@@ -66,7 +66,17 @@
       "avatarChange": "Alterar foto",
       "save": "Guardar",
       "saved": "Guardado",
-      "failed": "Não foi possível guardar."
+      "failed": "Não foi possível guardar.",
+      "familyName": "Sobrenome",
+      "nickname": "Apelido",
+      "deleteAccount": "Excluir conta",
+      "deleteConfirm": "Sua conta e todas as conversas serão excluídas permanentemente.",
+      "deleteYes": "Excluir",
+      "deleteNo": "Cancelar",
+      "deleteFailed": "Não foi possível excluir a conta",
+      "balance": "Saldo",
+      "topUp": "Recarregar",
+      "inviteFriend": "Convidar um amigo"
     },
     "day": {
       "title": "Hoje",
@@ -90,6 +100,20 @@
       "hideCompat": "Ocultar",
       "compatBusy": "Analisando compatibilidade…",
       "compatFailed": "Não foi possível analisar a compatibilidade"
+    },
+    "call": {
+      "callRoman": "Ligar para Roman",
+      "title": "Roman",
+      "hint": "Toque para ligar",
+      "connecting": "Conectando…",
+      "active": "Conversa em andamento",
+      "close": "Fechar",
+      "start": "Ligar",
+      "hangUp": "Desligar",
+      "micOn": "Ligar microfone",
+      "micOff": "Desligar microfone",
+      "micBlocked": "Microfone indisponível — permita o acesso nas configurações",
+      "failed": "Não foi possível ligar"
     }
   },
   "onboarding": {

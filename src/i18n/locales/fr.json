@@ -66,7 +66,17 @@
       "avatarChange": "Changer la photo",
       "save": "Enregistrer",
       "saved": "Enregistré",
-      "failed": "Échec de l'enregistrement."
+      "failed": "Échec de l'enregistrement.",
+      "familyName": "Nom de famille",
+      "nickname": "Pseudo",
+      "deleteAccount": "Supprimer le compte",
+      "deleteConfirm": "Votre compte et toutes les conversations seront définitivement supprimés.",
+      "deleteYes": "Supprimer",
+      "deleteNo": "Annuler",
+      "deleteFailed": "Impossible de supprimer le compte",
+      "balance": "Solde",
+      "topUp": "Recharger",
+      "inviteFriend": "Inviter un ami"
     },
     "day": {
       "title": "Aujourd'hui",
@@ -90,6 +100,20 @@
       "hideCompat": "Masquer",
       "compatBusy": "Analyse de la compatibilité…",
       "compatFailed": "Impossible d’analyser la compatibilité"
+    },
+    "call": {
+      "callRoman": "Appeler Roman",
+      "title": "Roman",
+      "hint": "Appuyez pour appeler",
+      "connecting": "Connexion…",
+      "active": "Conversation en cours",
+      "close": "Fermer",
+      "start": "Appeler",
+      "hangUp": "Raccrocher",
+      "micOn": "Activer le micro",
+      "micOff": "Couper le micro",
+      "micBlocked": "Micro indisponible — autorisez l’accès dans les réglages",
+      "failed": "Échec de l’appel"
     }
   },
   "onboarding": {

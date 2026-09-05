@@ -66,7 +66,17 @@
       "avatarChange": "Cambiar foto",
       "save": "Guardar",
       "saved": "Guardado",
-      "failed": "No se pudo guardar."
+      "failed": "No se pudo guardar.",
+      "familyName": "Apellido",
+      "nickname": "Apodo",
+      "deleteAccount": "Eliminar cuenta",
+      "deleteConfirm": "Tu cuenta y todas las conversaciones se eliminarán de forma irreversible.",
+      "deleteYes": "Eliminar",
+      "deleteNo": "Cancelar",
+      "deleteFailed": "No se pudo eliminar la cuenta",
+      "balance": "Saldo",
+      "topUp": "Recargar",
+      "inviteFriend": "Invitar a un amigo"
     },
     "day": {
       "title": "Hoy",
@@ -90,6 +100,20 @@
       "hideCompat": "Ocultar",
       "compatBusy": "Analizando compatibilidad…",
       "compatFailed": "No se pudo analizar la compatibilidad"
+    },
+    "call": {
+      "callRoman": "Llamar a Roman",
+      "title": "Roman",
+      "hint": "Toca para llamar",
+      "connecting": "Conectando…",
+      "active": "Conversación en curso",
+      "close": "Cerrar",
+      "start": "Llamar",
+      "hangUp": "Colgar",
+      "micOn": "Activar micrófono",
+      "micOff": "Silenciar micrófono",
+      "micBlocked": "Micrófono no disponible: permite el acceso en ajustes",
+      "failed": "No se pudo llamar"
     }
   },
   "onboarding": {

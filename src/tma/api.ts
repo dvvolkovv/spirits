@@ -21,6 +21,17 @@ export async function postJson<T = any>(url: string, data?: unknown): Promise<T>
   return parse<T>(await apiClient.post(url, data));
 }
 
+/**
+ * DELETE. Пока единственный потребитель — удаление аккаунта из профиля.
+ *
+ * Ответ не разбираем: ручка отдаёт либо пустое тело, либо подтверждение,
+ * которое экрану не нужно — важен только успех.
+ */
+export async function del(url: string): Promise<void> {
+  const res = await apiClient.delete(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 /** apiClient.put не умеет FormData — он всегда делает JSON.stringify. */
 export async function putForm<T = any>(url: string, body: FormData): Promise<T> {
   return parse<T>(await apiClient.request(url, { method: 'PUT', body }));
