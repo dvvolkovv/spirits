@@ -846,6 +846,20 @@
       "load_error": "Failed to load reports: {{error}}",
       "resolve_error": "Failed to apply the decision: {{error}}",
       "resolved_by": "{{resolution}} · {{moderator}}"
+    },
+    "calls": {
+      "sectionTitle": "Calls",
+      "loadFailed": "Could not load calls",
+      "noSummary": "No summary",
+      "noTranscript": "No transcript",
+      "human": "Person",
+      "assistant": "Assistant",
+      "flag": {
+        "interrupted": "not connected",
+        "silent": "person silent",
+        "nearlySilent": "barely spoke",
+        "short": "short"
+      }
     }
   },
   "chats": {

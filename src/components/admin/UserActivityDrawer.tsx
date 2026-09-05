@@ -10,6 +10,7 @@ import { apiClient } from '../../services/apiClient';
 import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
 import type { TaskListItem, TaskDetails } from '../../types/tasks';
 import UserDevicesList from './devices/UserDevicesList';
+import { UserCallsList } from './UserCallsList';
 
 /**
  * Канал, в котором шёл диалог. Веб-чат и Telegram-бот — разные хранилища с
@@ -461,6 +462,10 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
 
               {/* Devices — с чего сидит человек, если он жалуется */}
               <UserDevicesList phone={phone} />
+
+              {/* Звонки — прочитать, как шёл разговор. phone здесь и есть
+                  user_id: дровер получает его из списков админки как есть. */}
+              <UserCallsList userId={phone} />
 
               {/* Chart */}
               <div className="bg-white border border-gray-200 rounded-xl p-4">

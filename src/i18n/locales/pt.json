@@ -842,6 +842,20 @@
       "load_error": "Não foi possível carregar as denúncias: {{error}}",
       "resolve_error": "Não foi possível aplicar a decisão: {{error}}",
       "resolved_by": "{{resolution}} · {{moderator}}"
+    },
+    "calls": {
+      "sectionTitle": "Chamadas",
+      "loadFailed": "Falha ao carregar chamadas",
+      "noSummary": "Sem resumo",
+      "noTranscript": "Sem transcrição",
+      "human": "Pessoa",
+      "assistant": "Assistente",
+      "flag": {
+        "interrupted": "não conectou",
+        "silent": "pessoa em silêncio",
+        "nearlySilent": "falou pouco",
+        "short": "curta"
+      }
     }
   },
   "chats": {

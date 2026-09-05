@@ -849,6 +849,20 @@
       "load_error": "Не удалось загрузить жалобы: {{error}}",
       "resolve_error": "Не удалось применить решение: {{error}}",
       "resolved_by": "{{resolution}} · {{moderator}}"
+    },
+    "calls": {
+      "sectionTitle": "Звонки",
+      "loadFailed": "Не удалось загрузить звонки",
+      "noSummary": "Без саммари",
+      "noTranscript": "Расшифровки нет",
+      "human": "Человек",
+      "assistant": "Ассистент",
+      "flag": {
+        "interrupted": "не состоялся",
+        "silent": "человек молчал",
+        "nearlySilent": "почти молчал",
+        "short": "короткий"
+      }
     }
   },
   "chats": {
