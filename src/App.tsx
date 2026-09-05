@@ -6,7 +6,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
 import ReferralWelcomeBanner from './components/referral/ReferralWelcomeBanner';
-import { FloatingCallButton } from './components/chat/FloatingCallButton';
 import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
@@ -267,7 +266,6 @@ const AppContent: React.FC = () => {
         появилась бы и на публичной странице комнаты, куда приходят люди без
         аккаунта в Linkeon.
       */}
-      <FloatingCallButton />
     </div>
   );
 };

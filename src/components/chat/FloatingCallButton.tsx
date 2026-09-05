@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { Phone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -27,31 +26,24 @@ const VoiceCallModal = React.lazy(() =>
  * Звонок открыт всем вошедшим: админскую проверку бэкенд снял 28.08.2026
  * (voice-call), по встречам — 03.09. Поэтому здесь никакого гейта нет.
  *
- * **Кнопку можно перетаскивать** (05.09.2026). Поле ввода в чате растёт вверх
- * по мере набора текста и на длинном сообщении закрывалось кнопкой — она
- * попадала на «отправить». Любая фиксированная точка рано или поздно
- * оказывается под растущим полем, поэтому позицию отдали человеку: она
- * запоминается в localStorage и переживает перезагрузку.
+ * **Живёт только в списке ассистентов** (решение владельца 05.09.2026): там
+ * человек выбирает собеседника, и предложить позвонить уместно именно там. В
+ * переписке кнопки нет — звонок остаётся в шапке чата, а плавающая налезала
+ * на поле ввода.
+ *
+ * **Кнопку можно перетаскивать.** Позиция запоминается в localStorage и
+ * переживает перезагрузку. Механика осталась от того времени, когда кнопка
+ * висела в чате и закрывала «отправить»; в списке ассистентов перекрывать
+ * нечего, но возможность подвинуть кнопку никому не мешает.
  *
  * z-40 — ниже навигации (z-50) и заметно ниже модалки звонка (z-[60]), чтобы
  * кнопка не всплывала поверх них.
  */
 export const FloatingCallButton: React.FC = () => {
   const { t } = useTranslation();
-  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
 
-  // В чате на десктопе кнопки нет: там звонок живёт в шапке, и плавающая была
-  // бы вторым тем же действием на одном экране.
-  const inChat = pathname.startsWith('/chat');
-
   const [pos, setPos] = useState<Point | null>(null);
-  // Ширину окна держим в состоянии, а не читаем на рендере: иначе проверка
-  // «десктоп ли это» не заметила бы изменение размера окна, и кнопка осталась
-  // бы в том виде, в каком её застал первый рендер.
-  const [viewportWidth, setViewportWidth] = useState(
-    typeof window === 'undefined' ? 0 : window.innerWidth,
-  );
   const dragRef = useRef<{ start: Point; origin: Point; moved: boolean } | null>(null);
 
   // Позиция считается после монтирования: до него неизвестны размеры окна, а
@@ -59,17 +51,15 @@ export const FloatingCallButton: React.FC = () => {
   useEffect(() => {
     const viewport = { width: window.innerWidth, height: window.innerHeight };
     const saved = loadPosition(window.localStorage);
-    setPos(clampPosition(saved ?? defaultPosition(viewport, inChat), viewport));
-    // inChat в зависимостях нет намеренно: при переходе в чат уже выбранную
-    // человеком позицию сбрасывать нельзя, дефолт нужен только на первом входе.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // false: кнопка живёт в списке ассистентов, где поля ввода нет и поднимать
+    // её не от чего.
+    setPos(clampPosition(saved ?? defaultPosition(viewport, false), viewport));
   }, []);
 
   // Поворот экрана и изменение окна: сохранённая позиция может оказаться за
   // границей, и без пересчёта кнопка стала бы недоступной навсегда.
   useEffect(() => {
     const onResize = () => {
-      setViewportWidth(window.innerWidth);
       setPos((p) => (p ? clampPosition(p, { width: window.innerWidth, height: window.innerHeight }) : p));
     };
     window.addEventListener('resize', onResize);
@@ -112,8 +102,6 @@ export const FloatingCallButton: React.FC = () => {
     setOpen(true);
   }, []);
 
-  // 768 — брейкпоинт md у Tailwind, тот же, по которому раньше стоял md:hidden.
-  if (inChat && viewportWidth >= 768) return null;
   if (!pos) return null;
 
   return (

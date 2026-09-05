@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { avatarService } from '../../services/avatarService';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { getRoleForAssistant } from './assistantRole';
+import { FloatingCallButton } from './FloatingCallButton';
 
 interface Assistant {
   id: number;
@@ -215,6 +216,11 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
           </div>
         )}
       </div>
+
+      {/* Звонок предлагается там, где человек выбирает собеседника. В самой
+          переписке кнопки нет: там звонок живёт в шапке, а плавающая налезала
+          на поле ввода по мере роста текста (репорт владельца 05.09.2026). */}
+      <FloatingCallButton />
     </div>
   );
 };
