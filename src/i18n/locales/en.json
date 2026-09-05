@@ -859,7 +859,8 @@
         "silent": "person silent",
         "nearlySilent": "barely spoke",
         "short": "short"
-      }
+      },
+      "openUser": "Open profile and conversations"
     }
   },
   "chats": {

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Phone, AlertCircle, RefreshCw, Coins, Users, Clock, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import { formatTokens, formatDuration, formatWhen } from './callsFormat';
+import UserActivityDrawer from './UserActivityDrawer';
 
 type CallKind = 'call' | 'meeting' | 'all';
 
@@ -42,6 +44,11 @@ const KINDS: { id: CallKind; label: string }[] = [
 const PERIODS = [7, 30, 90];
 
 const AdminCallsView: React.FC = () => {
+  const { t } = useTranslation();
+  // Клик по строке открывает карточку человека — там лежат его разговоры.
+  // Раньше провалиться отсюда было некуда: карточка открывалась только из
+  // «Платежей», «Пользователей» и «Токенов».
+  const [drawerUser, setDrawerUser] = useState<string | null>(null);
   const [data, setData] = useState<CallsResp | null>(null);
   const [days, setDays] = useState(30);
   const [kind, setKind] = useState<CallKind>('call');
@@ -67,6 +74,7 @@ const AdminCallsView: React.FC = () => {
   const rows = data?.byUser ?? [];
 
   return (
+    <>
     <div className="h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 pb-20 md:pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -184,9 +192,14 @@ const AdminCallsView: React.FC = () => {
                 </thead>
                 <tbody data-testid="admin-calls-rows" className="divide-y divide-gray-100">
                   {rows.map((r, idx) => (
-                    <tr key={r.user_id} className="hover:bg-gray-50">
+                    <tr
+                      key={r.user_id}
+                      onClick={() => setDrawerUser(r.user_id)}
+                      className="cursor-pointer hover:bg-gray-50"
+                      title={t('admin.calls.openUser', 'Открыть карточку и разговоры')}
+                    >
                       <td className="px-4 py-2.5 text-gray-400">{idx + 1}</td>
-                      <td className="px-4 py-2.5 font-medium text-gray-900">{r.user_id}</td>
+                      <td className="px-4 py-2.5 font-medium text-forest-700 underline-offset-2 hover:underline">{r.user_id}</td>
                       <td className="px-4 py-2.5 text-right text-gray-900">{r.calls}</td>
                       <td className="px-4 py-2.5 text-right text-gray-600">{formatDuration(r.duration_sec)}</td>
                       <td className="px-4 py-2.5 text-right text-gray-600">
@@ -219,6 +232,12 @@ const AdminCallsView: React.FC = () => {
         </div>
       </div>
     </div>
+
+      {/* Карточка человека: там его звонки с саммари, пометками и диалогом. */}
+      {drawerUser && (
+        <UserActivityDrawer phone={drawerUser} onClose={() => setDrawerUser(null)} />
+      )}
+    </>
   );
 };
 

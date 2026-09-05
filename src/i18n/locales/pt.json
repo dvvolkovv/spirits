@@ -855,7 +855,8 @@
         "silent": "pessoa em silêncio",
         "nearlySilent": "falou pouco",
         "short": "curta"
-      }
+      },
+      "openUser": "Abrir perfil e conversas"
     }
   },
   "chats": {

@@ -17,6 +17,7 @@ import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
+import { FloatingCallButton } from './FloatingCallButton';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { TokenPackages } from '../tokens/TokenPackages';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -2101,6 +2102,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           onSelectAssistant={handleSelectAssistant}
           isLoading={isLoadingAssistants}
         />
+        {/* На экране выбора шапки чата ещё нет, поэтому кнопка нужна и на
+            десктопе тоже. */}
+        <FloatingCallButton />
       </div>
     );
   }
@@ -2172,6 +2176,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   return (
     <>
+      {/* В переписке плавающая кнопка только на мобиле: на десктопе звонок
+          есть в шапке, и вторая такая же на одном экране лишняя. Обёртка
+          нужна потому, что сама кнопка position: fixed и брейкпоинтов не
+          знает — их знает эта обёртка. */}
+      <div className="md:hidden">
+        <FloatingCallButton />
+      </div>
+
       {showTokenPackages && (
         <TokenPackages onClose={() => setShowTokenPackages(false)} />
       )}
