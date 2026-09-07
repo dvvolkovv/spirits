@@ -705,6 +705,7 @@ describe('TurnsService.complete', () => {
     // Без него откат теряет точку возврата, а кнопка «вернуть как было»
     // перестаёт работать на ходах, доложенных без shaBefore.
     expect(calls[0].sql).toContain('COALESCE($5, sha_before)');
+    expect(calls[0].sql).toContain('result = $3, error = $4');
     expect(calls[0].sql).toContain('tokens_spent = $7');
   });
 
