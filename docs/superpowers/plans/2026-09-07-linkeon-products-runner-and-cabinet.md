@@ -982,7 +982,16 @@ describe('LinkeonApi.poll', () => {
   });
 
   it('401 не роняет раннера', async () => {
-    const { api } = makeApi(() => ({ ok: false, status: 401, text: async () => 'unauthorized' }));
+    // json() в моке обязателен, хотя тело ошибки и не читается. Без него
+    // снятие проверки res.ok приводит к TypeError на res.json(), его ловит
+    // тот же catch, и poll() возвращает null — но по другой причине, чем
+    // задумано. Тест оставался бы зелёным при исчезнувшей защите.
+    const { api } = makeApi(() => ({
+      ok: false,
+      status: 401,
+      json: async () => ({ turn: null, product: {} }),
+      text: async () => 'unauthorized',
+    }));
 
     await expect(api.poll()).resolves.toBeNull();
   });
@@ -1053,6 +1062,15 @@ export class LinkeonApi {
     return `${this.config.linkeonUrl}/webhook/${path}`;
   }
 
+  /**
+   * `turnId` экранируется, хотя приходит от бэкенда, а не от клиента: слэш
+   * или `..` в значении незаметно увели бы запрос на чужой маршрут. Та же
+   * логика, по которой аргументы git не идут через шелл.
+   */
+  private turnUrl(turnId: string, action: string) {
+    return this.url(`products/runner/turns/${encodeURIComponent(turnId)}/${action}`);
+  }
+
   private headers() {
     return {
       Authorization: `Bearer ${this.config.runnerToken}`,
@@ -1081,7 +1099,7 @@ export class LinkeonApi {
   async sendEvents(turnId: string, events: NDJsonEvent[]): Promise<boolean> {
     if (events.length === 0) return true;
     try {
-      const res = await this.fetchFn(this.url(`products/runner/turns/${turnId}/events`), {
+      const res = await this.fetchFn(this.turnUrl(turnId, 'events'), {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify({ events }),
@@ -1094,7 +1112,7 @@ export class LinkeonApi {
 
   async complete(turnId: string, payload: CompletePayload): Promise<boolean> {
     try {
-      const res = await this.fetchFn(this.url(`products/runner/turns/${turnId}/complete`), {
+      const res = await this.fetchFn(this.turnUrl(turnId, 'complete'), {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify(payload),
