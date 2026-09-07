@@ -74,7 +74,15 @@
       "deleteFailed": "无法删除账户",
       "balance": "余额",
       "topUp": "充值",
-      "inviteFriend": "邀请好友"
+      "inviteFriend": "邀请好友",
+      "section": {
+        "desires": "愿望",
+        "values": "价值观",
+        "beliefs": "信念",
+        "intents": "意图",
+        "interests": "兴趣",
+        "skills": "技能"
+      }
     },
     "day": {
       "title": "今日",

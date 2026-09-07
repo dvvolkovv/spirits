@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '../../shared/ui/Avatar';
+import { Card } from '../../shared/ui/Card';
+import { buildSections, type ProfileSection } from './profileSections';
 import { getJson, postJson, putForm, getBlob, del } from '../api';
 import { closeApp } from '../telegram';
 import { SUPPORTED_LANGUAGES } from '../../i18n/languages';
@@ -37,6 +39,7 @@ export function ProfileScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteFailed, setDeleteFailed] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const [sections, setSections] = useState<ProfileSection[]>([]);
 
   const loadAvatar = () => {
     getBlob('/webhook/avatar').then((blob) => setAvatarUrl(blob ? URL.createObjectURL(blob) : null));
@@ -50,6 +53,8 @@ export function ProfileScreen() {
       setNickname(p.nickname);
       setBirthday(p.birthday);
       if (p.language) setLanguage(p.language);
+      // Личные разделы — из того же ответа: отдельный запрос не нужен.
+      setSections(buildSections(r));
     }).catch(() => {});
 
     loadAvatar();
@@ -156,6 +161,30 @@ export function ProfileScreen() {
 
         {status === 'saved' && <p className="text-green-600">{t('tma.profile.saved')}</p>}
         {status === 'failed' && <p className="text-red-500">{t('tma.profile.failed')}</p>}
+
+        {/* Личные разделы — только на чтение (решение владельца 07.09.2026):
+            списки набираются ассистентами из разговоров, править их с телефона
+            незачем, для этого есть веб. Пустых разделов здесь не бывает —
+            buildSections их отбрасывает. */}
+        {sections.map((section) => (
+          <section key={section.key} className="mt-2">
+            <h2 className="mb-2 text-sm font-semibold text-gray-700">
+              {t(`tma.profile.section.${section.key}`)}
+            </h2>
+            <ul className="flex flex-col gap-2">
+              {section.items.map((item, i) => (
+                <li key={`${item.name}-${i}`}>
+                  <Card>
+                    <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                    {item.description && (
+                      <span className="mt-0.5 block text-sm text-gray-500">{item.description}</span>
+                    )}
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
 
       {/* Баланс и пополнение — как в вебе. */}

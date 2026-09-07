@@ -75,7 +75,15 @@
       "deleteFailed": "Konto konnte nicht gelöscht werden",
       "balance": "Guthaben",
       "topUp": "Aufladen",
-      "inviteFriend": "Freund einladen"
+      "inviteFriend": "Freund einladen",
+      "section": {
+        "desires": "Wünsche",
+        "values": "Werte",
+        "beliefs": "Überzeugungen",
+        "intents": "Absichten",
+        "interests": "Interessen",
+        "skills": "Fähigkeiten"
+      }
     },
     "day": {
       "title": "Heute",

@@ -76,7 +76,15 @@
       "deleteFailed": "No se pudo eliminar la cuenta",
       "balance": "Saldo",
       "topUp": "Recargar",
-      "inviteFriend": "Invitar a un amigo"
+      "inviteFriend": "Invitar a un amigo",
+      "section": {
+        "desires": "Deseos",
+        "values": "Valores",
+        "beliefs": "Creencias",
+        "intents": "Intenciones",
+        "interests": "Intereses",
+        "skills": "Habilidades"
+      }
     },
     "day": {
       "title": "Hoy",

@@ -76,7 +76,15 @@
       "deleteFailed": "Impossible de supprimer le compte",
       "balance": "Solde",
       "topUp": "Recharger",
-      "inviteFriend": "Inviter un ami"
+      "inviteFriend": "Inviter un ami",
+      "section": {
+        "desires": "Désirs",
+        "values": "Valeurs",
+        "beliefs": "Convictions",
+        "intents": "Intentions",
+        "interests": "Intérêts",
+        "skills": "Compétences"
+      }
     },
     "day": {
       "title": "Aujourd'hui",

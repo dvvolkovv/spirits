@@ -75,7 +75,15 @@
       "deleteFailed": "Could not delete the account",
       "balance": "Balance",
       "topUp": "Top up",
-      "inviteFriend": "Invite a friend"
+      "inviteFriend": "Invite a friend",
+      "section": {
+        "desires": "Desires",
+        "values": "Values",
+        "beliefs": "Beliefs",
+        "intents": "Intentions",
+        "interests": "Interests",
+        "skills": "Skills"
+      }
     },
     "day": {
       "title": "Today",
