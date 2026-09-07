@@ -918,7 +918,18 @@ export interface ClaimedTurn {
     );
 
     if (claimed.rowCount !== 1) {
-      this.logger.warn(`complete: ход ${turnId} уже финализирован, повтор проигнорирован`);
+      // Тихий успех для раннера здесь правильный — ретрай не должен получать
+      // ошибку. Но в лог нужно писать то, что есть, а не догадку: `rowCount`
+      // не единица наступает в трёх разных случаях, и только один из них
+      // повтор. Битый `turnId` и ход, который раннер завершает не забрав,
+      // означают сломанного раннера, получающего `{ok: true}` бесконечно.
+      const d = await this.pg.query(`SELECT status FROM product_turns WHERE id = $1`, [turnId]);
+      const actual = d.rows[0]?.status;
+      this.logger.warn(
+        actual
+          ? `complete: ход ${turnId} в статусе ${actual}, а не running — повтор проигнорирован`
+          : `complete: ход ${turnId} не найден`,
+      );
       return;
     }
 
@@ -1984,6 +1995,21 @@ ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT count(*) FROM token_tr
 ```
 
 Expected: `1`.
+
+Проверять **и баланс, и число строк в реестре** — не одно из двух. При снятом стороже и нехватке баланса второе списание дало бы нулевую дельту баланса (списывать уже нечего), но лишнюю строку в `token_transactions`: проверка только по балансу такой случай пропустит.
+
+Сверочный запрос писать **в обе стороны**. Расхождение возможно в двух направлениях, и они означают разное:
+
+```sql
+SELECT t.id, t.tokens_spent, COALESCE(SUM(tr.amount), 0) AS actually_charged
+  FROM product_turns t
+  LEFT JOIN token_transactions tr ON tr.description = 'product turn ' || t.id
+ WHERE t.status = 'done'
+ GROUP BY t.id, t.tokens_spent
+HAVING t.tokens_spent <> COALESCE(SUM(tr.amount), 0);
+```
+
+`tokens_spent > списанного` — недобор по деньгам, но завышенный расход в кабинете: процесс умер между списанием и дозаписью фактического числа. `tokens_spent < списанного` — переплата, то есть отказ сторожа состояния.
 
 **Сломать проверку нарочно:** временно снять `AND status = 'running'` из `complete`, выкатить на test, повторить — баланс обязан уменьшиться на 2000, а строк в `token_transactions` стать две. Вернуть. Без этого шага зелёный результат не доказывает, что сторож вообще участвует.
 
