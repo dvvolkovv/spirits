@@ -1033,7 +1033,7 @@ export interface ClaimedTurn {
 - [ ] **Step 4: Прогнать тест, убедиться что проходит**
 
 Run: `npx jest src/products/turns.lifecycle.spec.ts`
-Expected: PASS, 5 тестов
+Expected: PASS, 6 тестов
 
 - [ ] **Step 5: Прогнать сторож балансовых записей**
 
@@ -1395,6 +1395,20 @@ describe('RunnerController.poll', () => {
     expect(Object.keys(res.turn!).sort()).toEqual(['id', 'prompt', 'revertToSha', 'userId'].sort());
   });
 
+  it('heartbeat пишется до выдачи задания, а не после', async () => {
+    // Порядок наблюдаем, а не косметичен. Если продукт в degraded, touchRunner
+    // возвращает его в running — и claimNext, отбирающий только по
+    // p.status = 'running', выдаст ход в том же цикле. Обратный порядок отдал
+    // бы turn: null, и работа поехала бы только следующим опросом.
+    const { ctrl, turns } = makeController(null);
+
+    await ctrl.poll(req() as any);
+
+    expect(turns.touchRunner.mock.invocationCallOrder[0]).toBeLessThan(
+      turns.claimNext.mock.invocationCallOrder[0],
+    );
+  });
+
   it('пустая очередь — turn: null, а не ошибка', async () => {
     const { ctrl } = makeController(null);
 
@@ -1554,7 +1568,7 @@ export class RunnerController {
 - [ ] **Step 5: Прогнать тест, убедиться что проходит**
 
 Run: `npx jest src/products/runner.controller.spec.ts`
-Expected: PASS, 5 тестов
+Expected: PASS, 6 тестов
 
 - [ ] **Step 6: Коммит**
 
