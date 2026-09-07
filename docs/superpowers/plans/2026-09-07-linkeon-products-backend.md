@@ -1004,8 +1004,17 @@ describe('TurnsService.revert', () => {
     await svc.revert({ productId: 'p-1', turnId: 't-1', userId: 'u-1' });
 
     const insert = calls.find((c) => c.sql.includes('INSERT INTO product_turns'))!;
-    // sha_before целевого хода уезжает в новый ход как точка возврата
-    expect(insert.params).toContain('aaa111');
+    // sha_before целевого хода уезжает в новый ход как точка возврата — но не
+    // отдельным параметром, а подстрокой внутри prompt ('__revert__:aaa111').
+    // Поэтому toContain по массиву здесь не годится: он требует точного
+    // совпадения элемента и краснел бы даже на корректной реализации.
+    expect(insert.params.some((p) => typeof p === 'string' && p.includes('aaa111'))).toBe(true);
+    // Что именно revert передаёт в enqueue, охраняется отдельно. Без этого
+    // опечатка `productId: input.turnId` вставит turnId в колонку product_id:
+    // ход повиснет на несуществующем продукте, а мьютекс займёт не тот. И без
+    // проверки channel подмена на значение вне CHECK (channel IN
+    // ('web','telegram')) даст 500 на живой базе, но зелёный юнит-прогон.
+    expect(insert.params.slice(0, 3)).toEqual(['p-1', 'u-1', 'web']);
     // Ход ищется в пределах своего продукта. Без product_id в WHERE клиент
     // откатит чужой продукт на его же sha, передав чужой turnId — владение
     // проверено на уровне продукта, а сам ход взят по голому id.
