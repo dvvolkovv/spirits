@@ -1231,6 +1231,19 @@ describe('RunnerGuard', () => {
     await expect(guard.canActivate(makeContext())).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
+  it('заголовок без префикса Bearer не принимается', async () => {
+    // Утверждение явное, потому что иначе эта мутация ловится случайно: без
+    // разбора префикса в хеш уходит вся строка целиком, значение расходится с
+    // константой HASH, и тест краснеет по совпадению, а не по замыслу.
+    //
+    // Разбор регистрозависимый. RFC 7235 объявляет схему авторизации
+    // регистронезависимой, то есть мы строже стандарта — это осознанно:
+    // раннера пишем мы сами, и заголовок формирует наш же код.
+    const { guard } = makeGuard([{ id: 'p-1' }]);
+
+    await expect(guard.canActivate(makeContext(TOKEN))).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
   it('неизвестный токен — 401', async () => {
     const { guard } = makeGuard([]);
 
@@ -1334,6 +1347,15 @@ describe('RunnerController.poll', () => {
       turn: { id: 't-1', prompt: 'поправь футер' },
       product: { checkoutPath: '/srv/app' },
     });
+
+    // Набор ключей проверяется точно, а не toMatchObject. Guard кладёт в
+    // req.product всю строку продукта, включая user_id и claude_session_id;
+    // маршрут, пробросивший её целиком или получивший новое поле в guard,
+    // отдал бы раннеру лишнее — и этот тест это заметит.
+    expect(Object.keys(res.product).sort()).toEqual(
+      ['buildCmd', 'checkoutPath', 'claudeSessionId', 'healthUrl', 'repoUrl', 'restartCmd'].sort(),
+    );
+    expect(Object.keys(res.turn!).sort()).toEqual(['id', 'prompt', 'revertToSha', 'userId'].sort());
   });
 
   it('пустая очередь — turn: null, а не ошибка', async () => {
@@ -1395,20 +1417,6 @@ Expected: FAIL — `Cannot find module './runner.controller'`
 В `src/products/turns.service.ts`:
 
 ```ts
-  /**
-   * Ход принадлежит продукту — или 404. Нужен там, где ограничить запросом
-   * нельзя: события уезжают в Redis по ключу хода, а продукта в этом ключе
-   * нет. `RunnerGuard` подтверждает, каким продуктом является раннер, но не
-   * то, что переданный `turnId` относится к этому продукту.
-   */
-  async assertTurnBelongsTo(turnId: string, productId: string): Promise<void> {
-    const r = await this.pg.query(
-      `SELECT 1 FROM product_turns WHERE id = $1 AND product_id = $2`,
-      [turnId, productId],
-    );
-    if (!r.rows[0]) throw new NotFoundException('Turn not found');
-  }
-
   /** Heartbeat раннера. Пишется на каждом опросе, независимо от наличия хода. */
   async touchRunner(productId: string) {
     await this.pg.query(`UPDATE products SET runner_seen_at = now() WHERE id = $1`, [productId]);
@@ -1616,13 +1624,22 @@ Expected: FAIL — `Cannot find module './products.controller'`
 В `src/products/turns.service.ts` (`RedisService` уже в конструкторе с Task 3):
 
 ```ts
-  private eventsKey(turnId: string) {
-    return `product:turn:${turnId}:events`;
+  /**
+   * Продукт в ключе — это ограничение по конструкции, а не проверка.
+   *
+   * Клиент дочитывает поток по своему маршруту и составляет ключ из своих же
+   * параметров, поэтому до чужого хода не дотянется в принципе. Раннер,
+   * пославший события не в тот ход, пишет в ключ, который никто не читает.
+   * Проверять нечего и забыть нечего — в отличие от варианта с явной
+   * проверкой принадлежности на каждом маршруте.
+   */
+  private eventsKey(productId: string, turnId: string) {
+    return `product:${productId}:turn:${turnId}:events`;
   }
 
   /** Раннер шлёт сюда события хода; живут час — этого хватает на дочитывание. */
-  async appendEvent(turnId: string, event: any) {
-    const key = this.eventsKey(turnId);
+  async appendEvent(productId: string, turnId: string, event: any) {
+    const key = this.eventsKey(productId, turnId);
     await this.redis.rpush(key, JSON.stringify(event));
     await this.redis.expire(key, 3600);
   }
@@ -1632,8 +1649,8 @@ Expected: FAIL — `Cannot find module './products.controller'`
    * либо когда ход в базе уже не `running` — иначе клиент повиснет навсегда,
    * если раннер умер, не дописав финальное событие.
    */
-  async *readEvents(turnId: string): AsyncGenerator<any> {
-    const key = this.eventsKey(turnId);
+  async *readEvents(productId: string, turnId: string): AsyncGenerator<any> {
+    const key = this.eventsKey(productId, turnId);
     let cursor = 0;
     for (let tick = 0; tick < 1800; tick++) {
       const batch = await this.redis.lrange(key, cursor, -1);
@@ -1654,6 +1671,16 @@ Expected: FAIL — `Cannot find module './products.controller'`
     yield { type: 'error', message: 'Ход не завершился за отведённое время' };
   }
 
+  /**
+   * Владение здесь НЕ проверяется — историю отдаёт контроллер после
+   * `getOwned`. Это осознанное исключение из правила, по которому статус
+   * продукта, баланс и владение переехали в `enqueue`: там два входа (web и
+   * telegram), а история пока читается только из веба.
+   *
+   * Если появится телеграм-вход в историю — переносить проверку сюда, тем же
+   * приёмом, что в `enqueue`. Иначе он унаследует остальное даром и молча
+   * останется без владения.
+   */
   async history(productId: string) {
     const r = await this.pg.query(
       `SELECT id, channel, prompt, result, status, sha_before, sha_after,
@@ -1724,7 +1751,7 @@ export class ProductsController {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('X-Accel-Buffering', 'no');
 
-    for await (const event of this.turns.readEvents(turn.id)) {
+    for await (const event of this.turns.readEvents(id, turn.id)) {
       res.write(JSON.stringify(event) + '\n');
     }
     res.end();
@@ -1759,9 +1786,8 @@ export class ProductsController {
    */
   @Post('products/runner/turns/:id/events')
   async events(@Req() req: any, @Param('id') id: string, @Body() body: { events: any[] }) {
-    await this.turns.assertTurnBelongsTo(id, req.product.id);
     for (const event of body.events ?? []) {
-      await this.turns.appendEvent(id, event);
+      await this.turns.appendEvent(req.product.id, id, event);
     }
     return { ok: true };
   }
