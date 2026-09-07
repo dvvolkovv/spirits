@@ -627,7 +627,12 @@ export interface CompleteInput {
         input.error ?? null,
         input.shaBefore ?? null,
         input.shaAfter ?? null,
-        input.status === 'done' ? (input.tokens ?? 0) : 0,
+        // Клампим: на колонке стоит CHECK (tokens_spent >= 0), а тело запроса
+        // раннера типизировано TS-типом при ValidationPipe({whitelist:false}) —
+        // рантайм-валидации нет. Раннер с tokens: -5 иначе получит 23514 наружу
+        // необработанным 500, ход останется running, и мьютекс продержит продукт
+        // до reapStuck через полчаса.
+        input.status === 'done' ? Math.max(0, input.tokens ?? 0) : 0,
       ],
     );
 
@@ -1564,12 +1569,22 @@ echo "Сохрани токен сейчас — второй раз он не �
 
 ```bash
 chmod +x scripts/products-register.sh
-ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c '\\d products'"
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT conname, contype FROM pg_constraint WHERE conrelid = 'product_turns'::regclass ORDER BY conname;\""
 ```
 
-Expected: таблица существует — модуль накатил её сам при старте.
+Expected: среди прочего — `CHECK` на `status` и `CHECK` на `tokens_spent`.
 
-Если таблицы нет — смотреть в логи старта `pm2 logs linkeon-api | grep "products migration"`. Файл в `migrations/` сам по себе ничего не доказывает; проверка — только запросом к базе.
+**Критерий приёмки здесь — наличие констрейнтов, а не наличие таблиц.** Разница принципиальная: `CREATE TABLE IF NOT EXISTS` не добавляет констрейнты к уже существующей таблице. Если `products`/`product_turns` где-то уже созданы прежней редакцией `001` — на тестовом стенде, в чьей-то локальной базе, параллельной сессией — миграция отработает как no-op, ни один `CHECK` не появится, а в логе будет зелёное `products migration 001_products.sql applied from ...`. Проверка «таблицы существуют» пройдёт на старой схеме и ничего не докажет.
+
+Поэтому **до выката** убедиться, что таблиц ещё нигде нет:
+
+```bash
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT to_regclass('products'), to_regclass('product_turns');\""
+```
+
+Если обе `NULL` — редактировать `001` на месте законно, он ещё нигде не применялся. Если хотя бы одна не `NULL` — заводить `002_*.sql` с `ALTER TABLE ... ADD CONSTRAINT` и не полагаться на `001`.
+
+Если таблиц нет и после выката — смотреть логи старта `pm2 logs linkeon-api | grep "products migration"`. Файл в `migrations/` сам по себе ничего не доказывает.
 
 - [ ] **Step 3: Проверить контракт раннера curl'ом**
 
