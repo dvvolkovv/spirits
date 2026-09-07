@@ -309,7 +309,10 @@ describe('Git — настоящий child_process', () => {
     const sentinel = path.join(dir, 'pwned');
     // Git без инжектированного раннера — идёт настоящий execFile.
     const git = new Git(dir);
-    await git.commitAll(`правка"; touch ${sentinel}; echo "`);
+    // Payload намеренно БЕЗ вложенных кавычек. С ними они замыкают друг
+    // друга при склейке в строку, точка с запятой теряет спецсмысл, и
+    // мутация exec/execFile проходит незамеченной — проверено.
+    await git.commitAll(`правка; touch ${sentinel} #`);
 
     expect(fs.existsSync(sentinel)).toBe(false);
     // И сообщение сохранилось буквально, а не обрезалось по разделителю.
@@ -459,6 +462,27 @@ describe('checkHealth', () => {
     // бесполезна — именно этот случай ловит тест.
     const fetchFn = jest.fn(async () =>
       response({ status: 200, contentType: 'text/html; charset=utf-8', body: '<!doctype html><div id="root">' }),
+    );
+
+    await expect(checkHealth('https://x/api/healthz', fetchFn as any)).resolves.toBe(false);
+  });
+
+  it('HTML по content-type нездоров даже без doctype в теле', async () => {
+    // Изолирует проверку заголовка. В общем тесте про SPA-фолбэк ответ
+    // одновременно и text/html, и с doctype — там любая из двух защит ловит
+    // случай в одиночку, поэтому снятие любой из них проходило незамеченным.
+    const fetchFn = jest.fn(async () =>
+      response({ status: 200, contentType: 'text/html; charset=utf-8', body: '<div>root</div>' }),
+    );
+
+    await expect(checkHealth('https://x/api/healthz', fetchFn as any)).resolves.toBe(false);
+  });
+
+  it('doctype в теле нездоров даже при честном content-type', async () => {
+    // Изолирует проверку тела: заголовок может соврать, а страница-заглушка
+    // прийти под application/json.
+    const fetchFn = jest.fn(async () =>
+      response({ status: 200, contentType: 'application/json', body: '<!doctype html><div id="root">' }),
     );
 
     await expect(checkHealth('https://x/api/healthz', fetchFn as any)).resolves.toBe(false);
