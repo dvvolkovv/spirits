@@ -1655,7 +1655,20 @@ git commit -m "feat(products): long-poll и финализация хода дл
 `src/products/products.controller.spec.ts`:
 
 ```ts
+import { NotFoundException } from '@nestjs/common';
 import { ProductsController } from './products.controller';
+
+// Минимальный req: нужен только обработчик 'close', которым маршрут узнаёт
+// об обрыве клиента.
+function makeReq() {
+  const handlers: Record<string, (() => void)[]> = {};
+  return {
+    on: (event: string, fn: () => void) => {
+      (handlers[event] ??= []).push(fn);
+    },
+    fireClose: () => (handlers['close'] ?? []).forEach((fn) => fn()),
+  };
+}
 
 function makeRes() {
   const chunks: string[] = [];
@@ -1701,7 +1714,7 @@ describe('ProductsController.chat', () => {
     ]);
     const res = makeRes();
 
-    await ctrl.chat(user, 'p-1', { prompt: 'поправь футер' } as any, res as any);
+    await ctrl.chat(user, 'p-1', { prompt: 'поправь футер' } as any, makeReq() as any, res as any);
 
     expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/plain; charset=utf-8');
     expect(res.setHeader).toHaveBeenCalledWith('X-Accel-Buffering', 'no');
@@ -1712,7 +1725,7 @@ describe('ProductsController.chat', () => {
   it('проверяет владение продуктом до постановки хода', async () => {
     const { ctrl, products, turns } = makeController([{ type: 'end' }]);
 
-    await ctrl.chat(user, 'p-1', { prompt: 'go' } as any, makeRes() as any);
+    await ctrl.chat(user, 'p-1', { prompt: 'go' } as any, makeReq() as any, makeRes() as any);
 
     expect(products.getOwned).toHaveBeenCalledWith('p-1', 'u-1');
     expect(products.getOwned.mock.invocationCallOrder[0]).toBeLessThan(
@@ -1730,7 +1743,7 @@ describe('ProductsController.chat — защита от подделки отк�
     // произвольный коммит мимо всех проверок revert().
     const { ctrl, turns } = makeController([{ type: 'end' }]);
 
-    await ctrl.chat(user, 'p-1', { prompt: 'go', revertToSha: 'deadbeef' } as any, makeRes() as any);
+    await ctrl.chat(user, 'p-1', { prompt: 'go', revertToSha: 'deadbeef' } as any, makeReq() as any, makeRes() as any);
 
     expect(turns.enqueue).toHaveBeenCalledWith(
       expect.not.objectContaining({ revertToSha: expect.anything() }),
@@ -1747,6 +1760,74 @@ describe('ProductsController.revert', () => {
 
     expect(products.getOwned).toHaveBeenCalledWith('p-1', 'u-1');
     expect(turns.revert).toHaveBeenCalledWith({ productId: 'p-1', turnId: 't-1', userId: 'u-1' });
+  });
+});
+
+describe('ProductsController.history', () => {
+  it('чужой продукт не отдаёт историю', async () => {
+    // Проверка порядка через invocationCallOrder здесь недостаточна: она
+    // фиксирует момент ОБРАЩЕНИЯ к getOwned, а не его завершения, поэтому
+    // потеря `await` её не роняет. А без await отказ всплывает уже после
+    // того, как история прочитана и отдана.
+    //
+    // Этот тест проверяет саму гарантию: если владение не подтверждено,
+    // history не должен быть вызван вовсе.
+    const { ctrl, products, turns } = makeController([]);
+    products.getOwned.mockRejectedValue(new NotFoundException('Product not found'));
+
+    await expect(ctrl.history(user, 'p-1', makeRes() as any)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(turns.history).not.toHaveBeenCalled();
+  });
+
+  it('своя история читается с владельцем в запросе', async () => {
+    const { ctrl, turns } = makeController([]);
+
+    await ctrl.history(user, 'p-1', makeRes() as any);
+
+    // userId уезжает в сервис второй линией защиты — одной контроллерной
+    // проверки мало, см. комментарий в TurnsService.history.
+    expect(turns.history).toHaveBeenCalledWith('p-1', 'u-1');
+  });
+});
+
+describe('ProductsController.chat — владение и обрыв', () => {
+  it('чужой продукт не ставит ход', async () => {
+    const { ctrl, products, turns } = makeController([{ type: 'end' }]);
+    products.getOwned.mockRejectedValue(new NotFoundException('Product not found'));
+
+    await expect(
+      ctrl.chat(user, 'p-1', { prompt: 'go' } as any, makeReq() as any, makeRes() as any),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(turns.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('обрыв клиента прекращает чтение потока', async () => {
+    // Без этого генератор крутится до своего предела в 15 минут, опрашивая
+    // Redis и Postgres ради ответа, который некому принять: nginx рвёт
+    // соединение по proxy_read_timeout заметно раньше.
+    const { ctrl } = makeController([
+      { type: 'begin' },
+      { type: 'item', content: 'первый' },
+      { type: 'item', content: 'второй' },
+      { type: 'end' },
+    ]);
+    const req = makeReq();
+    const res = makeRes();
+
+    const done = ctrl.chat(user, 'p-1', { prompt: 'go' } as any, req as any, res as any);
+    req.fireClose();
+    await done;
+
+    // Что-то могло успеть уйти до обрыва, но поток не дочитан до конца.
+    const types = res.chunks
+      .join('')
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((l) => JSON.parse(l).type);
+    expect(types).not.toContain('end');
   });
 });
 ```
