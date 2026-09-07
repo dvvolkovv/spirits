@@ -1803,10 +1803,20 @@ describe('ProductsController.chat — владение и обрыв', () => {
     expect(turns.enqueue).not.toHaveBeenCalled();
   });
 
-  it('обрыв клиента прекращает чтение потока', async () => {
-    // Без этого генератор крутится до своего предела в 15 минут, опрашивая
-    // Redis и Postgres ради ответа, который некому принять: nginx рвёт
-    // соединение по proxy_read_timeout заметно раньше.
+it('обрыв клиента прекращает чтение потока', async () => {
+    // ВАЖНО (отклонение от синхронного fireClose сразу после вызова chat()):
+    // getOwned() и enqueue() внутри chat() — обе async-функции без внутренних
+    // await, но `await` в самом chat() всё равно требует минимум один тик
+    // микрозадач на каждую, чтобы продолжить выполнение. req.on('close', ...)
+    // регистрируется только ПОСЛЕ обеих. Синхронный `req.fireClose()` сразу
+    // после `ctrl.chat(...)` (как в первой версии этого теста) стабильно
+    // ничего не обрывает — обработчик ещё не зарегистрирован, — и тест
+    // одинаково "проходил" бы что с проверкой clientGone, что без неё.
+    //
+    // Вместо подсчёта тиков привязываем обрыв к наблюдаемому событию: клиент
+    // исчезает сразу после получения первого чанка. Это не только надёжнее
+    // (не зависит от числа await до регистрации обработчика), но и ближе к
+    // реальности — соединение рвётся уже во время стрима, а не до его начала.
     const { ctrl } = makeController([
       { type: 'begin' },
       { type: 'item', content: 'первый' },
@@ -1815,19 +1825,19 @@ describe('ProductsController.chat — владение и обрыв', () => {
     ]);
     const req = makeReq();
     const res = makeRes();
+    res.write.mockImplementationOnce((s: string) => {
+      res.chunks.push(s);
+      req.fireClose();
+      return true;
+    });
 
-    const done = ctrl.chat(user, 'p-1', { prompt: 'go' } as any, req as any, res as any);
-    req.fireClose();
-    await done;
+    await ctrl.chat(user, 'p-1', { prompt: 'go' } as any, req as any, res as any);
 
-    // Что-то могло успеть уйти до обрыва, но поток не дочитан до конца.
-    const types = res.chunks
-      .join('')
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .map((l) => JSON.parse(l).type);
-    expect(types).not.toContain('end');
+    const types = res.chunks.join('').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l).type);
+    expect(types).toEqual(['begin']);
+    // Обрыв не просто прекращает запись — res.end() тоже не должен звонить
+    // в уже закрытый сокет.
+    expect(res.end).not.toHaveBeenCalled();
   });
 });
 ```
