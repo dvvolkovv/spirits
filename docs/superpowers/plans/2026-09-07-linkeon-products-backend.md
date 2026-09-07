@@ -641,14 +641,24 @@ git commit -m "feat(products): постановка хода в очередь �
 ```ts
 import { TurnsService } from './turns.service';
 
-function makeService(rows: Record<string, any[]> = {}) {
+function makeService(opts: { claim?: any[]; used?: number; alreadyFinal?: boolean } = {}) {
   const calls: { sql: string; params: any[] }[] = [];
-  const deductTokens = jest.fn(async () => 0);
+  // Возвращает фактически списанное — как настоящий deductTokens, который при
+  // нехватке баланса берёт остаток и отдаёт число меньше запрошенного.
+  const deductTokens = jest.fn(async (_u: string, amount: number) => opts.used ?? amount);
   const pg = {
     query: jest.fn(async (sql: string, params: any[] = []) => {
       calls.push({ sql, params });
-      if (sql.includes("SET status = 'running'")) return { rows: rows.claim ?? [{ id: 't-1', prompt: 'go' }] };
-      return { rows: [] };
+      if (sql.includes("SET status = 'running'")) {
+        const rows = opts.claim ?? [{ id: 't-1', prompt: 'go', channel: 'web', user_id: 'u-1' }];
+        return { rows, rowCount: rows.length };
+      }
+      // rowCount = 0 моделирует «ход уже финализирован»: сторож
+      // `AND status = 'running'` не нашёл строки, и повтор обязан стать no-op.
+      if (sql.includes("AND status = 'running'")) {
+        return { rows: [], rowCount: opts.alreadyFinal ? 0 : 1 };
+      }
+      return { rows: [], rowCount: 0 };
     }),
   };
   const redis = { rpush: jest.fn(), expire: jest.fn(), lrange: jest.fn(async () => []) };
@@ -671,6 +681,19 @@ describe('TurnsService.claimNext', () => {
     expect(sqlOf(calls)).toContain("status = 'queued'");
     expect(sqlOf(calls)).toContain('FOR UPDATE SKIP LOCKED');
     expect(sqlOf(calls)).toContain('LIMIT 1');
+    // Перевод в running охраняется явно, а не через диспетчер мока: тот
+    // маршрутизирует по этой же строке, поэтому покрытие есть, но невидимое —
+    // переписав мок на другой предикат, его снимут не заметив.
+    expect(sqlOf(calls)).toContain("SET status = 'running'");
+    // Самая дорогая из подмен в этом запросе. reapStuck (Task 10) отбирает
+    // ходы по `started_at < now() - interval '30 minutes'`; при started_at
+    // IS NULL сравнение даёт NULL, строка не отбирается никогда, и мьютекс
+    // держит продукт вечно. То есть снятие этой строки молча выключает
+    // единственный механизм самовосстановления.
+    expect(sqlOf(calls)).toContain('started_at = now()');
+    // Task 7 читает prompt, channel и user_id и шлёт их на VM. Мок эти поля
+    // выдумывает, поэтому усечение RETURNING без утверждения незаметно.
+    expect(sqlOf(calls)).toContain('RETURNING id, prompt, channel, user_id');
   });
 
   it('отдаёт null, когда очередь пуста', async () => {
@@ -707,6 +730,33 @@ describe('TurnsService.complete', () => {
     expect(calls[0].sql).toContain('COALESCE($5, sha_before)');
     expect(calls[0].sql).toContain('result = $3, error = $4');
     expect(calls[0].sql).toContain('tokens_spent = $7');
+    expect(calls[0].sql).toContain('finished_at = now()');
+    // Сторож состояния — то, что делает повтор безвредным.
+    expect(calls[0].sql).toContain("AND status = 'running'");
+  });
+
+  it('повторный complete не списывает второй раз', async () => {
+    // Маршрут завершения идёт с клиентской VM через интернет: таймаут чтения
+    // ответа при доставленном запросе штатен, и раннер обязан ретраить. Без
+    // сторожа состояния пользователь платит дважды за один ход.
+    const { svc, deductTokens } = makeService({ alreadyFinal: true });
+
+    await svc.complete('t-1', { userId: 'u-1', status: 'done', tokens: 1200 });
+
+    expect(deductTokens).not.toHaveBeenCalled();
+  });
+
+  it('в историю пишется фактически списанное, а не запрошенное', async () => {
+    // deductTokens при нехватке баланса берёт остаток и возвращает меньше
+    // запрошенного. Если писать в tokens_spent число из тела раннера, кабинет
+    // покажет пользователю расход, которого с него не взяли.
+    const { svc, calls } = makeService({ used: 300 });
+
+    await svc.complete('t-1', { userId: 'u-1', status: 'done', tokens: 1200 });
+
+    const fix = calls.find((c) => c.sql.includes('SET tokens_spent = $2'));
+    expect(fix).toBeDefined();
+    expect(fix!.params).toEqual(['t-1', 300]);
   });
 
   it('отрицательные токены от раннера не уходят в базу', async () => {
@@ -762,17 +812,34 @@ export interface CompleteInput {
   tokens?: number;
 }
 
+/**
+ * Форма, которую `claimNext` отдаёт раннеру. Отличается от `TurnRow`: там
+ * `{id, status}` для клиента, здесь всё, что нужно на VM для запуска хода.
+ * Значение пересекает границу процесса, поэтому нетипизированным быть не
+ * должно.
+ */
+export interface ClaimedTurn {
+  id: string;
+  prompt: string;
+  channel: string;
+  user_id: string;
+}
+
   /**
    * SKIP LOCKED: если раннер продукта по какой-то причине запущен в двух
    * экземплярах, второй не заблокируется на строке, а увидит пустую очередь.
    */
-  async claimNext(productId: string) {
+  async claimNext(productId: string): Promise<ClaimedTurn | null> {
     const r = await this.pg.query(
       `UPDATE product_turns
           SET status = 'running', started_at = now()
         WHERE id = (
           SELECT id FROM product_turns
            WHERE product_id = $1 AND status = 'queued'
+           -- ORDER BY здесь страховка, а не работающая логика: частичный
+           -- уникальный индекс из Task 1 не допускает больше одной строки в
+           -- ('queued','running') на продукт, значит сортировать нечего.
+           -- Строка остаётся на случай ослабления предиката индекса.
            ORDER BY created_at
            FOR UPDATE SKIP LOCKED
            LIMIT 1
@@ -790,14 +857,32 @@ export interface CompleteInput {
    * действует при временном сбое связи с моделью в чате.
    */
   async complete(turnId: string, input: CompleteInput) {
-    await this.pg.query(
+    // `AND status = 'running'` делает финализацию переходом состояния, а не
+    // перезаписью, и это обязательное условие, а не оптимизация.
+    //
+    // Маршрут завершения идёт с клиентской VM через интернет: таймаут чтения
+    // ответа при успешно доставленном запросе — штатное событие, и раннер
+    // обязан ретраить. Без сторожа повтор списывал бы токены второй раз за
+    // тот же ход.
+    //
+    // Второй сценарий дороже: reapStuck (Task 10) переводит зависший ход в
+    // `failed`, а опоздавший ответ раннера воскрешал бы его в `done` и брал
+    // деньги за работу, за которую решили не брать.
+    //
+    // Транзакции здесь нет намеренно. `PgService.query` ходит через пул, а
+    // `BEGIN` через пул на этом проекте уже давал код, рапортующий об откате,
+    // которого не было. Сторож состояния даёт нужное свойство дешевле: повтор
+    // становится безвредным no-op, а окно падения процесса превращается в
+    // недобор («записано, но не списано»), а не в перебор. Недобор ловится
+    // сверкой `tokens_spent` с `token_transactions`, перебор — только жалобой.
+    const claimed = await this.pg.query(
       `UPDATE product_turns
           SET status = $2, result = $3, error = $4,
               sha_before = COALESCE($5, sha_before),
               sha_after = $6,
               tokens_spent = $7,
               finished_at = now()
-        WHERE id = $1`,
+        WHERE id = $1 AND status = 'running'`,
       [
         turnId,
         input.status,
@@ -814,8 +899,24 @@ export interface CompleteInput {
       ],
     );
 
+    if (claimed.rowCount !== 1) {
+      this.logger.warn(`complete: ход ${turnId} уже финализирован, повтор проигнорирован`);
+      return;
+    }
+
     if (input.status === 'done' && (input.tokens ?? 0) > 0) {
-      await this.misc.deductTokens(input.userId, input.tokens!, `product turn ${turnId}`);
+      // deductTokens возвращает, сколько списалось ФАКТИЧЕСКИ — при нехватке
+      // баланса меньше запрошенного, и её докблок прямо предлагает этим
+      // числом воспользоваться. Пишем его обратно: иначе история в кабинете
+      // покажет пользователю расход, которого с него не взяли.
+      const used = await this.misc.deductTokens(
+        input.userId,
+        Math.max(0, input.tokens!),
+        `product turn ${turnId}`,
+      );
+      if (used !== input.tokens) {
+        await this.pg.query(`UPDATE product_turns SET tokens_spent = $2 WHERE id = $1`, [turnId, used]);
+      }
     }
   }
 ```
