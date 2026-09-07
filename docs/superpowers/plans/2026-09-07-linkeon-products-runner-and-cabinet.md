@@ -1183,7 +1183,7 @@ const PRODUCT = {
 const TURN = { id: 't-1', prompt: 'поправь футер', userId: 'u-1', revertToSha: null };
 
 describe('executeTurn — обычный ход', () => {
-  it('сохраняет ручные правки ДО снятия sha_before', async () => {
+  it('сохраняет ручные правки ДО снятия точки возврата', async () => {
     const d = makeDeps();
 
     await executeTurn({ turn: TURN, product: PRODUCT, config: {} as any, ...d } as any);
@@ -1213,6 +1213,16 @@ describe('executeTurn — обычный ход', () => {
     expect(d.api.complete).toHaveBeenCalledWith('t-1', expect.objectContaining({ status: 'reverted' }));
   });
 
+  it('откаченный ход не сообщает sha_after', async () => {
+    // Иначе история покажет коммит, которого в дереве уже нет.
+    const d = makeDeps({ deploy: jest.fn(async () => ({ reverted: true })) });
+
+    await executeTurn({ turn: TURN, product: PRODUCT, config: {} as any, ...d } as any);
+
+    const payload = d.api.complete.mock.calls[0][1];
+    expect(payload.shaAfter).toBeUndefined();
+  });
+
   it('упавший claude докладывает failed и НЕ деплоит', async () => {
     const d = makeDeps({ runClaude: jest.fn(async () => ({ ok: false, error: 'claude exited 1' })) });
 
@@ -1221,11 +1231,21 @@ describe('executeTurn — обычный ход', () => {
     expect(d.deploy).not.toHaveBeenCalled();
     expect(d.api.complete).toHaveBeenCalledWith('t-1', expect.objectContaining({ status: 'failed' }));
   });
+
+  it('упавший claude не коммитит недоделанное', async () => {
+    // Агент мог успеть напортить в файлах до падения. Коммитить это значит
+    // закрепить полуфабрикат в истории и в sha_after.
+    const d = makeDeps({ runClaude: jest.fn(async () => ({ ok: false, error: 'boom' })) });
+
+    await executeTurn({ turn: TURN, product: PRODUCT, config: {} as any, ...d } as any);
+
+    expect(d.git.commitAll).not.toHaveBeenCalled();
+  });
 });
 
 describe('executeTurn — служебный ход отката', () => {
-  // Откат опознаётся по полю, а не по префиксу промпта. Промпт при этом
-  // человекочитаемый и показывается в истории как есть.
+  // Откат опознаётся по полю, а не по префиксу промпта: строковый контракт
+  // между двумя репозиториями разъезжается молча, и его нечем охранять.
   const revertTurn = { id: 't-2', prompt: 'Откат к aaa111', userId: 'u-1', revertToSha: 'aaa111' };
 
   it('не запускает claude', async () => {
@@ -1243,6 +1263,15 @@ describe('executeTurn — служебный ход отката', () => {
 
     expect(d.git.resetHard).toHaveBeenCalledWith('aaa111');
     expect(d.api.complete).toHaveBeenCalledWith('t-2', expect.objectContaining({ status: 'reverted' }));
+  });
+
+  it('откат не тарифицируется', async () => {
+    const d = makeDeps();
+
+    await executeTurn({ turn: revertTurn, product: PRODUCT, config: {} as any, ...d } as any);
+
+    const payload = d.api.complete.mock.calls[0][1];
+    expect(payload.tokens ?? 0).toBe(0);
   });
 });
 ```
