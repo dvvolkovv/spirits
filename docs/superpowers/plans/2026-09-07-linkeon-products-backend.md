@@ -1356,7 +1356,8 @@ function makeController(claimResult: any) {
     complete: jest.fn(async () => undefined),
     touchRunner: jest.fn(async () => undefined),
   };
-  return { ctrl: new RunnerController(turns as any), turns };
+  const turnEvents = { appendEvent: jest.fn(async () => undefined) };
+  return { ctrl: new RunnerController(turns as any, turnEvents as any), turns, turnEvents };
 }
 
 // Фикстура повторяет то, что кладёт в запрос RunnerGuard — всю строку
@@ -1531,6 +1532,9 @@ describe('TurnsService.touchRunner', () => {
     expect(calls[0].sql).toContain('ELSE status END');
     // Условная запись — иначе два десятка записей в минуту на продукт.
     expect(calls[0].sql).toContain("interval '30 seconds'");
+    // Третье условие ускоряет восстановление: без него продукт, помеченный
+    // degraded при свежей отметке, ждал бы истечения порога.
+    expect(calls[0].sql).toContain("OR status = 'degraded'");
     expect(calls[0].sql).toContain('WHERE id = $1');
     expect(calls[0].params).toEqual(['p-1']);
   });
@@ -1547,11 +1551,15 @@ describe('TurnsService.touchRunner', () => {
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { RunnerGuard } from './runner.guard';
 import { TurnsService, CompleteInput } from './turns.service';
+import { TurnEventsService } from './turn-events.service';
 
 @Controller('')
 @UseGuards(RunnerGuard)
 export class RunnerController {
-  constructor(private readonly turns: TurnsService) {}
+  constructor(
+    private readonly turns: TurnsService,
+    private readonly turnEvents: TurnEventsService,
+  ) {}
 
   /**
    * Long-poll раннера. Возвращает задание либо turn: null. Раннер зовёт этот
@@ -1630,11 +1638,17 @@ git commit -m "feat(products): long-poll и финализация хода дл
 ### Task 8: Клиентские маршруты и стриминг
 
 **Files:**
+- Create: `src/products/turn-events.service.ts`
 - Create: `src/products/products.controller.ts`
-- Modify: `src/products/turns.service.ts` (добавить `history`, `appendEvent`, `readEvents`)
-- Test: `src/products/products.controller.spec.ts`
+- Modify: `src/products/turns.service.ts` (добавить `history`, **убрать `RedisService` из конструктора**)
+- Modify: `src/products/runner.controller.ts` (маршрут событий)
+- Test: `src/products/turn-events.spec.ts`, `src/products/products.controller.spec.ts`
 
-Стриминг устроен так: раннер шлёт события в `POST /products/runner/turns/:id/events`, бэкенд складывает их в Redis-список по ключу хода, а клиентский `POST /products/:id/chat` читает оттуда и отдаёт NDJSON. Так ход переживает обрыв клиентского соединения — клиент переподключается и дочитывает.
+Стриминг устроен так: раннер шлёт события в `POST /products/runner/turns/:id/events`, бэкенд складывает их в Redis-список, а клиентский `POST /products/:id/chat` читает оттуда и отдаёт NDJSON. Так ход переживает обрыв клиентского соединения — клиент переподключается и дочитывает.
+
+**Буфер событий живёт в отдельном сервисе, а не в `TurnsService`.** Решение откладывалось до этой задачи и принимается здесь по зависимости, а не по числу строк: буфер — единственный потребитель `RedisService`, и продуктовый ключ сделал его самодостаточным (ему не нужен ни один метод `TurnsService`). Оставить его в общем файле означало бы, что `TurnsService` зависит от Postgres и Redis по двум несвязанным причинам.
+
+Побочно это чинит уже существующий дефект: `RedisService` лежит в конструкторе `TurnsService` с Task 3 и **не используется ни разу** — `this.redis` не встречается в файле. Задел, который так и не понадобился. Убираем оттуда, а тестовые фабрики в `turns.enqueue.spec.ts`, `turns.lifecycle.spec.ts` и `turns.revert.spec.ts` перестают его подсовывать.
 
 - [ ] **Step 1: Написать падающий тест**
 
@@ -1662,11 +1676,18 @@ function makeController(events: any[]) {
   };
   const turns = {
     enqueue: jest.fn(async () => ({ id: 't-1' })),
-    readEvents: jest.fn(async function* () { for (const e of events) yield e; }),
     history: jest.fn(async () => []),
     revert: jest.fn(async () => ({ id: 't-revert' })),
   };
-  return { ctrl: new ProductsController(products as any, turns as any), products, turns };
+  const turnEvents = {
+    readEvents: jest.fn(async function* () { for (const e of events) yield e; }),
+  };
+  return {
+    ctrl: new ProductsController(products as any, turns as any, turnEvents as any),
+    products,
+    turns,
+    turnEvents,
+  };
 }
 
 const user = { userId: 'u-1' };
@@ -1735,11 +1756,27 @@ describe('ProductsController.revert', () => {
 Run: `npx jest src/products/products.controller.spec.ts`
 Expected: FAIL — `Cannot find module './products.controller'`
 
-- [ ] **Step 3: Добавить события и историю в сервис**
+- [ ] **Step 3: Создать сервис буфера событий**
 
-В `src/products/turns.service.ts` (`RedisService` уже в конструкторе с Task 3):
+`src/products/turn-events.service.ts`:
 
 ```ts
+import { Injectable } from '@nestjs/common';
+import { PgService } from '../common/services/pg.service';
+import { RedisService } from '../common/services/redis.service';
+
+/**
+ * Буфер событий хода. Отдельный сервис, а не метод `TurnsService`: это
+ * единственный потребитель Redis, и продуктовый ключ сделал его
+ * самодостаточным — ни один метод жизненного цикла хода ему не нужен.
+ */
+@Injectable()
+export class TurnEventsService {
+  constructor(
+    private readonly pg: PgService,
+    private readonly redis: RedisService,
+  ) {}
+
   /**
    * Продукт в ключе — это ограничение по конструкции, а не проверка.
    *
@@ -1786,16 +1823,30 @@ Expected: FAIL — `Cannot find module './products.controller'`
     }
     yield { type: 'error', message: 'Ход не завершился за отведённое время' };
   }
+}
+```
 
+- [ ] **Step 3б: Убрать `RedisService` из `TurnsService`**
+
+Он лежит в конструкторе с Task 3 и не используется ни разу — проверяется командой `grep -c 'this.redis' src/products/turns.service.ts`, должно быть `0` до правки.
+
+Убрать параметр из конструктора и импорт. Затем убрать заглушку `redis` из фабрик в `turns.enqueue.spec.ts`, `turns.lifecycle.spec.ts`, `turns.revert.spec.ts` — конструктор станет двухаргументным.
+
+Прогнать `npx jest src/products` — все существующие тесты обязаны остаться зелёными. Если что-то падает, значит зависимость всё-таки использовалась и надо разбираться, а не подгонять.
+
+- [ ] **Step 3в: Добавить историю в `TurnsService`**
+
+В `src/products/turns.service.ts`:
+
+```ts
   /**
-   * Владение здесь НЕ проверяется — историю отдаёт контроллер после
-   * `getOwned`. Это осознанное исключение из правила, по которому статус
-   * продукта, баланс и владение переехали в `enqueue`: там два входа (web и
-   * telegram), а история пока читается только из веба.
+   * Продукт в ключе — это ограничение по конструкции, а не проверка.
    *
-   * Если появится телеграм-вход в историю — переносить проверку сюда, тем же
-   * приёмом, что в `enqueue`. Иначе он унаследует остальное даром и молча
-   * останется без владения.
+   * Клиент дочитывает поток по своему маршруту и составляет ключ из своих же
+   * параметров, поэтому до чужого хода не дотянется в принципе. Раннер,
+   * пославший события не в тот ход, пишет в ключ, который никто не читает.
+   * Проверять нечего и забыть нечего — в отличие от варианта с явной
+   * проверкой принадлежности на каждом маршруте.
    */
   async history(productId: string) {
     const r = await this.pg.query(
@@ -1822,6 +1873,7 @@ import { JwtGuard } from '../common/guards/jwt.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
 import { ProductsService } from './products.service';
 import { TurnsService } from './turns.service';
+import { TurnEventsService } from './turn-events.service';
 
 @Controller('')
 @UseGuards(JwtGuard)
@@ -1829,6 +1881,7 @@ export class ProductsController {
   constructor(
     private readonly products: ProductsService,
     private readonly turns: TurnsService,
+    private readonly turnEvents: TurnEventsService,
   ) {}
 
   @Get('products')
@@ -1867,7 +1920,7 @@ export class ProductsController {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('X-Accel-Buffering', 'no');
 
-    for await (const event of this.turns.readEvents(id, turn.id)) {
+    for await (const event of this.turnEvents.readEvents(id, turn.id)) {
       res.write(JSON.stringify(event) + '\n');
     }
     res.end();
@@ -1903,7 +1956,7 @@ export class ProductsController {
   @Post('products/runner/turns/:id/events')
   async events(@Req() req: any, @Param('id') id: string, @Body() body: { events: any[] }) {
     for (const event of body.events ?? []) {
-      await this.turns.appendEvent(req.product.id, id, event);
+      await this.turnEvents.appendEvent(req.product.id, id, event);
     }
     return { ok: true };
   }
@@ -1981,12 +2034,13 @@ import { ProductsController } from './products.controller';
 import { RunnerController } from './runner.controller';
 import { ProductsService } from './products.service';
 import { TurnsService } from './turns.service';
+import { TurnEventsService } from './turn-events.service';
 import { RunnerGuard } from './runner.guard';
 
 @Module({
   imports: [CommonModule, MiscModule],
   controllers: [ProductsController, RunnerController],
-  providers: [ProductsService, TurnsService, RunnerGuard],
+  providers: [ProductsService, TurnsService, TurnEventsService, RunnerGuard],
   exports: [ProductsService, TurnsService],
 })
 export class ProductsModule {}
