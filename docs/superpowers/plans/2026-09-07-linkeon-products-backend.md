@@ -1507,6 +1507,23 @@ describe('ProductsController.chat', () => {
   });
 });
 
+describe('ProductsController.chat — защита от подделки отката', () => {
+  it('revertToSha из тела запроса не доезжает до enqueue', async () => {
+    // Контроллер обязан перечислять поля явно. Написанный как
+    // `enqueue({ ...body, productId: id, userId })` он вернул бы дыру:
+    // ValidationPipe стоит с whitelist: false и лишние поля из тела не
+    // срезает, а признак отката — это право сбросить прод клиента на
+    // произвольный коммит мимо всех проверок revert().
+    const { ctrl, turns } = makeController([{ type: 'end' }]);
+
+    await ctrl.chat(user, 'p-1', { prompt: 'go', revertToSha: 'deadbeef' } as any, makeRes() as any);
+
+    expect(turns.enqueue).toHaveBeenCalledWith(
+      expect.not.objectContaining({ revertToSha: expect.anything() }),
+    );
+  });
+});
+
 describe('ProductsController.revert', () => {
   it('проверяет владение и ставит откат', async () => {
     const { ctrl, products, turns } = makeController([]);
@@ -1968,6 +1985,18 @@ ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT conname, contype FROM 
 ```
 
 Expected: среди прочего — `CHECK` на `status` и `CHECK` на `tokens_spent`.
+
+Отдельно проверить **состав колонок** — констрейнты его не покрывают:
+
+```bash
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT attname FROM pg_attribute WHERE attrelid = 'product_turns'::regclass AND attnum > 0 AND NOT attisdropped ORDER BY attnum;\""
+```
+
+Expected: среди прочего — `revert_to_sha`.
+
+Это не педантизм, а тот же механизм, который уже приходилось чинить: `CREATE TABLE IF NOT EXISTS` на существующей таблице не добавляет ни констрейнтов, ни **колонок**. Проверку под констрейнты мы завели раньше, а `revert_to_sha` появилась после неё — и приёмка за схемой не поехала. При старой таблице проверка отчитается зелёным, а каждый `enqueue` упадёт в рантайме с `42703: column "revert_to_sha" does not exist`.
+
+Правило общее: сверять по системному каталогу и **пересматривать список при каждом изменении схемы**, а не полагаться на то, что файл `.sql` лежит на месте.
 
 **Критерий приёмки здесь — наличие констрейнтов, а не наличие таблиц.** Разница принципиальная: `CREATE TABLE IF NOT EXISTS` не добавляет констрейнты к уже существующей таблице. Если `products`/`product_turns` где-то уже созданы прежней редакцией `001` — на тестовом стенде, в чьей-то локальной базе, параллельной сессией — миграция отработает как no-op, ни один `CHECK` не появится, а в логе будет зелёное `products migration 001_products.sql applied from ...`. Проверка «таблицы существуют» пройдёт на старой схеме и ничего не докажет.
 
