@@ -1341,11 +1341,30 @@ function makeController(claimResult: any) {
   return { ctrl: new RunnerController(turns as any), turns };
 }
 
-const req = (product: any = { id: 'p-1', user_id: 'u-1', checkout_path: '/srv/app' }) => ({ product });
+// Фикстура повторяет то, что кладёт в запрос RunnerGuard — всю строку
+// продукта. Именно поэтому маршрут обязан собирать ответ явным списком.
+const req = (
+  product: any = {
+    id: 'p-1',
+    user_id: 'u-1',
+    checkout_path: '/srv/app',
+    build_cmd: 'npm run build',
+    restart_cmd: 'pm2 restart web',
+    health_url: 'https://x/api/healthz',
+    repo_url: null,
+    claude_session_id: null,
+  },
+) => ({ product });
 
 describe('RunnerController.poll', () => {
   it('отдаёт задание вместе с контекстом продукта', async () => {
-    const { ctrl } = makeController({ id: 't-1', prompt: 'поправь футер', user_id: 'u-1' });
+    const { ctrl } = makeController({
+      id: 't-1',
+      prompt: 'поправь футер',
+      user_id: 'u-1',
+      channel: 'web',
+      revert_to_sha: null,
+    });
 
     const res = await ctrl.poll(req() as any);
 
@@ -1506,7 +1525,7 @@ export class RunnerController {
 - [ ] **Step 5: Прогнать тест, убедиться что проходит**
 
 Run: `npx jest src/products/runner.controller.spec.ts`
-Expected: PASS, 4 теста
+Expected: PASS, 5 тестов
 
 - [ ] **Step 6: Коммит**
 
