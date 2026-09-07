@@ -175,9 +175,18 @@ export function ProfileScreen() {
               {section.items.map((item, i) => (
                 <li key={`${item.name}-${i}`}>
                   <Card>
-                    <span className="text-sm font-medium text-gray-900">{item.name}</span>
-                    {item.description && (
-                      <span className="mt-0.5 block text-sm text-gray-500">{item.description}</span>
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                      {item.support && (
+                        <span className="shrink-0 text-xs text-gray-400">×{item.support}</span>
+                      )}
+                    </span>
+                    {/* Обоснование из графа — то же поле gloss, что веб
+                        показывает под пунктом. Курсивом, как в вебе. */}
+                    {item.gloss && (
+                      <span className="mt-1 block text-sm italic leading-relaxed text-gray-600">
+                        {item.gloss}
+                      </span>
                     )}
                   </Card>
                 </li>

@@ -4,13 +4,38 @@ import { buildSections, SECTION_KEYS } from './profileSections';
 const профиль = (data: Record<string, unknown>) => [{ profileJson: data }];
 
 describe('buildSections', () => {
-  it('богатая форма побеждает простую: в ней есть пояснения', () => {
+  it('богатая форма побеждает простую: в ней есть обоснование', () => {
+    // Поля ровно те, что приходят с прода: name, gloss, aliases, support.
     const s = buildSections(профиль({
-      desires: ['Свобода'],
-      desiresRich: [{ name: 'Свобода', description: 'Работать откуда угодно' }],
+      desires: ['честность и прозрачность'],
+      desiresRich: [{
+        name: 'честность и прозрачность',
+        gloss: 'Принцип честного общения во всех сферах.',
+        aliases: ['честность'],
+        support: 3,
+      }],
     }));
     expect(s).toHaveLength(1);
-    expect(s[0].items[0]).toEqual({ name: 'Свобода', description: 'Работать откуда угодно' });
+    expect(s[0].items[0]).toEqual({
+      name: 'честность и прозрачность',
+      gloss: 'Принцип честного общения во всех сферах.',
+      support: 3,
+    });
+  });
+
+  it('пустой gloss — это отсутствие обоснования, а не пустая строка под пунктом', () => {
+    // На проде у большинства пунктов gloss именно пустая строка.
+    const s = buildSections(профиль({
+      desiresRich: [{ name: 'продать автомобиль', gloss: '', aliases: ['продать автомобиль'], support: 1 }],
+    }));
+    expect(s[0].items[0]).toEqual({ name: 'продать автомобиль' });
+  });
+
+  it('support показываем только когда пункт встречался не один раз', () => {
+    const один = buildSections(профиль({ valuesRich: [{ name: 'а', support: 1 }] }));
+    expect(один[0].items[0].support).toBeUndefined();
+    const много = buildSections(профиль({ valuesRich: [{ name: 'б', support: 4 }] }));
+    expect(много[0].items[0].support).toBe(4);
   });
 
   it('без богатой берёт простую', () => {
@@ -47,7 +72,7 @@ describe('buildSections', () => {
   });
 
   it('пункты без имени отбрасываются, а не рисуются пустыми строками', () => {
-    const s = buildSections(профиль({ interestsRich: [{ description: 'без имени' }, { name: 'Горы' }] }));
+    const s = buildSections(профиль({ interestsRich: [{ gloss: 'без имени' }, { name: 'Горы' }] }));
     expect(s[0].items).toEqual([{ name: 'Горы' }]);
   });
 });
