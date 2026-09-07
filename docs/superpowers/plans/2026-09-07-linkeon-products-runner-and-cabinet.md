@@ -1191,6 +1191,11 @@ export async function executeTurn(input: ExecuteTurnInput): Promise<void> {
     if (!(await api.sendEvents(turn.id, batch))) buffered.unshift(...batch);
   };
 
+  // Сборка и рестарт — самая долгая часть хода, и для сборщика зависших она
+  // выглядит молчанием: события шлёт только claude, а он в этот момент уже
+  // отработал. Ход, чья сборка идёт дольше получаса, снялся бы как мёртвый.
+  // Поэтому фазы деплоя отчитываются сами — это и признак жизни, и то, что
+  // клиент видит в чате вместо тишины.
   const outcome = await runClaude({
     claudeBin: input.config.claudeBin,
     cwd: product.checkoutPath,
@@ -1217,6 +1222,8 @@ export async function executeTurn(input: ExecuteTurnInput): Promise<void> {
   const shaAfter = await git.commitAll(`linkeon: ${turn.prompt.slice(0, 60)}`);
   await git.push();
 
+  await api.sendEvents(turn.id, [{ type: 'item', content: '\n\nСобираю и перезапускаю…' }]);
+
   const result = await deploy({
     git,
     shaBefore,
@@ -1224,6 +1231,9 @@ export async function executeTurn(input: ExecuteTurnInput): Promise<void> {
     restartCmd: product.restartCmd,
     healthUrl: product.healthUrl,
     cwd: product.checkoutPath,
+    // Отчёт о фазах: без него сборка выглядит для сборщика зависших молчанием,
+    // и ход длиннее получаса снимут как мёртвый — а он жив.
+    onPhase: (phase) => void api.sendEvents(turn.id, [{ type: 'item', content: `\n${phase}` }]),
   });
 
   await api.complete(turn.id, {
