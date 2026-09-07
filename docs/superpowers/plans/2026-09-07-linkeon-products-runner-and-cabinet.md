@@ -917,7 +917,8 @@ import { RunnerConfig } from './config';
 import { NDJsonEvent } from './claude';
 
 export interface PollResult {
-  turn: { id: string; prompt: string; userId: string } | null;
+  /** `revertToSha` непустое => это служебный ход отката, а не запрос к агенту. */
+  turn: { id: string; prompt: string; userId: string; revertToSha: string | null } | null;
   product: {
     checkoutPath: string;
     buildCmd: string | null;
@@ -1056,7 +1057,7 @@ const PRODUCT = {
   claudeSessionId: null,
 };
 
-const TURN = { id: 't-1', prompt: 'поправь футер', userId: 'u-1' };
+const TURN = { id: 't-1', prompt: 'поправь футер', userId: 'u-1', revertToSha: null };
 
 describe('executeTurn — обычный ход', () => {
   it('сохраняет ручные правки ДО снятия sha_before', async () => {
@@ -1100,7 +1101,9 @@ describe('executeTurn — обычный ход', () => {
 });
 
 describe('executeTurn — служебный ход отката', () => {
-  const revertTurn = { id: 't-2', prompt: '__revert__:aaa111', userId: 'u-1' };
+  // Откат опознаётся по полю, а не по префиксу промпта. Промпт при этом
+  // человекочитаемый и показывается в истории как есть.
+  const revertTurn = { id: 't-2', prompt: 'Откат к aaa111', userId: 'u-1', revertToSha: 'aaa111' };
 
   it('не запускает claude', async () => {
     const d = makeDeps();
@@ -1137,8 +1140,6 @@ import { Git } from './git';
 import { NDJsonEvent, runClaude as runClaudeReal } from './claude';
 import { deploy as deployReal } from './deploy';
 
-const REVERT_PREFIX = '__revert__:';
-
 export interface ExecuteTurnInput {
   turn: NonNullable<PollResult['turn']>;
   product: PollResult['product'];
@@ -1159,8 +1160,13 @@ export async function executeTurn(input: ExecuteTurnInput): Promise<void> {
   await git.commitPendingChanges();
   const shaBefore = await git.headSha();
 
-  if (turn.prompt.startsWith(REVERT_PREFIX)) {
-    const target = turn.prompt.slice(REVERT_PREFIX.length);
+  // Признак отката — отдельное поле, а не префикс промпта. Строковый контракт
+  // между двумя репозиториями разъезжается молча, и его нечем охранять: тест
+  // на стороне бэкенда не знает про парсер здесь, а тест здесь не знает про
+  // формат там. Плюс prompt приходит от пользователя, и префикс внутри него
+  // подделывался бы обычным запросом в чат.
+  if (turn.revertToSha) {
+    const target = turn.revertToSha;
     await api.sendEvents(turn.id, [{ type: 'begin' }, { type: 'item', content: `Возвращаю на ${target}` }]);
     await git.resetHard(target);
     await deploy({
