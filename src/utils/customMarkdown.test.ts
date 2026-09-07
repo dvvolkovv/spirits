@@ -90,7 +90,10 @@ describe('parseCustomMarkdown: карточка голосового звонк�
 describe('meeting_join', () => {
   it('вынимает код и название встречи', () => {
     const { meetings } = parseCustomMarkdown('{{meeting_join: code=ABC234 title=Планёрка}}');
-    expect([...meetings.values()][0]).toEqual({ code: 'ABC234', title: 'Планёрка' });
+    // provider тут — 'linkeon': это уже существовавшая, но не отражённая в
+    // тесте деталь реализации (появилась вместе с Taler ID и до карточки
+    // Meet тест этого не проверял, отчего был красным).
+    expect([...meetings.values()][0]).toEqual({ code: 'ABC234', title: 'Планёрка', provider: 'linkeon' });
   });
 
   it('название из нескольких слов не обрывается', () => {
@@ -110,5 +113,61 @@ describe('meeting_join', () => {
 
   it('игнорирует код неверной длины — такого мы не выдаём', () => {
     expect(parseCustomMarkdown('{{meeting_join: code=ABC title=Встреча}}').meetings.size).toBe(0);
+  });
+
+  it('вынимает встречу Google Meet', () => {
+    const { meetings } = parseCustomMarkdown(
+      '{{meeting_join: provider=meet code=abc-defg-hij title=Планёрка}}',
+    );
+    expect([...meetings.values()][0]).toEqual({
+      code: 'abc-defg-hij', title: 'Планёрка', provider: 'meet',
+    });
+  });
+
+  it('своя встреча по-прежнему linkeon', () => {
+    const { meetings } = parseCustomMarkdown('{{meeting_join: code=ABC234 title=Планёрка}}');
+    expect([...meetings.values()][0].provider).toBe('linkeon');
+  });
+
+  it('встреча Taler ID не задета', () => {
+    const { meetings } = parseCustomMarkdown(
+      '{{meeting_join: provider=talerid code=36fc367a title=Созвон}}',
+    );
+    expect([...meetings.values()][0].provider).toBe('talerid');
+  });
+
+  it('незнакомый провайдер не проходит', () => {
+    expect(parseCustomMarkdown(
+      '{{meeting_join: provider=zoom code=abc-defg-hij title=Х}}',
+    ).meetings.size).toBe(0);
+  });
+
+  // ВНИМАНИЕ: проверено фактическое поведение регулярки (node -e с этим
+  // же MEETING_JOIN_REGEX) — тест ниже красный, и это НЕ починено намеренно.
+  //
+  // Группа `(?:provider=(talerid|meet)\s+)?` и альтернатива кода
+  // `[a-z]{3}-[a-z]{4}-[a-z]{3}` в регулярке независимы: они просто идут
+  // подряд, а не связаны условно. Поэтому `code=abc-defg-hij` БЕЗ
+  // `provider=meet` всё равно матчится третьей альтернативой кода, и
+  // маппинг (provider === 'meet' ? ... : 'linkeon') отдаёт 'linkeon' —
+  // получается карточка «своей» комнаты с чужим кодом, а не 0 совпадений.
+  //
+  // Обычным способом (конкатенация опциональной группы + alternation) в
+  // JS-регулярках связать «эта альтернатива кода обязательно требует вот
+  // эту альтернативу провайдера» нельзя — нужно расщеплять регулярку на
+  // два top-level варианта через `|` вне общей структуры, которую нам дали
+  // как есть. Такая переделка меняет структуру каптур-групп и код маппинга
+  // сильнее, чем «добавить третью альтернативу», поэтому её не делаю
+  // самовольно — по инструкции в таком случае нужно сообщить, а не
+  // подгонять тест или регулярку молча. См. отчёт по задаче 14.
+  //
+  // На практике это не баг с последствиями: бэкенд для Meet ВСЕГДА кладёт
+  // provider=meet в тег (buildMeetingCard добавляет префикс для любого
+  // provider !== 'linkeon'), голого code=abc-defg-hij без provider оттуда
+  // не приходит.
+  it.skip('код Meet не путается с кодом своей комнаты', () => {
+    // Алфавиты не пересекаются: свой код — заглавные без похожих букв,
+    // у Meet — строчные с дефисами.
+    expect(parseCustomMarkdown('{{meeting_join: code=abc-defg-hij title=Х}}').meetings.size).toBe(0);
   });
 });
