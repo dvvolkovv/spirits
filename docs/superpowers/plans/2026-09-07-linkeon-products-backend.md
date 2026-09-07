@@ -1756,7 +1756,37 @@ describe('ProductsController.revert', () => {
 Run: `npx jest src/products/products.controller.spec.ts`
 Expected: FAIL — `Cannot find module './products.controller'`
 
+- [ ] **Step 3о: Дописать `rpush` и `lrange` в `RedisService`**
+
+**Их там нет.** `src/common/services/redis.service.ts` умеет `get/set/del/exists/incr/expire/keys` и не отдаёт наружу сырой клиент — списочных операций в нём не существует, значит буфер написать не на чем. Заглушки `redis` в тестах Task 3–7 описывали API, которого не было: их писали, не проверив сервис.
+
+Добавить двумя тонкими обёртками в стиле соседних методов, только добавление:
+
+```ts
+  /** Добавляет значение в конец списка. Нужно буферу событий хода (products). */
+  async rpush(key: string, value: string): Promise<number> {
+    return this.client.rpush(key, value);
+  }
+
+  /** Диапазон списка включительно, как в ioredis/Redis (`-1` — последний элемент). */
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    return this.client.lrange(key, start, stop);
+  }
+```
+
+Это общий файл, которым пользуется десяток модулей. Правка обязана быть чисто аддитивной — существующие методы не трогать.
+
 - [ ] **Step 3: Создать сервис буфера событий**
+
+Тест к этому сервису обязан начинаться с низкого таймаута:
+
+```ts
+// Регрессия, потерявшая условие выхода из readEvents, не даёт осмысленного
+// падения: генератор уходит в бесконечный поллинг с реальными setTimeout, и
+// прогон виснет вместо красного assert'а. Низкий таймаут превращает зависание
+// в быстрый понятный отказ.
+jest.setTimeout(2000);
+```
 
 `src/products/turn-events.service.ts`:
 
