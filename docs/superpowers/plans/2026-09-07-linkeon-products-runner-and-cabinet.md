@@ -177,6 +177,24 @@ Expected: FAIL — `Cannot find module './config'`
 `product-runner/src/config.ts`:
 
 ```ts
+/**
+ * Сервер держит соединение до 30 секунд в long-poll, прежде чем ответить
+ * `turn: null`. Таймаут запроса обязан быть заметно больше этого окна —
+ * иначе раннер обрывает штатный пустой ответ ещё до того, как сервер успел
+ * на него ответить, и long-poll вырождается в частый short-poll с
+ * постоянными abort. 35 секунд — окно сервера плюс запас на сетевую
+ * задержку и время сервера на сборку ответа.
+ */
+export const DEFAULT_POLL_TIMEOUT_MS = 35_000;
+
+/**
+ * sendEvents и complete — обычные быстрые запросы, никакого long-poll в них
+ * нет. Десять секунд — щедрый запас на медленную сеть клиентской VM, но не
+ * настолько долго, чтобы повисший `complete` держал цикл раннера дольше,
+ * чем разумно ждать признаков жизни от простого POST.
+ */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+
 export interface RunnerConfig {
   linkeonUrl: string;
   runnerToken: string;
@@ -184,6 +202,10 @@ export interface RunnerConfig {
   pollIntervalMs: number;
   turnTimeoutMs: number;
   claudeBin: string;
+  /** Таймаут long-poll запроса к /products/runner/poll. См. DEFAULT_POLL_TIMEOUT_MS. */
+  pollTimeoutMs: number;
+  /** Таймаут обычных запросов (sendEvents, complete). См. DEFAULT_REQUEST_TIMEOUT_MS. */
+  requestTimeoutMs: number;
 }
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
@@ -201,11 +223,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RunnerConfig {
     checkoutPath: required(env, 'CHECKOUT_PATH'),
     pollIntervalMs: Number(env.POLL_INTERVAL_MS ?? 3000),
     // Меньше серверного порога снятия зависших ходов (30 минут): иначе раннер
-    // отчитается по ходу, который сервер уже закрыл как failed.
+    // отчитается по ходу, который сервер уже закрыл, и работа окажется
+    // выполненной и не оплаченной.
     turnTimeoutMs: Number(env.TURN_TIMEOUT_MS ?? 20 * 60 * 1000),
     // Бэкенд зовёт /usr/bin/claude, а не тот claude, что первым найдётся в
     // PATH шелла. На клиентской VM путь может отличаться — выносим в env.
     claudeBin: env.CLAUDE_BIN ?? '/usr/bin/claude',
+    pollTimeoutMs: Number(env.POLL_TIMEOUT_MS ?? DEFAULT_POLL_TIMEOUT_MS),
+    requestTimeoutMs: Number(env.REQUEST_TIMEOUT_MS ?? DEFAULT_REQUEST_TIMEOUT_MS),
   };
 }
 ```
@@ -606,6 +631,41 @@ export async function checkHealth(url: string | null, fetchFn: FetchFn = fetch):
   }
 }
 
+export interface WaitHealthyOptions {
+  timeoutMs?: number;
+  probeEveryMs?: number;
+  sleep?: (ms: number) => Promise<unknown>;
+}
+
+/**
+ * Ждёт, пока продукт поднимется, вместо одной пробы сразу после рестарта.
+ *
+ * Замерено на живой VM: сразу после `pm2 restart` порт отвергает соединение,
+ * продукт слушает через ~200 мс. Одиночная проба в этот момент всегда красная,
+ * то есть автооткат срабатывал бы на КАЖДОМ успешном ходе и ни одна правка
+ * клиента не доезжала бы до прода.
+ *
+ * Красным считается только то, что не поднялось за весь срок: неудачная проба
+ * это ещё не отказ, а отказом становится исчерпанное ожидание.
+ */
+export async function waitHealthy(
+  url: string | null,
+  fetchFn: FetchFn,
+  opts: WaitHealthyOptions = {},
+): Promise<boolean> {
+  if (!url) return true;
+  const timeoutMs = opts.timeoutMs ?? 30_000;
+  const probeEveryMs = opts.probeEveryMs ?? 500;
+  const wait = opts.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
+
+  const attempts = Math.max(1, Math.ceil(timeoutMs / probeEveryMs));
+  for (let i = 0; i < attempts; i++) {
+    if (await checkHealth(url, fetchFn)) return true;
+    if (i < attempts - 1) await wait(probeEveryMs);
+  }
+  return false;
+}
+
 export interface DeployInput {
   git: Git;
   shaBefore: string;
@@ -615,31 +675,71 @@ export interface DeployInput {
   cwd?: string;
   shell?: Shell;
   fetchFn?: FetchFn;
+  onPhase?: (phase: string) => void;
+  /** Сколько всего ждать подъёма после рестарта, прежде чем считать ход красным. */
+  healthTimeoutMs?: number;
+  /** Как часто пробовать health-check внутри окна ожидания. */
+  healthProbeEveryMs?: number;
+  sleep?: (ms: number) => Promise<unknown>;
 }
 
 export async function deploy(input: DeployInput): Promise<{ reverted: boolean }> {
   const shell: Shell =
     input.shell ??
     (async (cmd: string) => {
+      // exec, а не execFile: build/restart-команды приходят из реестра
+      // продуктов строкой вида "npm run build && pm2 restart web", их шелл
+      // обязан разобрать. Их задаёт владелец при заведении продукта, а не
+      // клиент напрямую — в отличие от сообщения коммита в git.ts.
       await execAsync(cmd, { cwd: input.cwd, maxBuffer: 16 * 1024 * 1024 });
     });
   const fetchFn = input.fetchFn ?? fetch;
+  const phase = input.onPhase ?? (() => {});
 
-  const bringUp = async () => {
-    if (input.buildCmd) await shell(input.buildCmd);
-    if (input.restartCmd) await shell(input.restartCmd);
+  const bringUp = async (label: string) => {
+    if (input.buildCmd) {
+      phase(`${label}: сборка`);
+      await shell(input.buildCmd);
+    }
+    if (input.restartCmd) {
+      phase(`${label}: перезапуск`);
+      await shell(input.restartCmd);
+    }
   };
 
-  await bringUp();
-
-  if (await checkHealth(input.healthUrl, fetchFn)) {
-    return { reverted: false };
+  let healthy = false;
+  try {
+    await bringUp('Правка');
+    phase('Проверяю здоровье');
+    healthy = await waitHealthy(input.healthUrl, fetchFn, {
+      timeoutMs: input.healthTimeoutMs,
+      probeEveryMs: input.healthProbeEveryMs,
+      sleep: input.sleep,
+    });
+  } catch (e: any) {
+    // Сборка или рестарт не отработали. Без отката коммит агента остаётся в
+    // дереве, а запущен старый код: чекаут молча расходится с тем, что
+    // работает, и следующий ход стартует с чужой недоделанной правки.
+    // sha_after при этом не записывается, значит кнопка отката до этого
+    // коммита не дотянется — вернуть можно только руками на VM.
+    phase(`Сборка или перезапуск не удались: ${e?.message ?? e}`);
+    healthy = false;
   }
+
+  if (healthy) return { reverted: false };
 
   // Откатить мало — надо ещё поднять откаченное. Иначе продукт останется
   // лежать на старом коде, который не собран и не запущен.
+  phase('Возвращаю как было');
   await input.git.resetHard(input.shaBefore);
-  await bringUp();
+  // Поднять откаченное надо в любом случае, но если и это не удалось —
+  // деваться некуда: продукт останется лежать, и об этом обязан узнать
+  // клиент, а не только лог.
+  try {
+    await bringUp('Откат');
+  } catch (e: any) {
+    phase(`Откат поднять не удалось: ${e?.message ?? e}`);
+  }
   return { reverted: true };
 }
 ```
@@ -1027,7 +1127,7 @@ Expected: FAIL — `Cannot find module './api'`
 `product-runner/src/api.ts`:
 
 ```ts
-import { RunnerConfig } from './config';
+import { RunnerConfig, DEFAULT_POLL_TIMEOUT_MS, DEFAULT_REQUEST_TIMEOUT_MS } from './config';
 import { NDJsonEvent } from './claude';
 
 export interface PollResult {
@@ -1052,6 +1152,15 @@ export interface CompletePayload {
   tokens?: number;
 }
 
+/**
+ * HTTP-клиент раннера к Linkeon — единственная связь клиентской VM с нами.
+ *
+ * Никакая ошибка связи не должна ронять раннер: он живёт на чужой машине,
+ * сеть между ней и Linkeon не наша, а падение процесса означает, что продукт
+ * клиента перестаёт обслуживаться до ручного вмешательства. Поэтому каждый
+ * метод схлопывает любой отказ (сетевая ошибка, не-2xx, битый JSON) в
+ * null/false — цикл раннера просто пробует снова на следующем poll.
+ */
 export class LinkeonApi {
   constructor(
     private readonly config: RunnerConfig,
@@ -1062,15 +1171,6 @@ export class LinkeonApi {
     return `${this.config.linkeonUrl}/webhook/${path}`;
   }
 
-  /**
-   * `turnId` экранируется, хотя приходит от бэкенда, а не от клиента: слэш
-   * или `..` в значении незаметно увели бы запрос на чужой маршрут. Та же
-   * логика, по которой аргументы git не идут через шелл.
-   */
-  private turnUrl(turnId: string, action: string) {
-    return this.url(`products/runner/turns/${encodeURIComponent(turnId)}/${action}`);
-  }
-
   private headers() {
     return {
       Authorization: `Bearer ${this.config.runnerToken}`,
@@ -1079,31 +1179,61 @@ export class LinkeonApi {
   }
 
   /**
-   * Никакая ошибка связи не должна ронять раннер: он живёт на чужой машине,
-   * а сеть между ней и Linkeon не наша. Все отказы схлопываются в null, и
-   * цикл просто пробует снова.
+   * turnId приходит от бэкенда (из ответа poll), не набирается клиентом
+   * продукта напрямую — но подставлять его в путь без экранирования всё
+   * равно не стоит: слэш или `..` в значении незаметно перенаправят запрос
+   * на чужой маршрут. encodeURIComponent — та же защита в духе execFile в
+   * git.ts, только для URL вместо шелла.
    */
+  private turnUrl(turnId: string, suffix: string) {
+    return this.url(`products/runner/turns/${encodeURIComponent(turnId)}/${suffix}`);
+  }
+
+  /**
+   * Таймаут обязателен: без него повисший запрос блокирует цикл раннера
+   * навсегда. Restart=always в systemd не спасает — процесс жив, просто
+   * ничего не делает, и продукт клиента перестаёт обслуживаться молча.
+   *
+   * Реальная сеть виснет не так, как падает: заглохший TCP, обрыв без RST,
+   * прокси, принявший соединение и замолчавший. Мок в тестах этого не умеет,
+   * поэтому явление не видно на юнит-уровне вовсе.
+   */
+  private async withTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await this.fetchFn(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async poll(): Promise<PollResult | null> {
     try {
-      const res = await this.fetchFn(this.url('products/runner/poll'), {
-        method: 'POST',
-        headers: this.headers(),
-      });
+      const res = await this.withTimeout(
+        this.url('products/runner/poll'),
+        { method: 'POST', headers: this.headers() },
+        this.config.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS,
+      );
       if (!res.ok) return null;
       return (await res.json()) as PollResult;
     } catch {
+      // Сеть легла, таймаут (в т.ч. наш собственный abort), DNS — что
+      // угодно. Раннер попробует на следующем цикле, падать здесь нельзя.
       return null;
     }
   }
 
   async sendEvents(turnId: string, events: NDJsonEvent[]): Promise<boolean> {
+    // Пустой пакет отправлять незачем — это не ошибка, а обычный вызов между
+    // порциями событий, когда накопить ещё ничего не успели.
     if (events.length === 0) return true;
     try {
-      const res = await this.fetchFn(this.turnUrl(turnId, 'events'), {
-        method: 'POST',
-        headers: this.headers(),
-        body: JSON.stringify({ events }),
-      });
+      const res = await this.withTimeout(
+        this.turnUrl(turnId, 'events'),
+        { method: 'POST', headers: this.headers(), body: JSON.stringify({ events }) },
+        this.config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+      );
       return res.ok;
     } catch {
       return false;
@@ -1112,11 +1242,11 @@ export class LinkeonApi {
 
   async complete(turnId: string, payload: CompletePayload): Promise<boolean> {
     try {
-      const res = await this.fetchFn(this.turnUrl(turnId, 'complete'), {
-        method: 'POST',
-        headers: this.headers(),
-        body: JSON.stringify(payload),
-      });
+      const res = await this.withTimeout(
+        this.turnUrl(turnId, 'complete'),
+        { method: 'POST', headers: this.headers(), body: JSON.stringify(payload) },
+        this.config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+      );
       return res.ok;
     } catch {
       return false;
