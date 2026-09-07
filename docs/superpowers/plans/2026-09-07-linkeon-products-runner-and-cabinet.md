@@ -1415,21 +1415,168 @@ git commit -m "feat(runner): выполнение хода агента и сл�
 
 **Files:**
 - Create: `product-runner/src/index.ts`
+- Create: `product-runner/src/index.spec.ts`
 - Create: `product-runner/linkeon-product-runner.service`
 - Create: `product-runner/README.md`
 
-- [ ] **Step 1: Написать цикл**
+Бесконечный цикл тестировать нечем, поэтому единица работы вынесена в
+экспортируемую `tick(deps)` — она делает ровно один проход, и проверяется
+именно она. Это не украшение: цикл обязан переживать обрыв связи, падение
+Linkeon и собственный сбой хода, а каждое из этих поведений надо доказать.
+
+- [ ] **Step 1: Тест на единицу работы**
+
+`product-runner/src/index.spec.ts`:
+
+```ts
+import { tick } from './index';
+
+function makeDeps(over: any = {}) {
+  const api = {
+    poll: jest.fn(async () => null),
+    complete: jest.fn(async () => true),
+    ...over.api,
+  };
+  const executeTurn = over.executeTurn ?? jest.fn(async () => undefined);
+  // Параметр типизирован явно: без него TS выводит сигнатуру из тела стрелочной
+  // функции как `() => Promise<undefined>` (без аргументов), и `mock.calls[0][0]`
+  // ниже не компилируется — пустой кортеж не имеет элемента с индексом 0.
+  const sleep = jest.fn(async (_ms: number) => undefined);
+  return { api, executeTurn, sleep, config: { pollIntervalMs: 3000 } as any, git: {} as any };
+}
+
+describe('tick', () => {
+  it('нет связи — ждёт дольше обычного и не падает', async () => {
+    // poll вернул null: либо сеть, либо Linkeon на деплое, либо токен отозван.
+    // Раннер обязан пережить это молча — падение процесса означает, что
+    // продукт клиента перестаёт обслуживаться до ручного вмешательства.
+    const d = makeDeps({ api: { poll: jest.fn(async () => null) } });
+
+    await expect(tick(d as any)).resolves.toBeUndefined();
+
+    expect(d.sleep).toHaveBeenCalled();
+    expect(d.sleep.mock.calls[0][0]).toBeGreaterThan(3000);
+  });
+
+  it('очередь пуста — обычная пауза', async () => {
+    const d = makeDeps({ api: { poll: jest.fn(async () => ({ turn: null, product: {} })) } });
+
+    await tick(d as any);
+
+    expect(d.sleep).toHaveBeenCalledWith(3000);
+    expect(d.executeTurn).not.toHaveBeenCalled();
+  });
+
+  it('есть задание — выполняет его и не спит', async () => {
+    const turn = { id: 't-1', prompt: 'go', userId: 'u-1', revertToSha: null };
+    const d = makeDeps({ api: { poll: jest.fn(async () => ({ turn, product: {} })) } });
+
+    await tick(d as any);
+
+    expect(d.executeTurn).toHaveBeenCalled();
+    // Сразу за ходом — новый опрос, без паузы: клиент мог прислать следующий
+    // запрос, пока агент работал.
+    expect(d.sleep).not.toHaveBeenCalled();
+  });
+
+  it('падение хода не останавливает цикл и докладывается серверу', async () => {
+    // Без этого продукт останется с ходом в running, и замок заблокирует его
+    // до серверного сборщика зависших — полчаса «агент занят» на продукте,
+    // где никто не работает.
+    const turn = { id: 't-1', prompt: 'go', userId: 'u-1', revertToSha: null };
+    const d = makeDeps({
+      api: { poll: jest.fn(async () => ({ turn, product: {} })) },
+      executeTurn: jest.fn(async () => {
+        throw new Error('внезапно');
+      }),
+    });
+
+    await expect(tick(d as any)).resolves.toBeUndefined();
+
+    expect(d.api.complete).toHaveBeenCalledWith('t-1', expect.objectContaining({ status: 'failed' }));
+  });
+
+  it('провал доклада о падении тоже не роняет цикл', async () => {
+    // Ход упал, и связи нет — оба отказа сразу. Сборщик на сервере всё равно
+    // снимет ход, а раннер обязан продолжать работать.
+    const turn = { id: 't-1', prompt: 'go', userId: 'u-1', revertToSha: null };
+    const d = makeDeps({
+      api: {
+        poll: jest.fn(async () => ({ turn, product: {} })),
+        complete: jest.fn(async () => {
+          throw new Error('сеть');
+        }),
+      },
+      executeTurn: jest.fn(async () => {
+        throw new Error('внезапно');
+      }),
+    });
+
+    await expect(tick(d as any)).resolves.toBeUndefined();
+  });
+});
+```
+
+- [ ] **Step 2: Написать цикл**
 
 `product-runner/src/index.ts`:
 
 ```ts
 import 'dotenv/config';
-import { loadConfig } from './config';
+import { loadConfig, RunnerConfig } from './config';
 import { LinkeonApi } from './api';
 import { Git } from './git';
-import { executeTurn } from './turn';
+import { executeTurn as executeTurnReal } from './turn';
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export interface TickDeps {
+  config: RunnerConfig;
+  api: LinkeonApi;
+  git: Git;
+  executeTurn?: typeof executeTurnReal;
+  sleep?: (ms: number) => Promise<unknown>;
+}
+
+/**
+ * Один проход цикла. Вынесен из `main` ради проверяемости: бесконечный цикл
+ * тестировать нечем, а единицу работы — можно.
+ */
+export async function tick(deps: TickDeps): Promise<void> {
+  const wait = deps.sleep ?? sleep;
+  const run = deps.executeTurn ?? executeTurnReal;
+
+  const poll = await deps.api.poll();
+
+  if (!poll) {
+    // Связи нет либо токен не принят. Не выходим: Linkeon может быть просто
+    // на деплое, а падение процесса означает, что продукт клиента перестаёт
+    // обслуживаться до ручного вмешательства. Ждём дольше обычного, чтобы не
+    // молотить в стену.
+    await wait(deps.config.pollIntervalMs * 3);
+    return;
+  }
+
+  if (!poll.turn) {
+    await wait(deps.config.pollIntervalMs);
+    return;
+  }
+
+  console.log(`[runner] ход ${poll.turn.id}`);
+
+  try {
+    await run({ turn: poll.turn, product: poll.product, config: deps.config, git: deps.git, api: deps.api });
+  } catch (e: any) {
+    // Ни одно исключение не должно останавливать цикл: продукт останется с
+    // ходом в running, и замок заблокирует его до серверного сборщика.
+    console.error(`[runner] ход ${poll.turn.id} упал: ${e?.message}`);
+    try {
+      await deps.api.complete(poll.turn.id, { status: 'failed', error: String(e?.message ?? e) });
+    } catch {
+      // Связи нет — сборщик на сервере снимет ход сам через полчаса.
+    }
+  }
+}
 
 async function main() {
   const config = loadConfig();
@@ -1439,36 +1586,18 @@ async function main() {
   console.log(`[runner] старт, чекаут ${config.checkoutPath}, Linkeon ${config.linkeonUrl}`);
 
   for (;;) {
-    const poll = await api.poll();
-
-    if (!poll) {
-      // Связи нет либо токен не принят. Не выходим: systemd перезапустит нас
-      // в тот же цикл, а Linkeon может быть просто на деплое.
-      await sleep(config.pollIntervalMs * 3);
-      continue;
-    }
-
-    if (!poll.turn) {
-      await sleep(config.pollIntervalMs);
-      continue;
-    }
-
-    console.log(`[runner] ход ${poll.turn.id}`);
-    try {
-      await executeTurn({ turn: poll.turn, product: poll.product, config, git, api });
-    } catch (e: any) {
-      // Ни одно исключение не должно останавливать цикл: продукт останется с
-      // висящим ходом, и замок заблокирует его до серверного сборщика.
-      console.error(`[runner] ход ${poll.turn.id} упал: ${e?.message}`);
-      await api.complete(poll.turn.id, { status: 'failed', error: String(e?.message ?? e) });
-    }
+    await tick({ config, api, git });
   }
 }
 
-main().catch((e) => {
-  console.error(`[runner] фатально: ${e?.message}`);
-  process.exit(1);
-});
+// Запускаем только когда файл исполняется напрямую: при импорте из теста
+// бесконечный цикл стартовать не должен.
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(`[runner] фатально: ${e?.message}`);
+    process.exit(1);
+  });
+}
 ```
 
 - [ ] **Step 2: Написать systemd-юнит**
