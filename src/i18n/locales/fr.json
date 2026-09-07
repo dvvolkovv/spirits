@@ -354,6 +354,7 @@
     },
     "meeting": {
       "join": "Rejoindre",
+      "waitingAdmit": "L’assistant demande à être admis. Veuillez confirmer son entrée dans la réunion Google Meet",
       "in_progress": "L’assistant est en réunion",
       "leave": "Quitter",
       "already_in": "L’assistant est déjà dans une autre réunion ou en appel",

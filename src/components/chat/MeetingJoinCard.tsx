@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
+
+/**
+ * Attendee сам поднимает Chrome и грузит страницу Meet — это ощутимо дольше,
+ * чем вход в LiveKit-комнату, поэтому подсказку держим дольше, чем обычный
+ * тост, но не бесконечно: если хозяин так и не впустил, она гаснет сама.
+ */
+const WAITING_ADMIT_TIMEOUT_MS = 90_000;
 
 interface Props {
   code: string;
   title: string;
   /** Чья встреча. Без него — своя, как было до появления чужих комнат. */
-  provider?: 'linkeon' | 'talerid';
+  provider?: 'linkeon' | 'talerid' | 'meet';
   /** Ассистент, в чьём чате лежит карточка — он и пойдёт на встречу. */
   agentId: number;
   onJoined: (callId: string) => void;
@@ -23,6 +30,19 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', age
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // В Meet бот попадает в комнату ожидания, и впустить его должен хозяин
+  // встречи. Без этой подсказки человек ждёт ассистента, а ассистент — его.
+  const [waitingAdmit, setWaitingAdmit] = useState(false);
+
+  // Таймер обязан очищаться при размонтировании — иначе setState прилетит на
+  // снятый компонент. Эффект перезапускается вместе с waitingAdmit, поэтому
+  // повторный вход после сброса подсказки заново уводит её через 90с, а не
+  // держит старый (уже истёкший) таймер.
+  useEffect(() => {
+    if (!waitingAdmit) return;
+    const timer = window.setTimeout(() => setWaitingAdmit(false), WAITING_ADMIT_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [waitingAdmit]);
 
   const join = async () => {
     setBusy(true);
@@ -35,6 +55,7 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', age
         throw new Error(res.status === 409 ? 'already_in' : 'join_failed');
       }
       const data = await res.json();
+      if (provider === 'meet') setWaitingAdmit(true);
       onJoined(data.callId);
     } catch (e) {
       const reason = e instanceof Error ? e.message : 'join_failed';
@@ -62,6 +83,7 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', age
         </button>
       </div>
       {error && <p className="mt-1 text-xs text-red-600">{t(`chat.meeting.${error}`)}</p>}
+      {waitingAdmit && <p className="mt-1 text-xs text-gray-500">{t('chat.meeting.waitingAdmit')}</p>}
     </div>
   );
 }

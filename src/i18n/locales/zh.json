@@ -350,6 +350,7 @@
     },
     "meeting": {
       "join": "加入",
+      "waitingAdmit": "助手正在请求进入会议，请在 Google Meet 中确认放行",
       "in_progress": "助手正在会议中",
       "leave": "离开",
       "already_in": "助手已在其他会议或通话中",
