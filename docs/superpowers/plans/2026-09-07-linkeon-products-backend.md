@@ -146,7 +146,9 @@ CREATE TABLE IF NOT EXISTS product_turns (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id   uuid NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   user_id      text NOT NULL,
-  channel      text NOT NULL,
+  -- Словарь закреплён так же, как у status: TS-тип 'web' | 'telegram' не
+  -- переживает границу рантайма, а значение приходит из контроллера.
+  channel      text NOT NULL CHECK (channel IN ('web', 'telegram')),
   prompt       text NOT NULL,
   result       text,
   status       text NOT NULL DEFAULT 'queued',
@@ -396,16 +398,29 @@ git commit -m "feat(products): список и чтение продукта с 
 import { ConflictException } from '@nestjs/common';
 import { TurnsService } from './turns.service';
 
-function makeService(opts: { duplicate?: boolean } = {}) {
+function makeService(
+  opts: {
+    duplicate?: boolean;
+    failWithCode?: string;
+    productStatus?: string;
+    balanceOk?: boolean;
+  } = {},
+) {
   const calls: { sql: string; params: any[] }[] = [];
   const pg = {
     query: jest.fn(async (sql: string, params: any[] = []) => {
       calls.push({ sql, params });
+      if (sql.includes('SELECT status FROM products')) {
+        return { rows: [{ status: opts.productStatus ?? 'running' }] };
+      }
       if (sql.includes('INSERT INTO product_turns') && opts.duplicate) {
         throw Object.assign(new Error('duplicate key value violates unique constraint'), {
           code: '23505',
           constraint: 'product_turns_one_active',
         });
+      }
+      if (sql.includes('INSERT INTO product_turns') && opts.failWithCode) {
+        throw Object.assign(new Error('boom'), { code: opts.failWithCode });
       }
       if (sql.includes('INSERT INTO product_turns')) {
         return { rows: [{ id: 't-1', status: 'queued' }] };
@@ -413,10 +428,14 @@ function makeService(opts: { duplicate?: boolean } = {}) {
       return { rows: [] };
     }),
   };
+  const misc = {
+    deductTokens: jest.fn(),
+    checkTokenBalance: jest.fn(async () => ({ ok: opts.balanceOk ?? true })),
+  };
   // Третьим аргументом идёт RedisService — он понадобится в Task 8 для буфера
   // событий. Заводим заглушку сразу, чтобы сигнатура не менялась по ходу плана.
   const redis = { rpush: jest.fn(), expire: jest.fn(), lrange: jest.fn(async () => []) };
-  return { svc: new TurnsService(pg as any, { deductTokens: jest.fn() } as any, redis as any), calls };
+  return { svc: new TurnsService(pg as any, misc as any, redis as any), calls, misc };
 }
 
 describe('TurnsService.enqueue', () => {
@@ -427,19 +446,32 @@ describe('TurnsService.enqueue', () => {
       svc.enqueue({ productId: 'p-1', userId: 'u-1', channel: 'web', prompt: 'поправь футер' }),
     ).resolves.toMatchObject({ id: 't-1', status: 'queued' });
 
-    // Утверждение о тексте обязательно: мок отдаёт захардкоженный статус и на
-    // подмену 'queued' на 'running' в INSERT не отреагирует. А подмена тихо
-    // ломает всё: claimNext ищет строго 'queued' и такой ход не подберёт
-    // никогда, продукт при этом останется занятым для замка — до сборщика
-    // зависших через полчаса. Ни ошибки, ни строки в логе.
-    expect(calls[0].sql).toContain("'queued'");
-    // Порядок плейсхолдеров — тоже поведение. Перестановка $1 и $2 местами
-    // запишет userId в product_id, а productId в user_id: ход повиснет на
-    // несуществующем продукте, замок займёт не тот продукт, а внешний ключ
-    // не спасёт — оба значения строковые. Список params при такой подмене не
-    // меняется, поэтому ловится только текстом.
-    expect(calls[0].sql).toContain('VALUES ($1, $2, $3, $4');
-    expect(calls[0].params).toEqual(['p-1', 'u-1', 'web', 'поправь футер']);
+    // INSERT ищется по содержимому, а не по индексу: первым запросом идёт
+    // проверка статуса продукта, и привязка к calls[0] сломается от любой
+    // будущей вставки предусловия.
+    const insert = calls.find((c) => c.sql.includes('INSERT INTO product_turns'))!;
+
+    // Три утверждения о тексте нужны потому, что мок отдаёт захардкоженную
+    // строку и ни на одну из этих подмен сам по себе не отреагирует. Каждая
+    // подмена ломает тихо, без исключения и без строки в логе:
+    //
+    //   'queued' → 'running'     — claimNext ищет строго 'queued' и такой ход
+    //                              не подберёт никогда, а замок будет считать
+    //                              продукт занятым до сборщика через полчаса;
+    //   перестановка колонок     — userId уезжает в product_id, ход повисает
+    //   или плейсхолдеров          на несуществующем продукте, замок занимает
+    //                              не тот продукт;
+    //   усечение RETURNING       — наружу уходит объект без status, а его
+    //                              отдают клиенту revert (Task 5) и chat
+    //                              (Task 8).
+    //
+    // Колонки и плейсхолдеры охраняются раздельно: переставить можно любое из
+    // двух, последствие одинаковое, а params при этом не меняется.
+    expect(insert.sql).toContain('(product_id, user_id, channel, prompt, status)');
+    expect(insert.sql).toContain('VALUES ($1, $2, $3, $4');
+    expect(insert.sql).toContain("'queued'");
+    expect(insert.sql).toContain('RETURNING id, status');
+    expect(insert.params).toEqual(['p-1', 'u-1', 'web', 'поправь футер']);
   });
 
   it('второй ход по тому же продукту отбивается 409, а не 500', async () => {
@@ -448,6 +480,41 @@ describe('TurnsService.enqueue', () => {
     await expect(
       svc.enqueue({ productId: 'p-1', userId: 'u-1', channel: 'web', prompt: 'ещё раз' }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('ошибка, не связанная с замком, пробрасывается как есть', async () => {
+    // Без этого теста безусловный ConflictException в catch проходит незамеченным,
+    // и тогда падение базы, таймаут пула или нарушение CHECK приезжают клиенту
+    // как «агент уже работает» — на продукте, где никто не работает. В логе при
+    // этом пусто: ConflictException штатный 4xx, а не 5xx, и диагностика уходит
+    // искать зависший ход, которого нет.
+    const { svc } = makeService({ failWithCode: '23514' });
+
+    await expect(
+      svc.enqueue({ productId: 'p-1', userId: 'u-1', channel: 'web', prompt: 'go' }),
+    ).rejects.not.toBeInstanceOf(ConflictException);
+  });
+
+  it('ход на неработающем продукте не создаётся', async () => {
+    const { svc, calls } = makeService({ productStatus: 'stopped' });
+
+    await expect(
+      svc.enqueue({ productId: 'p-1', userId: 'u-1', channel: 'web', prompt: 'go' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(calls.some((c) => c.sql.includes('INSERT INTO product_turns'))).toBe(false);
+  });
+
+  it('при нулевом балансе ход не создаётся', async () => {
+    const { svc, calls } = makeService({ balanceOk: false });
+
+    await expect(
+      svc.enqueue({ productId: 'p-1', userId: 'u-1', channel: 'web', prompt: 'go' }),
+    ).rejects.toThrow();
+
+    // Ход = реальный запуск claude -p на VM, то есть живые деньги. Вставка не
+    // должна происходить вовсе, а не «происходить и не тарифицироваться».
+    expect(calls.some((c) => c.sql.includes('INSERT INTO product_turns'))).toBe(false);
   });
 });
 ```
@@ -462,7 +529,14 @@ Expected: FAIL — `Cannot find module './turns.service'`
 `src/products/turns.service.ts`:
 
 ```ts
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PgService } from '../common/services/pg.service';
 import { RedisService } from '../common/services/redis.service';
 import { MiscService } from '../misc/misc.service';
@@ -472,6 +546,11 @@ export interface EnqueueInput {
   userId: string;
   channel: 'web' | 'telegram';
   prompt: string;
+}
+
+export interface TurnRow {
+  id: string;
+  status: string;
 }
 
 @Injectable()
@@ -484,7 +563,32 @@ export class TurnsService {
     private readonly redis: RedisService,
   ) {}
 
-  async enqueue(input: EnqueueInput) {
+  async enqueue(input: EnqueueInput): Promise<TurnRow> {
+    // Предусловия живут здесь, а не в контроллере, сознательно. Шлагбаум по
+    // балансу в чате стоял только на одном входе, и второй — загрузка файлов —
+    // про него забыл: до 06.09.2026 пользователь с нулём получал там самый
+    // дорогой тип хода без ограничений (см. комментарий в chat.controller.ts).
+    // У ходов входов тоже два, web и telegram, поэтому проверка ставится в
+    // единственном общем месте.
+    const p = await this.pg.query(
+      `SELECT status FROM products WHERE id = $1 AND archived_at IS NULL`,
+      [input.productId],
+    );
+    const productStatus = p.rows[0]?.status;
+    if (!productStatus) throw new NotFoundException('Product not found');
+    if (productStatus !== 'running') {
+      throw new ConflictException('Продукт сейчас недоступен для правок');
+    }
+
+    // Порог тот же, что в чате с ассистентами: balance <= 0 запрещает ход.
+    // Ход — это реальный запуск claude -p на VM, то есть живые деньги; при
+    // нехватке deductTokens спишет сколько есть и запишет в лог «не хватило
+    // баланса», то есть работа окажется выполнена и не оплачена.
+    const { ok } = await this.misc.checkTokenBalance(input.userId, 1);
+    if (!ok) {
+      throw new HttpException('Недостаточно токенов', HttpStatus.PAYMENT_REQUIRED);
+    }
+
     try {
       const r = await this.pg.query(
         `INSERT INTO product_turns (product_id, user_id, channel, prompt, status)
@@ -494,8 +598,13 @@ export class TurnsService {
       );
       return r.rows[0];
     } catch (e: any) {
-      // Замок product_turns_one_active. Это не ошибка сервера: клиент
+      // Только замок product_turns_one_active. Это не ошибка сервера: клиент
       // отправил второй запрос, пока агент ещё работает над первым.
+      //
+      // Условие обязано быть узким. Безусловный ConflictException превращает
+      // падение базы, таймаут пула и нарушение CHECK в спокойное «агент занят»
+      // без следа в логах: 4xx не попадает в отчёты об ошибках, и диагностика
+      // уходит искать зависший ход, которого нет.
       if (e?.code === '23505') {
         throw new ConflictException('Агент уже работает над предыдущим запросом');
       }
