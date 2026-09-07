@@ -50,8 +50,18 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', age
     try {
       const res = await apiClient.post('/webhook/meeting/join', { agentId, code, provider });
       if (!res.ok) {
-        // 409 — ассистент уже на другой встрече или на звонке. Это не поломка,
-        // и текст должен объяснять, что делать, а не пугать.
+        // 409 бывает по двум разным причинам, и текст должен объяснять
+        // именно свою, а не пугать общим «не поломка ли это»:
+        //  - ассистент уже на другой встрече или на звонке (already_in);
+        //  - потолок в одну одновременную встречу Meet занят ЧУЖИМ
+        //    разговором (meet_busy, reason из тела ответа) — при этом
+        //    потолке второй пользователь упирается в него как в норму, а
+        //    не как в редкость (см. infra/attendee/README.md), и должен
+        //    получить понятный отказ сразу, а не невнятный через несколько
+        //    секунд от воркера.
+        let reason: string | undefined;
+        try { reason = (await res.json())?.reason; } catch { /* тело не JSON или пустое */ }
+        if (res.status === 409 && reason === 'meet_busy') throw new Error('meet_busy');
         throw new Error(res.status === 409 ? 'already_in' : 'join_failed');
       }
       const data = await res.json();
@@ -59,7 +69,7 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', age
       onJoined(data.callId);
     } catch (e) {
       const reason = e instanceof Error ? e.message : 'join_failed';
-      setError(reason === 'already_in' ? 'already_in' : 'join_failed');
+      setError(reason === 'already_in' || reason === 'meet_busy' ? reason : 'join_failed');
     } finally {
       setBusy(false);
     }

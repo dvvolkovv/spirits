@@ -354,6 +354,7 @@
       "in_progress": "助手正在会议中",
       "leave": "离开",
       "already_in": "助手已在其他会议或通话中",
+      "meet_busy": "助手目前正在其他会议中，请等会议结束后再试",
       "join_failed": "无法加入会议",
       "create": "创建会议",
       "create_failed": "无法创建会议",

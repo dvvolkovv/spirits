@@ -356,6 +356,7 @@
       "in_progress": "Assistent ist in einer Besprechung",
       "leave": "Verlassen",
       "already_in": "Der Assistent ist bereits in einer anderen Besprechung oder in einem Anruf",
+      "meet_busy": "Der Assistent ist gerade in einer anderen Besprechung. Bitte versuchen Sie es erneut, sobald sie beendet ist",
       "join_failed": "Beitritt zur Besprechung fehlgeschlagen",
       "create": "Besprechung erstellen",
       "create_failed": "Besprechung konnte nicht erstellt werden",

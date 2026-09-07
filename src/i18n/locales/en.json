@@ -356,6 +356,7 @@
       "in_progress": "Assistant is in a meeting",
       "leave": "Leave",
       "already_in": "The assistant is already in another meeting or on a call",
+      "meet_busy": "The assistant is currently in another meeting. Please try again once it ends",
       "join_failed": "Could not join the meeting",
       "create": "Create meeting",
       "create_failed": "Could not create the meeting",

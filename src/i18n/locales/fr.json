@@ -358,6 +358,7 @@
       "in_progress": "L’assistant est en réunion",
       "leave": "Quitter",
       "already_in": "L’assistant est déjà dans une autre réunion ou en appel",
+      "meet_busy": "L’assistant est actuellement dans une autre réunion. Réessayez une fois qu’elle sera terminée",
       "join_failed": "Impossible de rejoindre la réunion",
       "create": "Créer une réunion",
       "create_failed": "Impossible de créer la réunion",
