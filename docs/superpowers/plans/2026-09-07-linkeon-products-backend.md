@@ -1913,6 +1913,13 @@ export class TurnEventsService {
 
   /** Раннер шлёт сюда события хода; живут час — этого хватает на дочитывание. */
   async appendEvent(productId: string, turnId: string, event: any) {
+    // Тело маршрута раннера типизировано TS-типом при ValidationPipe с
+    // whitelist: false — рантайм-проверки нет. `{"events":[null]}` положил бы
+    // в буфер строку "null", а на чтении `event.type` дал бы TypeError уже
+    // ПОСЛЕ отправки заголовков: клиент увидел бы обрыв сокета без события
+    // error. Отбрасываем то, что событием быть не может.
+    if (!event || typeof event !== 'object') return;
+
     const key = this.eventsKey(productId, turnId);
     await this.redis.rpush(key, JSON.stringify(event));
     await this.redis.expire(key, 3600);
@@ -1923,23 +1930,48 @@ export class TurnEventsService {
    * либо когда ход в базе уже не `running` — иначе клиент повиснет навсегда,
    * если раннер умер, не дописав финальное событие.
    */
-  async *readEvents(productId: string, turnId: string): AsyncGenerator<any> {
+  async *readEvents(
+    productId: string,
+    turnId: string,
+    isCancelled: () => boolean = () => false,
+  ): AsyncGenerator<any> {
     const key = this.eventsKey(productId, turnId);
     let cursor = 0;
     for (let tick = 0; tick < 1800; tick++) {
+      // Признак отмены проверяется ВНУТРИ цикла, а не снаружи в `for await`.
+      // Снаружи он бесполезен ровно в том случае, ради которого нужен: пока
+      // событий нет, генератор не доходит до yield, управление в контроллер
+      // не возвращается, и проверять флаг некому. А клиент отваливается чаще
+      // всего именно в тишине — агент думает, ответа нет минуту, пользователь
+      // закрывает вкладку. Брошенное соединение иначе стоит до 1800 тиков по
+      // паре запросов, то есть трёх с половиной тысяч обращений к Redis и
+      // Postgres, и всё это время занят воркер.
+      if (isCancelled()) return;
+
       const batch = await this.redis.lrange(key, cursor, -1);
       for (const raw of batch) {
         cursor++;
         const event = JSON.parse(raw);
         yield event;
-        if (event.type === 'end' || event.type === 'error') return;
+        if (event?.type === 'end' || event?.type === 'error') return;
       }
+
       const r = await this.pg.query(`SELECT status FROM product_turns WHERE id = $1`, [turnId]);
       const status = r.rows[0]?.status;
       if (status && status !== 'queued' && status !== 'running') {
+        // Финальный дренаж перед выходом. События, дописанные между lrange
+        // выше и этим запросом, иначе не прочитаются никогда: генератор
+        // завершится, не заглянув в буфер повторно, и клиент получит `end` с
+        // обрезанным хвостом. Итог правки останется в истории, а из живого
+        // потока пропадёт молча.
+        for (const raw of await this.redis.lrange(key, cursor, -1)) {
+          cursor++;
+          yield JSON.parse(raw);
+        }
         yield { type: 'end' };
         return;
       }
+
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
     yield { type: 'error', message: 'Ход не завершился за отведённое время' };
@@ -2055,9 +2087,22 @@ export class ProductsController {
       clientGone = true;
     });
 
-    for await (const event of this.turnEvents.readEvents(id, turn.id)) {
-      if (clientGone) break;
-      res.write(JSON.stringify(event) + '\n');
+    try {
+      // Признак отмены уезжает ВНУТРЬ генератора: снаружи он не сработает,
+      // пока поток молчит, а именно тогда клиент обычно и отваливается.
+      // Внешняя проверка остаётся — она закрывает гонку внутри одного тика.
+      for await (const event of this.turnEvents.readEvents(id, turn.id, () => clientGone)) {
+        if (clientGone) break;
+        res.write(JSON.stringify(event) + '\n');
+      }
+    } catch (e: any) {
+      // Заголовки уже ушли, поэтому фильтр исключений Nest отдать чистый JSON
+      // не сможет — клиент увидел бы обрыв сокета без объяснения. Отдаём
+      // событие error, чтобы NDJSON-парсер на той стороне получил внятное
+      // завершение.
+      if (!clientGone) {
+        res.write(JSON.stringify({ type: 'error', message: 'Поток прерван' }) + '\n');
+      }
     }
     if (!clientGone) res.end();
   }
