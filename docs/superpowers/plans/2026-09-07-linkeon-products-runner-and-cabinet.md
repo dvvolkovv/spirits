@@ -1614,7 +1614,11 @@ Type=simple
 User=%i
 WorkingDirectory=/opt/linkeon-product-runner
 EnvironmentFile=/etc/linkeon-product-runner.env
-ExecStart=/usr/bin/node /opt/linkeon-product-runner/dist/index.js
+# Путь к node подставляется при установке: захардкоженный /usr/bin/node
+# существует не везде. На тестовой ноде, например, node стоит под nvm
+# (/home/dv/.nvm/versions/node/*/bin/node), и юнит с /usr/bin/node не
+# стартует вовсе. Та же ловушка, что с CLAUDE_BIN.
+ExecStart=__NODE__ /opt/linkeon-product-runner/dist/index.js
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -1670,7 +1674,9 @@ CLAUDE_BIN=/usr/bin/claude
 ## Запуск
 
 ```bash
-sudo cp linkeon-product-runner.service /etc/systemd/system/
+# Подставить фактический путь к node: /usr/bin/node есть не на всякой машине.
+sed "s|__NODE__|$(command -v node)|" linkeon-product-runner.service \
+  | sudo tee /etc/systemd/system/linkeon-product-runner.service >/dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable --now linkeon-product-runner
 journalctl -u linkeon-product-runner -f
