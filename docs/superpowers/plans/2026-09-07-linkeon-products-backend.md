@@ -2274,7 +2274,36 @@ HAVING t.tokens_spent <> COALESCE(SUM(tr.amount), 0);
 
 **Сломать проверку нарочно:** временно снять `AND status = 'running'` из `complete`, выкатить на test, повторить — баланс обязан уменьшиться на 2000, а строк в `token_transactions` стать две. Вернуть. Без этого шага зелёный результат не доказывает, что сторож вообще участвует.
 
-- [ ] **Step 7: Проверить сборщик зависших ходов**
+- [ ] **Step 7: Проверить, что heartbeat не воскрешает остановленный продукт**
+
+Юнит-тест этого не доказывает: он сравнивает точный текст выражения `CASE`, то есть краснеет на любом его изменении, включая корректное. Настоящая граница — поведение базы.
+
+```bash
+# Продукт остановлен владельцем
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"UPDATE products SET status='stopped' WHERE slug='selyanska';\""
+
+# Раннер опрашивает (или дождаться его собственного опроса)
+curl -sS -X POST https://test.linkeon.io/webhook/products/runner/poll \
+  -H "Authorization: Bearer $RUNNER_TOKEN" > /dev/null
+
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT status, runner_seen_at FROM products WHERE slug='selyanska';\""
+```
+
+Expected: `status` остался `stopped`, `runner_seen_at` обновился. Heartbeat подтверждает живость, но не отменяет решение владельца.
+
+Затем то же с `degraded`:
+
+```bash
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"UPDATE products SET status='degraded' WHERE slug='selyanska';\""
+curl -sS -X POST https://test.linkeon.io/webhook/products/runner/poll -H "Authorization: Bearer $RUNNER_TOKEN" > /dev/null
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT status FROM products WHERE slug='selyanska';\""
+```
+
+Expected: `running`. Без этого перехода `degraded` — тупик: мониторинг его ставит, никто не снимает, и продукт навсегда остаётся без работы.
+
+Вернуть `status='running'` после проверок.
+
+- [ ] **Step 8: Проверить сборщик зависших ходов**
 
 ```bash
 # Оставить ход в running с давним started_at
@@ -2286,7 +2315,7 @@ ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT id, status, error FROM
 
 Затем убедиться, что продукт снова принимает запросы: повторить шаг 4 — первый ход должен встать в очередь, а не отбиться 409.
 
-- [ ] **Step 8: Коммит**
+- [ ] **Step 9: Коммит**
 
 ```bash
 git add scripts/products-register.sh
