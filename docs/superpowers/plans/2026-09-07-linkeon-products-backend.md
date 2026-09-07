@@ -747,6 +747,16 @@ describe('TurnsService.complete', () => {
     // Маршрут завершения идёт с клиентской VM через интернет: таймаут чтения
     // ответа при доставленном запросе штатен, и раннер обязан ретраить. Без
     // сторожа состояния пользователь платит дважды за один ход.
+    //
+    // Область этого теста ограничена намеренно: он проверяет, что при ответе
+    // базы «ни одна строка не перешла» списания не происходит. Присутствие
+    // самого сторожа в SQL он поймать НЕ может и не должен — мок не исполняет
+    // запрос и берёт rowCount из флага сценария, а не из предиката. Текст
+    // запроса охраняет утверждение toContain("AND status = 'running'") в
+    // соседнем тесте, а совместную работу текста и базы — живая проверка
+    // двойного complete из Task 11. Строить state-full мок, симулирующий
+    // Postgres, не надо: он даёт собственную ложную уверенность вместо той,
+    // которую должна давать сама база.
     const { svc, deductTokens } = makeService({ alreadyFinal: true });
 
     await svc.complete('t-1', { userId: 'u-1', status: 'done', tokens: 1200 });
@@ -1947,7 +1957,37 @@ ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"CREATE UNIQUE INDEX product_t
 ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"UPDATE product_turns SET status='failed', error='ручная проверка' WHERE status IN ('queued','running');\""
 ```
 
-- [ ] **Step 6: Проверить сборщик зависших ходов**
+- [ ] **Step 6: Проверить идемпотентность завершения хода — против настоящей базы**
+
+Единственная проверка, которая доказывает защиту от двойного списания. Юнит-тесты её дать не могут: мок не исполняет SQL и берёт `rowCount` из флага сценария, а не из предиката запроса. Гарантия здесь — гарантия Postgres, и проверяется она только Postgres'ом.
+
+```bash
+# Подготовить ход в статусе running
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"UPDATE product_turns SET status='running', started_at=now() WHERE id='<turn_id>';\""
+
+# Запомнить баланс
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT tokens FROM ai_profiles_consolidated WHERE user_id='<user_id>';\""
+
+# Дважды подряд завершить один и тот же ход
+for i in 1 2; do
+  curl -sS -X POST "https://test.linkeon.io/webhook/products/runner/turns/<turn_id>/complete" \
+    -H "Authorization: Bearer $RUNNER_TOKEN" -H 'Content-Type: application/json' \
+    -d '{"status":"done","result":"ок","shaBefore":"aaa","shaAfter":"bbb","tokens":1000}'
+  echo
+done
+```
+
+Expected: баланс уменьшился ровно на 1000, а не на 2000. В `token_transactions` — одна строка, не две. В логе `pm2 logs linkeon-api | grep "уже финализирован"` — сообщение о проигнорированном повторе.
+
+```bash
+ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT count(*) FROM token_transactions WHERE description = 'product turn <turn_id>';\""
+```
+
+Expected: `1`.
+
+**Сломать проверку нарочно:** временно снять `AND status = 'running'` из `complete`, выкатить на test, повторить — баланс обязан уменьшиться на 2000, а строк в `token_transactions` стать две. Вернуть. Без этого шага зелёный результат не доказывает, что сторож вообще участвует.
+
+- [ ] **Step 7: Проверить сборщик зависших ходов**
 
 ```bash
 # Оставить ход в running с давним started_at
@@ -1959,7 +1999,7 @@ ssh dv@85.192.61.231 "psql \"\$DATABASE_URL\" -c \"SELECT id, status, error FROM
 
 Затем убедиться, что продукт снова принимает запросы: повторить шаг 4 — первый ход должен встать в очередь, а не отбиться 409.
 
-- [ ] **Step 7: Коммит**
+- [ ] **Step 8: Коммит**
 
 ```bash
 git add scripts/products-register.sh
