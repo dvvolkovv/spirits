@@ -755,6 +755,7 @@ describe('TurnsService.complete', () => {
     const { svc, calls, deductTokens } = makeService();
 
     await svc.complete('t-1', {
+      productId: 'p-1',
       userId: 'u-1',
       status: 'done',
       result: 'готово',
@@ -798,7 +799,7 @@ describe('TurnsService.complete', () => {
     // которую должна давать сама база.
     const { svc, deductTokens } = makeService({ alreadyFinal: true });
 
-    await svc.complete('t-1', { userId: 'u-1', status: 'done', tokens: 1200 });
+    await svc.complete('t-1', { productId: 'p-1', userId: 'u-1', status: 'done', tokens: 1200 });
 
     expect(deductTokens).not.toHaveBeenCalled();
   });
@@ -809,7 +810,7 @@ describe('TurnsService.complete', () => {
     // покажет пользователю расход, которого с него не взяли.
     const { svc, calls } = makeService({ used: 300 });
 
-    await svc.complete('t-1', { userId: 'u-1', status: 'done', tokens: 1200 });
+    await svc.complete('t-1', { productId: 'p-1', userId: 'u-1', status: 'done', tokens: 1200 });
 
     const fix = calls.find((c) => c.sql.includes('SET tokens_spent = $2'));
     expect(fix).toBeDefined();
@@ -819,20 +820,33 @@ describe('TurnsService.complete', () => {
   it('отрицательные токены от раннера не уходят в базу', async () => {
     const { svc, calls, deductTokens } = makeService();
 
-    await svc.complete('t-1', { userId: 'u-1', status: 'done', tokens: -5 });
+    await svc.complete('t-1', { productId: 'p-1', userId: 'u-1', status: 'done', tokens: -5 });
 
     // Кламп существует потому, что тело запроса раннера — TS-тип при
     // ValidationPipe({whitelist:false}), то есть рантайм-проверки нет вовсе.
     // Без клампа сюда прилетает 23514 от CHECK (tokens_spent >= 0), уходит
     // наружу необработанным 500, ход остаётся running и держит замок.
-    expect(calls[0].params[6]).toBe(0);
+    expect(calls[0].params[7]).toBe(0);
     expect(deductTokens).not.toHaveBeenCalled();
+  });
+
+  it('ход чужого продукта не завершается', async () => {
+    // RunnerGuard подтверждает, каким продуктом является раннер, но не то, что
+    // переданный в URL turnId принадлежит этому продукту. Без product_id в
+    // WHERE раннер продукта A завершил бы ход продукта B и списал бы за него
+    // с владельца A.
+    const { svc, calls } = makeService();
+
+    await svc.complete('t-1', { productId: 'p-1', userId: 'u-1', status: 'done', tokens: 100 });
+
+    expect(calls[0].sql).toContain('product_id = $2');
+    expect(calls[0].params[1]).toBe('p-1');
   });
 
   it('упавший ход не тарифицируется', async () => {
     const { svc, deductTokens } = makeService();
 
-    await svc.complete('t-1', { userId: 'u-1', status: 'failed', error: 'claude exited 1', tokens: 900 });
+    await svc.complete('t-1', { productId: 'p-1', userId: 'u-1', status: 'failed', error: 'claude exited 1', tokens: 900 });
 
     expect(deductTokens).not.toHaveBeenCalled();
   });
@@ -840,7 +854,7 @@ describe('TurnsService.complete', () => {
   it('откат по health-check не тарифицируется', async () => {
     const { svc, deductTokens } = makeService();
 
-    await svc.complete('t-1', { userId: 'u-1', status: 'reverted', shaBefore: 'aaa', tokens: 900 });
+    await svc.complete('t-1', { productId: 'p-1', userId: 'u-1', status: 'reverted', shaBefore: 'aaa', tokens: 900 });
 
     expect(deductTokens).not.toHaveBeenCalled();
   });
@@ -860,6 +874,12 @@ Expected: FAIL — `svc.claimNext is not a function`
 export type TurnStatus = 'queued' | 'running' | 'done' | 'failed' | 'reverted';
 
 export interface CompleteInput {
+  /**
+   * Продукт, от имени которого пришёл раннер — всегда `req.product.id` из
+   * `RunnerGuard`, никогда значение из запроса. Без этого ограничения раннер
+   * продукта A завершил бы ход продукта B, передав его `turnId` в URL.
+   */
+  productId: string;
   userId: string;
   status: Extract<TurnStatus, 'done' | 'failed' | 'reverted'>;
   result?: string;
@@ -936,14 +956,15 @@ export interface ClaimedTurn {
     // сверкой `tokens_spent` с `token_transactions`, перебор — только жалобой.
     const claimed = await this.pg.query(
       `UPDATE product_turns
-          SET status = $2, result = $3, error = $4,
-              sha_before = COALESCE($5, sha_before),
-              sha_after = $6,
-              tokens_spent = $7,
+          SET status = $3, result = $4, error = $5,
+              sha_before = COALESCE($6, sha_before),
+              sha_after = $7,
+              tokens_spent = $8,
               finished_at = now()
-        WHERE id = $1 AND status = 'running'`,
+        WHERE id = $1 AND product_id = $2 AND status = 'running'`,
       [
         turnId,
+        input.productId,
         input.status,
         input.result ?? null,
         input.error ?? null,
@@ -1344,7 +1365,22 @@ describe('RunnerController.complete', () => {
       tokens: 1500,
     } as any);
 
-    expect(turns.complete).toHaveBeenCalledWith('t-1', expect.objectContaining({ status: 'done', tokens: 1500 }));
+    // productId берётся из req.product, а не из тела или URL: guard знает,
+    // каким продуктом является раннер, но не то, что turnId принадлежит ему.
+    expect(turns.complete).toHaveBeenCalledWith(
+      't-1',
+      expect.objectContaining({ status: 'done', tokens: 1500, productId: 'p-1', userId: 'u-1' }),
+    );
+  });
+
+  it('productId из тела запроса игнорируется', async () => {
+    // Раннер продукта A не должен уметь адресоваться к продукту B, дописав
+    // поле в тело. ValidationPipe стоит с whitelist: false и лишнее не срежет.
+    const { ctrl, turns } = makeController(null);
+
+    await ctrl.complete(req() as any, 't-1', { status: 'done', productId: 'p-999' } as any);
+
+    expect(turns.complete).toHaveBeenCalledWith('t-1', expect.objectContaining({ productId: 'p-1' }));
   });
 });
 ```
@@ -1359,6 +1395,20 @@ Expected: FAIL — `Cannot find module './runner.controller'`
 В `src/products/turns.service.ts`:
 
 ```ts
+  /**
+   * Ход принадлежит продукту — или 404. Нужен там, где ограничить запросом
+   * нельзя: события уезжают в Redis по ключу хода, а продукта в этом ключе
+   * нет. `RunnerGuard` подтверждает, каким продуктом является раннер, но не
+   * то, что переданный `turnId` относится к этому продукту.
+   */
+  async assertTurnBelongsTo(turnId: string, productId: string): Promise<void> {
+    const r = await this.pg.query(
+      `SELECT 1 FROM product_turns WHERE id = $1 AND product_id = $2`,
+      [turnId, productId],
+    );
+    if (!r.rows[0]) throw new NotFoundException('Turn not found');
+  }
+
   /** Heartbeat раннера. Пишется на каждом опросе, независимо от наличия хода. */
   async touchRunner(productId: string) {
     await this.pg.query(`UPDATE products SET runner_seen_at = now() WHERE id = $1`, [productId]);
@@ -1412,9 +1462,28 @@ export class RunnerController {
     };
   }
 
+  /**
+   * `productId` и `userId` берутся ИСКЛЮЧИТЕЛЬНО из `req.product`, который
+   * положил `RunnerGuard`. Ничего из тела и URL, кроме `turnId`, доверять
+   * нельзя: guard подтверждает, каким продуктом является раннер, но не то,
+   * что переданный `turnId` принадлежит этому продукту.
+   *
+   * `Omit` здесь не защита, а документация: `ValidationPipe` поднят с
+   * `whitelist: false`, TS-типы в рантайме не существуют, и лишние поля из
+   * тела дошли бы до сервиса. Спасает то, что `complete` собирает параметры
+   * явным списком.
+   */
   @Post('products/runner/turns/:id/complete')
-  async complete(@Req() req: any, @Param('id') id: string, @Body() body: Omit<CompleteInput, 'userId'>) {
-    await this.turns.complete(id, { ...body, userId: req.product.user_id });
+  async complete(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: Omit<CompleteInput, 'userId' | 'productId'>,
+  ) {
+    await this.turns.complete(id, {
+      ...body,
+      productId: req.product.id,
+      userId: req.product.user_id,
+    });
     return { ok: true };
   }
 }
@@ -1680,8 +1749,17 @@ export class ProductsController {
 В `src/products/runner.controller.ts`:
 
 ```ts
+  /**
+   * Принадлежность хода проверяется явно: события уезжают в Redis по ключу
+   * хода, и там нет продукта, поэтому в самом `appendEvent` ограничить нечем.
+   *
+   * Без проверки раннер продукта A вливал бы произвольный текст в живой
+   * стрим чата продукта B — клиент B увидел бы это в своём разговоре с
+   * агентом как ответ собственного ассистента.
+   */
   @Post('products/runner/turns/:id/events')
-  async events(@Param('id') id: string, @Body() body: { events: any[] }) {
+  async events(@Req() req: any, @Param('id') id: string, @Body() body: { events: any[] }) {
+    await this.turns.assertTurnBelongsTo(id, req.product.id);
     for (const event of body.events ?? []) {
       await this.turns.appendEvent(id, event);
     }
