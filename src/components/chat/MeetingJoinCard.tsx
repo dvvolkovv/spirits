@@ -83,7 +83,7 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', age
         </button>
       </div>
       {error && <p className="mt-1 text-xs text-red-600">{t(`chat.meeting.${error}`)}</p>}
-      {waitingAdmit && <p className="mt-1 text-xs text-gray-500">{t('chat.meeting.waitingAdmit')}</p>}
+      {waitingAdmit && <p className="mt-1 text-xs text-gray-500">{t('chat.meeting.waiting_admit')}</p>}
     </div>
   );
 }

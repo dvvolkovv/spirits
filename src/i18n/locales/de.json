@@ -352,7 +352,7 @@
     },
     "meeting": {
       "join": "Beitreten",
-      "waitingAdmit": "Der Assistent bittet darum, eingelassen zu werden. Bitte bestätige den Zutritt zur Google-Meet-Besprechung",
+      "waiting_admit": "Der Assistent bittet darum, eingelassen zu werden. Bitte bestätige den Zutritt zur Google-Meet-Besprechung",
       "in_progress": "Assistent ist in einer Besprechung",
       "leave": "Verlassen",
       "already_in": "Der Assistent ist bereits in einer anderen Besprechung oder in einem Anruf",

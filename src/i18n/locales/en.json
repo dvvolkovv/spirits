@@ -352,7 +352,7 @@
     },
     "meeting": {
       "join": "Join",
-      "waitingAdmit": "The assistant is asking to be let in. Please admit it to the Google Meet call",
+      "waiting_admit": "The assistant is asking to be let in. Please admit it to the Google Meet call",
       "in_progress": "Assistant is in a meeting",
       "leave": "Leave",
       "already_in": "The assistant is already in another meeting or on a call",
