@@ -742,9 +742,11 @@ describe('TurnsService.claimNext', () => {
     // держит продукт вечно. То есть снятие этой строки молча выключает
     // единственный механизм самовосстановления.
     expect(sqlOf(calls)).toContain('started_at = now()');
-    // Task 7 читает prompt, channel и user_id и шлёт их на VM. Мок эти поля
-    // выдумывает, поэтому усечение RETURNING без утверждения незаметно.
-    expect(sqlOf(calls)).toContain('RETURNING id, prompt, channel, user_id, revert_to_sha');
+    // Task 7 читает prompt, user_id и revert_to_sha и шлёт их на VM. Мок эти
+    // поля выдумывает, поэтому усечение RETURNING без утверждения незаметно.
+    // `channel` здесь намеренно нет: он никем не читается, а поле, которое
+    // существует и не используется, рано или поздно начнут поддерживать.
+    expect(sqlOf(calls)).toContain('RETURNING id, prompt, user_id, revert_to_sha');
   });
 
   it('отдаёт null, когда очередь пуста', async () => {
@@ -902,7 +904,6 @@ export interface CompleteInput {
 export interface ClaimedTurn {
   id: string;
   prompt: string;
-  channel: string;
   user_id: string;
   /** Непустое => это откат, и раннеру надо сбросить дерево на этот sha. */
   revert_to_sha: string | null;
@@ -918,6 +919,11 @@ export interface ClaimedTurn {
           SET status = 'running', started_at = now()
         WHERE id = (
           SELECT t.id FROM product_turns t
+            -- ВАЖНО про семантику: это закрывает выдачу НОВОЙ работы, но не
+            -- прерывает ход, забранный до остановки. Тот живёт на VM минутами
+            -- — агент правит код, коммитит, собирает и перезапускает прод.
+            -- Отмена требует участия раннера и относится к его плану.
+            --
             -- Статус продукта проверяется ЗДЕСЬ, а не только в enqueue.
             -- Между постановкой хода и его забором проходит время: раннер мог
             -- лежать полчаса. Если за это время продукт перевели в stopped,
@@ -935,7 +941,7 @@ export interface ClaimedTurn {
            FOR UPDATE OF t SKIP LOCKED
            LIMIT 1
         )
-        RETURNING id, prompt, channel, user_id, revert_to_sha`,
+        RETURNING id, prompt, user_id, revert_to_sha`,
       [productId],
     );
     return r.rows[0] ?? null;
@@ -1374,7 +1380,6 @@ describe('RunnerController.poll', () => {
       id: 't-1',
       prompt: 'поправь футер',
       user_id: 'u-1',
-      channel: 'web',
       revert_to_sha: null,
     });
 
@@ -1485,11 +1490,54 @@ Expected: FAIL — `Cannot find module './runner.controller'`
       `UPDATE products
           SET runner_seen_at = now(),
               status = CASE WHEN status = 'degraded' THEN 'running' ELSE status END
-        WHERE id = $1`,
+        WHERE id = $1
+          -- Запись условная. Без этого heartbeat пишет в одну и ту же строку
+          -- каждые три секунды на каждый продукт независимо от наличия работы.
+          -- Колонки runner_seen_at и status не проиндексированы, поэтому
+          -- обновления идут HOT и катастрофы с вакуумом не будет, но два
+          -- десятка записей в минуту ни за чем не нужны. Третье условие
+          -- сохраняет мгновенное восстановление из degraded.
+          --
+          -- Требование: порог алерта «нет связи» обязан быть заметно больше
+          -- 30 секунд, иначе продукт будет мигать между статусами.
+          AND (runner_seen_at IS NULL
+               OR runner_seen_at < now() - interval '30 seconds'
+               OR status = 'degraded')`,
       [productId],
     );
   }
 ```
+
+- [ ] **Step 3б: Тест на heartbeat**
+
+В `src/products/turns.lifecycle.spec.ts`:
+
+```ts
+describe('TurnsService.touchRunner', () => {
+  it('heartbeat снимает degraded и не трогает остальные статусы', async () => {
+    // Без обратного перехода degraded — тупик: мониторинг его ставит, никто
+    // не снимает, и продукт навсегда остаётся «нет связи» и без работы,
+    // потому что claimNext отбирает только по p.status = 'running'.
+    const { svc, calls } = makeService();
+
+    await svc.touchRunner('p-1');
+
+    expect(calls[0].sql).toContain('runner_seen_at = now()');
+    // Два узких утверждения вместо одного точного сравнения всего выражения:
+    // то было бы привязано к форматированию — перенос строки или лишний
+    // пробел ронял бы тест, ничего не сломав. Здесь два разных обещания:
+    // срабатывает только на degraded, и всё остальное сохраняется как было.
+    expect(calls[0].sql).toContain("WHEN status = 'degraded'");
+    expect(calls[0].sql).toContain('ELSE status END');
+    // Условная запись — иначе два десятка записей в минуту на продукт.
+    expect(calls[0].sql).toContain("interval '30 seconds'");
+    expect(calls[0].sql).toContain('WHERE id = $1');
+    expect(calls[0].params).toEqual(['p-1']);
+  });
+});
+```
+
+Настоящая граница «heartbeat не отменяет решение владельца» юнитом не проверяется — мок не хранит состояние строки. Её доказывает живая проверка из Task 11: heartbeat на `stopped` не воскрешает продукт, на `degraded` возвращает в `running`.
 
 - [ ] **Step 4: Написать контроллер**
 
