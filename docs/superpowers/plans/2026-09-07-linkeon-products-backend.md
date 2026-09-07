@@ -1482,6 +1482,28 @@ Expected: FAIL — `Cannot find module './runner.controller'`
 
 ```ts
   /**
+   * Отметка прогресса идущего хода — единственный доступный сборщику признак
+   * его жизни. `runner_seen_at` здесь не годится: во время выполнения раннер
+   * не опрашивает, он работает, и отметка живости продукта не двигается.
+   *
+   * Запись условная по тем же соображениям, что у heartbeat: события идут
+   * пачками по несколько раз в секунду, а сборщику хватает разрешения в
+   * десятки секунд.
+   *
+   * `product_id` в условии — не защита (её даёт ключ буфера по конструкции),
+   * а корректность: чужой ход не должен получать отметку жизни.
+   */
+  async markProgress(turnId: string, productId: string) {
+    await this.pg.query(
+      `UPDATE product_turns
+          SET last_progress_at = now()
+        WHERE id = $1 AND product_id = $2
+          AND (last_progress_at IS NULL OR last_progress_at < now() - interval '30 seconds')`,
+      [turnId, productId],
+    );
+  }
+
+  /**
    * Heartbeat раннера. Пишется на каждом опросе, независимо от наличия хода.
    *
    * Заодно снимает `degraded`. Этот статус ставит мониторинг, когда раннер
@@ -2189,6 +2211,10 @@ export class ProductsController {
     for (const event of body.events ?? []) {
       await this.turnEvents.appendEvent(req.product.id, id, event);
     }
+    // Признак жизни идущего хода. Без него сборщик отбирает по длительности —
+    // то есть по догадке о смерти — и снимает замок под легитимно длинным
+    // ходом, после чего рядом стартует второй claude -p в том же чекауте.
+    await this.turns.markProgress(id, req.product.id);
     return { ok: true };
   }
 ```
