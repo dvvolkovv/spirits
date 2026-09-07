@@ -1751,6 +1751,29 @@ describe('ProductsController.chat — защита от подделки отк�
   });
 });
 
+describe('ProductsController — привязка отмены', () => {
+  it('обрыв клиента виден генератору, а не только внешней проверке', async () => {
+    // Внешний `if (clientGone) break` работает, только пока идут события,
+    // поэтому все тесты на обрыв проходят и с отвязанным предикатом:
+    // подмена `() => clientGone` на `() => false` оставляла набор зелёным и
+    // молча возвращала дыру. Заглушка ниже не отдаёт ничего — значит внешняя
+    // проверка не сработает никогда, и связка держится только на предикате.
+    const { ctrl, turnEvents } = makeController([]);
+    let captured: (() => boolean) | undefined;
+    turnEvents.readEvents = jest.fn((_p: any, _t: any, isCancelled: () => boolean) => {
+      captured = isCancelled;
+      return (async function* () {})();
+    }) as any;
+
+    const req = makeReq();
+    await ctrl.chat(user, 'p-1', { prompt: 'go' } as any, req as any, makeRes() as any);
+    req.fireClose();
+
+    expect(captured).toBeDefined();
+    expect(captured!()).toBe(true);
+  });
+});
+
 describe('ProductsController.revert', () => {
   it('проверяет владение и ставит откат', async () => {
     const { ctrl, products, turns } = makeController([]);
@@ -1966,7 +1989,15 @@ export class TurnEventsService {
         // потока пропадёт молча.
         for (const raw of await this.redis.lrange(key, cursor, -1)) {
           cursor++;
-          yield JSON.parse(raw);
+          const event = JSON.parse(raw);
+          yield event;
+          // Своего `end` достаточно. Без этой проверки дренаж отдаёт хвост и
+          // следом добавляет синтетический `end` — а хвост, ради которого он
+          // написан, это последние события раннера, который завершает поток
+          // именно `end`. То есть штатное срабатывание давало бы дубль
+          // терминального события, и обработчик завершения на клиенте
+          // отрабатывал бы дважды.
+          if (event?.type === 'end' || event?.type === 'error') return;
         }
         yield { type: 'end' };
         return;
@@ -2020,7 +2051,7 @@ export class TurnEventsService {
 `src/products/products.controller.ts`:
 
 ```ts
-import { Body, Controller, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { JwtGuard } from '../common/guards/jwt.guard';
 import { CurrentUser } from '../common/decorators/user.decorator';
@@ -2031,6 +2062,8 @@ import { TurnEventsService } from './turn-events.service';
 @Controller('')
 @UseGuards(JwtGuard)
 export class ProductsController {
+  private readonly logger = new Logger(ProductsController.name);
+
   constructor(
     private readonly products: ProductsService,
     private readonly turns: TurnsService,
@@ -2100,6 +2133,12 @@ export class ProductsController {
       // не сможет — клиент увидел бы обрыв сокета без объяснения. Отдаём
       // событие error, чтобы NDJSON-парсер на той стороне получил внятное
       // завершение.
+      // След обязателен: заголовки ушли, клиент получит только «поток
+      // прерван», а настоящая причина — падение Postgres, отказ Redis,
+      // порча буфера — иначе не попадёт никуда. Это третий случай в модуле,
+      // когда диагностика на редкой ветке отсутствует или врёт; два
+      // предыдущих уже стоили времени.
+      this.logger.error(`chat: поток хода ${turn.id} прерван: ${e?.message}`);
       if (!clientGone) {
         res.write(JSON.stringify({ type: 'error', message: 'Поток прерван' }) + '\n');
       }
