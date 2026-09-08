@@ -1964,5 +1964,31 @@
     "mic_off": "关闭麦克风",
     "leave": "离开",
     "mic_blocked": "麦克风不可用，其他人听不到您。请检查浏览器权限并点按麦克风图标。"
+  },
+  "products": {
+    "nav": "产品",
+    "title": "我的产品",
+    "subtitle": "由 Linkeon 托管和维护的网站与机器人",
+    "empty": "暂无产品",
+    "status": {
+      "running": "运行中",
+      "degraded": "与服务器失去连接",
+      "stopped": "已停止",
+      "provisioning": "部署中",
+      "archived": "已归档"
+    },
+    "chat": {
+      "placeholder": "需要修改什么？",
+      "send": "发送",
+      "busy": "智能体仍在处理上一个请求"
+    },
+    "history": {
+      "title": "修改记录",
+      "empty": "暂无修改",
+      "revert": "撤销",
+      "reverted": "已撤销",
+      "failed": "失败",
+      "tokens": "已消耗代币：{{count}}"
+    }
   }
 }

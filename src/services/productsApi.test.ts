@@ -33,6 +33,15 @@ describe('productsApi', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/webhook/products/p-1/turns');
   });
 
+  it('идентификатор продукта экранируется и в истории', async () => {
+    // turns() экранирует id отдельным вызовом enc() — предыдущий кейс с
+    // 'p-1' не ловит мутацию «убрать enc», потому что дефис не меняется
+    // при encodeURIComponent. Слэш меняется.
+    await productsApi.turns('p/1');
+
+    expect(apiClient.get).toHaveBeenCalledWith('/webhook/products/p%2F1/turns');
+  });
+
   it('откат идёт POST-ом на конкретный ход', async () => {
     await productsApi.revert('p-1', 't-1');
 

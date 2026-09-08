@@ -1970,5 +1970,31 @@
     "mic_off": "Mikrofon ausschalten",
     "leave": "Verlassen",
     "mic_blocked": "Mikrofon nicht verfügbar — Sie sind nicht zu hören. Prüfen Sie die Browser-Berechtigung und tippen Sie auf das Mikrofonsymbol."
+  },
+  "products": {
+    "nav": "Produkte",
+    "title": "Meine Produkte",
+    "subtitle": "Websites und Bots, die Linkeon hostet und weiterentwickelt",
+    "empty": "Noch keine Produkte",
+    "status": {
+      "running": "Läuft",
+      "degraded": "Keine Verbindung zum Server",
+      "stopped": "Gestoppt",
+      "provisioning": "Wird eingerichtet",
+      "archived": "Archiviert"
+    },
+    "chat": {
+      "placeholder": "Was soll geändert werden?",
+      "send": "Senden",
+      "busy": "Der Agent arbeitet noch an deiner vorherigen Anfrage"
+    },
+    "history": {
+      "title": "Änderungsverlauf",
+      "empty": "Noch keine Änderungen",
+      "revert": "Zurücksetzen",
+      "reverted": "Zurückgesetzt",
+      "failed": "Fehlgeschlagen",
+      "tokens": "Verbrauchte Tokens: {{count}}"
+    }
   }
 }

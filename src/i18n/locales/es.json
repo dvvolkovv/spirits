@@ -1976,5 +1976,31 @@
     "mic_off": "Silenciar micrófono",
     "leave": "Salir",
     "mic_blocked": "Micrófono no disponible: no te oyen. Revisa el permiso del navegador y toca el icono del micrófono."
+  },
+  "products": {
+    "nav": "Productos",
+    "title": "Mis productos",
+    "subtitle": "Sitios y bots que Linkeon aloja y mantiene",
+    "empty": "Aún no hay productos",
+    "status": {
+      "running": "En funcionamiento",
+      "degraded": "Sin conexión con el servidor",
+      "stopped": "Detenido",
+      "provisioning": "Desplegando",
+      "archived": "Archivado"
+    },
+    "chat": {
+      "placeholder": "¿Qué quieres cambiar?",
+      "send": "Enviar",
+      "busy": "El agente aún está trabajando en tu solicitud anterior"
+    },
+    "history": {
+      "title": "Historial de cambios",
+      "empty": "Todavía no hay cambios",
+      "revert": "Deshacer",
+      "reverted": "Revertido",
+      "failed": "Fallido",
+      "tokens": "Tokens gastados: {{count}}"
+    }
   }
 }

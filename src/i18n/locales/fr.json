@@ -1976,5 +1976,31 @@
     "mic_off": "Couper le micro",
     "leave": "Quitter",
     "mic_blocked": "Micro indisponible : personne ne vous entend. Vérifiez l’autorisation du navigateur et touchez l’icône du micro."
+  },
+  "products": {
+    "nav": "Produits",
+    "title": "Mes produits",
+    "subtitle": "Sites et bots que Linkeon héberge et fait évoluer",
+    "empty": "Aucun produit pour l'instant",
+    "status": {
+      "running": "En service",
+      "degraded": "Pas de connexion au serveur",
+      "stopped": "Arrêté",
+      "provisioning": "Déploiement en cours",
+      "archived": "Archivé"
+    },
+    "chat": {
+      "placeholder": "Que faut-il modifier ?",
+      "send": "Envoyer",
+      "busy": "L'agent travaille encore sur votre demande précédente"
+    },
+    "history": {
+      "title": "Historique des modifications",
+      "empty": "Aucune modification pour l'instant",
+      "revert": "Revenir en arrière",
+      "reverted": "Annulé",
+      "failed": "Échec",
+      "tokens": "Jetons dépensés : {{count}}"
+    }
   }
 }
