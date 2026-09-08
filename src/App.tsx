@@ -37,6 +37,7 @@ const AuthOAuthCallbackPage = lazy(() => import('./pages/AuthOAuthCallbackPage')
 const ContactRequestsPage = lazy(() => import('./pages/ContactRequestsPage'));
 const SettingsSocialPage = lazy(() => import('./pages/SettingsSocialPage'));
 const StudioPage = lazy(() => import('./pages/StudioPage'));
+const ProductsPage = lazy(() => import('./pages/ProductsPage'));
 const TelegramBotsNewPage = lazy(() => import('./pages/TelegramBotsPage').then((m) => ({ default: m.TelegramBotsNewPage })));
 // Голосовая комната. Ленивая намеренно: тянет за собой livekit-client, а
 // открывают её единицы — грузить его всем в основном чанке незачем.
@@ -230,6 +231,7 @@ const AppContent: React.FC = () => {
             <Route path="/chats/:chatId" element={<ChatConversationPage />} />
             <Route path="/profile" element={<ProfileView />} />
             <Route path="/studio" element={<StudioPage />} />
+            <Route path="/products" element={<ProductsPage />} />
             {/* Старые URL — редиректим на Студию для бэк-совместимости bookmark-ов. */}
             <Route path="/my-agents" element={<Navigate to="/studio" replace />} />
             <Route path="/telegram-bots" element={<Navigate to="/studio?tab=bots" replace />} />

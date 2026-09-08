@@ -2313,5 +2313,34 @@
     "mic_off": "Turn off microphone",
     "leave": "Leave",
     "mic_blocked": "Microphone unavailable — others cannot hear you. Check the browser permission and tap the microphone icon."
+  },
+  "products": {
+    "nav": "Products",
+    "title": "My products",
+    "subtitle": "Sites and bots that Linkeon hosts and maintains",
+    "empty": "No products yet",
+    "status": {
+      "running": "Running",
+      "degraded": "No connection to server",
+      "stopped": "Stopped",
+      "provisioning": "Provisioning",
+      "archived": "Archived"
+    },
+    "chat": {
+      "placeholder": "What should I change?",
+      "send": "Send",
+      "busy": "The agent is still working on your previous request"
+    },
+    "history": {
+      "title": "Change history",
+      "empty": "No changes yet",
+      "revert": "Roll back",
+      "reverted": "Rolled back",
+      "failed": "Failed",
+      "queued": "Queued",
+      "running": "Running",
+      "done": "Done",
+      "tokens": "Tokens spent: {{count}}"
+    }
   }
 }
