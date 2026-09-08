@@ -2000,6 +2000,9 @@
       "revert": "Deshacer",
       "reverted": "Revertido",
       "failed": "Fallido",
+      "queued": "En cola",
+      "running": "En curso",
+      "done": "Hecho",
       "tokens": "Tokens gastados: {{count}}"
     }
   }

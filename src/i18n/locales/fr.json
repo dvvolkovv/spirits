@@ -2000,6 +2000,9 @@
       "revert": "Revenir en arrière",
       "reverted": "Annulé",
       "failed": "Échec",
+      "queued": "En attente",
+      "running": "En cours",
+      "done": "Terminé",
       "tokens": "Jetons dépensés : {{count}}"
     }
   }

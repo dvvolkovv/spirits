@@ -2337,6 +2337,9 @@
       "revert": "Reverter",
       "reverted": "Revertido",
       "failed": "Falhou",
+      "queued": "Na fila",
+      "running": "Em execução",
+      "done": "Concluído",
       "tokens": "Tokens gastos: {{count}}"
     }
   }

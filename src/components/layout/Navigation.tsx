@@ -15,6 +15,7 @@ import {
   Film,
   HelpCircle,
   Sparkles,
+  Server,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -106,6 +107,13 @@ const Navigation: React.FC = () => {
     isLogo: false,
   };
 
+  const productsNavItem = {
+    to: '/products',
+    icon: Server,
+    label: t('products.nav'),
+    isLogo: false,
+  };
+
   // Реферальная программа переехала в аккордеон Профиля — пункт из nav убран.
 
   const helpNavItem = {
@@ -119,6 +127,10 @@ const Navigation: React.FC = () => {
     ...baseNavItems,
     // Студия доступна всем (создание агентов и Telegram-ботов).
     studioNavItem,
+    // Продукты пока заводит только владелец, у остальных список пуст —
+    // пустая вкладка у всех пользователей это шум. Условие снимается,
+    // когда появится самостоятельное заведение продукта клиентом.
+    ...(user?.isAdmin ? [productsNavItem] : []),
     // Админ-инструменты — только для админов.
     ...(user?.isAdmin ? [adminNavItem] : []),
     profileNavItem,

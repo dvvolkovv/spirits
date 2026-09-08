@@ -2337,6 +2337,9 @@
       "revert": "Roll back",
       "reverted": "Rolled back",
       "failed": "Failed",
+      "queued": "Queued",
+      "running": "Running",
+      "done": "Done",
       "tokens": "Tokens spent: {{count}}"
     }
   }

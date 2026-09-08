@@ -1994,6 +1994,9 @@
       "revert": "Zurücksetzen",
       "reverted": "Zurückgesetzt",
       "failed": "Fehlgeschlagen",
+      "queued": "In der Warteschlange",
+      "running": "Läuft",
+      "done": "Fertig",
       "tokens": "Verbrauchte Tokens: {{count}}"
     }
   }

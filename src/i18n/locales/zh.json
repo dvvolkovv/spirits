@@ -1988,6 +1988,9 @@
       "revert": "撤销",
       "reverted": "已撤销",
       "failed": "失败",
+      "queued": "排队中",
+      "running": "进行中",
+      "done": "已完成",
       "tokens": "已消耗代币：{{count}}"
     }
   }
