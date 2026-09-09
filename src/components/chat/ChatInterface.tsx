@@ -528,6 +528,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // асинхронный — без флага второй вызов увидел бы ту же очередь и отправил
   // ход второй раз (и списал токены дважды).
   const flushingRef = useRef(false);
+  // Отправка в процессе. Нужен, потому что в handleSend появился await на
+  // проверку удалённого хода: без синхронного гарда второе нажатие в этом окне
+  // уходило бы параллельно (guard по isTyping внутри sendMessageText читает
+  // stale-значение из замыкания и не спасает).
+  const sendingRef = useRef(false);
 
   // Очередь пишем ТОЛЬКО через этот хелпер: ref обновляется в тот же момент,
   // что и состояние. Пока ref синхронизировался отдельным эффектом, он отставал
@@ -600,13 +605,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!active) setRemoteOverride(false);
   };
 
-  // Тикер живёт только пока признак поднят: незачем будить компонент раз в
-  // 15 секунд всё остальное время.
+  // Тикер живёт только пока признак поднят И порог ещё не достигнут. Дальше
+  // время не нужно: кнопка уже показана, а ре-рендер здесь недёшев — messages
+  // не мемоизированы, каждый пузырь тянет разбор markdown, и при длинной
+  // истории это полный проход раз в 15 секунд все двадцать минут хода.
+  const overrideOffered = shouldOfferOverride(remoteTurnActive, remoteTurnSinceRef.current, nowTick);
   useEffect(() => {
-    if (!remoteTurnActive) return;
+    if (!remoteTurnActive || overrideOffered) return;
     const id = setInterval(() => setNowTick(Date.now()), 15000);
     return () => clearInterval(id);
-  }, [remoteTurnActive]);
+  }, [remoteTurnActive, overrideOffered]);
 
   // «Ход идёт хоть где-то» — этим решаем, слать или копить. Отправка в идущий
   // удалённый ход убила бы его: релей пре-эмптит процесс на том же sessionId.
@@ -615,6 +623,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     queuedCount: queued.length,
     remoteTurnActive: remoteTurnActive && !remoteOverride,
   });
+
+  // Гейт поллинга ИСТОРИИ — отдельно от turnBusy.
+  //
+  // Очередь гасит поллинг ради узкого окна между концом стрима и стартом
+  // досылки: там ход только что сохранился в БД, и поллинг задвоил бы его.
+  // Но теперь очередь может ждать удалённый ход минутами — и всё это время
+  // поллинг был бы выключен ровно тогда, когда он единственный способ
+  // подобрать чужой ответ. Хуже того, дождавшись, досылка добавила бы своё
+  // сообщение с текущим временем, и selectNewPolledMessages отбросил бы
+  // удалённый ответ как более старый (historyMerge.ts): ответ пропал бы
+  // до перезагрузки страницы.
+  //
+  // В том самом окне между стримом и досылкой remoteTurnActive false, так что
+  // защита от задвоения сохраняется.
+  const historyPollBlocked = isTyping || (queued.length > 0 && !remoteTurnActive);
 
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
@@ -822,7 +845,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // и НЕТ активного локального стрима.
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
-    if (turnBusy) return; // активный локальный стрим или очередь досылки — не дёргаем
+    if (historyPollBlocked) return; // свой стрим или окно перед досылкой — не дёргаем
 
     let cancelled = false;
     const assistantId = selectedAssistant.id;
@@ -873,7 +896,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       clearTimeout(t1);
       clearInterval(id);
     };
-  }, [selectedAssistant?.id, hasUserSelectedAssistant, turnBusy, freshTs]);
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, historyPollBlocked, freshTs]);
 
   // Идёт ли ход на сервере прямо сейчас. Спрашиваем только когда в этой вкладке
   // стрима нет — иначе про свой же ход и спрашивать незачем. Отвечает бэкенд по
@@ -909,6 +932,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       clearInterval(id);
       setRemoteTurnActive(false);
       remoteTurnSinceRef.current = null;
+      // Разрешение «слать всё равно» и метка последней проверки относились к
+      // ПРЕЖНЕМУ ассистенту. Без сброса разрешение переезжало бы на нового, и
+      // первая же отправка убила бы его живой ход — ровно то, что мы чиним.
+      // По той же причине обнуляем метку: свежесть знания про A ничего не
+      // говорит про B.
+      setRemoteOverride(false);
+      remoteCheckedAtRef.current = null;
     };
   }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping]);
 
@@ -1618,6 +1648,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const handleSend = async () => {
     if (!input.trim()) return;
+    // Синхронный гард: между setInput('') и появлением пузыря теперь есть await
+    // на проверку удалённого хода. Второе нажатие в этом окне видело бы те же
+    // isTyping=false и пустую очередь — и ушли бы две параллельные отправки.
+    // Ref взводится до первого await, поэтому окна нет вовсе.
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    try {
+      await handleSendInner();
+    } finally {
+      sendingRef.current = false;
+    }
+  };
+
+  const handleSendInner = async () => {
     // Если идёт диктовка — глушим микрофон и отвязываем инстанс, чтобы поздние
     // partial/final (см. guard в onPartial/onFinal) не возвращали текст в поле.
     if (voiceRef.current) {
@@ -1651,7 +1695,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!remoteOverride && selectedAssistant &&
         needsFreshRemoteCheck(remoteCheckedAtRef.current, Date.now())) {
       try {
-        const r = await apiClient.get(`/webhook/chat/active-turn?assistantId=${selectedAssistant.id}`);
+        // Таймаут обязателен: у apiClient своего нет, а текст в этот момент уже
+        // убран из поля и ещё не показан пузырём. На подвисшей мобильной сети
+        // без него сообщение просто исчезало бы с экрана на неопределённый срок.
+        const r = await apiClient.get(
+          `/webhook/chat/active-turn?assistantId=${selectedAssistant.id}`,
+          { signal: AbortSignal.timeout(2000) },
+        );
         if (r.ok) {
           const data = await r.json();
           if (data?.active) {
@@ -2096,6 +2146,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const handleFileTaskSubmit = async () => {
     if (!pendingFiles.length || !fileTaskInput.trim()) return;
+    // Загрузка файла — такой же полноценный ход к релею, значит она так же
+    // пре-эмптит идущий ответ по этому sessionId. Кнопка скрепки уже погашена
+    // по sendBlocked, но модалку могли открыть до того, как ход начался.
+    // Очередь на файлы не распространяется (у загрузки свой путь), поэтому
+    // здесь честный отказ с объяснением, а не молчаливое проглатывание.
+    if (sendBlocked) {
+      toast.error(t('chat.busy_try_later'));
+      return;
+    }
 
     const files = pendingFiles;
     const task = fileTaskInput.trim();
@@ -3034,7 +3093,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <MeetingStatusBar callId={meetingCallId} onLeft={() => setMeetingCallId(null)} />
         )}
 
-        {remoteTurnActive && !streamingMessageId && !turnBusy && !historyLoading && (
+        {/* Гейт по isTyping, а НЕ по turnBusy: очередь входит в turnBusy, и
+            карточка пряталась ровно тогда, когда человек что-то написал — то
+            есть кнопка «Отправить всё равно» была недостижима именно в том
+            состоянии, ради которого сделана. */}
+        {remoteTurnActive && !streamingMessageId && !isTyping && !historyLoading && (
           <div className="flex justify-start">
             <div className="max-w-lg px-4 py-3 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md">
               <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -3048,7 +3111,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   таймеру автоматически НЕЛЬЗЯ (ходы юристов доходят до двадцати
                   минут, автоснятие рвало бы самые дорогие), поэтому после
                   двух минут просто отдаём решение человеку. */}
-              {shouldOfferOverride(remoteTurnActive, remoteTurnSinceRef.current, nowTick) && (
+              {overrideOffered && (
                 <button
                   onClick={() => setRemoteOverride(true)}
                   className="mt-2 text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
@@ -3087,7 +3150,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploadingFile || turnBusy}
+            disabled={isUploadingFile || sendBlocked}
             className={clsx(
               'p-2 transition-colors rounded-lg',
               isUploadingFile

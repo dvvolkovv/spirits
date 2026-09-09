@@ -331,6 +331,7 @@
     "queued_hint": "será enviado a seguir",
     "queued_remove": "Remover",
     "send_anyway": "Enviar mesmo assim",
+    "busy_try_later": "O assistente ainda está respondendo — tente novamente em um minuto",
     "voice_call": {
       "start": "Ligar",
       "ready": "Pronto para ligar",

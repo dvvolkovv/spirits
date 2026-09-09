@@ -329,6 +329,7 @@
     "queued_hint": "will be sent next",
     "queued_remove": "Remove",
     "send_anyway": "Send anyway",
+    "busy_try_later": "The assistant is still replying — try again in a minute",
     "voice_call": {
       "start": "Call",
       "ready": "Ready to call",

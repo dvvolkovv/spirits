@@ -327,6 +327,7 @@
     "queued_hint": "将在下一条发送",
     "queued_remove": "移除",
     "send_anyway": "仍然发送",
+    "busy_try_later": "助手仍在回复，请稍后再试",
     "voice_call": {
       "start": "拨打",
       "ready": "准备通话",

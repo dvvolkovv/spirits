@@ -63,10 +63,57 @@ describe('досылка очереди', () => {
 });
 
 describe('поллинг истории', () => {
-  it('удалённый ход его НЕ выключает — иначе чужой ответ не подберётся из БД', () => {
+  it('очередь НЕ гасит поллинг, пока она ждёт удалённый ход', () => {
+    // Иначе: поллинг молчит весь чужой ход (до 20 минут), а когда досылка
+    // наконец отправит своё сообщение с текущим временем, selectNewPolledMessages
+    // отбросит удалённый ответ как более старый (historyMerge.ts) — и человек
+    // не увидит его вообще, до перезагрузки страницы.
+    expect(SRC).toMatch(
+      /const historyPollBlocked = isTyping \|\| \(queued\.length > 0 && !remoteTurnActive\);/,
+    );
     const poll = SRC.slice(SRC.indexOf('Background polling'));
     const gate = poll.slice(0, poll.indexOf('let cancelled'));
-    expect(gate).toContain('if (turnBusy) return;');
-    expect(gate).not.toContain('remoteTurnActive');
+    expect(gate).toContain('if (historyPollBlocked) return;');
+  });
+
+  it('окно между стримом и досылкой всё ещё закрыто — иначе ход задвоится', () => {
+    // В этом окне remoteTurnActive false, значит выражение выше даёт true.
+    expect(SRC).toContain('queued.length > 0 && !remoteTurnActive');
+  });
+});
+
+describe('предохранитель «Отправить всё равно»', () => {
+  it('карточка гейтится isTyping, а не turnBusy: иначе кнопка недостижима', () => {
+    // turnBusy включает очередь, а очередь непуста ровно тогда, когда кнопка и
+    // нужна — человек написал, отправка заблокирована. С гейтом по turnBusy
+    // карточка исчезала вместе с единственным выходом из блокировки.
+    expect(SRC).toMatch(
+      /\{remoteTurnActive && !streamingMessageId && !isTyping && !historyLoading && \(/,
+    );
+  });
+
+  it('разрешение и метка проверки сбрасываются при смене ассистента', () => {
+    // Иначе обход, выданный для залипшего признака ассистента A, переезжает на
+    // B — и первая же отправка убивает живой ход B.
+    const effect = activeTurnEffect();
+    expect(effect).toContain('setRemoteOverride(false)');
+    expect(effect).toContain('remoteCheckedAtRef.current = null');
+  });
+});
+
+describe('прочие пути отправки', () => {
+  it('загрузка файла тоже не уходит в идущий удалённый ход', () => {
+    // Загрузка — такой же ход к релею и так же пре-эмптит чужой ответ.
+    const upload = SRC.slice(SRC.indexOf('const handleFileTaskSubmit'));
+    expect(upload.slice(0, 900)).toContain('if (sendBlocked)');
+  });
+
+  it('двойное нажатие в окне синхронной проверки не даёт две отправки', () => {
+    const send = SRC.slice(SRC.indexOf('const handleSend = async'));
+    expect(send.slice(0, 600)).toContain('if (sendingRef.current) return;');
+  });
+
+  it('синхронная проверка ограничена таймаутом: у apiClient своего нет', () => {
+    expect(SRC).toContain('AbortSignal.timeout(2000)');
   });
 });

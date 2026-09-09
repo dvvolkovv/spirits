@@ -329,6 +329,7 @@
     "queued_hint": "wird als Nächstes gesendet",
     "queued_remove": "Entfernen",
     "send_anyway": "Trotzdem senden",
+    "busy_try_later": "Der Assistent antwortet noch – bitte in einer Minute erneut versuchen",
     "voice_call": {
       "start": "Anrufen",
       "ready": "Bereit für den Anruf",
