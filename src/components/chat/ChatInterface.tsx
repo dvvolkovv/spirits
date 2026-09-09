@@ -1518,7 +1518,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim()) return;
     // Если идёт диктовка — глушим микрофон и отвязываем инстанс, чтобы поздние
     // partial/final (см. guard в onPartial/onFinal) не возвращали текст в поле.
     if (voiceRef.current) {
@@ -1530,11 +1530,42 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     voiceCommittedRef.current = '';
     const text = input;
     setInput('');
+
+    // Ход ещё идёт — не шлём параллельно (релей убил бы текущий ответ), а
+    // копим. Пин к низу ре-армим так же, как при обычной отправке: человек
+    // только что написал и ждёт, что лента поедет за ним.
+    if (turnBusy) {
+      pinToBottomRef.current = true;
+      pinStartedAtRef.current = performance.now();
+      setQueued((prev) => addToQueue(prev, text, generateMessageId()));
+      return;
+    }
+
     await sendMessageText(text);
     // Обновляем контент домашнего виджета последней репликой (натив; на вебе no-op),
     // чтобы «последний разговор» в виджете был свежим, когда юзер свернёт приложение.
     try { refreshWidget(); } catch {}
   };
+
+  // Досылка очереди: ход договорил — отправляем накопленное одним сообщением.
+  // Один ход вместо N: обвязка Claude Code грузится в контекст на каждый ход
+  // (~47k токенов) независимо от длины реплики.
+  //
+  // sendMessageText в зависимости не кладём: он пересоздаётся на каждый рендер,
+  // и эффект стрелял бы на каждый чих.
+  useEffect(() => {
+    if (isTyping || streamingMessageId || historyLoading) return;
+    if (queued.length === 0 || !selectedAssistant) return;
+    if (flushingRef.current) return;
+
+    const text = joinQueue(queued);
+    setQueued([]);
+    if (!text) return; // очередь была из одних пробелов — пустой ход не шлём
+
+    flushingRef.current = true;
+    void sendMessageText(text).finally(() => { flushingRef.current = false; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTyping, streamingMessageId, historyLoading, queued, selectedAssistant?.id]);
 
   const handleClearChat = async () => {
     if (window.confirm(t('chat.clear_confirm'))) {
@@ -2420,7 +2451,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {/* Десктоп: обе кнопки в ряд. */}
                 <button
                   onClick={handleRegenerateResponse}
-                  disabled={isTyping}
+                  disabled={turnBusy}
                   className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                   title={t('chat.regenerate_title')}
                 >
@@ -2467,7 +2498,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       <button
                         role="menuitem"
                         onClick={() => { setShowChatActions(false); handleRegenerateResponse(); }}
-                        disabled={isTyping}
+                        disabled={turnBusy}
                         className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                       >
                         <RotateCcw className="w-4 h-4" />
@@ -2853,7 +2884,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploadingFile || isTyping}
+            disabled={isUploadingFile || turnBusy}
             className={clsx(
               'p-2 transition-colors rounded-lg',
               isUploadingFile
@@ -2912,20 +2943,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isTyping}
+            disabled={!input.trim()}
             data-testid="chat-send-btn"
             className={clsx(
               'p-2 rounded-lg transition-colors',
-              input.trim() && !isTyping
+              input.trim()
                 ? 'bg-forest-600 text-white hover:bg-forest-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             )}
           >
-            {isTyping ? (
-              <div className="w-5 h-5 border-2 border-gray-400 border-t-forest-600 rounded-full animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
+            {/* Спиннера здесь больше нет: индикатор «ассистент печатает» живёт
+                в ленте (streamingMessageId), а спиннер на активной кнопке
+                читался бы как «заблокировано» — ровно то, что мы убираем. */}
+            <Send className="w-5 h-5" />
           </button>
         </div>
       </div>
