@@ -26,6 +26,12 @@ describe('removeFromQueue', () => {
     const before = [q('a', 'раз')];
     expect(removeFromQueue(before, 'нет-такого')).toEqual([q('a', 'раз')]);
   });
+
+  it('не мутирует исходный массив — React сравнивает по ссылке', () => {
+    const before = [q('a', 'раз'), q('b', 'два')];
+    removeFromQueue(before, 'a');
+    expect(before).toEqual([q('a', 'раз'), q('b', 'два')]);
+  });
 });
 
 describe('joinQueue', () => {
@@ -47,5 +53,15 @@ describe('joinQueue', () => {
 
   it('очередь из одних пробелов тоже даёт пустую строку', () => {
     expect(joinQueue([q('a', '  '), q('b', '\n')])).toBe('');
+  });
+
+  it('не мутирует исходный массив — React сравнивает по ссылке', () => {
+    const before = [q('a', '  первое \n'), q('b', 'второе')];
+    joinQueue(before);
+    expect(before).toEqual([q('a', '  первое \n'), q('b', 'второе')]);
+  });
+
+  it('триммит только края реплики — переводы строк внутри (многострочный textarea) сохраняются', () => {
+    expect(joinQueue([q('a', 'первая строка\nвторая строка')])).toBe('первая строка\nвторая строка');
   });
 });

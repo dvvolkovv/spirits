@@ -593,6 +593,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const toggleFreshMode = () => {
     if (!selectedAssistant) return;
+    // Очередь копилась для текущей сессии релея — «чистый лист» переключает
+    // на новую (или возвращает в старую), и досланная реплика уехала бы не туда.
+    setQueued([]);
     const key = getFreshKey(selectedAssistant.id);
     if (freshTs) {
       sessionStorage.removeItem(key);
@@ -1558,17 +1561,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (queued.length === 0 || !selectedAssistant) return;
     if (flushingRef.current) return;
 
-    const text = joinQueue(queued);
-    setQueued([]);
+    // Снимок, который реально отправляем, убираем из очереди по id.
+    // Безусловный setQueued([]) затирал бы реплики, добавленные между коммитом
+    // рендера и прогоном эффекта, а снятые крестиком — наоборот отправлял бы.
+    const sending = queued;
+    const sendingIds = new Set(sending.map((m) => m.id));
+    setQueued((prev) => prev.filter((m) => !sendingIds.has(m.id)));
+
+    const text = joinQueue(sending);
     if (!text) return; // очередь была из одних пробелов — пустой ход не шлём
 
     flushingRef.current = true;
-    void sendMessageText(text).finally(() => { flushingRef.current = false; });
+    void sendMessageText(text).finally(() => {
+      flushingRef.current = false;
+      // Тот же виджет, что и при обычной отправке (см. handleSend) — ход из
+      // очереди раньше выпадал из этого обновления.
+      try { refreshWidget(); } catch {}
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTyping, streamingMessageId, historyLoading, queued, selectedAssistant?.id]);
 
   const handleClearChat = async () => {
     if (window.confirm(t('chat.clear_confirm'))) {
+      // Очередь относится к истории, которую сейчас стираем — без этого она
+      // досылалась бы через секунду и воскрешала «стёртую» реплику с ответом.
+      setQueued([]);
       setMessages([]);
       if (selectedAssistant) {
         localStorage.removeItem(getChatStorageKey(selectedAssistant.id));
