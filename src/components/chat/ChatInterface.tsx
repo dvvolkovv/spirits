@@ -45,6 +45,7 @@ import { trackAuthed } from '../../services/eventsClient';
 import { getRoleForAssistant } from './assistantRole';
 import { formatTokensCompact } from '../../utils/formatters';
 import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
+import { addToQueue, removeFromQueue, joinQueue, type QueuedMessage } from './sendQueue';
 import { balanceLevel } from '../../config/balanceThresholds';
 
 interface Assistant {
@@ -510,6 +511,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // chatContainerRef removed — using messagesContainerRef
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // Очередь досылки: реплики, написанные пока идёт ход. Живёт ОТДЕЛЬНО от
+  // messages — тот персистится в localStorage (assistant_{id}_messages), и
+  // неотправленное всплывало бы после F5 как настоящее сообщение.
+  const [queued, setQueued] = useState<QueuedMessage[]>([]);
+  // Ref-зеркало: guard'ы поллинга и смена ассистента читают очередь вне
+  // ре-рендера, где состояние ещё не доехало.
+  const queuedRef = useRef<QueuedMessage[]>([]);
+  // Досылка идёт: StrictMode в dev вызывает эффекты дважды, а setQueued([])
+  // асинхронный — без флага второй вызов увидел бы ту же очередь и отправил
+  // ход второй раз (и списал токены дважды).
+  const flushingRef = useRef(false);
+
+  useEffect(() => { queuedRef.current = queued; }, [queued]);
+
+  // «Ход этой вкладки не закончен»: либо стрим идёт, либо есть что дослать.
+  // Между концом стрима и стартом досылки есть окно в один тик — если гейтить
+  // поллинг по одному isTyping, он проснётся в этом окне и задвоит ход в ленте.
+  const turnBusy = isTyping || queued.length > 0;
   /** Ассистент сидит во внешней встрече. null — не сидит. */
   const [meetingCallId, setMeetingCallId] = useState<string | null>(null);
   // Ход, который идёт на сервере, но НЕ в этой вкладке: пользователь перезагрузил
