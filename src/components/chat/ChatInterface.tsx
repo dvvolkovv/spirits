@@ -1975,6 +1975,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       formData.append('message', task);
       // i18n-ignore: значение поля API, не UI — имя ассистента по умолчанию
       formData.append('assistantId', String(selectedAssistant?.id || 'Роман'));
+      // Язык — как в текстовом ходе: он часть ключа сессии на релее, и у
+      // пользователя с ещё не записанным языком профиля файл иначе уехал бы в
+      // сессию другого языка, то есть к ассистенту, который его не видел.
+      formData.append('lang', resolveLanguage(i18n.language));
+      // «Чистый лист» — те же поля, что у текстового хода: у режима своя сессия
+      // на релее, и без этой пары файл уезжал бы в основную, где ассистент его
+      // не ждёт. multipart везёт значения строками — бэк это учитывает.
+      if (freshTs) {
+        formData.append('fresh', 'true');
+        formData.append('freshTs', freshTs);
+      }
 
       const response = await apiClient.post('/webhook/agent/upload-and-chat', formData);
 
