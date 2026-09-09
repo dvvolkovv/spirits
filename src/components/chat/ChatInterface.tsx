@@ -523,7 +523,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // ход второй раз (и списал токены дважды).
   const flushingRef = useRef(false);
 
-  useEffect(() => { queuedRef.current = queued; }, [queued]);
+  // Очередь пишем ТОЛЬКО через этот хелпер: ref обновляется в тот же момент,
+  // что и состояние. Пока ref синхронизировался отдельным эффектом, он отставал
+  // на рендер — и returnQueueToInput, вызванный из sendMessageText внутри
+  // досылки, читал уже отправленные реплики и дублировал их в поле ввода.
+  const applyQueued = (updater: (prev: QueuedMessage[]) => QueuedMessage[]) => {
+    queuedRef.current = updater(queuedRef.current);
+    setQueued(queuedRef.current);
+  };
 
   // «Ход этой вкладки не закончен»: либо стрим идёт, либо есть что дослать.
   // Между концом стрима и стартом досылки есть окно в один тик — если гейтить
@@ -543,7 +550,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const returnQueueToInput = () => {
     if (queuedRef.current.length === 0) return;
     const pending = joinQueue(queuedRef.current);
-    setQueued([]);
+    applyQueued(() => []);
     if (pending) {
       setInput((prev) => (prev.trim() ? `${prev}\n\n${pending}` : pending));
     }
@@ -615,7 +622,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!selectedAssistant) return;
     // Очередь копилась для текущей сессии релея — «чистый лист» переключает
     // на новую (или возвращает в старую), и досланная реплика уехала бы не туда.
-    setQueued([]);
+    // Возвращаем в поле, а не выбрасываем: тумблер «чистый лист» не спрашивает
+    // подтверждения, и молча терять набранное на обычном переключателе нельзя.
+    returnQueueToInput();
     const key = getFreshKey(selectedAssistant.id);
     if (freshTs) {
       sessionStorage.removeItem(key);
@@ -1569,7 +1578,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (turnBusy) {
       pinToBottomRef.current = true;
       pinStartedAtRef.current = performance.now();
-      setQueued((prev) => addToQueue(prev, text, generateMessageId()));
+      applyQueued((prev) => addToQueue(prev, text, generateMessageId()));
       return;
     }
 
@@ -1590,12 +1599,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (queued.length === 0 || !selectedAssistant) return;
     if (flushingRef.current) return;
 
+    // Ассистента могли сменить в соседней вкладке, пока шёл ход. sendMessageText
+    // подхватит нового из sessionStorage и отправит ему очередь, копившуюся для
+    // прежнего, — прямо против требования «очередь не уезжает чужому». Ловим
+    // здесь: очередь оставляем на месте, её вернёт в поле returnQueueToInput,
+    // когда смена ассистента доедет до состояния.
+    const savedRaw = sessionStorage.getItem('selected_assistant');
+    if (savedRaw) {
+      try {
+        if (JSON.parse(savedRaw)?.id !== selectedAssistant.id) return;
+      } catch { /* мусор в sessionStorage — считаем, что смены не было */ }
+    }
+
     // Снимок, который реально отправляем, убираем из очереди по id.
-    // Безусловный setQueued([]) затирал бы реплики, добавленные между коммитом
-    // рендера и прогоном эффекта, а снятые крестиком — наоборот отправлял бы.
+    // Безусловная очистка затирала бы реплики, добавленные между коммитом
+    // рендера и прогоном эффекта, а снятые крестиком — наоборот отправляла бы.
     const sending = queued;
     const sendingIds = new Set(sending.map((m) => m.id));
-    setQueued((prev) => prev.filter((m) => !sendingIds.has(m.id)));
+    applyQueued((prev) => prev.filter((m) => !sendingIds.has(m.id)));
 
     const text = joinQueue(sending);
     if (!text) return; // очередь была из одних пробелов — пустой ход не шлём
@@ -1614,7 +1635,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (window.confirm(t('chat.clear_confirm'))) {
       // Очередь относится к истории, которую сейчас стираем — без этого она
       // досылалась бы через секунду и воскрешала «стёртую» реплику с ответом.
-      setQueued([]);
+      applyQueued(() => []);
       setMessages([]);
       if (selectedAssistant) {
         localStorage.removeItem(getChatStorageKey(selectedAssistant.id));
@@ -2788,7 +2809,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   })()}
                 </div>
               ) : (
-                <p className="text-sm leading-relaxed">{message.content}</p>
+                // whitespace-pre-wrap обязателен: реплики из очереди досылки
+                // склеиваются через пустую строку (joinQueue), и без него
+                // разделители схлопывались бы в один сплошной абзац.
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
               )}
               {message.type === 'assistant' && message.inlineJobIds && message.inlineJobIds.length > 0 && (
                 <InlineVideoCards ids={message.inlineJobIds} messageTimestamp={message.timestamp} />
@@ -2886,16 +2910,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         {/* Очередь досылки. Приглушённые пузыри под стримом: человек видит, что
             написанное не потерялось, и до отправки может это убрать. */}
-        {queued.map((q) => (
+        {queued.map((q, qi) => (
           <div key={q.id} className="flex justify-end" data-testid="chat-queued-message">
             <div className="max-w-xs sm:max-w-md">
               <div className="px-4 py-2 rounded-2xl bg-forest-600 text-white rounded-br-md opacity-70">
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{q.text}</p>
               </div>
               <div className="flex items-center justify-end gap-2 mt-1 px-1">
-                <span className="text-xs text-gray-400">{t('chat.queued_hint')}</span>
+                {/* Подпись — только под последней: уйдут все одним ходом,
+                    повторять её под каждым пузырём значит врать про три отправки. */}
+                {qi === queued.length - 1 && (
+                  <span className="text-xs text-gray-400">{t('chat.queued_hint')}</span>
+                )}
                 <button
-                  onClick={() => setQueued((prev) => removeFromQueue(prev, q.id))}
+                  onClick={() => applyQueued((prev) => removeFromQueue(prev, q.id))}
                   title={t('chat.queued_remove')}
                   aria-label={t('chat.queued_remove')}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
