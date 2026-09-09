@@ -90,7 +90,8 @@ describe('parseCustomMarkdown: карточка голосового звонк�
 describe('meeting_join', () => {
   it('вынимает код и название встречи', () => {
     const { meetings } = parseCustomMarkdown('{{meeting_join: code=ABC234 title=Планёрка}}');
-    expect([...meetings.values()][0]).toEqual({ code: 'ABC234', title: 'Планёрка' });
+    // provider проставляется всегда: без явного provider=talerid это 'linkeon'.
+    expect([...meetings.values()][0]).toEqual({ code: 'ABC234', title: 'Планёрка', provider: 'linkeon' });
   });
 
   it('название из нескольких слов не обрывается', () => {
