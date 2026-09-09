@@ -732,7 +732,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // и НЕТ активного локального стрима.
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
-    if (isTyping) return; // активный локальный стрим — не дёргаем
+    if (turnBusy) return; // активный локальный стрим или очередь досылки — не дёргаем
 
     let cancelled = false;
     const assistantId = selectedAssistant.id;
@@ -783,7 +783,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       clearTimeout(t1);
       clearInterval(id);
     };
-  }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping, freshTs]);
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, turnBusy, freshTs]);
 
   // Идёт ли ход на сервере прямо сейчас. Спрашиваем только когда в этой вкладке
   // стрима нет — иначе про свой же ход и спрашивать незачем. Отвечает бэкенд по
@@ -792,7 +792,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // «идёт работа», чтобы человек не думал, что чат завис.
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
-    if (isTyping) { setRemoteTurnActive(false); return; }
+    if (turnBusy) { setRemoteTurnActive(false); return; }
 
     let cancelled = false;
     const assistantId = selectedAssistant.id;
@@ -814,7 +814,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       clearInterval(id);
       setRemoteTurnActive(false);
     };
-  }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping]);
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, turnBusy]);
 
   const sendInitialGreeting = async () => {
     if (!selectedAssistant) return;
@@ -2845,7 +2845,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <MeetingStatusBar callId={meetingCallId} onLeft={() => setMeetingCallId(null)} />
         )}
 
-        {remoteTurnActive && !streamingMessageId && !isTyping && !historyLoading && (
+        {remoteTurnActive && !streamingMessageId && !turnBusy && !historyLoading && (
           <div className="flex justify-start">
             <div className="max-w-lg px-4 py-3 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md">
               <div className="flex items-center space-x-2 text-sm text-gray-500">
