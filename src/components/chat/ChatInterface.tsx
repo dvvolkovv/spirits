@@ -2853,6 +2853,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           )
         )}
 
+        {/* Очередь досылки. Приглушённые пузыри под стримом: человек видит, что
+            написанное не потерялось, и до отправки может это убрать. */}
+        {queued.map((q) => (
+          <div key={q.id} className="flex justify-end" data-testid="chat-queued-message">
+            <div className="max-w-xs sm:max-w-md">
+              <div className="px-4 py-2 rounded-2xl bg-forest-600 text-white rounded-br-md opacity-70">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{q.text}</p>
+              </div>
+              <div className="flex items-center justify-end gap-2 mt-1 px-1">
+                <span className="text-xs text-gray-400">{t('chat.queued_hint')}</span>
+                <button
+                  onClick={() => setQueued((prev) => removeFromQueue(prev, q.id))}
+                  title={t('chat.queued_remove')}
+                  aria-label={t('chat.queued_remove')}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+
         {/* Ход идёт на сервере, но не в этой вкладке (перезагрузили страницу,
             вернулись с другого устройства). Без этой карточки чат выглядел
             зависшим, и пользователь слал «?» — обрывая собственный ответ. */}
