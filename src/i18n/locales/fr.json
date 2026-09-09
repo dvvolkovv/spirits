@@ -330,6 +330,7 @@
     "assistant_working_hint": "La réponse apparaîtra ici toute seule — tu peux quitter cette page.",
     "queued_hint": "sera envoyé ensuite",
     "queued_remove": "Retirer",
+    "send_anyway": "Envoyer quand même",
     "voice_call": {
       "start": "Appeler",
       "ready": "Prêt à appeler",

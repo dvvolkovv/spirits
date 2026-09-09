@@ -328,6 +328,7 @@
     "assistant_working_hint": "The reply will appear here on its own — you can leave this page.",
     "queued_hint": "will be sent next",
     "queued_remove": "Remove",
+    "send_anyway": "Send anyway",
     "voice_call": {
       "start": "Call",
       "ready": "Ready to call",

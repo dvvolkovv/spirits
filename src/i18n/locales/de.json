@@ -328,6 +328,7 @@
     "assistant_working_hint": "Die Antwort erscheint von selbst hier — du kannst die Seite verlassen.",
     "queued_hint": "wird als Nächstes gesendet",
     "queued_remove": "Entfernen",
+    "send_anyway": "Trotzdem senden",
     "voice_call": {
       "start": "Anrufen",
       "ready": "Bereit für den Anruf",

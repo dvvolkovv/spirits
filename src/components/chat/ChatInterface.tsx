@@ -46,6 +46,12 @@ import { getRoleForAssistant } from './assistantRole';
 import { formatTokensCompact } from '../../utils/formatters';
 import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
 import { addToQueue, removeFromQueue, joinQueue, type QueuedMessage } from './sendQueue';
+import {
+  localTurnBusy,
+  turnRunningAnywhere,
+  needsFreshRemoteCheck,
+  shouldOfferOverride,
+} from './remoteTurn';
 import { balanceLevel } from '../../config/balanceThresholds';
 
 interface Assistant {
@@ -535,7 +541,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // «Ход этой вкладки не закончен»: либо стрим идёт, либо есть что дослать.
   // Между концом стрима и стартом досылки есть окно в один тик — если гейтить
   // поллинг по одному isTyping, он проснётся в этом окне и задвоит ход в ленте.
-  const turnBusy = isTyping || queued.length > 0;
+  //
+  // Удалённый ход сюда НАМЕРЕННО не входит: поллинг истории для того и нужен,
+  // чтобы подобрать чужой ответ, когда он допишется в БД.
+  const turnBusy = localTurnBusy({ isTyping, queuedCount: queued.length });
 
   // Очередь принадлежит ассистенту/сессии релея, для которых её копили —
   // при смене ассистента слать её дальше нельзя. Забираем накопленное и
@@ -564,6 +573,49 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // человек ждал в тишине и в итоге слал «?», чем убивал собственный ход
   // (релей пре-эмптит предыдущий процесс сессии). 19 таких «?» за неделю.
   const [remoteTurnActive, setRemoteTurnActive] = useState(false);
+  // Момент, когда признак поднялся — для предохранителя от залипшего флага.
+  const remoteTurnSinceRef = useRef<number | null>(null);
+  // Когда последний раз спрашивали бэкенд: если знание свежее, перед отправкой
+  // не платим лишним запросом.
+  const remoteCheckedAtRef = useRef<number | null>(null);
+  // Человек нажал «отправить всё равно» — признак залип, и он решил его обойти.
+  const [remoteOverride, setRemoteOverride] = useState(false);
+  // Тикающее «сейчас». Кнопка предохранителя зависит от прошедшего времени, а
+  // от одного хода часов React не перерисовывается: опрос каждые 5с зовёт
+  // setRemoteTurnActive с тем же значением, и React на этом выходит без
+  // ре-рендера. Без тикера кнопка не появилась бы, пока человек сам что-нибудь
+  // не нажмёт — то есть ровно тогда, когда он уже решил, что всё зависло.
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  /** Единственная точка записи признака: держит вместе флаг и его метки времени. */
+  const applyRemoteTurn = (active: boolean) => {
+    remoteCheckedAtRef.current = Date.now();
+    setRemoteTurnActive((prev) => {
+      if (active && !prev) remoteTurnSinceRef.current = Date.now();
+      if (!active) remoteTurnSinceRef.current = null;
+      return active;
+    });
+    // Ход закончился — обход больше не нужен: следующий залипший признак должен
+    // снова честно заблокировать отправку, а не наследовать прошлое разрешение.
+    if (!active) setRemoteOverride(false);
+  };
+
+  // Тикер живёт только пока признак поднят: незачем будить компонент раз в
+  // 15 секунд всё остальное время.
+  useEffect(() => {
+    if (!remoteTurnActive) return;
+    const id = setInterval(() => setNowTick(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, [remoteTurnActive]);
+
+  // «Ход идёт хоть где-то» — этим решаем, слать или копить. Отправка в идущий
+  // удалённый ход убила бы его: релей пре-эмптит процесс на том же sessionId.
+  const sendBlocked = turnRunningAnywhere({
+    isTyping,
+    queuedCount: queued.length,
+    remoteTurnActive: remoteTurnActive && !remoteOverride,
+  });
+
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
@@ -828,9 +880,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // реестру живых стримов, поэтому индикатор переживает и F5, и смену устройства.
   // Готовый ответ подхватит соседний поллинг истории выше — здесь только признак
   // «идёт работа», чтобы человек не думал, что чат завис.
+  // Гейт здесь ТОЛЬКО isTyping, не turnBusy. Признак «идёт удалённый ход»
+  // участвует в решении «слать или копить», и если гейтить опрос тем же
+  // составным признаком, получатся качели: флаг встал → опрос выключился и
+  // обнулил флаг → включился и снова поднял. Смысл гейта исходный и узкий —
+  // про свой же стрим спрашивать незачем.
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
-    if (turnBusy) { setRemoteTurnActive(false); return; }
+    if (isTyping) { setRemoteTurnActive(false); return; }
 
     let cancelled = false;
     const assistantId = selectedAssistant.id;
@@ -841,7 +898,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (cancelled || !r.ok) return;
         const data = await r.json();
         if (selectedAssistantRef.current?.id !== assistantId) return;
-        setRemoteTurnActive(Boolean(data?.active));
+        applyRemoteTurn(Boolean(data?.active));
       } catch { /* сеть моргнула — индикатор просто не обновится */ }
     };
 
@@ -851,8 +908,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       cancelled = true;
       clearInterval(id);
       setRemoteTurnActive(false);
+      remoteTurnSinceRef.current = null;
     };
-  }, [selectedAssistant?.id, hasUserSelectedAssistant, turnBusy]);
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping]);
 
   const sendInitialGreeting = async () => {
     if (!selectedAssistant) return;
@@ -1575,11 +1633,38 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Ход ещё идёт — не шлём параллельно (релей убил бы текущий ответ), а
     // копим. Пин к низу ре-армим так же, как при обычной отправке: человек
     // только что написал и ждёт, что лента поедет за ним.
-    if (turnBusy) {
+    const enqueue = () => {
       pinToBottomRef.current = true;
       pinStartedAtRef.current = performance.now();
       applyQueued((prev) => addToQueue(prev, text, generateMessageId()));
+    };
+
+    if (sendBlocked) {
+      enqueue();
       return;
+    }
+
+    // Локально тихо — но ход мог начаться на другом устройстве, а опрос идёт
+    // раз в 5 секунд. Сразу после F5 первого ответа ещё нет вовсе. Если знание
+    // протухло, спрашиваем синхронно: лишний запрос дешевле убитого ответа,
+    // которого человек ждал десять минут. Свежему знанию верим и не платим.
+    if (!remoteOverride && selectedAssistant &&
+        needsFreshRemoteCheck(remoteCheckedAtRef.current, Date.now())) {
+      try {
+        const r = await apiClient.get(`/webhook/chat/active-turn?assistantId=${selectedAssistant.id}`);
+        if (r.ok) {
+          const data = await r.json();
+          if (data?.active) {
+            applyRemoteTurn(true);
+            enqueue();
+            return;
+          }
+          applyRemoteTurn(false);
+        }
+      } catch {
+        // Сеть моргнула — не запираем человека из-за неудачной проверки,
+        // отправляем. Хуже молча не отправить, чем в редком случае прервать.
+      }
     }
 
     await sendMessageText(text);
@@ -1598,6 +1683,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (isTyping || streamingMessageId || historyLoading) return;
     if (queued.length === 0 || !selectedAssistant) return;
     if (flushingRef.current) return;
+    // Ход идёт на сервере, но не в этой вкладке — досылка убила бы его так же,
+    // как прямая отправка. Ждём: опрос снимет признак, и эффект стрельнёт сам.
+    // Обход («отправить всё равно») это правило снимает — там решение человека.
+    if (remoteTurnActive && !remoteOverride) return;
 
     // Ассистента могли сменить в соседней вкладке, пока шёл ход. sendMessageText
     // подхватит нового из sessionStorage и отправит ему очередь, копившуюся для
@@ -1629,7 +1718,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       try { refreshWidget(); } catch {}
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTyping, streamingMessageId, historyLoading, queued, selectedAssistant?.id]);
+  }, [isTyping, streamingMessageId, historyLoading, queued, selectedAssistant?.id,
+      remoteTurnActive, remoteOverride]);
 
   const handleClearChat = async () => {
     if (window.confirm(t('chat.clear_confirm'))) {
@@ -2952,6 +3042,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <span>{t('chat.assistant_working')}</span>
               </div>
               <p className="mt-1 text-xs text-gray-400">{t('chat.assistant_working_hint')}</p>
+              {/* Предохранитель. Признак приходит с бэкенда, и если реестр живых
+                  стримов там протечёт, он залипнет — человек окажется заперт:
+                  всё, что он пишет, копится и не уходит. Снимать блокировку по
+                  таймеру автоматически НЕЛЬЗЯ (ходы юристов доходят до двадцати
+                  минут, автоснятие рвало бы самые дорогие), поэтому после
+                  двух минут просто отдаём решение человеку. */}
+              {shouldOfferOverride(remoteTurnActive, remoteTurnSinceRef.current, nowTick) && (
+                <button
+                  onClick={() => setRemoteOverride(true)}
+                  className="mt-2 text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
+                >
+                  {t('chat.send_anyway')}
+                </button>
+              )}
             </div>
           </div>
         )}
