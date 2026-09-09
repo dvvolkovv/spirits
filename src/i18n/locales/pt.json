@@ -328,6 +328,8 @@
     "files_too_large": "Os ficheiros somam {{total}} MB — o limite por mensagem é de {{max}} MB. Retire alguns e envie o resto noutra mensagem.",
     "assistant_working": "O assistente ainda está a trabalhar na sua mensagem anterior",
     "assistant_working_hint": "A resposta aparecerá aqui sozinha — pode sair desta página.",
+    "queued_hint": "será enviado a seguir",
+    "queued_remove": "Remover",
     "voice_call": {
       "start": "Ligar",
       "ready": "Pronto para ligar",

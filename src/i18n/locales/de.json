@@ -326,6 +326,8 @@
     "files_too_large": "Die Dateien ergeben zusammen {{total}} MB — pro Nachricht sind höchstens {{max}} MB möglich. Nimm ein paar heraus und schick den Rest in einer weiteren Nachricht.",
     "assistant_working": "Die Assistenz arbeitet noch an deiner vorherigen Nachricht",
     "assistant_working_hint": "Die Antwort erscheint von selbst hier — du kannst die Seite verlassen.",
+    "queued_hint": "wird als Nächstes gesendet",
+    "queued_remove": "Entfernen",
     "voice_call": {
       "start": "Anrufen",
       "ready": "Bereit für den Anruf",

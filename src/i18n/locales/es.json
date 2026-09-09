@@ -328,6 +328,8 @@
     "files_too_large": "Los archivos suman {{total}} MB y el límite por mensaje es de {{max}} MB. Quita algunos y envía el resto en otro mensaje.",
     "assistant_working": "El asistente está trabajando en tu mensaje anterior",
     "assistant_working_hint": "La respuesta aparecerá aquí sola — puedes salir de esta página.",
+    "queued_hint": "se enviará a continuación",
+    "queued_remove": "Quitar",
     "voice_call": {
       "start": "Llamar",
       "ready": "Listo para llamar",

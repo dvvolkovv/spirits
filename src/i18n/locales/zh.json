@@ -324,6 +324,8 @@
     "files_too_large": "这些文件共 {{total}} MB，单条消息最多 {{max}} MB。请去掉一部分，其余的用下一条消息发送。",
     "assistant_working": "助手正在处理你上一条消息",
     "assistant_working_hint": "回复会自动出现在这里，你可以离开此页面。",
+    "queued_hint": "将在下一条发送",
+    "queued_remove": "移除",
     "voice_call": {
       "start": "拨打",
       "ready": "准备通话",
