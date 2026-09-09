@@ -529,6 +529,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Между концом стрима и стартом досылки есть окно в один тик — если гейтить
   // поллинг по одному isTyping, он проснётся в этом окне и задвоит ход в ленте.
   const turnBusy = isTyping || queued.length > 0;
+
+  // Очередь принадлежит ассистенту/сессии релея, для которых её копили —
+  // при смене ассистента слать её дальше нельзя. Забираем накопленное и
+  // возвращаем в поле ввода: молча выбросить написанное человеком хуже, чем
+  // заставить его нажать «отправить» ещё раз.
+  //
+  // Общая точка для ВСЕХ путей смены ассистента: явного переключения
+  // (handleSwitchAssistant), смены из другой вкладки (ветка в sendMessageText)
+  // и универсального эффекта ниже — единственного, который ловит вообще все
+  // смены selectedAssistant.id. Без общей функции его пришлось бы дублировать
+  // в трёх местах, и рано или поздно они разъехались бы.
+  const returnQueueToInput = () => {
+    if (queuedRef.current.length === 0) return;
+    const pending = joinQueue(queuedRef.current);
+    setQueued([]);
+    if (pending) {
+      setInput((prev) => (prev.trim() ? `${prev}\n\n${pending}` : pending));
+    }
+  };
+
   /** Ассистент сидит во внешней встрече. null — не сидит. */
   const [meetingCallId, setMeetingCallId] = useState<string | null>(null);
   // Ход, который идёт на сервере, но НЕ в этой вкладке: пользователь перезагрузил
@@ -655,8 +675,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setIsTyping(false);
       setCurrentStreamingMessage('');
       setStreamingMessageId(null);
+      // Единственный путь, через который проходят ВСЕ смены ассистента.
+      // historyLoading в эффекте досылки не успел бы прикрыть: он выставляется
+      // внутри load() и виден только со следующего рендера — досылка успела бы
+      // уйти уже новому ассистенту раньше, чем сработает этот гейт.
+      returnQueueToInput();
     }
     prevSelectedAssistantIdRef.current = newId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAssistant?.id]);
 
   useEffect(() => {
@@ -1473,6 +1499,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // Если ассистент изменился, обновляем состояние
         if (selectedAssistant?.id !== currentAssistant.id) {
           setSelectedAssistant(currentAssistant);
+          // Ассистента сменили в соседней вкладке — очередь этой вкладки
+          // относилась к прежнему. Возвращаем в поле, как при обычном switch.
+          returnQueueToInput();
           // changeAgentOnServer будет вызван автоматически через useEffect
           // Показываем уведомление
           setAssistantSwitchNotification(t('chat.switched_to', { name: currentAssistant.name }));
@@ -2148,6 +2177,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setCurrentStreamingMessage('');
     setStreamingMessageId(null);
     setIsTyping(false);
+    // Очередь принадлежала прежнему ассистенту — новому её слать нельзя.
+    returnQueueToInput();
 
     isChangingAgentRef.current = true;
     lastChangedAgentRef.current = assistant.name;
