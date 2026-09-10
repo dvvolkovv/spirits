@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/apiClient';
 
 /**
- * Attendee сам поднимает Chrome и грузит страницу Meet — это ощутимо дольше,
+ * Attendee сам поднимает Chrome и грузит страницу встречи — это ощутимо дольше,
  * чем вход в LiveKit-комнату, поэтому подсказку держим дольше, чем обычный
  * тост, но не бесконечно: если хозяин так и не впустил, она гаснет сама.
  */
@@ -14,7 +14,15 @@ interface Props {
   code: string;
   title: string;
   /** Чья встреча. Без него — своя, как было до появления чужих комнат. */
-  provider?: 'linkeon' | 'talerid' | 'meet';
+  provider?: 'linkeon' | 'talerid' | 'meet' | 'zoom';
+  /**
+   * Полный адрес входа — только у Zoom.
+   *
+   * У своих комнат, Taler ID и Meet бэкенд собирает адрес из кода. У Zoom не
+   * может: в ссылке хост аккаунта (`us04web.zoom.us`) и хеш пароля. Без него
+   * вход вернёт отказ `zoom_url_required`.
+   */
+  url?: string;
   /** Ассистент, в чьём чате лежит карточка — он и пойдёт на встречу. */
   agentId: number;
   onJoined: (callId: string) => void;
@@ -26,7 +34,7 @@ interface Props {
  * Появляется, когда пользователь кинул в чат ссылку на комнату Linkeon.
  * Заходит именно тот ассистент, в чьём чате она лежит.
  */
-export default function MeetingJoinCard({ code, title, provider = 'linkeon', agentId, onJoined }: Props) {
+export default function MeetingJoinCard({ code, title, provider = 'linkeon', url, agentId, onJoined }: Props) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +56,7 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', age
     setBusy(true);
     setError(null);
     try {
-      const res = await apiClient.post('/webhook/meeting/join', { agentId, code, provider });
+      const res = await apiClient.post('/webhook/meeting/join', { agentId, code, provider, ...(url ? { url } : {}) });
       if (!res.ok) {
         // 409 бывает по двум разным причинам, и текст должен объяснять
         // именно свою, а не пугать общим «не поломка ли это»:
@@ -65,7 +73,9 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', age
         throw new Error(res.status === 409 ? 'already_in' : 'join_failed');
       }
       const data = await res.json();
-      if (provider === 'meet') setWaitingAdmit(true);
+      // Комната ожидания есть у обеих площадок моста. У Zoom она даже честнее:
+      // мост сообщает её отдельным состоянием, а не молчанием.
+      if (provider === 'meet' || provider === 'zoom') setWaitingAdmit(true);
       onJoined(data.callId);
     } catch (e) {
       const reason = e instanceof Error ? e.message : 'join_failed';

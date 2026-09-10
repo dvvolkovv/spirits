@@ -13,7 +13,9 @@ export interface MeetingCard {
   code: string;
   title: string;
   /** Чья встреча. Своя по умолчанию — старые карточки в истории провайдера не несут. */
-  provider?: 'linkeon' | 'talerid' | 'meet';
+  provider?: 'linkeon' | 'talerid' | 'meet' | 'zoom';
+  /** Полный адрес входа. Только у Zoom: из кода его не собрать. */
+  url?: string;
 }
 
 export interface LinkConfig {
@@ -61,10 +63,15 @@ const VOICE_CALL_REGEX = /\{\{voice_call:\s*id=([a-f0-9-]{36})\}\}/g;
 // Провайдер необязателен и идёт перед кодом: свои карточки бэкенд шлёт без
 // него, и в истории их уже накопилось — старый формат обязан разбираться.
 // Код у нас из алфавита без похожих знаков, у Taler ID — hex, у Meet —
-// строчные буквы с дефисами (abc-defg-hij), отсюда три альтернативы вместо
-// одной широкой: широкая приняла бы и мусор.
+// строчные буквы с дефисами (abc-defg-hij), у Zoom — 9-12 цифр, отсюда
+// альтернативы вместо одной широкой: широкая приняла бы и мусор.
+//
+// Поле url необязательно и есть только у Zoom: там адрес входа не собрать из
+// кода — в ссылке хост аккаунта и хеш пароля. Значение ловим без пробелов и
+// без фигурных скобок, иначе тег развалился бы на середине; заголовок
+// по-прежнему последний, потому что читается «до закрывающих скобок».
 const MEETING_JOIN_REGEX =
-  /\{\{meeting_join:\s*(?:provider=(talerid|meet)\s+)?code=([2-9A-HJ-NP-Z]{6}|[A-Fa-f0-9]{6,64}|[a-z]{3}-[a-z]{4}-[a-z]{3})\s+title=([^}]*?)\}\}/g;
+  /\{\{meeting_join:\s*(?:provider=(talerid|meet|zoom)\s+)?code=([2-9A-HJ-NP-Z]{6}|[A-Fa-f0-9]{6,64}|[a-z]{3}-[a-z]{4}-[a-z]{3}|\d{9,12})\s+(?:url=([^\s{}]+)\s+)?title=([^}]*?)\}\}/g;
 
 // SMM Producer Plan 4d — social connect blocks
 const SMM_SOCIAL_BUTTON_REGEX =
@@ -157,12 +164,18 @@ export const parseCustomMarkdown = (content: string): {
     return `__VOICECALL_${key}__`;
   });
 
-  parsedContent = parsedContent.replace(MEETING_JOIN_REGEX, (_match, provider, code, title) => {
+  parsedContent = parsedContent.replace(MEETING_JOIN_REGEX, (_match, provider, code, url, title) => {
     const key = `meeting_${code}`;
     meetings.set(key, {
       code,
       title: String(title || '').trim() || 'Встреча',
-      provider: provider === 'talerid' ? 'talerid' : provider === 'meet' ? 'meet' : 'linkeon',
+      provider: provider === 'talerid' ? 'talerid'
+        : provider === 'meet' ? 'meet'
+        : provider === 'zoom' ? 'zoom'
+        : 'linkeon',
+      // Адрес входа есть только у Zoom; у остальных площадок его в теге нет и
+      // быть не должно — он выводится из кода на бэкенде.
+      ...(url ? { url: String(url) } : {}),
     });
     return `__MEETING_${key}__`;
   });

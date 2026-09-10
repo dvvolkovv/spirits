@@ -184,4 +184,44 @@ describe('meeting_join', () => {
     expect(meetings.size).toBe(1);
     expect([...meetings.values()][0].provider).toBe('linkeon');
   });
+
+  it('карточка Zoom несёт адрес входа', () => {
+    // У Zoom адрес не собрать из кода: в ссылке хост аккаунта и хеш пароля.
+    // Потеряется здесь — кнопка получит отказ zoom_url_required.
+    const url = 'https://us04web.zoom.us/j/71077562785?pwd=SECRET.1';
+    const { meetings } = parseCustomMarkdown(
+      `{{meeting_join: provider=zoom code=71077562785 url=${url} title=Встреча Zoom}}`,
+    );
+    expect(meetings.size).toBe(1);
+    const card = [...meetings.values()][0];
+    expect(card).toMatchObject({ provider: 'zoom', code: '71077562785', url });
+    expect(card.title).toBe('Встреча Zoom');
+  });
+
+  it('заголовок с пробелами не съедается адресом', () => {
+    // Порядок полей в теге: код → адрес → заголовок. Заголовок читается «до
+    // закрывающих скобок» и обязан оставаться последним.
+    const { meetings } = parseCustomMarkdown(
+      '{{meeting_join: provider=zoom code=987654321 url=https://x.zoom.us/j/987654321 ' +
+      'title=Планёрка в понедельник}}',
+    );
+    expect([...meetings.values()][0].title).toBe('Планёрка в понедельник');
+  });
+
+  it('у карточек без адреса поля url нет', () => {
+    // Оно обязано появляться только там, где нужно: «иногда есть, иногда
+    // нет» на карточках своих комнат сбивало бы с толку.
+    const { meetings } = parseCustomMarkdown('{{meeting_join: provider=meet code=abc-defg-hij title=Х}}');
+    expect([...meetings.values()][0].url).toBeUndefined();
+  });
+
+  it('числовой код без провайдера читается как своя комната', () => {
+    // Фиксируем фактическое поведение, как и для кода Meet без провайдера:
+    // бэкенд ВСЕГДА помечает чужие карточки провайдером, поэтому такой тег
+    // можно получить только написав руками — и тогда бэкенд не найдёт комнату
+    // с таким кодом и покажет внятную ошибку. Карточку рисуем, вход откажет.
+    const { meetings } = parseCustomMarkdown('{{meeting_join: code=71077562785 title=Х}}');
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0].provider).toBe('linkeon');
+  });
 });
