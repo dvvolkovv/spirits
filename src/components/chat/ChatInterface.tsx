@@ -839,6 +839,49 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     load();
   }, [selectedAssistant?.id, hasUserSelectedAssistant, freshTs]);
 
+  // Подтянуть свежие строки истории и слить их в ленту.
+  //
+  // Вынесено из поллинга, потому что зовётся ещё и перед досылкой очереди:
+  // между сохранением удалённого ответа в БД и досылкой бывает меньше двух
+  // секунд (замер на проде 10.09.2026: ответ в 06:11:05.6, досылка в 06:11:07.3),
+  // а поллинг ходит раз в 8 секунд и в это окно не попадает. Если досылка
+  // успеет первой, её локальное сообщение станет самым свежим — и
+  // selectNewPolledMessages отбросит удалённый ответ как более старый.
+  // Ответ при этом цел в БД, но в ленте не появится до перезагрузки.
+  const pullHistoryOnce = async (assistantId: number, isCancelled?: () => boolean) => {
+    try {
+      const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
+      const response = await apiClient.get(`/webhook/chat/history?assistantId=${assistantId}&limit=5&offset=0${freshParam}`);
+      if (isCancelled?.() || !response.ok) return;
+      const data = await response.json();
+      const fresh = (data?.messages || []) as any[];
+      if (!Array.isArray(fresh) || fresh.length === 0) return;
+
+      setMessages(prev => {
+        if (prev.length === 0) return prev; // initial-load обработает
+        if (selectedAssistantIdRef.current !== assistantId) return prev;
+
+        // Дедуп вынесен в historyMerge.ts и покрыт тестами: ошибка в нём не
+        // падает, а тихо задваивает ход — копия из БД встаёт ПОД ответом
+        // ассистента, и выглядит это как «мой вопрос уехал вниз».
+        const newer = selectNewPolledMessages(prev, fresh);
+        if (newer.length === 0) return prev;
+
+        const newMsgs: Message[] = newer.map((m: any) => {
+          const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
+          const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
+          return {
+            ...m,
+            timestamp: new Date(m.timestamp),
+            inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
+            calendarProposalIds: calIds.length > 0 ? calIds : m.calendarProposalIds,
+          };
+        });
+        return [...prev, ...newMsgs];
+      });
+    } catch { /* сеть моргнула — просто не обновимся в этот раз */ }
+  };
+
   // Background polling: подхватывает ответы, которые backend дописал в БД,
   // пока user был на другом ассистенте или закрыл вкладку.
   // Запускается, когда ChatInterface смонтирован для конкретного ассистента
@@ -850,43 +893,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     let cancelled = false;
     const assistantId = selectedAssistant.id;
 
-    const poll = async () => {
-      try {
-        const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
-        const response = await apiClient.get(`/webhook/chat/history?assistantId=${assistantId}&limit=5&offset=0${freshParam}`);
-        if (cancelled || !response.ok) return;
-        const data = await response.json();
-        const fresh = (data?.messages || []) as any[];
-        if (!Array.isArray(fresh) || fresh.length === 0) return;
-
-        setMessages(prev => {
-          if (prev.length === 0) return prev; // initial-load обработает
-          // Если ассистент уже сменился пока fetch шёл — не вмешиваемся
-          if (selectedAssistant?.id !== assistantId) return prev;
-
-          // Дедуп: по id (если backend вернул тот же id, маловероятно но возможно)
-          // и по content — локальные сообщения создаются с uuid, в БД хранятся
-          // с serial id, поэтому совпадение по id почти не работает. Правило
-          // вынесено в historyMerge.ts и покрыто тестами: ошибка в нём не
-          // падает, а тихо задваивает ход — копия из БД встаёт ПОД ответом
-          // ассистента, и выглядит это как «мой вопрос уехал вниз».
-          const newer = selectNewPolledMessages(prev, fresh);
-          if (newer.length === 0) return prev;
-
-          const newMsgs: Message[] = newer.map((m: any) => {
-            const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
-            const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
-            return {
-              ...m,
-              timestamp: new Date(m.timestamp),
-              inlineJobIds: ids.length > 0 ? ids : m.inlineJobIds,
-              calendarProposalIds: calIds.length > 0 ? calIds : m.calendarProposalIds,
-            };
-          });
-          return [...prev, ...newMsgs];
-        });
-      } catch { /* ignore network errors during background poll */ }
-    };
+    const poll = () => pullHistoryOnce(assistantId, () => cancelled);
 
     // Первый poll через 3с, затем каждые 8с
     const t1 = setTimeout(poll, 3000);
@@ -1761,7 +1768,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!text) return; // очередь была из одних пробелов — пустой ход не шлём
 
     flushingRef.current = true;
-    void sendMessageText(text).finally(() => {
+    // Сначала подтягиваем историю, потом шлём.
+    //
+    // Между сохранением удалённого ответа в БД и этой досылкой бывает меньше
+    // двух секунд (замер на проде 10.09.2026: ответ 06:11:05.6, досылка
+    // 06:11:07.3), а поллинг ходит раз в 8 секунд. Если отправить первыми,
+    // наше локальное сообщение станет самым свежим, и selectNewPolledMessages
+    // отбросит удалённый ответ как более старый — навсегда, до перезагрузки.
+    // Ответ при этом цел в БД, но человек видит два своих сообщения подряд и
+    // считает, что ответ пропал.
+    //
+    // Ждём именно ДО отправки: после неё гонка уже проиграна.
+    const assistantIdForFlush = selectedAssistant.id;
+    void pullHistoryOnce(assistantIdForFlush)
+      .then(() => sendMessageText(text))
+      .finally(() => {
       flushingRef.current = false;
       // Тот же виджет, что и при обычной отправке (см. handleSend) — ход из
       // очереди раньше выпадал из этого обновления.
