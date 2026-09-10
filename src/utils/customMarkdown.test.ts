@@ -137,8 +137,10 @@ describe('meeting_join', () => {
   });
 
   it('незнакомый провайдер не проходит', () => {
+    // Пример из будущего: `teams` мост умеет, у нас его нет. Раньше здесь
+    // стоял `zoom` — и тест честно упал в день, когда zoom добавили.
     expect(parseCustomMarkdown(
-      '{{meeting_join: provider=zoom code=abc-defg-hij title=Х}}',
+      '{{meeting_join: provider=teams code=abc-defg-hij title=Х}}',
     ).meetings.size).toBe(0);
   });
 
