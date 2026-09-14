@@ -366,9 +366,11 @@
     },
     "meeting": {
       "join": "Entrar",
+      "waiting_admit": "O assistente está pedindo para ser admitido. Confirme a entrada dele na reunião do Google Meet",
       "in_progress": "O assistente está em uma reunião",
       "leave": "Sair",
       "already_in": "O assistente já está em outra reunião ou chamada",
+      "meet_busy": "O assistente está em outra reunião no momento. Tente novamente quando ela terminar",
       "join_failed": "Não foi possível entrar na reunião",
       "create": "Criar reunião",
       "create_failed": "Não foi possível criar a reunião",
@@ -551,7 +553,8 @@
       "monitoring": "Monitorização",
       "backlog": "Backlog",
       "product": "Gestão de produto",
-      "reports": "Denúncias"
+      "reports": "Denúncias",
+      "integrations": "Integrações"
     },
     "product": {
       "tabs": {
