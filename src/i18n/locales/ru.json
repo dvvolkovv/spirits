@@ -542,7 +542,8 @@
       "activation": "Активация",
       "monitoring": "Мониторинг",
       "backlog": "Бэклог",
-      "product": "Управление продуктом"
+      "product": "Управление продуктом",
+      "integrations": "Интеграции"
     },
     "product": {
       "tabs": {

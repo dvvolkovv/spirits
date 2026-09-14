@@ -541,7 +541,8 @@
       "monitoring": "Monitorização",
       "backlog": "Backlog",
       "product": "Gestão de produto",
-      "reports": "Denúncias"
+      "reports": "Denúncias",
+      "integrations": "Integrações"
     },
     "product": {
       "tabs": {

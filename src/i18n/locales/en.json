@@ -539,7 +539,8 @@
       "activation": "Activation",
       "monitoring": "Monitoring",
       "backlog": "Backlog",
-      "product": "Product"
+      "product": "Product",
+      "integrations": "Integrations"
     },
     "product": {
       "tabs": {
