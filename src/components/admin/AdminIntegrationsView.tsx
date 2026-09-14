@@ -9,6 +9,9 @@ interface IntegrationFlag {
   key: string;
   title: string;
   note: string;
+  // Разведена ли интеграция в продукте. Недоступную включить нельзя: бэкенд
+  // такой запрос отвергает, и кнопка обязана это показывать заранее.
+  available: boolean;
   enabled: boolean;
   updatedAt?: string;
   updatedBy?: string;
@@ -40,6 +43,7 @@ const AdminIntegrationsView: React.FC = () => {
   useEffect(() => { load(); }, []);
 
   const toggle = async (item: IntegrationFlag) => {
+    if (!item.available) return;
     // Включение открывает возможность всем пользователям сразу — спрашиваем.
     // Выключение подтверждения не требует: оно всегда безопасно.
     if (!item.enabled && !window.confirm(
@@ -114,16 +118,19 @@ const AdminIntegrationsView: React.FC = () => {
               <button
                 data-testid={`integration-toggle-${item.key}`}
                 onClick={() => toggle(item)}
-                disabled={saving === item.key}
+                disabled={saving === item.key || !item.available}
                 aria-pressed={item.enabled}
+                title={item.available ? undefined : 'Интеграция ещё не разведена в продукте'}
                 className={
                   'flex-shrink-0 w-28 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ' +
-                  (item.enabled
+                  (!item.available
+                    ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                    : item.enabled
                     ? 'bg-forest-600 text-white hover:bg-forest-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200')
                 }
               >
-                {saving === item.key ? '…' : item.enabled ? 'Включена' : 'Выключена'}
+                {!item.available ? 'В планах' : saving === item.key ? '…' : item.enabled ? 'Включена' : 'Выключена'}
               </button>
             </div>
           ))}
