@@ -13,7 +13,7 @@ export interface MeetingCard {
   code: string;
   title: string;
   /** Чья встреча. Своя по умолчанию — старые карточки в истории провайдера не несут. */
-  provider?: 'linkeon' | 'talerid' | 'meet' | 'zoom';
+  provider?: 'linkeon' | 'talerid' | 'meet' | 'zoom' | 'teams';
   /** Полный адрес входа. Только у Zoom: из кода его не собрать. */
   url?: string;
 }
@@ -172,9 +172,10 @@ export const parseCustomMarkdown = (content: string): {
       provider: provider === 'talerid' ? 'talerid'
         : provider === 'meet' ? 'meet'
         : provider === 'zoom' ? 'zoom'
+        : provider === 'teams' ? 'teams'
         : 'linkeon',
-      // Адрес входа есть только у Zoom; у остальных площадок его в теге нет и
-      // быть не должно — он выводится из кода на бэкенде.
+      // Адрес входа есть у Zoom и Teams; у остальных площадок его в теге нет
+      // и быть не должно — он выводится из кода на бэкенде.
       ...(url ? { url: String(url) } : {}),
     });
     return `__MEETING_${key}__`;
