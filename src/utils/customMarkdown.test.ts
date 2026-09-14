@@ -137,11 +137,39 @@ describe('meeting_join', () => {
   });
 
   it('незнакомый провайдер не проходит', () => {
-    // Пример из будущего: `teams` мост умеет, у нас его нет. Раньше здесь
-    // стоял `zoom` — и тест честно упал в день, когда zoom добавили.
+    // Пример из будущего: `webex` мост не умеет вовсе. Здесь по очереди
+    // стояли `zoom` и `teams` — и каждый раз тест честно падал в день, когда
+    // площадку разводили.
     expect(parseCustomMarkdown(
-      '{{meeting_join: provider=teams code=abc-defg-hij title=Х}}',
+      '{{meeting_join: provider=webex code=abc-defg-hij title=Х}}',
     ).meetings.size).toBe(0);
+  });
+
+  it('карточка Teams: личная встреча — тринадцатизначный id', () => {
+    // Id длиннее зумовского, и прежний потолок в 12 цифр отбрасывал бы
+    // карточку целиком.
+    const url = 'https://teams.live.com/meet/9334354666557?p=lBZ4sXKpUY7bT0GzzM';
+    const { meetings } = parseCustomMarkdown(
+      `{{meeting_join: provider=teams code=9334354666557 url=${url} title=Встреча Microsoft Teams}}`,
+    );
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0]).toMatchObject({
+      provider: 'teams', code: '9334354666557', url,
+    });
+  });
+
+  it('карточка Teams: корпоративная встреча — отпечаток адреса', () => {
+    // У корпоративной ссылки короткого опознавателя нет вовсе, и бэкенд
+    // кладёт в код отпечаток. Адрес при этом длинный, с процентами и
+    // вложенным JSON, — он обязан доехать до кнопки целиком.
+    const url =
+      'https://teams.microsoft.com/l/meetup-join/19%3ameeting_NzQ3Yzk%40thread.v2/0' +
+      '?context=%7B%22Tid%22%3A%22a1b2%22%7D';
+    const { meetings } = parseCustomMarkdown(
+      `{{meeting_join: provider=teams code=1a2b3c4d5e6f7a8b url=${url} title=Встреча Microsoft Teams}}`,
+    );
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0]).toMatchObject({ provider: 'teams', url });
   });
 
   // ВНИМАНИЕ: проверено фактическое поведение регулярки (node -e с этим
