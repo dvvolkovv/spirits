@@ -2327,8 +2327,9 @@
       "running": "Running",
       "degraded": "No connection to server",
       "stopped": "Stopped",
-      "provisioning": "Provisioning",
-      "archived": "Archived"
+      "provisioning": "Setting up…",
+      "archived": "Archived",
+      "failed": "Setup failed"
     },
     "chat": {
       "placeholder": "What should I change?",
@@ -2345,6 +2346,45 @@
       "running": "Running",
       "done": "Done",
       "tokens": "Tokens spent: {{count}}"
+    },
+    "retry": "Try again",
+    "retrying": "Retrying…",
+    "failReason": "Why it failed",
+    "failUnknown": "The server did not send a reason",
+    "retryErrors": {
+      "busy": "Setup for this product is already running",
+      "failed": "Could not queue another attempt"
+    },
+    "new": {
+      "button": "New product",
+      "title": "New product",
+      "cancel": "Cancel",
+      "kind": {
+        "site": "Website",
+        "bot": "Telegram bot"
+      },
+      "name": "Name",
+      "namePlaceholder": "Flower shop",
+      "slug": "Address",
+      "slugPlaceholder": "my-shop",
+      "slugHint": "Lowercase Latin letters, digits and hyphens; hyphens only inside",
+      "token": "Bot token",
+      "tokenPlaceholder": "123456:AA…",
+      "tokenHint": "Get the token from @BotFather. We store it encrypted and never show it again.",
+      "submit": "Create",
+      "creating": "Creating…",
+      "errors": {
+        "nameRequired": "Enter a name",
+        "nameTooLong": "The name is longer than 80 characters",
+        "nameNoSlug": "This name yields no address — please pick another one",
+        "slugRequired": "Enter an address",
+        "slugInvalid": "Address: lowercase Latin letters, digits and hyphens, up to 40 characters, hyphens only inside",
+        "tokenRequired": "Enter the bot token",
+        "tokenTooLong": "The token is longer than 8192 characters",
+        "slugTaken": "That address is already taken — pick another one",
+        "rejected": "The server rejected the product",
+        "network": "Could not reach the server. Check your connection and try again"
+      }
     }
   }
 }

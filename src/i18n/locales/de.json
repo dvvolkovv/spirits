@@ -1984,8 +1984,9 @@
       "running": "Läuft",
       "degraded": "Keine Verbindung zum Server",
       "stopped": "Gestoppt",
-      "provisioning": "Wird eingerichtet",
-      "archived": "Archiviert"
+      "provisioning": "Wird eingerichtet…",
+      "archived": "Archiviert",
+      "failed": "Einrichtung fehlgeschlagen"
     },
     "chat": {
       "placeholder": "Was soll geändert werden?",
@@ -2002,6 +2003,45 @@
       "running": "Läuft",
       "done": "Fertig",
       "tokens": "Verbrauchte Tokens: {{count}}"
+    },
+    "retry": "Erneut versuchen",
+    "retrying": "Wird wiederholt…",
+    "failReason": "Warum es fehlschlug",
+    "failUnknown": "Der Server hat keinen Grund gesendet",
+    "retryErrors": {
+      "busy": "Die Einrichtung dieses Produkts läuft bereits",
+      "failed": "Ein weiterer Versuch konnte nicht eingeplant werden"
+    },
+    "new": {
+      "button": "Neues Produkt",
+      "title": "Neues Produkt",
+      "cancel": "Abbrechen",
+      "kind": {
+        "site": "Website",
+        "bot": "Telegram-Bot"
+      },
+      "name": "Name",
+      "namePlaceholder": "Blumenladen",
+      "slug": "Adresse",
+      "slugPlaceholder": "my-shop",
+      "slugHint": "Kleine lateinische Buchstaben, Ziffern und Bindestriche; Bindestriche nur innen",
+      "token": "Bot-Token",
+      "tokenPlaceholder": "123456:AA…",
+      "tokenHint": "Den Token gibt @BotFather aus. Wir speichern ihn verschlüsselt und zeigen ihn nie wieder an.",
+      "submit": "Anlegen",
+      "creating": "Wird angelegt…",
+      "errors": {
+        "nameRequired": "Bitte einen Namen eingeben",
+        "nameTooLong": "Der Name ist länger als 80 Zeichen",
+        "nameNoSlug": "Aus diesem Namen ergibt sich keine Adresse — bitte einen anderen wählen",
+        "slugRequired": "Bitte eine Adresse eingeben",
+        "slugInvalid": "Adresse: kleine lateinische Buchstaben, Ziffern und Bindestriche, bis zu 40 Zeichen, Bindestriche nur innen",
+        "tokenRequired": "Bitte den Bot-Token eingeben",
+        "tokenTooLong": "Der Token ist länger als 8192 Zeichen",
+        "slugTaken": "Diese Adresse ist bereits vergeben — bitte eine andere wählen",
+        "rejected": "Der Server hat das Produkt abgelehnt",
+        "network": "Der Server war nicht erreichbar. Verbindung prüfen und erneut versuchen"
+      }
     }
   }
 }

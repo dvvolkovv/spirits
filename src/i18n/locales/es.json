@@ -1990,8 +1990,9 @@
       "running": "En funcionamiento",
       "degraded": "Sin conexión con el servidor",
       "stopped": "Detenido",
-      "provisioning": "Desplegando",
-      "archived": "Archivado"
+      "provisioning": "Desplegando…",
+      "archived": "Archivado",
+      "failed": "No se pudo desplegar"
     },
     "chat": {
       "placeholder": "¿Qué quieres cambiar?",
@@ -2008,6 +2009,45 @@
       "running": "En curso",
       "done": "Hecho",
       "tokens": "Tokens gastados: {{count}}"
+    },
+    "retry": "Reintentar",
+    "retrying": "Reintentando…",
+    "failReason": "Por qué falló",
+    "failUnknown": "El servidor no envió el motivo",
+    "retryErrors": {
+      "busy": "El despliegue de este producto ya está en curso",
+      "failed": "No se pudo programar otro intento"
+    },
+    "new": {
+      "button": "Nuevo producto",
+      "title": "Nuevo producto",
+      "cancel": "Cancelar",
+      "kind": {
+        "site": "Sitio web",
+        "bot": "Bot de Telegram"
+      },
+      "name": "Nombre",
+      "namePlaceholder": "Floristería",
+      "slug": "Dirección",
+      "slugPlaceholder": "my-shop",
+      "slugHint": "Letras latinas minúsculas, dígitos y guiones; los guiones solo dentro",
+      "token": "Token del bot",
+      "tokenPlaceholder": "123456:AA…",
+      "tokenHint": "El token lo entrega @BotFather. Lo guardamos cifrado y no volvemos a mostrarlo.",
+      "submit": "Crear",
+      "creating": "Creando…",
+      "errors": {
+        "nameRequired": "Escribe un nombre",
+        "nameTooLong": "El nombre supera los 80 caracteres",
+        "nameNoSlug": "Con este nombre no sale una dirección: elige otro",
+        "slugRequired": "Escribe una dirección",
+        "slugInvalid": "Dirección: letras latinas minúsculas, dígitos y guiones, hasta 40 caracteres, guiones solo dentro",
+        "tokenRequired": "Escribe el token del bot",
+        "tokenTooLong": "El token supera los 8192 caracteres",
+        "slugTaken": "Esa dirección ya está ocupada: elige otra",
+        "rejected": "El servidor no aceptó el producto",
+        "network": "No se pudo contactar con el servidor. Comprueba la conexión e inténtalo de nuevo"
+      }
     }
   }
 }

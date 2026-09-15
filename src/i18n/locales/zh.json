@@ -1978,8 +1978,9 @@
       "running": "运行中",
       "degraded": "与服务器失去连接",
       "stopped": "已停止",
-      "provisioning": "部署中",
-      "archived": "已归档"
+      "provisioning": "正在创建…",
+      "archived": "已归档",
+      "failed": "创建失败"
     },
     "chat": {
       "placeholder": "需要修改什么？",
@@ -1996,6 +1997,45 @@
       "running": "进行中",
       "done": "已完成",
       "tokens": "已消耗代币：{{count}}"
+    },
+    "retry": "重试",
+    "retrying": "正在重试…",
+    "failReason": "失败原因",
+    "failUnknown": "服务器未返回原因",
+    "retryErrors": {
+      "busy": "该产品的创建已在进行中",
+      "failed": "无法安排新的尝试"
+    },
+    "new": {
+      "button": "新建产品",
+      "title": "新建产品",
+      "cancel": "取消",
+      "kind": {
+        "site": "网站",
+        "bot": "Telegram 机器人"
+      },
+      "name": "名称",
+      "namePlaceholder": "花店",
+      "slug": "地址",
+      "slugPlaceholder": "my-shop",
+      "slugHint": "小写拉丁字母、数字和连字符；连字符只能在中间",
+      "token": "机器人令牌",
+      "tokenPlaceholder": "123456:AA…",
+      "tokenHint": "令牌由 @BotFather 发放。我们加密保存，不会再次显示。",
+      "submit": "创建",
+      "creating": "正在创建…",
+      "errors": {
+        "nameRequired": "请填写名称",
+        "nameTooLong": "名称超过 80 个字符",
+        "nameNoSlug": "该名称无法生成地址，请换一个",
+        "slugRequired": "请填写地址",
+        "slugInvalid": "地址：小写拉丁字母、数字和连字符，最多 40 个字符，连字符只能在中间",
+        "tokenRequired": "请填写机器人令牌",
+        "tokenTooLong": "令牌超过 8192 个字符",
+        "slugTaken": "该地址已被占用，请换一个",
+        "rejected": "服务器拒绝了该产品",
+        "network": "无法连接服务器。请检查网络后重试"
+      }
     }
   }
 }
