@@ -364,7 +364,7 @@
     },
     "meeting": {
       "join": "Join",
-      "waiting_admit": "The assistant is asking to be let in. Please admit it to the Google Meet call",
+      "waiting_admit": "The assistant is asking to be let in. Please admit it to the {{platform}} call",
       "in_progress": "Assistant is in a meeting",
       "leave": "Leave",
       "already_in": "The assistant is already in another meeting or on a call",
@@ -372,7 +372,15 @@
       "join_failed": "Could not join the meeting",
       "create": "Create meeting",
       "create_failed": "Could not create the meeting",
-      "copy_link": "Copy link"
+      "copy_link": "Copy link",
+      "platform": {
+        "meet": "Google Meet",
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "telemost": "Yandex Telemost",
+        "talerid": "Taler ID",
+        "linkeon": "Linkeon"
+      }
     },
     "actions_title": "Chat actions"
   },

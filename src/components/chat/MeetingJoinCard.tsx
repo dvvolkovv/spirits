@@ -103,7 +103,14 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', url
         </button>
       </div>
       {error && <p className="mt-1 text-xs text-red-600">{t(`chat.meeting.${error}`)}</p>}
-      {waitingAdmit && <p className="mt-1 text-xs text-gray-500">{t('chat.meeting.waiting_admit')}</p>}
+      {waitingAdmit && (
+        <p className="mt-1 text-xs text-gray-500">
+          {/* Название площадки подставляем: подсказка звала «в Google Meet» на
+              любой встрече, и на Телемосте это выглядело ошибкой (замечание
+              владельца 15.09.2026). */}
+          {t('chat.meeting.waiting_admit', { platform: t(`chat.meeting.platform.${provider ?? 'meet'}`) })}
+        </p>
+      )}
     </div>
   );
 }

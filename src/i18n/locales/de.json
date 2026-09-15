@@ -364,7 +364,7 @@
     },
     "meeting": {
       "join": "Beitreten",
-      "waiting_admit": "Der Assistent bittet darum, eingelassen zu werden. Bitte bestätige den Zutritt zur Google-Meet-Besprechung",
+      "waiting_admit": "Der Assistent bittet darum, eingelassen zu werden. Bitte bestätige den Zutritt zur {{platform}}-Besprechung",
       "in_progress": "Assistent ist in einer Besprechung",
       "leave": "Verlassen",
       "already_in": "Der Assistent ist bereits in einer anderen Besprechung oder in einem Anruf",
@@ -372,7 +372,15 @@
       "join_failed": "Beitritt zur Besprechung fehlgeschlagen",
       "create": "Besprechung erstellen",
       "create_failed": "Besprechung konnte nicht erstellt werden",
-      "copy_link": "Link kopieren"
+      "copy_link": "Link kopieren",
+      "platform": {
+        "meet": "Google Meet",
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "telemost": "Yandex Telemost",
+        "talerid": "Taler ID",
+        "linkeon": "Linkeon"
+      }
     },
     "actions_title": "Chat-Aktionen"
   },
