@@ -14,7 +14,7 @@ interface Props {
   code: string;
   title: string;
   /** Чья встреча. Без него — своя, как было до появления чужих комнат. */
-  provider?: 'linkeon' | 'talerid' | 'meet' | 'zoom' | 'teams';
+  provider?: 'linkeon' | 'talerid' | 'meet' | 'zoom' | 'teams' | 'telemost';
   /**
    * Полный адрес входа — только у Zoom.
    *
@@ -75,7 +75,7 @@ export default function MeetingJoinCard({ code, title, provider = 'linkeon', url
       const data = await res.json();
       // Комната ожидания есть у всех площадок моста. У Zoom она даже честнее:
       // мост сообщает её отдельным состоянием, а не молчанием.
-      if (provider === 'meet' || provider === 'zoom' || provider === 'teams') setWaitingAdmit(true);
+      if (provider === 'meet' || provider === 'zoom' || provider === 'teams' || provider === 'telemost') setWaitingAdmit(true);
       onJoined(data.callId);
     } catch (e) {
       const reason = e instanceof Error ? e.message : 'join_failed';

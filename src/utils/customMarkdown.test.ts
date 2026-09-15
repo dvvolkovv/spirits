@@ -228,6 +228,18 @@ describe('meeting_join', () => {
     expect(card.title).toBe('Встреча Zoom');
   });
 
+  it('карточка Телемоста несёт адрес и длинный номер', () => {
+    // Номер встречи у Телемоста длиннее зумовского — в замерах 14 цифр.
+    const url = 'https://telemost.yandex.ru/j/90382708766203';
+    const { meetings } = parseCustomMarkdown(
+      `{{meeting_join: provider=telemost code=90382708766203 url=${url} title=Встреча в Телемосте}}`,
+    );
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0]).toMatchObject({
+      provider: 'telemost', code: '90382708766203', url,
+    });
+  });
+
   it('заголовок с пробелами не съедается адресом', () => {
     // Порядок полей в теге: код → адрес → заголовок. Заголовок читается «до
     // закрывающих скобок» и обязан оставаться последним.

@@ -13,7 +13,7 @@ export interface MeetingCard {
   code: string;
   title: string;
   /** Чья встреча. Своя по умолчанию — старые карточки в истории провайдера не несут. */
-  provider?: 'linkeon' | 'talerid' | 'meet' | 'zoom' | 'teams';
+  provider?: 'linkeon' | 'talerid' | 'meet' | 'zoom' | 'teams' | 'telemost';
   /** Полный адрес входа. Только у Zoom: из кода его не собрать. */
   url?: string;
 }
@@ -71,7 +71,7 @@ const VOICE_CALL_REGEX = /\{\{voice_call:\s*id=([a-f0-9-]{36})\}\}/g;
 // без фигурных скобок, иначе тег развалился бы на середине; заголовок
 // по-прежнему последний, потому что читается «до закрывающих скобок».
 const MEETING_JOIN_REGEX =
-  /\{\{meeting_join:\s*(?:provider=(talerid|meet|zoom|teams)\s+)?code=([2-9A-HJ-NP-Z]{6}|[A-Fa-f0-9]{6,64}|[a-z]{3}-[a-z]{4}-[a-z]{3}|\d{9,20})\s+(?:url=([^\s{}]+)\s+)?title=([^}]*?)\}\}/g;
+  /\{\{meeting_join:\s*(?:provider=(talerid|meet|zoom|teams|telemost)\s+)?code=([2-9A-HJ-NP-Z]{6}|[A-Fa-f0-9]{6,64}|[a-z]{3}-[a-z]{4}-[a-z]{3}|\d{9,20})\s+(?:url=([^\s{}]+)\s+)?title=([^}]*?)\}\}/g;
 
 // SMM Producer Plan 4d — social connect blocks
 const SMM_SOCIAL_BUTTON_REGEX =
@@ -173,6 +173,7 @@ export const parseCustomMarkdown = (content: string): {
         : provider === 'meet' ? 'meet'
         : provider === 'zoom' ? 'zoom'
         : provider === 'teams' ? 'teams'
+        : provider === 'telemost' ? 'telemost'
         : 'linkeon',
       // Адрес входа есть у Zoom и Teams; у остальных площадок его в теге нет
       // и быть не должно — он выводится из кода на бэкенде.
