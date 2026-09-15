@@ -2046,8 +2046,12 @@
         "tokenTooLong": "Le jeton dépasse 8192 caractères",
         "slugTaken": "Cette adresse est déjà prise — choisissez-en une autre",
         "rejected": "Le serveur a refusé le produit",
-        "network": "Impossible de joindre le serveur. Vérifiez la connexion et réessayez"
-      }
-    }
+        "network": "Impossible de joindre le serveur. Vérifiez la connexion et réessayez",
+        "slugTakenBot": "Ce nom est déjà pris — appuyez de nouveau sur « Créer »"
+      },
+      "botSlugHint": "Nom du conteneur : {{slug}}"
+    },
+    "loadFailed": "Impossible d’actualiser la liste — l’ancienne est affichée",
+    "reload": "Actualiser"
   }
 }

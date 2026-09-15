@@ -2040,8 +2040,12 @@
         "tokenTooLong": "Der Token ist länger als 8192 Zeichen",
         "slugTaken": "Diese Adresse ist bereits vergeben — bitte eine andere wählen",
         "rejected": "Der Server hat das Produkt abgelehnt",
-        "network": "Der Server war nicht erreichbar. Verbindung prüfen und erneut versuchen"
-      }
-    }
+        "network": "Der Server war nicht erreichbar. Verbindung prüfen und erneut versuchen",
+        "slugTakenBot": "Dieser Name ist bereits vergeben — bitte erneut auf „Anlegen“ klicken"
+      },
+      "botSlugHint": "Containername: {{slug}}"
+    },
+    "loadFailed": "Liste konnte nicht aktualisiert werden — die vorherige wird angezeigt",
+    "reload": "Aktualisieren"
   }
 }

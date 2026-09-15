@@ -2383,8 +2383,12 @@
         "tokenTooLong": "The token is longer than 8192 characters",
         "slugTaken": "That address is already taken — pick another one",
         "rejected": "The server rejected the product",
-        "network": "Could not reach the server. Check your connection and try again"
-      }
-    }
+        "network": "Could not reach the server. Check your connection and try again",
+        "slugTakenBot": "That name is already taken — press “Create” again"
+      },
+      "botSlugHint": "Container name: {{slug}}"
+    },
+    "loadFailed": "Could not refresh the list — showing the previous one",
+    "reload": "Refresh"
   }
 }

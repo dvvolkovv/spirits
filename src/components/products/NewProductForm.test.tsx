@@ -34,6 +34,8 @@ vi.mock('react-i18next', async () => {
   return { useTranslation: () => ({ t }) };
 });
 
+type SubmitFake = { ok: true } | { ok: false; message: string };
+
 /** Обработчик отправки: копит вызовы и отдаёт заранее заданный ответ. */
 function submitter(result: { ok: true } | { ok: false; message: string } = { ok: true }) {
   const calls: NewProductInput[] = [];
@@ -267,6 +269,174 @@ describe('NewProductForm — слаг бота выводится из назв�
     expect(s.calls[0].slug).not.toBe(s.calls[1].slug);
     expect(s.calls.every((c) => SLUG_RE.test(c.slug))).toBe(true);
     expect(s.calls.every((c) => c.slug.startsWith('magazin-cvetov-'))).toBe(true);
+  });
+});
+
+describe('NewProductForm — диакритика', () => {
+  // Четыре наших локали (fr, pt, es, de) пишут названия с диакритикой.
+  // Без снятия надстрочных знаков буква выпадала в дефис: слаг оставался
+  // годным, но имя рассыпалось — 'Café Fleuri' давало 'caf-fleuri'.
+  const cases: [string, string][] = [
+    ['Café Fleuri', 'cafe-fleuri'],
+    ['Müller Bot', 'muller-bot'],
+    ['Ação Rápida', 'acao-rapida'],
+    ['Español Señor', 'espanol-senor'],
+    ['Zoë', 'zoe'],
+  ];
+
+  it.each(cases)('%s превращается в %s', (name, expected) => {
+    expect(slugifyName(name)).toBe(expected);
+  });
+
+  it('иероглифы и арабский дают пустую основу, но годный слаг', () => {
+    // Дешёвого лечения для них нет, и хвост вместо имени тут приемлем —
+    // лишь бы сервер принял слаг.
+    for (const name of ['花店', 'متجر الزهور', '🌸🌸🌸', '---']) {
+      expect(SLUG_RE.test(deriveBotSlug(name, 'ab12cd'))).toBe(true);
+    }
+  });
+});
+
+describe('NewProductForm — слаг бота показывается', () => {
+  it('будущее имя контейнера видно на форме', () => {
+    // Домена у бота нет, слаг в списке не показывается — а всплывает он
+    // каталогом на машине продуктов и строкой в логах, когда кто-то
+    // разбирает отказ. Тайная идентичность — плохая идентичность.
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={async () => ({ ok: true })} />);
+
+    type(byLabel(container, NAME)!, 'Магазин цветов');
+
+    expect(visibleText(container)).toContain('magazin-cvetov-');
+  });
+
+  it('показанное имя — ровно то, что уезжает на сервер', async () => {
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+
+    type(byLabel(container, NAME)!, 'Магазин цветов');
+    type(byLabel(container, TOKEN)!, '123:AAA');
+    const shown = visibleText(container).match(/magazin-cvetov-[a-z0-9]+/)![0];
+    await clickAsync(byButton(container, CREATE)!);
+
+    expect(s.calls[0].slug).toBe(shown);
+  });
+
+  it('у сайта подсказки про контейнер нет', () => {
+    const { container } = mount(<NewProductForm kind="site" onSubmit={async () => ({ ok: true })} />);
+
+    type(byLabel(container, NAME)!, 'Магазин цветов');
+
+    expect(visibleText(container)).not.toContain('magazin-cvetov-');
+  });
+
+  it('хвост слага — шесть символов', async () => {
+    // BOT_SUFFIX_LEN = 1 не измерялся ничем, а от длины хвоста зависит
+    // вероятность столкновения слагов у одинаково названных ботов.
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+
+    type(byLabel(container, NAME)!, 'Магазин цветов');
+    type(byLabel(container, TOKEN)!, '123:AAA');
+    await clickAsync(byButton(container, CREATE)!);
+
+    expect(s.calls[0].slug).toMatch(/-[a-z0-9]{6}$/);
+  });
+
+  it('после отказа сервера второе нажатие уходит под другим слагом', async () => {
+    // Единственный способ разойтись с занятым слагом на форме, где поля
+    // адреса нет вовсе.
+    const s = submitter({ ok: false, message: 'слаг уже занят' });
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+
+    type(byLabel(container, NAME)!, 'Магазин цветов');
+    type(byLabel(container, TOKEN)!, '123:AAA');
+    await clickAsync(byButton(container, CREATE)!);
+    type(byLabel(container, TOKEN)!, '123:AAA');
+    await clickAsync(byButton(container, CREATE)!);
+
+    expect(s.calls).toHaveLength(2);
+    expect(s.calls[0].slug).not.toBe(s.calls[1].slug);
+  });
+});
+
+describe('NewProductForm — потолки и подсказки', () => {
+  it('слишком длинное название объясняется', () => {
+    // Потолок 80 стоит в CreateProductDto; без своей проверки пользователь
+    // получил бы 400 с английским текстом class-validator.
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="site" onSubmit={s.fn} />);
+
+    type(byLabel(container, NAME)!, 'я'.repeat(81));
+    type(byLabel(container, SLUG)!, 'my-shop');
+    click(byButton(container, CREATE)!);
+
+    expect(s.fn).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain(tRu('products.new.errors.nameTooLong'));
+  });
+
+  it('слишком длинный токен объясняется', () => {
+    // 8192 — потолок значения секрета в create() на бэкенде.
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+
+    type(byLabel(container, NAME)!, 'Бот');
+    type(byLabel(container, TOKEN)!, 'a'.repeat(8193));
+    click(byButton(container, CREATE)!);
+
+    expect(s.fn).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain(tRu('products.new.errors.tokenTooLong'));
+  });
+
+  it('будущий адрес сайта виден до отправки', () => {
+    const { container } = mount(<NewProductForm kind="site" onSubmit={async () => ({ ok: true })} />);
+
+    type(byLabel(container, SLUG)!, 'my-shop');
+
+    expect(visibleText(container)).toContain('my-shop.p.linkeon.io');
+  });
+
+  it('негодный адрес не выдаётся за будущий', () => {
+    const { container } = mount(<NewProductForm kind="site" onSubmit={async () => ({ ok: true })} />);
+
+    type(byLabel(container, SLUG)!, 'Мой Сайт!');
+
+    expect(visibleText(container)).not.toContain('.p.linkeon.io');
+    expect(visibleText(container)).toContain(tRu('products.new.slugHint'));
+  });
+
+  it('негодное поле помечено для чтения с экрана', () => {
+    // Сообщение под полем видит зрячий; aria-invalid — всё остальное.
+    const { container } = mount(<NewProductForm kind="site" onSubmit={async () => ({ ok: true })} />);
+
+    type(byLabel(container, NAME)!, 'Магазин');
+    type(byLabel(container, SLUG)!, 'Мой Сайт!');
+    click(byButton(container, CREATE)!);
+
+    expect(byLabel(container, SLUG)!.getAttribute('aria-invalid')).toBe('true');
+    expect(byLabel(container, NAME)!.getAttribute('aria-invalid')).toBe('false');
+  });
+
+  it('прошлая ошибка сервера гаснет на новой отправке', async () => {
+    // Иначе рядом с новым сообщением висит старое, и непонятно, какое из
+    // них про текущее нажатие.
+    let answer: SubmitFake = { ok: false, message: 'слаг уже занят' };
+    const calls: NewProductInput[] = [];
+    const fn = vi.fn(async (v: NewProductInput) => {
+      calls.push(v);
+      return answer;
+    });
+    const { container } = mount(<NewProductForm kind="site" onSubmit={fn} />);
+
+    type(byLabel(container, NAME)!, 'Магазин');
+    type(byLabel(container, SLUG)!, 'my-shop');
+    await clickAsync(byButton(container, CREATE)!);
+    expect(visibleText(container)).toContain('слаг уже занят');
+
+    answer = { ok: true };
+    type(byLabel(container, SLUG)!, 'my-shop-2');
+    await clickAsync(byButton(container, CREATE)!);
+
+    expect(visibleText(container)).not.toContain('слаг уже занят');
   });
 });
 

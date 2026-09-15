@@ -32,12 +32,49 @@ describe('productsApi', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/webhook/products');
   });
 
-  it('пустой ответ не роняет список', async () => {
-    // Бэкенд может ответить не-2xx: сеть, протухший токен, деплой.
-    // Кабинет должен показать пустой список, а не упасть.
-    vi.mocked(apiClient.get).mockResolvedValueOnce(res({ ok: false }));
+  it('отказ списка отличим от пустого списка', async () => {
+    // Бэкенд может ответить не-2xx: сеть, протухший токен, рестарт при
+    // выкате. Прежде это отдавало [] наравне с настоящим пустым списком, и
+    // кабинет объявлял «продуктов нет» посреди идущего заведения.
+    vi.mocked(apiClient.get).mockResolvedValueOnce(res({ ok: false, status: 502 }));
+
+    await expect(productsApi.list()).resolves.toBeNull();
+  });
+
+  it('настоящий пустой список остаётся пустым списком', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce(res({ ok: true, json: async () => [] }));
 
     await expect(productsApi.list()).resolves.toEqual([]);
+  });
+
+  it('200 с HTML (SPA-фолбэк) не роняет список и не выдаёт себя за пустой', async () => {
+    // На этом хостинге любой путь отдаёт 200 с index.html. res.json() на
+    // такой странице бросает — без перехвата отказ улетал бы необработанным
+    // промисом прямо из обработчика кнопки.
+    vi.mocked(apiClient.get).mockResolvedValueOnce(
+      res({
+        ok: true,
+        json: async () => {
+          throw new SyntaxError('Unexpected token <');
+        },
+      }),
+    );
+
+    await expect(productsApi.list()).resolves.toBeNull();
+  });
+
+  it('не-массив в теле успешного ответа тоже отказ, а не пустой список', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce(
+      res({ ok: true, json: async () => ({ statusCode: 200 }) }),
+    );
+
+    await expect(productsApi.list()).resolves.toBeNull();
+  });
+
+  it('обрыв связи при чтении списка не выбрасывается наружу', async () => {
+    vi.mocked(apiClient.get).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    await expect(productsApi.list()).resolves.toBeNull();
   });
 
   it('история ходов запрашивается у своего продукта', async () => {

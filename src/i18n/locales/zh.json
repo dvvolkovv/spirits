@@ -2034,8 +2034,12 @@
         "tokenTooLong": "令牌超过 8192 个字符",
         "slugTaken": "该地址已被占用，请换一个",
         "rejected": "服务器拒绝了该产品",
-        "network": "无法连接服务器。请检查网络后重试"
-      }
-    }
+        "network": "无法连接服务器。请检查网络后重试",
+        "slugTakenBot": "该名称已被占用，请再次点击“创建”"
+      },
+      "botSlugHint": "容器名称：{{slug}}"
+    },
+    "loadFailed": "无法刷新列表，显示的是上一次的结果",
+    "reload": "刷新"
   }
 }

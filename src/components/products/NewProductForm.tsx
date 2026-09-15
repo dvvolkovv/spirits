@@ -57,7 +57,18 @@ const TRANSLIT: Record<string, string> = {
  * вовсе, и отказ выглядит необъяснимым.
  */
 export function slugifyName(name: string): string {
-  const latin = Array.from(name.toLowerCase())
+  const latin = Array.from(
+    name
+      .toLowerCase()
+      // Диакритика снимается ДО таблицы: 'é' одним кодовым знаком в таблице
+      // нет, и он выпадал в дефис — 'Café Fleuri' давало 'caf-fleuri', а
+      // 'Ação Rápida' — 'a-o-r-pida'. Слаг оставался годным, но имя
+      // рассыпалось, и это било по четырём нашим локалям сразу (fr, pt, es,
+      // de). NFD разлагает букву на основу и надстрочный знак, вторая часть
+      // диапазона U+0300..U+036F выбрасывается.
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''),
+  )
     .map((ch) => TRANSLIT[ch] ?? ch)
     .join('');
   return (
@@ -159,6 +170,12 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
   const [slug, setSlug] = useState('');
   const [token, setToken] = useState('');
   const [errors, setErrors] = useState<Errors>({});
+  // Хвост слага бота живёт в состоянии, а не считается в submit: иначе
+  // показать будущее имя контейнера нельзя (подсказка врала бы), а после
+  // 409 повторное нажатие уходило бы с тем же слагом. Перевыпускается на
+  // каждом неудачном заходе — это и есть способ разойтись с занятым слагом
+  // на форме, где поля адреса нет.
+  const [suffix, setSuffix] = useState(randomSuffix);
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -178,8 +195,7 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
     // повторяющаяся форма дефекта в этой работе.
     if (Object.keys(found).length > 0) return;
 
-    const finalSlug =
-      kind === 'site' ? slug.trim() : deriveBotSlug(name, randomSuffix());
+    const finalSlug = kind === 'site' ? slug.trim() : deriveBotSlug(name, suffix);
 
     if (!SLUG_RE.test(finalSlug)) {
       // Практически недостижимо (deriveBotSlug всегда даёт годную основу), но
@@ -202,6 +218,10 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
       });
       if (!result.ok) {
         setServerError(result.message);
+        // Слаг бота мог оказаться занятым, а исправить его на этой форме
+        // нечем — поля адреса у бота нет. Новый хвост означает, что второе
+        // нажатие «Создать» уйдёт под другим слагом.
+        setSuffix(randomSuffix());
         return;
       }
       // Секрет не живёт в состоянии дольше нужного: форму после удачи
@@ -251,6 +271,15 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
           className={fieldClass('name')}
         />
         {fieldError('name')}
+        {kind === 'bot' && name.trim() && (
+          // Домена у бота нет, и слаг нигде больше не виден — а всплывает он
+          // каталогом на машине продуктов и строкой в логах, когда кто-то
+          // разбирает отказ. Тайно сгенерированная идентичность — плохая
+          // идентичность, поэтому показываем её здесь.
+          <p className="mt-1 text-xs text-gray-500 break-all">
+            {t('products.new.botSlugHint', { slug: deriveBotSlug(name, suffix) })}
+          </p>
+        )}
       </div>
 
       {kind === 'site' && (

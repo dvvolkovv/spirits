@@ -2046,8 +2046,12 @@
         "tokenTooLong": "El token supera los 8192 caracteres",
         "slugTaken": "Esa dirección ya está ocupada: elige otra",
         "rejected": "El servidor no aceptó el producto",
-        "network": "No se pudo contactar con el servidor. Comprueba la conexión e inténtalo de nuevo"
-      }
-    }
+        "network": "No se pudo contactar con el servidor. Comprueba la conexión e inténtalo de nuevo",
+        "slugTakenBot": "Ese nombre ya está ocupado: pulsa «Crear» otra vez"
+      },
+      "botSlugHint": "Nombre del contenedor: {{slug}}"
+    },
+    "loadFailed": "No se pudo actualizar la lista: se muestra la anterior",
+    "reload": "Actualizar"
   }
 }

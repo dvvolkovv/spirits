@@ -44,24 +44,38 @@ export const ProductsListView: React.FC<Props> = ({ onOpen }) => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [kind, setKind] = useState<ProductKind>('site');
-  const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  // Множество, а не один id: продукты падают ПАЧКАМИ — они падают от одной
+  // причины на одной машине. Один замок на весь список означал, что кнопка
+  // второго сорванного продукта на экране активна, а нажатие уходит в
+  // return: ни запроса, ни сообщения. Это тот же тихий отказ, ради которого
+  // переписана форма, только в соседнем месте.
+  const [retryingIds, setRetryingIds] = useState<string[]>([]);
   const [retryErrors, setRetryErrors] = useState<Record<string, string>>({});
 
-  // Замок повтора отдельно от состояния: setRetryingId применится только к
+  // Замок отдельно от состояния: setRetryingIds применится только к
   // следующему рендеру, а два клика подряд успевают пройти в одном тике.
   // Второе задание на тот же продукт бэкенд отобьёт по частичному индексу
   // one_active, но пользователь увидит непонятное «заведение уже идёт» в
-  // ответ на собственное же первое нажатие.
-  const retryBusy = useRef(false);
+  // ответ на собственное же первое нажатие. Замок ПОПРОДУКТНЫЙ.
+  const retryBusy = useRef(new Set<string>());
 
   const reload = useCallback(async () => {
-    // productsApi.list() сам гасит сетевые/авторизационные ошибки и отдаёт
-    // пустой список (см. комментарий в productsApi.ts) — try/catch тут не
-    // нужен, в отличие от CustomAgentsListView, где customAgentsApi бросает
-    // исключение при не-2xx.
+    // productsApi.list() сам гасит сетевые и авторизационные отказы и
+    // возвращает null — try/catch тут не нужен, в отличие от
+    // CustomAgentsListView, где customAgentsApi бросает исключение.
     const rows = await productsApi.list();
-    setProducts(rows);
     setLoading(false);
+    if (rows === null) {
+      // Состояние НЕ затирается. Прежде неудачная перечитка выдавала пустой
+      // список: экран объявлял «продуктов нет», заводящихся в нём не
+      // оставалось, интервал снимался — и опрос не возобновлялся до
+      // перезагрузки вкладки, пока заведение шло своим ходом.
+      setLoadFailed(true);
+      return;
+    }
+    setLoadFailed(false);
+    setProducts(rows);
   }, []);
 
   useEffect(() => {
@@ -83,9 +97,22 @@ export const ProductsListView: React.FC<Props> = ({ onOpen }) => {
    * с сервера про конкретное поле и полезен как есть. Одна формулировка на
    * все три случая отправила бы человека чинить не то.
    */
-  const explain = (p: Problem): string => {
-    if (p.status === 409) return t('products.new.errors.slugTaken');
+  const explain = (p: Problem, kind: ProductKind): string => {
     if (p.status === 0) return t('products.new.errors.network');
+    if (p.status === 409) {
+      // У бота поля адреса на форме нет — совет «выберите другой» предлагал
+      // бы действие, недоступное на экране. Правильное действие там —
+      // нажать «Создать» ещё раз: хвост слага перевыпускается при каждом
+      // отказе (см. NewProductForm).
+      return kind === 'bot'
+        ? t('products.new.errors.slugTakenBot')
+        : t('products.new.errors.slugTaken');
+    }
+    // Глобального фильтра исключений на бэке нет: неперехваченная ошибка
+    // приходит как {"message":"Internal server error"}. Показывать
+    // русскоязычному владельцу строку фреймворка — то же самое, что не
+    // показывать ничего.
+    if (p.status >= 500) return t('products.new.errors.rejected');
     return p.message || t('products.new.errors.rejected');
   };
 
@@ -94,7 +121,7 @@ export const ProductsListView: React.FC<Props> = ({ onOpen }) => {
     if (!result.ok) {
       // Форма остаётся открытой со всем введённым: адрес меняется одним
       // словом, а закрытая форма означала бы ввод заново.
-      return { ok: false, message: explain(result) };
+      return { ok: false, message: explain(result, input.kind) };
     }
     setCreating(false);
     await reload();
@@ -102,26 +129,30 @@ export const ProductsListView: React.FC<Props> = ({ onOpen }) => {
   };
 
   const retry = async (productId: string) => {
-    if (retryBusy.current) return;
-    retryBusy.current = true;
-    setRetryingId(productId);
+    if (retryBusy.current.has(productId)) return;
+    retryBusy.current.add(productId);
+    setRetryingIds((prev) => [...prev, productId]);
     setRetryErrors((prev) => {
       const next = { ...prev };
       delete next[productId];
       return next;
     });
     const result = await productsApi.retry(productId);
-    retryBusy.current = false;
-    setRetryingId(null);
+    retryBusy.current.delete(productId);
+    setRetryingIds((prev) => prev.filter((id) => id !== productId));
     if (!result.ok) {
       // Кнопка уже разблокирована выше: отказ обязан оставлять способ
       // попробовать ещё раз, иначе карточка замирает навсегда.
       const message =
-        result.status === 409
-          ? t('products.retryErrors.busy')
-          : result.status === 0
-            ? t('products.new.errors.network')
-            : result.message || t('products.retryErrors.failed');
+        result.status === 0
+          ? t('products.new.errors.network')
+          : result.status === 409
+            ? t('products.retryErrors.busy')
+            : // Та же английская строка Nest, что и у заведения: своей
+              // формулировки у пятисотки нет, и брать её как есть нельзя.
+              result.status >= 500
+              ? t('products.retryErrors.failed')
+              : result.message || t('products.retryErrors.failed');
       setRetryErrors((prev) => ({ ...prev, [productId]: message }));
       return;
     }
@@ -188,15 +219,35 @@ export const ProductsListView: React.FC<Props> = ({ onOpen }) => {
           </div>
         )}
 
+        {loadFailed && (
+          <div
+            role="alert"
+            className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+          >
+            <span>{t('products.loadFailed')}</span>
+            <button
+              onClick={reload}
+              className="shrink-0 px-4 py-1.5 rounded-lg border border-amber-300 hover:border-amber-400 text-sm"
+            >
+              {t('products.reload')}
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center text-gray-400 py-12">{t('common.loading')}</div>
         ) : products.length === 0 ? (
+          // Пустой экран только когда сервер ДЕЙСТВИТЕЛЬНО сказал «пусто».
+          // При неудачной перечитке над списком уже висит баннер выше, и
+          // объявлять вдобавок «продуктов нет» значит врать.
+          loadFailed ? null : (
           <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-forest-600 to-forest-800 flex items-center justify-center mx-auto mb-4 shadow-md">
               <Server size={24} className="text-white" />
             </div>
             <p className="text-gray-600 font-medium">{t('products.empty')}</p>
           </div>
+          )
         ) : (
           <div className="space-y-2">
             {products.map((p) => (
@@ -243,11 +294,14 @@ export const ProductsListView: React.FC<Props> = ({ onOpen }) => {
                     <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center">
                       <button
                         onClick={() => retry(p.id)}
-                        disabled={retryingId === p.id}
+                        disabled={retryingIds.includes(p.id)}
                         className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 hover:border-gray-300 disabled:opacity-60 text-sm text-gray-700"
                       >
-                        <RotateCw size={14} className={retryingId === p.id ? 'animate-spin' : ''} />
-                        {retryingId === p.id ? t('products.retrying') : t('products.retry')}
+                        <RotateCw
+                          size={14}
+                          className={retryingIds.includes(p.id) ? 'animate-spin' : ''}
+                        />
+                        {retryingIds.includes(p.id) ? t('products.retrying') : t('products.retry')}
                       </button>
                       {retryErrors[p.id] && (
                         <span role="alert" className="text-xs text-red-600 break-words">

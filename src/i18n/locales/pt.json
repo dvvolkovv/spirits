@@ -2383,8 +2383,12 @@
         "tokenTooLong": "O token tem mais de 8192 caracteres",
         "slugTaken": "Esse endereço já está em uso — escolha outro",
         "rejected": "O servidor não aceitou o produto",
-        "network": "Não foi possível contatar o servidor. Verifique a conexão e tente de novo"
-      }
-    }
+        "network": "Não foi possível contatar o servidor. Verifique a conexão e tente de novo",
+        "slugTakenBot": "Esse nome já está em uso — clique em “Criar” de novo"
+      },
+      "botSlugHint": "Nome do contêiner: {{slug}}"
+    },
+    "loadFailed": "Não foi possível atualizar a lista — exibindo a anterior",
+    "reload": "Atualizar"
   }
 }
