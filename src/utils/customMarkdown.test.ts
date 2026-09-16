@@ -90,7 +90,9 @@ describe('parseCustomMarkdown: карточка голосового звонк�
 describe('meeting_join', () => {
   it('вынимает код и название встречи', () => {
     const { meetings } = parseCustomMarkdown('{{meeting_join: code=ABC234 title=Планёрка}}');
-    // provider проставляется всегда: без явного provider=talerid это 'linkeon'.
+    // provider тут — 'linkeon': это уже существовавшая, но не отражённая в
+    // тесте деталь реализации (появилась вместе с Taler ID и до карточки
+    // Meet тест этого не проверял, отчего был красным).
     expect([...meetings.values()][0]).toEqual({ code: 'ABC234', title: 'Планёрка', provider: 'linkeon' });
   });
 
@@ -111,5 +113,157 @@ describe('meeting_join', () => {
 
   it('игнорирует код неверной длины — такого мы не выдаём', () => {
     expect(parseCustomMarkdown('{{meeting_join: code=ABC title=Встреча}}').meetings.size).toBe(0);
+  });
+
+  it('вынимает встречу Google Meet', () => {
+    const { meetings } = parseCustomMarkdown(
+      '{{meeting_join: provider=meet code=abc-defg-hij title=Планёрка}}',
+    );
+    expect([...meetings.values()][0]).toEqual({
+      code: 'abc-defg-hij', title: 'Планёрка', provider: 'meet',
+    });
+  });
+
+  it('своя встреча по-прежнему linkeon', () => {
+    const { meetings } = parseCustomMarkdown('{{meeting_join: code=ABC234 title=Планёрка}}');
+    expect([...meetings.values()][0].provider).toBe('linkeon');
+  });
+
+  it('встреча Taler ID не задета', () => {
+    const { meetings } = parseCustomMarkdown(
+      '{{meeting_join: provider=talerid code=36fc367a title=Созвон}}',
+    );
+    expect([...meetings.values()][0].provider).toBe('talerid');
+  });
+
+  it('незнакомый провайдер не проходит', () => {
+    // Пример из будущего: `webex` мост не умеет вовсе. Здесь по очереди
+    // стояли `zoom` и `teams` — и каждый раз тест честно падал в день, когда
+    // площадку разводили.
+    expect(parseCustomMarkdown(
+      '{{meeting_join: provider=webex code=abc-defg-hij title=Х}}',
+    ).meetings.size).toBe(0);
+  });
+
+  it('карточка Teams: личная встреча — тринадцатизначный id', () => {
+    // Id длиннее зумовского, и прежний потолок в 12 цифр отбрасывал бы
+    // карточку целиком.
+    const url = 'https://teams.live.com/meet/9334354666557?p=lBZ4sXKpUY7bT0GzzM';
+    const { meetings } = parseCustomMarkdown(
+      `{{meeting_join: provider=teams code=9334354666557 url=${url} title=Встреча Microsoft Teams}}`,
+    );
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0]).toMatchObject({
+      provider: 'teams', code: '9334354666557', url,
+    });
+  });
+
+  it('карточка Teams: корпоративная встреча — отпечаток адреса', () => {
+    // У корпоративной ссылки короткого опознавателя нет вовсе, и бэкенд
+    // кладёт в код отпечаток. Адрес при этом длинный, с процентами и
+    // вложенным JSON, — он обязан доехать до кнопки целиком.
+    const url =
+      'https://teams.microsoft.com/l/meetup-join/19%3ameeting_NzQ3Yzk%40thread.v2/0' +
+      '?context=%7B%22Tid%22%3A%22a1b2%22%7D';
+    const { meetings } = parseCustomMarkdown(
+      `{{meeting_join: provider=teams code=1a2b3c4d5e6f7a8b url=${url} title=Встреча Microsoft Teams}}`,
+    );
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0]).toMatchObject({ provider: 'teams', url });
+  });
+
+  // ВНИМАНИЕ: проверено фактическое поведение регулярки (node -e с этим
+  // же MEETING_JOIN_REGEX) — тест ниже красный, и это НЕ починено намеренно.
+  //
+  // Группа `(?:provider=(talerid|meet)\s+)?` и альтернатива кода
+  // `[a-z]{3}-[a-z]{4}-[a-z]{3}` в регулярке независимы: они просто идут
+  // подряд, а не связаны условно. Поэтому `code=abc-defg-hij` БЕЗ
+  // `provider=meet` всё равно матчится третьей альтернативой кода, и
+  // маппинг (provider === 'meet' ? ... : 'linkeon') отдаёт 'linkeon' —
+  // получается карточка «своей» комнаты с чужим кодом, а не 0 совпадений.
+  //
+  // Обычным способом (конкатенация опциональной группы + alternation) в
+  // JS-регулярках связать «эта альтернатива кода обязательно требует вот
+  // эту альтернативу провайдера» нельзя — нужно расщеплять регулярку на
+  // два top-level варианта через `|` вне общей структуры, которую нам дали
+  // как есть. Такая переделка меняет структуру каптур-групп и код маппинга
+  // сильнее, чем «добавить третью альтернативу», поэтому её не делаю
+  // самовольно — по инструкции в таком случае нужно сообщить, а не
+  // подгонять тест или регулярку молча. См. отчёт по задаче 14.
+  //
+  // На практике это не баг с последствиями: бэкенд для Meet ВСЕГДА кладёт
+  // provider=meet в тег (buildMeetingCard добавляет префикс для любого
+  // provider !== 'linkeon'), голого code=abc-defg-hij без provider оттуда
+  // не приходит.
+  it('код Meet без провайдера читается как своя комната — и это безопасно', () => {
+    // Фиксируем фактическое поведение, а не желаемое.
+    //
+    // Группа провайдера необязательна, а альтернативы кода от неё независимы,
+    // поэтому `code=abc-defg-hij` без `provider=meet` матчится третьей
+    // альтернативой кода и уезжает как `linkeon`. Связать «эта альтернатива
+    // кода требует того провайдера» можно только расщепив регулярку на два
+    // top-level варианта — а это меняет нумерацию каптур-групп и задевает
+    // разбор карточек двух площадок, которых в истории чатов уже накопилось.
+    //
+    // Цена не стоит выгоды, потому что случай недостижим на практике:
+    // buildMeetingCard на бэкенде ставит `provider=` любому провайдеру кроме
+    // linkeon, то есть карточка Meet всегда приходит помеченной. Получить
+    // такой тег можно только написав его руками — и тогда бэкенд не найдёт
+    // комнату с таким кодом и покажет внятную ошибку.
+    const { meetings } = parseCustomMarkdown('{{meeting_join: code=abc-defg-hij title=Х}}');
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0].provider).toBe('linkeon');
+  });
+
+  it('карточка Zoom несёт адрес входа', () => {
+    // У Zoom адрес не собрать из кода: в ссылке хост аккаунта и хеш пароля.
+    // Потеряется здесь — кнопка получит отказ zoom_url_required.
+    const url = 'https://us04web.zoom.us/j/71077562785?pwd=SECRET.1';
+    const { meetings } = parseCustomMarkdown(
+      `{{meeting_join: provider=zoom code=71077562785 url=${url} title=Встреча Zoom}}`,
+    );
+    expect(meetings.size).toBe(1);
+    const card = [...meetings.values()][0];
+    expect(card).toMatchObject({ provider: 'zoom', code: '71077562785', url });
+    expect(card.title).toBe('Встреча Zoom');
+  });
+
+  it('карточка Телемоста несёт адрес и длинный номер', () => {
+    // Номер встречи у Телемоста длиннее зумовского — в замерах 14 цифр.
+    const url = 'https://telemost.yandex.ru/j/90382708766203';
+    const { meetings } = parseCustomMarkdown(
+      `{{meeting_join: provider=telemost code=90382708766203 url=${url} title=Встреча в Телемосте}}`,
+    );
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0]).toMatchObject({
+      provider: 'telemost', code: '90382708766203', url,
+    });
+  });
+
+  it('заголовок с пробелами не съедается адресом', () => {
+    // Порядок полей в теге: код → адрес → заголовок. Заголовок читается «до
+    // закрывающих скобок» и обязан оставаться последним.
+    const { meetings } = parseCustomMarkdown(
+      '{{meeting_join: provider=zoom code=987654321 url=https://x.zoom.us/j/987654321 ' +
+      'title=Планёрка в понедельник}}',
+    );
+    expect([...meetings.values()][0].title).toBe('Планёрка в понедельник');
+  });
+
+  it('у карточек без адреса поля url нет', () => {
+    // Оно обязано появляться только там, где нужно: «иногда есть, иногда
+    // нет» на карточках своих комнат сбивало бы с толку.
+    const { meetings } = parseCustomMarkdown('{{meeting_join: provider=meet code=abc-defg-hij title=Х}}');
+    expect([...meetings.values()][0].url).toBeUndefined();
+  });
+
+  it('числовой код без провайдера читается как своя комната', () => {
+    // Фиксируем фактическое поведение, как и для кода Meet без провайдера:
+    // бэкенд ВСЕГДА помечает чужие карточки провайдером, поэтому такой тег
+    // можно получить только написав руками — и тогда бэкенд не найдёт комнату
+    // с таким кодом и покажет внятную ошибку. Карточку рисуем, вход откажет.
+    const { meetings } = parseCustomMarkdown('{{meeting_join: code=71077562785 title=Х}}');
+    expect(meetings.size).toBe(1);
+    expect([...meetings.values()][0].provider).toBe('linkeon');
   });
 });
