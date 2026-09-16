@@ -625,7 +625,11 @@ export interface ClaimedJob {
       slug: row.slug,
       kind: row.kind,
       runnerToken,
-      secrets: row.box ? this.secrets.decrypt(row.box) : {},
+      // ДВА аргумента: в задаче 2 коробка привязана к продукту через AAD, и
+      // decrypt бросает на пустом productId. Вызов одним аргументом падал бы на
+      // каждом продукте с секретами, а тест этого не показал бы — decrypt в нём
+      // замокан. Отказ вылез бы у агента на хосте видом «провижининг сорвался».
+      secrets: row.box ? this.secrets.decrypt(row.box, row.product_id) : {},
     };
   }
 
@@ -769,6 +773,11 @@ describe('ProvisioningService.failStaleProvisioning', () => {
     const sql = sqlOf(calls);
     expect(sql).toContain("status = 'failed'");
     expect(sql).toContain("interval '10 minutes'");
+    // Срок по заданию, а не по продукту: иначе повтор старого продукта
+    // умирает в тот же тик, не успев дойти до агента.
+    expect(sql).toContain('product_provision_jobs');
+    expect(sql).toContain('COALESCE(started_at, created_at)');
+    expect(sql).not.toContain('p.created_at <');
   });
 });
 ```
@@ -826,13 +835,31 @@ describe('ProvisioningService.failStaleProvisioning', () => {
   }
 
   async failStaleProvisioning(): Promise<number> {
+    // Срок считается по ЗАДАНИЮ, а не по products.created_at. Измерено на
+    // живой базе: продукт недельной давности, которому нажали «повторить»,
+    // получает status='provisioning' в той же строке — и условие по
+    // created_at продукта истинно немедленно. Таймаут убивал бы повтор в тот
+    // же тик, до того как агент успеет забрать задание.
+    //
+    // Заодно снимается задание: без этого оно остаётся в running, частичный
+    // индекс product_provision_jobs_one_active держит продукт запертым, и
+    // кнопка «повторить» мертва навсегда. Проверено на живой базе — вставка
+    // второго задания падает с duplicate key.
     const r = await this.pg.query(
-      `UPDATE products
+      `WITH stale AS (
+         UPDATE product_provision_jobs
+            SET status = 'failed',
+                error = 'заведение не уложилось в 10 минут',
+                finished_at = now()
+          WHERE status IN ('queued','running')
+            AND COALESCE(started_at, created_at) < now() - interval '10 minutes'
+         RETURNING product_id)
+       UPDATE products p
           SET status = 'failed',
               provision_error = 'заведение не уложилось в 10 минут'
-        WHERE status = 'provisioning'
-          AND created_at < now() - interval '10 minutes'
-        RETURNING slug`,
+         FROM stale
+        WHERE p.id = stale.product_id AND p.status = 'provisioning'
+       RETURNING p.slug`,
     );
     if (r.rows.length) {
       this.logger.warn(`провижининг просрочен: ${r.rows.map((x: any) => x.slug).join(', ')}`);
@@ -904,6 +931,99 @@ describe('проводка таймера', () => {
 git add src/products/provisioning.service.ts src/products/provisioning.promote.spec.ts
 git commit -m "feat(products): выход из provisioning по измеримому факту плюс таймаут"
 ```
+
+---
+
+## Task 5б: `completeJob` одним оператором
+
+**Файлы:** изменить `src/products/provisioning.service.ts`; тест `src/products/provisioning.job.spec.ts`.
+
+Найдено проверкой задачи 4 на живой базе. `completeJob` — два запроса на пуле без транзакции. `rowCount`-замок между ними спасает от повторного отчёта, но не от смерти процесса между запросами.
+
+Отказной путь: задание уже `failed`, продукт остался `provisioning` без причины. Реаппер задачи 5 отбирает по заданию — этого задания он не увидит. `promoteReady` не переведёт: развёртывание сорвалось. `retry` требует `status = 'failed'` и вернёт 404. **Продукт не спасает никто** — тупик той же формы, о котором предупреждает спека куска 1.
+
+Успешный путь мягче: продукт вылезет через `promoteReady`, но `port` останется NULL навсегда — «хранится он только здесь, восстановить неоткуда».
+
+- [ ] **Шаг 1: Тест на полуотказ**
+
+```ts
+it('отказ пишет задание и продукт одним оператором', async () => {
+  // Два запроса без транзакции оставляли бы продукт в provisioning без
+  // причины при смерти процесса между ними: реаппер его не увидит (задание
+  // уже failed), promoteReady не переведёт, retry вернёт 404.
+  const { svc, calls } = makeService();
+
+  await svc.completeJob('j-1', { ok: false, error: 'порт занят' });
+
+  const writes = calls.filter((c) => c.sql.includes('UPDATE'));
+  expect(writes).toHaveLength(1);
+  expect(writes[0].sql).toContain('WITH');
+  expect(writes[0].sql).toContain('product_provision_jobs');
+  expect(writes[0].sql).toContain('UPDATE products');
+});
+```
+
+- [ ] **Шаг 2: Убедиться, что тест красный** — сейчас записей две.
+
+- [ ] **Шаг 3: Свернуть оба пути в `WITH`**, по образцу `claimJob`: задание обновляется с замком по `status = 'running'` и `RETURNING product_id`, продукт — `FROM` этого CTE. Замок `rowCount` становится встроенным.
+
+- [ ] **Шаг 4: Мутации.** Разделить обратно на два запроса — тест обязан покраснеть. Убрать замок по статусу задания — обязаны покраснеть тесты про повторный отчёт из задачи 4.
+
+- [ ] **Шаг 5: Коммит** `fix(products): отчёт о заведении пишется одним оператором`
+
+---
+
+## Task 5в: Интеграционный тест против живого Postgres
+
+**Файлы:** создать `src/products/provisioning.integration.spec.ts`.
+
+Найдено проверкой задачи 4. Три связки между CTE в `claimJob` (`picked→claimed`, `claimed→issued`, `claimed→финальный SELECT`) не покрыты ничем и покрыты быть не могут: мок SQL не исполняет.
+
+Показано измерением: мутация, сохраняющая форму запроса, оставляет все тесты зелёными, а на живой базе запирает продукт навсегда и молча. `EXPLAIN` объясняет почему — **PostgreSQL не исполняет `SELECT`-CTE, на который никто не ссылается**, поэтому `FOR UPDATE SKIP LOCKED` из плана исчезает вместе с ним. Блокировка держится ссылкой, а не текстом; проверка формы ссылку не видит.
+
+Обязательно сделать **до задачи 7**, где раннер начнёт звать это по-настоящему.
+
+- [ ] **Шаг 1: Тест, пропускаемый без базы**
+
+```ts
+const PG = process.env.PROVISIONING_PG_URL;
+const maybe = PG ? describe : describe.skip;
+
+maybe('провижининг против живого Postgres', () => {
+  // Пропускается без PROVISIONING_PG_URL, чтобы обычный прогон не требовал
+  // базы. На тестовой ноде отрабатывает за секунды.
+```
+
+- [ ] **Шаг 2: Пять сценариев**, ровно те, что проверялись руками:
+
+1. валидность запроса и имена колонок в `RETURNING` (`box` приезжает как `bytea`)
+2. FIFO: пять последовательных claim отдают задания по `created_at`
+3. пять ОДНОВРЕМЕННЫХ claim на пять заданий — пять разных продуктов, пять разных хешей, ровно пять продуктов с новым хешем
+4. пять ОДНОВРЕМЕННЫХ claim на одно задание — ровно один победитель, ровно один продукт получил хеш, остальные не ждут
+5. пустая очередь — ноль строк и **ни один** продукт не получил новый хеш
+
+**Сценарии, добавленные после задачи 5** — сейчас они держатся только разовыми ручными прогонами, и это единственное, что стоит между ними и регрессией:
+
+6. **граница свежести heartbeat**: 119 секунд переводится, 121 — нет. На живых типах: `runner_seen_at` приезжает из драйвера как `Date`, а не строкой из фикстуры
+7. **три гонки через хук в `fetchFn`** — подмена состояния ровно в окне пробы: повтор нажат, таймаут отработал, продукт архивирован. Это регрессионные тесты на сверку состояния в записи
+8. **направление веток `CASE`** в обеих формулировках причины — единственное, что убивает перестановку текстов по существу, а не по форме
+9. **продукт без задания**: 99 минут хоронится, только что созданный — нет. Единственный сторож фолбэка `COALESCE(max(задание), p.created_at)`
+10. **повтор старого продукта** с только что закрытым заданием не хоронится. Единственный сторож порядка операндов `COALESCE`
+11. **два параллельных инстанса**: одновременный промоут одного продукта даёт ровно один перевод; промоут с медленной пробой против таймаута даёт согласованное состояние; два одновременных таймаута хоронят один раз
+
+**Сценарии `completeJob`** — их не было в первой редакции списка, а именно там форма и поведение расходятся сильнее всего:
+
+12. **посторонний продукт обязан лежать в фикстурах.** `UPDATE products ... FROM closed` — соединение, а не поиск по ключу. Замерено: добавленное `OR TRUE` хоронит ВЕСЬ реестр одним оператором, включая архивные и непричастные продукты, и регексп-сторож это переживает. Без постороннего продукта в фикстурах такую мутацию не видно ничем
+13. **повторный отчёт поверх живого продукта** не меняет ни статус, ни порт, ни причину
+14. **отчёт бота без порта** у продукта с NULL-портом даёт одну изменённую строку, а не ноль — иначе предупреждение о потерянном отчёте станет ложным
+15. **два одновременных отчёта по одному заданию**: ровно один победитель, причина в задании и в продукте совпадают. Двумя операторами это как раз не гарантировалось
+16. **замок адресуется по `id` задания.** Подмена на `WHERE product_id = $1` — оба поля uuid, совпадений нет никогда, отчёт агента пропадает молча, продукт ждёт таймаута и получает чужую формулировку про срок
+
+Пункты 8–10 и 12–16 закрывают места, где **форма запроса совпадает, а поведение расходится** — юнит-тесты там бессильны по устройству.
+
+- [ ] **Шаг 3: Проверить мутацией**, сохраняющей форму: в `claimed` вернуть `id AS product_id` вместо настоящего `product_id`. Регексп-сторож совпадает, юнит-тесты зелёные — интеграционный обязан покраснеть.
+
+- [ ] **Шаг 4: Коммит** `test(products): интеграционный прогон claimJob против Postgres`
 
 ---
 
@@ -1018,6 +1138,16 @@ git commit -m "feat(products): аутентификация агента хос�
 
 ## Task 7: Эндпоинты агента и кнопки кабинета
 
+> **Три вещи, найденные проверками задач 4–5б. Читать до реализации.**
+>
+> **1. `retry` — последнее место с записью в два оператора.** `UPDATE products` плюс `INSERT` задания. Исход реальный: при смерти процесса между ними продукт остаётся в `provisioning` без задания и ждёт десять минут второй ветки таймаута, получая формулировку «задание закрыто, продукт не ожил» — неверную. Свернуть тем же приёмом: `WITH ... RETURNING id` и `INSERT ... SELECT` из CTE.
+>
+> **2. Тело отчёта приходит от агента, а `ValidationPipe` поднят с `whitelist: false`.** `{ ok: 'нет' }` уедет по успешному пути, строковый `port` — прямо в `COALESCE($2, port)`. Нужен DTO с `boolean` и `int`.
+>
+> **3. Тестов «new HostController(mock)» недостаточно.** Они читают метаданные гвардов и остаются зелёными при забытой регистрации контроллера в `products.module.ts`, а маршрут вернёт 404. Это ровно тот отказ, на котором горел кусок 1: защита покрыта тестами, место вызова удалено, всё зелено. Нужен тест, поднимающий `ProductsModule` или читающий его `controllers`.
+
+
+
 **Файлы:**
 - Создать: `spirits_back/src/products/host.controller.ts`
 - Изменить: `spirits_back/src/products/products.controller.ts`, `products.module.ts`
@@ -1062,8 +1192,25 @@ describe('HostController', () => {
 it('эндпоинты агента закрыты HostGuard, а не JwtGuard', () => {
   // JwtGuard здесь означал бы, что агент обязан иметь пользователя, которого
   // у него нет; отсутствие гварда — что задания раздаются всему интернету.
-  const guards = Reflect.getMetadata('__guards__', HostController) ?? [];
-  expect(guards.map((g: any) => g.name)).toContain('HostGuard');
+  //
+  // Стиль берётся из существующего products.routes.spec.ts: сравнение по
+  // ИДЕНТИЧНОСТИ класса, а не по имени, плюс негативное утверждение — гвард
+  // может оказаться не единственным.
+  const guards = Reflect.getMetadata(GUARDS_METADATA, HostController) ?? [];
+  expect(guards).toContain(HostGuard);
+  expect(guards).not.toContain(JwtGuard);
+});
+
+it('контроллер агента зарегистрирован в модуле', () => {
+  // Отдельная проверка, и она обязательна. Тесты вида `new HostController(mock)`
+  // читают метаданные гвардов и остаются зелёными при забытой строке в
+  // products.module.ts — а маршрут вернёт 404. Проверка providers это НЕ
+  // заменяет: другой ключ метаданных.
+  //
+  // Ровно тот класс отказа, на котором горел кусок 1: защита покрыта
+  // тестами, место вызова удалено, всё зелено.
+  const controllers = Reflect.getMetadata('controllers', ProductsModule) ?? [];
+  expect(controllers).toContain(HostController);
 });
 ```
 
@@ -1081,7 +1228,11 @@ import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
 import { HostGuard } from './host.guard';
 import { ProvisioningService } from './provisioning.service';
 
-@Controller('webhook')
+// Префикс ПУСТОЙ. В main.ts стоит app.setGlobalPrefix('webhook'), поэтому оба
+// соседних контроллера модуля объявлены так же, а путь пишется целиком.
+// @Controller('webhook') дал бы /webhook/webhook/... — агент получил бы 404,
+// а тесты вида `new HostController(mock)` остались бы зелёными.
+@Controller('')
 @UseGuards(HostGuard)
 export class HostController {
   constructor(private readonly provisioning: ProvisioningService) {}
@@ -1227,7 +1378,7 @@ describe('skeletonFor', () => {
 
 - [ ] **Шаг 3: Реализовать**
 
-`skeleton.ts` экспортирует `skeletonFor(kind: 'site'|'bot', name: string): Record<string, string>` — имя файла в содержимое.
+`skeleton.ts` экспортирует `skeletonFor(kind: 'site'|'bot', name: string, slug: string): Record<string, string>` — имя файла в содержимое.
 
 **Каркас сайта берётся дословно** из `spirits_back/scripts/product-provision.sh`, блок `cat > server.js <<'SRV' … SRV` вместе с `package.json` и `CLAUDE.md` из соседних heredoc'ов. Он обкатан на двух продуктах, переписывать его заново незачем; после переноса скрипт должен звать агента, а не дублировать каркас.
 
@@ -1406,7 +1557,7 @@ export async function provision(job: ProvisionJob, deps: ProvisionDeps): Promise
   const port = job.kind === 'site' ? await deps.freePort() : undefined;
 
   try {
-    await deps.writeFiles(dir, skeletonFor(job.kind, job.name));
+    await deps.writeFiles(dir, skeletonFor(job.kind, job.name, job.slug));
     await deps.shell(`cd ${dir} && git init -q && git config user.email assistant@linkeon.io`
       + ` && git config user.name "Linkeon Assistant" && git add -A && git commit -qm "первичный каркас продукта"`);
     await deps.shell(`chown -R 1000:1000 ${dir}`);
@@ -1460,6 +1611,18 @@ git commit -m "feat(runner): хостовые шаги провижининга 
 ---
 
 ## Task 10: Цикл опроса агента
+
+> **Четыре стыка, найденные проверкой задачи 7 на живом HTTP. Читать до реализации.**
+>
+> **1. Опрос НЕ длинный.** Маршрут возвращается немедленно с `{ job: null }`. Голый `for (;;) await tick()` даст горячий цикл в API и в базу с частотой сети. Нужна пауза между пустыми оборотами — секунды три, как у раннера.
+>
+> **2. Конверт.** Маршрут отдаёт `{ job }`, а не само задание. `api.poll()` обязан разворачивать: иначе `{ job: null }` истинно как объект, и провижининг уедет на пустом задании.
+>
+> **3. Маршруты отдают 201, не 200.** Сверка `status === 200` будет ложно-красной.
+>
+> **4. `api.complete` обязан быть в try.** Иначе отказ сервера всплывает из цикла неперехваченным и **убивает агента**: задание висит десять минут и заканчивается формулировкой про срок, которая неверна. Отчёт, который не удалось доставить, стоит попробовать ещё раз, а не ронять процесс.
+
+
 
 **Файлы:**
 - Создать: `spirits_back/product-runner/src/host/config.ts`, `api.ts`, `index.ts`
@@ -1760,6 +1923,6 @@ git commit -m "feat(cabinet): форма заведения продукта и 
 
 **Заглушек нет.** Каждый шаг с кодом содержит код; команды запуска и ожидаемый результат указаны.
 
-**Согласованность имён.** `ProvisioningService.create/claimJob/completeJob/retry/promoteReady/failStaleProvisioning`, `SecretsService.encrypt/decrypt`, `skeletonFor(kind, name)`, `provision(job, deps)`, `tick(deps)` — используются одинаково во всех задачах.
+**Согласованность имён.** `ProvisioningService.create/claimJob/completeJob/retry/promoteReady/failStaleProvisioning`, `SecretsService.encrypt/decrypt`, `skeletonFor(kind, name, slug)`, `provision(job, deps)`, `tick(deps)` — используются одинаково во всех задачах.
 
 **Отличие от куска 1, которое стоит держать в голове:** там мутации ловились тестами не всегда, и дважды выяснялось, что проверка проходит по соседней причине. Поэтому в каждой задаче названо, какой именно тест обязан покраснеть от какой мутации, а не «прогон станет красным».
