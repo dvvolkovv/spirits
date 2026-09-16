@@ -2000,8 +2000,9 @@
       "running": "En service",
       "degraded": "Pas de connexion au serveur",
       "stopped": "Arrêté",
-      "provisioning": "Déploiement en cours",
-      "archived": "Archivé"
+      "provisioning": "Déploiement en cours…",
+      "archived": "Archivé",
+      "failed": "Échec du déploiement"
     },
     "chat": {
       "placeholder": "Que faut-il modifier ?",
@@ -2018,6 +2019,49 @@
       "running": "En cours",
       "done": "Terminé",
       "tokens": "Jetons dépensés : {{count}}"
-    }
+    },
+    "retry": "Réessayer",
+    "retrying": "Nouvelle tentative…",
+    "failReason": "Pourquoi cela a échoué",
+    "failUnknown": "Le serveur n'a pas transmis de motif",
+    "retryErrors": {
+      "busy": "Le déploiement de ce produit est déjà en cours",
+      "failed": "Impossible de programmer une nouvelle tentative"
+    },
+    "new": {
+      "button": "Nouveau produit",
+      "title": "Nouveau produit",
+      "cancel": "Annuler",
+      "kind": {
+        "site": "Site web",
+        "bot": "Bot Telegram"
+      },
+      "name": "Nom",
+      "namePlaceholder": "Fleuriste",
+      "slug": "Adresse",
+      "slugPlaceholder": "my-shop",
+      "slugHint": "Lettres latines minuscules, chiffres et tirets ; tirets uniquement à l’intérieur",
+      "token": "Jeton du bot",
+      "tokenPlaceholder": "123456:AA…",
+      "tokenHint": "Le jeton est délivré par @BotFather. Nous le stockons chiffré et ne l’affichons plus.",
+      "submit": "Créer",
+      "creating": "Création…",
+      "errors": {
+        "nameRequired": "Saisissez un nom",
+        "nameTooLong": "Le nom dépasse 80 caractères",
+        "nameNoSlug": "Ce nom ne donne aucune adresse — choisissez-en un autre",
+        "slugRequired": "Saisissez une adresse",
+        "slugInvalid": "Adresse : lettres latines minuscules, chiffres et tirets, jusqu’à 40 caractères, tirets uniquement à l’intérieur",
+        "tokenRequired": "Saisissez le jeton du bot",
+        "tokenTooLong": "Le jeton dépasse 8192 caractères",
+        "slugTaken": "Cette adresse est déjà prise — choisissez-en une autre",
+        "rejected": "Le serveur a refusé le produit",
+        "network": "Impossible de joindre le serveur. Vérifiez la connexion et réessayez",
+        "slugTakenBot": "Ce nom est déjà pris — appuyez de nouveau sur « Créer »"
+      },
+      "botSlugHint": "Nom du conteneur : {{slug}}"
+    },
+    "loadFailed": "Impossible d’actualiser la liste — l’ancienne est affichée",
+    "reload": "Actualiser"
   }
 }

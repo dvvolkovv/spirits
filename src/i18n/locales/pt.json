@@ -2338,8 +2338,9 @@
       "running": "Em funcionamento",
       "degraded": "Sem conexão com o servidor",
       "stopped": "Parado",
-      "provisioning": "Provisionando",
-      "archived": "Arquivado"
+      "provisioning": "Provisionando…",
+      "archived": "Arquivado",
+      "failed": "Falha ao provisionar"
     },
     "chat": {
       "placeholder": "O que devo alterar?",
@@ -2356,6 +2357,49 @@
       "running": "Em execução",
       "done": "Concluído",
       "tokens": "Tokens gastos: {{count}}"
-    }
+    },
+    "retry": "Tentar de novo",
+    "retrying": "Tentando de novo…",
+    "failReason": "Por que falhou",
+    "failUnknown": "O servidor não enviou o motivo",
+    "retryErrors": {
+      "busy": "O provisionamento deste produto já está em andamento",
+      "failed": "Não foi possível agendar outra tentativa"
+    },
+    "new": {
+      "button": "Novo produto",
+      "title": "Novo produto",
+      "cancel": "Cancelar",
+      "kind": {
+        "site": "Site",
+        "bot": "Bot do Telegram"
+      },
+      "name": "Nome",
+      "namePlaceholder": "Floricultura",
+      "slug": "Endereço",
+      "slugPlaceholder": "my-shop",
+      "slugHint": "Letras latinas minúsculas, dígitos e hífens; hífens somente no meio",
+      "token": "Token do bot",
+      "tokenPlaceholder": "123456:AA…",
+      "tokenHint": "O token é emitido pelo @BotFather. Guardamos criptografado e não exibimos de novo.",
+      "submit": "Criar",
+      "creating": "Criando…",
+      "errors": {
+        "nameRequired": "Escreva um nome",
+        "nameTooLong": "O nome tem mais de 80 caracteres",
+        "nameNoSlug": "Esse nome não gera um endereço — escolha outro",
+        "slugRequired": "Escreva um endereço",
+        "slugInvalid": "Endereço: letras latinas minúsculas, dígitos e hífens, até 40 caracteres, hífens somente no meio",
+        "tokenRequired": "Escreva o token do bot",
+        "tokenTooLong": "O token tem mais de 8192 caracteres",
+        "slugTaken": "Esse endereço já está em uso — escolha outro",
+        "rejected": "O servidor não aceitou o produto",
+        "network": "Não foi possível contatar o servidor. Verifique a conexão e tente de novo",
+        "slugTakenBot": "Esse nome já está em uso — clique em “Criar” de novo"
+      },
+      "botSlugHint": "Nome do contêiner: {{slug}}"
+    },
+    "loadFailed": "Não foi possível atualizar a lista — exibindo a anterior",
+    "reload": "Atualizar"
   }
 }
