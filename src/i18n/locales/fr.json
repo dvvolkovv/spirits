@@ -2061,6 +2061,7 @@
       },
       "botSlugHint": "Nom du conteneur : {{slug}}"
     },
+    "hostAgentSilent": "Le serveur des produits ne répond pas : la création ne démarrera pas pour le moment. Vous pouvez tout de même créer le produit : il restera dans la file d’attente et démarrera dès que la connexion sera rétablie.",
     "loadFailed": "Impossible d’actualiser la liste — l’ancienne est affichée",
     "reload": "Actualiser"
   }

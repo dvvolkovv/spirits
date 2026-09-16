@@ -2400,6 +2400,7 @@
       },
       "botSlugHint": "Container name: {{slug}}"
     },
+    "hostAgentSilent": "The product server is not responding — setup will not start right now. You can still create a product: it will wait in the queue and start as soon as the connection is back.",
     "loadFailed": "Could not refresh the list — showing the previous one",
     "reload": "Refresh"
   }

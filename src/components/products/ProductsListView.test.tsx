@@ -19,7 +19,7 @@ import {
 } from '../../test/dom';
 import { ProductsListView } from './ProductsListView';
 import { productsApi } from '../../services/productsApi';
-import type { Product } from '../../services/productsApi';
+import type { HostAgentState, Product } from '../../services/productsApi';
 
 vi.mock('react-i18next', async () => {
   const { tRu: t } = await import('../../test/dom');
@@ -28,7 +28,10 @@ vi.mock('react-i18next', async () => {
 
 vi.mock('../../services/productsApi', () => ({
   productsApi: {
-    list: vi.fn(async () => []),
+    // Форма ответа — та же, что у настоящего list(): строки плюс вердикт про
+    // сервер продуктов. Литерал, а не хелпер `listing` ниже: фабрика vi.mock
+    // поднимается наверх файла и до объявления хелпера не дотянется.
+    list: vi.fn(async () => ({ rows: [], hostAgent: 'live' })),
     create: vi.fn(async () => ({ ok: true, id: 'new-1' })),
     retry: vi.fn(async () => ({ ok: true })),
   },
@@ -49,6 +52,15 @@ function product(over: Partial<Product> = {}): Product {
   };
 }
 
+/**
+ * Ответ сервера на запрос списка.
+ *
+ * Вердикт про сервер продуктов по умолчанию «живой»: иначе баннер тревоги
+ * подмешивался бы в каждый сценарий про карточки и отказы, и проверки по
+ * видимому тексту начали бы ловить его вместо того, что проверяют.
+ */
+const listing = (rows: Product[], hostAgent: HostAgentState = 'live') => ({ rows, hostAgent });
+
 /** Длинная техническая причина — ровно то, что приходит с машины продуктов. */
 const LONG_REASON =
   'Command failed: docker build -t my-shop /srv/products/my-shop\n' +
@@ -65,7 +77,7 @@ async function fillSite(container: HTMLElement, name: string, slug: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  api.list.mockResolvedValue([]);
+  api.list.mockResolvedValue(listing([]));
   api.create.mockResolvedValue({ ok: true, id: 'new-1' });
   api.retry.mockResolvedValue({ ok: true });
 });
@@ -76,7 +88,7 @@ afterEach(() => {
 
 describe('ProductsListView — карточка отказа', () => {
   it('«заводится…» видно, пока продукт разворачивается', async () => {
-    api.list.mockResolvedValue([product({ status: 'provisioning' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'provisioning' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -86,9 +98,9 @@ describe('ProductsListView — карточка отказа', () => {
   it('причина отказа видна целиком, даже длинная и техническая', async () => {
     // Причина приходит с чужой машины и потолка длины у неё нет по замыслу.
     // Обрезанный stderr бесполезен — именно последние строки объясняют отказ.
-    api.list.mockResolvedValue([
+    api.list.mockResolvedValue(listing([
       product({ status: 'failed', provision_error: LONG_REASON }),
-    ]);
+    ]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -102,7 +114,7 @@ describe('ProductsListView — карточка отказа', () => {
     // перечисляет колонки явно и provision_error в перечислении нет, то есть
     // поле не приезжает вовсе. Пустое место на экране читалось бы как
     // «ничего не сломалось».
-    api.list.mockResolvedValue([product({ status: 'failed' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'failed' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -110,11 +122,11 @@ describe('ProductsListView — карточка отказа', () => {
   });
 
   it('кнопка «повторить» есть только у сорванного заведения', async () => {
-    api.list.mockResolvedValue([
+    api.list.mockResolvedValue(listing([
       product({ id: 'p-1', status: 'running' }),
       product({ id: 'p-2', status: 'provisioning' }),
       product({ id: 'p-3', status: 'failed', provision_error: 'порт занят' }),
-    ]);
+    ]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -129,7 +141,7 @@ describe('ProductsListView — карточка отказа', () => {
 
 describe('ProductsListView — повтор', () => {
   it('повтор переиспользует ту же строку продукта', async () => {
-    api.list.mockResolvedValue([product({ id: 'p-7', status: 'failed', provision_error: 'порт занят' })]);
+    api.list.mockResolvedValue(listing([product({ id: 'p-7', status: 'failed', provision_error: 'порт занят' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -142,8 +154,8 @@ describe('ProductsListView — повтор', () => {
 
   it('после повтора карточка показывает «заводится…», а не прежний отказ', async () => {
     api.list
-      .mockResolvedValueOnce([product({ status: 'failed', provision_error: 'порт занят' })])
-      .mockResolvedValueOnce([product({ status: 'provisioning' })]);
+      .mockResolvedValueOnce(listing([product({ status: 'failed', provision_error: 'порт занят' })]))
+      .mockResolvedValueOnce(listing([product({ status: 'provisioning' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -165,10 +177,10 @@ describe('ProductsListView — повтор', () => {
           release = () => res({ ok: true });
         }),
     );
-    api.list.mockResolvedValue([
+    api.list.mockResolvedValue(listing([
       product({ id: 'p-1', status: 'failed', provision_error: 'порт занят' }),
       product({ id: 'p-2', name: 'Второй', status: 'failed', provision_error: 'порт занят' }),
-    ]);
+    ]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -197,7 +209,7 @@ describe('ProductsListView — повтор', () => {
         release = () => res({ ok: true });
       }),
     );
-    api.list.mockResolvedValue([product({ status: 'failed', provision_error: 'порт занят' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'failed', provision_error: 'порт занят' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -216,7 +228,7 @@ describe('ProductsListView — повтор', () => {
         release = () => res({ ok: true });
       }),
     );
-    api.list.mockResolvedValue([product({ status: 'failed', provision_error: 'порт занят' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'failed', provision_error: 'порт занят' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -230,7 +242,7 @@ describe('ProductsListView — повтор', () => {
 
   it('отказ повтора виден и кнопка снова активна', async () => {
     // Иначе карточка замирает: ни объяснения, ни способа попробовать ещё раз.
-    api.list.mockResolvedValue([product({ status: 'failed', provision_error: 'порт занят' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'failed', provision_error: 'порт занят' })]));
     api.retry.mockResolvedValue({ ok: false, status: 409, message: 'заведение этого продукта уже идёт' });
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
@@ -242,7 +254,7 @@ describe('ProductsListView — повтор', () => {
   });
 
   it('обрыв связи при повторе объясняется связью, а не отказом сервера', async () => {
-    api.list.mockResolvedValue([product({ status: 'failed', provision_error: 'порт занят' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'failed', provision_error: 'порт занят' })]));
     api.retry.mockResolvedValue({ ok: false, status: 0, message: '' });
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
@@ -266,8 +278,8 @@ describe('ProductsListView — заведение', () => {
 
   it('заведённый продукт появляется в списке сразу, без перезагрузки страницы', async () => {
     api.list
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([product({ name: 'Магазин цветов', status: 'provisioning' })]);
+      .mockResolvedValueOnce(listing([]))
+      .mockResolvedValueOnce(listing([product({ name: 'Магазин цветов', status: 'provisioning' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -359,9 +371,9 @@ describe('ProductsListView — неудачная перечитка', () => {
     // навсегда. Заведение шло, вкладка врала.
     vi.useFakeTimers();
     api.list
-      .mockResolvedValueOnce([product({ status: 'provisioning' })])
+      .mockResolvedValueOnce(listing([product({ status: 'provisioning' })]))
       .mockResolvedValueOnce(null)
-      .mockResolvedValue([product({ status: 'running' })]);
+      .mockResolvedValue(listing([product({ status: 'running' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
     expect(visibleText(container)).toContain(tRu('products.status.provisioning'));
@@ -390,7 +402,7 @@ describe('ProductsListView — неудачная перечитка', () => {
   });
 
   it('кнопка «обновить» перечитывает список', async () => {
-    api.list.mockResolvedValueOnce(null).mockResolvedValue([product({ name: 'Магазин цветов' })]);
+    api.list.mockResolvedValueOnce(null).mockResolvedValue(listing([product({ name: 'Магазин цветов' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -402,7 +414,7 @@ describe('ProductsListView — неудачная перечитка', () => {
 
   it('настоящий пустой ответ по-прежнему показывает «продуктов нет»', async () => {
     // Иначе починка предыдущего дефекта скрыла бы законное пустое состояние.
-    api.list.mockResolvedValue([]);
+    api.list.mockResolvedValue(listing([]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -426,7 +438,7 @@ describe('ProductsListView — отказы объясняются по-русс
   });
 
   it('пятисотка при повторе тоже объясняется по-русски', async () => {
-    api.list.mockResolvedValue([product({ status: 'failed', provision_error: 'порт занят' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'failed', provision_error: 'порт занят' })]));
     api.retry.mockResolvedValue({ ok: false, status: 500, message: 'Internal server error' });
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
@@ -472,7 +484,7 @@ describe('ProductsListView — карточка продукта', () => {
   it('отказ покрашен в красное, а не в общий серый', async () => {
     // Единственный статус, требующий действия. Тем же серым он читался бы
     // как ещё одно спокойное состояние.
-    api.list.mockResolvedValue([product({ status: 'failed', provision_error: 'порт занят' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'failed', provision_error: 'порт занят' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
 
@@ -484,7 +496,7 @@ describe('ProductsListView — карточка продукта', () => {
 
   it('клик по продукту открывает его', async () => {
     const opened: string[] = [];
-    api.list.mockResolvedValue([product({ id: 'p-5', name: 'Магазин цветов' })]);
+    api.list.mockResolvedValue(listing([product({ id: 'p-5', name: 'Магазин цветов' })]));
     const { container } = mount(<ProductsListView onOpen={(p) => opened.push(p.id)} />);
     await flush();
 
@@ -494,7 +506,7 @@ describe('ProductsListView — карточка продукта', () => {
   });
 
   it('прошлая ошибка повтора гаснет на новом нажатии', async () => {
-    api.list.mockResolvedValue([product({ status: 'failed', provision_error: 'порт занят' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'failed', provision_error: 'порт занят' })]));
     api.retry.mockResolvedValueOnce({ ok: false, status: 409, message: '' });
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
@@ -516,8 +528,8 @@ describe('ProductsListView — список сам догоняет состоя
     // неотличимо от зависания.
     vi.useFakeTimers();
     api.list
-      .mockResolvedValueOnce([product({ status: 'provisioning' })])
-      .mockResolvedValue([product({ status: 'running' })]);
+      .mockResolvedValueOnce(listing([product({ status: 'provisioning' })]))
+      .mockResolvedValue(listing([product({ status: 'running' })]));
     const { container } = mount(<ProductsListView onOpen={() => {}} />);
     await flush();
     expect(visibleText(container)).toContain(tRu('products.status.provisioning'));
@@ -531,7 +543,7 @@ describe('ProductsListView — список сам догоняет состоя
 
   it('у готового продукта опрос не крутится вхолостую', async () => {
     vi.useFakeTimers();
-    api.list.mockResolvedValue([product({ status: 'running' })]);
+    api.list.mockResolvedValue(listing([product({ status: 'running' })]));
     mount(<ProductsListView onOpen={() => {}} />);
     await flush();
     expect(api.list).toHaveBeenCalledTimes(1);
@@ -541,5 +553,104 @@ describe('ProductsListView — список сам догоняет состоя
     });
 
     expect(api.list).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ProductsListView — сервер продуктов молчит', () => {
+  it('о молчащем сервере говорят сразу, а не через десять минут', async () => {
+    // Сегодняшний путь без предупреждения: карточка встаёт в «Заводится…», и
+    // через десять минут владелец читает «срок заведения истёк» — причина
+    // неверная, забирать задание было некому.
+    api.list.mockResolvedValue(listing([product({ status: 'provisioning' })], 'silent'));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.hostAgentSilent'));
+  });
+
+  it('живой сервер о себе не напоминает', async () => {
+    api.list.mockResolvedValue(listing([product({ status: 'provisioning' })], 'live'));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).not.toContain(tRu('products.hostAgentSilent'));
+  });
+
+  it('молчание сервера о вердикте тревогой не считается', async () => {
+    // Так отвечает бэкенд, выкаченный до этой доработки, и так выглядит ответ,
+    // из которого прокси срезал незнакомый заголовок. Кабинет обязан молчать
+    // там, где сам ничего не знает.
+    api.list.mockResolvedValue(listing([product({ status: 'provisioning' })], null));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).not.toContain(tRu('products.hostAgentSilent'));
+  });
+
+  it('предупреждение видно ДО нажатия «Создать», без единого продукта', async () => {
+    // Пустой список — это первое нажатие кнопки, то есть ровно тот момент,
+    // ради которого предупреждение написано. Вердикт, приклеенный к строке
+    // продукта, здесь не показался бы вовсе: строк нет.
+    api.list.mockResolvedValue(listing([], 'silent'));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.hostAgentSilent'));
+    // И законное пустое состояние при этом не пропадает.
+    expect(visibleText(container)).toContain(tRu('products.empty'));
+  });
+
+  it('кнопка заведения остаётся рабочей: это предупреждение, а не запрет', async () => {
+    // Вердикт — состояние чужой машины с точностью до двух минут; сервер мог
+    // перезапускаться ровно в эту секунду, а задание живёт в очереди и
+    // достаётся ему сразу после возвращения. Цена ложного запрета —
+    // введённая заново форма вместе с токеном бота, который в ней не хранится.
+    api.list.mockResolvedValue(listing([], 'silent'));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    await fillSite(container, 'Магазин', 'my-shop');
+
+    expect(api.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Магазин', slug: 'my-shop' }),
+    );
+  });
+
+  it('предупреждение гаснет само, когда сервер возвращается', async () => {
+    // Тревога, которую нечем погасить, залипает: сервер возвращается через
+    // полминуты, а на экране висит прежний текст до перезагрузки вкладки.
+    // Поэтому опрос идёт и при молчащем сервере, а не только при заводящемся
+    // продукте.
+    vi.useFakeTimers();
+    api.list
+      .mockResolvedValueOnce(listing([product({ status: 'running' })], 'silent'))
+      .mockResolvedValue(listing([product({ status: 'running' })], 'live'));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    expect(visibleText(container)).toContain(tRu('products.hostAgentSilent'));
+
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+    });
+
+    expect(visibleText(container)).not.toContain(tRu('products.hostAgentSilent'));
+  });
+
+  it('обрыв связи не гасит и не выдумывает тревогу', async () => {
+    // Неудачный запрос — это отсутствие ответа, а не ответ «сервер молчит».
+    // Погашенная своим же обрывом тревога — то же враньё, что и выдуманная.
+    vi.useFakeTimers();
+    api.list
+      .mockResolvedValueOnce(listing([product({ status: 'provisioning' })], 'silent'))
+      .mockResolvedValue(null);
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+    });
+
+    expect(visibleText(container)).toContain(tRu('products.hostAgentSilent'));
+    expect(visibleText(container)).toContain(tRu('products.loadFailed'));
   });
 });

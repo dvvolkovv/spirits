@@ -2061,6 +2061,7 @@
       },
       "botSlugHint": "Nombre del contenedor: {{slug}}"
     },
+    "hostAgentSilent": "El servidor de productos no responde: la creación no empezará ahora. Puedes crear el producto igualmente: quedará en cola y arrancará en cuanto se restablezca la conexión.",
     "loadFailed": "No se pudo actualizar la lista: se muestra la anterior",
     "reload": "Actualizar"
   }

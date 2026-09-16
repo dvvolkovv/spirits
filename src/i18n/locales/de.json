@@ -2055,6 +2055,7 @@
       },
       "botSlugHint": "Containername: {{slug}}"
     },
+    "hostAgentSilent": "Der Produktserver antwortet nicht – die Einrichtung startet gerade nicht. Sie können das Produkt trotzdem anlegen: Es wartet in der Warteschlange und startet, sobald die Verbindung wieder da ist.",
     "loadFailed": "Liste konnte nicht aktualisiert werden — die vorherige wird angezeigt",
     "reload": "Aktualisieren"
   }

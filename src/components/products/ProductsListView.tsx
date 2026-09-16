@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Server, CircleDot, Plus, RotateCw, X } from 'lucide-react';
+import { Server, CircleDot, Plus, RotateCw, X, AlertTriangle } from 'lucide-react';
 import { productsApi } from '../../services/productsApi';
 import type {
   Product,
   ProductKind,
   NewProductInput,
   Problem,
+  HostAgentState,
 } from '../../services/productsApi';
 import { NewProductForm } from './NewProductForm';
 import type { SubmitResult } from './NewProductForm';
@@ -47,6 +48,10 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
   const [creating, setCreating] = useState(false);
   const [kind, setKind] = useState<ProductKind>('site');
   const [loadFailed, setLoadFailed] = useState(false);
+  // Вердикт сервера про агента машины продуктов. null — «сервер ничего не
+  // сказал»: так отвечает бэкенд до этой доработки и так выглядит ответ, из
+  // которого прокси срезал заголовок. Тревоги в этом случае нет.
+  const [hostAgent, setHostAgent] = useState<HostAgentState>(null);
   // Множество, а не один id: продукты падают ПАЧКАМИ — они падают от одной
   // причины на одной машине. Один замок на весь список означал, что кнопка
   // второго сорванного продукта на экране активна, а нажатие уходит в
@@ -66,18 +71,24 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
     // productsApi.list() сам гасит сетевые и авторизационные отказы и
     // возвращает null — try/catch тут не нужен, в отличие от
     // CustomAgentsListView, где customAgentsApi бросает исключение.
-    const rows = await productsApi.list();
+    const listing = await productsApi.list();
     setLoading(false);
-    if (rows === null) {
+    if (listing === null) {
       // Состояние НЕ затирается. Прежде неудачная перечитка выдавала пустой
       // список: экран объявлял «продуктов нет», заводящихся в нём не
       // оставалось, интервал снимался — и опрос не возобновлялся до
       // перезагрузки вкладки, пока заведение шло своим ходом.
+      //
+      // Вердикт про агента хоста не трогается по той же причине: неудачный
+      // запрос — это отсутствие ответа, а не ответ «агент молчит». Сбрасывать
+      // его в null тоже нельзя: тревога, погашенная собственным обрывом
+      // связи, — это ровно то враньё, которого здесь избегают.
       setLoadFailed(true);
       return;
     }
     setLoadFailed(false);
-    setProducts(rows);
+    setProducts(listing.rows);
+    setHostAgent(listing.hostAgent);
   }, []);
 
   useEffect(() => {
@@ -85,11 +96,17 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
   }, [reload]);
 
   const anyProvisioning = products.some((p) => p.status === 'provisioning');
+  // Опрос идёт и при молчащем агенте, а не только при заводящемся продукте.
+  // Тревога, которую нечем погасить, залипает: агент возвращается через
+  // полминуты (systemd Restart=always, перезапуск юнита, починенный токен), а
+  // на экране висит «задания никто не забирает» до перезагрузки вкладки. Ровно
+  // так уже залипал алерт о молчании телеграм-бота.
+  const watching = anyProvisioning || hostAgent === 'silent';
   useEffect(() => {
-    if (!anyProvisioning) return undefined;
+    if (!watching) return undefined;
     const timer = setInterval(reload, POLL_MS);
     return () => clearInterval(timer);
-  }, [anyProvisioning, reload]);
+  }, [watching, reload]);
 
   /**
    * Причина отказа для человека.
@@ -186,6 +203,35 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
             </button>
           )}
         </div>
+
+        {/*
+          Предупреждение стоит ВЫШЕ формы, а не над списком: его смысл — быть
+          прочитанным ДО нажатия «Создать». Под списком оно означало бы то же
+          самое, что и сегодняшнее молчание, — узнать о мёртвом агенте через
+          десять минут, из карточки с неверной причиной «срок заведения истёк».
+
+          Предупреждение, а НЕ запрет. Кнопка остаётся рабочей, и это решение,
+          а не недоделка:
+            - вердикт — это состояние ЧУЖОЙ машины с точностью до двух минут.
+              Агент мог перезапускаться ровно в эту секунду, а задание живёт в
+              очереди и достаётся ему через три секунды после возвращения:
+              заведение при таком «отказе» прошло бы нормально;
+            - цена ложного запрета несимметрична. Неверная тревога стоит строки
+              текста, неверный отказ — введённой заново формы вместе с
+              секретами продукта, которые в ней не сохраняются;
+            - заперев кнопку, ошибка в самой проверке выключила бы заведение
+              продуктов целиком и без обходного пути. Баннер деградирует
+              безопасно: он врёт текстом, а не отнимает действие.
+        */}
+        {hostAgent === 'silent' && (
+          <div
+            role="alert"
+            className="mb-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+          >
+            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+            <span>{t('products.hostAgentSilent')}</span>
+          </div>
+        )}
 
         {creating && (
           <div className="mb-6 p-4 bg-white rounded-2xl border border-gray-200">

@@ -19,9 +19,18 @@ function res(init: {
   ok: boolean;
   status?: number;
   json?: () => Promise<unknown>;
+  headers?: Headers;
 }): Response {
   return init as unknown as Response;
 }
+
+/** Ответ со списком и вердиктом про сервер продуктов в заголовке. */
+const listRes = (rows: unknown[], hostAgent?: string) =>
+  res({
+    ok: true,
+    json: async () => rows,
+    headers: hostAgent === undefined ? undefined : new Headers({ 'X-Host-Agent': hostAgent }),
+  });
 
 describe('productsApi', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -42,9 +51,54 @@ describe('productsApi', () => {
   });
 
   it('настоящий пустой список остаётся пустым списком', async () => {
-    vi.mocked(apiClient.get).mockResolvedValueOnce(res({ ok: true, json: async () => [] }));
+    vi.mocked(apiClient.get).mockResolvedValueOnce(listRes([], 'live'));
 
-    await expect(productsApi.list()).resolves.toEqual([]);
+    await expect(productsApi.list()).resolves.toEqual({ rows: [], hostAgent: 'live' });
+  });
+
+  it('молчащий сервер продуктов доезжает до кабинета', async () => {
+    // Без этого владелец узнаёт о мёртвом сервере только через десять минут и
+    // с неверной причиной — «срок заведения истёк».
+    vi.mocked(apiClient.get).mockResolvedValueOnce(listRes([{ id: 'p-1' }], 'silent'));
+
+    await expect(productsApi.list()).resolves.toEqual({
+      rows: [{ id: 'p-1' }],
+      hostAgent: 'silent',
+    });
+  });
+
+  it('ответ без вердикта — это «неизвестно», а не тревога', async () => {
+    // Так отвечает бэкенд, выкаченный до этой доработки, и так выглядит
+    // ответ, из которого прокси срезал незнакомый заголовок.
+    vi.mocked(apiClient.get).mockResolvedValueOnce(listRes([{ id: 'p-1' }]));
+
+    await expect(productsApi.list()).resolves.toEqual({
+      rows: [{ id: 'p-1' }],
+      hostAgent: null,
+    });
+  });
+
+  it('незнакомое слово в заголовке в состояние кабинета не подставляется', async () => {
+    // Заголовок приходит по сети. `as HostAgentState` пустил бы в состояние
+    // компонента что угодно, и сравнение `=== 'silent'` начало бы зависеть от
+    // опечатки на сервере.
+    vi.mocked(apiClient.get).mockResolvedValueOnce(listRes([], 'LIVE'));
+
+    await expect(productsApi.list()).resolves.toEqual({ rows: [], hostAgent: null });
+  });
+
+  it('ответ без заголовков список не стирает', async () => {
+    // Вердикт — приписка к ответу, а не сам ответ. Чтение заголовка у ответа
+    // без заголовков бросает TypeError, его глотает общий catch — и список
+    // продуктов пропадает с экрана из-за пометки о чужой машине.
+    vi.mocked(apiClient.get).mockResolvedValueOnce(
+      res({ ok: true, json: async () => [{ id: 'p-1' }] }),
+    );
+
+    await expect(productsApi.list()).resolves.toEqual({
+      rows: [{ id: 'p-1' }],
+      hostAgent: null,
+    });
   });
 
   it('200 с HTML (SPA-фолбэк) не роняет список и не выдаёт себя за пустой', async () => {

@@ -2399,6 +2399,7 @@
       },
       "botSlugHint": "Nome do contêiner: {{slug}}"
     },
+    "hostAgentSilent": "O servidor de produtos não está respondendo — a criação não vai começar agora. Você ainda pode criar o produto: ele fica na fila e começa assim que a conexão voltar.",
     "loadFailed": "Não foi possível atualizar a lista — exibindo a anterior",
     "reload": "Atualizar"
   }
