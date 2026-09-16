@@ -36,9 +36,11 @@ const POLL_MS = 5000;
 
 interface Props {
   onOpen: (product: Product) => void;
+  /** Внутри вкладки Студии: заголовок и подпись рисует Студия, не список. */
+  embedded?: boolean;
 }
 
-export const ProductsListView: React.FC<Props> = ({ onOpen }) => {
+export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) => {
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -160,13 +162,20 @@ export const ProductsListView: React.FC<Props> = ({ onOpen }) => {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className={embedded ? '' : 'h-full overflow-y-auto'}>
+      <div className={`max-w-4xl mx-auto px-4 ${embedded ? 'pt-4 pb-6' : 'py-6'}`}>
         <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('products.title')}</h1>
-            <p className="text-sm text-gray-500 mt-1">{t('products.subtitle')}</p>
-          </div>
+          {/* Во вкладке Студии заголовок уже нарисован над табами. Пустой div
+              оставлен нарочно: без него кнопка «Новый продукт» уедет влево —
+              justify-between распределяет по числу детей, а не по месту. */}
+          {embedded ? (
+            <div />
+          ) : (
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{t('products.title')}</h1>
+              <p className="text-sm text-gray-500 mt-1">{t('products.subtitle')}</p>
+            </div>
+          )}
           {!creating && (
             <button
               onClick={() => setCreating(true)}

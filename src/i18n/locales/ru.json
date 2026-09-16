@@ -1834,7 +1834,8 @@
     "title": "Студия",
     "tabs": {
       "agents": "Ассистенты",
-      "bots": "Telegram-боты"
+      "bots": "Telegram-боты",
+      "products": "Продукты"
     },
     "mood_dramatic": "Драматичное",
     "mood_inspiring": "Вдохновляющее",
