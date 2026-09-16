@@ -56,6 +56,16 @@ ssh dv@85.192.61.231 'cd ~/ci/spirits_back && git fetch -q origin && git checkou
 
 ## Task 1: Миграция схемы
 
+> **СДЕЛАНА, и сделана НЕ так, как написано ниже. Читать до того, как повторять рецепт.**
+>
+> SQL в шаге 1 содержит дефект, найденный исполнителем. `UPDATE ... WHERE paid_until IS NULL` — это не разовая правка данных, а **перевыдача бесплатного месяца при каждом рестарте API**: миграции накатываются в `onModuleInit`, а заведение продукта колонку не заполняет вовсе. Каждый новый продукт получал бы пустой срок, сборщик его не видел бы (`NULL <= now()` — не совпадение), и на ближайшем выкате он получал бы новый бесплатный месяц. Бесплатный хостинг навсегда, видимый только по недосчитанной выручке.
+>
+> Реализовано через `NOT NULL DEFAULT now() + interval '1 month'`: `ADD COLUMN` заполняет существующие строки на момент накатки, новые получают месяц от своего заведения, повтор — честный no-op. Правки данных в файле нет.
+>
+> Ещё четыре промаха плана, исправленные там же: тест шага 4 ложно-зелёный (`toContain("'running'")` проходит и при выкинутом из CHECK значении — оно есть в предикате индекса ниже); порядок применения — 004 идёт **после** 003, иначе ломается сторож порядка; список миграций лежал в двух местах (второй — в интеграционном сьюте), вынесен в общую константу; предикат индекса не вшивает статус.
+>
+> **Ловушка для задач 5 и 6:** колонка `kind` теперь у **обеих** таблиц — у продукта это сайт или бот, у задания вид работы. Неуточнённое `kind` в запросе по обеим даст ошибку неоднозначности в рантайме.
+
 **Файлы:**
 - Создать: `spirits_back/src/products/migrations/004_rent.sql`
 - Изменить: `spirits_back/src/products/products.service.ts` (вызов миграции, `COLUMNS`, `ProductRow`)
@@ -93,7 +103,7 @@ ALTER TABLE product_provision_jobs ADD CONSTRAINT product_provision_jobs_kind_ch
 -- спящие в него не попадают никогда.
 CREATE INDEX IF NOT EXISTS products_paid_until_due
   ON products (paid_until)
-  WHERE archived_at IS NULL AND status = 'running';
+  WHERE archived_at IS NULL AND status IN ('running','degraded');
 ```
 
 - [ ] **Шаг 2: Подключить миграцию**
@@ -220,7 +230,7 @@ describe('RentService.chargeRent', () => {
 
     await svc.chargeRent('p-1');
 
-    expect(calls[0].sql).toContain(`status = 'running'`);
+    expect(calls[0].sql).toContain(`status IN ('running','degraded')`);
     expect(calls[0].sql).toContain('archived_at IS NULL');
   });
 
@@ -286,7 +296,7 @@ export class RentService {
              SET paid_until = p.paid_until + interval '1 month'
            WHERE p.id = $1
              AND p.archived_at IS NULL
-             AND p.status = 'running'
+             AND p.status IN ('running','degraded')
              AND p.paid_until <= now()
              AND COALESCE(
                    (SELECT a.tokens FROM ai_profiles_consolidated a WHERE a.user_id = p.user_id),
@@ -378,7 +388,7 @@ git commit -m "feat(products): списание аренды одним опер
 
   it('24. со спящего аренда не списывается', async () => {
     // Спящий не копит долг — это решение владельца, и оно держится ровно на
-    // условии status = 'running' в операторе списания.
+    // условии status IN ('running','degraded') в операторе списания.
     const p = await product({ slug: 'rent-asleep', status: 'sleeping' });
     await pool.query(`UPDATE products SET paid_until = now() - interval '2 months' WHERE id = $1`, [p.id]);
     await setBalance('u-1', 500_000);
@@ -460,7 +470,7 @@ ssh dv@85.192.61.231 'cd ~/ci/spirits_back && source ~/.nvm/nvm.sh \
 | убрать `AND p.paid_until <= now()` из `claimed` | 21 (двойное списание), 23 |
 | убрать проверку баланса из условия | 22 |
 | заменить `>=` на `>` | 25 |
-| убрать `status = 'running'` | 24 |
+| убрать `status IN ('running','degraded')` | 24 |
 | разбить на два оператора (сначала списать, потом сдвинуть) | 21 |
 
 - [ ] **Шаг 6: Коммит**
@@ -570,7 +580,7 @@ export class RentService implements OnModuleInit, OnModuleDestroy {
   async tick(): Promise<void> {
     const due = await this.pg.query(
       `SELECT id FROM products
-        WHERE archived_at IS NULL AND status = 'running' AND paid_until <= now()
+        WHERE archived_at IS NULL AND status IN ('running','degraded') AND paid_until <= now()
         ORDER BY paid_until`,
     );
     for (const row of due.rows) {
@@ -708,7 +718,7 @@ const TURN_ALIVE_SQL = `interval '2 hours'`;
              SET status = 'sleeping', sleep_reason = 'не хватило токенов на аренду'
            WHERE p.id = $1
              AND p.archived_at IS NULL
-             AND p.status = 'running'
+             AND p.status IN ('running','degraded')
              AND NOT EXISTS (
                    SELECT 1 FROM product_turns t
                     WHERE t.product_id = p.id
@@ -803,13 +813,19 @@ it('вид задания доезжает до агента', async () => {
   expect(job!.jobKind).toBe('sleep');
 });
 
-it('старое задание без вида считается заведением', async () => {
-  // Задания, поставленные до выката, kind не имеют. NULL там означает
-  // «провижининг», а не «неизвестно»: иначе выкат посреди очереди роняет её.
+it('вид по умолчанию — заведение, и он приходит из базы, а не из кода', async () => {
+  // ИСПРАВЛЕНО ПОСЛЕ ЗАДАЧИ 1. Прежняя редакция теста подавала job_kind: null
+  // и проверяла подстановку в коде. Такого состояния не бывает: колонка
+  // заведена как NOT NULL DEFAULT 'provision', и снять DEFAULT нельзя —
+  // единственный существующий INSERT вида не передаёт. Тест на недостижимое
+  // состояние зеленеет всегда и не сторожит ничего.
+  //
+  // Сторожить надо то, что реально может сломаться: задание, поставленное без
+  // вида, доезжает до агента как заведение.
   const { svc, pg } = makeService();
   pg.query.mockResolvedValueOnce({
     rows: [{ job_id: 'j-1', product_id: 'p-1', slug: 's', name: 'имя', kind: 'site',
-             job_kind: null, secrets_encrypted: null }],
+             job_kind: 'provision', secrets_encrypted: null }],
     rowCount: 1,
   } as any);
 
