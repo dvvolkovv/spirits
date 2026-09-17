@@ -1473,7 +1473,8 @@
     "title": "工作室",
     "tabs": {
       "agents": "助手",
-      "bots": "Telegram机器人"
+      "bots": "Telegram机器人",
+      "products": "产品"
     },
     "mood_dramatic": "戏剧性",
     "mood_inspiring": "励志",

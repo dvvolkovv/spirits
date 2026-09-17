@@ -1485,7 +1485,8 @@
     "title": "Estudio",
     "tabs": {
       "agents": "Asistentes",
-      "bots": "Bots de Telegram"
+      "bots": "Bots de Telegram",
+      "products": "Productos"
     },
     "mood_dramatic": "Dramático",
     "mood_inspiring": "Inspirador",

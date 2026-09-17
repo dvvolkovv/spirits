@@ -1479,7 +1479,8 @@
     "title": "Studio",
     "tabs": {
       "agents": "Assistenten",
-      "bots": "Telegram-Bots"
+      "bots": "Telegram-Bots",
+      "products": "Produkte"
     },
     "mood_dramatic": "Dramatisch",
     "mood_inspiring": "Inspirierend",
