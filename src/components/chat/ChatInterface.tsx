@@ -46,6 +46,7 @@ import { getRoleForAssistant } from './assistantRole';
 import { formatTokensCompact } from '../../utils/formatters';
 import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
 import { addToQueue, removeFromQueue, joinQueue, type QueuedMessage } from './sendQueue';
+import { shouldShowStreamError, needsActiveTurnProbe } from './streamFailure';
 import {
   localTurnBusy,
   turnRunningAnywhere,
@@ -1338,6 +1339,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // Продолжаем выполнение, так как запрос сам обработает ошибку авторизации
     }
 
+    // Признаки для разбора обрыва (streamFailure.ts): дошёл ли запрос до бэкенда
+    // и пошли ли события. Объявлены ДО try — в catch нужны оба.
+    let responseStarted = false;
+    let receivedAnyEvent = false;
+
     try {
       const response = await apiClient.post('/webhook/soulmate/chat', {
         chatInput: userMessage,
@@ -1365,6 +1371,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         throw new Error('No response body reader available');
       }
 
+      // Заголовки получены и тело открыто: ход бэкендом ПРИНЯТ. Дальше любой
+      // обрыв — это про наш транспорт, а не про ход: бэкенд досчитает его и
+      // без нас (см. streamFailure.ts).
+      responseStarted = true;
+
       let accumulatedContent = '';
       const inlineJobIds: string[] = [];
       const calendarProposalIds: string[] = [];
@@ -1387,6 +1398,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
+            // Любое разобранное событие (begin/ping/item/end) значит, что ход
+            // уже идёт: если соединение оборвётся, ответ всё равно окажется в
+            // БД и придёт поллингом. Пузырь ошибки в этом случае — ложь.
+            receivedAnyEvent = true;
             if (data.type === 'begin' && data.metadata?.nodeName === 'Image Echo Agent') {
               setIsGeneratingImage(true);
             }
@@ -1559,6 +1574,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       console.error('Error sending message to AI:', error);
+
+      // Оборванный транспорт ≠ упавший ход. Мобильный браузер усыпляет фоновую
+      // вкладку и рвёт соединение — reader.read() падает сетевой ошибкой (имя
+      // НЕ AbortError, ранний выход выше её не ловит). Бэкенд ход при этом
+      // досчитывает и пишет ответ в БД. До 17.09.2026 на каждое сворачивание
+      // окна прилетал пузырь «произошла ошибка», а под ним — нормальный ответ,
+      // который поднял поллинг истории. Разбор условий — в streamFailure.ts.
+      let turnActive: boolean | null = null;
+      if (needsActiveTurnProbe({ responseStarted, receivedAnyEvent })) {
+        try {
+          const r = await apiClient.get(`/webhook/chat/active-turn?assistantId=${currentAssistantId}`);
+          if (r.ok) {
+            const data = await r.json();
+            turnActive = Boolean(data?.active);
+          }
+        } catch { /* сети нет у нас — про ход на сервере это не говорит ничего */ }
+      }
+
+      if (!shouldShowStreamError({ responseStarted, receivedAnyEvent, turnActive })) {
+        // Ход живёт на сервере. Поднимаем признак «идёт удалённый ход»: человек
+        // видит карточку «Ассистент работает» вместо тишины, а отправка на время
+        // хода блокируется — повторная реплика пре-эмптила бы процесс релея на
+        // том же sessionId и убила бы ответ, который вот-вот допишется.
+        // Сам ответ подберёт поллинг истории. Опрос active-turn снимет признак,
+        // когда ход закончится.
+        if (selectedAssistantIdRef.current === streamAssistantId) {
+          applyRemoteTurn(true);
+        }
+        return;
+      }
 
       // Only show error in UI if user is still on the originating chat
       if (selectedAssistantIdRef.current === streamAssistantId) {
