@@ -143,6 +143,22 @@ export function byButton(container: HTMLElement, text: RegExp): HTMLButtonElemen
   );
 }
 
+/**
+ * Ссылка по её надписи.
+ *
+ * Отдельно от byButton: там, где действие уводит со страницы, проверять нужно
+ * `href` — это и есть то, что сделает браузер. Кнопка с обработчиком на том же
+ * месте потребовала бы заглушки навигации, а «обработчик вызвался» — ровно та
+ * проверка, которая зеленеет на сломанной кнопке.
+ */
+export function byLink(container: HTMLElement, text: RegExp): HTMLAnchorElement | null {
+  return (
+    Array.from(container.querySelectorAll('a')).find((a) =>
+      text.test(a.textContent ?? ''),
+    ) ?? null
+  );
+}
+
 /** Весь видимый текст — для утверждений «пользователь это увидел». */
 export function visibleText(container: HTMLElement): string {
   return container.textContent ?? '';

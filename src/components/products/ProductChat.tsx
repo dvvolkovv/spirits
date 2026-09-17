@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send } from 'lucide-react';
 import { productsApi, Product } from '../../services/productsApi';
+import type { Problem } from '../../services/productsApi';
+import { TOPUP_HREF, formatRentAmount, wakeExpected } from './rent';
+import { useAuth } from '../../contexts/AuthContext';
 
 export type StreamEvent =
   | { type: 'begin' }
@@ -66,29 +69,65 @@ interface Props {
 }
 
 export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n?.language || 'ru';
+  // Баланс берётся из уже идущего опроса AuthContext (раз в пять секунд).
+  // Своего запроса здесь нет намеренно: второй опрос того же числа разъехался
+  // бы с первым и показывал бы владельцу два разных баланса на одном экране.
+  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // Отказ про деньги показывается вместе со ссылкой на пополнение: текста
+  // «пополните баланс» без места, куда нажать, владельцу недостаточно.
+  const [needsTopUp, setNeedsTopUp] = useState(false);
+
+  /**
+   * Причина отказа для человека — по КОДУ, а не одна на все случаи.
+   *
+   * До этой правки здесь стояло безусловное «агент уже работает над
+   * предыдущим запросом»: apiClient.fetchStream отдавал null на любом не-2xx
+   * и терял вместе с ним и код, и текст. Владелец с пустым балансом получал в
+   * ответ на правку враньё про занятого агента и не имел ни одного способа
+   * узнать правду — ни в интерфейсе, ни в консоли.
+   *
+   * 402 — деньги, и таких отказа у бэкенда два: спящий продукт
+   * (SLEEPING_REFUSAL, turns.service.ts) и нулевой баланс. Различает их ТЕКСТ
+   * СЕРВЕРА, поэтому он и показывается как есть: подменять его своим значило
+   * бы вернуть ту же потерю, только на уровень выше. Своя строка остаётся
+   * запасной — на случай, когда тела нет (502 от nginx приходит HTML-страницей).
+   */
+  const explain = (p: Problem): string => {
+    if (p.status === 0) return t('products.new.errors.network');
+    if (p.status === 402) return p.message || t('products.chat.sleeping');
+    // 409 — замок product_turns_one_active: агент действительно занят. Теперь
+    // это ОДИН случай, а не свалка из всех отказов сразу.
+    if (p.status === 409) return p.message || t('products.chat.busy');
+    // Глобального фильтра исключений на бэке нет: неперехваченная ошибка
+    // приходит как {"message":"Internal server error"} — английская строка
+    // фреймворка вместо объяснения.
+    if (p.status >= 500) return t('products.chat.failed');
+    return p.message || t('products.chat.failed');
+  };
 
   const send = async () => {
     if (!prompt.trim() || streaming) return;
     setStreaming(true);
     setOutput('');
     setError(null);
+    setNeedsTopUp(false);
 
-    const reader = await productsApi.chatStream(product.id, prompt);
+    const started = await productsApi.chatStream(product.id, prompt);
     setPrompt('');
 
-    if (!reader) {
-      // fetchStream отдаёт null на любом не-2xx, и статус там теряется.
-      // Самый частый случай — 409: на продукт действует замок «один ход
-      // одновременно», и агент ещё занят предыдущим запросом.
-      setError(t('products.chat.busy'));
+    if (!started.ok) {
+      setError(explain(started));
+      setNeedsTopUp(started.status === 402);
       setStreaming(false);
       return;
     }
+    const reader = started.reader;
 
     let accumulated = '';
     try {
@@ -113,6 +152,48 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
 
   return (
     <div className="flex flex-col gap-3">
+      {/*
+        СПЯЩИЙ ПРОДУКТ: ОБЪЯСНЕНИЕ, А НЕ ЗАМОК.
+        Поле ввода и кнопка остаются рабочими, и это решение, а не недоделка.
+          - статус здесь — СНИМОК, сделанный в момент открытия продукта:
+            ProductsSection держит выбранный продукт в состоянии и не
+            перечитывает его. Продукт, разбуженный пять минут назад, в этом
+            снимке всё ещё спит — погашенная кнопка заперла бы РАБОТАЮЩИЙ
+            продукт без единого способа проверить, и владелец не отличил бы
+            это от поломки;
+          - истину про сон знает сервер, и теперь он её ДОГОВАРИВАЕТ: 402 с
+            причиной доезжает до экрана. Запрет, поставленный поверх
+            догадки, отнимает и это;
+          - цена ошибок несимметрична. Лишняя отправка стоит одного запроса,
+            который сервер отобьёт бесплатно (ход не ставится, токены не
+            списываются); лишний запрет стоит правки, которую владелец не
+            может сделать.
+        Та же развилка и по той же причине уже решена в списке продуктов —
+        предупреждение о молчащем сервере не запирает «Создать».
+      */}
+      {product.status === 'sleeping' && (
+        <div className="flex flex-col gap-1.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm">
+          <span className="font-medium">{t('products.status.sleeping')}</span>
+          {wakeExpected(user?.tokens) ? (
+            // Пополнение уже сделано: сервер подметает спящих раз в минуту,
+            // дальше старт контейнера. Владельцу нужно знать, что ждать
+            // осталось минуты, а не что делать что-то ещё.
+            <span>{t('products.rent.waking')}</span>
+          ) : (
+            <>
+              <span>{product.sleep_reason || t('products.rent.sleepingWhy')}</span>
+              <span>{t('products.rent.wakeHint', { amount: formatRentAmount(lang) })}</span>
+              <a
+                href={TOPUP_HREF}
+                className="self-start mt-0.5 px-4 py-1.5 rounded-lg bg-forest-600 hover:bg-forest-700 text-white text-sm font-medium"
+              >
+                {t('products.rent.topUp')}
+              </a>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <input
           type="text"
@@ -138,8 +219,21 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
       </div>
 
       {error && (
-        <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-          {error}
+        <div
+          role="alert"
+          className="flex flex-col gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm"
+        >
+          <span className="break-words">{error}</span>
+          {needsTopUp && (
+            // Ссылка, а не кнопка: отказ про деньги чинится ровно одним
+            // действием, и оно за пределами этого экрана.
+            <a
+              href={TOPUP_HREF}
+              className="self-start px-4 py-1.5 rounded-lg bg-forest-600 hover:bg-forest-700 text-white text-sm font-medium"
+            >
+              {t('products.rent.topUp')}
+            </a>
+          )}
         </div>
       )}
 

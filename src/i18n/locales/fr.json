@@ -2002,12 +2002,23 @@
       "stopped": "Arrêté",
       "provisioning": "Déploiement en cours…",
       "archived": "Archivé",
-      "failed": "Échec du déploiement"
+      "failed": "Échec du déploiement",
+      "sleeping": "En veille"
+    },
+    "rent": {
+      "paidUntil": "Payé jusqu'au {{date}}",
+      "sleepingWhy": "Les tokens n'ont pas suffi pour la location",
+      "wakeHint": "La location coûte {{amount}} tokens par mois. Rechargez votre solde et le produit se réveillera tout seul",
+      "waking": "Solde rechargé — le produit se réveille, cela prend environ une minute",
+      "soonWarning": "Prélèvement le {{date}}, votre solde est insuffisant",
+      "topUp": "Recharger le solde"
     },
     "chat": {
       "placeholder": "Que faut-il modifier ?",
       "send": "Envoyer",
-      "busy": "L'agent travaille encore sur votre demande précédente"
+      "busy": "L'agent travaille encore sur votre demande précédente",
+      "sleeping": "Le produit est en veille : les tokens n'ont pas suffi pour la location. Rechargez votre solde et il se réveillera tout seul.",
+      "failed": "Impossible d'envoyer la modification"
     },
     "history": {
       "title": "Historique des modifications",

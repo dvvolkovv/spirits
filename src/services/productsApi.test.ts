@@ -7,8 +7,14 @@ vi.mock('./apiClient', () => ({
     get: vi.fn(async () => ({ ok: true, json: async () => [] })),
     post: vi.fn(async () => ({ ok: true, json: async () => ({}) })),
     fetchStream: vi.fn(async () => null),
+    // Поток хода открывается через request, а не через fetchStream: тот отдаёт
+    // null на любом не-2xx и теряет вместе с ним и код, и причину отказа.
+    request: vi.fn(async () => ({ ok: true, body: { getReader: () => READER } })),
   },
 }));
+
+/** Читатель потока — подменять его настоящим незачем, важна лишь его выдача. */
+const READER = { read: async () => ({ done: true, value: undefined }) };
 
 /**
  * Минимальный ответ вместо настоящего Response: заглушка типизирована
@@ -287,19 +293,83 @@ describe('productsApi', () => {
   it('чат открывает поток, а не обычный запрос', async () => {
     // Ход агента идёт минутами и течёт событиями. Обычный post отдал бы
     // клиенту всё разом в конце либо оборвался по таймауту прокси.
-    await productsApi.chatStream('p-1', 'поправь футер');
+    const started = await productsApi.chatStream('p-1', 'поправь футер');
 
-    expect(apiClient.fetchStream).toHaveBeenCalledWith(
+    expect(apiClient.request).toHaveBeenCalledWith(
       '/webhook/products/p-1/chat',
       expect.objectContaining({ method: 'POST' }),
     );
+    expect(started).toEqual({ ok: true, reader: READER });
   });
 
   it('промпт уходит в теле, а не в адресе', async () => {
     await productsApi.chatStream('p-1', 'поправь футер');
 
-    const init = vi.mocked(apiClient.fetchStream).mock.calls[0][1] as any;
+    const init = vi.mocked(apiClient.request).mock.calls[0][1] as any;
     expect(JSON.parse(init.body)).toEqual({ prompt: 'поправь футер' });
+  });
+
+  it('отказ спящему продукту доезжает кодом и текстом, а не пустотой', async () => {
+    // Главный дефект этой ветки: fetchStream отдавал null на любом не-2xx, и
+    // компоненту оставалось подставить одну формулировку на все случаи — он
+    // подставлял «агент занят». Владелец спящего продукта видел враньё.
+    vi.mocked(apiClient.request).mockResolvedValueOnce(
+      res({
+        ok: false,
+        status: 402,
+        json: async () => ({
+          message: 'Продукт спит: не хватило токенов на аренду. Пополните баланс — продукт проснётся сам.',
+        }),
+      }) as any,
+    );
+
+    await expect(productsApi.chatStream('p-1', 'поправь футер')).resolves.toEqual({
+      ok: false,
+      status: 402,
+      message: 'Продукт спит: не хватило токенов на аренду. Пополните баланс — продукт проснётся сам.',
+    });
+  });
+
+  it('не-JSON тело отказа хода не роняет разбор', async () => {
+    // 502 от nginx приходит HTML-страницей: код настоящий, причина пустая.
+    vi.mocked(apiClient.request).mockResolvedValueOnce(
+      res({
+        ok: false,
+        status: 502,
+        json: async () => {
+          throw new Error('Unexpected token <');
+        },
+      }) as any,
+    );
+
+    await expect(productsApi.chatStream('p-1', 'правка')).resolves.toEqual({
+      ok: false,
+      status: 502,
+      message: '',
+    });
+  });
+
+  it('обрыв связи при ходе становится отказом со статусом 0, а не исключением', async () => {
+    // apiClient пробрасывает обрыв и неудачный refresh наружу; без перехвата
+    // отказ вылетел бы из обработчика кнопки необработанным промисом.
+    vi.mocked(apiClient.request).mockRejectedValueOnce(new Error('Failed to fetch'));
+
+    await expect(productsApi.chatStream('p-1', 'правка')).resolves.toEqual({
+      ok: false,
+      status: 0,
+      message: '',
+    });
+  });
+
+  it('успешный ответ без тела не выдаёт себя за поток', async () => {
+    // Так выглядит ответ прокси, срезавшего поток: 2xx, читать нечего.
+    vi.mocked(apiClient.request).mockResolvedValueOnce(res({ ok: true, status: 200 }) as any);
+
+    await expect(productsApi.chatStream('p-1', 'правка')).resolves.toEqual({
+      ok: false,
+      status: 200,
+      message: '',
+    });
   });
 
   it('идентификаторы экранируются', async () => {

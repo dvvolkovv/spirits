@@ -2341,12 +2341,23 @@
       "stopped": "Stopped",
       "provisioning": "Setting up…",
       "archived": "Archived",
-      "failed": "Setup failed"
+      "failed": "Setup failed",
+      "sleeping": "Asleep"
+    },
+    "rent": {
+      "paidUntil": "Paid until {{date}}",
+      "sleepingWhy": "Not enough tokens for the rent",
+      "wakeHint": "The rent is {{amount}} tokens a month. Top up your balance and the product will wake up on its own",
+      "waking": "Balance topped up — the product is waking up, this takes about a minute",
+      "soonWarning": "Charge on {{date}}, your balance is not enough",
+      "topUp": "Top up balance"
     },
     "chat": {
       "placeholder": "What should I change?",
       "send": "Send",
-      "busy": "The agent is still working on your previous request"
+      "busy": "The agent is still working on your previous request",
+      "sleeping": "The product is asleep: not enough tokens for the rent. Top up your balance and it will wake up on its own.",
+      "failed": "Could not send the change"
     },
     "history": {
       "title": "Change history",

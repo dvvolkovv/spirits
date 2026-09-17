@@ -14,6 +14,7 @@ import {
   type,
   byLabel,
   byButton,
+  byLink,
   visibleText,
   tRu,
 } from '../../test/dom';
@@ -25,6 +26,14 @@ vi.mock('react-i18next', async () => {
   const { tRu: t } = await import('../../test/dom');
   return { useTranslation: () => ({ t }) };
 });
+
+// Баланс приезжает из общего auth-стейта (его опрашивает AuthContext раз в
+// пять секунд). Через vi.hoisted, потому что фабрика vi.mock поднимается
+// наверх файла и до обычного let не дотянулась бы.
+const auth = vi.hoisted(() => ({ tokens: undefined as number | undefined }));
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { tokens: auth.tokens } }),
+}));
 
 vi.mock('../../services/productsApi', () => ({
   productsApi: {
@@ -60,6 +69,29 @@ function product(over: Partial<Product> = {}): Product {
  * видимому тексту начали бы ловить его вместо того, что проверяют.
  */
 const listing = (rows: Product[], hostAgent: HostAgentState = 'live') => ({ rows, hostAgent });
+
+/**
+ * Месячная аренда так, как её печатает компонент.
+ *
+ * Именно Intl, а не литерал «50 000»: в русском формате разряды разделяет
+ * неразрывный пробел, и утверждение с обычным пробелом краснело бы на
+ * совпадающем с виду тексте.
+ */
+const RENT_AMOUNT = new Intl.NumberFormat('ru').format(50_000);
+
+/** Начало строки про срок — по нему видно, что строка вообще напечатана. */
+const PAID_UNTIL_PREFIX = tRu('products.rent.paidUntil', { date: '' }).trim();
+
+/**
+ * Причина сна, пришедшая с сервера.
+ *
+ * Нарочно НЕ совпадает со своей строкой `products.rent.sleepingWhy`: пока
+ * фикстура повторяла её слово в слово, тест зеленел и с выброшенным полем
+ * `sleep_reason` — проверено мутацией. Настоящий бэкенд сегодня шлёт ровно
+ * свою формулировку, но проверяем мы здесь не её текст, а то, что текст
+ * сервера доезжает до экрана.
+ */
+const SERVER_SLEEP_REASON = 'Не хватило токенов на аренду с 16 сентября';
 
 /** Длинная техническая причина — ровно то, что приходит с машины продуктов. */
 const LONG_REASON =
@@ -652,5 +684,241 @@ describe('ProductsListView — сервер продуктов молчит', ()
 
     expect(visibleText(container)).toContain(tRu('products.hostAgentSilent'));
     expect(visibleText(container)).toContain(tRu('products.loadFailed'));
+  });
+});
+
+/**
+ * Аренда в карточке. Всё здесь — про видимое: дата на экране, объяснение сна,
+ * тревога ровно тогда, когда для неё есть обе причины.
+ */
+describe('ProductsListView — аренда', () => {
+  it('срок оплаты показан датой, а не «осталось N дней»', async () => {
+    // Вкладка кабинета висит открытой сутками: «осталось 2 дня» протухает
+    // молча и начинает врать, дата — нет.
+    api.list.mockResolvedValue(listing([product({ paid_until: '2026-10-05T10:00:00Z' })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.rent.paidUntil', { date: '05.10.2026' }));
+    expect(visibleText(container)).toMatch(/\d{2}\.\d{2}\.\d{4}/);
+  });
+
+  it('срока нет — карточка молчит, а не показывает «Invalid Date»', async () => {
+    // Пустой срок бывает у бэкенда, выкаченного до аренды. Выдумывать дату
+    // нельзя: это единственное место, где владелец её узнаёт.
+    api.list.mockResolvedValue(listing([product({ paid_until: null })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).not.toContain(PAID_UNTIL_PREFIX);
+    expect(visibleText(container)).not.toContain('Invalid Date');
+    expect(visibleText(container)).toContain('Магазин цветов');
+  });
+
+  it('нечитаемый срок тоже молчит, а не течёт на экран', async () => {
+    // SPA-фолбэк этого хостинга умеет отдать 200 с чем угодно.
+    //
+    // Проверяется отсутствие ВСЕЙ строки, а не слова «Invalid Date»: со снятым
+    // разбором нечитаемой даты на экран выезжает «Оплачено до NaN.NaN.NaN», и
+    // тест про «Invalid Date» остался бы зелёным (проверено мутацией).
+    api.list.mockResolvedValue(listing([product({ paid_until: 'позавчера' })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).not.toContain(PAID_UNTIL_PREFIX);
+    expect(visibleText(container)).not.toContain('NaN');
+    expect(visibleText(container)).not.toContain('Invalid Date');
+    expect(visibleText(container)).not.toContain('позавчера');
+  });
+
+  it('спящий продукт объясняет причину с сервера и зовёт пополнить', async () => {
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([
+      product({ status: 'sleeping', sleep_reason: SERVER_SLEEP_REASON }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.status.sleeping'));
+    expect(visibleText(container)).toContain(SERVER_SLEEP_REASON);
+    const topUp = byLink(container, new RegExp(tRu('products.rent.topUp')))!;
+    expect(topUp).toBeTruthy();
+    expect(topUp.getAttribute('href')).toBe('/chat?view=tokens');
+  });
+
+  it('спящий без причины не остаётся без объяснения', async () => {
+    // sleep_reason пустой у старого бэкенда и у продукта, усыплённого без
+    // записи причины: «Спит» в одиночку не объясняет ничего.
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([product({ status: 'sleeping', sleep_reason: null })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.rent.sleepingWhy'));
+    expect(visibleText(container)).toContain(
+      tRu('products.rent.wakeHint', { amount: RENT_AMOUNT }),
+    );
+  });
+
+  it('сон покрашен не тем же серым, что «остановлен»', async () => {
+    // Сон не кончится сам: без действия владельца он навсегда. Общим серым он
+    // читался бы как ещё одно спокойное состояние.
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([product({ status: 'sleeping' })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    const badge = Array.from(container.querySelectorAll('span')).find(
+      (el) => el.textContent === tRu('products.status.sleeping'),
+    )!;
+    expect(badge.className).toContain('text-amber-600');
+  });
+
+  it('пополненный баланс обещает пробуждение, а не просит пополнить ещё раз', async () => {
+    // Сервер подметает спящих раз в минуту и будит сам. Просить деньги второй
+    // раз — прямая неправда, молчать — оставить владельца гадать.
+    auth.tokens = 50_000;
+    api.list.mockResolvedValue(listing([product({ status: 'sleeping', sleep_reason: SERVER_SLEEP_REASON })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.rent.waking'));
+    expect(byLink(container, new RegExp(tRu('products.rent.topUp')))).toBeNull();
+    expect(visibleText(container)).not.toContain(tRu('products.rent.wakeHint', { amount: RENT_AMOUNT }));
+  });
+
+  it('денег ровно на месяц уже хватает — это пробуждение, а не отказ', async () => {
+    // Граница взята у бэкенда: wakeAffordable считает места как
+    // баланс / RENT_TOKENS, то есть ровно 50 000 — это одно место.
+    auth.tokens = 50_000 - 1;
+    api.list.mockResolvedValue(listing([product({ status: 'sleeping' })]));
+    const { container, rerender } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    expect(visibleText(container)).not.toContain(tRu('products.rent.waking'));
+
+    auth.tokens = 50_000;
+    rerender(<ProductsListView onOpen={() => {}} />);
+
+    expect(visibleText(container)).toContain(tRu('products.rent.waking'));
+  });
+
+  it('предупреждение молчит, когда срок близко, но денег хватает', async () => {
+    auth.tokens = 200_000;
+    api.list.mockResolvedValue(listing([
+      product({ paid_until: new Date(Date.now() + 24 * 3600 * 1000).toISOString() }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('предупреждение молчит, когда денег мало, но списание нескоро', async () => {
+    // Тревога без причины приучает её не замечать: до списания месяц, за него
+    // баланс пополнится десять раз.
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([
+      product({ paid_until: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString() }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('предупреждение появляется, когда сошлись оба условия', async () => {
+    auth.tokens = 0;
+    const soon = new Date(Date.now() + 24 * 3600 * 1000);
+    api.list.mockResolvedValue(listing([product({ paid_until: soon.toISOString() })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    const date = new Intl.DateTimeFormat('ru', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(soon);
+    expect(visibleText(container)).toContain(tRu('products.rent.soonWarning', { date }));
+    expect(byLink(container, new RegExp(tRu('products.rent.topUp')))!.getAttribute('href')).toBe(
+      '/chat?view=tokens',
+    );
+  });
+
+  it('неизвестный баланс не тревожит', async () => {
+    // Профиль ещё не доехал. Кабинет уже однажды учился не пугать там, где сам
+    // ничего не знает, — на вердикте про сервер продуктов.
+    auth.tokens = undefined;
+    api.list.mockResolvedValue(listing([
+      product({ paid_until: new Date(Date.now() + 3600 * 1000).toISOString() }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('просроченный срок предупреждает, а не молчит', async () => {
+    // Сборщик аренды ходит раз в сутки: между `paid_until` и его оборотом
+    // продукт ещё работает, и это последний момент, когда сон можно
+    // предотвратить.
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([
+      product({ paid_until: new Date(Date.now() - 3600 * 1000).toISOString() }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it('карточка сорванного заведения сроком не отвлекает', async () => {
+    // Там важны причина и кнопка повтора; аренда к незаведённому продукту ещё
+    // не относится — платят только running и degraded.
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([
+      product({ status: 'failed', provision_error: 'порт занят', paid_until: '2026-10-05T10:00:00Z' }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).not.toContain(tRu('products.rent.paidUntil', { date: '05.10.2026' }));
+    expect(visibleText(container)).toContain('порт занят');
+  });
+
+  it('спящий продукт с деньгами догоняет пробуждение сам, без перезагрузки', async () => {
+    // Пробуждение идёт на другой машине и сообщить о себе в открытую вкладку
+    // некому — ровно та же история, что с «Заводится…».
+    auth.tokens = 50_000;
+    vi.useFakeTimers();
+    api.list
+      .mockResolvedValueOnce(listing([product({ status: 'sleeping' })]))
+      .mockResolvedValue(listing([product({ status: 'running' })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    expect(visibleText(container)).toContain(tRu('products.status.sleeping'));
+
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+    });
+
+    expect(visibleText(container)).toContain(tRu('products.status.running'));
+  });
+
+  it('спящий без денег опрос не крутит: ждать нечего', async () => {
+    // Пока баланс не пополнен, состояние не изменится — продукт мог бы
+    // пролежать так месяц. Перечитку включит сам баланс: его AuthContext
+    // тянет раз в пять секунд, и своего опроса за ним здесь не заведено.
+    auth.tokens = 0;
+    vi.useFakeTimers();
+    api.list.mockResolvedValue(listing([product({ status: 'sleeping' })]));
+    mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    expect(api.list).toHaveBeenCalledTimes(1);
+
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+    });
+
+    expect(api.list).toHaveBeenCalledTimes(1);
   });
 });

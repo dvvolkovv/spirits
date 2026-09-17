@@ -2340,12 +2340,23 @@
       "stopped": "Parado",
       "provisioning": "Provisionando…",
       "archived": "Arquivado",
-      "failed": "Falha ao provisionar"
+      "failed": "Falha ao provisionar",
+      "sleeping": "A dormir"
+    },
+    "rent": {
+      "paidUntil": "Pago até {{date}}",
+      "sleepingWhy": "Os tokens não chegaram para a renda",
+      "wakeHint": "A renda é de {{amount}} tokens por mês. Carregue o saldo e o produto acorda sozinho",
+      "waking": "Saldo carregado — o produto está a acordar, demora cerca de um minuto",
+      "soonWarning": "Débito a {{date}}, o saldo não chega",
+      "topUp": "Carregar saldo"
     },
     "chat": {
       "placeholder": "O que devo alterar?",
       "send": "Enviar",
-      "busy": "O agente ainda está trabalhando no seu pedido anterior"
+      "busy": "O agente ainda está trabalhando no seu pedido anterior",
+      "sleeping": "O produto está a dormir: os tokens não chegaram para a renda. Carregue o saldo e ele acorda sozinho.",
+      "failed": "Não foi possível enviar a alteração"
     },
     "history": {
       "title": "Histórico de alterações",
