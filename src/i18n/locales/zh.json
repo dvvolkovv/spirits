@@ -2064,5 +2064,20 @@
     "hostAgentSilent": "产品服务器暂时没有响应，现在不会开始创建。仍然可以创建产品：它会排队，等连接恢复后自动开始。",
     "loadFailed": "无法刷新列表，显示的是上一次的结果",
     "reload": "刷新"
+  },
+  "authLink": {
+    "title": "您已经有一个账号",
+    "explain": "该邮箱记录在手机号为 {{hint}} 的账号资料中。用该手机号登录，邮箱就会成为同一账号的第二种登录方式，历史记录和余额都保留。",
+    "loginByPhone": "用手机号登录",
+    "createNew": "创建新账号",
+    "createNewHint": "一个独立账号，没有历史记录，余额单独计算。如果您已无法使用该手机号，请选此项。",
+    "phoneTitle": "确认手机号",
+    "phoneSubtitle": "手机号 {{hint}} —— 请输入完整号码，我们会发送验证码。",
+    "smsFailed": "短信发送失败",
+    "wrongCode": "验证码错误",
+    "verifyFailed": "手机号确认失败",
+    "ticketExpired": "链接已失效 —— 请重新登录",
+    "storageFull": "无法保存会话：浏览器存储不可用",
+    "backToLogin": "返回登录"
   }
 }

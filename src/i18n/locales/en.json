@@ -2414,5 +2414,20 @@
     "hostAgentSilent": "The product server is not responding — setup will not start right now. You can still create a product: it will wait in the queue and start as soon as the connection is back.",
     "loadFailed": "Could not refresh the list — showing the previous one",
     "reload": "Refresh"
+  },
+  "authLink": {
+    "title": "You already have an account",
+    "explain": "This email is listed in the profile of the account with the phone number {{hint}}. Sign in with that number and the email becomes a second way into the same account, with all its history and balance.",
+    "loginByPhone": "Sign in with phone",
+    "createNew": "Create a new account",
+    "createNewHint": "A separate account with empty history and its own balance. Choose this if you no longer have access to that number.",
+    "phoneTitle": "Confirm your number",
+    "phoneSubtitle": "Number {{hint}} — enter it in full and we'll send a code.",
+    "smsFailed": "Could not send the SMS",
+    "wrongCode": "Wrong code",
+    "verifyFailed": "Could not confirm the number",
+    "ticketExpired": "This link has expired — start signing in again",
+    "storageFull": "Could not save the session: browser storage is unavailable",
+    "backToLogin": "Back to sign in"
   }
 }

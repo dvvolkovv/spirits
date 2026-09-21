@@ -40,6 +40,20 @@ const AuthOAuthCallbackPage: React.FC = () => {
           return;
         }
 
+        // Вход остановлен: почта провайдера указана в профиле аккаунта с
+        // телефонным входом. Это не ошибка — человеку надо выбрать, и выбор
+        // живёт на отдельном экране. Показать здесь «oauth callback failed»
+        // значило бы соврать (ровно так и выглядел инцидент 19.09.2026, только
+        // без ошибки: заводился второй аккаунт).
+        if (resp.status === 409 && (body as any).error === 'link_required') {
+          const qs = new URLSearchParams({
+            ticket: (body as any).linkTicket || '',
+            hint: (body as any).phoneHint || '',
+          });
+          navigate(`/auth/link?${qs}`, { replace: true });
+          return;
+        }
+
         if (!resp.ok) {
           setError((body as any)?.error || 'oauth callback failed');
           return;
