@@ -2085,5 +2085,10 @@
     "ticketExpired": "Der Link ist abgelaufen — bitte erneut anmelden",
     "storageFull": "Sitzung konnte nicht gespeichert werden: Browser-Speicher nicht verfügbar",
     "backToLogin": "Zurück zur Anmeldung"
+  },
+  "admin": {
+    "tabs": {
+      "blog": "Blog"
+    }
   }
 }

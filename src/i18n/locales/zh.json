@@ -2079,5 +2079,10 @@
     "ticketExpired": "链接已失效 —— 请重新登录",
     "storageFull": "无法保存会话：浏览器存储不可用",
     "backToLogin": "返回登录"
+  },
+  "admin": {
+    "tabs": {
+      "blog": "博客"
+    }
   }
 }

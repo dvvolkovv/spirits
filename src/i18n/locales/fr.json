@@ -2091,5 +2091,10 @@
     "ticketExpired": "Ce lien a expiré — recommencez la connexion",
     "storageFull": "Impossible d'enregistrer la session : le stockage du navigateur est indisponible",
     "backToLogin": "Retour à la connexion"
+  },
+  "admin": {
+    "tabs": {
+      "blog": "Blog"
+    }
   }
 }
