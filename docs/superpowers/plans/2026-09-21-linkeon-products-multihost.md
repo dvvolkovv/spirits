@@ -392,6 +392,91 @@ git commit -m "feat(products): задание уезжает только на �
 
 ---
 
+## Task 3б: Отметка о жизни — своя у каждой машины
+
+> **НАЙДЕНО ЗАДАЧЕЙ 3, В ИСХОДНОМ ПЛАНЕ ЭТОЙ ЗАДАЧИ НЕТ.** Отметка о жизни агента лежит в `product_host_agent` — **одной строкой на всё**, by design куска 3 («хост один»). С двумя машинами опрос живого агента **выдаёт за живого и мёртвого соседа**: заголовок `X-Host-Agent: live` отвечает за обоих.
+>
+> Это ровно та диагностика, ради которой отметку заводили: без неё владелец жмёт кнопку, видит «Заводится…» и через десять минут читает про истёкший срок, хотя забирать задание было некому. С общей отметкой он читает то же самое, но теперь ещё и при зелёном индикаторе.
+
+**Файлы:**
+- Создать: `spirits_back/src/products/migrations/006_host_agent_per_host.sql`
+- Изменить: `spirits_back/src/products/provisioning.service.ts` (`touchHostAgent`, `hostAgentLive`), `host.controller.ts`
+- Тест: `spirits_back/src/products/provisioning.integration.spec.ts`
+
+- [ ] **Шаг 1: Прочитать, что уже есть**
+
+`003_host_agent.sql` завёл таблицу одной строкой: `id boolean PRIMARY KEY DEFAULT true CHECK (id)`. Приём был осознанный — единственность держит база, читатель берёт отметку без `ORDER BY`. Теперь единственность нужна **на машину**.
+
+Посмотри, что делает `hostAgentLive()`: вердикт двухэтажный — свежая отметка **или** задание в работе моложе срока заведения. Занятость по свидетельству, а не по догадке: пока агент разворачивает продукт, он не опрашивает и молчать может до восьми минут.
+
+- [ ] **Шаг 2: Написать сценарий на живой базе**
+
+```ts
+  it('47. живой агент не выдаёт за живого мёртвого соседа', async () => {
+    // Главный сценарий задачи. С общей отметкой обе машины считались бы
+    // живыми по опросу одной.
+    await addHost('clients', 'clients', 20);
+    await svc.touchHostAgent('own');
+
+    expect(await svc.hostAgentLive('own')).toBe(true);
+    expect(await svc.hostAgentLive('clients')).toBe(false);
+  });
+
+  it('48. занятость считается по заданиям СВОЕЙ машины', async () => {
+    // Вторая половина вердикта. Задание соседа не делает молчащего агента
+    // живым — иначе одна занятая машина покрывает все.
+    await addHost('clients', 'clients', 20);
+    const p = await product({ slug: 'mh-busy', status: 'provisioning' });
+    await pool.query(`UPDATE products SET host_id='clients' WHERE id=$1`, [p.id]);
+    await job(p.id, { status: 'running', startedAgo: '1 minute' });
+
+    expect(await svc.hostAgentLive('clients')).toBe(true);
+    expect(await svc.hostAgentLive('own')).toBe(false);
+  });
+```
+
+- [ ] **Шаг 3: Реализовать**
+
+Миграция переносит единственную строку на машину `own` — она и была единственной:
+
+```sql
+-- Отметка о жизни агента была одной на всё: хост был один. С реестром машин
+-- общая отметка выдаёт живого агента за живого и мёртвого соседа — то есть
+-- ровно ту диагностику, которую она заменяла, превращает в ложь.
+ALTER TABLE product_host_agent ADD COLUMN IF NOT EXISTS host_id text
+  REFERENCES product_hosts(id);
+UPDATE product_host_agent SET host_id = 'own' WHERE host_id IS NULL;
+ALTER TABLE product_host_agent DROP CONSTRAINT IF EXISTS product_host_agent_pkey;
+ALTER TABLE product_host_agent ALTER COLUMN host_id SET NOT NULL;
+ALTER TABLE product_host_agent ADD PRIMARY KEY (host_id);
+-- Колонка id со своим CHECK больше не нужна: единственность держит host_id.
+ALTER TABLE product_host_agent DROP COLUMN IF EXISTS id;
+```
+
+`touchHostAgent(hostId)` и `hostAgentLive(hostId)` получают метку; загрубление записи до 30 секунд остаётся **на машину**, а не на всё.
+
+Заголовок `X-Host-Agent` отвечает **про машину продукта**, а не про абстрактный агент. У клиента продукты могут стоять на разных машинах — значит заголовка мало. Реши сам и обоснуй: заголовок про худшую из машин владельца, поле в строке продукта, или что-то третье.
+
+- [ ] **Шаг 4: Прогнать и проверить мутациями**
+
+| Мутация | Что обязано покраснеть |
+|---|---|
+| отметка пишется без метки (одна на всё) | 47 |
+| `hostAgentLive` игнорирует метку | 47 |
+| занятость считается по заданиям всех машин | 48 |
+| загрубление записи общее, а не на машину | (добавить тест: две машины пишут отметку в одну секунду) |
+
+- [ ] **Шаг 5: Коммит**
+
+```bash
+git add src/products/migrations/006_host_agent_per_host.sql \
+        src/products/provisioning.service.ts src/products/host.controller.ts \
+        src/products/provisioning.integration.spec.ts
+git commit -m "feat(products): отметка о жизни своя у каждой машины"
+```
+
+---
+
 ## Task 4: Выбор машины при заведении
 
 **Файлы:**
