@@ -1272,7 +1272,7 @@
     "current_balance_label": "Solde actuel :",
     "or_buy_package": "ou achète un pack de jetons",
     "email_label": "Email pour recevoir le reçu",
-    "email_hint": "Le reçu de paiement sera envoyé à cet email",
+    "email_hint": "Le reçu de paiement et un lien de confirmation seront envoyés à cette adresse — une fois confirmée, vous pourrez vous connecter avec elle au même compte.",
     "popular_badge": "Populaire",
     "offer_badge": "🎁 +50%",
     "approx_messages_label": "≈ {{formatted}} messages",

@@ -1610,7 +1610,7 @@
     "current_balance_label": "Current balance:",
     "or_buy_package": "or buy a token package",
     "email_label": "Email to receive the receipt",
-    "email_hint": "The payment receipt will be sent to this email",
+    "email_hint": "We'll send the payment receipt to this email, plus a confirmation link — once you confirm it, you can sign in with this email to the same account.",
     "popular_badge": "Popular",
     "offer_badge": "🎁 +50%",
     "approx_messages_label": "≈ {{formatted}} messages",

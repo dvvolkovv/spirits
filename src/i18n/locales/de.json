@@ -1266,7 +1266,7 @@
     "current_balance_label": "Aktuelles Guthaben:",
     "or_buy_package": "oder kaufe ein Token-Paket",
     "email_label": "E-Mail für den Beleg",
-    "email_hint": "An diese E-Mail-Adresse wird der Zahlungsbeleg gesendet",
+    "email_hint": "An diese E-Mail senden wir den Zahlungsbeleg und einen Bestätigungslink — nach der Bestätigung können Sie sich damit in dasselbe Konto einloggen.",
     "popular_badge": "Beliebt",
     "offer_badge": "🎁 +50%",
     "approx_messages_label": "≈ {{formatted}} Nachrichten",

@@ -1260,7 +1260,7 @@
     "current_balance_label": "当前余额：",
     "or_buy_package": "或购买代币套餐",
     "email_label": "接收收据的邮箱",
-    "email_hint": "支付收据将发送至该邮箱",
+    "email_hint": "付款凭证和一封确认邮件将发送到该邮箱 —— 确认后即可用此邮箱登录同一账号。",
     "popular_badge": "热门",
     "offer_badge": "🎁 +50%",
     "approx_messages_label": "≈ {{formatted}} 条消息",

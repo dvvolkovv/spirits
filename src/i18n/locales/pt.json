@@ -1610,7 +1610,7 @@
     "current_balance_label": "Saldo atual:",
     "or_buy_package": "ou compre um pacote de tokens",
     "email_label": "E-mail para receber o recibo",
-    "email_hint": "O recibo do pagamento será enviado para o e-mail indicado",
+    "email_hint": "Enviaremos o comprovante de pagamento para este e-mail e um link de confirmação — depois de confirmar, você poderá entrar com ele na mesma conta.",
     "popular_badge": "Popular",
     "offer_badge": "🎁 +50%",
     "approx_messages_label": "≈ {{formatted}} mensagens",
