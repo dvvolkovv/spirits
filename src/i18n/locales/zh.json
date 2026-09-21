@@ -1473,7 +1473,8 @@
     "title": "工作室",
     "tabs": {
       "agents": "助手",
-      "bots": "Telegram机器人"
+      "bots": "Telegram机器人",
+      "products": "产品"
     },
     "mood_dramatic": "戏剧性",
     "mood_inspiring": "励志",
@@ -1990,12 +1991,23 @@
       "stopped": "已停止",
       "provisioning": "正在创建…",
       "archived": "已归档",
-      "failed": "创建失败"
+      "failed": "创建失败",
+      "sleeping": "已休眠"
+    },
+    "rent": {
+      "paidUntil": "已付费至 {{date}}",
+      "sleepingWhy": "租金代币不足",
+      "wakeHint": "租金为每月 {{amount}} 代币。充值后产品会自动唤醒",
+      "waking": "充值已到账 — 产品正在唤醒，大约需要一分钟",
+      "soonWarning": "{{date}} 将扣费，余额不足",
+      "topUp": "充值"
     },
     "chat": {
       "placeholder": "需要修改什么？",
       "send": "发送",
-      "busy": "智能体仍在处理上一个请求"
+      "busy": "智能体仍在处理上一个请求",
+      "sleeping": "产品已休眠：租金代币不足。充值后产品会自动唤醒。",
+      "failed": "修改发送失败"
     },
     "history": {
       "title": "修改记录",

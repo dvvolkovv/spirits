@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Server, CircleDot, Plus, RotateCw, X, AlertTriangle } from 'lucide-react';
+import { Server, CircleDot, Plus, RotateCw, X, AlertTriangle, Moon } from 'lucide-react';
 import { productsApi } from '../../services/productsApi';
 import type {
   Product,
@@ -11,6 +11,14 @@ import type {
 } from '../../services/productsApi';
 import { NewProductForm } from './NewProductForm';
 import type { SubmitResult } from './NewProductForm';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  TOPUP_HREF,
+  formatPaidUntil,
+  formatRentAmount,
+  rentWarningDue,
+  wakeExpected,
+} from './rent';
 
 // Цвет статуса — вынесен из JSX, чтобы не пересчитывать на каждый рендер
 // и не плодить длинные тернарники внутри карточки.
@@ -23,6 +31,11 @@ const STATUS_STYLE: Record<string, string> = {
   // Отказ обязан быть виден как отказ: тем же серым он читался бы как ещё
   // одно спокойное состояние, а это единственный статус, требующий действия.
   failed: 'text-red-600',
+  // Сон — не поломка (код и история целы, продукт вернётся сам), но и не
+  // спокойное состояние: без действия владельца он не кончится никогда.
+  // Отсюда янтарный, тот же, что у прочих «нужно что-то сделать», а не
+  // красный «сломалось».
+  sleeping: 'text-amber-600',
 };
 
 /**
@@ -35,6 +48,105 @@ const STATUS_STYLE: Record<string, string> = {
  */
 const POLL_MS = 5000;
 
+/**
+ * Аренда в карточке: до какого числа оплачено, сон и предупреждение.
+ *
+ * Отдельный компонент, а не ещё сто строк внутри `map`: у карточки уже есть
+ * свой блок отказа заведения, и третий уровень вложенных тернарников в JSX —
+ * это то место, где следующая правка ломает соседнее состояние молча.
+ */
+const RentNote: React.FC<{ product: Product; balance?: number }> = ({ product, balance }) => {
+  const { t, i18n } = useTranslation();
+  const lang = i18n?.language || 'ru';
+
+  if (product.status === 'sleeping') {
+    return (
+      <div className="px-4 pb-4 -mt-1">
+        <div className="flex flex-col gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-900">
+          {/*
+            Слова «Спит» здесь нет намеренно: оно уже стоит значком статуса в
+            шапке карточки, и вторым экземпляром читалось бы как два разных
+            сообщения об одном и том же. Значок Moon оставлен — он связывает
+            объяснение со статусом взглядом.
+          */}
+          {wakeExpected(balance) ? (
+            /*
+              Денег уже хватает — значит сервер будит продукт САМ: подметание
+              спящих ходит раз в минуту, дальше старт контейнера. Просить
+              владельца пополнить ещё раз здесь было бы прямой неправдой, а
+              молчаливое «Спит» на карточке — теми же граблями, на которых
+              залипала тревога о молчащем сервере: состояние, которое вот-вот
+              изменится, обязано говорить, что оно меняется.
+            */
+            <span className="flex items-start gap-1.5">
+              <Moon size={14} className="shrink-0 mt-0.5" />
+              {t('products.rent.waking')}
+            </span>
+          ) : (
+            <>
+              {/*
+                Причина — С СЕРВЕРА, если он её прислал. Своя строка остаётся
+                запасной: `sleep_reason` пустой у старого бэкенда и у продукта,
+                усыплённого без записи причины. Ровно так же устроена причина
+                сорванного заведения этажом ниже.
+              */}
+              <span className="flex items-start gap-1.5">
+                <Moon size={14} className="shrink-0 mt-0.5" />
+                {product.sleep_reason || t('products.rent.sleepingWhy')}
+              </span>
+              <span>{t('products.rent.wakeHint', { amount: formatRentAmount(lang) })}</span>
+              <a
+                href={TOPUP_HREF}
+                className="self-start mt-1 px-4 py-1.5 rounded-lg bg-forest-600 hover:bg-forest-700 text-white text-xs font-medium"
+              >
+                {t('products.rent.topUp')}
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Заведение не завершилось (или продукт в архиве) — аренда к нему ещё (уже)
+  // не относится: платят только running и degraded, и срок в карточке отказа
+  // отвлекал бы от единственного, что там важно, — причины и кнопки повтора.
+  if (product.status === 'failed' || product.status === 'archived') return null;
+
+  const paidUntil = formatPaidUntil(product.paid_until, lang);
+  // Срока нет — не говорим ничего. Выдумывать его нельзя (это единственное
+  // место, где владелец узнаёт дату списания), а «неизвестно» в карточке
+  // работающего продукта — тревога на пустом месте.
+  if (!paidUntil) return null;
+
+  const warn = rentWarningDue(product.paid_until, balance);
+
+  return (
+    <div className="px-4 pb-3 -mt-1 flex flex-col gap-1.5">
+      <span className="text-xs text-gray-500">
+        {t('products.rent.paidUntil', { date: paidUntil })}
+      </span>
+      {warn && (
+        <div
+          role="alert"
+          className="flex flex-col gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900"
+        >
+          <span className="flex items-start gap-1.5">
+            <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+            {t('products.rent.soonWarning', { date: paidUntil })}
+          </span>
+          <a
+            href={TOPUP_HREF}
+            className="self-start px-4 py-1.5 rounded-lg bg-forest-600 hover:bg-forest-700 text-white text-xs font-medium"
+          >
+            {t('products.rent.topUp')}
+          </a>
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface Props {
   onOpen: (product: Product) => void;
   /** Внутри вкладки Студии: заголовок и подпись рисует Студия, не список. */
@@ -43,6 +155,11 @@ interface Props {
 
 export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) => {
   const { t } = useTranslation();
+  // Баланс — из уже идущего опроса AuthContext (раз в пять секунд). Своего
+  // запроса здесь нет намеренно: второй опрос того же числа разъезжается с
+  // первым, и владелец видит два разных баланса на одном экране.
+  const { user } = useAuth();
+  const balance = user?.tokens;
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -101,7 +218,18 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
   // полминуты (systemd Restart=always, перезапуск юнита, починенный токен), а
   // на экране висит «задания никто не забирает» до перезагрузки вкладки. Ровно
   // так уже залипал алерт о молчании телеграм-бота.
-  const watching = anyProvisioning || hostAgent === 'silent';
+  // Спящий продукт, на который денег уже хватает, вот-вот проснётся сам:
+  // подметание на сервере ходит раз в минуту, дальше старт контейнера. Это
+  // ровно тот случай, когда список обязан догнать состояние без действий
+  // владельца — иначе «Спит» висит на экране уже проснувшегося продукта до
+  // перезагрузки вкладки.
+  //
+  // НОВОГО ОПРОСА ЗДЕСЬ НЕ ЗАВЕДЕНО: перечитка списка включается от баланса,
+  // который AuthContext и так тянет раз в пять секунд. Пока денег не хватает,
+  // ждать нечего и список не опрашивается вовсе — спящий продукт мог бы
+  // пролежать так месяц.
+  const anyWaking = wakeExpected(balance) && products.some((p) => p.status === 'sleeping');
+  const watching = anyProvisioning || hostAgent === 'silent' || anyWaking;
   useEffect(() => {
     if (!watching) return undefined;
     const timer = setInterval(reload, POLL_MS);
@@ -328,6 +456,8 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
                     {t(`products.status.${p.status}`)}
                   </span>
                 </div>
+
+                <RentNote product={p} balance={balance} />
 
                 {p.status === 'failed' && (
                   <div className="px-4 pb-4 -mt-1">

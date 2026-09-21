@@ -9,10 +9,36 @@ export interface Product {
   // 'failed' — сорванное заведение. Словарь в 002_provisioning.sql, и он
   // ЦЕЛИКОМ перечислен там же; без этого значения карточка отказа красится
   // как неизвестный статус и остаётся без кнопки «повторить».
-  status: 'provisioning' | 'running' | 'degraded' | 'stopped' | 'archived' | 'failed';
+  //
+  // 'sleeping' — не хватило токенов на аренду (004_rent.sql): контейнер
+  // погашен, код и история целы, пополнение будит продукт само.
+  status:
+    | 'provisioning'
+    | 'running'
+    | 'degraded'
+    | 'stopped'
+    | 'archived'
+    | 'failed'
+    | 'sleeping';
   domain: string | null;
   runner_seen_at: string | null;
   created_at: string;
+  /**
+   * До какого момента оплачена аренда, ISO-строка.
+   *
+   * На бэкенде колонка NOT NULL DEFAULT (миграция 004), то есть пустой она не
+   * бывает ни у одной строки, — и всё-таки поле необязательное. Причины две:
+   * бэкенд, выкаченный до аренды, его не отдаёт вовсе, а SPA-фолбэк этого
+   * хостинга умеет отдать 200 с чем угодно. Карточка обязана пережить оба
+   * случая молчанием, а не строкой «Invalid Date».
+   */
+  paid_until?: string | null;
+  /**
+   * Почему спит — человеческий текст с сервера (`SLEEP_REASON_NO_TOKENS`).
+   * NULL — не спит либо причина не записана. Признак сна — status, а не это
+   * поле: так же, как provision_error не признак отказа.
+   */
+  sleep_reason?: string | null;
   /**
    * Причина последнего сорванного заведения. Приходит с машины продуктов,
    * бывает длинной и технической (`Command failed: docker build …` со
@@ -72,6 +98,9 @@ export interface NewProductInput {
  */
 export type Problem = { ok: false; status: number; message: string };
 export type MutationResult = { ok: true } | Problem;
+
+/** Открытый поток хода. Та же форма «ok или Problem», что у мутаций. */
+export type StreamStart = { ok: true; reader: ReadableStreamDefaultReader<Uint8Array> };
 
 /**
  * Достаёт человеческую причину из тела ответа.
@@ -228,13 +257,46 @@ export const productsApi = {
    * Ставит ход агента и открывает поток событий (NDJSON).
    *
    * Обычный post отдал бы клиенту всё разом в конце хода (минуты) либо
-   * оборвался бы по таймауту прокси — поэтому именно fetchStream.
+   * оборвался бы по таймауту прокси — поэтому поток.
+   *
+   * ПОЧЕМУ НЕ `apiClient.fetchStream`. Он отдаёт `null` на любом не-2xx и
+   * теряет ВМЕСТЕ С НИМ и код, и тело. Компоненту оставалось одно: подставить
+   * свою формулировку на все случаи сразу — и он подставлял «агент уже
+   * работает над предыдущим запросом» (409, замок одного хода). Из-за этого
+   * владелец с пустым балансом уже сегодня, в проде, получает в ответ на
+   * правку враньё про занятого агента вместо «недостаточно токенов» (402);
+   * с арендой туда же попал бы и отказ спящему продукту, то есть вся аренда
+   * выглядела бы для владельца поломкой.
+   *
+   * Поэтому здесь тот же `Problem`, что у create/retry: код плюс причина с
+   * сервера. Сам поток не тронут — это по-прежнему `request` + `getReader`,
+   * ровно то, что делает fetchStream внутри; NDJSON и его разбор
+   * (consumeTurnStream) не меняются. fetchStream остаётся на месте: им
+   * пользуется чат с ассистентами.
    */
-  chatStream(productId: string, prompt: string) {
-    return apiClient.fetchStream(`/webhook/products/${enc(productId)}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    });
+  async chatStream(productId: string, prompt: string): Promise<StreamStart | Problem> {
+    let res: Response;
+    try {
+      res = await apiClient.request(`/webhook/products/${enc(productId)}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+    } catch {
+      // Обрыв связи и неудачный refresh apiClient пробрасывает наружу — как в
+      // create/retry, иначе отказ вылетел бы из обработчика кнопки
+      // необработанным промисом.
+      return { ok: false, status: 0, message: '' };
+    }
+    if (!res.ok) {
+      return problem(res);
+    }
+    if (!res.body) {
+      // 2xx без тела: так отвечает прокси, срезавший поток, и так выглядит
+      // ответ в среде без ReadableStream. Кода отказа здесь нет, поэтому
+      // причина пустая — компонент подставит свою.
+      return { ok: false, status: res.status, message: '' };
+    }
+    return { ok: true, reader: res.body.getReader() };
   },
 };

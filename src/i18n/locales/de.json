@@ -1479,7 +1479,8 @@
     "title": "Studio",
     "tabs": {
       "agents": "Assistenten",
-      "bots": "Telegram-Bots"
+      "bots": "Telegram-Bots",
+      "products": "Produkte"
     },
     "mood_dramatic": "Dramatisch",
     "mood_inspiring": "Inspirierend",
@@ -1996,12 +1997,23 @@
       "stopped": "Gestoppt",
       "provisioning": "Wird eingerichtet…",
       "archived": "Archiviert",
-      "failed": "Einrichtung fehlgeschlagen"
+      "failed": "Einrichtung fehlgeschlagen",
+      "sleeping": "Schläft"
+    },
+    "rent": {
+      "paidUntil": "Bezahlt bis {{date}}",
+      "sleepingWhy": "Die Tokens für die Miete haben nicht gereicht",
+      "wakeHint": "Die Miete beträgt {{amount}} Tokens pro Monat. Lade dein Guthaben auf, dann wacht das Produkt von selbst auf",
+      "waking": "Guthaben aufgeladen — das Produkt wacht auf, das dauert etwa eine Minute",
+      "soonWarning": "Abbuchung am {{date}}, dein Guthaben reicht nicht",
+      "topUp": "Guthaben aufladen"
     },
     "chat": {
       "placeholder": "Was soll geändert werden?",
       "send": "Senden",
-      "busy": "Der Agent arbeitet noch an deiner vorherigen Anfrage"
+      "busy": "Der Agent arbeitet noch an deiner vorherigen Anfrage",
+      "sleeping": "Das Produkt schläft: Die Tokens für die Miete haben nicht gereicht. Lade dein Guthaben auf, dann wacht es von selbst auf.",
+      "failed": "Die Änderung konnte nicht gesendet werden"
     },
     "history": {
       "title": "Änderungsverlauf",

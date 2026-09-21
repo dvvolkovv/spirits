@@ -1485,7 +1485,8 @@
     "title": "Estudio",
     "tabs": {
       "agents": "Asistentes",
-      "bots": "Bots de Telegram"
+      "bots": "Bots de Telegram",
+      "products": "Productos"
     },
     "mood_dramatic": "Dramático",
     "mood_inspiring": "Inspirador",
@@ -2002,12 +2003,23 @@
       "stopped": "Detenido",
       "provisioning": "Desplegando…",
       "archived": "Archivado",
-      "failed": "No se pudo desplegar"
+      "failed": "No se pudo desplegar",
+      "sleeping": "Dormido"
+    },
+    "rent": {
+      "paidUntil": "Pagado hasta el {{date}}",
+      "sleepingWhy": "No hubo tokens suficientes para el alquiler",
+      "wakeHint": "El alquiler cuesta {{amount}} tokens al mes. Recarga tu saldo y el producto despertará solo",
+      "waking": "Saldo recargado: el producto está despertando, tardará alrededor de un minuto",
+      "soonWarning": "Cobro el {{date}}, tu saldo no alcanza",
+      "topUp": "Recargar saldo"
     },
     "chat": {
       "placeholder": "¿Qué quieres cambiar?",
       "send": "Enviar",
-      "busy": "El agente aún está trabajando en tu solicitud anterior"
+      "busy": "El agente aún está trabajando en tu solicitud anterior",
+      "sleeping": "El producto está dormido: no hubo tokens suficientes para el alquiler. Recarga tu saldo y despertará solo.",
+      "failed": "No se pudo enviar el cambio"
     },
     "history": {
       "title": "Historial de cambios",
