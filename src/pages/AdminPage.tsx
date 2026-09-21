@@ -17,8 +17,9 @@ import AdminProductManagementView from '../components/admin/AdminProductManageme
 import AdminRetentionView from '../components/admin/AdminRetentionView';
 import AdminActivationView from '../components/admin/AdminActivationView';
 import AdminIntegrationsView from '../components/admin/AdminIntegrationsView';
+import AdminBlogView from '../components/admin/AdminBlogView';
 
-type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'calls' | 'assistants' | 'coupons' | 'referrals' | 'retention' | 'activation' | 'monitoring' | 'product' | 'integrations';
+type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'calls' | 'assistants' | 'coupons' | 'referrals' | 'retention' | 'activation' | 'monitoring' | 'product' | 'integrations' | 'blog';
 
 // `?tab=backlog` used to point at a standalone Бэклог tab.
 // We folded backlog into Управление продуктом — keep the URL working.
@@ -32,7 +33,7 @@ const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t } = useTranslation();
   const [params, setSearchParams] = useSearchParams();
-  const KNOWN_TABS: AdminTab[] = ['support', 'users', 'payments', 'tokens', 'usage', 'calls', 'assistants', 'coupons', 'referrals', 'retention', 'activation', 'monitoring', 'product', 'integrations'];
+  const KNOWN_TABS: AdminTab[] = ['support', 'users', 'payments', 'tokens', 'usage', 'calls', 'assistants', 'coupons', 'referrals', 'retention', 'activation', 'monitoring', 'product', 'integrations', 'blog'];
   const rawTab = params.get('tab') || '';
   const aliasResolved = TAB_ALIASES[rawTab] ?? (rawTab as AdminTab);
   const initialTab: AdminTab = KNOWN_TABS.includes(aliasResolved) ? aliasResolved : 'support';
@@ -94,6 +95,7 @@ const AdminPage: React.FC = () => {
     { id: 'monitoring', label: t('admin.tabs.monitoring') },
     { id: 'product', label: t('admin.tabs.product') },
     { id: 'integrations', label: t('admin.tabs.integrations') },
+    { id: 'blog', label: t('admin.tabs.blog') },
   ];
 
   return (
@@ -136,6 +138,7 @@ const AdminPage: React.FC = () => {
         {activeTab === 'monitoring' && <AdminMonitoringView />}
         {activeTab === 'product' && <AdminProductManagementView />}
         {activeTab === 'integrations' && <AdminIntegrationsView />}
+        {activeTab === 'blog' && <AdminBlogView />}
       </div>
     </div>
   );

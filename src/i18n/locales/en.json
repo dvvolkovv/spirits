@@ -560,7 +560,8 @@
       "monitoring": "Monitoring",
       "backlog": "Backlog",
       "product": "Product",
-      "integrations": "Integrations"
+      "integrations": "Integrations",
+      "blog": "Blog"
     },
     "product": {
       "tabs": {
