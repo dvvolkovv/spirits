@@ -2091,10 +2091,5 @@
     "ticketExpired": "El enlace caducó: vuelve a iniciar sesión",
     "storageFull": "No se pudo guardar la sesión: el almacenamiento del navegador no está disponible",
     "backToLogin": "Volver al inicio de sesión"
-  },
-  "admin": {
-    "tabs": {
-      "blog": "Blog"
-    }
   }
 }
