@@ -59,7 +59,8 @@ const AuthLinkPage: React.FC = () => {
     if (!r.success) return fail(r.error === 'Wrong code' ? 'authLink.wrongCode' : 'authLink.verifyFailed');
 
     try {
-      await apiClient.post('/webhook/auth/link/attach', { ticket });
+      const resp = await apiClient.post('/webhook/auth/link/attach', { ticket });
+      if (!resp.ok) console.error(`link/attach: ${resp.status}`);
     } catch {
       // Вход уже состоялся, токены сохранены. Не привязалась только почта —
       // это не повод выкидывать человека обратно на экран входа: пусть
@@ -74,8 +75,10 @@ const AuthLinkPage: React.FC = () => {
     setError('');
     try {
       const resp = await apiClient.post('/webhook/auth/link/new', { ticket });
-      const data = resp.data || resp;
-      if (!data['access-token'] || !data['refresh-token']) return fail('authLink.ticketExpired');
+      const data = await resp.json().catch(() => ({} as Record<string, string>));
+      if (!resp.ok || !data['access-token'] || !data['refresh-token']) {
+        return fail('authLink.ticketExpired');
+      }
       if (!tokenManager.saveTokens(data['access-token'], data['refresh-token'])) {
         return fail('authLink.storageFull');
       }
