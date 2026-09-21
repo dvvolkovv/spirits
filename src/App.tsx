@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
 import ReferralWelcomeBanner from './components/referral/ReferralWelcomeBanner';
+import AuthLinkPage from './pages/AuthLinkPage';                // eager: сюда уводит остановленный вход, аккаунта ещё нет
 import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
@@ -298,6 +299,14 @@ const App: React.FC = () => {
               падала с React #321 ровно через секунду после обновления токенов.
             */}
             <Route path="/room/:code" element={<RoomPage />} />
+            {/*
+              Экран выбора, когда вход остановлен: почта принадлежит аккаунту,
+              где она указана в профиле, но входом не является. Публичный и
+              сосед AppContent по той же причине, что и колбэки выше —
+              аккаунта у человека ещё нет, и внутри AppContent он получил бы
+              онбординг вместо выбора, потеряв билет на привязку.
+            */}
+            <Route path="/auth/link" element={<AuthLinkPage />} />
             <Route path="/auth/:provider/callback" element={<AuthOAuthCallbackPage />} />
             <Route path="/auth/email/confirm" element={<AuthEmailConfirmPage />} />
             <Route path="*" element={<AppContent />} />

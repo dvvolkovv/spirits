@@ -2076,5 +2076,20 @@
     "hostAgentSilent": "Le serveur des produits ne répond pas : la création ne démarrera pas pour le moment. Vous pouvez tout de même créer le produit : il restera dans la file d’attente et démarrera dès que la connexion sera rétablie.",
     "loadFailed": "Impossible d’actualiser la liste — l’ancienne est affichée",
     "reload": "Actualiser"
+  },
+  "authLink": {
+    "title": "Vous avez déjà un compte",
+    "explain": "Cette adresse e-mail figure dans le profil du compte associé au numéro {{hint}}. Connectez-vous avec ce numéro : l'e-mail deviendra un second moyen d'accès au même compte, avec son historique et son solde.",
+    "loginByPhone": "Se connecter par téléphone",
+    "createNew": "Créer un nouveau compte",
+    "createNewHint": "Un compte distinct, sans historique et avec son propre solde. À choisir si vous n'avez plus accès à ce numéro.",
+    "phoneTitle": "Confirmez votre numéro",
+    "phoneSubtitle": "Numéro {{hint}} — saisissez-le en entier, nous enverrons un code.",
+    "smsFailed": "Impossible d'envoyer le SMS",
+    "wrongCode": "Code incorrect",
+    "verifyFailed": "Impossible de confirmer le numéro",
+    "ticketExpired": "Ce lien a expiré — recommencez la connexion",
+    "storageFull": "Impossible d'enregistrer la session : le stockage du navigateur est indisponible",
+    "backToLogin": "Retour à la connexion"
   }
 }

@@ -2076,5 +2076,20 @@
     "hostAgentSilent": "El servidor de productos no responde: la creación no empezará ahora. Puedes crear el producto igualmente: quedará en cola y arrancará en cuanto se restablezca la conexión.",
     "loadFailed": "No se pudo actualizar la lista: se muestra la anterior",
     "reload": "Actualizar"
+  },
+  "authLink": {
+    "title": "Ya tienes una cuenta",
+    "explain": "Este correo figura en el perfil de la cuenta con el número {{hint}}. Inicia sesión con ese número y el correo pasará a ser una segunda forma de entrar a la misma cuenta, con todo su historial y saldo.",
+    "loginByPhone": "Entrar con el teléfono",
+    "createNew": "Crear una cuenta nueva",
+    "createNewHint": "Una cuenta aparte, sin historial y con su propio saldo. Elígela si ya no tienes acceso a ese número.",
+    "phoneTitle": "Confirma tu número",
+    "phoneSubtitle": "Número {{hint}}: escríbelo completo y te enviaremos un código.",
+    "smsFailed": "No se pudo enviar el SMS",
+    "wrongCode": "Código incorrecto",
+    "verifyFailed": "No se pudo confirmar el número",
+    "ticketExpired": "El enlace caducó: vuelve a iniciar sesión",
+    "storageFull": "No se pudo guardar la sesión: el almacenamiento del navegador no está disponible",
+    "backToLogin": "Volver al inicio de sesión"
   }
 }

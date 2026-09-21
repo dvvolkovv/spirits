@@ -2070,5 +2070,20 @@
     "hostAgentSilent": "Der Produktserver antwortet nicht – die Einrichtung startet gerade nicht. Sie können das Produkt trotzdem anlegen: Es wartet in der Warteschlange und startet, sobald die Verbindung wieder da ist.",
     "loadFailed": "Liste konnte nicht aktualisiert werden — die vorherige wird angezeigt",
     "reload": "Aktualisieren"
+  },
+  "authLink": {
+    "title": "Sie haben bereits ein Konto",
+    "explain": "Diese E-Mail ist im Profil des Kontos mit der Nummer {{hint}} hinterlegt. Melden Sie sich mit dieser Nummer an — die E-Mail wird dann zu einem zweiten Zugang zu demselben Konto, mit Verlauf und Guthaben.",
+    "loginByPhone": "Mit Telefonnummer anmelden",
+    "createNew": "Neues Konto erstellen",
+    "createNewHint": "Ein separates Konto ohne Verlauf und mit eigenem Guthaben. Wählen Sie dies, wenn Sie keinen Zugriff mehr auf die Nummer haben.",
+    "phoneTitle": "Nummer bestätigen",
+    "phoneSubtitle": "Nummer {{hint}} — geben Sie sie vollständig ein, wir senden einen Code.",
+    "smsFailed": "SMS konnte nicht gesendet werden",
+    "wrongCode": "Falscher Code",
+    "verifyFailed": "Nummer konnte nicht bestätigt werden",
+    "ticketExpired": "Der Link ist abgelaufen — bitte erneut anmelden",
+    "storageFull": "Sitzung konnte nicht gespeichert werden: Browser-Speicher nicht verfügbar",
+    "backToLogin": "Zurück zur Anmeldung"
   }
 }
