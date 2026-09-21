@@ -127,9 +127,11 @@
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "Rede neuronal para o crescimento e o desenvolvimento do negócio",
+    "subtitle_personal": "Seu assistente pessoal, no seu telefone",
     "seg_biz": "Equipa de IA para o negócio: advogado, contabilista e especialista de marketing num só chat",
     "seg_creator": "Estúdio de IA: textos, imagens e vídeos em minutos",
     "trust": "25 000 tokens de oferta · sem cartão · 2 minutos",
+    "trust_personal": "Entrar pelo número · sem cartão · 2 minutos",
     "android_app": "Descarregar a aplicação para Android",
     "enter_phone": "Introduza o número de telemóvel",
     "phone_placeholder": "+7 (999) 999-99-99",

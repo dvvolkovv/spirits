@@ -23,12 +23,19 @@ const OnboardingPage: React.FC = () => {
   // Message-match: пришёл с рекламы под персону (?seg=biz/creator) — показываем
   // подзаголовок под ту же персону, что в объявлении/лендинге, чтобы обещание не
   // рвалось на экране регистрации (выше конверсия в регистрацию).
+  // Контекст: внутри компаньона (Capacitor-native) вход открывается из лаунчера LinkeonOS
+  // после знакомства с Романом — показываем ЛИЧНУЮ формулировку, чтобы тёплый тон не рвался
+  // о бизнес-брендинг. На вебе my.linkeon.io — бизнес-воронка без изменений (включая seg-
+  // message-match и «25 000 токенов в подарок»).
+  const isCompanion = typeof window !== 'undefined' && !!(window as any).Capacitor?.isNativePlatform?.();
   const seg = searchParams.get('seg');
-  const segSubtitle = seg === 'biz'
-    ? t('onboarding.seg_biz')
-    : seg === 'creator'
-      ? t('onboarding.seg_creator')
-      : t('onboarding.subtitle');
+  const segSubtitle = isCompanion
+    ? t('onboarding.subtitle_personal')
+    : seg === 'biz'
+      ? t('onboarding.seg_biz')
+      : seg === 'creator'
+        ? t('onboarding.seg_creator')
+        : t('onboarding.subtitle');
 
   return (
     <div
@@ -69,7 +76,7 @@ const OnboardingPage: React.FC = () => {
 
         <p className="text-center mt-4 animate-fade-in stagger-3">
           <span className="inline-block rounded-full bg-forest-50 text-forest-800 text-xs font-medium px-3.5 py-1.5">
-            {t('onboarding.trust')}
+            {isCompanion ? t('onboarding.trust_personal') : t('onboarding.trust')}
           </span>
         </p>
 

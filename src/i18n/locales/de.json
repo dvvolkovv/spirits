@@ -126,9 +126,11 @@
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "Die KI für Wachstum und Entwicklung deines Business",
+    "subtitle_personal": "Dein persönlicher Assistent auf deinem Handy",
     "seg_biz": "KI-Team für dein Business: Anwalt, Buchhalter und Marketer in einem Chat",
     "seg_creator": "KI-Studio: Texte, Bilder und Videos in Minuten",
     "trust": "25.000 Tokens geschenkt · ohne Karte · 2 Minuten",
+    "trust_personal": "Anmeldung per Telefonnummer · ohne Karte · 2 Minuten",
     "android_app": "Android-App herunterladen",
     "enter_phone": "Telefonnummer eingeben",
     "phone_placeholder": "+7 (999) 999-99-99",

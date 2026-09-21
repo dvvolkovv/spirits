@@ -125,9 +125,11 @@
   "onboarding": {
     "welcome": "LINKEON.IO",
     "subtitle": "赋能企业成长与发展的智能引擎",
+    "subtitle_personal": "你手机上的私人助理",
     "seg_biz": "企业AI团队：律师、会计师和营销专家汇聚一个聊天",
     "seg_creator": "AI工作室：几分钟内生成文案、图片和视频",
     "trust": "赠送25,000代币 · 无需银行卡 · 仅需2分钟",
+    "trust_personal": "手机号登录 · 无需银行卡 · 2 分钟",
     "android_app": "下载 Android 应用",
     "enter_phone": "请输入手机号码",
     "phone_placeholder": "+7 (999) 999-99-99",
