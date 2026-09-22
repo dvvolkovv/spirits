@@ -947,6 +947,12 @@ import { TurnsService, SLEEPING_REFUSAL, BLOCKED_REFUSAL } from './turns.service
       await mkProduct({ name: 'Магазин цветов', slug: 'flowers' });
       await mkProduct({ name: 'Магазин книг', slug: 'books' });
       const svc = new ProductToolService(pg as any, realTurns());
+      // Потолок в ноль не ради скорости зелёного прогона — ради ВНЯТНОСТИ
+      // красного. Измерено: со снятой веткой уточнения тест уходит в боевое
+      // ожидание (150 с), умирает на таймауте jest в 60 с и рапортует
+      // «timeout» вместо «поставлен ход, которого быть не должно». С этой
+      // строкой мутация краснеет за 82 мс внятным утверждением.
+      (svc as any).waitMs = 0;
       const out: any = await svc.execute(OWNER, { action: 'edit', product: 'магазин', prompt: 'что-нибудь' });
       expect(out.ok).toBe(false);
       expect(out.reason).toBe('ambiguous');
@@ -2082,10 +2088,14 @@ ssh dv@85.192.61.231 'cd ~/ci/spirits_back && source ~/.nvm/nvm.sh && \
 | 2 | в `describeTurn` у `reverted` поставить `ok: true, outcome: 'done'` | `product-tool.service.ts` | «reverted — ОТКАТ, и это НЕ успех», «три конца различимы» |
 | 3 | в `describeTurn` у `failed` поставить `outcome: 'done'` | `product-tool.service.ts` | «failed — не сделано», «три конца различимы» |
 | 4 | в `edit` при `matches.length > 1` взять `matches[0]` и ставить ход | `product-tool.service.ts` | «два магазина — УТОЧНЯЕТ, а не выбирает» |
-| 5 | `private waitMs = 900_000;` (своё число вместо производного) | `product-tool.service.ts` | ничего ⇒ **дописать тест**: `expect((new ProductToolService(pg,turns) as any).waitMs).toBe(PRODUCT_TOOL_WAIT_MS)` |
+| 5 | `private waitMs = 900_000;` (своё число вместо производного) | `product-tool.service.ts` | «потолок ожидания взят из общей константы» (тест добавлен сразу в задаче 6 — слепое пятно закрыто заранее) |
 | 6 | в `refusal()` вернуть для `BLOCKED_REFUSAL` тот же объект, что для `SLEEPING_REFUSAL` | `product-tool.service.ts` | «погашенный — отказ БЕЗ предложения», «различимы по признаку пополнения» |
-| 7 | в `edit` вызвать `this.turns.enqueue(...)` дважды | `product-tool.service.ts` | «ставит ровно ОДИН ход» |
+| 7 | в `edit` вызвать `this.turns.enqueue(...)` дважды | `product-tool.service.ts` | «ставит ровно ОДИН ход» — но **не через `count(*)`**, см. ниже |
 | 8 | в `callTool` взять `const userId = args.userId ?? this.owner(authHeader)` | `products-mcp.controller.ts` | «поле userId в запросе игнорируется полностью» |
+
+**Измерено на мутации 7 (записать, а не забыть):** второй `enqueue` не создаёт второго хода — он бьётся о замок `product_turns_one_active` и отдаёт `ConflictException`, то есть `count(*)` остаётся равен 1 и мутацию НЕ различает. Краснеет `expect(out.turnId).toBeTruthy()`: ответ уходит по ветке `busy`, где `turnId` нет.
+
+Вывод для спеки: «двойное списание за одну просьбу» закрыто **уникальным индексом в базе**, а не проверкой в инструменте. Счётчик ходов в этом сценарии — ремень, который не затягивается; убирать его не надо (он сторожит отсутствие замка), но полагаться на него как на ловца этой мутации нельзя.
 
 - [ ] **Step 3: Дописать тест на мутацию 5, если она выжила**
 
