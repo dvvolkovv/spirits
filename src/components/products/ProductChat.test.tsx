@@ -275,3 +275,67 @@ describe('ProductChat — спящий продукт', () => {
     expect(byLink(container, new RegExp(tRu('products.rent.topUp')))).toBeNull();
   });
 });
+
+/**
+ * Погашенный администратором продукт.
+ *
+ * В чат правок владелец попадает из списка, где причина уже объяснена, — но
+ * попадает он туда именно затем, чтобы поправить продукт. Экран обязан
+ * сказать, что правки не примут, ДО отправки: иначе правда приходит 409-м уже
+ * после того, как владелец сформулировал задачу.
+ */
+describe('ProductChat — продукт погашен администратором', () => {
+  const SERVER_BLOCK_REASON = 'Жалоба на содержимое: продажа рецептурных лекарств';
+
+  it('объясняет блокировку причиной сервера ДО отправки', async () => {
+    auth.tokens = 0;
+    const { container } = mount(
+      <ProductChat
+        product={product({ status: 'blocked', block_reason: SERVER_BLOCK_REASON })}
+        onTurnFinished={() => {}}
+      />,
+    );
+
+    expect(visibleText(container)).toContain(tRu('products.status.blocked'));
+    expect(visibleText(container)).toContain(SERVER_BLOCK_REASON);
+  });
+
+  it('пополнить не предлагает — деньги его не будят', async () => {
+    // Баланс пустой, то есть соблазн показать «Пополнить» максимальный. Ровно
+    // поэтому бэкенд отбивает правку блокированного 409-м, а не 402-м: 402
+    // зажигает эту кнопку ниже, в разборе отказа.
+    auth.tokens = 0;
+    const { container } = mount(
+      <ProductChat
+        product={product({ status: 'blocked', block_reason: SERVER_BLOCK_REASON })}
+        onTurnFinished={() => {}}
+      />,
+    );
+
+    expect(byLink(container, new RegExp(tRu('products.rent.topUp')))).toBeNull();
+    expect(visibleText(container)).toContain(tRu('products.blocked.noTopUp'));
+    expect(byLink(container, new RegExp(tRu('products.blocked.contact')))!.getAttribute('href')).toBe(
+      '/support',
+    );
+  });
+
+  it('причина не доехала — объяснение всё равно есть', async () => {
+    auth.tokens = 0;
+    const { container } = mount(
+      <ProductChat
+        product={product({ status: 'blocked', block_reason: null })}
+        onTurnFinished={() => {}}
+      />,
+    );
+
+    expect(visibleText(container)).toContain(tRu('products.blocked.unknownReason'));
+  });
+
+  it('работающий продукт про блокировку не поминает', async () => {
+    auth.tokens = 0;
+    const { container } = mount(<ProductChat product={product()} onTurnFinished={() => {}} />);
+
+    expect(visibleText(container)).not.toContain(tRu('products.status.blocked'));
+    expect(visibleText(container)).not.toContain(tRu('products.blocked.noTopUp'));
+  });
+});

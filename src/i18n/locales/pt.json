@@ -2336,6 +2336,8 @@
     "title": "Meus produtos",
     "subtitle": "Sites e bots que a Linkeon hospeda e mantém",
     "empty": "Ainda não há produtos",
+    "emptyWhat": "Um produto é o seu site ou o seu bot do Telegram: o domínio, o servidor e as atualizações ficam por nossa conta. Você descreve a mudança com palavras comuns — o assistente faz e publica na hora.",
+    "emptyPrice": "O primeiro mês é grátis, não é preciso pagar nada agora. Depois, {{amount}} tokens por mês por produto.",
     "status": {
       "running": "Em funcionamento",
       "degraded": "Sem conexão com o servidor",
@@ -2343,7 +2345,13 @@
       "provisioning": "Provisionando…",
       "archived": "Arquivado",
       "failed": "Falha ao provisionar",
-      "sleeping": "A dormir"
+      "sleeping": "A dormir",
+      "blocked": "Parado por um administrador"
+    },
+    "blocked": {
+      "unknownReason": "Não nos informaram o motivo — pergunte ao suporte por que o produto foi parado.",
+      "noTopUp": "Carregar saldo não ajuda aqui: só um administrador pode remover o bloqueio.",
+      "contact": "Falar com o suporte"
     },
     "rent": {
       "paidUntil": "Pago até {{date}}",

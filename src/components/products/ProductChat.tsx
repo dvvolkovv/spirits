@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Send } from 'lucide-react';
+import { Send, ShieldAlert } from 'lucide-react';
 import { productsApi, Product } from '../../services/productsApi';
 import type { Problem } from '../../services/productsApi';
-import { TOPUP_HREF, formatRentAmount, wakeExpected } from './rent';
+import { SUPPORT_HREF, TOPUP_HREF, formatRentAmount, wakeExpected } from './rent';
 import { useAuth } from '../../contexts/AuthContext';
 
 export type StreamEvent =
@@ -191,6 +191,39 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
               </a>
             </>
           )}
+        </div>
+      )}
+
+      {/*
+        ПОГАШЕННЫЙ ПРОДУКТ: ТО ЖЕ ОБЪЯСНЕНИЕ, ЧТО И В КАРТОЧКЕ СПИСКА.
+        Открыв продукт прямо отсюда (список → карточка → чат), владелец иначе
+        увидел бы обычное поле ввода и узнал бы правду только после отправки
+        правки — из 409-го. Замка на поле тут, как и у сна, нет: статус — снимок
+        на момент открытия, а блокировку могли снять минуту назад.
+
+        Кнопки пополнения в этом блоке нет и быть не может: пополнение
+        блокированного не будит. По той же причине бэкенд отбивает его правку
+        409-м, а не 402-м — 402 ниже зажигает «Пополнить баланс».
+      */}
+      {product.status === 'blocked' && (
+        <div
+          role="alert"
+          className="flex flex-col gap-1.5 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-900 text-sm"
+        >
+          <span className="flex items-center gap-1.5 font-medium">
+            <ShieldAlert size={16} className="shrink-0" />
+            {t('products.status.blocked')}
+          </span>
+          <span className="break-words">
+            {product.block_reason || t('products.blocked.unknownReason')}
+          </span>
+          <span>{t('products.blocked.noTopUp')}</span>
+          <a
+            href={SUPPORT_HREF}
+            className="self-start mt-0.5 px-4 py-1.5 rounded-lg border border-red-300 hover:border-red-400 text-sm font-medium"
+          >
+            {t('products.blocked.contact')}
+          </a>
         </div>
       )}
 

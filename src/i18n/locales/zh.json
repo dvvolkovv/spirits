@@ -1985,6 +1985,8 @@
     "title": "我的产品",
     "subtitle": "由 Linkeon 托管和维护的网站与机器人",
     "empty": "暂无产品",
+    "emptyWhat": "产品就是你自己的网站或 Telegram 机器人：域名、服务器和更新都由我们负责。你用日常语言说明要改什么，助手就会改好并立即上线。",
+    "emptyPrice": "第一个月免费，无需预先付款。之后每个产品每月 {{amount}} 代币。",
     "status": {
       "running": "运行中",
       "degraded": "与服务器失去连接",
@@ -1992,7 +1994,13 @@
       "provisioning": "正在创建…",
       "archived": "已归档",
       "failed": "创建失败",
-      "sleeping": "已休眠"
+      "sleeping": "已休眠",
+      "blocked": "已被管理员停用"
+    },
+    "blocked": {
+      "unknownReason": "我们没有收到停用原因——请联系客服询问产品为何被停用。",
+      "noTopUp": "充值在这里没有用：只有管理员才能解除停用。",
+      "contact": "联系客服"
     },
     "rent": {
       "paidUntil": "已付费至 {{date}}",

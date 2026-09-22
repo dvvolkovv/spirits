@@ -93,11 +93,35 @@ const PAID_UNTIL_PREFIX = tRu('products.rent.paidUntil', { date: '' }).trim();
  */
 const SERVER_SLEEP_REASON = 'Не хватило токенов на аренду с 16 сентября';
 
+/**
+ * За что погашен — текст, пришедший с сервера.
+ *
+ * Как и причина сна выше, нарочно НЕ совпадает ни с одной своей строкой: пока
+ * фикстура повторяла запасную формулировку слово в слово, тест зеленел и с
+ * выброшенным полем. Настоящие причины пишет администратор руками, то есть
+ * предсказуемого текста у них нет вовсе.
+ */
+const SERVER_BLOCK_REASON = 'Жалоба на содержимое: продажа рецептурных лекарств';
+
 /** Длинная техническая причина — ровно то, что приходит с машины продуктов. */
 const LONG_REASON =
   'Command failed: docker build -t my-shop /srv/products/my-shop\n' +
   'ERROR: failed to solve: process "/bin/sh -c npm ci" did not complete successfully: exit code: 1\n' +
   'npm ERR! code ERESOLVE'.repeat(3);
+
+/**
+ * Кнопка ВНУТРИ пустого состояния, а не та, что в шапке.
+ *
+ * Ищется по блоку с объяснением, а не «вторая кнопка с такой надписью»: счёт
+ * кнопок на экране — свойство вёрстки шапки, а не пустого состояния, и тест на
+ * него краснел бы от правки, к делу не относящейся.
+ */
+function emptyStateCta(container: HTMLElement): HTMLButtonElement | null {
+  const block = Array.from(container.querySelectorAll('div')).filter((d) =>
+    (d.textContent ?? '').includes(tRu('products.emptyWhat')),
+  ).pop();
+  return block ? byButton(block, new RegExp(tRu('products.new.button'))) : null;
+}
 
 /** Открыть форму, заполнить поля сайта и нажать «Создать». */
 async function fillSite(container: HTMLElement, name: string, slug: string) {
@@ -904,6 +928,20 @@ describe('ProductsListView — аренда', () => {
     expect(visibleText(container)).toContain(tRu('products.status.running'));
   });
 
+  it('блокированный продукт не показывает срок аренды', async () => {
+    // Аренду с него не берут вовсе: chargeRent отбирает
+    // `status IN ('running','degraded')`. «Оплачено до 05.10.2026» в карточке
+    // погашенного продукта — срок, по которому ничего не случится.
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([
+      product({ status: 'blocked', block_reason: SERVER_BLOCK_REASON, paid_until: '2026-10-05T10:00:00Z' }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).not.toContain(PAID_UNTIL_PREFIX);
+  });
+
   it('спящий без денег опрос не крутит: ждать нечего', async () => {
     // Пока баланс не пополнен, состояние не изменится — продукт мог бы
     // пролежать так месяц. Перечитку включит сам баланс: его AuthContext
@@ -920,5 +958,202 @@ describe('ProductsListView — аренда', () => {
     });
 
     expect(api.list).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * Продукт погашен администратором.
+ *
+ * Здесь владелец узнаёт единственное, что ему вообще доступно узнать: общего
+ * списка продуктов у администратора нет, уведомлений кусок 4б не делает.
+ * Карточка — единственный источник правды, и главное в ней — чего в ней НЕТ.
+ */
+describe('ProductsListView — продукт погашен администратором', () => {
+  it('статус назван, а причина показана текстом сервера', async () => {
+    api.list.mockResolvedValue(listing([
+      product({ status: 'blocked', block_reason: SERVER_BLOCK_REASON }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.status.blocked'));
+    expect(visibleText(container)).toContain(SERVER_BLOCK_REASON);
+  });
+
+  it('причина не доехала — владелец всё равно не остаётся ни с чем', async () => {
+    // Сервер без непустой причины гасить отказывается (400), но поля может не
+    // быть у бэкенда, выкаченного до 007, и у ответа, из которого колонку
+    // срезали. «Остановлен администратором» в одиночку не объясняет ничего и
+    // отправляет владельца искать поломку у себя.
+    api.list.mockResolvedValue(listing([product({ status: 'blocked', block_reason: null })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.blocked.unknownReason'));
+  });
+
+  it('кнопки пополнения у блокированного нет — ни одной', async () => {
+    // ГЛАВНЫЙ СЦЕНАРИЙ ЭТОГО ФАЙЛА. Условия подобраны так, чтобы ссылка на
+    // пополнение полезла сама: денег нет И срок списания завтра — ровно то
+    // сочетание, при котором карточка работающего продукта зажигает тревогу
+    // с кнопкой. Пополнение блокированного НЕ будит (wakeAffordable отбирает
+    // строго 'sleeping'), то есть кнопка собрала бы деньги ни за что.
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([
+      product({
+        status: 'blocked',
+        block_reason: SERVER_BLOCK_REASON,
+        paid_until: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+      }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    // И ссылкой, и кнопкой: сегодня пополнение — это <a href>, но проверка
+    // только по ссылке пережила бы превращение её в <button onClick>.
+    expect(byLink(container, new RegExp(tRu('products.rent.topUp')))).toBeNull();
+    expect(byButton(container, new RegExp(tRu('products.rent.topUp')))).toBeNull();
+    expect(visibleText(container)).not.toContain(tRu('products.rent.wakeHint', { amount: RENT_AMOUNT }));
+    expect(visibleText(container)).toContain(tRu('products.blocked.noTopUp'));
+  });
+
+  it('единственное доступное действие названо и ведёт в поддержку', async () => {
+    // Снять блокировку владелец не может ничем. «Напишите нам» без места, куда
+    // нажать, — совет сделать недоступное; /support это живой раздел заявок.
+    api.list.mockResolvedValue(listing([
+      product({ status: 'blocked', block_reason: SERVER_BLOCK_REASON }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    const link = byLink(container, new RegExp(tRu('products.blocked.contact')))!;
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toBe('/support');
+  });
+
+  it('блокировка покрашена не общим серым', async () => {
+    // Серым покрашен 'stopped' — «остановлен», то есть решение самого
+    // владельца. Гашение администратором тем же цветом читалось бы как его
+    // собственное действие, которого он не совершал.
+    api.list.mockResolvedValue(listing([product({ status: 'blocked', block_reason: 'проба' })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    const badge = Array.from(container.querySelectorAll('span')).find(
+      (el) => el.textContent === tRu('products.status.blocked'),
+    )!;
+    expect(badge.className).toContain('text-red-600');
+    expect(badge.className).not.toContain('text-gray-400');
+  });
+
+  it('соседний спящий продукт пополнить по-прежнему зовут', async () => {
+    // Сторож от починки «в одну сторону»: убрать пополнение у всех подряд —
+    // это тоже «у блокированного кнопки нет».
+    auth.tokens = 0;
+    api.list.mockResolvedValue(listing([
+      product({ id: 'p-1', status: 'blocked', block_reason: SERVER_BLOCK_REASON }),
+      product({ id: 'p-2', name: 'Второй', status: 'sleeping', sleep_reason: SERVER_SLEEP_REASON }),
+    ]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(byLink(container, new RegExp(tRu('products.rent.topUp')))).toBeTruthy();
+    expect(visibleText(container)).toContain(SERVER_BLOCK_REASON);
+    expect(visibleText(container)).toContain(SERVER_SLEEP_REASON);
+  });
+});
+
+/**
+ * ПУСТОЙ КАБИНЕТ.
+ *
+ * С этого куска вкладка открыта всем, и первым этот экран увидит человек без
+ * продуктов, без токенов и без единого платежа. На нём он решает, платить или
+ * уйти, — значит экран обязан ответить, что это, сколько стоит и что нажать.
+ */
+describe('ProductsListView — пустой кабинет', () => {
+  it('объясняет, что такое продукт', async () => {
+    api.list.mockResolvedValue(listing([]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.empty'));
+    expect(visibleText(container)).toContain(tRu('products.emptyWhat'));
+  });
+
+  it('называет цену до того, как человек вложил работу', async () => {
+    // Иначе цену он узнает через месяц — когда продукт уснёт за неуплату.
+    api.list.mockResolvedValue(listing([]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).toContain(tRu('products.emptyPrice', { amount: RENT_AMOUNT }));
+    // Ровно то же число, что в подсказке спящему продукту: два разных на одном
+    // экране разъехались бы молча.
+    expect(visibleText(container)).toContain(RENT_AMOUNT);
+  });
+
+  it('заводит продукт прямо из пустого состояния', async () => {
+    // Кнопка шапки на десктопе уезжает в правый угол, то есть в сторону от
+    // текста, который человек только что прочитал.
+    api.list.mockResolvedValue(listing([]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    const cta = emptyStateCta(container)!;
+    expect(cta).toBeTruthy();
+    click(cta);
+
+    expect(byLabel(container, /Название/)).not.toBeNull();
+  });
+
+  it('витрина не подменяет собой отказ загрузки', async () => {
+    // Объявлять «продуктов нет» и тут же рассказывать, почём они, человеку, у
+    // которого продукты есть, а список не доехал, — худшее из двух враний.
+    api.list.mockResolvedValue(null);
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).not.toContain(tRu('products.emptyWhat'));
+    expect(visibleText(container)).toContain(tRu('products.loadFailed'));
+  });
+
+  it('у владельца продуктов витрины нет', async () => {
+    // Объяснение «что это такое» и цена нужны ровно один раз. Над списком
+    // заведённых продуктов это шум.
+    api.list.mockResolvedValue(listing([product({ name: 'Магазин цветов' })]));
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    expect(visibleText(container)).not.toContain(tRu('products.emptyWhat'));
+    expect(visibleText(container)).not.toContain(tRu('products.emptyPrice', { amount: RENT_AMOUNT }));
+  });
+});
+
+/**
+ * ПРЕДЕЛ ЧИСЛА ПРОДУКТОВ НА АККАУНТ.
+ *
+ * Вкладка открыта всем, а машина под клиентские продукты рассчитана на два
+ * десятка — поэтому у аккаунта появился предел. Сервер отдаёт его 422-м, и код
+ * выбран НЕ ПО ВКУСУ, а по тому, как разбирает коды этот самый файл: 409 здесь
+ * означает «адрес занят» и текст сервера игнорирует, всё `>= 500` глушится
+ * своей формулировкой. 422 — единственный код, попадающий в ветку с
+ * сообщением сервера, и этот сценарий её удерживает.
+ */
+describe('ProductsListView — предел аккаунта', () => {
+  it('отказ по пределу показывается текстом сервера, а не своей заглушкой', async () => {
+    const REFUSAL =
+      'Предел — 2 продукта на один аккаунт, и он уже занят. ' +
+      'Напишите нам, если нужно больше: поднимем предел вашему аккаунту.';
+    api.create.mockResolvedValue({ ok: false, status: 422, message: REFUSAL });
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    await fillSite(container, 'Третий', 'ss-c');
+
+    expect(visibleText(container)).toContain(REFUSAL);
+    // Ни «Этот адрес уже занят» (там лечение — сменить адрес), ни «Сервер не
+    // принял продукт» (там лечения нет вовсе).
+    expect(visibleText(container)).not.toContain(tRu('products.new.errors.slugTaken'));
+    expect(visibleText(container)).not.toContain(tRu('products.new.errors.rejected'));
   });
 });
