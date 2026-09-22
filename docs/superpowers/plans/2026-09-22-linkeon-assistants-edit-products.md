@@ -596,12 +596,16 @@ git commit -m "feat(products): нестрогий поиск продукта п
 
 - [ ] **Step 1: Написать падающий тест**
 
-Дописать в `product-tool.spec.ts` внутрь `maybe(...)`, после блока `describe('поиск продукта', ...)`:
+Дописать в `product-tool.spec.ts` **ВНЕ** обёртки `maybe(...)` — на верхнем уровне файла, после её закрывающей скобки. Разбор исхода — чистая логика, базы ему не нужно; внутри `maybe` он пропускался бы вместе со всем файлом на обычном прогоне, то есть не проверялся бы почти никогда.
+
+Заодно дописать `describeTurn` в существующий импорт в шапке:
+
+```ts
+import { ProductToolService, describeTurn } from './product-tool.service';
+```
 
 ```ts
   describe('разбор исхода хода', () => {
-    const { describeTurn } = jest.requireActual('./product-tool.service');
-
     it('done — сделано, с расходом', () => {
       const d = describeTurn({ id: 't1', status: 'done', result: 'Добавил раздел', error: null, tokens_spent: 4200 });
       expect(d.outcome).toBe('done');
@@ -652,8 +656,18 @@ git commit -m "feat(products): нестрогий поиск продукта п
         expect(describeTurn({ id: 'x', status: s, result: null, error: null, tokens_spent: 0 }).finished).toBe(true);
       }
     });
+
+    // count(*) и bigint приезжают из node-pg СТРОКОЙ. Без явного Number()
+    // расход склеился бы строкой при сложении, а '0' прошёл бы как истинный.
+    it('расход приходит строкой из драйвера и становится числом', () => {
+      const d = describeTurn({ id: 'x', status: 'done', result: null, error: null, tokens_spent: '4200' as any });
+      expect(d.tokensSpent).toBe(4200);
+      expect(typeof d.tokensSpent).toBe('number');
+    });
   });
 ```
+
+Прогон без `PROVISIONING_PG_URL` обязан показать `Tests: 9 skipped, 8 passed, 17 total`. Все 17 в `skipped` — значит блок попал внутрь `maybe`.
 
 - [ ] **Step 2: Убедиться, что тест падает**
 
