@@ -1997,6 +1997,8 @@
     "title": "Mis productos",
     "subtitle": "Sitios y bots que Linkeon aloja y mantiene",
     "empty": "Aún no hay productos",
+    "emptyWhat": "Un producto es tu sitio web o tu bot de Telegram: el dominio, el servidor y las actualizaciones corren por nuestra cuenta. Describes el cambio con palabras normales y el asistente lo hace y lo publica al instante.",
+    "emptyPrice": "El primer mes es gratis, no hay que pagar nada por adelantado. Después, {{amount}} tokens al mes por producto.",
     "status": {
       "running": "En funcionamiento",
       "degraded": "Sin conexión con el servidor",
@@ -2004,7 +2006,13 @@
       "provisioning": "Desplegando…",
       "archived": "Archivado",
       "failed": "No se pudo desplegar",
-      "sleeping": "Dormido"
+      "sleeping": "Dormido",
+      "blocked": "Detenido por un administrador"
+    },
+    "blocked": {
+      "unknownReason": "No nos indicaron el motivo: pregunta al soporte por qué se detuvo el producto.",
+      "noTopUp": "Recargar no sirve aquí: solo un administrador puede levantar el bloqueo.",
+      "contact": "Escribir al soporte"
     },
     "rent": {
       "paidUntil": "Pagado hasta el {{date}}",

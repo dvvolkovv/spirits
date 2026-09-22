@@ -2336,6 +2336,8 @@
     "title": "My products",
     "subtitle": "Sites and bots that Linkeon hosts and maintains",
     "empty": "No products yet",
+    "emptyWhat": "A product is your own website or Telegram bot: the domain, the server and the updates are on us. You describe the change in plain words — the assistant makes it and ships it right away.",
+    "emptyPrice": "The first month is free, nothing to pay up front. After that — {{amount}} tokens per month per product.",
     "status": {
       "running": "Running",
       "degraded": "No connection to server",
@@ -2343,7 +2345,13 @@
       "provisioning": "Setting up…",
       "archived": "Archived",
       "failed": "Setup failed",
-      "sleeping": "Asleep"
+      "sleeping": "Asleep",
+      "blocked": "Stopped by an administrator"
+    },
+    "blocked": {
+      "unknownReason": "We weren't told the reason — ask support why the product was stopped.",
+      "noTopUp": "Topping up will not help here: only an administrator can lift the block.",
+      "contact": "Contact support"
     },
     "rent": {
       "paidUntil": "Paid until {{date}}",

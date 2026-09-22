@@ -5,22 +5,25 @@ import { Bot, Send, Server } from 'lucide-react';
 import { CustomAgentsListView } from '../components/custom-agents/CustomAgentsListView';
 import { TgBotsListView } from '../components/tg-bot/TgBotsListView';
 import { ProductsSection } from '../components/products/ProductsSection';
-import { useAuth } from '../contexts/AuthContext';
 
 type Tab = 'agents' | 'bots' | 'products';
 
 const StudioPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
 
-  // Продукты заводит пока только владелец. Вкладка скрыта не косметически:
-  // разбор параметра тоже её не принимает, иначе /studio?tab=products открыл
-  // бы раздел любому, кто подставит адрес руками.
-  const canProducts = !!user?.isAdmin;
+  // ПРОДУКТЫ ОТКРЫТЫ ВСЕМ (кусок 4б). Прежде тут стоял гейт по isAdmin, и он
+  // снят ЦЕЛИКОМ — в обоих местах сразу: и в списке вкладок, и в разборе
+  // параметра. Половина снятого гейта была бы хуже целого: вкладка в списке
+  // при непринимающем разборе даёт кнопку, которая возвращает на ассистентов,
+  // и это выглядит как поломка.
+  //
+  // Ограничивает теперь не право, а ПРЕДЕЛ ЧИСЛА ПРОДУКТОВ НА АККАУНТ, и стоит
+  // он на сервере (LimitsService, 422 при заведении третьего). Прятать вкладку
+  // ради того же незачем: список своих продуктов и кабинет аренды нужны как
+  // раз тем, кто предел уже выбрал.
   const raw = params.get('tab');
-  const tab: Tab =
-    raw === 'bots' ? 'bots' : raw === 'products' && canProducts ? 'products' : 'agents';
+  const tab: Tab = raw === 'bots' ? 'bots' : raw === 'products' ? 'products' : 'agents';
 
   const setTab = (next: Tab) => {
     const p = new URLSearchParams(params);
@@ -32,7 +35,7 @@ const StudioPage: React.FC = () => {
   const tabs = [
     ['agents', t('studio.tabs.agents'), Bot],
     ['bots', t('studio.tabs.bots'), Send],
-    ...(canProducts ? [['products', t('studio.tabs.products'), Server] as const] : []),
+    ['products', t('studio.tabs.products'), Server],
   ] as const;
 
   const subtitle =

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Server, CircleDot, Plus, RotateCw, X, AlertTriangle, Moon } from 'lucide-react';
+import { Server, CircleDot, Plus, RotateCw, X, AlertTriangle, Moon, ShieldAlert } from 'lucide-react';
 import { productsApi } from '../../services/productsApi';
 import type {
   Product,
@@ -13,6 +13,7 @@ import { NewProductForm } from './NewProductForm';
 import type { SubmitResult } from './NewProductForm';
 import { useAuth } from '../../contexts/AuthContext';
 import {
+  SUPPORT_HREF,
   TOPUP_HREF,
   formatPaidUntil,
   formatRentAmount,
@@ -36,6 +37,12 @@ const STATUS_STYLE: Record<string, string> = {
   // Отсюда янтарный, тот же, что у прочих «нужно что-то сделать», а не
   // красный «сломалось».
   sleeping: 'text-amber-600',
+  // Гашение администратором — красный, а не янтарный «нужно что-то сделать».
+  // Янтарным в этом списке отмечено то, что владелец чинит сам и деньгами
+  // (сон, близкое списание); блокировку он не снимет ничем, а продукт при этом
+  // выключен целиком. Общим серым она читалась бы как «Остановлен» — то есть
+  // как его собственное решение, которого он не принимал.
+  blocked: 'text-red-600',
 };
 
 /**
@@ -111,7 +118,23 @@ const RentNote: React.FC<{ product: Product; balance?: number }> = ({ product, b
   // Заведение не завершилось (или продукт в архиве) — аренда к нему ещё (уже)
   // не относится: платят только running и degraded, и срок в карточке отказа
   // отвлекал бы от единственного, что там важно, — причины и кнопки повтора.
-  if (product.status === 'failed' || product.status === 'archived') return null;
+  //
+  // БЛОКИРОВАННЫЙ ЗДЕСЬ ЖЕ, И ЭТО НЕ АККУРАТНОСТЬ, А ГЛАВНОЕ МЕСТО ВСЕЙ ЭТОЙ
+  // ПРАВКИ. Без него 'blocked' проваливался в ветку ниже — и у владельца, у
+  // которого мало токенов, а срок близко (то есть ровно у того, кого гасят
+  // чаще всего), в карточке погашенного продукта загоралась тревога
+  // «Списание 25.09, на балансе не хватает» с кнопкой «Пополнить баланс».
+  // Кнопка берёт деньги и не меняет НИЧЕГО: пробуждение отбирает строго
+  // `status = 'sleeping'`, блокированный в него не попадает. Аренда с него к
+  // тому же не берётся (`chargeRent` — `status IN ('running','degraded')`), так
+  // что и сам срок здесь неправда.
+  if (
+    product.status === 'failed' ||
+    product.status === 'archived' ||
+    product.status === 'blocked'
+  ) {
+    return null;
+  }
 
   const paidUntil = formatPaidUntil(product.paid_until, lang);
   // Срока нет — не говорим ничего. Выдумывать его нельзя (это единственное
@@ -147,6 +170,58 @@ const RentNote: React.FC<{ product: Product; balance?: number }> = ({ product, b
   );
 };
 
+/**
+ * Продукт погашен администратором.
+ *
+ * Отдельный блок, а не строка рядом с арендой: у этого состояния ДРУГОЙ набор
+ * действий. Сон снимается деньгами, отказ заведения — кнопкой «повторить», а
+ * блокировку не снимает ни то, ни другое.
+ *
+ * ЧЕГО ЗДЕСЬ НЕТ И ПОЧЕМУ. Кнопки «Пополнить баланс» — нет ни одной:
+ * пополнение блокированного не будит, и такая кнопка собрала бы деньги за то,
+ * что от денег не меняется. Тем же рассуждением на бэкенде выбран код отказа
+ * правке — 409, а не 402: 402 в чате правок зажигает пополнение
+ * (`setNeedsTopUp(started.status === 402)` в ProductChat.tsx).
+ *
+ * Причина — С СЕРВЕРА. Сервер без непустой причины гасить отказывается (400 в
+ * `BlockService.block`), так что своя строка — запас на бэкенд, выкаченный до
+ * 007, и на ответ, из которого причина не доехала. Молчать в этом месте
+ * нельзя: общего списка продуктов у администратора нет, уведомлений владельцу
+ * кусок 4б не делает — эта строка и есть единственный способ узнать, что
+ * случилось.
+ */
+const BlockedNote: React.FC<{ product: Product }> = ({ product }) => {
+  const { t } = useTranslation();
+
+  return (
+    <div className="px-4 pb-4 -mt-1">
+      <div
+        role="alert"
+        className="flex flex-col gap-1.5 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5 text-xs text-red-900"
+      >
+        {/*
+          Слова «Остановлен администратором» здесь нет намеренно: оно уже стоит
+          значком статуса в шапке карточки — так же, как не повторяется «Спит»
+          в блоке аренды. Значок связывает объяснение со статусом взглядом.
+        */}
+        <span className="flex items-start gap-1.5">
+          <ShieldAlert size={14} className="shrink-0 mt-0.5" />
+          <span className="break-words">
+            {product.block_reason || t('products.blocked.unknownReason')}
+          </span>
+        </span>
+        <span>{t('products.blocked.noTopUp')}</span>
+        <a
+          href={SUPPORT_HREF}
+          className="self-start mt-1 px-4 py-1.5 rounded-lg border border-red-300 hover:border-red-400 text-xs font-medium"
+        >
+          {t('products.blocked.contact')}
+        </a>
+      </div>
+    </div>
+  );
+};
+
 interface Props {
   onOpen: (product: Product) => void;
   /** Внутри вкладки Студии: заголовок и подпись рисует Студия, не список. */
@@ -154,7 +229,11 @@ interface Props {
 }
 
 export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) => {
-  const { t } = useTranslation();
+  // i18n нужен пустому состоянию: цена аренды форматируется по языку
+  // пользователя (Intl), как и дата списания в карточке. `?.` — тесты
+  // подменяют useTranslation заглушкой без i18n.
+  const { t, i18n } = useTranslation();
+  const lang = i18n?.language || 'ru';
   // Баланс — из уже идущего опроса AuthContext (раз в пять секунд). Своего
   // запроса здесь нет намеренно: второй опрос того же числа разъезжается с
   // первым, и владелец видит два разных баланса на одном экране.
@@ -424,11 +503,54 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
           // При неудачной перечитке над списком уже висит баннер выше, и
           // объявлять вдобавок «продуктов нет» значит врать.
           loadFailed ? null : (
-          <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-200">
+          /*
+            ПУСТОЙ КАБИНЕТ — ВИТРИНА, А НЕ ПОМЕТКА О ПУСТОТЕ.
+            Этот экран впервые видит человек без продуктов, без токенов и без
+            единого платежа: с этого куска вкладка открыта ВСЕМ, а не одному
+            владельцу сервиса. Решение, которое он тут принимает, — платить или
+            уйти, и принять его он может, только если экран отвечает на три
+            вопроса. Прежде тут стояла одна строка «Пока ни одного продукта» —
+            она не отвечала ни на один.
+
+              1. ЧТО ЭТО. «Продукты» ничего не значит без объяснения: соседние
+                 вкладки Студии — ассистенты и телеграм-боты, и человек вправе
+                 решить, что это ещё один их сорт.
+              2. СКОЛЬКО СТОИТ. Цену он всё равно узнает — через месяц, когда
+                 продукт уснёт за неуплату. Узнать её ПОСЛЕ того, как вложил
+                 работу, хуже, чем до.
+              3. ЧТО НАЖАТЬ. Кнопка здесь своя, а не одна на экран: та, что в
+                 шапке, на мобильном стоит над пустым блоком, а на десктопе
+                 уезжает в правый угол — то есть в стороне от текста, который
+                 человек только что прочитал.
+          */
+          <div className="text-center py-12 px-6 bg-white rounded-2xl border-2 border-dashed border-gray-200">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-forest-600 to-forest-800 flex items-center justify-center mx-auto mb-4 shadow-md">
               <Server size={24} className="text-white" />
             </div>
-            <p className="text-gray-600 font-medium">{t('products.empty')}</p>
+            <p className="text-gray-900 font-semibold">{t('products.empty')}</p>
+            <p className="mt-2 text-sm text-gray-600 max-w-md mx-auto">
+              {t('products.emptyWhat')}
+            </p>
+            {/*
+              Цена — из того же зеркала RENT_TOKENS, что и подсказка спящему
+              продукту: два числа на одном экране разъехались бы молча.
+              «Первый месяц бесплатно» — не обещание маркетинга, а поведение
+              кода: `paid_until` заводится со значением `now() + 1 month`
+              (миграция 004), а сборщик аренды берёт деньги только с тех, у кого
+              срок уже вышел.
+            */}
+            <p className="mt-2 text-sm text-gray-600 max-w-md mx-auto">
+              {t('products.emptyPrice', { amount: formatRentAmount(lang) })}
+            </p>
+            {!creating && (
+              <button
+                onClick={() => setCreating(true)}
+                className="mt-5 inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-forest-600 hover:bg-forest-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <Plus size={16} />
+                {t('products.new.button')}
+              </button>
+            )}
           </div>
           )
         ) : (
@@ -458,6 +580,8 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
                 </div>
 
                 <RentNote product={p} balance={balance} />
+
+                {p.status === 'blocked' && <BlockedNote product={p} />}
 
                 {p.status === 'failed' && (
                   <div className="px-4 pb-4 -mt-1">

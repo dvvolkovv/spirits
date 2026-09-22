@@ -1991,6 +1991,8 @@
     "title": "Meine Produkte",
     "subtitle": "Websites und Bots, die Linkeon hostet und weiterentwickelt",
     "empty": "Noch keine Produkte",
+    "emptyWhat": "Ein Produkt ist deine eigene Website oder dein Telegram-Bot: Domain, Server und Updates übernehmen wir. Du beschreibst die Änderung in normalen Worten — der Assistent setzt sie um und veröffentlicht sie sofort.",
+    "emptyPrice": "Der erste Monat ist kostenlos, im Voraus zahlst du nichts. Danach {{amount}} Token pro Monat und Produkt.",
     "status": {
       "running": "Läuft",
       "degraded": "Keine Verbindung zum Server",
@@ -1998,7 +2000,13 @@
       "provisioning": "Wird eingerichtet…",
       "archived": "Archiviert",
       "failed": "Einrichtung fehlgeschlagen",
-      "sleeping": "Schläft"
+      "sleeping": "Schläft",
+      "blocked": "Vom Administrator gestoppt"
+    },
+    "blocked": {
+      "unknownReason": "Den Grund haben wir nicht erhalten — frag beim Support nach, weshalb das Produkt gestoppt wurde.",
+      "noTopUp": "Aufladen hilft hier nicht: Die Sperre hebt nur ein Administrator auf.",
+      "contact": "Support kontaktieren"
     },
     "rent": {
       "paidUntil": "Bezahlt bis {{date}}",
