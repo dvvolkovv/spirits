@@ -371,7 +371,7 @@
       "leave": "Salir",
       "already_in": "El asistente ya está en otra reunión o llamada",
       "meet_busy": "El asistente está en otra reunión en este momento. Inténtalo de nuevo cuando termine",
-      "join_failed": "No se pudo entrar a la reunión",
+      "join_failed": "Ahora mismo no es posible entrar a la reunión",
       "create": "Crear reunión",
       "create_failed": "No se pudo crear la reunión",
       "copy_link": "Copiar enlace",
