@@ -4,7 +4,7 @@
 // которого ассистент заперт во встречах нашего аккаунта. Поэтому проверяем не
 // вёрстку, а поведение: уводим ли браузер к Zoom, показываем ли подключённое
 // состояние и не остаётся ли на экране вчерашнее сообщение об исходе.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flush, visibleText, tRu, byButton, clickAsync } from '../../test/dom';
 import ZoomConnectCard from './ZoomConnectCard';
 import { apiClient } from '../../services/apiClient';
@@ -23,10 +23,15 @@ const ok = (body: unknown) => ({ ok: true, json: async () => body }) as any;
 const settle = async () => { await flush(); await flush(); };
 
 describe('подключение Zoom', () => {
+  // Подмена window.location обязана жить ровно один тест: иначе соседние
+  // читают её вместо настоящего адреса, и падает не тот, кто сломан.
+  const realLocation = Object.getOwnPropertyDescriptor(window, 'location')!;
+
   beforeEach(() => {
     vi.clearAllMocks();
     window.history.replaceState({}, '', '/settings');
   });
+  afterEach(() => Object.defineProperty(window, 'location', realLocation));
 
   it('подключённый аккаунт показывает как подключённый', async () => {
     api.get.mockResolvedValue(ok({ connected: true }));
