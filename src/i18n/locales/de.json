@@ -723,6 +723,17 @@
       "confirm_delete": "Verbindung {{label}} löschen?",
       "deleted": "Gelöscht",
       "delete_error": "Löschen fehlgeschlagen: {{message}}"
+    },
+    "zoom": {
+      "title": "Zoom",
+      "description": "Verbinden Sie Ihr Zoom-Konto, damit der Assistent Meetings beitreten kann, an denen Sie teilnehmen — nicht nur Ihren eigenen.",
+      "connect": "Zoom verbinden",
+      "connected": "Zoom-Konto verbunden",
+      "disconnect": "Trennen",
+      "connect_error": "Verbindung zu Zoom konnte nicht gestartet werden",
+      "denied": "Verbindung abgebrochen",
+      "expired": "Die Verbindung ist abgelaufen, bitte erneut versuchen",
+      "failed": "Zoom hat die Verbindung nicht bestätigt"
     }
   },
   "video": {

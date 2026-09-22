@@ -1064,6 +1064,17 @@
       "confirm_delete": "Eliminar a ligação {{label}}?",
       "deleted": "Eliminado",
       "delete_error": "Não foi possível eliminar: {{message}}"
+    },
+    "zoom": {
+      "title": "Zoom",
+      "description": "Conecte sua conta Zoom para que o assistente possa entrar nas reuniões de que você participa, não apenas nas suas.",
+      "connect": "Conectar Zoom",
+      "connected": "Conta Zoom conectada",
+      "disconnect": "Desconectar",
+      "connect_error": "Não foi possível iniciar a conexão com o Zoom",
+      "denied": "Conexão cancelada",
+      "expired": "A conexão expirou, tente novamente",
+      "failed": "O Zoom não confirmou a conexão"
     }
   },
   "video": {

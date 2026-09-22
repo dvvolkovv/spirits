@@ -721,6 +721,17 @@
       "confirm_delete": "删除 {{label}} 的连接？",
       "deleted": "已删除",
       "delete_error": "删除失败：{{message}}"
+    },
+    "zoom": {
+      "title": "Zoom",
+      "description": "连接您的 Zoom 账号，助手即可加入您参加的会议，而不只是您创建的会议。",
+      "connect": "连接 Zoom",
+      "connected": "Zoom 账号已连接",
+      "disconnect": "断开连接",
+      "connect_error": "无法开始连接 Zoom",
+      "denied": "已取消连接",
+      "expired": "连接已过期，请重试",
+      "failed": "Zoom 未确认连接"
     }
   },
   "video": {

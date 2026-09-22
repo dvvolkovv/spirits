@@ -725,6 +725,17 @@
       "confirm_delete": "Supprimer la connexion {{label}} ?",
       "deleted": "Supprimé",
       "delete_error": "Échec de la suppression : {{message}}"
+    },
+    "zoom": {
+      "title": "Zoom",
+      "description": "Connectez votre compte Zoom pour que l'assistant puisse rejoindre les réunions auxquelles vous participez, pas seulement les vôtres.",
+      "connect": "Connecter Zoom",
+      "connected": "Compte Zoom connecté",
+      "disconnect": "Déconnecter",
+      "connect_error": "Impossible de démarrer la connexion à Zoom",
+      "denied": "Connexion annulée",
+      "expired": "La connexion a expiré, veuillez réessayer",
+      "failed": "Zoom n'a pas confirmé la connexion"
     }
   },
   "video": {

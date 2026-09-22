@@ -1068,6 +1068,17 @@
       "confirm_delete": "Remove the {{label}} connection?",
       "deleted": "Removed",
       "delete_error": "Couldn't remove: {{message}}"
+    },
+    "zoom": {
+      "title": "Zoom",
+      "description": "Connect your Zoom account so the assistant can join meetings you attend, not only the ones you host.",
+      "connect": "Connect Zoom",
+      "connected": "Zoom account connected",
+      "disconnect": "Disconnect",
+      "connect_error": "Couldn't start connecting Zoom",
+      "denied": "Connection cancelled",
+      "expired": "The connection link expired, please try again",
+      "failed": "Zoom didn't confirm the connection"
     }
   },
   "video": {
