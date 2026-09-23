@@ -30,13 +30,11 @@ const HelpPage = lazy(() => import('./pages/HelpPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ImageGenPage = lazy(() => import('./pages/ImageGenPage'));
 const VideoPage = lazy(() => import('./pages/VideoPage'));
-const MyVideosPage = lazy(() => import('./pages/MyVideosPage'));
 const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage'));
 const TokenPurchasePage = lazy(() => import('./pages/TokenPurchasePage'));
 const AuthEmailConfirmPage = lazy(() => import('./pages/AuthEmailConfirmPage'));
 const AuthOAuthCallbackPage = lazy(() => import('./pages/AuthOAuthCallbackPage'));
 const ContactRequestsPage = lazy(() => import('./pages/ContactRequestsPage'));
-const SettingsSocialPage = lazy(() => import('./pages/SettingsSocialPage'));
 const StudioPage = lazy(() => import('./pages/StudioPage'));
 const ProductsPage = lazy(() => import('./pages/ProductsPage'));
 const TelegramBotsNewPage = lazy(() => import('./pages/TelegramBotsPage').then((m) => ({ default: m.TelegramBotsNewPage })));
@@ -243,12 +241,10 @@ const AppContent: React.FC = () => {
             <Route path="/referral" element={<Navigate to="/profile" replace />} />
             <Route path="/image-gen" element={<ImageGenPage />} />
             <Route path="/video" element={<VideoPage />} />
-            <Route path="/my-videos" element={<MyVideosPage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/support" element={<SupportPage />} />
             <Route path="/contact-requests" element={<ContactRequestsPage />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
-            <Route path="/settings/social" element={<SettingsSocialPage />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/" element={<Navigate to="/chat" replace />} />
           </Routes>

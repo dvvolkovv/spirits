@@ -41,7 +41,7 @@ const VoiceSettings: React.FC = () => {
     (async () => {
       setLoading(true);
       try {
-        // apiClient отдаёт сырой Response (см. smm-api.ts), а не распарсенный
+        // apiClient отдаёт сырой Response, а не распарсенный
         // объект: нужны .ok + .json(), никаких res.data.
         // Каталог голосов уже отфильтрован бэкендом по языку профиля —
         // параметра lang у /webhook/speech/voices нет и быть не должно.

@@ -118,10 +118,10 @@ describe('groupAgents', () => {
 
   it('раскладывает в порядке веба', () => {
     const got = groupAgents([
-      a(1, 'Оля', 'personal'), a(2, 'Роман', 'assistant'), a(3, 'Юля', 'smm'),
+      a(1, 'Оля', 'personal'), a(2, 'Роман', 'assistant'),
       a(4, 'Виталий', 'business'),
     ]);
-    expect(got.map((g) => g.category)).toEqual(['assistant', 'business', 'personal', 'smm']);
+    expect(got.map((g) => g.category)).toEqual(['assistant', 'business', 'personal']);
   });
 
   it('пустые группы не показываются', () => {

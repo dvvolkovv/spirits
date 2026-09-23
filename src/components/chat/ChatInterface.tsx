@@ -25,15 +25,10 @@ import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { VoiceDictation } from '../../services/voiceDictation';
-import { ScenarioCard } from './smm/ScenarioCard';
-import { SmmVideoPlayer } from './smm/SmmVideoPlayer';
 import AudioClip from './AudioClip';
 import VoiceCallCard from './VoiceCallCard';
 import MeetingJoinCard from './MeetingJoinCard';
 import MeetingStatusBar from './MeetingStatusBar';
-import SocialConnectButton from './SocialConnectButton';
-import TelegramConnectForm from './TelegramConnectForm';
-import { SmmPlatform, PLATFORM_LABELS } from '../../types/smm';
 import { avatarService } from '../../services/avatarService';
 import { apiClient } from '../../services/apiClient';
 import { MAX_UPLOAD_TOTAL_BYTES, totalSize, sizeInMb, clientTimeZone, UploadRejected } from '../../utils/uploadLimits';
@@ -57,7 +52,7 @@ import { balanceLevel } from '../../config/balanceThresholds';
 
 interface Assistant {
   id: number;
-  /** Internal routing identifier (e.g. 'smm_producer'). Used by changeAgentOnServer. */
+  /** Internal routing identifier (слаг агента). Used by changeAgentOnServer. */
   name: string;
   /** Human-friendly name shown in UI. Falls back to `name`. */
   displayName?: string;
@@ -140,7 +135,6 @@ const StreamingMessage = React.memo(({
   components,
   onButtonClick,
   onLinkClick,
-  onSendMessage,
   meetingAgentId,
   onJoinMeeting,
 }: {
@@ -148,13 +142,11 @@ const StreamingMessage = React.memo(({
   components: any;
   onButtonClick: (action: string) => void;
   onLinkClick: (url: string) => void;
-  onSendMessage?: (text: string) => void;
   /** Ассистент текущего чата — он и пойдёт на встречу по карточке. */
   meetingAgentId: number;
   onJoinMeeting?: (callId: string) => void;
 }) => {
-  const { t } = useTranslation();
-  const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, meetings, socialButtons, socialTelegrams } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings } = parseCustomMarkdown(content);
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -163,15 +155,11 @@ const StreamingMessage = React.memo(({
     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
     const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
     const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+)__/g)];
-    const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
-    const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
     const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
-    const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
-    const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -225,26 +213,6 @@ const StreamingMessage = React.memo(({
             </span>
           );
         }
-      } else if (match[0].startsWith('__SMM_SCENARIO_')) {
-        const key = match[1];
-        const scenarioId = smmScenarios.get(key);
-        if (scenarioId) {
-          parts.push(
-            <div key={`smm-scenario-${idx}`}>
-              <ScenarioCard scenarioId={scenarioId} />
-            </div>
-          );
-        }
-      } else if (match[0].startsWith('__SMM_VIDEO_')) {
-        const key = match[1];
-        const vid = smmVideos.get(key);
-        if (vid) {
-          parts.push(
-            <div key={`smm-video-${idx}`}>
-              <SmmVideoPlayer videoId={vid} />
-            </div>
-          );
-        }
       } else if (match[0].startsWith('__AUDIO_CLIP_')) {
         const key = match[1];
         const clipId = audioClips.get(key);
@@ -275,27 +243,6 @@ const StreamingMessage = React.memo(({
               agentId={meetingAgentId}
               onJoined={onJoinMeeting}
             />,
-          );
-        }
-      } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
-        const key = match[1];
-        const cfg = socialButtons.get(key);
-        if (cfg) {
-          parts.push(
-            <div key={`social-btn-${idx}`}>
-              <SocialConnectButton platform={cfg.platform as SmmPlatform} authorizeUrl={cfg.authorizeUrl} />
-            </div>
-          );
-        }
-      } else if (match[0].startsWith('__SOCIAL_TELEGRAM_')) {
-        const key = match[1];
-        if (socialTelegrams.has(key)) {
-          parts.push(
-            <div key={`social-tg-${idx}`}>
-              <TelegramConnectForm onConnected={(displayName) => {
-                onSendMessage?.(t('chat.telegram_connected_continue', { displayName }));
-              }} />
-            </div>
           );
         }
       }
@@ -1460,8 +1407,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // (spirits_back/src/chat/chat-tools.ts), а тот путь — relay
             // r.linkeon.io → streamUniversalAgent — наружу пишет лишь
             // begin/item/ping/end и структурных tool_result не отдаёт вовсе.
-            // События tool_result приходят только из ClaudeAgentService
-            // (SMM-продюсер), а его MCP-сервер озвучку не экспортирует.
+            // События tool_result приходили только из ClaudeAgentService
+            // (SMM-продюсер), а его MCP-сервер озвучку не экспортировал. С
+            // 23.09.2026 этот путь удалён вместе с разделом SMM, так что
+            // tool_result не присылает больше никто — ветка мертва вдвойне.
             //
             // Плеер сейчас появляется иначе: после стрима бэкенд сам добирает
             // из speech_clips клипы за время стрима и дописывает готовый
@@ -1483,44 +1432,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               // при рендере, поэтому плеер оживает и из сохранённой истории.
               if (data.result?.ok && data.result?.kind === 'audio' && data.result?.clipId) {
                 accumulatedContent += `\n\n{{audio:id=${data.result.clipId}}}`;
-              }
-            }
-            if (data.type === 'tool_result' && data.tool === 'generate_scenarios') {
-              const scenarios = data.result?.scenarios as Array<{ id: string; title: string }> | undefined;
-              if (Array.isArray(scenarios)) {
-                for (const sc of scenarios) {
-                  accumulatedContent += `\n\n{{smm_scenario:id=${sc.id}}}`;
-                }
-              } else if (data.result?.error) {
-                accumulatedContent += `\n\n*${t('chat.scenario_gen_error', { error: data.result.error })}*`;
-              }
-            }
-            if (data.type === 'tool_result' && data.tool === 'approve_scenarios') {
-              const approved = data.result?.approved as Array<{ scenarioId: string; videoId: string }> | undefined;
-              const failed = data.result?.failed as Array<{ scenarioId: string; reason: string }> | undefined;
-              if (Array.isArray(approved)) {
-                for (const a of approved) {
-                  accumulatedContent += `\n\n{{smm_video:id=${a.videoId}}}`;
-                }
-              }
-              if (Array.isArray(failed) && failed.length > 0) {
-                for (const f of failed) {
-                  accumulatedContent += `\n\n*${t('chat.scenario_not_approved', { reason: f.reason, id: f.scenarioId.slice(0, 8) })}*`;
-                }
-              }
-            }
-            if (data.type === 'tool_result' && data.tool === 'regenerate_scenario') {
-              const sid = data.result?.scenarioId;
-              if (sid) {
-                accumulatedContent += `\n\n{{smm_scenario:id=${sid}}}`;
-              }
-            }
-            if (data.type === 'tool_result' && data.tool === 'connect_social') {
-              const result = data.result as { platform?: string; method?: 'oauth' | 'manual'; authorizeUrl?: string } | undefined;
-              if (result?.method === 'oauth' && result.authorizeUrl) {
-                accumulatedContent += `\n\n{{smm_social_connect_button:platform=${result.platform},authorize_url=${result.authorizeUrl}}}`;
-              } else if (result?.method === 'manual' && result.platform === 'telegram') {
-                accumulatedContent += `\n\n{{smm_social_connect_telegram}}`;
               }
             }
             if (data.type === 'tool_result' && data.tool === 'generate_banner') {
@@ -1672,32 +1583,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, userMessage]);
     await sendMessageToAI(text);
   };
-
-  // OAuth callback handler — runs once on mount.
-  // Catches ?smm_oauth_success=<platform> or ?smm_oauth_error=<msg> from OAuth callback redirects.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const success = params.get('smm_oauth_success');
-    const error = params.get('smm_oauth_error');
-
-    if (!success && !error) return;
-
-    // Strip the query from URL so refresh doesn't repeat the effect.
-    window.history.replaceState({}, '', window.location.pathname);
-
-    if (success) {
-      const label = PLATFORM_LABELS[success as SmmPlatform] ?? success;
-      toast.success(t('chat.platform_connected_toast', { label }));
-      // Resume the chat conversation
-      setTimeout(() => {
-        sendMessageText(t('chat.platform_connected_continue', { label }));
-      }, 200);
-    } else if (error) {
-      toast.error(t('chat.platform_connect_error_toast', { error: decodeURIComponent(error) }));
-    }
-    // run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -2862,22 +2747,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
                   {(() => {
                     const contentForRender = stripCalendarProposalMarkers(stripVideoJobMarkers(message.content));
-                    const { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, meetings, socialButtons, socialTelegrams } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings } = parseCustomMarkdown(contentForRender);
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
                     const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
                     const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
                     const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+)__/g)];
-                    const smmScenarioMatches = [...parsedContent.matchAll(/__SMM_SCENARIO_([\w-]+)__/g)];
-                    const smmVideoMatches = [...parsedContent.matchAll(/__SMM_VIDEO_([\w-]+)__/g)];
                     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
                     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
                     const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
-    const socialButtonMatches = [...parsedContent.matchAll(/__SOCIAL_BUTTON_(\w+)__/g)];
-                    const socialTelegramMatches = [...parsedContent.matchAll(/__SOCIAL_TELEGRAM_(\w+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...smmScenarioMatches, ...smmVideoMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...socialButtonMatches, ...socialTelegramMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -2931,26 +2812,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             </span>
                           );
                         }
-                      } else if (match[0].startsWith('__SMM_SCENARIO_')) {
-                        const key = match[1];
-                        const scenarioId = smmScenarios.get(key);
-                        if (scenarioId) {
-                          parts.push(
-                            <div key={`smm-scenario-${idx}`}>
-                              <ScenarioCard scenarioId={scenarioId} />
-                            </div>
-                          );
-                        }
-                      } else if (match[0].startsWith('__SMM_VIDEO_')) {
-                        const key = match[1];
-                        const vid = smmVideos.get(key);
-                        if (vid) {
-                          parts.push(
-                            <div key={`smm-video-${idx}`}>
-                              <SmmVideoPlayer videoId={vid} />
-                            </div>
-                          );
-                        }
                       } else if (match[0].startsWith('__AUDIO_CLIP_')) {
                         const key = match[1];
                         const clipId = audioClips.get(key);
@@ -2981,27 +2842,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                               agentId={Number(selectedAssistant?.id) || 0}
                               onJoined={setMeetingCallId}
                             />,
-                          );
-                        }
-                      } else if (match[0].startsWith('__SOCIAL_BUTTON_')) {
-                        const key = match[1];
-                        const cfg = socialButtons.get(key);
-                        if (cfg) {
-                          parts.push(
-                            <div key={`social-btn-${idx}`}>
-                              <SocialConnectButton platform={cfg.platform as SmmPlatform} authorizeUrl={cfg.authorizeUrl} />
-                            </div>
-                          );
-                        }
-                      } else if (match[0].startsWith('__SOCIAL_TELEGRAM_')) {
-                        const key = match[1];
-                        if (socialTelegrams.has(key)) {
-                          parts.push(
-                            <div key={`social-tg-${idx}`}>
-                              <TelegramConnectForm onConnected={(displayName) => {
-                                sendMessageText(t('chat.telegram_connected_continue', { displayName }));
-                              }} />
-                            </div>
                           );
                         }
                       }
@@ -3118,7 +2958,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               components={markdownComponents}
               onButtonClick={handleButtonAction}
               onLinkClick={handleLinkNavigation}
-              onSendMessage={sendMessageText}
               meetingAgentId={Number(selectedAssistant?.id) || 0}
               onJoinMeeting={setMeetingCallId}
             />

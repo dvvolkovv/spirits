@@ -39,10 +39,6 @@ const VIDEO_URL_REGEX = /(?<!\()https?:\/\/\S+?\.(?:mp4|webm)(?:\?\S*)?/gi;
 // метафорические карты приходят как ![...](url) и рендерятся через ReactMarkdown).
 const IMAGE_URL_REGEX = /(?<!\()https?:\/\/\S+?\.(?:png|jpe?g|webp|gif)(?:\?\S*)?/gi;
 
-// SMM Producer inline blocks (Plan 3b)
-const SMM_SCENARIO_REGEX = /\{\{smm_scenario:id=([a-f0-9-]{36})\}\}/g;
-const SMM_VIDEO_REGEX = /\{\{smm_video:id=([a-f0-9-]{36})\}\}/g;
-
 // TTS-озвучка ответа ассистента: в текст пишется только clipId, чтобы плеер
 // оживал из сохранённой истории чата (а не протухшая ссылка на mp3).
 const AUDIO_CLIP_REGEX = /\{\{audio:id=([a-f0-9-]{36})\}\}/g;
@@ -50,7 +46,7 @@ const AUDIO_CLIP_REGEX = /\{\{audio:id=([a-f0-9-]{36})\}\}/g;
 // Карточка голосового звонка (Роман, voice-call feature): бэкенд кладёт в
 // историю чата сообщение ассистента, где текст начинается с этого тега —
 // дальше идёт человекочитаемое резюме звонка. Тег подменяется маркером,
-// чтобы карточка ожила из сохранённой истории (как audio/smm-блоки выше).
+// чтобы карточка ожила из сохранённой истории (как audio-блок выше).
 const VOICE_CALL_REGEX = /\{\{voice_call:\s*id=([a-f0-9-]{36})\}\}/g;
 
 // Карточка входа во встречу. Бэкенд, увидев в сообщении ссылку на комнату,
@@ -73,36 +69,23 @@ const VOICE_CALL_REGEX = /\{\{voice_call:\s*id=([a-f0-9-]{36})\}\}/g;
 const MEETING_JOIN_REGEX =
   /\{\{meeting_join:\s*(?:provider=(talerid|meet|zoom|teams|telemost)\s+)?code=([2-9A-HJ-NP-Z]{6}|[A-Fa-f0-9]{6,64}|[a-z]{3}-[a-z]{4}-[a-z]{3}|\d{9,20})\s+(?:url=([^\s{}]+)\s+)?title=([^}]*?)\}\}/g;
 
-// SMM Producer Plan 4d — social connect blocks
-const SMM_SOCIAL_BUTTON_REGEX =
-  /\{\{smm_social_connect_button:platform=([a-z]+),authorize_url=([^}]+)\}\}/g;
-const SMM_SOCIAL_TELEGRAM_REGEX = /\{\{smm_social_connect_telegram\}\}/g;
-
 export const parseCustomMarkdown = (content: string): {
   content: string;
   buttons: Map<string, ButtonConfig>;
   links: Map<string, LinkConfig>;
   videos: Map<string, string>;
   images: Map<string, string>;
-  smmScenarios: Map<string, string>;
-  smmVideos: Map<string, string>;
   audioClips: Map<string, string>;
   voiceCalls: Map<string, string>;
   meetings: Map<string, MeetingCard>;
-  socialButtons: Map<string, { platform: string; authorizeUrl: string }>;
-  socialTelegrams: Set<string>;
 } => {
   const buttons = new Map<string, ButtonConfig>();
   const links = new Map<string, LinkConfig>();
   const videos = new Map<string, string>();
   const images = new Map<string, string>();
-  const smmScenarios = new Map<string, string>();
-  const smmVideos = new Map<string, string>();
   const audioClips = new Map<string, string>();
   const voiceCalls = new Map<string, string>();
   const meetings = new Map<string, MeetingCard>();
-  const socialButtons = new Map<string, { platform: string; authorizeUrl: string }>();
-  const socialTelegrams = new Set<string>();
 
   let parsedContent = content;
 
@@ -140,18 +123,6 @@ export const parseCustomMarkdown = (content: string): {
     return `__IMAGE_${imageId}__`;
   });
 
-  parsedContent = parsedContent.replace(SMM_SCENARIO_REGEX, (_match, scenarioId) => {
-    const key = `smm_scenario_${scenarioId}`;
-    smmScenarios.set(key, scenarioId);
-    return `__SMM_SCENARIO_${key}__`;
-  });
-
-  parsedContent = parsedContent.replace(SMM_VIDEO_REGEX, (_match, videoId) => {
-    const key = `smm_video_${videoId}`;
-    smmVideos.set(key, videoId);
-    return `__SMM_VIDEO_${key}__`;
-  });
-
   parsedContent = parsedContent.replace(AUDIO_CLIP_REGEX, (_match, clipId) => {
     const key = `audio_${clipId}`;
     audioClips.set(key, clipId);
@@ -182,19 +153,7 @@ export const parseCustomMarkdown = (content: string): {
     return `__MEETING_${key}__`;
   });
 
-  parsedContent = parsedContent.replace(SMM_SOCIAL_BUTTON_REGEX, (_m, platform, authorizeUrl) => {
-    const id = `socbtn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    socialButtons.set(id, { platform: platform.trim(), authorizeUrl: authorizeUrl.trim() });
-    return `__SOCIAL_BUTTON_${id}__`;
-  });
-
-  parsedContent = parsedContent.replace(SMM_SOCIAL_TELEGRAM_REGEX, () => {
-    const id = `soctg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    socialTelegrams.add(id);
-    return `__SOCIAL_TELEGRAM_${id}__`;
-  });
-
-  return { content: parsedContent, buttons, links, videos, images, smmScenarios, smmVideos, audioClips, voiceCalls, meetings, socialButtons, socialTelegrams };
+  return { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings };
 };
 
 export const createVideoComponent = (src: string, key?: string): React.ReactNode => {

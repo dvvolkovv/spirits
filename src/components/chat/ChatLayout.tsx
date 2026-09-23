@@ -148,7 +148,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   const myAssistant = visibleAssistants.filter(a => a.category === 'assistant');
   const businessAssistants = visibleAssistants.filter(a => a.category === 'business');
   const personalAssistants = visibleAssistants.filter(a => a.category === 'personal');
-  const smmAssistants = visibleAssistants.filter(a => a.category === 'smm');
   const otherAssistants = visibleAssistants.filter(a => !a.category);
 
   const renderAssistantItem = (a: Assistant) => (
@@ -221,12 +220,6 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
             <>
               <p className="text-xs font-bold text-gray-600 uppercase tracking-wide px-3 pt-3 pb-1">{t('chat.personal_growth')}</p>
               {personalAssistants.map(renderAssistantItem)}
-            </>
-          )}
-          {smmAssistants.length > 0 && (
-            <>
-              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide px-3 pt-3 pb-1">SMM</p>
-              {smmAssistants.map(renderAssistantItem)}
             </>
           )}
           {otherAssistants.length > 0 && otherAssistants.map(renderAssistantItem)}

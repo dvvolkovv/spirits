@@ -105,7 +105,7 @@ export async function chooseAssistant(name: string, deps: AssistantsDeps): Promi
  * новый ассистент появляется в базе раньше, чем ему проставят категорию, и
  * молча пропасть с экрана он не должен.
  */
-export const CATEGORY_ORDER = ['assistant', 'business', 'personal', 'smm'] as const;
+export const CATEGORY_ORDER = ['assistant', 'business', 'personal'] as const;
 
 export type AgentGroup = { category: string; agents: Agent[] };
 

@@ -7,7 +7,7 @@ import { getRoleForAssistant } from './assistantRole';
 
 interface Assistant {
   id: number;
-  /** Internal routing identifier (e.g. 'smm_producer'). Stable across UI changes. */
+  /** Internal routing identifier (слаг агента). Stable across UI changes. */
   name: string;
   /** Human-friendly name shown to users. Falls back to `name` when missing. */
   displayName?: string;
@@ -180,20 +180,6 @@ export const AssistantSelection: React.FC<AssistantSelectionProps> = ({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {visibleAssistants.filter(a => a.category === 'personal').map((assistant) => (
-                <AssistantCard key={assistant.id} assistant={assistant} avatarUrl={avatarUrls[assistant.id]} onSelect={onSelectAssistant} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* SMM Producer (admin only) */}
-        {visibleAssistants.some(a => a.category === 'smm') && (
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="text-xl">🎬</span> {t('chat.section_smm_producer')}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {visibleAssistants.filter(a => a.category === 'smm').map((assistant) => (
                 <AssistantCard key={assistant.id} assistant={assistant} avatarUrl={avatarUrls[assistant.id]} onSelect={onSelectAssistant} />
               ))}
             </div>

@@ -36,7 +36,7 @@ const AudioClip: React.FC<{ clipId: string }> = ({ clipId }) => {
     let cancelled = false;
     (async () => {
       try {
-        // apiClient в этом проекте возвращает сырой Response (см. smm-api.ts),
+        // apiClient в этом проекте возвращает сырой Response,
         // а не распарсенный объект — поэтому .ok + .json(), без res.data.
         const res = await apiClient.get(`/webhook/speech/${clipId}`);
         if (!res.ok) throw new Error(`speech ${clipId}: ${res.status}`);

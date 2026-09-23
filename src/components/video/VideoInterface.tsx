@@ -6,10 +6,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useVideoJobs, VideoJob } from './useVideoJobs';
 import VideoCreateForm, { FormState } from './VideoCreateForm';
 import VideoGallery from './VideoGallery';
-import { MyVideosList } from '../chat/smm/MyVideosList';
 import { formatNumber } from '../../utils/formatters';
 
-type Tab = 'create' | 'gallery' | 'smm';
+type Tab = 'create' | 'gallery';
 
 export default function VideoInterface() {
   const { t } = useTranslation();
@@ -88,7 +87,6 @@ export default function VideoInterface() {
         {([
           { id: 'create', label: t('video.tabs.create') },
           { id: 'gallery', label: t('video.tabs.gallery') },
-          { id: 'smm', label: t('video.tabs.smm') },
         ] as const).map((x) => (
           <button
             key={x.id}
@@ -116,7 +114,6 @@ export default function VideoInterface() {
         {tab === 'gallery' && (
           <VideoGallery jobs={jobs} loading={loading} onDelete={deleteJob} onExtend={onExtend} onLipsync={onLipsync} onRepeat={onRepeat} />
         )}
-        {tab === 'smm' && <MyVideosList />}
       </div>
     </div>
   );
