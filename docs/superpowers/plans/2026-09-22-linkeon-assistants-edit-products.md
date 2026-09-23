@@ -37,6 +37,18 @@
 
 Так спека становится правдой: владелец — первый аргумент, и подделать его нельзя.
 
+### 1б. Адрес точки — `/webhook/mcp/products`, а не `/mcp/products`
+
+Найдено при исполнении задачи 9, измерено живым приложением и таблицей маршрутов.
+
+В `src/main.ts:27` стоит `setGlobalPrefix('webhook', { exclude: [{ path: 'mcp', … }] })`. Исключение написано как **точный путь** `mcp`, а не как префикс `mcp/(.*)` — поэтому из-под глобального префикса выходит только сама `/mcp`, а подпуть остаётся под ним.
+
+Замер: `POST /mcp/products` → 404, `POST /webhook/mcp/products` → 200 со списком инструментов.
+
+**Оставлено как есть, а не «починено» правкой `main.ts».** На проде nginx проксирует `location /mcp` префиксом, но **на тестовом стенде такого блока нет вовсе** — там `/mcp/products` ушёл бы в SPA-фолбэк и вернул 200 с HTML. Зелёная проверка при неработающей точке — ровно тот тихий отказ, которым проект уже наелся. `/webhook/*` работает на обеих средах сегодня и ничего в nginx не требует.
+
+Адрес зависит **от двух файлов сразу** и ни один по отдельности правды не говорит, поэтому в `products-mcp.controller.spec.ts` стоит сторож на оба: полный адрес с глаголом и запрет расширять исключение в `main.ts` до подпутей. Проверено ломанием: расширение краснит ровно один тест.
+
 ### 2. Релей — белый список, и он НЕ катается `deploy.sh`
 
 `relay-agent/server.mjs:434` — жёсткий перечень разрешённых имён (`--allowedTools`), плюс `--strict-mcp-config`. Новый инструмент, не внесённый туда, ассистенту недоступен, даже если MCP его отдаёт. Системный промпт релея вдобавок говорит «ONLY `mcp__linkeon__*`» (строка 30) — нужна явная оговорка, как у TalerID.
@@ -58,7 +70,7 @@
 | `src/common/relay-budget.ts` (создать) | Единственное место, где живёт бюджет хода релея и производный от него потолок ожидания |
 | `src/products/product-tool.token.ts` (создать) | Чеканка и проверка токена сессии для инструмента. Чистые функции, без DI |
 | `src/products/product-tool.service.ts` (создать) | Поиск продукта по имени, три действия, ожидание с потолком, разбор исхода |
-| `src/mcp/products-mcp.controller.ts` (создать) | Точка `/mcp/products`: Bearer → userId → `ProductToolService` |
+| `src/mcp/products-mcp.controller.ts` (создать) | Точка `/webhook/mcp/products`: Bearer → userId → `ProductToolService` |
 | `src/products/product-tool.spec.ts` (создать) | Проверка против живого Postgres |
 | `src/products/product-tool.token.spec.ts` (создать) | Проверка токена без базы |
 | `src/mcp/products-mcp.controller.spec.ts` (создать) | Проверка точки: подпись, тип, отсутствие аргумента `userId` |
@@ -1835,13 +1847,15 @@ describe('поля инструмента продуктов для релея',
   it('адрес точки — https и ведёт на /mcp/products', () => {
     const f = productsRelayFields('79030169187');
     expect(f.products_mcp_url).toMatch(/^https:\/\//);
-    expect(f.products_mcp_url).toMatch(/\/mcp\/products$/);
+    // Именно /webhook/mcp/products: исключение глобального префикса в main.ts
+    // покрывает точный путь `mcp`, но не его подпути (см. «Что выяснилось»).
+    expect(f.products_mcp_url).toMatch(/\/webhook\/mcp\/products$/);
   });
 
   it('база берётся из окружения, хвостовой слеш не дублируется', () => {
     const old = process.env.BACKEND_URL;
     process.env.BACKEND_URL = 'https://test.linkeon.io/';
-    expect(productsRelayFields('79030169187').products_mcp_url).toBe('https://test.linkeon.io/mcp/products');
+    expect(productsRelayFields('79030169187').products_mcp_url).toBe('https://test.linkeon.io/webhook/mcp/products');
     process.env.BACKEND_URL = old;
   });
 
@@ -1887,7 +1901,7 @@ export function productsRelayFields(userId: string): { products_token: string; p
   const base = (process.env.BACKEND_URL || 'https://my.linkeon.io').replace(/\/$/, '');
   return {
     products_token: signProductToolToken(userId),
-    products_mcp_url: `${base}/mcp/products`,
+    products_mcp_url: `${base}/webhook/mcp/products`,
   };
 }
 ```
@@ -2177,7 +2191,7 @@ ssh dv@5.101.115.184 'node --check /home/dv/file-agent/server.mjs && pm2 restart
 - [ ] **Step 5: Проверить, что точка отвечает**
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' -X POST https://my.linkeon.io/mcp/products \
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://my.linkeon.io/webhook/mcp/products \
   -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
 
