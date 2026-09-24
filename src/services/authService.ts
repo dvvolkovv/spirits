@@ -245,6 +245,23 @@ class AuthService {
     return { ok: resp.ok };
   }
 
+  /**
+   * Привязать телефон к уже авторизованному аккаунту.
+   *
+   * SMS шлём через тот же публичный эндпоинт, что и при входе (requestSMSCode),
+   * но код здесь НЕ логинит, а привязывается: /auth/identities/link/phone
+   * проверяет код и добавляет способ входа к текущему аккаунту. Если этот номер
+   * уже занят другим аккаунтом — сервер вернёт 409 (reason=conflict), и человек
+   * может слить аккаунты как при OAuth.
+   */
+  async linkPhone(phone: string, code: string): Promise<{ ok: boolean; reason?: string }> {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const resp = await apiClient.post('/webhook/auth/identities/link/phone', { phone: cleanPhone, code });
+    if (resp.ok) return { ok: true };
+    const body = await resp.json().catch(() => ({}));
+    return { ok: false, reason: (body as any)?.error || 'link_failed' };
+  }
+
   logout(): void {
     tokenManager.clearTokens();
   }
