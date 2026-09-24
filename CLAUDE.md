@@ -5,6 +5,7 @@
 > ## ⚠️ DEPLOY POLICY — ЧИТАТЬ ПЕРВЫМ
 >
 > **Единственный способ выкатить фронт — `bash ~/Downloads/spirits_back/scripts/deploy.sh`** (двухфазный: `test.linkeon.io → smoke → my.linkeon.io → smoke`).
+> На ноде `linkeon-dev`, где с 24.09.2026 идёт разработка, тот же скрипт лежит в `~/dev/spirits_back/scripts/deploy.sh`.
 > Это касается ЛЮБОГО Claude Code-агента, работающего в этом репо, включая параллельные сессии у других людей.
 >
 > **🚫 ЗАПРЕЩЕНО** (даже как «быстрый фикс» или «один маленький патч»):
@@ -94,6 +95,8 @@ pnpm lint       # ESLint
 
 **Решение владельца (15.08.2026): мак не тянет.** Локально гонять `pnpm build`, `pnpm test`, `npx jest`, `tsc` — нельзя: прогоны упираются в таймауты и съедают машину. Всё тяжёлое уезжает на `dv@85.192.61.231`.
 
+**Если ты уже на ноде** (`hostname` — `ugliest-salmon`, рабочие клоны в `~/dev/`): с 24.09.2026 разработка идёт прямо там — сессии Claude в tmux на ноде, мак только окно VS Code. Тогда ssh-обёртки ниже не нужны: `pnpm install`, `pnpm test`, `pnpm build` — прямо в своём клоне `~/dev/spirits_front`. Запрет на живой чекаут действует с любой машины: `~/spirits_back` и `~/spirits_front` на ноде не трогать. `~/ci/` остаётся под прогоны, запускаемые с мака.
+
 **Работать только в CI-клонах `~/ci/`, никогда в `~/spirits_back` и `~/spirits_front`.**
 `~/spirits_back` на этой ноде — живой чекаут, из которого работает API `test.linkeon.io` на порту 3001. Переключение веток там уронит тестовый стенд.
 
@@ -135,7 +138,8 @@ VITE_MAINTENANCE_MODE=false               # переключает на Maintena
 **Единственный путь — `scripts/deploy.sh` в spirits_back**, двухфазный (test → smoke → prod → smoke):
 
 ```bash
-bash ~/Downloads/spirits_back/scripts/deploy.sh
+bash ~/Downloads/spirits_back/scripts/deploy.sh   # с мака
+bash ~/dev/spirits_back/scripts/deploy.sh         # с ноды linkeon-dev
 ```
 
 Сначала катит на `test.linkeon.io` (`dv@85.192.61.231`) и гонит там полный smoke. Только если зелёный — катит на прод `my.linkeon.io` и гонит smoke там. Если test красный — прод не трогается.
