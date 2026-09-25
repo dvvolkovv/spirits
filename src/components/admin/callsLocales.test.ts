@@ -9,7 +9,9 @@ import pt from '../../i18n/locales/pt.json';
  * не требует вовсе. Поэтому ключ, забытый в en, никто не поймает — его
  * немецкий, испанский и прочие администраторы увидят русским.
  */
-const LOCALES: Record<string, any> = { ru, en, pt };
+type Tree = { [key: string]: unknown };
+
+const LOCALES: Record<string, Tree> = { ru, en, pt };
 
 const NEW_KEYS = [
   'provider.linkeon', 'provider.linkeon_room', 'provider.talerid', 'provider.meet',
@@ -17,7 +19,8 @@ const NEW_KEYS = [
   'flag.failed', 'flag.live', 'tokensHint', 'transcriptFailed',
 ];
 
-const at = (obj: any, path: string) => path.split('.').reduce((o, k) => o?.[k], obj);
+const at = (obj: unknown, path: string): unknown =>
+  path.split('.').reduce<unknown>((o, k) => (o as Tree | undefined)?.[k], obj);
 
 describe('ключи раздела звонков', () => {
   for (const [name, loc] of Object.entries(LOCALES)) {
