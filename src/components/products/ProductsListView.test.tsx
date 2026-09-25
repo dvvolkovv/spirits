@@ -621,6 +621,67 @@ describe('ProductsListView — карточка продукта', () => {
     expect(api.getDomain).toHaveBeenCalledTimes(1);
     expect(api.getDomain).toHaveBeenCalledWith('s-1');
   });
+
+  it('погашенный сайт с работающим доменом — можно только отвязать', async () => {
+    api.list.mockResolvedValue(
+      listing([
+        product({
+          kind: 'site',
+          status: 'blocked',
+          block_reason: 'нарушение',
+          domain: 'my-shop.p.linkeon.io',
+          custom_domain: 'dmitryvolkov.ru',
+          custom_domain_unicode: 'dmitryvolkov.ru',
+        }),
+      ]),
+    );
+    api.getDomain.mockResolvedValueOnce({
+      ok: true,
+      view: {
+        domain: 'dmitryvolkov.ru',
+        domainUnicode: 'dmitryvolkov.ru',
+        names: ['dmitryvolkov.ru'],
+        status: 'active',
+        error: null,
+        errorReason: null,
+        checkedAt: null,
+        check: null,
+        records: [],
+      },
+    });
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    await flush();
+
+    expect(byButton(container, new RegExp(tRu('products.domain.detach')))).not.toBeNull();
+    expect(byButton(container, new RegExp(tRu('products.domain.attach')))).toBeNull();
+    expect(byButton(container, /Проверить/)).toBeNull();
+  });
+
+  it('погашенный сайт без своего домена — блока домена нет', async () => {
+    api.list.mockResolvedValue(
+      listing([product({ kind: 'site', status: 'blocked', block_reason: 'нарушение', domain: 'my-shop.p.linkeon.io' })]),
+    );
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    await flush();
+
+    expect(api.getDomain).toHaveBeenCalledTimes(1);
+    expect(visibleText(container)).not.toContain(tRu('products.domain.title'));
+    expect(byButton(container, new RegExp(tRu('products.domain.attach')))).toBeNull();
+  });
+
+  it('у сорванного и заводящегося сайта домен не спрашивается — задания домена им не раздаются', async () => {
+    api.list.mockResolvedValue(
+      listing([
+        product({ id: 'f-1', kind: 'site', status: 'failed', provision_error: 'x' }),
+        product({ id: 'p-2', kind: 'site', status: 'provisioning' }),
+      ]),
+    );
+    mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    expect(api.getDomain).not.toHaveBeenCalled();
+  });
 });
 
 describe('ProductsListView — список сам догоняет состояние', () => {

@@ -1876,6 +1876,9 @@
       "colName": "名称",
       "colValue": "值",
       "copy": "复制",
+      "copied": "已复制",
+      "copyFailed": "复制失败——已选中，请手动复制",
+      "copyAria": "复制 {{type}} {{name}} 的值",
       "deleteOthers": "请删除这些名称的其他 A 记录和所有 AAAA 记录，否则无法签发证书。",
       "oldSite": "记录更改后，旧主机上的网站将无法再通过此域名访问。",
       "propagation": "DNS 变更需要 15 分钟到一天才能生效。第一周内我们每隔几分钟自动检查一次，之后请点击“立即检查”。",
@@ -1892,6 +1895,7 @@
       "detachYes": "确定解绑",
       "detachCancel": "取消",
       "details": "详细信息",
+      "hasDomainNamed": "产品已绑定自定义域名 {{domain}}，请先解绑。",
       "errorReasons": {
         "taken": "在等待 DNS 期间，此域名已被绑定到另一个产品。",
         "orphan_issuing": "证书签发被中断：产品已停止或服务器未能及时响应。请点击“重新检查”。",

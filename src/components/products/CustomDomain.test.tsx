@@ -5,7 +5,7 @@
 // которой нет, и кнопка, которая ничего не делает, для владельца одинаковы.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { actAsync, byButton, click, clickAsync, flush, mount, type, visibleText, tRu } from '../../test/dom';
-import { CustomDomain } from './CustomDomain';
+import { CustomDomain, formatCheckedAt } from './CustomDomain';
 import { productsApi } from '../../services/productsApi';
 import type { DomainView, Product } from '../../services/productsApi';
 
@@ -80,8 +80,11 @@ async function typeAndAttach(container: HTMLElement, value: string) {
 
 describe('блок «Свой домен»', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // reset, а не clear: clear не снимает очередь mockResolvedValueOnce, и
+    // недобранные ответы одного теста доставались следующему.
+    vi.resetAllMocks();
     api.getDomain.mockResolvedValue({ ok: true, view: null });
+    api.detachDomain.mockResolvedValue({ ok: true, removed: 'now' });
   });
 
   afterEach(() => {
@@ -349,5 +352,218 @@ describe('блок «Свой домен»', () => {
       await vi.advanceTimersByTimeAsync(60_000);
     });
     expect(api.getDomain).toHaveBeenCalledTimes(1);
+  });
+
+  it('проверка показывает время последней проверки', async () => {
+    api.getDomain.mockResolvedValueOnce({ ok: true, view: awaiting });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+    const at = formatCheckedAt(awaiting.checkedAt, 'ru');
+    expect(at).toBeTruthy();
+    expect(visibleText(container)).toContain(`${R('lastCheck')} ${at}`);
+  });
+
+  it('«скопировать» подтверждает успех, у каждой кнопки — своя подпись для читалки', async () => {
+    vi.useFakeTimers();
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    api.getDomain.mockResolvedValueOnce({ ok: true, view: awaiting });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+
+    const aria = R('copyAria', { type: 'A', name: '@' });
+    const btn = container.querySelector(`button[aria-label="${aria}"]`)!;
+    expect(btn).not.toBeNull();
+    await clickAsync(btn);
+    expect(btn.textContent).toBe(R('copied'));
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+    expect(btn.textContent).toBe(R('copy'));
+  });
+
+  it('буфер обмена недоступен — говорим об этом и выделяем значение', async () => {
+    const writeText = vi.fn(async () => {
+      throw new Error('denied');
+    });
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    api.getDomain.mockResolvedValueOnce({ ok: true, view: awaiting });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+
+    const btn = container.querySelector(`button[aria-label="${R('copyAria', { type: 'TXT', name: '_linkeon' })}"]`)!;
+    await clickAsync(btn);
+    await flush();
+    expect(btn.textContent).toBe(R('copyFailed'));
+    expect(String(window.getSelection())).toBe('lk-abc');
+  });
+
+  it('у продукта уже есть домен — отказ называет его', async () => {
+    api.attachDomain.mockResolvedValueOnce({ ok: false, status: 409, message: 'ТЕКСТ', reason: 'has_domain' });
+    api.getDomain
+      .mockResolvedValueOnce({ ok: true, view: null })
+      .mockResolvedValueOnce({ ok: true, view: idnActive });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+    await typeAndAttach(container, 'other.ru');
+    expect(visibleText(container)).toContain(R('hasDomainNamed', { domain: 'пример.рф' }));
+  });
+
+  it('без известного домена — отказ has_domain без имени', async () => {
+    api.attachDomain.mockResolvedValueOnce({ ok: false, status: 409, message: 'ТЕКСТ', reason: 'has_domain' });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+    await typeAndAttach(container, 'other.ru');
+    expect(visibleText(container)).toContain(R('reasons.has_domain'));
+  });
+
+  it('правка поля гасит прошлую ошибку', async () => {
+    api.attachDomain.mockResolvedValueOnce({ ok: false, status: 422, message: '', reason: 'ip' });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+    await typeAndAttach(container, '1.2.3.4');
+    expect(visibleText(container)).toContain(R('reasons.ip'));
+    type(container.querySelector('input')!, 'mysite.ru');
+    expect(visibleText(container)).not.toContain(R('reasons.ip'));
+  });
+
+  it('смена статуса гасит прошлую ошибку', async () => {
+    vi.useFakeTimers();
+    api.getDomain
+      .mockResolvedValueOnce({ ok: true, view: awaiting })
+      .mockResolvedValueOnce({ ok: true, view: awaiting })
+      .mockResolvedValue({ ok: true, view: { ...awaiting, status: 'issuing' } });
+    api.checkDomain.mockResolvedValueOnce({ ok: false, status: 429, message: '', reason: 'throttled' });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+
+    await clickAsync(byButton(container, /Проверить сейчас/)!);
+    await flush();
+    expect(visibleText(container)).toContain(R('reasons.throttled'));
+
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(visibleText(container)).toContain(R('status.issuing'));
+    expect(visibleText(container)).not.toContain(R('reasons.throttled'));
+  });
+
+  it('подтверждение отвязки закрывается, если статус сменился сам', async () => {
+    vi.useFakeTimers();
+    api.getDomain
+      .mockResolvedValueOnce({ ok: true, view: active })
+      .mockResolvedValue({ ok: true, view: { ...active, status: 'removing' } });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+    click(byButton(container, /Отвязать/)!);
+    expect(byButton(container, new RegExp(R('detachYes')))).not.toBeNull();
+
+    // Активный домен не опрашивается — статус меняется перечиткой после
+    // чужого действия; эмулируем её отказом «отвязывается» на «Да».
+    api.detachDomain.mockResolvedValueOnce({ ok: false, status: 409, message: '', reason: 'removing' });
+    await clickAsync(byButton(container, new RegExp(R('detachYes')))!);
+    await flush();
+    expect(visibleText(container)).toContain(R('status.removing'));
+    expect(byButton(container, new RegExp(R('detachYes')))).toBeNull();
+    expect(visibleText(container)).toContain(R('reasons.removing'));
+  });
+
+  it('статус объявляется читалке экрана', async () => {
+    api.getDomain.mockResolvedValueOnce({ ok: true, view: awaiting });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+    const live = container.querySelector('[aria-live="polite"]');
+    expect(live?.textContent).toContain(R('status.awaiting_dns'));
+  });
+
+  it('медленный GET, начатый до отвязки, не воскрешает снятый домен', async () => {
+    vi.useFakeTimers();
+    let release: (v: unknown) => void = () => {};
+    api.getDomain
+      .mockResolvedValueOnce({ ok: true, view: awaiting })
+      .mockImplementationOnce(() => new Promise((r) => { release = r as (v: unknown) => void; }) as never);
+    api.detachDomain.mockResolvedValueOnce({ ok: true, removed: 'now' });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+
+    // Тик опроса: GET ушёл и висит.
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(api.getDomain).toHaveBeenCalledTimes(2);
+
+    await clickAsync(byButton(container, /Отвязать/)!);
+    await flush();
+    expect(byButton(container, /Привязать/)).not.toBeNull();
+
+    // Старый ответ пришёл после отвязки — он устарел.
+    await actAsync(async () => {
+      release({ ok: true, view: awaiting });
+    });
+    await flush();
+    expect(byButton(container, /Привязать/)).not.toBeNull();
+    expect(visibleText(container)).not.toContain('lk-abc');
+  });
+
+  it('пока GET опроса висит, следующий тик его не дублирует', async () => {
+    vi.useFakeTimers();
+    api.getDomain
+      .mockResolvedValueOnce({ ok: true, view: awaiting })
+      .mockImplementation(() => new Promise(() => {}) as never);
+    mount(<CustomDomain product={product} />);
+    await flush();
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(35_000);
+    });
+    expect(api.getDomain).toHaveBeenCalledTimes(2);
+  });
+
+  it('сбой GET при опросе не стирает таблицу', async () => {
+    vi.useFakeTimers();
+    api.getDomain
+      .mockResolvedValueOnce({ ok: true, view: awaiting })
+      .mockResolvedValue({ ok: false, status: 0, message: '' });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(api.getDomain).toHaveBeenCalledTimes(2);
+    expect(visibleText(container)).toContain('lk-abc');
+    expect(byButton(container, /Проверить сейчас/)).not.toBeNull();
+  });
+
+  describe('только отвязка (продукт погашен администратором)', () => {
+    it('работающий домен — ссылка и «Отвязать» в два шага, ни проверки, ни формы', async () => {
+      api.getDomain.mockResolvedValueOnce({ ok: true, view: active });
+      const { container } = mount(<CustomDomain product={{ ...product, status: 'blocked' }} detachOnly />);
+      await flush();
+      expect(container.querySelector('a[href="https://dmitryvolkov.ru"]')).not.toBeNull();
+      expect(byButton(container, /Проверить/)).toBeNull();
+      expect(container.querySelector('input')).toBeNull();
+      click(byButton(container, /Отвязать/)!);
+      expect(api.detachDomain).not.toHaveBeenCalled();
+      await clickAsync(byButton(container, new RegExp(R('detachYes')))!);
+      await flush();
+      expect(api.detachDomain).toHaveBeenCalledWith('p-1');
+      // Домен снят — блоку показывать больше нечего.
+      expect(container.textContent).toBe('');
+    });
+
+    it('заявка ждёт DNS — без таблицы записей и без «Проверить»', async () => {
+      api.getDomain.mockResolvedValueOnce({ ok: true, view: failed({ errorReason: 'issue_failed', error: 'x' }) });
+      const { container } = mount(<CustomDomain product={{ ...product, status: 'blocked' }} detachOnly />);
+      await flush();
+      expect(visibleText(container)).not.toContain('lk-abc');
+      expect(byButton(container, /Проверить/)).toBeNull();
+      expect(byButton(container, /Отвязать/)).not.toBeNull();
+    });
+
+    it('домена нет — блока нет', async () => {
+      const { container } = mount(<CustomDomain product={{ ...product, status: 'blocked' }} detachOnly />);
+      await flush();
+      expect(container.textContent).toBe('');
+      expect(container.querySelector('input')).toBeNull();
+    });
   });
 });

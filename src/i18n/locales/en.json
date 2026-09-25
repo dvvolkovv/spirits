@@ -2227,6 +2227,9 @@
       "colName": "Name",
       "colValue": "Value",
       "copy": "copy",
+      "copied": "Copied",
+      "copyFailed": "couldn't copy — selected, copy it manually",
+      "copyAria": "Copy value {{type}} {{name}}",
       "deleteOthers": "Remove all other A records and all AAAA records for these names — otherwise the certificate can't be issued.",
       "oldSite": "Once the records change, the site at your old hosting will stop opening on this domain.",
       "propagation": "DNS changes take from 15 minutes to a day to spread. During the first week we check automatically every couple of minutes; after that, press “Check now”.",
@@ -2243,6 +2246,7 @@
       "detachYes": "Yes, disconnect",
       "detachCancel": "Cancel",
       "details": "Details",
+      "hasDomainNamed": "The product already has a custom domain {{domain}} — disconnect it first.",
       "errorReasons": {
         "taken": "While we were waiting for DNS, this domain was connected to another product.",
         "orphan_issuing": "Certificate issuing was interrupted: the product stopped or the server didn't respond in time. Press “Check again”.",

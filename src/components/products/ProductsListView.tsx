@@ -589,12 +589,19 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
 
                 {/*
                   Свой домен — только у сайта и только у заведённого: сервер
-                  выпускает сертификат при running/degraded/sleeping. У
-                  погашенного администратором блока нет — гашение бывает за
-                  злоупотребление, и новый домен расширил бы его.
+                  выпускает сертификат при running/degraded/sleeping.
                 */}
                 {p.kind === 'site' && ['running', 'degraded', 'sleeping'].includes(p.status) && (
                   <CustomDomain product={p} onChanged={reload} />
+                )}
+                {/*
+                  Погашенный — только отвязка: привязывать и выпускать нельзя,
+                  а снять уже работающий домен владелец вправе, и сервер раздаёт
+                  задания домена погашенным. Сорванному и заводящемуся — нет:
+                  им задания не раздаются, отвязка повисла бы.
+                */}
+                {p.kind === 'site' && p.status === 'blocked' && (
+                  <CustomDomain product={p} onChanged={reload} detachOnly />
                 )}
 
                 {p.status === 'failed' && (

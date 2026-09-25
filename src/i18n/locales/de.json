@@ -1882,6 +1882,9 @@
       "colName": "Name",
       "colValue": "Wert",
       "copy": "kopieren",
+      "copied": "Kopiert",
+      "copyFailed": "hat nicht geklappt — markiert, kopier es von Hand",
+      "copyAria": "Wert {{type}} {{name}} kopieren",
       "deleteOthers": "Lösche für diese Namen alle anderen A-Einträge und alle AAAA-Einträge — sonst kann das Zertifikat nicht ausgestellt werden.",
       "oldSite": "Sobald die Einträge geändert sind, ist die Seite beim alten Hoster unter dieser Domain nicht mehr erreichbar.",
       "propagation": "DNS-Änderungen brauchen 15 Minuten bis einen Tag. In der ersten Woche prüfen wir alle paar Minuten automatisch, danach klick auf „Jetzt prüfen“.",
@@ -1898,6 +1901,7 @@
       "detachYes": "Ja, trennen",
       "detachCancel": "Abbrechen",
       "details": "Details",
+      "hasDomainNamed": "Das Produkt hat schon eine eigene Domain {{domain}} — trenn sie zuerst.",
       "errorReasons": {
         "taken": "Während wir auf DNS gewartet haben, wurde diese Domain mit einem anderen Produkt verbunden.",
         "orphan_issuing": "Die Ausstellung des Zertifikats wurde unterbrochen: Das Produkt wurde gestoppt oder der Server hat nicht rechtzeitig geantwortet. Klick auf „Erneut prüfen“.",

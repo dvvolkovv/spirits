@@ -56,6 +56,31 @@ const Check: React.FC<{ c: DomainRecordCheck; view: DomainView }> = ({ c, view }
   );
 };
 
+/**
+ * Время последней проверки — по языку кабинета, в местном времени. null —
+ * проверки не было или строка битая (показывать «Invalid Date» хуже, чем ничего).
+ */
+export function formatCheckedAt(iso: string | null | undefined, lang: string): string | null {
+  if (!iso) return null;
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return null;
+  try {
+    return new Intl.DateTimeFormat(lang, {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(at);
+  } catch {
+    return at.toLocaleString();
+  }
+}
+
+/** Сколько держится «Скопировано» / «не удалось» на кнопке копирования. */
+const COPY_FLASH_MS = 2000;
+
+type ActResult = { ok: true; view: DomainView | null } | { ok: true; removed: 'now' | 'queued' } | Problem;
+
 interface Props {
   product: Product;
   /**
@@ -63,21 +88,32 @@ interface Props {
    * а тот приходит со списком продуктов: список обязан перечитаться.
    */
   onChanged?: () => void;
+  /**
+   * Только отвязка: продукт погашен администратором. Привязывать и выпускать
+   * ему нельзя (гашение бывает за злоупотребление), а отвязать — можно и
+   * нужно: сервер раздаёт задания домена и погашенным. Домена нет — блока нет.
+   */
+  detachOnly?: boolean;
 }
 
-export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
-  const { t } = useTranslation();
+export const CustomDomain: React.FC<Props> = ({ product, onChanged, detachOnly = false }) => {
+  const { t, i18n } = useTranslation();
+  // Тесты подменяют useTranslation заглушкой без i18n — как в карточке аренды.
+  const lang = i18n?.language || 'ru';
   const [view, setViewState] = useState<DomainView | null | undefined>(undefined);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [copyFlash, setCopyFlash] = useState<{ key: string; ok: boolean } | null>(null);
 
   const alive = useRef(true);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
+      if (copyTimer.current) clearTimeout(copyTimer.current);
     };
   }, []);
 
@@ -86,21 +122,55 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
   const changed = useRef(onChanged);
   changed.current = onChanged;
 
+  /**
+   * Порядок ответов. Каждый запрос (GET и действие) берёт свой номер, и его
+   * ответ применяется, только если номер всё ещё последний. Иначе GET опроса,
+   * ушедший ДО отвязки и вернувшийся ПОСЛЕ неё, воскрешал бы снятый домен.
+   */
+  const seq = useRef(0);
+  /** Сколько GET сейчас в полёте — счётчик, а не флаг: старый GET не должен снимать отметку нового. */
+  const getting = useRef(0);
+  /** Идёт действие: опрос в это время молчит — его ответ всё равно устарел бы. */
+  const acting = useRef(false);
+
   /** Работал ли домен в последнем известном состоянии; undefined — ещё не знаем. */
   const wasActive = useRef<boolean | undefined>(undefined);
+  /** Последний известный статус; undefined — ещё не загружали. */
+  const lastStatus = useRef<DomainStatus | null | undefined>(undefined);
 
   const setView = useCallback((next: DomainView | null) => {
     if (!alive.current) return;
-    const isActive = next?.status === 'active';
+    const nextStatus = next?.status ?? null;
+    // Статус сменился — прежняя ошибка и открытое подтверждение отвязки
+    // относятся к тому, чего на экране уже нет.
+    if (lastStatus.current !== undefined && lastStatus.current !== nextStatus) {
+      setError(null);
+      setConfirming(false);
+    }
+    lastStatus.current = nextStatus;
+    const isActive = nextStatus === 'active';
     // Первая загрузка — не перемена: список пришёл уже с этим состоянием.
     if (wasActive.current !== undefined && wasActive.current !== isActive) changed.current?.();
     wasActive.current = isActive;
     setViewState(next);
   }, []);
 
-  const load = useCallback(async () => {
-    const r = await productsApi.getDomain(product.id);
-    if (r.ok) setView(r.view);
+  /**
+   * Перечитать состояние. Возвращает свежий вид; undefined — ответа нет
+   * (сбой или его обогнал более новый запрос). Сбой вид НЕ стирает: мигнувшая
+   * сеть при опросе не должна убирать с экрана таблицу записей.
+   */
+  const load = useCallback(async (): Promise<DomainView | null | undefined> => {
+    const my = ++seq.current;
+    getting.current += 1;
+    try {
+      const r = await productsApi.getDomain(product.id);
+      if (my !== seq.current || !r.ok) return undefined;
+      setView(r.view);
+      return r.view;
+    } finally {
+      getting.current -= 1;
+    }
   }, [product.id, setView]);
 
   useEffect(() => {
@@ -110,7 +180,11 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
   const status = view?.status;
   useEffect(() => {
     if (!status || !MOVING.includes(status)) return undefined;
-    const timer = setInterval(() => void load(), DOMAIN_POLL_MS);
+    const timer = setInterval(() => {
+      // Прошлый GET ещё не вернулся или идёт действие — тик пропускаем.
+      if (getting.current > 0 || acting.current) return;
+      void load();
+    }, DOMAIN_POLL_MS);
     return () => clearInterval(timer);
   }, [status, load]);
 
@@ -119,8 +193,11 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
    * языках. Незнакомый код (сервер новее кабинета) — запасной текст сервера,
    * а не сырой ключ перевода.
    */
-  const explain = (p: Problem): string => {
+  const explain = (p: Problem, known: DomainView | null | undefined): string => {
     if (p.status === 0) return t('products.domain.errors.network');
+    if (p.reason === 'has_domain' && known) {
+      return t('products.domain.hasDomainNamed', { domain: known.domainUnicode || known.domain });
+    }
     if (p.reason) {
       const key = `products.domain.reasons.${p.reason}`;
       const text = t(key);
@@ -138,23 +215,59 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
     return v.error || t('products.domain.status.failed');
   };
 
-  const act = async (fn: () => Promise<{ ok: true; view: DomainView | null } | { ok: true; removed: 'now' | 'queued' } | Problem>) => {
+  const act = async (fn: () => Promise<ActResult>) => {
+    acting.current = true;
     setBusy(true);
     setError(null);
     setConfirming(false);
-    const r = await fn();
+    const my = ++seq.current;
+    let r: ActResult;
+    try {
+      r = await fn();
+    } finally {
+      acting.current = false;
+    }
     if (!alive.current) return;
     setBusy(false);
+    if (my !== seq.current) return;
     if (!r.ok) {
-      setError(explain(r));
       // Отказ по существу (409/404/429) часто значит, что на экране уже не то,
-      // что на сервере: заявку сняли, выпуск начался, отвязка идёт.
-      await load();
+      // что на сервере: заявку сняли, выпуск начался, отвязка идёт. Ошибка
+      // ставится ПОСЛЕ перечитки: смена статуса гасит прежние ошибки, а эту
+      // человек должен увидеть.
+      const fresh = r.status === 0 ? undefined : await load();
+      if (!alive.current) return;
+      setError(explain(r, fresh === undefined ? view : fresh));
       return;
     }
     if ('view' in r) setView(r.view);
     else if (r.removed === 'now') setView(null);
     else await load();
+  };
+
+  const copyValue = async (value: string, key: string, cell: HTMLElement | null) => {
+    let ok = true;
+    try {
+      if (!navigator.clipboard) throw new Error('no clipboard');
+      await navigator.clipboard.writeText(value);
+    } catch {
+      ok = false;
+      // Буфер недоступен (нет разрешения, не https) — выделяем значение,
+      // чтобы его можно было скопировать руками.
+      if (cell) {
+        const sel = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
+    }
+    if (!alive.current) return;
+    setCopyFlash({ key, ok });
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => {
+      if (alive.current) setCopyFlash(null);
+    }, COPY_FLASH_MS);
   };
 
   const attach = () => {
@@ -164,10 +277,12 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
   };
 
   if (view === undefined) return null;
+  if (detachOnly && view === null) return null;
 
   const detachPending = view?.status === 'failed' && !!view.errorReason && DETACH_PENDING.includes(view.errorReason);
-  const showRecords = view?.status === 'awaiting_dns' || (view?.status === 'failed' && !detachPending);
-  const canCheck = view?.status === 'awaiting_dns' || (view?.status === 'failed' && !detachPending);
+  const canCheck = !detachOnly && (view?.status === 'awaiting_dns' || (view?.status === 'failed' && !detachPending));
+  const showRecords = canCheck;
+  const checkedAt = formatCheckedAt(view?.checkedAt, lang);
   const canDetach = !!view && view.status !== 'issuing' && view.status !== 'removing';
 
   return (
@@ -177,7 +292,10 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
           <Globe className="w-4 h-4 text-gray-400 shrink-0" />
           {t('products.domain.title')}
           {view && (
-            <span className={`text-xs font-normal ${view.status === 'failed' ? 'text-red-600' : 'text-gray-500'}`}>
+            <span
+              aria-live="polite"
+              className={`text-xs font-normal ${view.status === 'failed' ? 'text-red-600' : 'text-gray-500'}`}
+            >
               — {t(`products.domain.status.${view.status}`)}
             </span>
           )}
@@ -192,7 +310,10 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
               <input
                 id={`domain-${product.id}`}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  setError(null);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !busy) attach();
                 }}
@@ -263,21 +384,33 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {view.records.map((r) => (
-                    <tr key={`${r.type}-${r.fqdn}`} className="align-top">
-                      <td className="pr-2 py-1">{r.type}</td>
-                      <td className="pr-2 py-1 font-mono">{r.name}</td>
-                      <td className="pr-2 py-1 font-mono break-all">{r.value}</td>
-                      <td className="py-1">
-                        <button
-                          onClick={() => void navigator.clipboard?.writeText(r.value).catch(() => {})}
-                          className="text-forest-700 hover:underline"
-                        >
-                          {t('products.domain.copy')}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {view.records.map((r) => {
+                    const key = `${r.type}-${r.fqdn}`;
+                    const flash = copyFlash?.key === key ? copyFlash : null;
+                    const cellId = `domain-${product.id}-${key}`;
+                    return (
+                      <tr key={key} className="align-top">
+                        <td className="pr-2 py-1">{r.type}</td>
+                        <td className="pr-2 py-1 font-mono">{r.name}</td>
+                        <td id={cellId} className="pr-2 py-1 font-mono break-all">
+                          {r.value}
+                        </td>
+                        <td className="py-1 whitespace-nowrap">
+                          <button
+                            onClick={() => void copyValue(r.value, key, document.getElementById(cellId))}
+                            aria-label={t('products.domain.copyAria', { type: r.type, name: r.name })}
+                            className={flash && !flash.ok ? 'text-amber-700' : 'text-forest-700 hover:underline'}
+                          >
+                            {flash
+                              ? flash.ok
+                                ? t('products.domain.copied')
+                                : t('products.domain.copyFailed')
+                              : t('products.domain.copy')}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -290,7 +423,9 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged }) => {
             )}
             {view.check && view.check.length > 0 && (
               <div>
-                <div className="text-xs text-gray-500">{t('products.domain.lastCheck')}</div>
+                <div className="text-xs text-gray-500">
+                  {checkedAt ? `${t('products.domain.lastCheck')} ${checkedAt}` : t('products.domain.lastCheck')}
+                </div>
                 <ul className="text-xs">
                   {view.check.map((c, i) => (
                     <Check key={`${c.type}-${c.name}-${i}`} c={c} view={view} />

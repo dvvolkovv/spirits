@@ -2227,6 +2227,9 @@
       "colName": "Nome",
       "colValue": "Valor",
       "copy": "copiar",
+      "copied": "Copiado",
+      "copyFailed": "não resultou — selecionámos, copie à mão",
+      "copyAria": "Copiar o valor {{type}} {{name}}",
       "deleteOthers": "Apague os outros registos A e todos os registos AAAA destes nomes — caso contrário, o certificado não poderá ser emitido.",
       "oldSite": "Depois de alterar os registos, o site no alojamento antigo deixará de abrir neste domínio.",
       "propagation": "As alterações de DNS demoram de 15 minutos a um dia a propagar-se. Na primeira semana verificamos automaticamente a cada dois minutos; depois disso, carregue em «Verificar agora».",
@@ -2243,6 +2246,7 @@
       "detachYes": "Sim, desligar",
       "detachCancel": "Cancelar",
       "details": "Detalhes",
+      "hasDomainNamed": "O produto já tem um domínio próprio, {{domain}} — desligue-o primeiro.",
       "errorReasons": {
         "taken": "Enquanto esperávamos pelo DNS, este domínio foi ligado a outro produto.",
         "orphan_issuing": "A emissão do certificado foi interrompida: o produto parou ou o servidor não respondeu a tempo. Carregue em «Verificar novamente».",
