@@ -112,7 +112,7 @@
 
 `byProvider` считается по тем же `days`, `kind` и `includeTest`, но **без** `provider`. Иначе при выбранной площадке остальные кнопки исчезли бы, и вернуться было бы нельзя.
 
-**`GET /webhook/admin/calls/sessions`** (`getCallSessions`, новый) принимает `days`, `kind`, `provider`, `includeTest` и `limit`. `limit` по умолчанию 50, значение вне диапазона прижимается к нему (0 → 1, 9999 → 500), нечисло даёт 50, как у соседних ручек:
+**`GET /webhook/admin/calls/sessions`** (`getCallSessions`, новый) принимает `days`, `kind`, `provider`, `includeTest` и `limit`. `limit` по умолчанию 50, значение вне диапазона 1…500 прижимается к нему. Через HTTP `0` и нечисло дают 50: контроллер, как у соседних ручек, превращает их в «не задано». Ответ:
 
 ```json
 {
