@@ -23,7 +23,11 @@ describe('ключи раздела звонков', () => {
   for (const [name, loc] of Object.entries(LOCALES)) {
     it(`${name}: площадки, новые пометки и подсказка списания`, () => {
       for (const key of NEW_KEYS) {
-        expect(at(loc, `admin.calls.${key}`), `${name}: admin.calls.${key}`).toBeTruthy();
+        const v = at(loc, `admin.calls.${key}`);
+        expect(typeof v, `${name}: admin.calls.${key}`).toBe('string');
+        // Перевод руками: самая вероятная ошибка — русская строка, вставленная
+        // в en или pt. Такую увидели бы все нерусские администраторы.
+        if (name !== 'ru') expect(v as string, `${name}: admin.calls.${key}`).not.toMatch(/[Ѐ-ӿ]/);
       }
     });
   }

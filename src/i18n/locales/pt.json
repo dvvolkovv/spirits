@@ -860,7 +860,7 @@
       "flag": {
         "interrupted": "não conectou",
         "failed": "falhou",
-        "live": "a decorrer",
+        "live": "em curso",
         "silent": "pessoa em silêncio",
         "nearlySilent": "falou pouco",
         "short": "curta"
