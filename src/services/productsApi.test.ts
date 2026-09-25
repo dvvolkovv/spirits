@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { productsApi } from './productsApi';
+import { productsApi, siteAddress, siteHref } from './productsApi';
 import { apiClient } from './apiClient';
 
 vi.mock('./apiClient', () => ({
   apiClient: {
     get: vi.fn(async () => ({ ok: true, json: async () => [] })),
     post: vi.fn(async () => ({ ok: true, json: async () => ({}) })),
+    delete: vi.fn(async () => ({ ok: true, json: async () => ({ removed: 'now' }) })),
     fetchStream: vi.fn(async () => null),
     // Поток хода открывается через request, а не через fetchStream: тот отдаёт
     // null на любом не-2xx и теряет вместе с ним и код, и причину отказа.
@@ -379,5 +380,124 @@ describe('productsApi', () => {
     await productsApi.revert('p/1', 't/1');
 
     expect(apiClient.post).toHaveBeenCalledWith('/webhook/products/p%2F1/turns/t%2F1/revert');
+  });
+});
+
+describe('свой домен', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('состояние: GET /webhook/products/:id/domain, конверт { domain }', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce(res({ ok: true, json: async () => ({ domain: null }) }));
+
+    await expect(productsApi.getDomain('p-1')).resolves.toEqual({ ok: true, view: null });
+    expect(apiClient.get).toHaveBeenCalledWith('/webhook/products/p-1/domain');
+  });
+
+  it('привязка: POST с { domain }, в ответе — вид заявки', async () => {
+    const view = { domain: 'a.ru', domainUnicode: 'a.ru', status: 'awaiting_dns' };
+    vi.mocked(apiClient.post).mockResolvedValueOnce(res({ ok: true, json: async () => ({ domain: view }) }));
+
+    await expect(productsApi.attachDomain('p-1', 'a.ru')).resolves.toEqual({ ok: true, view });
+    expect(apiClient.post).toHaveBeenCalledWith('/webhook/products/p-1/domain', { domain: 'a.ru' });
+  });
+
+  it('id экранируется: слэш не уводит запрос на чужой маршрут', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce(res({ ok: true, json: async () => ({ domain: null }) }));
+
+    await productsApi.getDomain('a/b');
+    expect(apiClient.get).toHaveBeenCalledWith('/webhook/products/a%2Fb/domain');
+  });
+
+  it('проверка: POST /domain/check', async () => {
+    const view = { domain: 'a.ru', status: 'issuing' };
+    vi.mocked(apiClient.post).mockResolvedValueOnce(res({ ok: true, json: async () => ({ domain: view }) }));
+
+    await expect(productsApi.checkDomain('p-1')).resolves.toEqual({ ok: true, view });
+    expect(apiClient.post).toHaveBeenCalledWith('/webhook/products/p-1/domain/check');
+  });
+
+  it('отвязка: DELETE, и сервер говорит, сразу или в очереди', async () => {
+    vi.mocked(apiClient.delete).mockResolvedValueOnce(res({ ok: true, json: async () => ({ removed: 'queued' }) }));
+
+    await expect(productsApi.detachDomain('p-1')).resolves.toEqual({ ok: true, removed: 'queued' });
+    expect(apiClient.delete).toHaveBeenCalledWith('/webhook/products/p-1/domain');
+  });
+
+  it('отвязка без внятного тела — считаем «в очереди»: кабинет перечитает состояние, а не объявит домен снятым', async () => {
+    vi.mocked(apiClient.delete).mockResolvedValueOnce(
+      res({ ok: true, json: async () => { throw new Error('not json'); } }),
+    );
+
+    await expect(productsApi.detachDomain('p-1')).resolves.toEqual({ ok: true, removed: 'queued' });
+  });
+
+  it('отказ сервера — Problem с кодом, текстом и машинной причиной', async () => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce(
+      res({
+        ok: false,
+        status: 409,
+        json: async () => ({ statusCode: 409, message: 'Этот домен уже привязан к другому продукту.', reason: 'taken' }),
+      }),
+    );
+
+    await expect(productsApi.attachDomain('p-1', 'a.ru')).resolves.toEqual({
+      ok: false,
+      status: 409,
+      message: 'Этот домен уже привязан к другому продукту.',
+      reason: 'taken',
+    });
+  });
+
+  it('отказ отвязки — тоже Problem с причиной', async () => {
+    vi.mocked(apiClient.delete).mockResolvedValueOnce(
+      res({ ok: false, status: 409, json: async () => ({ message: 'Идёт выпуск', reason: 'issuing' }) }),
+    );
+
+    await expect(productsApi.detachDomain('p-1')).resolves.toEqual({
+      ok: false, status: 409, message: 'Идёт выпуск', reason: 'issuing',
+    });
+  });
+
+  it('отказ без причины — поля reason нет вовсе (прежние вызовы не меняются)', async () => {
+    vi.mocked(apiClient.post).mockResolvedValueOnce(
+      res({ ok: false, status: 409, json: async () => ({ message: 'Слаг занят' }) }),
+    );
+
+    const r = await productsApi.retry('p-1');
+    expect(r).toEqual({ ok: false, status: 409, message: 'Слаг занят' });
+    expect('reason' in r).toBe(false);
+  });
+
+  it('обрыв сети — статус 0', async () => {
+    vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('network'));
+    await expect(productsApi.attachDomain('p-1', 'a.ru')).resolves.toEqual({ ok: false, status: 0, message: '' });
+
+    vi.mocked(apiClient.delete).mockRejectedValueOnce(new Error('network'));
+    await expect(productsApi.detachDomain('p-1')).resolves.toEqual({ ok: false, status: 0, message: '' });
+  });
+});
+
+describe('адрес сайта', () => {
+  it('работающий свой домен — главный адрес, иначе адрес платформы', () => {
+    expect(siteAddress({ domain: 'shop.p.linkeon.io', custom_domain: 'a.ru', custom_domain_unicode: 'a.ru' })).toBe('a.ru');
+    expect(siteHref({ domain: 'shop.p.linkeon.io', custom_domain: 'a.ru', custom_domain_unicode: 'a.ru' })).toBe('https://a.ru');
+    expect(siteAddress({ domain: 'shop.p.linkeon.io', custom_domain: null })).toBe('shop.p.linkeon.io');
+    expect(siteHref({ domain: 'shop.p.linkeon.io', custom_domain: null })).toBe('https://shop.p.linkeon.io');
+  });
+
+  it('кириллический домен: подпись по-человечески, ссылка — в punycode', () => {
+    const p = { domain: 'shop.p.linkeon.io', custom_domain: 'xn--e1afmkfd.xn--p1ai', custom_domain_unicode: 'пример.рф' };
+    expect(siteAddress(p)).toBe('пример.рф');
+    expect(siteHref(p)).toBe('https://xn--e1afmkfd.xn--p1ai');
+  });
+
+  it('старый бэкенд без юникодной формы — подпись по punycode, а не пустота', () => {
+    const p = { domain: 'shop.p.linkeon.io', custom_domain: 'xn--e1afmkfd.xn--p1ai' };
+    expect(siteAddress(p)).toBe('xn--e1afmkfd.xn--p1ai');
+  });
+
+  it('адреса нет (бот) — null, а не «https://null»', () => {
+    expect(siteAddress({ domain: null })).toBeNull();
+    expect(siteHref({ domain: null })).toBeNull();
   });
 });

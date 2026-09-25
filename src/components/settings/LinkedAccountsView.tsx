@@ -36,6 +36,11 @@ const LinkedAccountsView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingUnlink, setPendingUnlink] = useState<string | null>(null);
+  // Инлайн-привязка телефона: phone → отправка кода → ввод кода → link.
+  const [phoneStep, setPhoneStep] = useState<'idle' | 'phone' | 'code'>('idle');
+  const [phone, setPhone] = useState('');
+  const [smsCode, setSmsCode] = useState('');
+  const [phoneBusy, setPhoneBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -65,6 +70,32 @@ const LinkedAccountsView: React.FC = () => {
       window.location.href = authorizeUrl;
     } catch {
       setError(t('settings.linkedAccounts.oauthError', 'Не удалось начать привязку'));
+    }
+  };
+
+  const handleSendPhoneCode = async () => {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length < 11) { setError(t('settings.linkedAccounts.phoneInvalid', 'Введите номер телефона')); return; }
+    setPhoneBusy(true);
+    const r = await authService.requestSMSCode(clean);
+    setPhoneBusy(false);
+    if (r.success) { setError(null); setPhoneStep('code'); }
+    else setError(r.message || t('settings.linkedAccounts.smsError', 'Не удалось отправить код'));
+  };
+
+  const handleLinkPhone = async () => {
+    setPhoneBusy(true);
+    const r = await authService.linkPhone(phone, smsCode.trim());
+    setPhoneBusy(false);
+    if (r.ok) {
+      setPhoneStep('idle'); setPhone(''); setSmsCode(''); setError(null);
+      load();
+    } else if (r.reason === 'conflict') {
+      // Номер уже привязан к другому аккаунту. Слияние по телефону из настроек
+      // пока не заведено — честно объясняем, а не молчим.
+      setError(t('settings.linkedAccounts.phoneConflict', 'Этот номер уже привязан к другому аккаунту. Войдите под ним, чтобы объединить.'));
+    } else {
+      setError(t('settings.linkedAccounts.phoneLinkError', 'Не удалось привязать номер'));
     }
   };
 
@@ -129,6 +160,73 @@ const LinkedAccountsView: React.FC = () => {
             </button>
           </div>
         )}
+        {!linkedProviders.has('phone') && phoneStep === 'idle' && (
+          <div className="px-4 py-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-gray-500" />
+              <p className="text-sm">{t('profile.phone', 'Телефон')}</p>
+            </div>
+            <button onClick={() => { setError(null); setPhoneStep('phone'); }} className="text-xs text-forest-600 hover:text-forest-800">
+              {t('settings.linkedAccounts.link', 'Привязать')}
+            </button>
+          </div>
+        )}
+        {!linkedProviders.has('phone') && phoneStep !== 'idle' && (
+          <div className="px-4 py-3 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-gray-500" />
+              <p className="text-sm font-medium">{t('settings.linkedAccounts.linkPhoneTitle', 'Привязать телефон')}</p>
+            </div>
+            {phoneStep === 'phone' ? (
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoFocus
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+7 900 000-00-00"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={handleSendPhoneCode}
+                  disabled={phoneBusy}
+                  className="px-3 py-2 bg-forest-600 text-white rounded-lg text-sm font-medium hover:bg-forest-700 disabled:opacity-50 flex items-center gap-1"
+                >
+                  {phoneBusy && <Loader className="w-4 h-4 animate-spin" />}
+                  {t('settings.linkedAccounts.sendCode', 'Код')}
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoFocus
+                  value={smsCode}
+                  onChange={e => setSmsCode(e.target.value)}
+                  placeholder={t('settings.linkedAccounts.codePlaceholder', 'Код из SMS')}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={handleLinkPhone}
+                  disabled={phoneBusy}
+                  className="px-3 py-2 bg-forest-600 text-white rounded-lg text-sm font-medium hover:bg-forest-700 disabled:opacity-50 flex items-center gap-1"
+                >
+                  {phoneBusy && <Loader className="w-4 h-4 animate-spin" />}
+                  {t('settings.linkedAccounts.confirm', 'Привязать')}
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => { setPhoneStep('idle'); setPhone(''); setSmsCode(''); setError(null); }}
+              className="self-start text-xs text-gray-500 hover:text-gray-700"
+            >
+              {t('common.cancel', 'Отмена')}
+            </button>
+          </div>
+        )}
+
         {/* Taler ID здесь намеренно НЕ предлагаем: его связывание устроено
             иначе — оно переносит телефон на сторону провайдера и имеет свои
             исходы (номер занят, на аккаунте уже есть переписка). Для этого

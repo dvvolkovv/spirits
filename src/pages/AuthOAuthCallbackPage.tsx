@@ -85,6 +85,20 @@ const AuthOAuthCallbackPage: React.FC = () => {
     try {
       const resp = await apiClient.post('/webhook/auth/identities/merge', { mergeToken: mergeState.mergeToken });
       if (resp.ok) {
+        // Выживает старший аккаунт. Если сервер вернул новую пару токенов —
+        // значит выжил не тот, под которым мы залогинены: подменяем сессию на
+        // survivor, иначе текущий JWT указывал бы на удалённый аккаунт.
+        const mbody = await resp.json().catch(() => ({} as Record<string, unknown>));
+        const access = (mbody as any)['access-token'];
+        const refresh = (mbody as any)['refresh-token'];
+        if (access && refresh) {
+          if (!tokenManager.saveTokens(access, refresh)) {
+            setError(t('auth.sms.storageUnavailable'));
+            setMergeState(null);
+            return;
+          }
+          await login('', access);
+        }
         navigate('/settings?linked=1');
       } else {
         const body = await resp.json().catch(() => ({}));
