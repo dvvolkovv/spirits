@@ -37,6 +37,15 @@
   - в JSDoc `callSessions` — предупреждение о порядке маршрутов;
   - отдельный коммит поставил дату у цифры про прерванные сессии в `callFlags.ts`.
 - **Числа тестов в `src/admin`:** 88 после Task 2, 97 после Task 3, 102 после Task 4.
+- **Task 6:**
+  - тест ключей проверяет, что значение — непустая строка без кириллицы в en/pt;
+  - в pt `flag.live` — «em curso» (как в соседних статусах админки).
+- **Task 7:** строгий тест сверяет подпись каждой площадки с её собственным ключом в ru/en/pt; вместо `any` — `TFunction`.
+- **Task 8:**
+  - поиск подписи и тона — только по своим полям таблиц (`own()`);
+  - подпись каждой пометки сверяется с её ключом (`nearly_silent` → `nearlySilent`), а русские дефолты — с ru.json;
+  - имена из прототипа проверяются через `it.each`.
+- **Task 9:** идущая сессия (`live`) перечитывает расшифровку при каждом раскрытии.
 - **Task 9 и 10 ниже уже исправлены.**
   - Прерванный звонок раскрывается, если `user_turns > 0`.
   - На потолке сервера (500) лента показывает подсказку вместо «Показать ещё».
@@ -1710,6 +1719,24 @@ describe('CallSessionItem', () => {
     expect(get).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain('сбой');
   });
+
+  it('идущая сессия перечитывает расшифровку при каждом раскрытии', async () => {
+    // Расшифровку voice-host дописывает по ходу: сохранённая при первом
+    // раскрытии к следующему уже устарела бы.
+    await mount(<CallSessionItem session={session({ status: 'active', flags: ['live'], duration_sec: null })} />);
+    await click(q('call-session-c-1'));
+    await click(q('call-session-c-1'));
+    await click(q('call-session-c-1'));
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('завершённая сессия грузит расшифровку один раз', async () => {
+    await mount(<CallSessionItem session={session()} />);
+    await click(q('call-session-c-1'));
+    await click(q('call-session-c-1'));
+    await click(q('call-session-c-1'));
+    expect(get).toHaveBeenCalledTimes(1);
+  });
 });
 ```
 
@@ -1811,7 +1838,9 @@ export const CallSessionItem: React.FC<{
     if (!expandable) return;
     const next = !open;
     setOpen(next);
-    if (!next || turns) return;
+    // Идущая сессия дописывает расшифровку по ходу — её перечитываем при
+    // каждом раскрытии; остальные грузим один раз.
+    if (!next || (turns && !s.flags.includes('live'))) return;
     try {
       const r = await apiClient.get(`/webhook/admin/calls/${encodeURIComponent(s.id)}/transcript`);
       const d = await r.json();
@@ -2004,7 +2033,7 @@ F=~/Downloads/spirits_front/.worktrees/admin-meetings
 (cd $F && ./node_modules/.bin/vitest run src/components/admin/CallSessionItem.test.tsx 2>&1 | tail -6 && ./node_modules/.bin/eslint src/components/admin/CallSessionItem.tsx src/components/admin/UserCallsList.tsx && echo "eslint чисто")
 ```
 
-Ожидается: PASS (7 тестов) и `eslint чисто`.
+Ожидается: PASS (9 тестов) и `eslint чисто`.
 
 - [ ] **Step 6: Закоммитить**
 
@@ -2817,11 +2846,11 @@ SHA=$(git -C $F rev-parse HEAD)
 ssh dv@85.192.61.231 "cd ~/ci/wt/admin-meetings-front && git fetch -q origin && git checkout -q $SHA && source ~/.nvm/nvm.sh && pnpm test 2>&1 | tail -6"
 ```
 
-Ожидается: `Test Files 64 passed (64)`, `Tests 792 passed (792)`. Это 764 базовых и 28 новых:
+Ожидается: `Test Files 64 passed (64)`, `Tests 800 passed (800)`. Это 764 базовых и 36 новых (после правок ревью Task 6–9):
 - `callsLocales` — 5;
-- `callProviders` — 3;
-- `callFlagLabels` — 1;
-- `CallSessionItem` — 7;
+- `callProviders` — 4;
+- `callFlagLabels` — 6 (было 2, стало 8);
+- `CallSessionItem` — 9;
 - `CallSessionsFeed` — 6;
 - `AdminCallsView` — 6.
 
