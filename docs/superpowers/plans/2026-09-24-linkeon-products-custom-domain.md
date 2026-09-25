@@ -4899,7 +4899,18 @@ ssh root@206.81.17.255 "set -e;
 
 Ожидается: `CLEAN_OK`, `sites-products` пуст, из сертификатов — только `products`. Остаётся безвредный `/usr/share/linkeon/connecting.html`: его всё равно заведёт `product-vhost` после выката.
 
-- [ ] **Step 7: Записать результат репетиции в этот план**
+- [x] **Step 7: Записать результат репетиции в этот план**
+
+**Итог репетиции (25.09.2026, машина `clients`, скрипт с коммита `1fc097a`): все шаги зелёные, машина убрана.**
+
+- Шаг 2 в написанном виде падает: новый `product-vhost` отбивает имена под своей `ZONE` (rc 2, «домен в зоне платформы»), а репетиционное имя лежит под `c.linkeon.io`. Так задумано. Во временной копии поставлена `ZONE=rehearsal.invalid`, имя оставлено под `c.linkeon.io`, на машину его ведёт wildcard. Строка спеки «машине запрет не мешает» устарела.
+- Первый проход: `nginx -t` зелёный, в конфиге один `listen 443` (только основной адрес) и один путь ACME, права файла 644.
+- Путь Let's Encrypt отдал `probe`, корень отдал 503 со страницей «Домен подключается».
+- Сертификат staging выпущен: `subject=CN=rehearsal-dom-1790317632.c.linkeon.io`, издатель `(STAGING) Baloney Bulgur YE2`. После второго прохода в конфиге два `listen 443`. На https 502, это ожидаемо: на порту 18099 никого нет. HTTP отвечает 301 на https, путь ACME остался.
+- Хук `linkeon-reload-nginx` отработал. С `--asleep` на своём домене по https стоит 503 «Продукт временно недоступен».
+- `certbot renew --cert-name … --dry-run` дал «all simulated renewals succeeded». **Без терминала certbot выдерживает случайную паузу до 8 минут**, поэтому в живой проверке (задача 19, шаг 5.6) добавлять `--no-random-sleep-on-renew`.
+- Уборка: конфиг без имён → `certbot delete` → файлы удалены → `CLEAN_OK`. В `sites-products` пусто, из сертификатов только `products`, `nginx -t` зелёный.
+- Сверено чтением на обеих машинах продуктов: `snippets/products-ssl.conf` объявляет `ssl_session_cache shared:SSL:10m` (тот же размер, что в блоках 443 своих доменов). Корзина в `nginx.conf` закомментирована, `conf.d/*.conf` подключён внутри `http{}`, certbot 2.9.0 стоит из apt в `/usr/bin`, `certbot.timer` включён.
 
 ---
 
@@ -4914,6 +4925,20 @@ psql "$DATABASE_URL" -Atc "SELECT 'jobs', count(*) FROM product_provision_jobs W
 psql "$DATABASE_URL" -Atc "SELECT 'turns', count(*) FROM product_turns WHERE status IN ('queued','running')"
 SQL
 ```
+
+**Дополнения по итогам реализации (25.09.2026), выполнять вместе с шагами ниже:**
+
+- **Перед выкатом.** Ещё раз сверить md5 живого `/home/dv/file-agent/server.mjs` на релее с `origin/main:relay-agent/server.mjs` (24–25.09 было `dc0ead6e…`, совпадало).
+- **Миграции.** 008 применяется сама при старте API (`ProductsService.onModuleInit`), сломанный migrate-runner здесь не участвует. После выката в логах pm2 искать `008_domains.sql` и `004_rent.sql` (словарь вида `'domain'` живёт только в 004). Проверить:
+  - `SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='product_provision_jobs_kind_check'` — в словаре есть `'domain'`;
+  - `\d product_domains` — таблица существует.
+
+  Разовое падение одного процесса кластера на первом `CREATE` — гонка, повторного быть не должно.
+- **PHASE 4 по машинам.** Если `3/5` красная (корзина осталась 64), домены длиннее ~46 знаков на этой машине падают. Если `4/5` пропущен, задания `domain` получают `agent_outdated`. В обоих случаях до живой проверки повторить `PRODUCTS_HOST_ONLY=1 PRODUCTS_HOST=<id>` (с «да» владельца). Агента на новую машину ставить только через PHASE 4: `product-host-agent-install.sh` напрямую обходит защиту «агент только вместе со скриптом».
+- **Шаг 4, дополнительно.** `command -v certbot` на обеих машинах должен дать `/usr/bin/certbot`. 25.09 это так, чтением проверено.
+- **Риск отката.** Если после выката откатить бэкенд, старый сервер не шлёт `customNames`, новый агент читает это как пустой список, и первый же сон или пробуждение снимает работающие свои домены. При таком откате вручную прогнать `product-vhost <slug> <порт> --domain …` по строкам `product_domains` в `active` (с «да» владельца).
+- **Архивация вручную через psql** оставляет домен занятым навсегда: индекс занятости про архив не знает. В ранбук: при архивации удалять строку `product_domains` и ставить задание `domain` на уборку.
+- **Шаг 5.6:** `certbot renew --cert-name linkeon-dmitryvolkov --dry-run --no-random-sleep-on-renew`.
 
 - [ ] **Step 1: Влить ветки в main**
 
