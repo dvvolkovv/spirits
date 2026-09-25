@@ -105,6 +105,21 @@ const SLOT_CHOICES = 6;
 
 type SlotState = 'free' | 'taken' | 'current';
 
+/**
+ * Несохранённая правка текста и версия поста, от которой она начата.
+ *
+ * Версия фиксируется при первом изменении и уходит с сохранением. Очередь
+ * перечитывается после любого успешного действия и приносит свежий
+ * `updatedAt`; отправь правку с ним — бэк сверит её не с той версией, от
+ * которой она сделана, и молча затрёт изменение, внесённое за это время в
+ * личке бота или в соседней вкладке. С исходной версией он ответит 409.
+ */
+interface Draft {
+  title: string;
+  body: string;
+  baseUpdatedAt: string;
+}
+
 /** Список слотов под постом: `slots === null` — ещё не пришёл. */
 interface SlotPicker {
   postId: string;
@@ -160,7 +175,7 @@ const AdminBlogView: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [newTopic, setNewTopic] = useState('');
   const [newRubric, setNewRubric] = useState<'news' | 'case'>('case');
-  const [editing, setEditing] = useState<Record<string, { title: string; body: string }>>({});
+  const [editing, setEditing] = useState<Record<string, Draft>>({});
   const [picker, setPicker] = useState<SlotPicker | null>(null);
   const slotsRequest = useRef(0);
 
@@ -172,7 +187,8 @@ const AdminBlogView: React.FC = () => {
   /**
    * `dropDrafts` — для явного «Загрузить заново» после 409: там смысл в том,
    * чтобы увидеть чужую версию, а не свою. Обычная перезагрузка чернового
-   * текста не трогает.
+   * текста не трогает — и его версии тоже: правка остаётся на той основе, от
+   * которой начата, а расхождение с пришедшей версией видно у поста заранее.
    */
   const load = async (dropDrafts = false) => {
     setBusy(true);
@@ -297,6 +313,18 @@ const AdminBlogView: React.FC = () => {
         updatedAt: post.updatedAt,
       });
       setPicker(null);
+      // Перенос сам сдвигает версию поста. Правку, начатую с той версии, что
+      // сервер только что подтвердил, переводим на новую: с начала правки пост
+      // никто не трогал, а слот к тексту отношения не имеет. Уже устаревшая
+      // правка остаётся на своей основе и при сохранении честно получит 409.
+      if (typeof saved?.updatedAt === 'string') {
+        const moved: string = saved.updatedAt;
+        setEditing((prev) => {
+          const own = prev[post.id];
+          if (!own || !sameInstant(own.baseUpdatedAt, post.updatedAt)) return prev;
+          return { ...prev, [post.id]: { ...own, baseUpdatedAt: moved } };
+        });
+      }
       const at = typeof saved?.slotAt === 'string' ? saved.slotAt : slot.slotAt;
       const name = post.title?.trim() || post.topicHint?.trim();
       setNotice(`${name ? `«${name}»` : 'Пост'} выйдет ${formatSlotAt(at, new Date())}`);
@@ -545,7 +573,11 @@ const AdminBlogView: React.FC = () => {
           )}
 
           {posts.map((p) => {
-            const draft = editing[p.id] ?? { title: p.title ?? '', body: p.body ?? '' };
+            const own = editing[p.id];
+            // Без правки — текст и версия с сервера: от этой версии правка и начнётся.
+            const draft: Draft = own ?? { title: p.title ?? '', body: p.body ?? '', baseUpdatedAt: p.updatedAt };
+            // Та же проверка, что у бэка в `assertVersion`: версии разошлись — будет 409.
+            const draftStale = !!own && !sameInstant(own.baseUpdatedAt, p.updatedAt);
             const broken = p.status === 'failed';
             const editable = !isTerminal(p.status);
             const textReady = p.status !== 'idea' && p.status !== 'drafting';
@@ -592,17 +624,20 @@ const AdminBlogView: React.FC = () => {
                         <input
                           data-testid={`blog-title-${p.id}`}
                           value={draft.title}
-                          onChange={(e) =>
-                            setEditing((prev) => ({ ...prev, [p.id]: { ...draft, title: e.target.value } }))
-                          }
+                          onChange={(e) => {
+                            const title = e.target.value;
+                            // Версию правки задаёт первое изменение; дальше она не трогается.
+                            setEditing((prev) => ({ ...prev, [p.id]: { ...(prev[p.id] ?? draft), title } }));
+                          }}
                           className="w-full border border-gray-200 rounded px-2 py-1 text-sm font-medium mb-1"
                         />
                         <textarea
                           data-testid={`blog-body-${p.id}`}
                           value={draft.body}
-                          onChange={(e) =>
-                            setEditing((prev) => ({ ...prev, [p.id]: { ...draft, body: e.target.value } }))
-                          }
+                          onChange={(e) => {
+                            const body = e.target.value;
+                            setEditing((prev) => ({ ...prev, [p.id]: { ...(prev[p.id] ?? draft), body } }));
+                          }}
                           rows={4}
                           className="w-full border border-gray-200 rounded px-2 py-1 text-sm"
                         />
@@ -614,6 +649,18 @@ const AdminBlogView: React.FC = () => {
                         >
                           {draft.body.length} / 1000 символов подписи
                         </div>
+                        {draftStale && (
+                          <div
+                            data-testid={`blog-draft-stale-${p.id}`}
+                            className="mt-1 flex items-start gap-1.5 text-xs rounded px-2 py-1.5 border bg-amber-50 border-amber-300 text-amber-900"
+                          >
+                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
+                            <span>
+                              Пост изменился с начала вашей правки: сохранение закончится конфликтом. Если
+                              правка нужна, скопируйте её до того, как загрузите пост заново.
+                            </span>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <div className="text-sm text-gray-700">{p.topicHint || p.topicKey}</div>
@@ -664,7 +711,8 @@ const AdminBlogView: React.FC = () => {
                         id: p.id,
                         title: draft.title,
                         body: draft.body,
-                        updatedAt: p.updatedAt,
+                        // Версия, от которой начата правка, а не пришедшая с последней загрузкой.
+                        updatedAt: draft.baseUpdatedAt,
                       })}
                       disabled={busy || !textReady}
                       className="px-3 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"

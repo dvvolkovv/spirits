@@ -149,6 +149,154 @@ describe('конкурентная правка (409)', () => {
   });
 });
 
+/**
+ * Несохранённая правка помнит версию поста, от которой начата. После любого
+ * успешного действия очередь перечитывается, и пост с правкой получает свежий
+ * `updatedAt` с сервера. Если сохранение уйдёт с ним, бэк сверит правку не с
+ * той версией, от которой она сделана, и молча затрёт изменение, сделанное за
+ * это время в личке бота или в соседней вкладке.
+ */
+describe('правка помнит версию, от которой начата', () => {
+  type Payload = { action: string; id?: string; title?: string; body?: string; updatedAt?: string };
+  type Row = typeof basePost;
+
+  const A = { ...basePost, id: 'a1', title: 'Пост A', body: 'Текст A', updatedAt: '2026-09-21T10:00:00.000Z' };
+  const B = { ...basePost, id: 'b1', title: 'Пост B', body: 'Текст B', updatedAt: '2026-09-21T10:05:00.000Z' };
+
+  /**
+   * Сервер, как настоящий: `update_text` сверяет присланную версию (если она
+   * есть) и на расхождение отвечает 409 тем же телом, что Nest из
+   * `assertVersion`; выброшенное `list` не отдаёт; любая запись сдвигает версию.
+   */
+  const server = (initial: Row[]) => {
+    const db = new Map<string, Row>(initial.map((p) => [p.id, { ...p }]));
+    let tick = 0;
+    const bump = (p: Row) => {
+      p.updatedAt = new Date(Date.parse('2026-09-21T12:00:00.000Z') + ++tick * 1000).toISOString();
+    };
+    const handler = async (_url: string, payload: Payload) => {
+      const p = payload.id ? db.get(payload.id) : undefined;
+      switch (payload.action) {
+        case 'list':
+          return res(200, [...db.values()].filter((x) => x.status !== 'rejected').map((x) => ({ ...x })));
+        case 'reject':
+          if (!p) return res(404, { message: 'пост не найден' });
+          p.status = 'rejected';
+          bump(p);
+          return res(200, { ...p });
+        case 'update_text':
+          if (!p) return res(404, { message: 'пост не найден' });
+          if (payload.updatedAt && Date.parse(payload.updatedAt) !== Date.parse(p.updatedAt)) {
+            return res(409, {
+              statusCode: 409,
+              message: 'пост изменился в другом месте — обнови страницу',
+              error: 'Conflict',
+            });
+          }
+          p.title = payload.title ?? '';
+          p.body = payload.body ?? '';
+          bump(p);
+          return res(200, { ...p });
+        default:
+          throw new Error(`неожиданное действие ${payload.action}`);
+      }
+    };
+    /** Правка мимо этой вкладки: замечание или «Переписать» в личке бота, соседняя вкладка. */
+    const editElsewhere = (id: string, body: string) => {
+      const p = db.get(id)!;
+      p.body = body;
+      bump(p);
+    };
+    return { handler, editElsewhere, row: (id: string) => ({ ...db.get(id)! }) };
+  };
+
+  const body = (id: string) => (q(`blog-body-${id}`) as HTMLTextAreaElement).value;
+
+  /** Сценарий из разбора: правка A → A меняют в другом месте → действие над B перечитывает очередь. */
+  const editThenActOnOther = async (srv: ReturnType<typeof server>) => {
+    await mount();
+    await type('blog-body-a1', 'Моя правка A');
+    srv.editElsewhere('a1', 'Текст A после замечания в Telegram');
+    await click('blog-reject-b1');
+  };
+
+  it('сохранение уходит с версией, от которой начата правка, а не с версией последней загрузки', async () => {
+    const srv = server([A, B]);
+    post.mockImplementation(srv.handler);
+    await editThenActOnOther(srv);
+    // Очередь действительно перечитана — у A в ней уже новая версия.
+    expect(sentActions().map((a) => a.action)).toEqual(['list', 'reject', 'list']);
+
+    await click('blog-save-text-a1');
+
+    const save = sentActions().find((a) => a.action === 'update_text');
+    expect(save).toMatchObject({ id: 'a1', body: 'Моя правка A', updatedAt: A.updatedAt });
+  });
+
+  it('поэтому чужое изменение не затирается молча: конфликт, чужой текст цел, своя правка на экране', async () => {
+    const srv = server([A, B]);
+    post.mockImplementation(srv.handler);
+    await editThenActOnOther(srv);
+    await click('blog-save-text-a1');
+
+    expect(q('blog-error')!.textContent).toContain('Пост изменили в другом месте');
+    expect(srv.row('a1').body).toBe('Текст A после замечания в Telegram');
+    expect(body('a1')).toBe('Моя правка A');
+  });
+
+  it('версия фиксируется при первом изменении: правка, продолженная после перезагрузки, помнит исходную', async () => {
+    const srv = server([A, B]);
+    post.mockImplementation(srv.handler);
+    await editThenActOnOther(srv);
+    await type('blog-body-a1', 'Моя правка A, дописанная после перезагрузки');
+    await click('blog-save-text-a1');
+
+    const save = sentActions().find((a) => a.action === 'update_text');
+    expect(save!.updatedAt).toBe(A.updatedAt);
+    expect(srv.row('a1').body).toBe('Текст A после замечания в Telegram');
+  });
+
+  it('о том, что пост изменился, видно заранее — до нажатия «Сохранить текст»', async () => {
+    const srv = server([A, B]);
+    post.mockImplementation(srv.handler);
+    await editThenActOnOther(srv);
+
+    expect(q('blog-draft-stale-a1')!.textContent).toMatch(/пост изменился с начала вашей правки/i);
+    expect(sentActions().some((a) => a.action === 'update_text')).toBe(false);
+  });
+
+  it('пометки нет, пока пост не менялся, и нет у поста без правки', async () => {
+    const C = { ...basePost, id: 'c1', title: 'Пост C', body: 'Текст C', updatedAt: '2026-09-21T10:10:00.000Z' };
+    const srv = server([A, B, C]);
+    post.mockImplementation(srv.handler);
+    await mount();
+    await type('blog-body-a1', 'Моя правка A');
+    srv.editElsewhere('c1', 'Текст C, поправленный в другом месте'); // C поменяли, но правки у нас нет
+    await click('blog-reject-b1');
+
+    expect(q('blog-draft-stale-a1')).toBeNull();
+    expect(q('blog-draft-stale-c1')).toBeNull();
+    expect(body('c1')).toBe('Текст C, поправленный в другом месте');
+  });
+
+  it('после успешного сохранения правка закрыта: следующая начинается с новой версии', async () => {
+    const srv = server([A, B]);
+    post.mockImplementation(srv.handler);
+    await mount();
+    await type('blog-body-a1', 'Первая правка');
+    await click('blog-save-text-a1');
+    const afterFirst = srv.row('a1').updatedAt;
+
+    await type('blog-body-a1', 'Вторая правка');
+    await click('blog-save-text-a1');
+
+    const saves = sentActions().filter((a) => a.action === 'update_text');
+    expect(saves.map((s) => s.updatedAt)).toEqual([A.updatedAt, afterFirst]);
+    expect(q('blog-error')).toBeNull();
+    expect(srv.row('a1').body).toBe('Вторая правка');
+  });
+});
+
 describe('сорвавшийся пост', () => {
   const failed = {
     ...basePost,
@@ -289,15 +437,30 @@ describe('перенос слота', () => {
     updatedAt: '2026-09-24T11:00:00.000Z',
   };
 
-  type Payload = { action: string; count?: number; id?: string; slotAt?: string; updatedAt?: string };
-  type FakePost = { id: string; status: string; slotAt: string | null; title: string | null; updatedAt: string };
+  type Payload = {
+    action: string;
+    count?: number;
+    id?: string;
+    slotAt?: string;
+    title?: string;
+    body?: string;
+    updatedAt?: string;
+  };
+  type FakePost = {
+    id: string;
+    status: string;
+    slotAt: string | null;
+    title: string | null;
+    body: string | null;
+    updatedAt: string;
+  };
 
   /**
    * Бэк блога в миниатюре — строго по контракту: слот занят одобренным
    * постом с таким `slotAt`, версия поста — `updatedAt`, перенос её
    * сдвигает. Чужой слот → 409 slot_taken, устаревшая версия → 409
    * version_conflict (версию, как и настоящий бэк, сверяет только если её
-   * прислали).
+   * прислали). Правка текста сверяет версию так же, как `assertVersion`.
    */
   const fakeBlog = (initial: FakePost[]) => {
     const db = new Map<string, FakePost>(initial.map((p) => [p.id, { ...p }]));
@@ -337,11 +500,26 @@ describe('перенос слота', () => {
           bump(p.id);
           return res(200, { ...p });
         }
+        case 'update_text': {
+          const p = payload.id ? db.get(payload.id) : undefined;
+          if (!p) return res(404, { message: 'пост не найден' });
+          if (payload.updatedAt && Date.parse(payload.updatedAt) !== Date.parse(p.updatedAt)) {
+            return res(409, {
+              statusCode: 409,
+              message: 'пост изменился в другом месте — обнови страницу',
+              error: 'Conflict',
+            });
+          }
+          p.title = payload.title ?? '';
+          p.body = payload.body ?? '';
+          bump(p.id);
+          return res(200, { ...p });
+        }
         default:
           throw new Error(`неожиданное действие ${payload.action}`);
       }
     };
-    return { handler, bump };
+    return { handler, bump, get: (id: string) => ({ ...db.get(id)! }) };
   };
 
   const slot = (postId: string, slotAt: string) => {
@@ -438,6 +616,50 @@ describe('перенос слота', () => {
 
     expect(when('c1')).toBe('Выйдет в среду, 30 сентября, в 10:00 МСК');
     expect((q('blog-body-c1') as HTMLTextAreaElement).value).toBe('Правка, которую ещё не сохранили');
+  });
+
+  /**
+   * Перенос сам сдвигает версию поста. Правка, начатая до него, от этого не
+   * должна стать «чужой»: сервер подтвердил, что с начала правки пост никто
+   * не трогал, а слот к тексту отношения не имеет.
+   */
+  it('собственный перенос не делает правку устаревшей: текст сохраняется без конфликта', async () => {
+    const blog = fakeBlog([caseOnMon]);
+    post.mockImplementation(blog.handler);
+    await mount();
+    await type('blog-body-c1', 'Правка до переноса');
+    await click('blog-reschedule-c1');
+    await pick('c1', WED);
+
+    expect(q('blog-draft-stale-c1')).toBeNull();
+    await click('blog-save-text-c1');
+
+    expect(q('blog-error')).toBeNull();
+    expect(blog.get('c1').body).toBe('Правка до переноса');
+    expect(blog.get('c1').slotAt).toBe(WED);
+  });
+
+  it('уже устаревшую правку перенос не «отмывает»', async () => {
+    const blog = fakeBlog([caseOnMon, newsOnFri]);
+    post.mockImplementation(blog.handler);
+    await mount();
+    await type('blog-body-c1', 'Моя правка');
+    blog.bump('c1'); // кейс тем временем поправили в другом месте
+    await click('blog-reschedule-n1');
+    await pick('n1', WED); // очередь перечитана — у кейса в ней уже новая версия
+    expect(q('blog-draft-stale-c1')).toBeTruthy();
+
+    // Перенос самого кейса проходит: он уходит с последней загруженной версией.
+    await click('blog-reschedule-c1');
+    await pick('c1', FRI);
+    expect(when('c1')).toBe('Выйдет в пятницу, 2 октября, в 10:00 МСК');
+    expect(q('blog-draft-stale-c1')).toBeTruthy();
+
+    await click('blog-save-text-c1');
+    const saves = sentActions().filter((a) => a.action === 'update_text');
+    expect(saves.map((s) => s.updatedAt)).toEqual([caseOnMon.updatedAt]);
+    expect(q('blog-error')!.textContent).toContain('Пост изменили в другом месте');
+    expect(blog.get('c1').body).toBe(caseOnMon.body);
   });
 
   it('slot_taken: называет пост, занявший слот, и перезапрашивает список', async () => {
