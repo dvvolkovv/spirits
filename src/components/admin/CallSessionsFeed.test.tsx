@@ -20,7 +20,7 @@ const mk = (i: number): CallSession => ({
 
 /** Ответ ручки ленты: столько сессий, сколько просили, но не больше total. */
 const reply = (total: number) => (url: string) => {
-  const limit = Number(new URL(url, 'http://x').searchParams.get('limit'));
+  const limit = Math.min(Number(new URL(url, 'http://x').searchParams.get('limit')), 500);
   const n = Math.min(limit, total);
   return Promise.resolve({
     ok: true, status: 200,
@@ -79,6 +79,7 @@ describe('CallSessionsFeed', () => {
     get.mockImplementation(reply(3));
     await mount();
     expect(q('call-sessions-more')).toBeNull();
+    expect(q('call-sessions-count')?.textContent).toBe('Показано 3 из 3');
   });
 
   it('клик по номеру в строке открывает карточку человека', async () => {
@@ -105,5 +106,66 @@ describe('CallSessionsFeed', () => {
     expect(get).toHaveBeenLastCalledWith('/webhook/admin/calls/sessions?days=30&kind=all&includeTest=1&limit=500');
     expect(q('call-sessions-more')).toBeNull();
     expect(q('call-sessions-capped')?.textContent).toContain('500');
+  });
+
+  it('подсказку о потолке решает показанный ответ: пока грузится и после сбоя — кнопка', async () => {
+    let failLast = true;
+    let releaseLast!: () => void;
+    get.mockImplementation((url: string) => {
+      const limit = Number(new URL(url, 'http://x').searchParams.get('limit'));
+      if (limit === 500 && failLast) {
+        failLast = false;
+        return new Promise((resolve) => {
+          releaseLast = () => resolve({ ok: false, status: 502, json: async () => ({}) });
+        });
+      }
+      return reply(1000)(url);
+    });
+    await mount();
+    for (let i = 0; i < 8; i++) await click(q('call-sessions-more'));
+    await click(q('call-sessions-more'));
+    expect(q('call-sessions-capped')).toBeNull();
+    expect(q('call-sessions-more')?.textContent).toBe('Загрузка…');
+    await act(async () => { releaseLast(); });
+    await settle();
+    expect(container.textContent).toContain('Сессии: 502');
+    expect(q('call-sessions-capped')).toBeNull();
+    await click(q('call-sessions-more'));
+    expect(get).toHaveBeenLastCalledWith('/webhook/admin/calls/sessions?days=30&kind=all&includeTest=1&limit=500');
+    expect(q('call-sessions-capped')?.textContent).toContain('500');
+  });
+
+  it('сервер, прижавший лимит ниже запрошенного, — тоже потолок', async () => {
+    get.mockImplementation((url: string) => {
+      const limit = Math.min(Number(new URL(url, 'http://x').searchParams.get('limit')), 200);
+      return Promise.resolve({
+        ok: true, status: 200,
+        json: async () => ({ total: 1000, limit, sessions: Array.from({ length: limit }, (_, i) => mk(i)) }),
+      });
+    });
+    await mount();
+    for (let i = 0; i < 4; i++) await click(q('call-sessions-more'));
+    expect(q('call-sessions-more')).toBeNull();
+    expect(q('call-sessions-capped')).not.toBeNull();
+  });
+
+  it('«Обновить» перечитывает ленту с тем же числом строк', async () => {
+    get.mockImplementation(reply(131));
+    await mount();
+    await click(q('call-sessions-more'));
+    await act(async () => {
+      root.render(<CallSessionsFeed query="days=30&kind=all&includeTest=1" reloadKey={1} onOpenUser={vi.fn()} />);
+    });
+    await settle();
+    expect(get).toHaveBeenCalledTimes(3);
+    expect(get).toHaveBeenLastCalledWith('/webhook/admin/calls/sessions?days=30&kind=all&includeTest=1&limit=100');
+    expect(q('call-sessions-count')?.textContent).toBe('Показано 100 из 131');
+  });
+
+  it('ответ не той формы — ошибка, а не «сессий не было»', async () => {
+    get.mockResolvedValue({ ok: true, status: 200, json: async () => ({ items: [] }) });
+    await mount();
+    expect(container.textContent).toContain('Сессии: неожиданный ответ');
+    expect(container.textContent).not.toContain('Сессий за период не было');
   });
 });
