@@ -14,6 +14,27 @@
 
 **Спека:** [docs/superpowers/specs/2026-09-24-admin-meeting-sessions-design.md](../specs/2026-09-24-admin-meeting-sessions-design.md)
 
+## Отклонения от кода плана по итогам ревью (25–26.09.2026)
+
+Код Task 1–3 ниже — исходный. После ревью в ветке он отличается так:
+
+- **Task 1:** комментарии в `callFlags.ts` уточнены. Названы оба префикса причины сбоя. Добавлена оговорка про `complete()`, перезаписывающий `failed`. «Короткий» для идущей сессии убран: без длительности он не срабатывал. Комментарий к прерванным звонкам исправлен: расшифровка у них бывает.
+- **Task 2:**
+  - у `callsWhere` нет второго параметра; разбивка строится как `callsWhere({ ...f, provider: null })`;
+  - `days` проходит через `Number.isFinite`;
+  - `PROVIDER_RE` — `/^[A-Za-z0-9_.-]{1,64}$/`;
+  - добавлен тест «таблица, итоги и разбивка считаются по одному условию», проверенный нарочной поломкой.
+- **Task 3:**
+  - имя ассистента — `COALESCE(a.display_name, a.name)`;
+  - `FROM` и `JOIN` сессии вынесены в константу `SESSION_FROM`;
+  - лимиты всех трёх ручек проходят через `clampLimit(v, def, max)`;
+  - `getUserCalls` сортирует `started_at DESC, id DESC`;
+  - добавлен тест «лента и карточка отдают одну и ту же форму сессии» с точным списком ключей.
+- **Числа тестов в `src/admin`:** 88 после Task 2, 97 после Task 3, 101 после Task 4.
+- **Task 9 и 10 ниже уже исправлены.**
+  - Прерванный звонок раскрывается, если `user_turns > 0`.
+  - На потолке сервера (500) лента показывает подсказку вместо «Показать ещё».
+
 ---
 
 ## Как здесь работать — прочесть до Task 1
@@ -1051,7 +1072,7 @@ SHA=$(git -C $B rev-parse HEAD)
 ssh dv@85.192.61.231 "cd ~/ci/wt/admin-meetings-back && git fetch -q origin && git checkout -q $SHA && source ~/.nvm/nvm.sh && npx jest src/admin --maxWorkers=2 2>&1 | tail -6; npx jest src/common/guards --maxWorkers=2 2>&1 | tail -6"
 ```
 
-Ожидается PASS в обоих прогонах. Первый: `Test Suites: 11 passed`, `Tests: 99 passed` (95 + 4). Второй: всё зелёное, `failed` нет. Спек `admin-routes.spec.ts` сам обходит все методы контроллера, поэтому в его выводе должен быть `callSessions закрыт AdminGuard`. Проверить отдельно:
+Ожидается PASS в обоих прогонах. Первый: `Test Suites: 11 passed`, `Tests: 101 passed` (97 после правок ревью Task 1–3 + 4). Второй: всё зелёное, `failed` нет. Спек `admin-routes.spec.ts` сам обходит все методы контроллера, поэтому в его выводе должен быть `callSessions закрыт AdminGuard`. Проверить отдельно:
 
 ```bash
 ssh dv@85.192.61.231 "cd ~/ci/wt/admin-meetings-back && source ~/.nvm/nvm.sh && npx jest src/common/guards/admin-routes --verbose 2>&1 | grep -c callSessions"
@@ -1664,10 +1685,17 @@ describe('CallSessionItem', () => {
     expect(q('call-session-user-c-1')).toBeNull();
   });
 
-  it('несостоявшийся звонок не раскрывается', async () => {
-    await mount(<CallSessionItem session={session({ status: 'interrupted', flags: ['interrupted'], duration_sec: null })} />);
+  it('прерванный звонок без реплик человека не раскрывается', async () => {
+    await mount(<CallSessionItem session={session({ status: 'interrupted', flags: ['interrupted'], duration_sec: null, user_turns: 0 })} />);
     await click(q('call-session-c-1'));
     expect(get).not.toHaveBeenCalled();
+  });
+
+  it('прерванный звонок с репликами раскрывается: расшифровку пишут по ходу', async () => {
+    // На стенде 25.09.2026 расшифровка есть у 7 из 11 прерванных встреч.
+    await mount(<CallSessionItem session={session({ status: 'interrupted', flags: ['interrupted'], duration_sec: null, user_turns: 2 })} />);
+    await click(q('call-session-c-1'));
+    expect(get).toHaveBeenCalledTimes(1);
   });
 
   it('сбой встречи раскрывается: расшифровка бывает и до обрыва', async () => {
@@ -1767,9 +1795,11 @@ export const CallSessionItem: React.FC<{
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[] | null>(null);
-  // Несостоявшийся звонок раскрывать нечего: ни расшифровки, ни длительности.
-  // Сбой встречи раскрывается — реплики до обрыва у него бывают.
-  const expandable = s.status !== 'interrupted';
+  // Прерванный звонок раскрываем, только если человек успел что-то сказать:
+  // расшифровку voice-host пишет по ходу, и у части прерванных она есть (на
+  // стенде — у 7 из 11 прерванных встреч). Без реплик раскрывать нечего.
+  // Сбой встречи раскрывается всегда — реплики до обрыва у него бывают.
+  const expandable = s.status !== 'interrupted' || s.user_turns > 0;
 
   const toggle = async () => {
     if (!expandable) return;
@@ -1968,7 +1998,7 @@ F=~/Downloads/spirits_front/.worktrees/admin-meetings
 (cd $F && ./node_modules/.bin/vitest run src/components/admin/CallSessionItem.test.tsx 2>&1 | tail -6 && ./node_modules/.bin/eslint src/components/admin/CallSessionItem.tsx src/components/admin/UserCallsList.tsx && echo "eslint чисто")
 ```
 
-Ожидается: PASS (6 тестов) и `eslint чисто`.
+Ожидается: PASS (7 тестов) и `eslint чисто`.
 
 - [ ] **Step 6: Закоммитить**
 
@@ -2096,6 +2126,17 @@ describe('CallSessionsFeed', () => {
     expect(container.textContent).toContain('Сессии: 404');
     expect(container.textContent).not.toContain('Сессий за период не было');
   });
+
+  it('на потолке сервера (500) кнопки нет — вместо неё подсказка', async () => {
+    // Сервер отдаёт не больше 500 за запрос: кнопка на потолке ничего бы не
+    // догрузила, а висела бы, как будто ещё есть что показать.
+    get.mockImplementation(reply(1000));
+    await mount();
+    for (let i = 0; i < 9; i++) await click(q('call-sessions-more'));
+    expect(get).toHaveBeenLastCalledWith('/webhook/admin/calls/sessions?days=30&kind=all&includeTest=1&limit=500');
+    expect(q('call-sessions-more')).toBeNull();
+    expect(q('call-sessions-capped')?.textContent).toContain('500');
+  });
 });
 ```
 
@@ -2120,6 +2161,9 @@ import { CallSessionItem, type CallSession } from './CallSessionItem';
 
 /** Сколько сессий добавляет «Показать ещё». */
 const PAGE = 50;
+
+/** Потолок сервера за один запрос (AdminService.clampLimit для ленты). */
+const MAX_LIMIT = 500;
 
 interface SessionsResp {
   total: number;
@@ -2171,6 +2215,9 @@ const CallSessionsFeed: React.FC<{
   }, [query, limit, reloadKey]);
 
   const sessions = data?.sessions ?? [];
+  const hasMore = !!data && sessions.length < data.total;
+  // На потолке сервера кнопка ничего бы не догрузила — вместо неё подсказка.
+  const atCap = limit >= MAX_LIMIT;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -2202,17 +2249,23 @@ const CallSessionsFeed: React.FC<{
         </ul>
       )}
 
-      {data && sessions.length < data.total && (
+      {hasMore && !atCap && (
         <div className="px-4 pb-4">
           <button
             data-testid="call-sessions-more"
-            onClick={() => setLimit((l) => l + PAGE)}
+            onClick={() => setLimit((l) => Math.min(l + PAGE, MAX_LIMIT))}
             disabled={isLoading}
             className="w-full rounded-lg border border-gray-200 py-2 text-sm text-gray-700 hover:border-forest-400 hover:bg-forest-50 disabled:opacity-50"
           >
             {isLoading ? 'Загрузка…' : 'Показать ещё'}
           </button>
         </div>
+      )}
+
+      {hasMore && atCap && (
+        <p data-testid="call-sessions-capped" className="px-4 pb-4 text-xs text-gray-400">
+          Показаны последние {sessions.length}. Чтобы увидеть более ранние, сузьте период или выберите площадку.
+        </p>
       )}
     </div>
   );
@@ -2228,7 +2281,7 @@ F=~/Downloads/spirits_front/.worktrees/admin-meetings
 (cd $F && ./node_modules/.bin/vitest run src/components/admin/CallSessionsFeed.test.tsx 2>&1 | tail -6 && ./node_modules/.bin/eslint src/components/admin/CallSessionsFeed.tsx && echo "eslint чисто")
 ```
 
-Ожидается: PASS (5 тестов) и `eslint чисто`.
+Ожидается: PASS (6 тестов) и `eslint чисто`.
 
 - [ ] **Step 5: Закоммитить**
 
@@ -2758,12 +2811,12 @@ SHA=$(git -C $F rev-parse HEAD)
 ssh dv@85.192.61.231 "cd ~/ci/wt/admin-meetings-front && git fetch -q origin && git checkout -q $SHA && source ~/.nvm/nvm.sh && pnpm test 2>&1 | tail -6"
 ```
 
-Ожидается: `Test Files 64 passed (64)`, `Tests 790 passed (790)`. Это 764 базовых и 26 новых:
+Ожидается: `Test Files 64 passed (64)`, `Tests 792 passed (792)`. Это 764 базовых и 28 новых:
 - `callsLocales` — 5;
 - `callProviders` — 3;
 - `callFlagLabels` — 1;
-- `CallSessionItem` — 6;
-- `CallSessionsFeed` — 5;
+- `CallSessionItem` — 7;
+- `CallSessionsFeed` — 6;
 - `AdminCallsView` — 6.
 
 Если числа не сходятся, выяснить почему, а не подгонять ожидание.
