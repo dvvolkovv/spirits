@@ -30,7 +30,13 @@
   - лимиты всех трёх ручек проходят через `clampLimit(v, def, max)`;
   - `getUserCalls` сортирует `started_at DESC, id DESC`;
   - добавлен тест «лента и карточка отдают одну и ту же форму сессии» с точным списком ключей.
-- **Числа тестов в `src/admin`:** 88 после Task 2, 97 после Task 3, 101 после Task 4.
+- **Task 4:**
+  - тесты контроллера вызывают обработчики по именам `@Query('…')` через `ROUTE_ARGS_METADATA` (`viaRoute`), как это делает Nest, а не по позиции аргументов;
+  - добавлен тест «таблица и лента читают одни и те же query-параметры»;
+  - нарочная поломка `include_test` в `callsByUser` роняет оба теста;
+  - в JSDoc `callSessions` — предупреждение о порядке маршрутов;
+  - отдельный коммит поставил дату у цифры про прерванные сессии в `callFlags.ts`.
+- **Числа тестов в `src/admin`:** 88 после Task 2, 97 после Task 3, 102 после Task 4.
 - **Task 9 и 10 ниже уже исправлены.**
   - Прерванный звонок раскрывается, если `user_turns > 0`.
   - На потолке сервера (500) лента показывает подсказку вместо «Показать ещё».
@@ -1072,7 +1078,7 @@ SHA=$(git -C $B rev-parse HEAD)
 ssh dv@85.192.61.231 "cd ~/ci/wt/admin-meetings-back && git fetch -q origin && git checkout -q $SHA && source ~/.nvm/nvm.sh && npx jest src/admin --maxWorkers=2 2>&1 | tail -6; npx jest src/common/guards --maxWorkers=2 2>&1 | tail -6"
 ```
 
-Ожидается PASS в обоих прогонах. Первый: `Test Suites: 11 passed`, `Tests: 101 passed` (97 после правок ревью Task 1–3 + 4). Второй: всё зелёное, `failed` нет. Спек `admin-routes.spec.ts` сам обходит все методы контроллера, поэтому в его выводе должен быть `callSessions закрыт AdminGuard`. Проверить отдельно:
+Ожидается PASS в обоих прогонах. Первый: `Test Suites: 11 passed`, `Tests: 101 passed` (97 после правок ревью Task 1–3 + 4; после правки ревью Task 4 — 102). Второй: всё зелёное, `failed` нет. Спек `admin-routes.spec.ts` сам обходит все методы контроллера, поэтому в его выводе должен быть `callSessions закрыт AdminGuard`. Проверить отдельно:
 
 ```bash
 ssh dv@85.192.61.231 "cd ~/ci/wt/admin-meetings-back && source ~/.nvm/nvm.sh && npx jest src/common/guards/admin-routes --verbose 2>&1 | grep -c callSessions"
