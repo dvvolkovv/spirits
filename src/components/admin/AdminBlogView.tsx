@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { AlertTriangle, Loader, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Loader, RefreshCw } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import {
   statusLabel,
@@ -12,6 +12,7 @@ import {
   SLOT_DAYS,
   BlogStatus,
 } from './blogStatus';
+import { formatSlotAt } from './blogSlotFormat';
 
 interface BlogPost {
   id: string;
@@ -49,48 +50,105 @@ const SCREEN_LABEL: Record<Screen, string> = {
  * Ошибка эндпоинта с сохранённым кодом: 409 обрабатывается иначе всех
  * остальных, а текст всегда берётся с сервера — он единственный знает, что
  * именно разошлось.
+ *
+ * `code` — машинный код из поля `error` тела. У переноса слота два разных
+ * 409, и различить их можно только по нему: `slot_taken` (слот увёл другой
+ * пост) и `version_conflict` (сам пост поменяли в другом месте).
  */
 class BlogApiError extends Error {
   readonly status: number;
-  constructor(message: string, status: number) {
+  readonly code: string | null;
+  constructor(message: string, status: number, code: string | null = null) {
     super(message);
     this.status = status;
+    this.code = code;
     this.name = 'BlogApiError';
   }
 }
 
-/** Nest кладёт причину в `message` (строкой или массивом при валидации). */
-const serverMessage = async (r: Response): Promise<string | null> => {
+/**
+ * Nest кладёт причину в `message` (строкой или массивом при валидации), а в
+ * `error` — либо свой код (`slot_taken`), либо общее «Conflict»; без
+ * `message` им же и объясняемся.
+ */
+const readError = async (r: Response): Promise<{ message: string | null; code: string | null }> => {
   try {
     const body = await r.json();
+    const code = typeof body?.error === 'string' && body.error.trim() ? body.error.trim() : null;
     const m = body?.message;
-    if (Array.isArray(m) && m.length) return m.join('; ');
-    if (typeof m === 'string' && m.trim()) return m.trim();
-    if (typeof body?.error === 'string' && body.error.trim()) return body.error.trim();
+    if (Array.isArray(m) && m.length) return { message: m.join('; '), code };
+    if (typeof m === 'string' && m.trim()) return { message: m.trim(), code };
+    return { message: code, code };
   } catch {
     // Тело не json (прокси, html-заглушка) — останется код ответа.
+    return { message: null, code: null };
   }
-  return null;
 };
 
 const call = async (payload: any): Promise<any> => {
   const r = await apiClient.post('/webhook/admin/blog', payload);
   if (!r.ok) {
-    throw new BlogApiError(
-      (await serverMessage(r)) || `сервер ответил ${r.status}`,
-      r.status,
-    );
+    const { message, code } = await readError(r);
+    throw new BlogApiError(message || `сервер ответил ${r.status}`, r.status, code);
   }
   return r.json();
 };
 
-const formatSlot = (iso: string) => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString('ru-RU', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  });
+/** Слот расписания из `free_slots`: `takenBy` — пост на нём, иначе null. */
+interface FreeSlot {
+  slotAt: string;
+  takenBy: { id: string; title: string | null } | null;
+}
+
+/** Сколько ближайших слотов предлагать: при пн/ср/пт это две недели. */
+const SLOT_CHOICES = 6;
+
+type SlotState = 'free' | 'taken' | 'current';
+
+/** Список слотов под постом: `slots === null` — ещё не пришёл. */
+interface SlotPicker {
+  postId: string;
+  slots: FreeSlot[] | null;
+  loading: boolean;
+  loadError: string | null;
+  /** «Этот слот уже занял пост …» — после 409 slot_taken. */
+  note: string | null;
+}
+
+/** ISO с сервера бывает с миллисекундами и без — сравниваем моменты, а не строки. */
+const sameInstant = (a: string | null | undefined, b: string | null | undefined): boolean => {
+  if (!a || !b) return false;
+  const x = Date.parse(a);
+  return !Number.isNaN(x) && x === Date.parse(b);
 };
+
+/**
+ * Свой слот поста отмечен, но не выбираем: перенос на то же место ничего не
+ * меняет. Чужой виден, но тоже не выбираем — бэк всё равно ответит 409.
+ */
+const slotState = (slot: FreeSlot, post: BlogPost): SlotState => {
+  if (slot.takenBy?.id === post.id || sameInstant(slot.slotAt, post.slotAt)) return 'current';
+  return slot.takenBy ? 'taken' : 'free';
+};
+
+const normalizeFreeSlots = (raw: unknown): FreeSlot[] =>
+  Array.isArray(raw)
+    ? raw
+        .filter((s) => s && typeof s.slotAt === 'string')
+        .map((s) => ({
+          slotAt: s.slotAt,
+          takenBy: s.takenBy && s.takenBy.id != null
+            ? { id: String(s.takenBy.id), title: typeof s.takenBy.title === 'string' ? s.takenBy.title : null }
+            : null,
+        }))
+    : [];
+
+const slotTakenText = (name: string | null) =>
+  name
+    ? `Этот слот уже занял пост «${name}» — выберите другой`
+    : 'Этот слот уже занял другой пост — выберите другой';
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const AdminBlogView: React.FC = () => {
   const [screen, setScreen] = useState<Screen>('queue');
@@ -103,6 +161,8 @@ const AdminBlogView: React.FC = () => {
   const [newTopic, setNewTopic] = useState('');
   const [newRubric, setNewRubric] = useState<'news' | 'case'>('case');
   const [editing, setEditing] = useState<Record<string, { title: string; body: string }>>({});
+  const [picker, setPicker] = useState<SlotPicker | null>(null);
+  const slotsRequest = useRef(0);
 
   const fail = (e: any) => {
     const conflict = e instanceof BlogApiError && e.status === 409;
@@ -135,6 +195,7 @@ const AdminBlogView: React.FC = () => {
 
   useEffect(() => {
     setNotice(null);
+    setPicker(null);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
@@ -149,6 +210,8 @@ const AdminBlogView: React.FC = () => {
     setBusy(true);
     setError(null);
     setNotice(null);
+    // Любое другое действие меняет очередь, а с ней и занятость слотов.
+    setPicker(null);
     try {
       const res = await call(payload);
       if (payload.id) {
@@ -164,6 +227,91 @@ const AdminBlogView: React.FC = () => {
     } catch (e: any) {
       fail(e);
       return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Как назвать пост, занявший слот: заголовок с сервера, иначе — что о нём знает очередь. */
+  const takerName = (taker: FreeSlot['takenBy']): string | null => {
+    if (!taker) return null;
+    if (taker.title?.trim()) return taker.title.trim();
+    const local = posts.find((p) => p.id === taker.id);
+    return local?.title?.trim() || local?.topicHint?.trim() || null;
+  };
+
+  /**
+   * Список слотов — заново при каждом открытии, без кеша: после переноса
+   * соседнего поста старый список показал бы освободившийся слот занятым, и
+   * обмен двух постов местами упёрся бы в тупик. Ответ, пришедший после
+   * закрытия или повторного открытия списка, отбрасывается.
+   */
+  const loadSlots = async (postId: string): Promise<FreeSlot[] | null> => {
+    const ticket = ++slotsRequest.current;
+    const current = (prev: SlotPicker | null): prev is SlotPicker =>
+      prev !== null && prev.postId === postId && ticket === slotsRequest.current;
+    setPicker((prev) => (current(prev) ? { ...prev, loading: true, loadError: null } : prev));
+    try {
+      const slots = normalizeFreeSlots(await call({ action: 'free_slots', count: SLOT_CHOICES }));
+      setPicker((prev) => (current(prev) ? { ...prev, slots, loading: false } : prev));
+      return slots;
+    } catch (e) {
+      const text = (e instanceof Error && e.message) || 'неизвестная ошибка';
+      setPicker((prev) => (current(prev) ? { ...prev, loading: false, loadError: text } : prev));
+      return null;
+    }
+  };
+
+  const togglePicker = (post: BlogPost) => {
+    if (picker?.postId === post.id) {
+      setPicker(null);
+      return;
+    }
+    setPicker({ postId: post.id, slots: null, loading: true, loadError: null, note: null });
+    loadSlots(post.id);
+  };
+
+  /**
+   * Перенос на выбранный слот — с версией поста, как правка текста.
+   *
+   * Два 409 здесь значат разное, и путать их нельзя:
+   *  - `slot_taken` — пост цел, но слот увёл другой. Список слотов устарел:
+   *    перечитываем только его и называем, кто занял;
+   *  - `version_conflict` — сам пост поменяли в другом месте. Ровно как у
+   *    правки текста: баннер и «Загрузить заново», без перечитывания —
+   *    свежий `updatedAt` снял бы защиту, и следующий клик затёр бы чужую
+   *    правку.
+   *
+   * Черновик текста перенос, в отличие от `act`, не сбрасывает: слот к
+   * тексту отношения не имеет, и терять несохранённую правку незачем.
+   */
+  const reschedule = async (post: BlogPost, slot: FreeSlot) => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const saved = await call({
+        action: 'reschedule',
+        id: post.id,
+        slotAt: slot.slotAt,
+        updatedAt: post.updatedAt,
+      });
+      setPicker(null);
+      const at = typeof saved?.slotAt === 'string' ? saved.slotAt : slot.slotAt;
+      const name = post.title?.trim() || post.topicHint?.trim();
+      setNotice(`${name ? `«${name}»` : 'Пост'} выйдет ${formatSlotAt(at, new Date())}`);
+      await load();
+    } catch (e) {
+      if (e instanceof BlogApiError && e.status === 409 && e.code === 'slot_taken') {
+        const fresh = await loadSlots(post.id);
+        const taker = fresh?.find((s) => sameInstant(s.slotAt, slot.slotAt))?.takenBy ?? null;
+        const note = slotTakenText(taker && taker.id !== post.id ? takerName(taker) : null);
+        setPicker((prev) => (prev && prev.postId === post.id ? { ...prev, note } : prev));
+      } else {
+        // Список собран по устаревшей версии поста — закрываем его вместе с баннером.
+        if (e instanceof BlogApiError && e.status === 409) setPicker(null);
+        fail(e);
+      }
     } finally {
       setBusy(false);
     }
@@ -186,6 +334,8 @@ const AdminBlogView: React.FC = () => {
 
   const daysValid = !!settings && settings.slotDays.length > 0;
   const hourValid = isValidSlotHour(hourRaw);
+  /** Точка отсчёта для «сегодня/завтра» в датах слотов. */
+  const now = new Date();
 
   const saveSettings = () => {
     if (!settings || !daysValid || !hourValid) return;
@@ -422,7 +572,16 @@ const AdminBlogView: React.FC = () => {
                       <span className="text-xs text-gray-500">
                         {p.rubric === 'news' ? 'Новинка' : 'Кейс'} · {p.source}
                       </span>
-                      {p.slotAt && <span className="text-xs text-gray-500">слот {formatSlot(p.slotAt)}</span>}
+                      {/* Та же фраза, что владелец получил в Telegram при апруве. */}
+                      {p.status === 'approved' ? (
+                        <span data-testid={`blog-when-${p.id}`} className="text-xs font-medium text-forest-700">
+                          {p.slotAt ? `Выйдет ${formatSlotAt(p.slotAt, now)}` : 'Слот не назначен'}
+                        </span>
+                      ) : (
+                        p.slotAt && (
+                          <span className="text-xs text-gray-500">слот {formatSlotAt(p.slotAt, now)}</span>
+                        )
+                      )}
                       {broken && p.attempts > 0 && (
                         <span className="text-xs text-red-700">попыток: {p.attempts}</span>
                       )}
@@ -540,6 +699,23 @@ const AdminBlogView: React.FC = () => {
                         Одобрить
                       </button>
                     )}
+                    {p.status === 'approved' && (
+                      <button
+                        data-testid={`blog-reschedule-${p.id}`}
+                        onClick={() => togglePicker(p)}
+                        disabled={busy}
+                        aria-expanded={picker?.postId === p.id}
+                        className={clsx(
+                          'flex items-center gap-1 px-3 py-1 text-xs rounded disabled:opacity-50',
+                          picker?.postId === p.id
+                            ? 'bg-forest-100 text-forest-800'
+                            : 'bg-gray-100 hover:bg-gray-200',
+                        )}
+                      >
+                        <CalendarClock className="w-3.5 h-3.5" />
+                        Перенести
+                      </button>
+                    )}
                     {canTransition(p.status, 'rejected') && (
                       <button
                         data-testid={`blog-reject-${p.id}`}
@@ -550,6 +726,86 @@ const AdminBlogView: React.FC = () => {
                         В мусор
                       </button>
                     )}
+                  </div>
+                )}
+
+                {picker?.postId === p.id && (
+                  <div data-testid={`blog-slots-${p.id}`} className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="mb-2 text-xs text-gray-500">Ближайшие слоты, время московское</div>
+
+                    {picker.note && (
+                      <div
+                        data-testid={`blog-slot-note-${p.id}`}
+                        className="mb-2 flex items-start gap-1.5 px-2 py-1.5 text-xs rounded border bg-amber-50 border-amber-300 text-amber-900"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
+                        <span>{picker.note}</span>
+                      </div>
+                    )}
+
+                    {picker.loadError && (
+                      <div className="mb-2 text-xs text-rose-700">
+                        Не удалось загрузить слоты: {picker.loadError}
+                      </div>
+                    )}
+
+                    {picker.loading && !picker.slots && (
+                      <div className="mb-2 flex items-center gap-1.5 text-xs text-gray-500">
+                        <Loader className="w-3.5 h-3.5 animate-spin" />
+                        Загружаю слоты…
+                      </div>
+                    )}
+
+                    {picker.slots && picker.slots.length === 0 && !picker.loading && (
+                      <div className="mb-2 text-xs text-gray-500">
+                        Впереди нет ни одного слота — проверьте дни в настройках.
+                      </div>
+                    )}
+
+                    {picker.slots && picker.slots.length > 0 && (
+                      <div className="grid gap-1.5 sm:grid-cols-2">
+                        {picker.slots.map((s) => {
+                          const state = slotState(s, p);
+                          const taker = state === 'taken' ? takerName(s.takenBy) : null;
+                          return (
+                            <button
+                              key={s.slotAt}
+                              type="button"
+                              data-testid={`blog-slot-${p.id}-${s.slotAt}`}
+                              data-state={state}
+                              aria-current={state === 'current' ? 'true' : undefined}
+                              disabled={state !== 'free' || busy || picker.loading}
+                              onClick={() => reschedule(p, s)}
+                              className={clsx(
+                                'flex flex-col items-start gap-0.5 w-full min-w-0 text-left px-3 py-2 text-xs rounded-md border transition-colors',
+                                state === 'free' &&
+                                  'bg-white border-gray-200 text-gray-800 hover:border-forest-400 hover:bg-forest-50 disabled:opacity-50',
+                                state === 'taken' && 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed',
+                                state === 'current' && 'bg-forest-50 border-forest-300 text-forest-800',
+                              )}
+                            >
+                              <span className="font-medium">{capitalize(formatSlotAt(s.slotAt, now))}</span>
+                              <span className="max-w-full truncate">
+                                {state === 'current'
+                                  ? 'сейчас здесь'
+                                  : state === 'taken'
+                                    ? taker
+                                      ? `занят: «${taker}»`
+                                      : 'занят другим постом'
+                                    : 'свободен'}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => setPicker(null)}
+                      className="mt-2 text-xs text-gray-500 underline hover:text-gray-700"
+                    >
+                      Отмена
+                    </button>
                   </div>
                 )}
               </div>
