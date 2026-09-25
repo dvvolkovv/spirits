@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 
+/** Те же пометки, что CallFlag в spirits_back/src/admin/callFlags.ts. */
 export const KNOWN_FLAGS = ['interrupted', 'failed', 'live', 'silent', 'nearly_silent', 'short'] as const;
 export type CallFlag = (typeof KNOWN_FLAGS)[number];
 
