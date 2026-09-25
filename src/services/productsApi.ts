@@ -73,6 +73,19 @@ export interface Product {
   provision_error?: string | null;
   /** Форма продукта. Как и provision_error, приезжает с 036c6a7. */
   kind?: ProductKind;
+  /**
+   * Свой домен продукта в punycode — ТОЛЬКО работающий: пока привязка идёт
+   * (ждём DNS, выпускаем сертификат, отвязываем), сервер отдаёт NULL. Когда
+   * задан — это главный адрес карточки (см. siteAddress/siteHref).
+   * Необязательное: бэкенд до «своего домена» поля не отдаёт.
+   */
+  custom_domain?: string | null;
+  /**
+   * Тот же домен для глаз человека (`пример.рф` вместо
+   * `xn--e1afmkfd.xn--p1ai`): браузер сам punycode в подписи не переводит.
+   * У латинского домена совпадает с custom_domain.
+   */
+  custom_domain_unicode?: string | null;
 }
 
 /**
@@ -116,8 +129,136 @@ export interface NewProductInput {
  * причины с сервера. Разложить их обязан именно этот слой — компонент не
  * должен знать, что тело ошибки Nest выглядит как `{ message }`.
  */
-export type Problem = { ok: false; status: number; message: string };
+export type Problem = {
+  ok: false;
+  status: number;
+  message: string;
+  /**
+   * Машинный код отказа (`reason` в теле ответа), если сервер его прислал.
+   * `message` — русский текст, годный только как запасной: кабинет на семи
+   * языках переводит отказ по коду. Поле есть ТОЛЬКО когда код пришёл —
+   * прежние ручки его не шлют, и их Problem остаётся прежней формы.
+   */
+  reason?: string;
+};
 export type MutationResult = { ok: true } | Problem;
+
+/** Состояние своего домена — словарь из domains.service.ts на бэкенде. */
+export type DomainStatus = 'awaiting_dns' | 'issuing' | 'active' | 'failed' | 'removing';
+
+/**
+ * Код причины ошибки заявки (колонка error_reason). По нему кабинет и
+ * переводит ошибку, и решает, какие кнопки показать:
+ *   taken           — домен в тот же миг занял другой продукт;
+ *   orphan_issuing  — выпуск прерван снаружи → «Проверить снова»;
+ *   orphan_removing — отвязка прервана → только «Отвязать» ещё раз;
+ *   issue_failed    — Let's Encrypt не выпустил, в `error` — его сырой текст;
+ *   remove_failed   — отвязка на машине не удалась → только «Отвязать»;
+ *   agent_outdated  — временный сбой платформы, попытка не засчитана.
+ */
+export type DomainErrorReason =
+  | 'taken'
+  | 'orphan_issuing'
+  | 'orphan_removing'
+  | 'issue_failed'
+  | 'remove_failed'
+  | 'agent_outdated';
+
+/** Коды отказов ручек своего домена (`reason` в теле 4xx). */
+export type DomainRefusalReason =
+  | 'empty'
+  | 'ip'
+  | 'no_dot'
+  | 'bad_form'
+  | 'our_zone'
+  | 'too_long'
+  | 'mixed_script'
+  | 'unknown_tld'
+  | 'not_found'
+  | 'bot'
+  | 'blocked'
+  | 'not_ready'
+  | 'has_domain'
+  | 'taken'
+  | 'no_domain'
+  | 'issuing'
+  | 'busy'
+  | 'throttled'
+  | 'retries'
+  | 'changed'
+  | 'removing'
+  | 'detach_pending';
+
+/** Результат проверки одной записи DNS (RecordCheck в domain-dns.ts). */
+export interface DomainRecordCheck {
+  type: 'TXT' | 'A' | 'AAAA';
+  /** Полное имя, в punycode. */
+  name: string;
+  ok: boolean;
+  /**
+   * Код сбоя резолвера (ETIMEOUT, ESERVFAIL…). null — резолвер ответил, в
+   * том числе «записи нет». При сбое `current` пуст, и это НЕ «записи нет».
+   */
+  error: string | null;
+  /** Что сейчас в DNS (урезано сервером: до 5 значений, ASCII, до 100 знаков). */
+  current: string[];
+  /** Что должно быть. У AAAA — пусто: записей быть не должно вовсе. */
+  want: string;
+}
+
+/** Запись, которую владелец создаёт у регистратора. */
+export interface DomainRecordToSet {
+  type: 'TXT' | 'A' | 'CNAME';
+  /** Как вводить в панели регистратора — относительно зоны (`@`, `www`, `_linkeon`). */
+  name: string;
+  fqdn: string;
+  value: string;
+}
+
+export interface DomainView {
+  /** В punycode — как в DNS, в сертификате и в ссылке. */
+  domain: string;
+  /** Для глаз человека (`пример.рф`); у латинского совпадает с `domain`. */
+  domainUnicode: string;
+  names: string[];
+  status: DomainStatus;
+  /** Русский текст ошибки (у issue_failed — сырой отказ Let's Encrypt). */
+  error: string | null;
+  errorReason: DomainErrorReason | null;
+  checkedAt: string | null;
+  check: DomainRecordCheck[] | null;
+  records: DomainRecordToSet[];
+}
+
+/** `view: null` — у продукта своего домена нет. */
+export type DomainResult = { ok: true; view: DomainView | null } | Problem;
+
+/**
+ * Итог отвязки: `now` — заявка снята сразу (сертификата ещё не было),
+ * `queued` — машине продуктов поставлено задание, домен в статусе removing.
+ */
+export type DetachResult = { ok: true; removed: 'now' | 'queued' } | Problem;
+
+type AddressFields = Pick<Product, 'domain' | 'custom_domain' | 'custom_domain_unicode'>;
+
+/**
+ * Подпись адреса сайта: работающий свой домен в человеческой форме, иначе
+ * адрес платформы. null — адреса нет (бот).
+ */
+export function siteAddress(p: Partial<AddressFields>): string | null {
+  if (p.custom_domain) return p.custom_domain_unicode || p.custom_domain;
+  return p.domain || null;
+}
+
+/**
+ * Ссылка на сайт — отдельно от подписи: в href едет punycode. Юникодный
+ * хост браузер переведёт и сам, но punycode — то, что стоит в DNS и в
+ * сертификате, и ссылка не зависит от того, как его переводит браузер.
+ */
+export function siteHref(p: Partial<AddressFields>): string | null {
+  const host = p.custom_domain || p.domain;
+  return host ? `https://${host}` : null;
+}
 
 /** Открытый поток хода. Та же форма «ok или Problem», что у мутаций. */
 export type StreamStart = { ok: true; reader: ReadableStreamDefaultReader<Uint8Array> };
@@ -132,16 +273,18 @@ export type StreamStart = { ok: true; reader: ReadableStreamDefaultReader<Uint8A
  */
 async function problem(res: Response): Promise<Problem> {
   let message = '';
+  let reason: string | undefined;
   try {
-    const body = (await res.json()) as { message?: unknown } | null;
+    const body = (await res.json()) as { message?: unknown; reason?: unknown } | null;
     const m = body?.message;
     // ValidationPipe отдаёт message МАССИВОМ строк (по одной на нарушенное
     // правило DTO). String(['a','b']) дал бы 'a,b' — склеиваем явно.
     message = Array.isArray(m) ? m.join('; ') : typeof m === 'string' ? m : '';
+    if (typeof body?.reason === 'string' && body.reason) reason = body.reason;
   } catch {
     // Не JSON — пустая причина честнее выдуманной.
   }
-  return { ok: false, status: res.status, message };
+  return reason ? { ok: false, status: res.status, message, reason } : { ok: false, status: res.status, message };
 }
 
 export interface Turn {
@@ -164,6 +307,19 @@ export interface Turn {
 // увёл бы запрос на чужой маршрут, а экранировать дешевле, чем доказывать,
 // что туда ничего подобного не попадёт.
 const enc = encodeURIComponent;
+
+/** Общий разбор ответов ручек своего домена: конверт { domain }, обрыв — статус 0. */
+async function domainCall(send: () => Promise<Response>): Promise<DomainResult> {
+  let res: Response;
+  try {
+    res = await send();
+  } catch {
+    return { ok: false, status: 0, message: '' };
+  }
+  if (!res.ok) return problem(res);
+  const body = (await res.json().catch(() => null)) as { domain?: DomainView | null } | null;
+  return { ok: true, view: body?.domain ?? null };
+}
 
 export const productsApi = {
   /**
@@ -318,5 +474,36 @@ export const productsApi = {
       return { ok: false, status: res.status, message: '' };
     }
     return { ok: true, reader: res.body.getReader() };
+  },
+
+  /** Состояние своего домена продукта; `view: null` — домена нет. */
+  async getDomain(productId: string): Promise<DomainResult> {
+    return domainCall(() => apiClient.get(`/webhook/products/${enc(productId)}/domain`));
+  },
+
+  /** Заявка на домен: сервер нормализует ввод и отдаёт записи для регистратора. */
+  async attachDomain(productId: string, domain: string): Promise<DomainResult> {
+    return domainCall(() => apiClient.post(`/webhook/products/${enc(productId)}/domain`, { domain }));
+  },
+
+  /** «Проверить сейчас» / «Проверить снова»: DNS, и если всё готово — выпуск. */
+  async checkDomain(productId: string): Promise<DomainResult> {
+    return domainCall(() => apiClient.post(`/webhook/products/${enc(productId)}/domain/check`));
+  },
+
+  /**
+   * Отвязка. Тело без внятного `removed` читается как `queued`: тогда
+   * кабинет перечитает состояние у сервера, а не объявит домен снятым сам.
+   */
+  async detachDomain(productId: string): Promise<DetachResult> {
+    let res: Response;
+    try {
+      res = await apiClient.delete(`/webhook/products/${enc(productId)}/domain`);
+    } catch {
+      return { ok: false, status: 0, message: '' };
+    }
+    if (!res.ok) return problem(res);
+    const body = (await res.json().catch(() => null)) as { removed?: unknown } | null;
+    return { ok: true, removed: body?.removed === 'now' ? 'now' : 'queued' };
   },
 };
