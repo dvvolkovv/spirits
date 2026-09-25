@@ -14,7 +14,7 @@ const LOCALES: Record<string, any> = { ru, en, pt };
 const NEW_KEYS = [
   'provider.linkeon', 'provider.linkeon_room', 'provider.talerid', 'provider.meet',
   'provider.zoom', 'provider.teams', 'provider.telemost',
-  'flag.failed', 'flag.live', 'tokensHint',
+  'flag.failed', 'flag.live', 'tokensHint', 'transcriptFailed',
 ];
 
 const at = (obj: any, path: string) => path.split('.').reduce((o, k) => o?.[k], obj);
