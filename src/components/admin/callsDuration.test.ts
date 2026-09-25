@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDuration, formatClock } from './callsFormat';
+import { formatDuration, formatClock, formatTokens } from './callsFormat';
 
 /**
  * В таблице звонков стоят суммы за месяц, поэтому длительность показывается
@@ -40,5 +40,12 @@ describe('formatClock', () => {
 
   it('встреча дольше часа — с часами, а не «75:03»', () => {
     expect(formatClock(4503)).toBe('1:15:03');
+  });
+});
+
+describe('formatTokens', () => {
+  it('нечисло не роняет страницу: старый бэкенд не присылает части полей', () => {
+    expect(formatTokens(undefined as unknown as number)).toBe('0');
+    expect(formatTokens(NaN)).toBe('0');
   });
 });

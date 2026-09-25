@@ -243,4 +243,13 @@ describe('CallSessionItem', () => {
     await click(q('call-session-c-1'));
     expect(q('call-session-panel-c-1')?.textContent).toContain('консультации');
   });
+
+  it('строка старого формата (без tokens_call) рисуется, а не роняет приложение', async () => {
+    // Новый фронт на старом бэкенде: getUserCalls отдавал tokens_charged и не
+    // знал про tokens_call/tokens_consult. Выкат только фронта или откат бэка
+    // без отката фронта — и карточка человека роняла всё приложение.
+    const old = { ...session(), tokens_call: undefined, tokens_consult: undefined, tokens_total: undefined } as unknown as CallSession;
+    await mount(<CallSessionItem session={old} />);
+    expect(container.textContent).toContain('Обсуждали погоду');
+  });
 });
