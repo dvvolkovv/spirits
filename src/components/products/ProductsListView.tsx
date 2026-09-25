@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Server, CircleDot, Plus, RotateCw, X, AlertTriangle, Moon, ShieldAlert } from 'lucide-react';
-import { productsApi } from '../../services/productsApi';
+import { productsApi, siteAddress } from '../../services/productsApi';
 import type {
   Product,
   ProductKind,
@@ -10,6 +10,7 @@ import type {
   HostAgentState,
 } from '../../services/productsApi';
 import { NewProductForm } from './NewProductForm';
+import { CustomDomain } from './CustomDomain';
 import type { SubmitResult } from './NewProductForm';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -568,7 +569,10 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
                     <Server className="w-5 h-5 text-gray-400 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-gray-900 truncate">{p.name}</div>
-                      {p.domain && <div className="text-sm text-gray-500 truncate">{p.domain}</div>}
+                      {/* Работающий свой домен — главный адрес, иначе адрес платформы. */}
+                      {siteAddress(p) && (
+                        <div className="text-sm text-gray-500 truncate">{siteAddress(p)}</div>
+                      )}
                     </div>
                   </button>
                   <span
@@ -582,6 +586,16 @@ export const ProductsListView: React.FC<Props> = ({ onOpen, embedded = false }) 
                 <RentNote product={p} balance={balance} />
 
                 {p.status === 'blocked' && <BlockedNote product={p} />}
+
+                {/*
+                  Свой домен — только у сайта и только у заведённого: сервер
+                  выпускает сертификат при running/degraded/sleeping. У
+                  погашенного администратором блока нет — гашение бывает за
+                  злоупотребление, и новый домен расширил бы его.
+                */}
+                {p.kind === 'site' && ['running', 'degraded', 'sleeping'].includes(p.status) && (
+                  <CustomDomain product={p} onChanged={reload} />
+                )}
 
                 {p.status === 'failed' && (
                   <div className="px-4 pb-4 -mt-1">

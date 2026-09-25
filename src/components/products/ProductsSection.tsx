@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
-import { productsApi, Product, Turn } from '../../services/productsApi';
+import { productsApi, Product, Turn, siteAddress, siteHref } from '../../services/productsApi';
 import { ProductsListView } from './ProductsListView';
 import { ProductChat } from './ProductChat';
 import { TurnHistory } from './TurnHistory';
@@ -51,16 +51,18 @@ export const ProductsSection: React.FC<Props> = ({ embedded = false }) => {
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">{selected.name}</h1>
-          {selected.domain && (
+          {siteHref(selected) && (
             // Ссылка, а не подпись: домен есть только у сайта, и добраться до
             // него — первое, что владелец хочет сделать с готовым продуктом.
+            // Работающий свой домен — главный адрес; подпись по-человечески
+            // (пример.рф), в href — punycode.
             <a
-              href={`https://${selected.domain}`}
+              href={siteHref(selected)!}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-forest-700 hover:underline mt-1 inline-block"
+              className="text-sm text-forest-700 hover:underline mt-1 inline-block break-all"
             >
-              {selected.domain}
+              {siteAddress(selected)}
             </a>
           )}
         </div>
