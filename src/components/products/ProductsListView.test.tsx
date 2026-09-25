@@ -43,6 +43,16 @@ vi.mock('../../services/productsApi', () => ({
     list: vi.fn(async () => ({ rows: [], hostAgent: 'live' })),
     create: vi.fn(async () => ({ ok: true, id: 'new-1' })),
     retry: vi.fn(async () => ({ ok: true })),
+    // Карточки работающих сайтов спрашивают свой домен.
+    getDomain: vi.fn(async () => ({ ok: true, view: null })),
+  },
+  // Фабрика подменяет модуль ЦЕЛИКОМ, поэтому чистые функции адреса
+  // повторены здесь; сами они проверены в productsApi.test.ts.
+  siteAddress: (p: Partial<Product>) =>
+    p.custom_domain ? p.custom_domain_unicode || p.custom_domain : p.domain || null,
+  siteHref: (p: Partial<Product>) => {
+    const host = p.custom_domain || p.domain;
+    return host ? `https://${host}` : null;
   },
 }));
 
@@ -574,6 +584,103 @@ describe('ProductsListView — карточка продукта', () => {
     await clickAsync(byButton(container, new RegExp(tRu('products.retry')))!);
 
     expect(visibleText(container)).not.toContain(tRu('products.retryErrors.busy'));
+  });
+  it('работающий свой домен — главный адрес карточки', async () => {
+    api.list.mockResolvedValue(
+      listing([
+        product({
+          kind: 'site',
+          domain: 'my-shop.p.linkeon.io',
+          custom_domain: 'xn--e1afmkfd.xn--p1ai',
+          custom_domain_unicode: 'пример.рф',
+        }),
+      ]),
+    );
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    const text = visibleText(container);
+    expect(text).toContain('пример.рф');
+    expect(text).not.toContain('xn--');
+    expect(text).not.toMatch(/my-shop\.p\.linkeon\.io/);
+  });
+
+  it('блок «Свой домен» — у работающего сайта, но не у бота и не у заводящегося', async () => {
+    api.list.mockResolvedValue(
+      listing([
+        product({ id: 's-1', kind: 'site', domain: 'my-shop.p.linkeon.io' }),
+        product({ id: 'b-1', kind: 'bot', name: 'Бот' }),
+        product({ id: 's-2', kind: 'site', status: 'provisioning', name: 'Новый сайт' }),
+      ]),
+    );
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+
+    const title = tRu('products.domain.title');
+    expect(visibleText(container).split(title).length - 1).toBe(1);
+    expect(api.getDomain).toHaveBeenCalledTimes(1);
+    expect(api.getDomain).toHaveBeenCalledWith('s-1');
+  });
+
+  it('погашенный сайт с работающим доменом — можно только отвязать', async () => {
+    api.list.mockResolvedValue(
+      listing([
+        product({
+          kind: 'site',
+          status: 'blocked',
+          block_reason: 'нарушение',
+          domain: 'my-shop.p.linkeon.io',
+          custom_domain: 'dmitryvolkov.ru',
+          custom_domain_unicode: 'dmitryvolkov.ru',
+        }),
+      ]),
+    );
+    api.getDomain.mockResolvedValueOnce({
+      ok: true,
+      view: {
+        domain: 'dmitryvolkov.ru',
+        domainUnicode: 'dmitryvolkov.ru',
+        names: ['dmitryvolkov.ru'],
+        status: 'active',
+        error: null,
+        errorReason: null,
+        checkedAt: null,
+        check: null,
+        records: [],
+      },
+    });
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    await flush();
+
+    expect(byButton(container, new RegExp(tRu('products.domain.detach')))).not.toBeNull();
+    expect(byButton(container, new RegExp(tRu('products.domain.attach')))).toBeNull();
+    expect(byButton(container, /Проверить/)).toBeNull();
+  });
+
+  it('погашенный сайт без своего домена — блока домена нет', async () => {
+    api.list.mockResolvedValue(
+      listing([product({ kind: 'site', status: 'blocked', block_reason: 'нарушение', domain: 'my-shop.p.linkeon.io' })]),
+    );
+    const { container } = mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    await flush();
+
+    expect(api.getDomain).toHaveBeenCalledTimes(1);
+    expect(visibleText(container)).not.toContain(tRu('products.domain.title'));
+    expect(byButton(container, new RegExp(tRu('products.domain.attach')))).toBeNull();
+  });
+
+  it('у сорванного и заводящегося сайта домен не спрашивается — задания домена им не раздаются', async () => {
+    api.list.mockResolvedValue(
+      listing([
+        product({ id: 'f-1', kind: 'site', status: 'failed', provision_error: 'x' }),
+        product({ id: 'p-2', kind: 'site', status: 'provisioning' }),
+      ]),
+    );
+    mount(<ProductsListView onOpen={() => {}} />);
+    await flush();
+    expect(api.getDomain).not.toHaveBeenCalled();
   });
 });
 
