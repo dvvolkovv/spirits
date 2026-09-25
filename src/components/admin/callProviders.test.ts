@@ -34,7 +34,7 @@ describe('подписи площадок', () => {
       path.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], obj);
     for (const [name, loc] of Object.entries({ ru, en, pt })) {
       const strict = ((key: string) => at(loc, key) ?? `MISSING ${key}`) as unknown as TFunction;
-      for (const p of KNOWN_PROVIDERS) expect(providerLabel(p, strict), `${name}: ${p}`).not.toMatch(/^MISSING /);
+      for (const p of KNOWN_PROVIDERS) expect(providerLabel(p, strict), `${name}: ${p}`).toBe(at(loc, `admin.calls.provider.${p}`));
     }
   });
 });
