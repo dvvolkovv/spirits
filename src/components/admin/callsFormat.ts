@@ -6,7 +6,12 @@
  * react-refresh/only-export-components), да и тесту не нужен весь React.
  */
 
-export const formatTokens = (n: number) => n.toLocaleString('ru-RU');
+/**
+ * Нечисло — ноль, а не исключение: при выкате только фронта (или откате бэка)
+ * старый бэкенд не присылает части полей, и одна строка роняла бы всё
+ * приложение — своей границы ошибок у админки нет.
+ */
+export const formatTokens = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString('ru-RU');
 
 /**
  * Длительность словами, а не в секундах: в таблице стоят суммы за месяц, и

@@ -5,7 +5,7 @@ export const KNOWN_FLAGS = ['interrupted', 'failed', 'live', 'silent', 'nearly_s
 export type CallFlag = (typeof KNOWN_FLAGS)[number];
 
 const LABELS: Record<CallFlag, [string, string]> = {
-  interrupted: ['admin.calls.flag.interrupted', 'не состоялся'],
+  interrupted: ['admin.calls.flag.interrupted', 'обрыв'],
   failed: ['admin.calls.flag.failed', 'сбой'],
   live: ['admin.calls.flag.live', 'идёт сейчас'],
   silent: ['admin.calls.flag.silent', 'человек молчал'],

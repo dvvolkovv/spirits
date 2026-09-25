@@ -863,7 +863,7 @@
       "assistant": "Assistant",
       "tokensHint": "conversation {{call}} + consultations {{consult}}",
       "flag": {
-        "interrupted": "not connected",
+        "interrupted": "cut off",
         "failed": "failed",
         "live": "in progress",
         "silent": "person silent",

@@ -4,6 +4,9 @@ import { Phone } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { CallSessionItem, type CallSession } from './CallSessionItem';
 
+/** Сколько последних сессий бэкенд отдаёт карточке по умолчанию (getUserCalls). */
+const CARD_LIMIT = 50;
+
 /**
  * Звонки и встречи человека — отдельным компонентом, как UserDevicesList:
  * карточка пользователя уже 990 строк, и класть туда ещё один экран значит
@@ -19,8 +22,14 @@ export const UserCallsList: React.FC<{ userId: string }> = ({ userId }) => {
     let alive = true;
     apiClient
       .get(`/webhook/admin/calls/user/${encodeURIComponent(userId)}`)
-      .then((r) => r.json())
-      .then((d) => { if (alive) setCalls(d.calls ?? []); })
+      .then(async (r) => {
+        // Ошибка не должна выглядеть как «сессий нет»: секция тогда молча
+        // пропадала бы из карточки.
+        if (!r.ok) throw new Error(`calls ${r.status}`);
+        const d = await r.json();
+        if (!Array.isArray(d?.calls)) throw new Error('calls: неожиданный ответ');
+        if (alive) setCalls(d.calls);
+      })
       .catch(() => { if (alive) setFailed(true); });
     return () => { alive = false; };
   }, [userId]);
@@ -37,7 +46,7 @@ export const UserCallsList: React.FC<{ userId: string }> = ({ userId }) => {
   if (calls === null) {
     return <div className="bg-white border border-gray-200 rounded-xl p-4 text-sm text-gray-400">…</div>;
   }
-  // Сессий нет — секцию не показываем вовсе: пустая карточка «Звонки (0)» в
+  // Сессий нет — секцию не показываем вовсе: пустая карточка «Звонки и встречи (0)» в
   // карточке каждого не звонившего человека только зашумляет.
   if (calls.length === 0) return null;
 
@@ -46,7 +55,10 @@ export const UserCallsList: React.FC<{ userId: string }> = ({ userId }) => {
       <h3 className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-900">
         <Phone className="w-4 h-4 text-forest-600" />
         {t('admin.calls.sectionTitle', 'Звонки и встречи')}
-        <span className="text-xs font-normal text-gray-500">({calls.length})</span>
+        {/* Полная порция — не «всего»: бэкенд отдаёт последние CARD_LIMIT. */}
+        <span className="text-xs font-normal text-gray-500">
+          ({calls.length}{calls.length >= CARD_LIMIT ? '+' : ''})
+        </span>
       </h3>
 
       <ul className="flex flex-col gap-2">

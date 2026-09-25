@@ -859,7 +859,7 @@
       "assistant": "Assistente",
       "tokensHint": "conversa {{call}} + consultas {{consult}}",
       "flag": {
-        "interrupted": "não conectou",
+        "interrupted": "interrompida",
         "failed": "falhou",
         "live": "em curso",
         "silent": "pessoa em silêncio",

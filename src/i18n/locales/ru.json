@@ -866,7 +866,7 @@
       "assistant": "Ассистент",
       "tokensHint": "разговор {{call}} + консультации {{consult}}",
       "flag": {
-        "interrupted": "не состоялся",
+        "interrupted": "обрыв",
         "failed": "сбой",
         "live": "идёт сейчас",
         "silent": "человек молчал",
