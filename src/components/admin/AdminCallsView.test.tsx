@@ -26,11 +26,20 @@ const CALLS = {
 
 const ok = (body: unknown) => Promise.resolve({ ok: true, status: 200, json: async () => body });
 
-/** Ручка таблицы отвечает CALLS с тем include_test, что пришёл в запросе. */
-const backend = (url: string) =>
-  url.startsWith('/webhook/admin/calls/sessions')
-    ? ok({ total: 0, limit: 50, sessions: [] })
-    : ok({ ...CALLS, include_test: url.includes('includeTest=1') });
+/** Разбивка по площадкам — своя у каждой вкладки: у «Все» и «Звонки» есть и звонок из приложения. */
+const BY_PROVIDER: Record<string, { provider: string; sessions: number }[]> = {
+  all: [{ provider: 'talerid', sessions: 43 }, { provider: 'linkeon', sessions: 10 }, { provider: 'zoom', sessions: 3 }],
+  call: [{ provider: 'linkeon', sessions: 10 }],
+  meeting: [{ provider: 'talerid', sessions: 43 }, { provider: 'zoom', sessions: 3 }],
+};
+
+/** Ручка таблицы отвечает по тем фильтрам, что пришли в запросе. */
+const backend = (url: string) => {
+  if (url.startsWith('/webhook/admin/calls/sessions')) return ok({ total: 0, limit: 50, sessions: [] });
+  const p = new URL(url, 'http://x').searchParams;
+  const kind = p.get('kind') ?? 'call';
+  return ok({ ...CALLS, kind, provider: p.get('provider'), include_test: p.has('includeTest'), byProvider: BY_PROVIDER[kind] });
+};
 
 let container: HTMLDivElement;
 let root: Root;
@@ -87,6 +96,9 @@ describe('AdminCallsView', () => {
 
     await click('admin-calls-provider-zoom');
     expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=meeting&provider=zoom&includeTest=1');
+    expect(q('admin-calls-provider-zoom')?.getAttribute('aria-pressed')).toBe('true');
+    expect(urls().filter((u) => u.startsWith('/webhook/admin/calls/sessions')).pop())
+      .toBe('/webhook/admin/calls/sessions?days=30&kind=meeting&provider=zoom&includeTest=1&limit=50');
   });
 
   it('смена вкладки сбрасывает площадку', async () => {
@@ -108,5 +120,52 @@ describe('AdminCallsView', () => {
     const after = urls().slice(before);
     expect(after).toContain('/webhook/admin/calls?days=30&kind=all&includeTest=1');
     expect(after).toContain('/webhook/admin/calls/sessions?days=30&kind=all&includeTest=1&limit=50');
+  });
+
+  it('кнопки площадок строятся по ответу «Встреч», а не по ответу прошлой вкладки', async () => {
+    let release!: () => void;
+    get.mockImplementation((url: string) => {
+      if (url.startsWith('/webhook/admin/calls?') && url.includes('kind=meeting')) {
+        return new Promise((resolve) => { release = () => resolve(backend(url)); });
+      }
+      return backend(url);
+    });
+    await click('admin-calls-kind-meeting');
+    expect(q('admin-calls-providers')).toBeNull();
+    await act(async () => { release(); });
+    await settle();
+    expect(q('admin-calls-provider-talerid')?.textContent).toBe('Taler ID · 43');
+    expect(q('admin-calls-provider-linkeon')).toBeNull();
+  });
+
+  it('ответ устаревшего запроса таблицы не затирает свежий', async () => {
+    await click('admin-calls-kind-meeting');
+    let releaseZoom!: () => void;
+    const meeting = (provider: string, calls: number) =>
+      ok({ ...CALLS, kind: 'meeting', provider, byProvider: BY_PROVIDER.meeting, totals: { ...CALLS.totals, calls } });
+    get.mockImplementation((url: string) => {
+      if (url.startsWith('/webhook/admin/calls?') && url.includes('provider=zoom')) {
+        return new Promise((resolve) => { releaseZoom = () => resolve(meeting('zoom', 3)); });
+      }
+      if (url.startsWith('/webhook/admin/calls?') && url.includes('provider=talerid')) return meeting('talerid', 43);
+      return backend(url);
+    });
+    await click('admin-calls-provider-zoom');
+    await click('admin-calls-provider-talerid');
+    await act(async () => { releaseZoom(); });
+    await settle();
+    expect(q('admin-calls-stat-count')?.textContent).toBe('Встреч43');
+  });
+
+  it('выбранная площадка остаётся на экране с нулём, когда за период по ней ничего', async () => {
+    await click('admin-calls-kind-meeting');
+    await click('admin-calls-provider-zoom');
+    get.mockImplementation((url: string) =>
+      url.startsWith('/webhook/admin/calls?')
+        ? ok({ ...CALLS, kind: 'meeting', provider: 'zoom', byProvider: [{ provider: 'talerid', sessions: 10 }], totals: { ...CALLS.totals, calls: 0 } })
+        : backend(url));
+    await click('admin-calls-period-7');
+    expect(q('admin-calls-provider-zoom')?.textContent).toBe('Zoom · 0');
+    expect(q('admin-calls-provider-zoom')?.getAttribute('aria-pressed')).toBe('true');
   });
 });
