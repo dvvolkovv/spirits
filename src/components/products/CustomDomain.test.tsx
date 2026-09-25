@@ -129,7 +129,7 @@ describe('блок «Свой домен»', () => {
 
     const copies = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent === R('copy'));
     expect(copies).toHaveLength(3);
-    click(copies[0]);
+    await clickAsync(copies[0]);
     expect(writeText).toHaveBeenCalledWith('lk-abc');
   });
 
