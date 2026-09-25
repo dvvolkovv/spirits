@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Phone, AlertCircle, RefreshCw, Coins, Users, Clock, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -98,21 +98,28 @@ const AdminCallsView: React.FC = () => {
     .filter(Boolean)
     .join('&');
 
+  // Номер последнего запроса таблицы: ответ устаревшего (быстрые клики по
+  // фильтрам) не должен затереть свежий — иначе таблица показала бы не тот
+  // набор, что подсвеченная площадка и лента.
+  const lastReq = useRef(0);
+
   const load = async () => {
+    const req = ++lastReq.current;
     setIsLoading(true);
     setError(null);
     try {
       const resp = await apiClient.get(`/webhook/admin/calls?${query}`);
       if (!resp.ok) throw new Error(`Звонки: ${resp.status}`);
-      setData(await resp.json());
+      const d = await resp.json();
+      if (req === lastReq.current) setData(d);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить данные');
+      if (req === lastReq.current) setError(e instanceof Error ? e.message : 'Не удалось загрузить данные');
     } finally {
-      setIsLoading(false);
+      if (req === lastReq.current) setIsLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, [query]); // eslint-disable-line
+  useEffect(() => { load(); }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Площадка имеет смысл только внутри «Встреч»: при смене вкладки она
   // сбрасывается, иначе «Звонки» молча отфильтровались бы по Zoom в ноль.
@@ -129,6 +136,19 @@ const AdminCallsView: React.FC = () => {
   const rows = data?.byUser ?? [];
   const byProvider = data?.byProvider ?? [];
   const providersTotal = byProvider.reduce((sum, p) => sum + p.sessions, 0);
+  // Кнопки площадок — только когда и вкладка, и загруженные данные про
+  // встречи: иначе на первом переходе с «Все» они строились бы по старому
+  // ответу, со «Звонком» и итогом вместе со звонками.
+  const showProviders = kind === 'meeting' && data?.kind === 'meeting';
+  // Выбранная площадка остаётся на экране, даже если за новый период по ней
+  // ничего нет: иначе фильтр действовал бы невидимо, а «Встреч не было»
+  // спорило бы с числом на «Все площадки».
+  const chips = provider && !byProvider.some((p) => p.provider === provider)
+    ? [...byProvider, { provider, sessions: 0 }]
+    : byProvider;
+  // Подписи — по тому, что реально показано: пока грузится новая вкладка,
+  // на экране ещё ответ прошлой.
+  const shownKind: CallKind = data?.kind ?? kind;
 
   return (
     <>
@@ -167,21 +187,28 @@ const AdminCallsView: React.FC = () => {
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex gap-1">
+          <div className="flex gap-1" role="group" aria-label="Вид">
             {KINDS.map((k) => (
               <button
                 key={k.id}
                 data-testid={`admin-calls-kind-${k.id}`}
                 onClick={() => selectKind(k.id)}
+                aria-pressed={kind === k.id}
                 className={chipClass(kind === k.id)}
               >
                 {k.label}
               </button>
             ))}
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1" role="group" aria-label="Период">
             {PERIODS.map((d) => (
-              <button key={d} onClick={() => setDays(d)} className={chipClass(days === d)}>
+              <button
+                key={d}
+                data-testid={`admin-calls-period-${d}`}
+                onClick={() => setDays(d)}
+                aria-pressed={days === d}
+                className={chipClass(days === d)}
+              >
                 {d} дней
               </button>
             ))}
@@ -189,7 +216,8 @@ const AdminCallsView: React.FC = () => {
           <button
             data-testid="admin-calls-include-test"
             onClick={() => setIncludeTest((v) => !v)}
-            title="Сессии тестовых аккаунтов — в таблице, в ленте и в цифрах выше"
+            aria-pressed={includeTest}
+            title="Сессии тестовых аккаунтов — в таблице, в ленте и в итогах"
             className={clsx(
               'px-2.5 py-1 text-xs rounded-md border transition-colors',
               includeTest
@@ -203,20 +231,22 @@ const AdminCallsView: React.FC = () => {
 
         {/* Кнопки площадок строятся по данным: новая площадка появится без
             правки фронта, под техническим именем, пока ей не дадут подпись. */}
-        {kind === 'meeting' && byProvider.length > 0 && (
-          <div data-testid="admin-calls-providers" className="flex flex-wrap gap-1">
+        {showProviders && chips.length > 0 && (
+          <div data-testid="admin-calls-providers" role="group" aria-label="Площадка" className="flex flex-wrap gap-1">
             <button
               data-testid="admin-calls-provider-all"
               onClick={() => setProvider(null)}
+              aria-pressed={provider === null}
               className={chipClass(provider === null)}
             >
               Все площадки · {providersTotal}
             </button>
-            {byProvider.map((p) => (
+            {chips.map((p) => (
               <button
                 key={p.provider}
                 data-testid={`admin-calls-provider-${p.provider}`}
                 onClick={() => setProvider(p.provider)}
+                aria-pressed={provider === p.provider}
                 className={chipClass(provider === p.provider)}
               >
                 {providerLabel(p.provider, t)} · {p.sessions}
@@ -225,9 +255,10 @@ const AdminCallsView: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={clsx('grid grid-cols-2 lg:grid-cols-4 gap-3', isLoading && 'opacity-60')} aria-busy={isLoading}>
           <StatCard
-            label={COUNT_LABEL[kind]}
+            testId="admin-calls-stat-count"
+            label={COUNT_LABEL[shownKind]}
             value={formatTokens(data?.totals.calls ?? 0)}
             icon={<Phone className="w-3.5 h-3.5" />}
           />
@@ -250,7 +281,7 @@ const AdminCallsView: React.FC = () => {
           />
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className={clsx('bg-white rounded-xl border border-gray-200 overflow-hidden', isLoading && 'opacity-60')} aria-busy={isLoading}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900">Разбивка по пользователям</h2>
             <span className="text-xs text-gray-400">за {data?.days ?? days} дней</span>
@@ -259,7 +290,7 @@ const AdminCallsView: React.FC = () => {
           {isLoading && !data ? (
             <p className="text-sm text-gray-400 py-12 text-center">Загрузка…</p>
           ) : rows.length === 0 ? (
-            <p className="text-sm text-gray-400 py-12 text-center">{EMPTY_LABEL[kind]}</p>
+            <p className="text-sm text-gray-400 py-12 text-center">{EMPTY_LABEL[shownKind]}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -267,7 +298,7 @@ const AdminCallsView: React.FC = () => {
                   <tr>
                     <th className="text-left px-4 py-2.5 font-medium">#</th>
                     <th className="text-left px-4 py-2.5 font-medium">Пользователь</th>
-                    <th className="text-right px-4 py-2.5 font-medium">{COUNT_LABEL[kind]}</th>
+                    <th className="text-right px-4 py-2.5 font-medium">{COUNT_LABEL[shownKind]}</th>
                     <th className="text-right px-4 py-2.5 font-medium">Длительность</th>
                     <th className="text-right px-4 py-2.5 font-medium">Консультаций</th>
                     <th className="text-right px-4 py-2.5 font-medium">За разговор</th>
@@ -331,8 +362,8 @@ const AdminCallsView: React.FC = () => {
   );
 };
 
-const StatCard: React.FC<{ label: string; value: string; icon?: React.ReactNode; hint?: string; accent?: boolean }> = ({ label, value, icon, hint, accent }) => (
-  <div className={clsx('rounded-xl border p-3', accent ? 'border-forest-300 bg-forest-50' : 'border-gray-200 bg-white')}>
+const StatCard: React.FC<{ label: string; value: string; icon?: React.ReactNode; hint?: string; accent?: boolean; testId?: string }> = ({ label, value, icon, hint, accent, testId }) => (
+  <div data-testid={testId} className={clsx('rounded-xl border p-3', accent ? 'border-forest-300 bg-forest-50' : 'border-gray-200 bg-white')}>
     <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
       {icon}
       <span>{label}</span>
