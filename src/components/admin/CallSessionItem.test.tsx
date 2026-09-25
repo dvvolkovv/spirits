@@ -16,7 +16,7 @@ vi.mock('../../services/apiClient', () => ({ apiClient: { get } }));
 import { CallSessionItem, type CallSession } from './CallSessionItem';
 import { formatTokens } from './callsFormat';
 
-(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const session = (over: Partial<CallSession> = {}): CallSession => ({
   id: 'c-1', user_id: '79236230446', provider: 'zoom', agent_name: 'Роман',
@@ -169,6 +169,16 @@ describe('CallSessionItem', () => {
     expect(get).toHaveBeenCalledTimes(2);
     expect(container.textContent).toContain('Какая погода?');
     expect(container.textContent).not.toContain('Не удалось загрузить расшифровку');
+  });
+
+  it('404 с JSON-телом — тоже ошибка, а не пустая расшифровка', async () => {
+    // Бэкенд отдаёт 404 нарочно: «звонка нет» не должно выглядеть как
+    // разговор, в котором молчали.
+    get.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ error: 'call not found' }) });
+    await mount(<CallSessionItem session={session()} />);
+    await click(q('call-session-c-1'));
+    expect(container.textContent).toContain('Не удалось загрузить расшифровку');
+    expect(container.textContent).not.toContain('Расшифровки нет');
   });
 
   it('расшифровка перечитывается, когда сессия сменила состояние', async () => {
