@@ -861,6 +861,7 @@
       "loadFailed": "Не удалось загрузить звонки",
       "noSummary": "Без саммари",
       "noTranscript": "Расшифровки нет",
+      "transcriptFailed": "Не удалось загрузить расшифровку",
       "human": "Человек",
       "assistant": "Ассистент",
       "tokensHint": "разговор {{call}} + консультации {{consult}}",

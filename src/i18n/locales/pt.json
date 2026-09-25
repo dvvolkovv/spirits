@@ -854,6 +854,7 @@
       "loadFailed": "Falha ao carregar chamadas",
       "noSummary": "Sem resumo",
       "noTranscript": "Sem transcrição",
+      "transcriptFailed": "Não foi possível carregar a transcrição",
       "human": "Pessoa",
       "assistant": "Assistente",
       "tokensHint": "conversa {{call}} + consultas {{consult}}",

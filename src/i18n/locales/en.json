@@ -858,6 +858,7 @@
       "loadFailed": "Could not load calls",
       "noSummary": "No summary",
       "noTranscript": "No transcript",
+      "transcriptFailed": "Could not load the transcript",
       "human": "Person",
       "assistant": "Assistant",
       "tokensHint": "conversation {{call}} + consultations {{consult}}",

@@ -30,3 +30,14 @@ export const formatWhen = (iso: string | null) => {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 };
+
+/**
+ * Длительность одной сессии «12:05» или «1:15:03»: в строке одной сессии
+ * минуты с секундами точнее, чем «12 мин», а встреча бывает и дольше часа.
+ */
+export const formatClock = (sec: number) => {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return h ? `${h}:${p(m)}:${p(sec % 60)}` : `${m}:${p(sec % 60)}`;
+};
