@@ -2245,6 +2245,7 @@
       "detachConfirm": "Disconnect the domain? The site will stop opening at {{domain}}.",
       "detachYes": "Yes, disconnect",
       "detachCancel": "Cancel",
+      "detachOnlyNote": "The product was stopped by an administrator — the domain can only be disconnected.",
       "details": "Details",
       "hasDomainNamed": "The product already has a custom domain {{domain}} — disconnect it first.",
       "errorReasons": {

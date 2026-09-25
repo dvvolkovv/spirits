@@ -518,6 +518,63 @@ describe('блок «Свой домен»', () => {
     expect(api.getDomain).toHaveBeenCalledTimes(2);
   });
 
+  it('зависший GET через 30 с считается брошенным: опрос продолжается, его поздний ответ не применяется', async () => {
+    vi.useFakeTimers();
+    let release: (v: unknown) => void = () => {};
+    api.getDomain
+      .mockResolvedValueOnce({ ok: true, view: awaiting })
+      .mockImplementationOnce(() => new Promise((r) => { release = r as (v: unknown) => void; }) as never)
+      .mockResolvedValue({ ok: true, view: { ...awaiting, status: 'issuing' } });
+    const { container } = mount(<CustomDomain product={product} />);
+    await flush();
+
+    // t=10 — GET ушёл и завис; t=20, t=30 — ждём его.
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(api.getDomain).toHaveBeenCalledTimes(2);
+
+    // t=40 — прошло 30 с: брошен, опрос идёт дальше.
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(api.getDomain).toHaveBeenCalledTimes(3);
+    expect(visibleText(container)).toContain(R('status.issuing'));
+
+    // Брошенный наконец ответил — устаревшим видом. Он не применяется.
+    await actAsync(async () => {
+      release({ ok: true, view: awaiting });
+    });
+    await flush();
+    expect(visibleText(container)).toContain(R('status.issuing'));
+    expect(visibleText(container)).not.toContain(R('status.awaiting_dns'));
+  });
+
+  it('поздний ответ брошенного GET не снимает отметку нового, ещё висящего', async () => {
+    vi.useFakeTimers();
+    let release: (v: unknown) => void = () => {};
+    api.getDomain
+      .mockResolvedValueOnce({ ok: true, view: awaiting })
+      .mockImplementationOnce(() => new Promise((r) => { release = r as (v: unknown) => void; }) as never)
+      .mockImplementation(() => new Promise(() => {}) as never);
+    mount(<CustomDomain product={product} />);
+    await flush();
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(40_000);
+    });
+    // t=10 — первый завис, t=40 — брошен, ушёл второй (тоже висит).
+    expect(api.getDomain).toHaveBeenCalledTimes(3);
+
+    await actAsync(async () => {
+      release({ ok: true, view: awaiting });
+    });
+    await actAsync(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    // Второй висит всего 10 с — дубля быть не должно.
+    expect(api.getDomain).toHaveBeenCalledTimes(3);
+  });
+
   it('сбой GET при опросе не стирает таблицу', async () => {
     vi.useFakeTimers();
     api.getDomain
@@ -534,6 +591,32 @@ describe('блок «Свой домен»', () => {
   });
 
   describe('только отвязка (продукт погашен администратором)', () => {
+    it.each(['issue_failed', 'orphan_issuing', 'agent_outdated'] as const)(
+      'ошибка %s не зовёт нажать «Проверить снова» — такой кнопки здесь нет',
+      async (reason) => {
+        api.getDomain.mockResolvedValueOnce({
+          ok: true,
+          view: failed({ errorReason: reason, error: 'Challenge failed' }),
+        });
+        const { container } = mount(<CustomDomain product={{ ...product, status: 'blocked' }} detachOnly />);
+        await flush();
+        const text = visibleText(container);
+        expect(text).toContain(R('detachOnlyNote'));
+        expect(text).not.toContain(R('checkAgain'));
+        // Сырой отказ Let's Encrypt остаётся доступен в подробностях.
+        if (reason === 'issue_failed') {
+          expect(container.querySelector('details')?.textContent).toContain('Challenge failed');
+        }
+      },
+    );
+
+    it('недоделанная отвязка — прежний текст: он зовёт «Отвязать», и эта кнопка есть', async () => {
+      api.getDomain.mockResolvedValueOnce({ ok: true, view: failed({ errorReason: 'orphan_removing', error: 'x' }) });
+      const { container } = mount(<CustomDomain product={{ ...product, status: 'blocked' }} detachOnly />);
+      await flush();
+      expect(visibleText(container)).toContain(R('errorReasons.orphan_removing'));
+    });
+
     it('работающий домен — ссылка и «Отвязать» в два шага, ни проверки, ни формы', async () => {
       api.getDomain.mockResolvedValueOnce({ ok: true, view: active });
       const { container } = mount(<CustomDomain product={{ ...product, status: 'blocked' }} detachOnly />);

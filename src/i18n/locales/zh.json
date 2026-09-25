@@ -1894,6 +1894,7 @@
       "detachConfirm": "确定解绑域名吗？网站将无法再通过 {{domain}} 访问。",
       "detachYes": "确定解绑",
       "detachCancel": "取消",
+      "detachOnlyNote": "产品已被管理员停止，域名只能解绑。",
       "details": "详细信息",
       "hasDomainNamed": "产品已绑定自定义域名 {{domain}}，请先解绑。",
       "errorReasons": {

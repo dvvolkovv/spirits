@@ -1906,6 +1906,7 @@
       "detachConfirm": "¿Desconectar el dominio? El sitio dejará de abrirse en {{domain}}.",
       "detachYes": "Sí, desconectar",
       "detachCancel": "Cancelar",
+      "detachOnlyNote": "Un administrador detuvo el producto; el dominio solo se puede desconectar.",
       "details": "Detalles",
       "hasDomainNamed": "El producto ya tiene un dominio propio, {{domain}}; desconéctalo primero.",
       "errorReasons": {

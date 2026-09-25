@@ -1900,6 +1900,7 @@
       "detachConfirm": "Domain trennen? Die Seite ist dann unter {{domain}} nicht mehr erreichbar.",
       "detachYes": "Ja, trennen",
       "detachCancel": "Abbrechen",
+      "detachOnlyNote": "Das Produkt wurde von einem Administrator gestoppt — die Domain kann nur noch getrennt werden.",
       "details": "Details",
       "hasDomainNamed": "Das Produkt hat schon eine eigene Domain {{domain}} — trenn sie zuerst.",
       "errorReasons": {

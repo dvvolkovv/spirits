@@ -76,6 +76,19 @@ export function formatCheckedAt(iso: string | null | undefined, lang: string): s
   }
 }
 
+/**
+ * GET старше этого считается брошенным: опрос снова идёт, а его поздний ответ
+ * отсекает проверка номера. Без потолка один зависший запрос (обрыв без
+ * ошибки, прокси держит соединение) навсегда останавливал бы опрос.
+ */
+export const DOMAIN_GET_ABANDON_MS = 30_000;
+
+/**
+ * Ошибки, текст которых зовёт нажать «Проверить снова». В режиме «только
+ * отвязка» такой кнопки нет — вместо них объясняем, почему.
+ */
+const NEEDS_CHECK_BUTTON: DomainErrorReason[] = ['issue_failed', 'orphan_issuing', 'agent_outdated'];
+
 /** Сколько держится «Скопировано» / «не удалось» на кнопке копирования. */
 const COPY_FLASH_MS = 2000;
 
@@ -128,8 +141,13 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged, detachOnly =
    * ушедший ДО отвязки и вернувшийся ПОСЛЕ неё, воскрешал бы снятый домен.
    */
   const seq = useRef(0);
-  /** Сколько GET сейчас в полёте — счётчик, а не флаг: старый GET не должен снимать отметку нового. */
-  const getting = useRef(0);
+  /**
+   * Когда ушёл последний GET, который ещё не вернулся; null — в полёте нет.
+   * Отметку снимает только сам последний GET: старый, вернувшись, не должен
+   * снимать отметку нового.
+   */
+  const getSince = useRef<number | null>(null);
+  const getSeq = useRef(0);
   /** Идёт действие: опрос в это время молчит — его ответ всё равно устарел бы. */
   const acting = useRef(false);
 
@@ -162,14 +180,15 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged, detachOnly =
    */
   const load = useCallback(async (): Promise<DomainView | null | undefined> => {
     const my = ++seq.current;
-    getting.current += 1;
+    const myGet = ++getSeq.current;
+    getSince.current = Date.now();
     try {
       const r = await productsApi.getDomain(product.id);
       if (my !== seq.current || !r.ok) return undefined;
       setView(r.view);
       return r.view;
     } finally {
-      getting.current -= 1;
+      if (myGet === getSeq.current) getSince.current = null;
     }
   }, [product.id, setView]);
 
@@ -181,8 +200,10 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged, detachOnly =
   useEffect(() => {
     if (!status || !MOVING.includes(status)) return undefined;
     const timer = setInterval(() => {
-      // Прошлый GET ещё не вернулся или идёт действие — тик пропускаем.
-      if (getting.current > 0 || acting.current) return;
+      // Идёт действие или прошлый GET ещё не вернулся — тик пропускаем. Но
+      // зависший дольше DOMAIN_GET_ABANDON_MS считается брошенным.
+      if (acting.current) return;
+      if (getSince.current !== null && Date.now() - getSince.current < DOMAIN_GET_ABANDON_MS) return;
       void load();
     }, DOMAIN_POLL_MS);
     return () => clearInterval(timer);
@@ -207,6 +228,9 @@ export const CustomDomain: React.FC<Props> = ({ product, onChanged, detachOnly =
   };
 
   const failureText = (v: DomainView): string => {
+    if (detachOnly && v.errorReason && NEEDS_CHECK_BUTTON.includes(v.errorReason)) {
+      return t('products.domain.detachOnlyNote');
+    }
     if (v.errorReason) {
       const key = `products.domain.errorReasons.${v.errorReason}`;
       const text = t(key);

@@ -2245,6 +2245,7 @@
       "detachConfirm": "Desligar o domínio? O site deixará de abrir em {{domain}}.",
       "detachYes": "Sim, desligar",
       "detachCancel": "Cancelar",
+      "detachOnlyNote": "O produto foi parado por um administrador — o domínio só pode ser desligado.",
       "details": "Detalhes",
       "hasDomainNamed": "O produto já tem um domínio próprio, {{domain}} — desligue-o primeiro.",
       "errorReasons": {
