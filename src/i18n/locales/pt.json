@@ -850,17 +850,30 @@
       "resolved_by": "{{resolution}} · {{moderator}}"
     },
     "calls": {
-      "sectionTitle": "Chamadas",
+      "sectionTitle": "Chamadas e reuniões",
       "loadFailed": "Falha ao carregar chamadas",
       "noSummary": "Sem resumo",
       "noTranscript": "Sem transcrição",
+      "transcriptFailed": "Não foi possível carregar a transcrição",
       "human": "Pessoa",
       "assistant": "Assistente",
+      "tokensHint": "conversa {{call}} + consultas {{consult}}",
       "flag": {
-        "interrupted": "não conectou",
+        "interrupted": "interrompida",
+        "failed": "falhou",
+        "live": "em curso",
         "silent": "pessoa em silêncio",
         "nearlySilent": "falou pouco",
         "short": "curta"
+      },
+      "provider": {
+        "linkeon": "Chamada",
+        "linkeon_room": "Sala Linkeon",
+        "talerid": "Taler ID",
+        "meet": "Google Meet",
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "telemost": "Yandex Telemost"
       },
       "openUser": "Abrir perfil e conversas"
     }

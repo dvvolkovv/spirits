@@ -857,17 +857,30 @@
       "resolved_by": "{{resolution}} · {{moderator}}"
     },
     "calls": {
-      "sectionTitle": "Звонки",
+      "sectionTitle": "Звонки и встречи",
       "loadFailed": "Не удалось загрузить звонки",
       "noSummary": "Без саммари",
       "noTranscript": "Расшифровки нет",
+      "transcriptFailed": "Не удалось загрузить расшифровку",
       "human": "Человек",
       "assistant": "Ассистент",
+      "tokensHint": "разговор {{call}} + консультации {{consult}}",
       "flag": {
-        "interrupted": "не состоялся",
+        "interrupted": "обрыв",
+        "failed": "сбой",
+        "live": "идёт сейчас",
         "silent": "человек молчал",
         "nearlySilent": "почти молчал",
         "short": "короткий"
+      },
+      "provider": {
+        "linkeon": "Звонок",
+        "linkeon_room": "Комната Linkeon",
+        "talerid": "Taler ID",
+        "meet": "Google Meet",
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "telemost": "Яндекс Телемост"
       },
       "openUser": "Открыть карточку и разговоры"
     }

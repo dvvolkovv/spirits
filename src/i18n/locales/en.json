@@ -854,17 +854,30 @@
       "resolved_by": "{{resolution}} · {{moderator}}"
     },
     "calls": {
-      "sectionTitle": "Calls",
+      "sectionTitle": "Calls and meetings",
       "loadFailed": "Could not load calls",
       "noSummary": "No summary",
       "noTranscript": "No transcript",
+      "transcriptFailed": "Could not load the transcript",
       "human": "Person",
       "assistant": "Assistant",
+      "tokensHint": "conversation {{call}} + consultations {{consult}}",
       "flag": {
-        "interrupted": "not connected",
+        "interrupted": "cut off",
+        "failed": "failed",
+        "live": "in progress",
         "silent": "person silent",
         "nearlySilent": "barely spoke",
         "short": "short"
+      },
+      "provider": {
+        "linkeon": "Call",
+        "linkeon_room": "Linkeon room",
+        "talerid": "Taler ID",
+        "meet": "Google Meet",
+        "zoom": "Zoom",
+        "teams": "Microsoft Teams",
+        "telemost": "Yandex Telemost"
       },
       "openUser": "Open profile and conversations"
     }

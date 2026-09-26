@@ -6,7 +6,12 @@
  * react-refresh/only-export-components), да и тесту не нужен весь React.
  */
 
-export const formatTokens = (n: number) => n.toLocaleString('ru-RU');
+/**
+ * Нечисло — ноль, а не исключение: при выкате только фронта (или откате бэка)
+ * старый бэкенд не присылает части полей, и одна строка роняла бы всё
+ * приложение — своей границы ошибок у админки нет.
+ */
+export const formatTokens = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString('ru-RU');
 
 /**
  * Длительность словами, а не в секундах: в таблице стоят суммы за месяц, и
@@ -29,4 +34,15 @@ export const formatWhen = (iso: string | null) => {
   const d = new Date(iso);
   const p = (n: number) => String(n).padStart(2, '0');
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+/**
+ * Длительность одной сессии «12:05» или «1:15:03»: в строке одной сессии
+ * минуты с секундами точнее, чем «12 мин», а встреча бывает и дольше часа.
+ */
+export const formatClock = (sec: number) => {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return h ? `${h}:${p(m)}:${p(sec % 60)}` : `${m}:${p(sec % 60)}`;
 };
