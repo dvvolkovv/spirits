@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { AlertTriangle, CalendarClock, Loader, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, Loader, RefreshCw, Send } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import {
   statusLabel,
@@ -165,12 +165,87 @@ const slotTakenText = (name: string | null) =>
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+/**
+ * Из каких статусов пост можно выпустить сразу: одобренный — мимо своего
+ * слота, ждущий проверки — одобрение и выпуск одним действием. Остальным либо
+ * рано (текста ещё нет), либо поздно (уже в канале, публикуется, выброшен).
+ */
+const PUBLISHABLE_NOW: BlogStatus[] = ['approved', 'pending_review'];
+
+/**
+ * Подтверждение — `window.confirm`, как у прочих необратимых действий
+ * админки (рассылка SMS). Про сдвиг очереди — только у одобренного: у поста
+ * на проверке нет слота, который освободился бы.
+ */
+const publishConfirmText = (post: BlogPost): string => {
+  const name = post.title?.trim() || post.topicHint?.trim();
+  const lines = [
+    name ? `Опубликовать «${name}» сейчас?` : 'Опубликовать пост сейчас?',
+    'Пост уйдёт в канал сразу. Отменить публикацию нельзя.',
+  ];
+  if (post.status === 'approved') lines.push('Следующие посты в очереди сдвинутся на слот вперёд.');
+  return lines.join('\n\n');
+};
+
+/**
+ * На экране текст, которого нет на сервере. «Опубликовать сейчас» выпускает
+ * сохранённую версию, так что с такой правкой в канал ушёл бы не тот текст,
+ * что видит владелец, — поэтому кнопка её не пропускает, а не предупреждает в
+ * подтверждении: мимо предупреждения легко прокликать, а публикацию не
+ * отменить. Заголовок уходит в подпись вместе с текстом и считается тоже.
+ * Правка, возвращённая к сохранённому тексту, правкой уже не считается.
+ */
+const hasUnsavedEdit = (post: BlogPost, draft: Draft | undefined): boolean =>
+  !!draft && (draft.title !== (post.title ?? '') || draft.body !== (post.body ?? ''));
+
+const UNSAVED_HINT =
+  'Чтобы опубликовать сейчас, сначала сохраните текст: в канал уходит сохранённая версия, а на экране — несохранённая правка.';
+
+/** Пост, переехавший на слот вперёд, когда стоявший перед ним вышел раньше срока. */
+interface Shift {
+  id: string;
+  title: string | null;
+  from: string;
+  to: string;
+}
+
+const normalizeShifts = (raw: unknown): Shift[] =>
+  Array.isArray(raw)
+    ? raw
+        .filter((s) => s && s.id != null && typeof s.from === 'string' && typeof s.to === 'string')
+        .map((s) => ({
+          id: String(s.id),
+          title: typeof s.title === 'string' ? s.title : null,
+          from: s.from,
+          to: s.to,
+        }))
+    : [];
+
+/**
+ * Итог «Опубликовать сейчас» — плашкой над очередью, а не в карточке:
+ * вышедший пост уходит из очереди вместе с карточкой.
+ *
+ *  - `published` — Telegram принял, ссылка на пост;
+ *  - `refused` — Telegram не принял: пост остался одобренным, крон выпустит
+ *    его ближайшим тиком;
+ *  - `unconfirmed` — ответ не похож ни на то, ни на другое. «Вышел» здесь не
+ *    говорим: неправда про публичный канал хуже, чем «проверьте очередь».
+ *
+ * Сдвиги очереди — в любом исходе: бэк их уже сделал.
+ */
+type ShiftLine = { id: string; text: string };
+type PublishOutcome =
+  | { kind: 'published'; name: string | null; tgUrl: string | null; shifts: ShiftLine[] }
+  | { kind: 'refused'; reason: string; shifts: ShiftLine[] }
+  | { kind: 'unconfirmed'; status: string | null; shifts: ShiftLine[] };
+
 const AdminBlogView: React.FC = () => {
   const [screen, setScreen] = useState<Screen>('queue');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [settings, setSettings] = useState<BlogSettings | null>(null);
   const [hourRaw, setHourRaw] = useState('');
-  const [error, setError] = useState<{ text: string; conflict: boolean } | null>(null);
+  /** `consequence` — чем обернулся конфликт для действия; по умолчанию «Ничего не перезаписано». */
+  const [error, setError] = useState<{ text: string; conflict: boolean; consequence?: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [newTopic, setNewTopic] = useState('');
@@ -178,6 +253,13 @@ const AdminBlogView: React.FC = () => {
   const [editing, setEditing] = useState<Record<string, Draft>>({});
   const [picker, setPicker] = useState<SlotPicker | null>(null);
   const slotsRequest = useRef(0);
+  const [publishResult, setPublishResult] = useState<PublishOutcome | null>(null);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  /**
+   * Замок публикации. Кнопка гаснет с перерисовкой, а второе нажатие, успевшее
+   * раньше неё, видит в замыкании `busy === false` — его держит замок.
+   */
+  const publishLock = useRef(false);
 
   const fail = (e: any) => {
     const conflict = e instanceof BlogApiError && e.status === 409;
@@ -211,6 +293,7 @@ const AdminBlogView: React.FC = () => {
 
   useEffect(() => {
     setNotice(null);
+    setPublishResult(null);
     setPicker(null);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -226,6 +309,7 @@ const AdminBlogView: React.FC = () => {
     setBusy(true);
     setError(null);
     setNotice(null);
+    setPublishResult(null);
     // Любое другое действие меняет очередь, а с ней и занятость слотов.
     setPicker(null);
     try {
@@ -248,11 +332,14 @@ const AdminBlogView: React.FC = () => {
     }
   };
 
-  /** Как назвать пост, занявший слот: заголовок с сервера, иначе — что о нём знает очередь. */
-  const takerName = (taker: FreeSlot['takenBy']): string | null => {
-    if (!taker) return null;
-    if (taker.title?.trim()) return taker.title.trim();
-    const local = posts.find((p) => p.id === taker.id);
+  /**
+   * Как назвать пост — занявший слот или сдвинутый публикацией: заголовок с
+   * сервера, иначе — что о нём знает очередь.
+   */
+  const postName = (ref: { id: string; title: string | null } | null): string | null => {
+    if (!ref) return null;
+    if (ref.title?.trim()) return ref.title.trim();
+    const local = posts.find((p) => p.id === ref.id);
     return local?.title?.trim() || local?.topicHint?.trim() || null;
   };
 
@@ -305,6 +392,7 @@ const AdminBlogView: React.FC = () => {
     setBusy(true);
     setError(null);
     setNotice(null);
+    setPublishResult(null);
     try {
       const saved = await call({
         action: 'reschedule',
@@ -333,7 +421,7 @@ const AdminBlogView: React.FC = () => {
       if (e instanceof BlogApiError && e.status === 409 && e.code === 'slot_taken') {
         const fresh = await loadSlots(post.id);
         const taker = fresh?.find((s) => sameInstant(s.slotAt, slot.slotAt))?.takenBy ?? null;
-        const note = slotTakenText(taker && taker.id !== post.id ? takerName(taker) : null);
+        const note = slotTakenText(taker && taker.id !== post.id ? postName(taker) : null);
         setPicker((prev) => (prev && prev.postId === post.id ? { ...prev, note } : prev));
       } else {
         // Список собран по устаревшей версии поста — закрываем его вместе с баннером.
@@ -341,6 +429,102 @@ const AdminBlogView: React.FC = () => {
         fail(e);
       }
     } finally {
+      setBusy(false);
+    }
+  };
+
+  /**
+   * «Продукты»: в среду, 30 сентября, в 10:00 МСК → в понедельник, 28 сентября,
+   * в 10:00 МСК. Даты той же фразой, что в Telegram и в «Выйдет …» у поста.
+   */
+  const shiftText = (s: Shift, at: Date): string => {
+    const name = postName(s);
+    return `${name ? `«${name}»` : 'Пост без заголовка'}: ${formatSlotAt(s.from, at)} → ${formatSlotAt(s.to, at)}`;
+  };
+
+  /**
+   * «Вышел» — только `published`. `approved` с `lastError` — Telegram не
+   * принял, и пост выйдет ближайшим тиком. Ответ 200 сам по себе ничего не
+   * говорит: он приходит в обоих случаях.
+   */
+  const describePublish = (res: unknown, post: BlogPost): PublishOutcome => {
+    const body = (res ?? {}) as {
+      post?: { status?: unknown; title?: unknown; tgUrl?: unknown; lastError?: unknown } | null;
+      shifted?: unknown;
+    };
+    const out = body.post ?? {};
+    const at = new Date();
+    const shifts = normalizeShifts(body.shifted).map((s) => ({ id: s.id, text: shiftText(s, at) }));
+    const status = typeof out.status === 'string' ? out.status : null;
+    if (status === 'published') {
+      return {
+        kind: 'published',
+        name: postName({ id: post.id, title: typeof out.title === 'string' ? out.title : null }),
+        tgUrl: typeof out.tgUrl === 'string' && out.tgUrl.trim() ? out.tgUrl.trim() : null,
+        shifts,
+      };
+    }
+    // Точку в конце причины срезаем: после неё в сообщении своя.
+    const reason = typeof out.lastError === 'string' ? out.lastError.trim().replace(/[.\s]+$/, '') : '';
+    if (status === 'approved' && reason) return { kind: 'refused', reason, shifts };
+    return { kind: 'unconfirmed', status, shifts };
+  };
+
+  /**
+   * «Опубликовать сейчас»: пост уходит в публичный канал мимо своего слота, и
+   * прочитанное уже не отменить. Поэтому:
+   *
+   *  - подтверждение до запроса;
+   *  - одна публикация на одно нажатие: кнопка гаснет на время запроса, замок
+   *    держит нажатие, успевшее раньше перерисовки. Бэк защищён захватом
+   *    `approved → publishing`, но провоцировать второй запрос незачем;
+   *  - уходит версия, чей текст на экране; несохранённую правку кнопка не
+   *    пропускает вовсе (см. `hasUnsavedEdit`). Поправили пост в другом месте
+   *    — 409 version_conflict, и, как у правки текста и переноса, без
+   *    перечитывания: свежий `updatedAt` снял бы защиту, и следующее нажатие
+   *    выпустило бы текст, которого владелец не видел.
+   *
+   * Сдвиг следующих постов делает бэк; после ответа очередь перечитывается, и
+   * новые слоты видны у самих постов.
+   */
+  const publishNow = async (post: BlogPost) => {
+    if (publishLock.current || busy || hasUnsavedEdit(post, editing[post.id])) return;
+    if (!window.confirm(publishConfirmText(post))) return;
+    publishLock.current = true;
+    setPublishingId(post.id);
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    setPublishResult(null);
+    setPicker(null);
+    try {
+      const res = await call({ action: 'publish_now', id: post.id, updatedAt: post.updatedAt });
+      setPublishResult(describePublish(res, post));
+      setEditing((prev) => {
+        if (!prev[post.id]) return prev;
+        const next = { ...prev };
+        delete next[post.id];
+        return next;
+      });
+      await load();
+    } catch (e) {
+      if (e instanceof BlogApiError && e.status === 409) {
+        // version_conflict: пост поправили в личке бота или в соседней вкладке.
+        setError({ text: e.message, conflict: true, consequence: 'Публикация не выполнена' });
+      } else if (e instanceof BlogApiError && e.status < 500) {
+        // Бэк отказал до отправки (bad_request) — в канал ничего не ушло.
+        setError({ text: `Не опубликовано: ${e.message}`, conflict: false });
+      } else {
+        // Ответа нет или он сломан: дошло ли до Telegram — неизвестно.
+        const why = (e instanceof Error && e.message) || 'нет ответа';
+        setError({
+          text: `Публикация не подтверждена: ${why}. Пост мог уйти в канал — нажмите «Обновить», прежде чем публиковать снова.`,
+          conflict: false,
+        });
+      }
+    } finally {
+      publishLock.current = false;
+      setPublishingId(null);
       setBusy(false);
     }
   };
@@ -419,7 +603,9 @@ const AdminBlogView: React.FC = () => {
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span className="font-medium">Пост изменили в другом месте</span>
-              <span>— {error.text}. Ничего не перезаписано; на экране устаревшая версия.</span>
+              <span>
+                — {error.text}. {error.consequence ?? 'Ничего не перезаписано'}; на экране устаревшая версия.
+              </span>
               <button
                 data-testid="blog-conflict-reload"
                 onClick={() => load(true)}
@@ -437,6 +623,65 @@ const AdminBlogView: React.FC = () => {
       {notice && (
         <div data-testid="blog-notice" className="mb-3 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm text-gray-600">
           {notice}
+        </div>
+      )}
+
+      {publishResult && (
+        <div
+          data-testid="blog-publish-result"
+          data-outcome={publishResult.kind}
+          className={clsx(
+            'mb-3 px-3 py-2 rounded-md border text-sm',
+            publishResult.kind === 'published'
+              ? 'bg-green-50 border-green-200 text-green-900'
+              : 'bg-amber-50 border-amber-300 text-amber-900',
+          )}
+        >
+          <div className="flex items-start gap-1.5">
+            {publishResult.kind === 'published' ? (
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            )}
+            <div className="min-w-0 break-words">
+              {publishResult.kind === 'published' && (
+                <>
+                  {publishResult.name ? `Пост «${publishResult.name}» вышел в канал.` : 'Пост вышел в канал.'}
+                  {publishResult.tgUrl && (
+                    <>
+                      {' '}
+                      <a
+                        href={publishResult.tgUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium underline"
+                      >
+                        Открыть пост в канале
+                      </a>
+                    </>
+                  )}
+                </>
+              )}
+              {publishResult.kind === 'refused' &&
+                `Telegram не принял пост: ${publishResult.reason}. Повторим автоматически в ближайшие 5 минут.`}
+              {publishResult.kind === 'unconfirmed' &&
+                (publishResult.status
+                  ? `Выход поста не подтверждён: сервер вернул статус «${statusLabel(publishResult.status as BlogStatus)}». Проверьте очередь через несколько минут.`
+                  : 'Выход поста не подтверждён. Проверьте очередь через несколько минут.')}
+            </div>
+          </div>
+          {publishResult.shifts.length > 0 && (
+            <div data-testid="blog-publish-shifts" className="mt-2 pl-5">
+              <div className="text-xs opacity-80">Следующие посты сдвинулись на слот вперёд:</div>
+              <ul className="mt-0.5 space-y-0.5 text-xs">
+                {publishResult.shifts.map((s) => (
+                  <li key={s.id} data-testid="blog-publish-shift">
+                    {s.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -581,6 +826,8 @@ const AdminBlogView: React.FC = () => {
             const broken = p.status === 'failed';
             const editable = !isTerminal(p.status);
             const textReady = p.status !== 'idea' && p.status !== 'drafting';
+            const publishable = PUBLISHABLE_NOW.includes(p.status);
+            const unsaved = hasUnsavedEdit(p, own);
 
             return (
               <div
@@ -764,6 +1011,22 @@ const AdminBlogView: React.FC = () => {
                         Перенести
                       </button>
                     )}
+                    {publishable && (
+                      <button
+                        data-testid={`blog-publish-now-${p.id}`}
+                        onClick={() => publishNow(p)}
+                        disabled={busy || unsaved}
+                        title={unsaved ? UNSAVED_HINT : undefined}
+                        className="flex items-center gap-1 px-3 py-1 text-xs rounded border border-forest-600 bg-white text-forest-700 hover:bg-forest-50 disabled:opacity-50"
+                      >
+                        {publishingId === p.id ? (
+                          <Loader className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                        {publishingId === p.id ? 'Публикую…' : 'Опубликовать сейчас'}
+                      </button>
+                    )}
                     {canTransition(p.status, 'rejected') && (
                       <button
                         data-testid={`blog-reject-${p.id}`}
@@ -774,6 +1037,12 @@ const AdminBlogView: React.FC = () => {
                         В мусор
                       </button>
                     )}
+                  </div>
+                )}
+
+                {publishable && unsaved && (
+                  <div data-testid={`blog-publish-unsaved-${p.id}`} className="mt-1.5 text-xs text-amber-700">
+                    {UNSAVED_HINT}
                   </div>
                 )}
 
@@ -814,7 +1083,7 @@ const AdminBlogView: React.FC = () => {
                       <div className="grid gap-1.5 sm:grid-cols-2">
                         {picker.slots.map((s) => {
                           const state = slotState(s, p);
-                          const taker = state === 'taken' ? takerName(s.takenBy) : null;
+                          const taker = state === 'taken' ? postName(s.takenBy) : null;
                           return (
                             <button
                               key={s.slotAt}
