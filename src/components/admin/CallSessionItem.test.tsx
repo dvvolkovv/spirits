@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 /**
- * Строку сессии проверяем монтированием: два клика в одной строке — по номеру
- * человека и по самой строке — должны делать разное, и по коду это не
- * доказывается.
+ * Строку сессии проверяем монтированием: когда она раскрывается и когда
+ * перечитывает расшифровку, по коду не доказывается.
  *
  * Без @testing-library, как AdminBlogView.test.tsx: хватает createRoot и act.
  */
@@ -92,19 +91,6 @@ describe('CallSessionItem', () => {
     await click(q('call-session-c-1'));
     expect(get).toHaveBeenCalledWith('/webhook/admin/calls/c-1/transcript');
     expect(container.textContent).toContain('Какая погода?');
-  });
-
-  it('клик по номеру открывает человека и не раскрывает расшифровку', async () => {
-    const onOpenUser = vi.fn();
-    await mount(<CallSessionItem session={session()} onOpenUser={onOpenUser} />);
-    await click(q('call-session-user-c-1'));
-    expect(onOpenUser).toHaveBeenCalledWith('79236230446');
-    expect(get).not.toHaveBeenCalled();
-  });
-
-  it('без onOpenUser номера нет: в карточке человек и так известен', async () => {
-    await mount(<CallSessionItem session={session()} />);
-    expect(q('call-session-user-c-1')).toBeNull();
   });
 
   it('прерванный звонок без реплик человека не раскрывается', async () => {
@@ -228,10 +214,8 @@ describe('CallSessionItem', () => {
     expect(container.textContent).toContain('Живая реплика');
   });
 
-  it('Enter на строке раскрывает её, Enter на кнопке номера — нет', async () => {
-    await mount(<CallSessionItem session={session()} onOpenUser={vi.fn()} />);
-    await key(q('call-session-user-c-1'), 'Enter');
-    expect(q('call-session-panel-c-1')).toBeNull();
+  it('Enter на строке раскрывает её', async () => {
+    await mount(<CallSessionItem session={session()} />);
     await key(q('call-session-c-1'), 'Enter');
     expect(q('call-session-panel-c-1')).not.toBeNull();
     expect(q('call-session-c-1')?.getAttribute('aria-expanded')).toBe('true');

@@ -33,12 +33,20 @@ const BY_PROVIDER: Record<string, { provider: string; sessions: number }[]> = {
   meeting: [{ provider: 'talerid', sessions: 43 }, { provider: 'zoom', sessions: 3 }],
 };
 
-/** Ручка таблицы отвечает по тем фильтрам, что пришли в запросе. */
+/**
+ * Ручка таблицы отвечает по тем фильтрам, что пришли в запросе. Итог сходится
+ * с разбивкой по площадкам, как у настоящего бэкенда: оба считаются одним
+ * условием выборки.
+ */
 const backend = (url: string) => {
-  if (url.startsWith('/webhook/admin/calls/sessions')) return ok({ total: 0, limit: 50, sessions: [] });
   const p = new URL(url, 'http://x').searchParams;
   const kind = p.get('kind') ?? 'call';
-  return ok({ ...CALLS, kind, provider: p.get('provider'), include_test: p.has('includeTest'), byProvider: BY_PROVIDER[kind] });
+  const byProvider = BY_PROVIDER[kind];
+  const calls = byProvider.reduce((sum, x) => sum + x.sessions, 0);
+  return ok({
+    ...CALLS, kind, provider: p.get('provider'), include_test: p.has('includeTest'), byProvider,
+    totals: { ...CALLS.totals, calls },
+  });
 };
 
 let container: HTMLDivElement;
@@ -56,8 +64,13 @@ const click = async (testid: string) => {
 };
 
 const urls = () => get.mock.calls.map((c) => c[0] as string);
-/** Последний запрос таблицы (не ленты). */
+/** Последний запрос таблицы. */
 const lastTableUrl = () => urls().filter((u) => u.startsWith('/webhook/admin/calls?')).pop();
+/**
+ * Раздел показывает только статистику: подробности сессий (ленту с саммари и
+ * расшифровками) владелец снял 26.09.2026 — «не нужно подробностей».
+ */
+const detailsRequested = () => urls().some((u) => u.startsWith('/webhook/admin/calls/sessions'));
 
 beforeEach(async () => {
   get.mockReset();
@@ -80,9 +93,38 @@ describe('AdminCallsView', () => {
     expect(q('admin-calls-test-banner')).not.toBeNull();
   });
 
-  it('лента получает те же фильтры, что таблица', () => {
-    expect(urls().find((u) => u.startsWith('/webhook/admin/calls/sessions')))
-      .toBe('/webhook/admin/calls/sessions?days=30&kind=all&includeTest=1&limit=50');
+  it('только статистика: подробности сессий не запрашиваются', async () => {
+    await click('admin-calls-kind-meeting');
+    await click('admin-calls-provider-zoom');
+    await click('admin-calls-refresh');
+    expect(detailsRequested()).toBe(false);
+  });
+
+  it('на «Все» итог делится на звонки и встречи', () => {
+    expect(q('admin-calls-stat-count')?.textContent).toBe('Сессий56звонков 10 · встреч 46');
+  });
+
+  it('доли под итогом — по ответу «Все», а не по ответу прошлой вкладки', async () => {
+    await click('admin-calls-kind-call');
+    let release!: () => void;
+    get.mockImplementation((url: string) => {
+      if (url.startsWith('/webhook/admin/calls?') && url.includes('kind=all')) {
+        return new Promise((resolve) => { release = () => resolve(backend(url)); });
+      }
+      return backend(url);
+    });
+    await click('admin-calls-kind-all');
+    expect(q('admin-calls-stat-count')?.textContent).toBe('Звонков10');
+    await act(async () => { release(); });
+    await settle();
+    expect(q('admin-calls-stat-count')?.textContent).toBe('Сессий56звонков 10 · встреч 46');
+  });
+
+  it('на «Звонках» и «Встречах» итог не делится: там один вид сессий', async () => {
+    await click('admin-calls-kind-call');
+    expect(q('admin-calls-stat-count')?.textContent).toBe('Звонков10');
+    await click('admin-calls-kind-meeting');
+    expect(q('admin-calls-stat-count')?.textContent).toBe('Встреч46');
   });
 
   it('на вкладке «Все» кнопок площадок нет', () => {
@@ -97,8 +139,6 @@ describe('AdminCallsView', () => {
     await click('admin-calls-provider-zoom');
     expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=meeting&provider=zoom&includeTest=1');
     expect(q('admin-calls-provider-zoom')?.getAttribute('aria-pressed')).toBe('true');
-    expect(urls().filter((u) => u.startsWith('/webhook/admin/calls/sessions')).pop())
-      .toBe('/webhook/admin/calls/sessions?days=30&kind=meeting&provider=zoom&includeTest=1&limit=50');
   });
 
   it('смена вкладки сбрасывает площадку', async () => {
@@ -114,12 +154,10 @@ describe('AdminCallsView', () => {
     expect(q('admin-calls-test-banner')).toBeNull();
   });
 
-  it('«Обновить» перечитывает и таблицу, и ленту', async () => {
+  it('«Обновить» перечитывает таблицу', async () => {
     const before = urls().length;
     await click('admin-calls-refresh');
-    const after = urls().slice(before);
-    expect(after).toContain('/webhook/admin/calls?days=30&kind=all&includeTest=1');
-    expect(after).toContain('/webhook/admin/calls/sessions?days=30&kind=all&includeTest=1&limit=50');
+    expect(urls().slice(before)).toEqual(['/webhook/admin/calls?days=30&kind=all&includeTest=1']);
   });
 
   it('кнопки площадок строятся по ответу «Встреч», а не по ответу прошлой вкладки', async () => {
