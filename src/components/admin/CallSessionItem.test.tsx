@@ -168,8 +168,9 @@ describe('CallSessionItem', () => {
   });
 
   it('расшифровка перечитывается, когда сессия сменила состояние', async () => {
-    // Лента перерисовывает строку на месте: встреча, открытая пока шла, после
-    // завершения не должна остаться с обрезанной расшифровкой.
+    // Если родитель перерисует строку на месте (сейчас карточка грузит список
+    // один раз), встреча, открытая пока шла, не должна остаться с обрезанной
+    // расшифровкой.
     get.mockResolvedValueOnce(reply('Пока шла')).mockResolvedValueOnce(reply('После завершения'));
     const live = session({ status: 'active', flags: ['live'], duration_sec: null, user_turns: 1 });
     await mount(<CallSessionItem session={live} />);
@@ -212,6 +213,15 @@ describe('CallSessionItem', () => {
     await mount(<CallSessionItem session={session()} />);
     await click(q('call-session-c-1'));
     expect(container.textContent).toContain('Живая реплика');
+  });
+
+  it('пробел раскрывает строку и не прокручивает карточку', async () => {
+    await mount(<CallSessionItem session={session()} />);
+    const ev = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    await act(async () => { q('call-session-c-1')?.dispatchEvent(ev); });
+    await settle();
+    expect(ev.defaultPrevented).toBe(true);
+    expect(q('call-session-panel-c-1')).not.toBeNull();
   });
 
   it('Enter на строке раскрывает её', async () => {

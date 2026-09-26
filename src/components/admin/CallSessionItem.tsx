@@ -119,6 +119,8 @@ export const CallSessionItem: React.FC<{ session: CallSession }> = ({ session: s
 
   return (
     <li className="rounded-lg border border-gray-200">
+      {/* div, а не <button>: нераскрываемая строка остаётся инертной, а текст
+          саммари можно выделить и скопировать. */}
       <div
         role={expandable ? 'button' : undefined}
         tabIndex={expandable ? 0 : undefined}

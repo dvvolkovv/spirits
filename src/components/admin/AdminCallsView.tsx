@@ -36,7 +36,10 @@ interface CallsResp {
     tokens_consult: number;
     tokens_total: number;
   };
-  /** Сессии по площадкам за период — для кнопок фильтра на «Встречах». */
+  /**
+   * Сессии по площадкам за период, без условия по выбранной площадке: кнопки
+   * фильтра на «Встречах» и доли звонков и встреч под итогом на «Все».
+   */
   byProvider: { provider: string; sessions: number }[];
 }
 
@@ -145,13 +148,14 @@ const AdminCallsView: React.FC = () => {
   // на экране ещё ответ прошлой.
   const shownKind: CallKind = data?.kind ?? kind;
   // На «Все» в итоге вместе звонки и встречи — под ним видно, сколько каких,
-  // без переключения вкладок. Доли берутся из разбивки по площадкам того же
-  // ответа: бэкенд считает её тем же условием, что и итог, так что сумма сходится.
-  const split = data?.kind === 'all'
-    ? {
-        calls: byProvider.filter((p) => p.provider === CALL_PROVIDER).reduce((sum, p) => sum + p.sessions, 0),
-        meetings: byProvider.filter((p) => p.provider !== CALL_PROVIDER).reduce((sum, p) => sum + p.sessions, 0),
-      }
+  // без переключения вкладок. Доли — из разбивки по площадкам того же ответа,
+  // и показываются, только если она сошлась с итогом: бэкенд считает её
+  // отдельным запросом, а старый не отдаёт вовсе, и «звонков 0 · встреч 0» под
+  // ненулевым итогом было бы неправдой. Встречи — всё, кроме звонка, как на
+  // бэкенде: новая площадка попадёт в них без правки фронта.
+  const appCalls = byProvider.filter((p) => p.provider === CALL_PROVIDER).reduce((sum, p) => sum + p.sessions, 0);
+  const split = data?.kind === 'all' && providersTotal === data.totals.calls
+    ? { calls: appCalls, meetings: providersTotal - appCalls }
     : null;
 
   return (

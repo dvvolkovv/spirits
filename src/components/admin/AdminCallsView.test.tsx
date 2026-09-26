@@ -34,17 +34,18 @@ const BY_PROVIDER: Record<string, { provider: string; sessions: number }[]> = {
 };
 
 /**
- * Ручка таблицы отвечает по тем фильтрам, что пришли в запросе. Итог сходится
- * с разбивкой по площадкам, как у настоящего бэкенда: оба считаются одним
- * условием выборки.
+ * Ручка таблицы отвечает по тем фильтрам, что пришли в запросе, и считает как
+ * настоящий бэкенд: итог — с условием по выбранной площадке, разбивка по
+ * площадкам — без него. Без выбранной площадки они сходятся.
  */
 const backend = (url: string) => {
   const p = new URL(url, 'http://x').searchParams;
   const kind = p.get('kind') ?? 'call';
+  const provider = p.get('provider');
   const byProvider = BY_PROVIDER[kind];
-  const calls = byProvider.reduce((sum, x) => sum + x.sessions, 0);
+  const calls = byProvider.filter((x) => !provider || x.provider === provider).reduce((sum, x) => sum + x.sessions, 0);
   return ok({
-    ...CALLS, kind, provider: p.get('provider'), include_test: p.has('includeTest'), byProvider,
+    ...CALLS, kind, provider, include_test: p.has('includeTest'), byProvider,
     totals: { ...CALLS.totals, calls },
   });
 };
@@ -118,6 +119,23 @@ describe('AdminCallsView', () => {
     await act(async () => { release(); });
     await settle();
     expect(q('admin-calls-stat-count')?.textContent).toBe('Сессий56звонков 10 · встреч 46');
+  });
+
+  it('незнакомая площадка на «Все» считается встречей, как на бэкенде', async () => {
+    get.mockImplementation((url: string) => url.includes('kind=all')
+      ? ok({ ...CALLS, kind: 'all', totals: { ...CALLS.totals, calls: 55 },
+          byProvider: [{ provider: 'talerid', sessions: 43 }, { provider: 'linkeon', sessions: 10 }, { provider: 'webex', sessions: 2 }] })
+      : backend(url));
+    await click('admin-calls-refresh');
+    expect(q('admin-calls-stat-count')?.textContent).toBe('Сессий55звонков 10 · встреч 45');
+  });
+
+  it('разбивка не сошлась с итогом (старый бэкенд без неё) — долей нет', async () => {
+    get.mockImplementation((url: string) => url.includes('kind=all')
+      ? ok({ days: 30, kind: 'all', provider: null, include_test: true, byUser: [], totals: { ...CALLS.totals, calls: 56 } })
+      : backend(url));
+    await click('admin-calls-refresh');
+    expect(q('admin-calls-stat-count')?.textContent).toBe('Сессий56');
   });
 
   it('на «Звонках» и «Встречах» итог не делится: там один вид сессий', async () => {
