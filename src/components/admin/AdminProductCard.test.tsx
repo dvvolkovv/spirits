@@ -28,6 +28,7 @@ const LONG_PROMPT =
   'А ещё добавь телефон в шапку сайта';
 
 const DETAIL: AdminProductDetail = makeDetail({
+  periodDays: 30,
   product: makeRow({
     id: 'p1',
     name: 'Кофейня',
@@ -86,10 +87,13 @@ const DETAIL: AdminProductDetail = makeDetail({
  * карточки это видит — как настоящий.
  */
 let state: AdminProductDetail;
-const detailUrl = '/webhook/admin/products/p1';
+/** Карточка запрашивается с периодом списка (по умолчанию в тестах — 30 дней). */
+const detailUrl = '/webhook/admin/products/p1?periodDays=30';
 
+/** Ручка карточки по контракту: принимает ?periodDays= и называет свой период в ответе. */
 const backendGet = (url: string) => {
-  if (url === detailUrl) return res(200, state);
+  const m = url.match(/^\/webhook\/admin\/products\/p1\?periodDays=(\d+)$/);
+  if (m) return res(200, { ...state, periodDays: Number(m[1]) });
   return Promise.reject(new Error(`неожиданный запрос ${url}`));
 };
 const backendPost = (url: string, body: { key: string; reason?: string }) => {
@@ -112,12 +116,12 @@ const onChanged = vi.fn();
 
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 
-const mount = async () => {
+const mount = async (periodDays = 30) => {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
-    root.render(<AdminProductCard productId="p1" onClose={onClose} onChanged={onChanged} />);
+    root.render(<AdminProductCard productId="p1" periodDays={periodDays} onClose={onClose} onChanged={onChanged} />);
   });
   await settle();
 };
@@ -410,6 +414,35 @@ describe('«Снять блок»', () => {
     await click('admin-product-unblock-confirm');
     expect(text('admin-product-action-error')).toContain('снимать нечего');
     expect(onChanged).not.toHaveBeenCalled();
+  });
+});
+
+describe('период', () => {
+  it('карточка запрашивается с периодом списка', async () => {
+    await mount(90);
+    expect(get).toHaveBeenCalledWith('/webhook/admin/products/p1?periodDays=90');
+  });
+
+  it('«за N дней» — из ответа: число называет сервер, а не запрос', async () => {
+    // Спросили 90, а посчитал сервер за 30: подпись обязана назвать 30 —
+    // иначе цифры правок и токенов выдавались бы за другой период.
+    get.mockImplementation(() => res(200, { ...state, periodDays: 30 }));
+    await mount(90);
+    const card = text('admin-product-card');
+    expect(card).toContain('Правок за 30 дней');
+    expect(card).toContain('Токенов за 30 дней');
+    expect(card).not.toContain('90 дней');
+  });
+
+  it('ответ без periodDays (бэкенд до правки) — «за период», без выдуманного числа', async () => {
+    const old: Partial<AdminProductDetail> = { ...state };
+    delete old.periodDays;
+    get.mockImplementation(() => res(200, old));
+    await mount(90);
+    const card = text('admin-product-card');
+    expect(card).toContain('Правок за период');
+    expect(card).toContain('Токенов за период');
+    expect(card).not.toContain('90 дней');
   });
 });
 

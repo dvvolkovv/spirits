@@ -75,11 +75,14 @@ const backend = (url: string) => {
     const p = new URL(url, 'http://x').searchParams;
     return ok({ periodDays: Number(p.get('periodDays')), products: rows });
   }
-  const m = url.match(/^\/webhook\/admin\/products\/([^/?]+)$/);
+  // Карточка — с периодом списка; в ответе сервер называет свой период.
+  const m = url.match(/^\/webhook\/admin\/products\/([^/?]+)\?periodDays=(\d+)$/);
   if (m) {
     const id = decodeURIComponent(m[1]);
     const product = rows.find((r) => r.id === id);
-    return product ? ok(makeDetail({ product })) : fail(404, { message: 'Продукт не найден' });
+    return product
+      ? ok(makeDetail({ product, periodDays: Number(m[2]) }))
+      : fail(404, { message: 'Продукт не найден' });
   }
   return Promise.reject(new Error(`неожиданный запрос ${url}`));
 };
@@ -277,6 +280,11 @@ describe('фильтры', () => {
     expect(q('admin-products-period-30')!.getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('подсказка поиска называет поля, по которым ищет бэкенд', async () => {
+    await mountAt();
+    expect((q('admin-products-search') as HTMLInputElement).placeholder).toBe('Название, адрес, домен или владелец');
+  });
+
   it('поиск уходит один раз после паузы и ложится в адрес', async () => {
     await mountAt();
     // Нажатия с промежутками короче паузы: с первого нажатия проходит больше
@@ -421,7 +429,7 @@ describe('карточка', () => {
   it('клик по строке открывает карточку, её id ложится в адрес; закрытие убирает', async () => {
     await mountAt();
     await click('admin-product-row-p-run');
-    expect(urls()).toContain('/webhook/admin/products/p-run');
+    expect(urls()).toContain('/webhook/admin/products/p-run?periodDays=30');
     expect(q('admin-product-card')!.textContent).toContain('Кофейня');
     expect(page().get('product')).toBe('p-run');
 
@@ -433,8 +441,14 @@ describe('карточка', () => {
 
   it('?product= открывает карточку сразу — ссылкой можно поделиться', async () => {
     await mountAt('?tab=products&product=p-bot');
-    expect(urls()).toContain('/webhook/admin/products/p-bot');
+    expect(urls()).toContain('/webhook/admin/products/p-bot?periodDays=30');
     expect(q('admin-product-card')!.textContent).toContain('Бот записи');
+  });
+
+  it('карточка запрашивается с периодом списка и называет его', async () => {
+    await mountAt('?tab=products&period=90&product=p-run');
+    expect(urls()).toContain('/webhook/admin/products/p-run?periodDays=90');
+    expect(q('admin-product-card')!.textContent).toContain('Правок за 90 дней');
   });
 
   it('клик по ссылке на сайт не открывает карточку', async () => {

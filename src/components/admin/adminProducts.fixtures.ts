@@ -40,6 +40,7 @@ export function makeRow(overrides: Partial<AdminProductRow> = {}): AdminProductR
 
 export function makeDetail(overrides: Partial<AdminProductDetail> = {}): AdminProductDetail {
   return {
+    periodDays: 30,
     product: makeRow(),
     domain: null,
     turns: [],

@@ -21,6 +21,9 @@ import {
   formatDate,
   isPast,
   preview,
+  detailUrl,
+  normalizeDetail,
+  periodLabel,
 } from './adminProducts';
 
 const params = (s: string) => new URLSearchParams(s);
@@ -256,5 +259,32 @@ describe('свёрнутый текст правки', () => {
     expect(preview(long).endsWith('…')).toBe(true);
     expect(preview('раз\n\nдва')).toBe('раз два');
     expect(preview(null)).toBe('');
+  });
+});
+
+describe('карточка и период', () => {
+  it('адрес карточки — с периодом списка', () => {
+    expect(detailUrl('p1', 90)).toBe('/webhook/admin/products/p1?periodDays=90');
+    // id экранируется: слэш увёл бы запрос на чужой маршрут.
+    expect(detailUrl('a/b', 30)).toBe('/webhook/admin/products/a%2Fb?periodDays=30');
+  });
+
+  it('период из ответа карточки: число — как есть, нет или мусор — null', () => {
+    const product = { id: 'p1' };
+    expect(normalizeDetail({ product, periodDays: 7 })!.periodDays).toBe(7);
+    expect(normalizeDetail({ product })!.periodDays).toBeNull();
+    expect(normalizeDetail({ product, periodDays: 'много' })!.periodDays).toBeNull();
+    expect(normalizeDetail({ product, periodDays: -5 })!.periodDays).toBeNull();
+  });
+
+  it('подпись периода по-русски, без числа — «за период»', () => {
+    expect(periodLabel(30)).toBe('за 30 дней');
+    expect(periodLabel(7)).toBe('за 7 дней');
+    expect(periodLabel(90)).toBe('за 90 дней');
+    expect(periodLabel(1)).toBe('за 1 день');
+    expect(periodLabel(2)).toBe('за 2 дня');
+    expect(periodLabel(11)).toBe('за 11 дней');
+    expect(periodLabel(21)).toBe('за 21 день');
+    expect(periodLabel(null)).toBe('за период');
   });
 });
