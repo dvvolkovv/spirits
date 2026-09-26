@@ -9,7 +9,7 @@
  * тестов дороже, чем два десятка строк на createRoot и act.
  */
 import { act } from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { createRoot, Root } from 'react-dom/client';
 
 const { post } = vi.hoisted(() => ({ post: vi.fn() }));
@@ -781,5 +781,452 @@ describe('перенос слота', () => {
     expect(q('blog-error')).toBeNull();
     expect(when('n1')).toBe('Выйдет в понедельник, 28 сентября, в 10:00 МСК');
     expect(when('c1')).toBe('Выйдет в среду, 30 сентября, в 10:00 МСК');
+  });
+});
+
+/**
+ * «Опубликовать сейчас» — выпуск поста в канал мимо слота. Канал публичный,
+ * прочитанное не отменить, поэтому проверяется прежде всего то, что защищает
+ * от ошибки: подтверждение, одна публикация на одно нажатие, запрет выпускать
+ * старый текст при несохранённой правке и честный итог — «вышел» и «Telegram
+ * не принял» не путаются.
+ *
+ * Время заморожено, как в переносе слота: пятница 25.09, 12:00 МСК.
+ */
+describe('«Опубликовать сейчас»', () => {
+  const NOW = '2026-09-25T09:00:00.000Z'; // пт 25.09, 12:00 МСК
+  const MON = '2026-09-28T07:00:00.000Z'; // пн 28.09, 10:00 МСК
+  const WED = '2026-09-30T07:00:00.000Z'; // ср 30.09, 10:00 МСК
+  const FRI = '2026-10-02T07:00:00.000Z'; // пт 02.10, 10:00 МСК
+
+  type Row = {
+    id: string;
+    rubric: 'news' | 'case';
+    source: string;
+    topicKey: string;
+    topicHint: string | null;
+    title: string | null;
+    body: string | null;
+    imageUrl: string | null;
+    status: string;
+    slotAt: string | null;
+    tgUrl: string | null;
+    attempts: number;
+    lastError: string | null;
+    updatedAt: string;
+  };
+  const row = (over: Partial<Row> & { id: string }): Row => ({ ...basePost, ...over });
+
+  const kira = row({
+    id: 'k1',
+    title: 'Кира: запись без звонков',
+    body: 'Текст про Киру',
+    status: 'approved',
+    slotAt: MON,
+    updatedAt: '2026-09-24T10:00:00.000Z',
+  });
+  const products = row({
+    id: 'pr1',
+    title: 'Продукты',
+    body: 'Текст про продукты',
+    status: 'approved',
+    slotAt: WED,
+    updatedAt: '2026-09-24T11:00:00.000Z',
+  });
+  // Без заголовка: в списке сдвигов его назовёт тема из очереди.
+  const dance = row({
+    id: 'd1',
+    title: null,
+    topicHint: 'Кейс школы танцев',
+    body: 'Текст кейса',
+    status: 'approved',
+    slotAt: FRI,
+    updatedAt: '2026-09-24T12:00:00.000Z',
+  });
+  const review = row({
+    id: 'r1',
+    title: 'Новинка на проверке',
+    body: 'Текст новинки',
+    status: 'pending_review',
+    updatedAt: '2026-09-24T13:00:00.000Z',
+  });
+
+  type Payload = { action: string; id?: string; title?: string; body?: string; updatedAt?: string };
+  type Shift = { id: string; title: string | null; from: string; to: string };
+
+  /**
+   * Бэк блога в миниатюре — по контракту `publish_now`: версия сверяется,
+   * если прислана (409 version_conflict); очередь без дыр — каждый следующий
+   * одобренный пост встаёт на слот предыдущего; Telegram либо принимает пост
+   * (published + tgUrl), либо нет — тогда пост остаётся approved с lastError
+   * и выйдет ближайшим тиком. `update_text` сверяет версию, как `assertVersion`.
+   */
+  const channel = (initial: Row[], telegram: { refuse?: string } = {}) => {
+    const db = new Map<string, Row>(initial.map((p) => [p.id, { ...p }]));
+    let version = 0;
+    let messageId = 700;
+    const bump = (p: Row) => {
+      p.updatedAt = new Date(Date.parse(NOW) + ++version * 1000).toISOString();
+    };
+    const handler = async (_url: string, payload: Payload) => {
+      const p = payload.id ? db.get(payload.id) : undefined;
+      switch (payload.action) {
+        case 'list':
+          return res(200, [...db.values()]
+            .filter((x) => x.status !== 'published' && x.status !== 'rejected')
+            .sort((a, b) => String(a.slotAt).localeCompare(String(b.slotAt)))
+            .map((x) => ({ ...x })));
+        case 'update_text':
+          if (!p) return res(404, { message: 'пост не найден' });
+          if (payload.updatedAt && Date.parse(payload.updatedAt) !== Date.parse(p.updatedAt)) {
+            return res(409, {
+              statusCode: 409,
+              error: 'Conflict',
+              message: 'пост изменился в другом месте — обнови страницу',
+            });
+          }
+          p.title = payload.title ?? '';
+          p.body = payload.body ?? '';
+          bump(p);
+          return res(200, { ...p });
+        case 'publish_now': {
+          if (!p || (p.status !== 'approved' && p.status !== 'pending_review')) {
+            return res(400, { statusCode: 400, error: 'bad_request', message: 'этот пост нельзя опубликовать' });
+          }
+          if (payload.updatedAt && Date.parse(payload.updatedAt) !== Date.parse(p.updatedAt)) {
+            return res(409, {
+              statusCode: 409,
+              error: 'version_conflict',
+              message: 'пост изменился в другом месте — обнови страницу',
+            });
+          }
+          const shifted: Shift[] = [];
+          if (p.status === 'approved' && p.slotAt) {
+            const own = Date.parse(p.slotAt);
+            let vacated = p.slotAt;
+            const later = [...db.values()]
+              .filter((x) => x.status === 'approved' && x.slotAt !== null && Date.parse(x.slotAt) > own)
+              .sort((a, b) => Date.parse(a.slotAt!) - Date.parse(b.slotAt!));
+            for (const x of later) {
+              const from = x.slotAt!;
+              shifted.push({ id: x.id, title: x.title, from, to: vacated });
+              x.slotAt = vacated;
+              vacated = from;
+              bump(x);
+            }
+          }
+          if (telegram.refuse) {
+            p.status = 'approved';
+            p.slotAt = NOW;
+            p.lastError = telegram.refuse;
+          } else {
+            p.status = 'published';
+            p.tgUrl = `https://t.me/ainomira/${++messageId}`;
+          }
+          bump(p);
+          return res(200, { post: { ...p }, shifted });
+        }
+        default:
+          throw new Error(`неожиданное действие ${payload.action}`);
+      }
+    };
+    /** Правка мимо этой вкладки: замечание в личке бота, соседняя вкладка. */
+    const touch = (id: string) => bump(db.get(id)!);
+    return { handler, touch, get: (id: string) => ({ ...db.get(id)! }) };
+  };
+
+  let confirmSpy: MockInstance<(message?: string) => boolean>;
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(NOW));
+    confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    confirmSpy.mockRestore();
+    vi.useRealTimers();
+  });
+
+  const button = (id: string) => q(`blog-publish-now-${id}`) as HTMLButtonElement | null;
+  const publishes = () => sentActions().filter((a) => a.action === 'publish_now');
+  /** Тексты всех показанных подтверждений по порядку. */
+  const asked = () => confirmSpy.mock.calls.map((c) => String(c[0]));
+  const outcome = () => q('blog-publish-result');
+  const shiftLines = () =>
+    [...container.querySelectorAll('[data-testid="blog-publish-shift"]')].map((el) => el.textContent);
+
+  it('кнопка есть у одобренного и у поста на проверке, у остальных статусов — нет', async () => {
+    const statuses = ['idea', 'drafting', 'pending_review', 'approved', 'publishing', 'published', 'rejected', 'failed'];
+    post.mockImplementation(async (_url: string, payload: Payload) => {
+      if (payload.action === 'list') return res(200, statuses.map((status) => row({ id: `s-${status}`, status })));
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+
+    // Отрисованы все восемь — иначе «кнопки нет» было бы правдой впустую.
+    expect(container.querySelectorAll('[data-testid^="blog-post-"]')).toHaveLength(statuses.length);
+    expect(statuses.filter((s) => button(`s-${s}`) !== null)).toEqual(['pending_review', 'approved']);
+  });
+
+  it('без подтверждения ничего не уходит: «Отмена» — и запроса нет', async () => {
+    confirmSpy.mockReturnValue(false);
+    post.mockImplementation(channel([kira]).handler);
+    await mount();
+    await click('blog-publish-now-k1');
+
+    expect(asked()).toHaveLength(1);
+    expect(asked()[0]).toContain('Пост уйдёт в канал сразу. Отменить публикацию нельзя.');
+    expect(sentActions().map((a) => a.action)).toEqual(['list']);
+    expect(outcome()).toBeNull();
+    expect(button('k1')!.disabled).toBe(false);
+  });
+
+  it('подтверждение называет пост; у одобренного предупреждает о сдвиге очереди, у поста на проверке — нет', async () => {
+    confirmSpy.mockReturnValue(false);
+    post.mockImplementation(channel([kira, review]).handler);
+    await mount();
+    await click('blog-publish-now-k1');
+    await click('blog-publish-now-r1');
+
+    const [approved, pending] = asked();
+    expect(approved).toContain('«Кира: запись без звонков»');
+    expect(approved).toContain('Пост уйдёт в канал сразу. Отменить публикацию нельзя.');
+    expect(approved).toMatch(/следующие посты в очереди сдвинутся на слот вперёд/i);
+    expect(pending).toContain('«Новинка на проверке»');
+    expect(pending).toContain('Пост уйдёт в канал сразу. Отменить публикацию нельзя.');
+    expect(pending).not.toMatch(/сдвин/i);
+    expect(publishes()).toEqual([]);
+  });
+
+  it('вышел: ссылка на пост в канале и сдвиги очереди — даты той же фразой, что в Telegram', async () => {
+    const blog = channel([kira, products, dance]);
+    post.mockImplementation(blog.handler);
+    await mount();
+    await click('blog-publish-now-k1');
+
+    expect(publishes()).toEqual([{ action: 'publish_now', id: 'k1', updatedAt: kira.updatedAt }]);
+
+    const panel = outcome()!;
+    expect(panel.dataset.outcome).toBe('published');
+    const link = panel.querySelector('a')!;
+    expect(link.getAttribute('href')).toBe('https://t.me/ainomira/701');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(shiftLines()).toEqual([
+      '«Продукты»: в среду, 30 сентября, в 10:00 МСК → в понедельник, 28 сентября, в 10:00 МСК',
+      '«Кейс школы танцев»: в пятницу, 2 октября, в 10:00 МСК → в среду, 30 сентября, в 10:00 МСК',
+    ]);
+    expect(panel.textContent).not.toMatch(/не принял/i);
+    expect(q('blog-error')).toBeNull();
+
+    // Очередь перечитана: вышедшего поста в ней нет, остальные на новых слотах.
+    expect(sentActions().map((a) => a.action)).toEqual(['list', 'publish_now', 'list']);
+    expect(q('blog-post-k1')).toBeNull();
+    expect(q('blog-when-pr1')!.textContent).toBe('Выйдет в понедельник, 28 сентября, в 10:00 МСК');
+    expect(q('blog-when-d1')!.textContent).toBe('Выйдет в среду, 30 сентября, в 10:00 МСК');
+  });
+
+  it('сдвигов нет — списка нет', async () => {
+    post.mockImplementation(channel([review, kira]).handler);
+    await mount();
+    await click('blog-publish-now-r1');
+
+    expect(outcome()!.dataset.outcome).toBe('published');
+    expect(q('blog-publish-shifts')).toBeNull();
+    expect(outcome()!.textContent).not.toMatch(/сдвин/i);
+    // Одобренный пост остался на своём слоте.
+    expect(q('blog-when-k1')!.textContent).toBe('Выйдет в понедельник, 28 сентября, в 10:00 МСК');
+  });
+
+  it('Telegram не принял: причина и обещание повтора, а не «вышел»', async () => {
+    const reason = 'Bad Request: not enough rights to send photos to the chat';
+    post.mockImplementation(channel([kira, products], { refuse: reason }).handler);
+    await mount();
+    await click('blog-publish-now-k1');
+
+    const panel = outcome()!;
+    expect(panel.dataset.outcome).toBe('refused');
+    expect(panel.textContent).toContain(
+      `Telegram не принял пост: ${reason}. Повторим автоматически в ближайшие 5 минут`,
+    );
+    expect(panel.textContent).not.toMatch(/вышел|опубликован/i);
+    expect(panel.querySelector('a')).toBeNull();
+    // Очередь на бэке уже сдвинута — это видно и здесь.
+    expect(shiftLines()).toEqual([
+      '«Продукты»: в среду, 30 сентября, в 10:00 МСК → в понедельник, 28 сентября, в 10:00 МСК',
+    ]);
+    expect(q('blog-error')).toBeNull();
+    // Пост остался в очереди, очередь перечитана.
+    expect(sentActions().map((a) => a.action)).toEqual(['list', 'publish_now', 'list']);
+    expect(q('blog-post-k1')).toBeTruthy();
+  });
+
+  it('выход не подтверждён — ни «вышел», ни «не принял»', async () => {
+    post.mockImplementation(async (_url: string, payload: Payload) => {
+      if (payload.action === 'list') return res(200, [kira]);
+      if (payload.action === 'publish_now') {
+        return res(200, { post: { ...kira, status: 'publishing' }, shifted: [] });
+      }
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+    await click('blog-publish-now-k1');
+
+    const panel = outcome()!;
+    expect(panel.dataset.outcome).toBe('unconfirmed');
+    expect(panel.textContent).toMatch(/не подтвержд/i);
+    expect(panel.textContent).toContain('«Публикуется»');
+    expect(panel.textContent).not.toMatch(/вышел в канал|не принял/i);
+    expect(panel.querySelector('a')).toBeNull();
+  });
+
+  it('409 version_conflict: баннер и «Загрузить заново», очередь сама не перечитана, публикации нет', async () => {
+    const blog = channel([kira]);
+    post.mockImplementation(blog.handler);
+    await mount();
+    blog.touch('k1'); // пост тем временем поправили в личке бота
+    const touched = blog.get('k1').updatedAt;
+    await click('blog-publish-now-k1');
+
+    const banner = q('blog-error')!;
+    expect(banner.textContent).toContain('Пост изменили в другом месте');
+    expect(banner.textContent).toContain('пост изменился в другом месте — обнови страницу');
+    expect(banner.textContent).toContain('Публикация не выполнена');
+    expect(banner.textContent).not.toContain('409');
+    expect(q('blog-conflict-reload')).toBeTruthy();
+    expect(outcome()).toBeNull();
+    expect(blog.get('k1').status).toBe('approved');
+    // Сами не перечитываем: свежая версия сняла бы защиту, и следующее
+    // нажатие выпустило бы текст, которого владелец не видел.
+    expect(sentActions().map((a) => a.action)).toEqual(['list', 'publish_now']);
+
+    // Решает человек: перечитал — и публикация уходит уже с новой версией.
+    await click('blog-conflict-reload');
+    await click('blog-publish-now-k1');
+    expect(publishes().map((a) => a.updatedAt)).toEqual([kira.updatedAt, touched]);
+    expect(outcome()!.dataset.outcome).toBe('published');
+  });
+
+  it('400: причина с сервера, а не код ответа', async () => {
+    post.mockImplementation(async (_url: string, payload: Payload) => {
+      if (payload.action === 'list') return res(200, [kira]);
+      if (payload.action === 'publish_now') {
+        return res(400, { statusCode: 400, error: 'bad_request', message: 'канал не задан в настройках' });
+      }
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+    await click('blog-publish-now-k1');
+
+    const banner = q('blog-error')!;
+    expect(banner.textContent).toMatch(/не опубликовано/i);
+    expect(banner.textContent).toContain('канал не задан в настройках');
+    expect(banner.textContent).not.toContain('400');
+    expect(q('blog-conflict-reload')).toBeNull();
+    expect(outcome()).toBeNull();
+  });
+
+  it('ответа нет (502 от прокси) — не утверждаем, что пост не вышел', async () => {
+    post.mockImplementation(async (_url: string, payload: Payload) => {
+      if (payload.action === 'list') return res(200, [kira]);
+      if (payload.action === 'publish_now') {
+        return {
+          ok: false,
+          status: 502,
+          json: async () => {
+            throw new SyntaxError('Unexpected token <');
+          },
+        };
+      }
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+    await click('blog-publish-now-k1');
+
+    const banner = q('blog-error')!;
+    expect(banner.textContent).toMatch(/публикация не подтверждена/i);
+    expect(banner.textContent).toMatch(/мог уйти в канал/i);
+    expect(banner.textContent).not.toMatch(/не опубликовано/i);
+  });
+
+  it('пока запрос идёт, кнопка недоступна, и второго запроса нет', async () => {
+    const blog = channel([kira, products]);
+    let release: () => void = () => {};
+    post.mockImplementation(async (url: string, payload: Payload) => {
+      if (payload.action === 'publish_now') {
+        await new Promise<void>((done) => {
+          release = done;
+        });
+      }
+      return blog.handler(url, payload);
+    });
+    await mount();
+    await click('blog-publish-now-k1');
+
+    expect(publishes()).toHaveLength(1);
+    expect(button('k1')!.disabled).toBe(true);
+    expect(button('k1')!.textContent).toMatch(/публикую/i);
+
+    await click('blog-publish-now-k1');
+    expect(asked()).toHaveLength(1);
+    expect(publishes()).toHaveLength(1);
+
+    await act(async () => release());
+    expect(outcome()!.dataset.outcome).toBe('published');
+    expect(publishes()).toHaveLength(1);
+  });
+
+  it('два нажатия подряд, раньше перерисовки, — одна публикация', async () => {
+    post.mockImplementation(channel([kira]).handler);
+    await mount();
+    const target = button('k1')!;
+    await act(async () => {
+      target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(asked()).toHaveLength(1);
+    expect(publishes()).toHaveLength(1);
+    expect(outcome()!.dataset.outcome).toBe('published');
+    expect(q('blog-error')).toBeNull();
+  });
+
+  it('несохранённая правка: публиковать нельзя, пока текст не сохранён', async () => {
+    post.mockImplementation(channel([kira]).handler);
+    await mount();
+    expect(button('k1')!.disabled).toBe(false);
+    expect(q('blog-publish-unsaved-k1')).toBeNull();
+
+    await type('blog-body-k1', 'Текст про Киру, исправленный');
+    expect(button('k1')!.disabled).toBe(true);
+    expect(q('blog-publish-unsaved-k1')!.textContent).toMatch(/сначала сохраните текст/i);
+    await click('blog-publish-now-k1');
+    expect(asked()).toEqual([]);
+    expect(publishes()).toEqual([]);
+
+    // Правка, возвращённая к сохранённому тексту, — уже не правка.
+    await type('blog-body-k1', 'Текст про Киру');
+    expect(button('k1')!.disabled).toBe(false);
+    expect(q('blog-publish-unsaved-k1')).toBeNull();
+
+    // Заголовок уходит в подпись вместе с текстом — его правка тоже держит кнопку.
+    await type('blog-title-k1', 'Кира: новый заголовок');
+    expect(button('k1')!.disabled).toBe(true);
+  });
+
+  it('после сохранения уходит сохранённый текст — с версией, которую выдало сохранение', async () => {
+    const blog = channel([kira]);
+    post.mockImplementation(blog.handler);
+    await mount();
+    await type('blog-body-k1', 'Текст про Киру, исправленный');
+    await click('blog-save-text-k1');
+    const saved = blog.get('k1');
+    expect(saved.body).toBe('Текст про Киру, исправленный');
+    expect(button('k1')!.disabled).toBe(false);
+
+    await click('blog-publish-now-k1');
+    expect(publishes()).toEqual([{ action: 'publish_now', id: 'k1', updatedAt: saved.updatedAt }]);
+    expect(blog.get('k1').status).toBe('published');
+    expect(blog.get('k1').body).toBe('Текст про Киру, исправленный');
   });
 });
