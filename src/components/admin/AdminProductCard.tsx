@@ -16,6 +16,7 @@ import {
   isPast,
   jobKindLabel,
   kindLabel,
+  noActionReason,
   normalizeDetail,
   periodLabel,
   preview,
@@ -62,6 +63,9 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Действие прошло, а карточка ещё не перечитана: на экране прежний статус,
+  // и прежняя кнопка вела бы к повтору того же действия. Пока так — кнопок нет.
+  const [stale, setStale] = useState(false);
 
   // Замок от двойного нажатия: состояние `busy` доходит до кнопки только со
   // следующей отрисовкой, а два клика в одном тике увидели бы его пустым.
@@ -69,6 +73,8 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
   const reqRef = useRef(0);
   const modeRef = useRef<Mode>(mode);
   modeRef.current = mode;
+  const reasonRef = useRef(reason);
+  reasonRef.current = reason;
 
   const loadDetail = useCallback(async () => {
     const req = ++reqRef.current;
@@ -88,6 +94,7 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
       }
       setDetail(next);
       setError(null);
+      setStale(false);
     } catch {
       if (req === reqRef.current) setError(NETWORK_ERROR);
     } finally {
@@ -103,6 +110,7 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
     setActionError(null);
     setActionResult(null);
     setExpanded({});
+    setStale(false);
     loadDetail();
     // Ответ, пришедший после закрытия или смены карточки, не должен в неё лечь:
     // уборка сдвигает счётчик запросов. Нужен именно последний его номер, а не
@@ -111,14 +119,22 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
     return () => { requests.current++; };
   }, [loadDetail]);
 
+  // «Отмена» прячет форму, но набранную причину не стирает: открыв форму
+  // снова, администратор продолжит с того же места.
   const cancel = useCallback(() => {
     setMode('idle');
-    setReason('');
     setActionError(null);
   }, []);
 
-  // Escape: сначала закрывает открытую форму действия, и только потом карточку —
-  // иначе промах по клавише стирал бы набранную причину вместе с карточкой.
+  // Закрыть карточку — значит потерять набранную причину. Если она есть,
+  // сначала спрашиваем: клик мимо карточки и Escape случаются нечаянно.
+  const requestClose = useCallback(() => {
+    if (reasonRef.current.trim() && !window.confirm('Закрыть карточку? Набранная причина гашения не сохранится.')) return;
+    onClose();
+  }, [onClose]);
+
+  // Escape: сначала закрывает открытую форму действия (причина остаётся), и
+  // только потом — карточку, с тем же вопросом, что у клика мимо.
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -128,17 +144,18 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
         cancel();
         return;
       }
-      onClose();
+      requestClose();
     };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
     };
-  }, [onClose, cancel]);
+  }, [requestClose, cancel]);
 
   const product = detail?.product ?? initial;
   const action = detail ? availableAction(detail.product) : null;
+  const note = detail ? noActionReason(detail.product) : null;
   const key = detail?.product.id || productId;
 
   const run = async (kind: 'block' | 'unblock') => {
@@ -160,6 +177,7 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
       setActionResult(kind === 'block' ? describeBlock(body) : describeUnblock(body));
       setMode('idle');
       setReason('');
+      setStale(true);
       onChanged?.();
       await loadDetail();
     } catch {
@@ -182,7 +200,7 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
 
   return (
     <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Карточка продукта">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
+      <div data-testid="admin-product-card-backdrop" className="flex-1 bg-black/40" onClick={requestClose} />
       <div data-testid="admin-product-card" className="w-full max-w-2xl bg-gray-50 shadow-2xl overflow-y-auto flex flex-col">
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 md:px-6 py-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -205,7 +223,7 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
           </div>
           <button
             data-testid="admin-product-card-close"
-            onClick={onClose}
+            onClick={requestClose}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 flex-shrink-0"
             aria-label="Закрыть"
           >
@@ -217,7 +235,15 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
           {error && (
             <div data-testid="admin-product-card-error" className="flex items-start gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
+              <span className="flex-1">{error}</span>
+              <button
+                data-testid="admin-product-card-reload"
+                onClick={() => { loadDetail(); }}
+                disabled={isLoading}
+                className="flex-shrink-0 text-xs font-medium text-red-700 underline-offset-2 hover:underline disabled:opacity-50"
+              >
+                Перечитать
+              </button>
             </div>
           )}
 
@@ -230,7 +256,10 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
           {detail && (
             <>
               <Actions
-                action={action}
+                action={stale ? null : action}
+                note={stale ? null : note}
+                stale={stale}
+                reloading={isLoading}
                 mode={mode}
                 reason={reason}
                 busy={busy}
@@ -293,6 +322,11 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
 
 interface ActionsProps {
   action: 'block' | 'unblock' | null;
+  /** Почему кнопки нет (архив, не заведён); null — кнопка есть или карточка не перечитана. */
+  note: string | null;
+  /** Действие прошло, карточка ещё не перечитана — кнопок нет. */
+  stale: boolean;
+  reloading: boolean;
   mode: Mode;
   reason: string;
   busy: boolean;
@@ -305,7 +339,7 @@ interface ActionsProps {
   onRun: (kind: 'block' | 'unblock') => void;
 }
 
-const Actions: React.FC<ActionsProps> = ({ action, mode, reason, busy, slug, result, error, onStart, onReason, onCancel, onRun }) => (
+const Actions: React.FC<ActionsProps> = ({ action, note, stale, reloading, mode, reason, busy, slug, result, error, onStart, onReason, onCancel, onRun }) => (
   <div className="space-y-3">
     {result && (
       <div data-testid="admin-product-action-result" className="flex items-start gap-2 text-sm text-green-800 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
@@ -320,9 +354,15 @@ const Actions: React.FC<ActionsProps> = ({ action, mode, reason, busy, slug, res
       </div>
     )}
 
-    {action === null && (
-      <p className="text-sm text-gray-500">Продукт в архиве — гасить и снимать блок нельзя.</p>
+    {stale && (
+      <p data-testid="admin-product-stale" className="text-sm text-gray-500">
+        {reloading
+          ? 'Перечитываем карточку…'
+          : 'Карточку не удалось перечитать после действия — кнопки вернутся, когда она обновится.'}
+      </p>
     )}
+
+    {note && <p className="text-sm text-gray-500">{note}</p>}
 
     {action === 'block' && mode === 'idle' && (
       <button

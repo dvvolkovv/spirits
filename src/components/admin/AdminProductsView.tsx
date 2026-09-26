@@ -54,6 +54,8 @@ const badge = 'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medi
 interface Shown {
   query: string;
   body: AdminProductsResponse;
+  /** Сервер отдал только первые строки из совпавших (truncated: true). */
+  truncated: boolean;
 }
 
 /**
@@ -135,7 +137,12 @@ const AdminProductsView: React.FC = () => {
       }
       if (req !== lastReq.current) return;
       const products = body.products.filter((r): r is AdminProductRow => !!r && typeof r === 'object');
-      setShown({ query, body: { periodDays: Number(body.periodDays) || 0, products } });
+      setShown({
+        query,
+        body: { periodDays: Number(body.periodDays) || 0, products },
+        // Только настоящее true: нет поля (или не булево) — выдача полная.
+        truncated: body.truncated === true,
+      });
       setSeen((prev) => orderStatuses([...prev, ...products.map(rowStatus)]));
     } catch {
       fail(NETWORK_ERROR);
@@ -147,6 +154,7 @@ const AdminProductsView: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const rows = shown?.body.products ?? [];
+  const truncated = shown?.truncated ?? false;
   const counts = countByStatus(rows);
   const chips = statusChips(seen, filters.statuses);
   const periodDays = shown?.body.periodDays || filters.periodDays;
@@ -278,12 +286,27 @@ const AdminProductsView: React.FC = () => {
 
           {shown && (
             <div data-testid="admin-products-summary" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">Всего: {rows.length}</span>
-              {counts.map((c) => (
-                <span key={c.status} title={c.status} className={clsx(badge, statusTone(c.status))}>
-                  {statusLabel(c.status)}: {c.count}
+              <span className="font-semibold text-gray-900">Всего: {rows.length}{truncated && '+'}</span>
+              {truncated && (
+                <span data-testid="admin-products-truncated" className="inline-flex items-center gap-1 text-amber-700">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  Показаны первые {rows.length} — уточните фильтр
                 </span>
-              ))}
+              )}
+              {/* При обрезанной выдаче счётчики — только по показанным строкам. */}
+              <span
+                data-testid="admin-products-status-counts"
+                data-partial={String(truncated)}
+                title={truncated ? 'Только по показанным строкам — в выдачу попали не все' : undefined}
+                className="inline-flex flex-wrap items-center gap-1.5"
+              >
+                {truncated && <span className="text-xs text-gray-500">среди показанных:</span>}
+                {counts.map((c) => (
+                  <span key={c.status} title={c.status} className={clsx(badge, statusTone(c.status))}>
+                    {statusLabel(c.status)}: {c.count}
+                  </span>
+                ))}
+              </span>
             </div>
           )}
 
@@ -346,8 +369,9 @@ const ProductRow: React.FC<{ row: AdminProductRow; onOpen: (id: string) => void 
   const overdue = isPast(r.paidUntil);
   const custom = r.customDomain;
   const customHost = custom?.domainUnicode || custom?.domain || null;
-  // Ссылки в строке ведут на сайт, а не в карточку.
-  const stop = (e: React.MouseEvent) => e.stopPropagation();
+  // Ссылки в строке ведут на сайт, а не в карточку — и кликом, и Enter:
+  // иначе событие всплывало бы до строки и открывало карточку поверх.
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
   return (
     <tr
       data-testid={`admin-product-row-${r.id}`}
@@ -366,6 +390,7 @@ const ProductRow: React.FC<{ row: AdminProductRow; onOpen: (id: string) => void 
             target="_blank"
             rel="noopener noreferrer"
             onClick={stop}
+            onKeyDown={stop}
             className="block text-xs text-forest-700 hover:underline break-all"
           >
             {r.domain}
@@ -375,10 +400,12 @@ const ProductRow: React.FC<{ row: AdminProductRow; onOpen: (id: string) => void 
           <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
             {custom.status === 'active' ? (
               <a
+                data-testid={`admin-product-custom-link-${r.id}`}
                 href={`https://${custom.domain}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={stop}
+                onKeyDown={stop}
                 className="text-xs text-forest-700 hover:underline break-all"
               >
                 {customHost}

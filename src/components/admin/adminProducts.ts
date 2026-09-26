@@ -51,6 +51,11 @@ export interface AdminProductRow {
 export interface AdminProductsResponse {
   periodDays: number;
   products: AdminProductRow[];
+  /**
+   * Совпало больше, чем сервер отдаёт за раз (500): в `products` — только
+   * первые. Нет поля — выдача полная.
+   */
+  truncated?: boolean;
 }
 
 export interface AdminProductDomain {
@@ -385,13 +390,33 @@ export const jobKindLabel = (k: string): string => JOB_KIND_LABEL[k] ?? k;
 // ── Действия ────────────────────────────────────────────────────────────────
 
 /**
- * Какая кнопка у карточки. Погашенный — только «Снять блок», остальные —
+ * Не заведённый продукт: заведение сорвалось или ещё идёт. Гасить его
+ * нельзя — снятие блока переводит продукт в сон и ставит пробуждение, а
+ * будить то, что ни разу не заводилось, может оказаться нечем.
+ */
+const NOT_PROVISIONED = ['failed', 'provisioning'];
+
+const isArchived = (p: { status: string; archivedAt: string | null }) => !!p.archivedAt || p.status === 'archived';
+
+/**
+ * Какая кнопка у карточки. Погашенный — только «Снять блок», заведённые —
  * только «Погасить». Архивный — никакой: BlockService отказывает архивному и
- * в гашении, и в снятии (409), кнопка вела бы только к отказу.
+ * в гашении, и в снятии (409), кнопка вела бы только к отказу. Не заведённый
+ * — тоже никакой (см. NOT_PROVISIONED).
  */
 export function availableAction(p: { status: string; archivedAt: string | null }): 'block' | 'unblock' | null {
-  if (p.archivedAt || p.status === 'archived') return null;
-  return p.status === 'blocked' ? 'unblock' : 'block';
+  if (isArchived(p)) return null;
+  if (p.status === 'blocked') return 'unblock';
+  return NOT_PROVISIONED.includes(p.status) ? null : 'block';
+}
+
+/** Почему у карточки нет кнопки — одной строкой; null — кнопка есть. */
+export function noActionReason(p: { status: string; archivedAt: string | null }): string | null {
+  if (isArchived(p)) return 'Продукт в архиве — гасить и снимать блок нельзя.';
+  if (NOT_PROVISIONED.includes(p.status)) {
+    return 'Продукт не заведён — гасить нельзя: после снятия блока он ушёл бы в сон, из которого может не проснуться.';
+  }
+  return null;
 }
 
 const count = (v: unknown): number | null => {
