@@ -95,6 +95,8 @@ const LocationProbe = () => {
 };
 
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+/** Настоящая пауза внутри act — таймер поиска срабатывает в ней же. */
+const wait = (ms: number) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
 
 const mountAt = async (query = '?tab=products') => {
   container = document.createElement('div');
@@ -277,13 +279,20 @@ describe('фильтры', () => {
 
   it('поиск уходит один раз после паузы и ложится в адрес', async () => {
     await mountAt();
+    // Нажатия с промежутками короче паузы: с первого нажатия проходит больше
+    // SEARCH_DEBOUNCE_MS, но отсчёт обязан начинаться заново с каждого —
+    // иначе запрос ушёл бы посреди набора, с недопечатанным словом.
+    const gap = Math.round(SEARCH_DEBOUNCE_MS / 2);
     await typeInto('admin-products-search', 'к');
+    await wait(gap);
     await typeInto('admin-products-search', 'ко');
+    await wait(gap);
     await typeInto('admin-products-search', 'кофе');
-    // Пока человек печатает — ни одного нового запроса.
+    await wait(gap);
     expect(listUrls()).toHaveLength(1);
+    expect(page().has('q')).toBe(false);
 
-    await act(async () => { await new Promise((r) => setTimeout(r, SEARCH_DEBOUNCE_MS + 60)); });
+    await wait(SEARCH_DEBOUNCE_MS);
     await settle();
 
     expect(listUrls()).toHaveLength(2);
@@ -296,7 +305,7 @@ describe('фильтры', () => {
     await mountAt(`?tab=products&q=${encodeURIComponent('кофе')}`);
     expect(lastList().get('q')).toBe('кофе');
     await typeInto('admin-products-search', '');
-    await act(async () => { await new Promise((r) => setTimeout(r, SEARCH_DEBOUNCE_MS + 60)); });
+    await wait(SEARCH_DEBOUNCE_MS + 60);
     await settle();
     expect(lastList().has('q')).toBe(false);
     expect(page().has('q')).toBe(false);
@@ -318,6 +327,33 @@ describe('фильтры', () => {
     await click('admin-products-status-all');
     expect(lastList().has('status')).toBe(false);
     expect(page().has('status')).toBe(false);
+  });
+
+  it('два быстрых клика по разным статусам — в фильтре оба', async () => {
+    await mountAt();
+    const running = q('admin-products-status-running')!;
+    const failed = q('admin-products-status-failed')!;
+    // Оба нажатия до перерисовки: второй обработчик видит адрес, уже
+    // изменённый первым, а не тот, что был отрисован.
+    await act(async () => {
+      running.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      failed.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await settle();
+    expect(page().get('status')).toBe('running,failed');
+    expect(lastList().get('status')).toBe('running,failed');
+  });
+
+  it('поиск, выбранный за время паузы фильтр не затирает', async () => {
+    await mountAt();
+    await typeInto('admin-products-search', 'кофе');
+    await click('admin-products-kind-bot');
+    await wait(SEARCH_DEBOUNCE_MS + 60);
+    await settle();
+    expect(page().get('q')).toBe('кофе');
+    expect(page().get('kind')).toBe('bot');
+    expect(lastList().get('q')).toBe('кофе');
+    expect(lastList().get('kind')).toBe('bot');
   });
 
   it('вид: только сайты или только боты', async () => {
