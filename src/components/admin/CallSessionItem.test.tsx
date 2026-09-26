@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 /**
- * Строку сессии проверяем монтированием: два клика в одной строке — по номеру
- * человека и по самой строке — должны делать разное, и по коду это не
- * доказывается.
+ * Строку сессии проверяем монтированием: когда она раскрывается и когда
+ * перечитывает расшифровку, по коду не доказывается.
  *
  * Без @testing-library, как AdminBlogView.test.tsx: хватает createRoot и act.
  */
@@ -94,19 +93,6 @@ describe('CallSessionItem', () => {
     expect(container.textContent).toContain('Какая погода?');
   });
 
-  it('клик по номеру открывает человека и не раскрывает расшифровку', async () => {
-    const onOpenUser = vi.fn();
-    await mount(<CallSessionItem session={session()} onOpenUser={onOpenUser} />);
-    await click(q('call-session-user-c-1'));
-    expect(onOpenUser).toHaveBeenCalledWith('79236230446');
-    expect(get).not.toHaveBeenCalled();
-  });
-
-  it('без onOpenUser номера нет: в карточке человек и так известен', async () => {
-    await mount(<CallSessionItem session={session()} />);
-    expect(q('call-session-user-c-1')).toBeNull();
-  });
-
   it('прерванный звонок без реплик человека не раскрывается', async () => {
     await mount(<CallSessionItem session={session({ status: 'interrupted', flags: ['interrupted'], duration_sec: null, user_turns: 0 })} />);
     await click(q('call-session-c-1'));
@@ -182,8 +168,9 @@ describe('CallSessionItem', () => {
   });
 
   it('расшифровка перечитывается, когда сессия сменила состояние', async () => {
-    // Лента перерисовывает строку на месте: встреча, открытая пока шла, после
-    // завершения не должна остаться с обрезанной расшифровкой.
+    // Если родитель перерисует строку на месте (сейчас карточка грузит список
+    // один раз), встреча, открытая пока шла, не должна остаться с обрезанной
+    // расшифровкой.
     get.mockResolvedValueOnce(reply('Пока шла')).mockResolvedValueOnce(reply('После завершения'));
     const live = session({ status: 'active', flags: ['live'], duration_sec: null, user_turns: 1 });
     await mount(<CallSessionItem session={live} />);
@@ -228,10 +215,17 @@ describe('CallSessionItem', () => {
     expect(container.textContent).toContain('Живая реплика');
   });
 
-  it('Enter на строке раскрывает её, Enter на кнопке номера — нет', async () => {
-    await mount(<CallSessionItem session={session()} onOpenUser={vi.fn()} />);
-    await key(q('call-session-user-c-1'), 'Enter');
-    expect(q('call-session-panel-c-1')).toBeNull();
+  it('пробел раскрывает строку и не прокручивает карточку', async () => {
+    await mount(<CallSessionItem session={session()} />);
+    const ev = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    await act(async () => { q('call-session-c-1')?.dispatchEvent(ev); });
+    await settle();
+    expect(ev.defaultPrevented).toBe(true);
+    expect(q('call-session-panel-c-1')).not.toBeNull();
+  });
+
+  it('Enter на строке раскрывает её', async () => {
+    await mount(<CallSessionItem session={session()} />);
     await key(q('call-session-c-1'), 'Enter');
     expect(q('call-session-panel-c-1')).not.toBeNull();
     expect(q('call-session-c-1')?.getAttribute('aria-expanded')).toBe('true');

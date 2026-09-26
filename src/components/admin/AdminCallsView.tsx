@@ -4,9 +4,8 @@ import { Phone, AlertCircle, RefreshCw, Coins, Users, Clock, MessageSquare } fro
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import { formatTokens, formatDuration, formatWhen } from './callsFormat';
-import { providerLabel } from './callProviders';
+import { CALL_PROVIDER, providerLabel } from './callProviders';
 import UserActivityDrawer from './UserActivityDrawer';
-import CallSessionsFeed from './CallSessionsFeed';
 
 type CallKind = 'call' | 'meeting' | 'all';
 
@@ -37,7 +36,10 @@ interface CallsResp {
     tokens_consult: number;
     tokens_total: number;
   };
-  /** Сессии по площадкам за период — для кнопок фильтра на «Встречах». */
+  /**
+   * Сессии по площадкам за период, без условия по выбранной площадке: кнопки
+   * фильтра на «Встречах» и доли звонков и встреч под итогом на «Все».
+   */
   byProvider: { provider: string; sessions: number }[];
 }
 
@@ -65,6 +67,11 @@ const chipClass = (active: boolean) =>
       : 'border-gray-200 text-gray-600 hover:border-gray-300',
   );
 
+/**
+ * Раздел «Звонки и встречи» — только статистика: итоги, площадки и разбивка по
+ * людям. Ленту сессий с саммари и расшифровками владелец снял 26.09.2026
+ * («не нужно подробностей»); разговоры одного человека остались в его карточке.
+ */
 const AdminCallsView: React.FC = () => {
   const { t } = useTranslation();
   // Клик по строке открывает карточку человека — там лежат его разговоры.
@@ -82,13 +89,9 @@ const AdminCallsView: React.FC = () => {
   // все встречи на проде — прогоны владельца с тестового номера, и без них
   // раздел выглядит так, будто встреч нет вовсе. Снимается одним кликом.
   const [includeTest, setIncludeTest] = useState(true);
-  // Растёт по «Обновить»: лента перезагружается вместе с таблицей.
-  const [reloadKey, setReloadKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Одна строка фильтров на таблицу и ленту: разойдясь, они показали бы
-  // разные наборы сессий.
   const query = [
     `days=${days}`,
     `kind=${kind}`,
@@ -100,7 +103,7 @@ const AdminCallsView: React.FC = () => {
 
   // Номер последнего запроса таблицы: ответ устаревшего (быстрые клики по
   // фильтрам) не должен затереть свежий — иначе таблица показала бы не тот
-  // набор, что подсвеченная площадка и лента.
+  // набор, что подсвеченные фильтры.
   const lastReq = useRef(0);
 
   const load = async () => {
@@ -128,11 +131,6 @@ const AdminCallsView: React.FC = () => {
     setProvider(null);
   };
 
-  const refresh = () => {
-    load();
-    setReloadKey((n) => n + 1);
-  };
-
   const rows = data?.byUser ?? [];
   const byProvider = data?.byProvider ?? [];
   const providersTotal = byProvider.reduce((sum, p) => sum + p.sessions, 0);
@@ -149,6 +147,16 @@ const AdminCallsView: React.FC = () => {
   // Подписи — по тому, что реально показано: пока грузится новая вкладка,
   // на экране ещё ответ прошлой.
   const shownKind: CallKind = data?.kind ?? kind;
+  // На «Все» в итоге вместе звонки и встречи — под ним видно, сколько каких,
+  // без переключения вкладок. Доли — из разбивки по площадкам того же ответа,
+  // и показываются, только если она сошлась с итогом: бэкенд считает её
+  // отдельным запросом, а старый не отдаёт вовсе, и «звонков 0 · встреч 0» под
+  // ненулевым итогом было бы неправдой. Встречи — всё, кроме звонка, как на
+  // бэкенде: новая площадка попадёт в них без правки фронта.
+  const appCalls = byProvider.filter((p) => p.provider === CALL_PROVIDER).reduce((sum, p) => sum + p.sessions, 0);
+  const split = data?.kind === 'all' && providersTotal === data.totals.calls
+    ? { calls: appCalls, meetings: providersTotal - appCalls }
+    : null;
 
   return (
     <>
@@ -161,7 +169,7 @@ const AdminCallsView: React.FC = () => {
           </div>
           <button
             data-testid="admin-calls-refresh"
-            onClick={refresh}
+            onClick={() => { load(); }}
             disabled={isLoading}
             className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-700 hover:border-forest-400 hover:bg-forest-50 disabled:opacity-50"
           >
@@ -217,7 +225,7 @@ const AdminCallsView: React.FC = () => {
             data-testid="admin-calls-include-test"
             onClick={() => setIncludeTest((v) => !v)}
             aria-pressed={includeTest}
-            title="Сессии тестовых аккаунтов — в таблице, в ленте и в итогах"
+            title="Сессии тестовых аккаунтов — в таблице и в итогах"
             className={clsx(
               'px-2.5 py-1 text-xs rounded-md border transition-colors',
               includeTest
@@ -261,6 +269,7 @@ const AdminCallsView: React.FC = () => {
             label={COUNT_LABEL[shownKind]}
             value={formatTokens(data?.totals.calls ?? 0)}
             icon={<Phone className="w-3.5 h-3.5" />}
+            hint={split ? `звонков ${formatTokens(split.calls)} · встреч ${formatTokens(split.meetings)}` : undefined}
           />
           <StatCard
             label="Пользователей"
@@ -347,10 +356,6 @@ const AdminCallsView: React.FC = () => {
             тарифицируются отдельно.
           </p>
         </div>
-
-        {/* key={query}: при смене фильтров лента пересоздаётся и снова
-            начинает с первой порции. */}
-        <CallSessionsFeed key={query} query={query} reloadKey={reloadKey} onOpenUser={setDrawerUser} />
       </div>
     </div>
 

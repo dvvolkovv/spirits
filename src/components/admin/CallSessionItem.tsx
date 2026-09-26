@@ -7,7 +7,7 @@ import { flagLabel, flagTone } from './callFlagLabels';
 import { providerLabel } from './callProviders';
 import { formatClock, formatTokens, formatWhen } from './callsFormat';
 
-/** Сессия, как её отдают /admin/calls/sessions и /admin/calls/user/:id. */
+/** Сессия, как её отдаёт /admin/calls/user/:id. */
 export interface CallSession {
   id: string;
   user_id: string;
@@ -50,29 +50,19 @@ const TONE_CLASS = {
 } as const;
 
 /**
- * Строка сессии — звонка или встречи — с раскрытием расшифровки. Общая у
- * ленты раздела «Звонки» и карточки человека, чтобы сессия выглядела в обоих
- * местах одинаково.
- *
- * Строка — div с role="button", а не <button>: внутри стоит кнопка
- * пользователя, а кнопка в кнопке — невалидная разметка. Для скринридеров
- * вложенная кнопка всё равно спорна (axe: nested-interactive) — осознанный
- * компромисс экрана, который видят только администраторы.
+ * Строка сессии — звонка или встречи — в карточке человека, с раскрытием
+ * расшифровки.
  *
  * Имена говорящих из расшифровки не показываем: метку speaker ставит
  * определитель активности голоса, и 07.09.2026 она уже выдала за «слышал
  * коллег» то, чего не было. Реплики людей подписаны «Человек».
  */
-export const CallSessionItem: React.FC<{
-  session: CallSession;
-  /** Есть — номер человека становится кнопкой, открывающей его карточку. */
-  onOpenUser?: (userId: string) => void;
-}> = ({ session: s, onOpenUser }) => {
+export const CallSessionItem: React.FC<{ session: CallSession }> = ({ session: s }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  // Расшифровка вместе с версией сессии, для которой её загрузили. Лента
-  // перерисовывает строку новыми данными на месте (ключ — id), и расшифровка
-  // встречи, взятая, пока та шла, иначе осталась бы обрезанной навсегда.
+  // Расшифровка вместе с версией сессии, для которой её загрузили. Если строку
+  // перерисуют новыми данными на месте (ключ — id), расшифровка встречи, взятая,
+  // пока та шла, иначе так и осталась бы обрезанной.
   const [loaded, setLoaded] = useState<{ version: string; turns: Turn[] } | null>(null);
   const [failed, setFailed] = useState(false);
   // Номер последнего запроса: ответ устаревшего не затирает более свежий.
@@ -129,6 +119,8 @@ export const CallSessionItem: React.FC<{
 
   return (
     <li className="rounded-lg border border-gray-200">
+      {/* div, а не <button>: нераскрываемая строка остаётся инертной, а текст
+          саммари можно выделить и скопировать. */}
       <div
         role={expandable ? 'button' : undefined}
         tabIndex={expandable ? 0 : undefined}
@@ -136,9 +128,6 @@ export const CallSessionItem: React.FC<{
         data-testid={`call-session-${s.id}`}
         onClick={toggle}
         onKeyDown={(e) => {
-          // Enter на кнопке пользователя всплывает сюда же — его не трогаем,
-          // иначе открытие карточки заодно раскрывало бы расшифровку.
-          if (e.target !== e.currentTarget) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             toggle();
@@ -158,20 +147,6 @@ export const CallSessionItem: React.FC<{
             <span className="rounded bg-forest-50 px-1.5 py-0.5 font-medium text-forest-700">
               {providerLabel(s.provider, t)}
             </span>
-            {onOpenUser && (
-              <button
-                type="button"
-                data-testid={`call-session-user-${s.id}`}
-                onClick={(e) => {
-                  // Клик по номеру открывает карточку и не раскрывает строку.
-                  e.stopPropagation();
-                  onOpenUser(s.user_id);
-                }}
-                className="font-medium text-forest-700 underline-offset-2 hover:underline"
-              >
-                {s.user_id}
-              </button>
-            )}
             {s.agent_name && <span>{s.agent_name}</span>}
             {s.duration_sec ? <span>{formatClock(s.duration_sec)}</span> : null}
             {s.tokens_total > 0 && (

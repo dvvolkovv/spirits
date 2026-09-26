@@ -1,12 +1,18 @@
 import type { TFunction } from 'i18next';
 
 /**
- * Площадки из voice_calls.provider. Звонок из приложения — тоже площадка: на
- * вкладке «Все» он стоит в ленте рядом со встречами, и без подписи строки не
- * различить.
+ * Площадки из voice_calls.provider. Звонок из приложения — тоже площадка: в
+ * карточке человека он стоит в одном списке со встречами, и без подписи строки
+ * не различить.
  */
 export const KNOWN_PROVIDERS = ['linkeon', 'linkeon_room', 'talerid', 'meet', 'zoom', 'teams', 'telemost'] as const;
 export type CallProvider = (typeof KNOWN_PROVIDERS)[number];
+
+/**
+ * Звонок из приложения. Всё остальное — встречи: так же делит бэкенд
+ * (AdminService.CALL_PROVIDER), поэтому доли на «Все» сходятся с вкладками.
+ */
+export const CALL_PROVIDER: CallProvider = 'linkeon';
 
 const LABELS: Record<CallProvider, [string, string]> = {
   linkeon: ['admin.calls.provider.linkeon', 'Звонок'],
