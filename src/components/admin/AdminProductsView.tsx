@@ -188,9 +188,9 @@ const AdminProductsView: React.FC = () => {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                // По каким полям ищет q, контракт не говорит — подсказка не
-                // обещает того, чего бэкенд может не искать.
-                placeholder="Поиск…"
+                // q ищет по названию, слагу, адресу платформы, своему домену,
+                // user_id и имени владельца (согласовано с бэкендом).
+                placeholder="Название, адрес, домен или владелец"
                 aria-label="Поиск"
                 className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-forest-400 focus:ring-1 focus:ring-forest-200 outline-none"
               />
@@ -331,6 +331,7 @@ const AdminProductsView: React.FC = () => {
         <AdminProductCard
           key={selectedId}
           productId={selectedId}
+          periodDays={filters.periodDays}
           initial={selectedRow}
           onClose={closeProduct}
           onChanged={load}

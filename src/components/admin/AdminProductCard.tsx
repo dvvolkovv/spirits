@@ -6,6 +6,7 @@ import { formatTokens } from './callsFormat';
 import {
   availableAction,
   describeBlock,
+  detailUrl,
   describeUnblock,
   domainStatusLabel,
   domainStatusTone,
@@ -16,6 +17,7 @@ import {
   jobKindLabel,
   kindLabel,
   normalizeDetail,
+  periodLabel,
   preview,
   problemText,
   rowStatus,
@@ -31,6 +33,8 @@ import {
 
 interface Props {
   productId: string;
+  /** Период списка: карточка считает правки и токены за тот же срок. */
+  periodDays: number;
   /** Строка из списка — чтобы шапка не пустовала, пока грузится карточка. */
   initial?: AdminProductRow | null;
   onClose: () => void;
@@ -48,7 +52,7 @@ const badge = 'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medi
  * существующие ручки POST /webhook/products/block и /unblock; ключ — id
  * продукта, так сервер не гадает, домен это, слаг или идентификатор.
  */
-const AdminProductCard: React.FC<Props> = ({ productId, initial = null, onClose, onChanged }) => {
+const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = null, onClose, onChanged }) => {
   const [detail, setDetail] = useState<AdminProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +74,7 @@ const AdminProductCard: React.FC<Props> = ({ productId, initial = null, onClose,
     const req = ++reqRef.current;
     setIsLoading(true);
     try {
-      const res = await apiClient.get(`/webhook/admin/products/${encodeURIComponent(productId)}`);
+      const res = await apiClient.get(detailUrl(productId, periodDays));
       if (!res.ok) {
         const msg = await problemText(res);
         if (req === reqRef.current) setError(msg);
@@ -89,7 +93,7 @@ const AdminProductCard: React.FC<Props> = ({ productId, initial = null, onClose,
     } finally {
       if (req === reqRef.current) setIsLoading(false);
     }
-  }, [productId]);
+  }, [productId, periodDays]);
 
   useEffect(() => {
     setDetail(null);
@@ -239,7 +243,7 @@ const AdminProductCard: React.FC<Props> = ({ productId, initial = null, onClose,
                 onRun={run}
               />
               <Reasons product={detail.product} />
-              <Fields product={detail.product} />
+              <Fields product={detail.product} periodDays={detail.periodDays} />
               <DomainBlock detail={detail} />
               <Section title="Правки" count={turns.length}>
                 {turns.length === 0 ? (
@@ -435,7 +439,8 @@ const Reasons: React.FC<{ product: AdminProductRow }> = ({ product }) => {
   );
 };
 
-const Fields: React.FC<{ product: AdminProductRow }> = ({ product: p }) => {
+/** `periodDays` — из ответа: число называет сервер, за какой срок он и посчитал. */
+const Fields: React.FC<{ product: AdminProductRow; periodDays: number | null }> = ({ product: p, periodDays }) => {
   const overdue = isPast(p.paidUntil);
   const rows: Array<{ label: string; value: React.ReactNode }> = [
     { label: 'ID', value: <span className="font-mono text-xs break-all">{p.id}</span> },
@@ -484,8 +489,8 @@ const Fields: React.FC<{ product: AdminProductRow }> = ({ product: p }) => {
     { label: 'Раннер на связи', value: <span title={formatDateTime(p.runnerSeenAt)}>{formatRelative(p.runnerSeenAt)}</span> },
     { label: 'Последняя правка', value: <span title={formatDateTime(p.lastTurnAt)}>{formatRelative(p.lastTurnAt)}</span> },
     { label: 'Последняя активность', value: <span title={formatDateTime(p.lastActivityAt)}>{formatRelative(p.lastActivityAt)}</span> },
-    { label: 'Правок за период', value: formatTokens(p.turnsInPeriod) },
-    { label: 'Токенов за период', value: formatTokens(p.tokensInPeriod) },
+    { label: `Правок ${periodLabel(periodDays)}`, value: formatTokens(p.turnsInPeriod) },
+    { label: `Токенов ${periodLabel(periodDays)}`, value: formatTokens(p.tokensInPeriod) },
   ];
   return (
     <dl className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 text-sm">

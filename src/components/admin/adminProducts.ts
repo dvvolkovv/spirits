@@ -85,11 +85,37 @@ export interface AdminProductJob {
 }
 
 export interface AdminProductDetail {
+  /**
+   * За сколько дней посчитаны turnsInPeriod и tokensInPeriod карточки. Ручка
+   * принимает ?periodDays= и называет свой период в ответе; по нему — и
+   * подпись «за N дней». null — поля в ответе нет (бэкенд до этой правки):
+   * тогда число не выдумывается.
+   */
+  periodDays: number | null;
   product: AdminProductRow;
   domain: AdminProductDomain | null;
   turns: AdminProductTurn[];
   jobs: AdminProductJob[];
 }
+
+/**
+ * Адрес карточки. Период — всегда явный, тот же, что у списка: иначе правки
+ * и токены в карточке считались бы за другой срок, чем в строке таблицы.
+ */
+export const detailUrl = (id: string, periodDays: number): string =>
+  `/webhook/admin/products/${encodeURIComponent(id)}?periodDays=${periodDays}`;
+
+/** «день / дня / дней» — у админки один язык, русский. */
+function days(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'день';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'дня';
+  return 'дней';
+}
+
+/** «за 30 дней»; неизвестный период — «за период», без выдуманного числа. */
+export const periodLabel = (n: number | null): string => (n ? `за ${n} ${days(n)}` : 'за период');
 
 /**
  * Карточка в том виде, который экран переживёт при любом ответе: списки —
@@ -100,7 +126,9 @@ export function normalizeDetail(body: unknown): AdminProductDetail | null {
   if (!body || typeof body !== 'object') return null;
   const b = body as Record<string, unknown>;
   if (!b.product || typeof b.product !== 'object') return null;
+  const period = typeof b.periodDays === 'number' ? b.periodDays : Number.NaN;
   return {
+    periodDays: Number.isInteger(period) && period > 0 ? period : null,
     product: b.product as AdminProductRow,
     domain: b.domain && typeof b.domain === 'object' ? (b.domain as AdminProductDomain) : null,
     turns: Array.isArray(b.turns) ? (b.turns as AdminProductTurn[]) : [],
