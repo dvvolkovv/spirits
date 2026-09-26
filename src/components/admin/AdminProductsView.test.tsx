@@ -207,6 +207,23 @@ describe('список', () => {
     expect(s).not.toContain('Спит');
   });
 
+  it('выдача обрезана сервером — сказано, и счётчики помечены как неполные', async () => {
+    get.mockImplementation((url: string) =>
+      url.startsWith('/webhook/admin/products?') ? ok({ periodDays: 30, products: ROWS, truncated: true }) : backend(url));
+    await mountAt();
+    const s = q('admin-products-summary')!;
+    expect(s.textContent).toContain('Показаны первые 3 — уточните фильтр');
+    expect(q('admin-products-truncated')).not.toBeNull();
+    expect(q('admin-products-status-counts')!.getAttribute('data-partial')).toBe('true');
+  });
+
+  it('без поля truncated (или false) — выдача полная, предупреждения нет', async () => {
+    await mountAt();
+    expect(q('admin-products-truncated')).toBeNull();
+    expect(q('admin-products-status-counts')!.getAttribute('data-partial')).toBe('false');
+    expect(q('admin-products-summary')!.textContent).not.toContain('уточните фильтр');
+  });
+
   it('просроченная оплата подсвечена, будущая — нет', async () => {
     await mountAt();
     expect(q('admin-product-paid-p-bot')!.getAttribute('data-overdue')).toBe('true');
@@ -449,6 +466,25 @@ describe('карточка', () => {
     await mountAt('?tab=products&period=90&product=p-run');
     expect(urls()).toContain('/webhook/admin/products/p-run?periodDays=90');
     expect(q('admin-product-card')!.textContent).toContain('Правок за 90 дней');
+  });
+
+  it('Enter на ссылке в строке не открывает карточку — ни на адресе платформы, ни на своём домене', async () => {
+    await mountAt();
+    for (const testid of ['admin-product-link-p-run', 'admin-product-custom-link-p-run']) {
+      const link = q(testid)!;
+      await act(async () => { link.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+      await settle();
+    }
+    expect(q('admin-product-card')).toBeNull();
+    expect(page().has('product')).toBe(false);
+  });
+
+  it('Enter на самой строке открывает карточку', async () => {
+    await mountAt();
+    const row = q('admin-product-row-p-run')!;
+    await act(async () => { row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    await settle();
+    expect(page().get('product')).toBe('p-run');
   });
 
   it('клик по ссылке на сайт не открывает карточку', async () => {

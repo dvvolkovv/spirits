@@ -160,11 +160,16 @@ describe('статусы', () => {
 describe('какое действие доступно', () => {
   const base = { status: 'running', archivedAt: null };
 
-  it('погашенный — только снять блок, остальные — только погасить', () => {
+  it('погашенный — только снять блок, заведённые — только погасить', () => {
     expect(availableAction({ ...base, status: 'blocked' })).toBe('unblock');
-    for (const s of ['running', 'sleeping', 'degraded', 'provisioning', 'failed', 'stopped']) {
+    for (const s of ['running', 'sleeping', 'degraded', 'stopped']) {
       expect(availableAction({ ...base, status: s })).toBe('block');
     }
+  });
+
+  it('не заведённый (failed, provisioning) — никаких: снятие блока увело бы его в сон с пробуждением, которое может не сработать', () => {
+    expect(availableAction({ ...base, status: 'failed' })).toBeNull();
+    expect(availableAction({ ...base, status: 'provisioning' })).toBeNull();
   });
 
   it('архивный — никаких действий: бэкенд откажет и в том, и в другом', () => {

@@ -8,7 +8,7 @@
  * его же словами. Всё это проверяется живым монтированием, а не чтением кода.
  */
 import { act } from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { createRoot, Root } from 'react-dom/client';
 
 const { get, post } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -278,6 +278,22 @@ describe('кнопки по статусу', () => {
     expect(q('admin-product-block')).toBeNull();
   });
 
+  it('у не заведённого (failed) — ни одной, и сказано почему', async () => {
+    withStatus('failed');
+    await mount();
+    expect(q('admin-product-block')).toBeNull();
+    expect(q('admin-product-unblock')).toBeNull();
+    expect(text('admin-product-card')).toContain('не заведён');
+  });
+
+  it('у заводящегося (provisioning) — ни одной', async () => {
+    withStatus('provisioning');
+    await mount();
+    expect(q('admin-product-block')).toBeNull();
+    expect(q('admin-product-unblock')).toBeNull();
+    expect(text('admin-product-card')).toContain('не заведён');
+  });
+
   it('у архивного — ни одной: сервер откажет в обоих', async () => {
     withStatus('blocked', '2026-09-20T00:00:00Z');
     await mount();
@@ -337,6 +353,40 @@ describe('«Погасить»', () => {
     await click('admin-product-block-cancel');
     expect(q('admin-product-block-reason')).toBeNull();
     expect(post).not.toHaveBeenCalled();
+  });
+
+  it('«Отмена» не стирает набранную причину: форма открывается с ней же', async () => {
+    await mount();
+    await click('admin-product-block');
+    await typeInto('admin-product-block-reason', 'Фишинговая страница');
+    await click('admin-product-block-cancel');
+    await click('admin-product-block');
+    expect((q('admin-product-block-reason') as HTMLTextAreaElement).value).toBe('Фишинговая страница');
+  });
+
+  it('после успешного гашения карточка не перечиталась — кнопки скрыты до успешного перечтения', async () => {
+    // Второе чтение карточки (сразу после гашения) падает, третье — удаётся.
+    let reads = 0;
+    get.mockImplementation((url: string) => {
+      reads += 1;
+      return reads === 2 ? res(500, { statusCode: 500, message: 'База недоступна' }) : backendGet(url);
+    });
+    await mount();
+    await click('admin-product-block');
+    await typeInto('admin-product-block-reason', 'Фишинг');
+    await click('admin-product-block-confirm');
+
+    expect(text('admin-product-action-result')).toContain('«coffee»');
+    expect(text('admin-product-card-error')).toContain('База недоступна');
+    // На экране — прежний статус; прежняя кнопка вела бы ко второму гашению.
+    expect(q('admin-product-block')).toBeNull();
+    expect(q('admin-product-unblock')).toBeNull();
+
+    await click('admin-product-card-reload');
+    expect(q('admin-product-card-error')).toBeNull();
+    expect(text('admin-product-card-status')).toBe('Погашен');
+    expect(q('admin-product-unblock')).not.toBeNull();
+    expect(q('admin-product-block')).toBeNull();
   });
 
   it('отказ сервера — его словами; причина не теряется, список не трогается', async () => {
@@ -465,5 +515,58 @@ describe('закрытие', () => {
     await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
     expect(onClose).not.toHaveBeenCalled();
     expect(q('admin-product-block-reason')).toBeNull();
+  });
+
+  it('Escape не стирает набранную причину', async () => {
+    await mount();
+    await click('admin-product-block');
+    await typeInto('admin-product-block-reason', 'Фишинг');
+    await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    await click('admin-product-block');
+    expect((q('admin-product-block-reason') as HTMLTextAreaElement).value).toBe('Фишинг');
+  });
+
+  describe('с набранной причиной карточка просто так не закрывается', () => {
+    let confirmSpy: MockInstance<(message?: string) => boolean>;
+    beforeEach(() => { confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false); });
+    afterEach(() => { confirmSpy.mockRestore(); });
+
+    const typeReason = async () => {
+      await click('admin-product-block');
+      await typeInto('admin-product-block-reason', 'Фишинг');
+    };
+
+    it('клик мимо карточки спрашивает; «нет» — карточка и причина на месте', async () => {
+      await mount();
+      await typeReason();
+      await click('admin-product-card-backdrop');
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
+      expect((q('admin-product-block-reason') as HTMLTextAreaElement).value).toBe('Фишинг');
+    });
+
+    it('клик мимо карточки, «да» — закрывается', async () => {
+      confirmSpy.mockReturnValue(true);
+      await mount();
+      await typeReason();
+      await click('admin-product-card-backdrop');
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('без причины клик мимо закрывает сразу, без вопроса', async () => {
+      await mount();
+      await click('admin-product-card-backdrop');
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('Escape при спрятанной форме с причиной тоже спрашивает', async () => {
+      await mount();
+      await typeReason();
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(onClose).not.toHaveBeenCalled();
+    });
   });
 });

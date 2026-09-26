@@ -14,6 +14,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mount, click, tRu } from '../test/dom';
 import type { Mounted } from '../test/dom';
+import en from '../i18n/locales/en.json';
+import pt from '../i18n/locales/pt.json';
 
 vi.mock('react-i18next', async () => {
   const { tRu: t } = await import('../test/dom');
@@ -77,6 +79,11 @@ describe('вкладка «Сайты и боты»', () => {
     expect(btn).not.toBeNull();
     expect(tRu('admin.tabs.products')).toBe('Сайты и боты');
     expect(btn!.textContent).toBe('Сайты и боты');
+  });
+
+  it('в en и pt своя подпись: остальные языки откатываются на en, без неё увидели бы русскую', () => {
+    expect((en.admin.tabs as Record<string, string>).products).toBe('Sites & bots');
+    expect((pt.admin.tabs as Record<string, string>).products).toBe('Sites e bots');
   });
 
   it('стоит рядом с «Пользователями»', () => {
