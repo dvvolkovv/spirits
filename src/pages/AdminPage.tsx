@@ -12,6 +12,7 @@ import AdminTokensView from '../components/admin/AdminTokensView';
 import AdminUsageView from '../components/admin/AdminUsageView';
 import AdminCallsView from '../components/admin/AdminCallsView';
 import AdminUsersView from '../components/admin/AdminUsersView';
+import AdminProductsView from '../components/admin/AdminProductsView';
 import AdminMonitoringView from '../components/admin/AdminMonitoringView';
 import AdminProductManagementView from '../components/admin/AdminProductManagementView';
 import AdminRetentionView from '../components/admin/AdminRetentionView';
@@ -19,7 +20,7 @@ import AdminActivationView from '../components/admin/AdminActivationView';
 import AdminIntegrationsView from '../components/admin/AdminIntegrationsView';
 import AdminBlogView from '../components/admin/AdminBlogView';
 
-type AdminTab = 'support' | 'users' | 'payments' | 'tokens' | 'usage' | 'calls' | 'assistants' | 'coupons' | 'referrals' | 'retention' | 'activation' | 'monitoring' | 'product' | 'integrations' | 'blog';
+type AdminTab = 'support' | 'users' | 'products' | 'payments' | 'tokens' | 'usage' | 'calls' | 'assistants' | 'coupons' | 'referrals' | 'retention' | 'activation' | 'monitoring' | 'product' | 'integrations' | 'blog';
 
 // `?tab=backlog` used to point at a standalone Бэклог tab.
 // We folded backlog into Управление продуктом — keep the URL working.
@@ -33,7 +34,7 @@ const AdminPage: React.FC = () => {
   const { user, isLoading } = useAuth();
   const { t } = useTranslation();
   const [params, setSearchParams] = useSearchParams();
-  const KNOWN_TABS: AdminTab[] = ['support', 'users', 'payments', 'tokens', 'usage', 'calls', 'assistants', 'coupons', 'referrals', 'retention', 'activation', 'monitoring', 'product', 'integrations', 'blog'];
+  const KNOWN_TABS: AdminTab[] = ['support', 'users', 'products', 'payments', 'tokens', 'usage', 'calls', 'assistants', 'coupons', 'referrals', 'retention', 'activation', 'monitoring', 'product', 'integrations', 'blog'];
   const rawTab = params.get('tab') || '';
   const aliasResolved = TAB_ALIASES[rawTab] ?? (rawTab as AdminTab);
   const initialTab: AdminTab = KNOWN_TABS.includes(aliasResolved) ? aliasResolved : 'support';
@@ -83,6 +84,9 @@ const AdminPage: React.FC = () => {
   const tabs: { id: AdminTab; label: string }[] = [
     { id: 'support', label: t('admin.tabs.support') },
     { id: 'users', label: t('admin.tabs.users') },
+    // «Сайты и боты» — продукты пользователей. Не путать с 'product' ниже:
+    // там «Управление продуктом», аналитика самого Linkeon.
+    { id: 'products', label: t('admin.tabs.products') },
     { id: 'payments', label: t('admin.tabs.payments') },
     { id: 'tokens', label: t('admin.tabs.tokens') },
     { id: 'usage', label: t('admin.tabs.usage') },
@@ -126,6 +130,7 @@ const AdminPage: React.FC = () => {
       <div className="flex-1 overflow-hidden">
         {activeTab === 'support' && <AdminSupportView />}
         {activeTab === 'users' && <AdminUsersView />}
+        {activeTab === 'products' && <AdminProductsView />}
         {activeTab === 'payments' && <AdminPaymentsView />}
         {activeTab === 'tokens' && <AdminTokensView />}
         {activeTab === 'usage' && <AdminUsageView />}
