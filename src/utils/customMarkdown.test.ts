@@ -267,3 +267,19 @@ describe('meeting_join', () => {
     expect([...meetings.values()][0].provider).toBe('linkeon');
   });
 });
+
+describe('parseCustomMarkdown: блоки уточняющих вопросов', () => {
+  const ASK = '```ask\n{"questions":[{"question":"Какой баннер?","options":["https://x.io/a.png","https://x.io/b.png"]}]}\n```';
+
+  it('блок уходит в маркер раньше остальных разборов — ссылки внутри JSON не трогаются', () => {
+    const { content, asks, images } = parseCustomMarkdown(`Выбери:\n${ASK}`);
+    expect(content).toBe('Выбери:\n__ASK_0__');
+    expect(asks.get('0')?.kind).toBe('card');
+    expect(images.size).toBe(0);
+  });
+
+  it('во время стрима незакрытый блок — заглушка', () => {
+    const { asks } = parseCustomMarkdown('```ask\n{"questions":[', { streaming: true });
+    expect(asks.get('0')).toEqual({ kind: 'pending' });
+  });
+});
