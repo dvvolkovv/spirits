@@ -49,6 +49,10 @@ import {
   shouldOfferOverride,
 } from './remoteTurn';
 import { balanceLevel } from '../../config/balanceThresholds';
+import { startActivity, addStep, markTextStarted, finishActivity, type TurnActivity, type ActivitySummary } from './turnActivity';
+import { LiveActivity, ActivitySummaryView } from './ActivitySteps';
+import { AskBlockView, type AskMode } from './AskCard';
+import { askBlocksToPlainText } from '../../utils/askBlock';
 
 interface Assistant {
   id: number;
@@ -73,6 +77,9 @@ interface Message {
    * and rendered as <CalendarProposalCard/> below the message via
    * <InlineCalendarProposals/> (Task S2, mirrors inlineJobIds/video). */
   calendarProposalIds?: string[];
+  /** Шаги работы ассистента в этом ходе (turnActivity.ts). Только в памяти:
+   *  из истории сообщение приходит без них. */
+  activity?: ActivitySummary;
 }
 
 interface ChatInterfaceProps {
@@ -130,6 +137,9 @@ const extractCalendarProposalIds = (text: string): string[] => {
   return ids;
 };
 
+// Карточка в идущем ходе не кликается — отвечать можно, когда ход закончен.
+const noopAskSubmit = () => {};
+
 const StreamingMessage = React.memo(({
   content,
   components,
@@ -137,6 +147,7 @@ const StreamingMessage = React.memo(({
   onLinkClick,
   meetingAgentId,
   onJoinMeeting,
+  activity,
 }: {
   content: string;
   components: any;
@@ -145,8 +156,10 @@ const StreamingMessage = React.memo(({
   /** Ассистент текущего чата — он и пойдёт на встречу по карточке. */
   meetingAgentId: number;
   onJoinMeeting?: (callId: string) => void;
+  /** Шаги работы идущего хода. null — показываем прежние три точки. */
+  activity?: TurnActivity | null;
 }) => {
-  const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings } = parseCustomMarkdown(content);
+  const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks } = parseCustomMarkdown(content, { streaming: true });
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -158,8 +171,9 @@ const StreamingMessage = React.memo(({
     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
     const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
+    const askMatches = [...parsedContent.matchAll(/__ASK_(\d+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...askMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -245,6 +259,13 @@ const StreamingMessage = React.memo(({
             />,
           );
         }
+      } else if (match[0].startsWith('__ASK_')) {
+        const block = asks.get(match[1]);
+        if (block) {
+          parts.push(
+            <AskBlockView key={`ask-${idx}`} block={block} mode="disabled" onSubmit={noopAskSubmit} components={components} />,
+          );
+        }
       }
 
       lastIndex = matchIndex + match[0].length;
@@ -270,6 +291,8 @@ const StreamingMessage = React.memo(({
     <div className="flex justify-start" style={{ transform: 'translateZ(0)', willChange: 'contents' }}>
       <div className="max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-3xl px-4 py-2 rounded-2xl bg-white text-gray-900 shadow-sm rounded-bl-md relative transition-all duration-200">
         <div className="min-h-[24px]">
+          {/* Шаги — над текстом; пока нет ни шагов, ни текста — «Думает · N с». */}
+          {activity && (activity.steps.length > 0 || !content) && <LiveActivity activity={activity} />}
           {content ? (
             <>
               <div className="text-sm leading-relaxed prose prose-sm max-w-none">
@@ -277,7 +300,7 @@ const StreamingMessage = React.memo(({
               </div>
               <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
             </>
-          ) : (
+          ) : !activity && (
             <div className="flex space-x-1 items-center h-[24px]">
               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
@@ -591,6 +614,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState<string>('');
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  // Шаги работы идущего хода — рисуются вместо трёх точек (ActivitySteps.tsx).
+  const [streamActivity, setStreamActivity] = useState<TurnActivity | null>(null);
+  // Карточку вопроса можно нажать, только когда отправка пойдёт сразу: ответ
+  // в очередь посреди чужого хода выглядел бы как проглоченный.
+  const askLive = !sendBlocked && !streamingMessageId && !historyLoading;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -1236,6 +1264,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const sendMessageToAI = async (userMessage: string) => {
     setIsTyping(true);
     setCurrentStreamingMessage('');
+    // Шаги хода копятся локально (цикл ниже живёт дольше одного рендера) и
+    // зеркалятся в состояние для StreamingMessage.
+    let activity = startActivity(Date.now());
+    setStreamActivity(activity);
 
     // Отправка = явное намерение видеть ответ: ре-арм пина к низу.
     // Без этого на мобиле после send юзер оставался на прежнем месте диалога,
@@ -1304,6 +1336,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // сервера и расходится с пользователем — у клиентки из ЯНАО разница
         // была пять часов, и разбирать её приходилось прямо в переписке.
         tz: clientTimeZone(),
+        // Клиент рисует шаги работы и карточки вопросов — бэк включает их
+        // только по этому полю, мобилка его не шлёт.
+        ui: { activity: true, ask: true },
         ...(freshTs ? { fresh: true, freshTs } : {})
       }, {
         signal: controller.signal
@@ -1352,8 +1387,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (data.type === 'begin' && data.metadata?.nodeName === 'Image Echo Agent') {
               setIsGeneratingImage(true);
             }
+            if (data.type === 'activity') {
+              activity = addStep(activity, data.kind, data.detail);
+              if (selectedAssistantIdRef.current === streamAssistantId) setStreamActivity(activity);
+            }
             if (data.type === 'item' && data.content) {
               accumulatedContent += data.content;
+              const afterText = markTextStarted(activity);
+              if (afterText !== activity) {
+                activity = afterText;
+                if (selectedAssistantIdRef.current === streamAssistantId) setStreamActivity(activity);
+              }
               // Parse [VIDEO_JOB:<uuid>] markers from full accumulated text (stream-safe:
               // a marker may be split across chunks; matching the whole buffer is robust).
               const matches = accumulatedContent.matchAll(/\[VIDEO_JOB:([0-9a-f-]{36})\]/gi);
@@ -1471,6 +1515,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           tokensUsed: lastUsage?.total || undefined,
           inlineJobIds: inlineJobIds.length > 0 ? [...inlineJobIds] : undefined,
           calendarProposalIds: calendarProposalIds.length > 0 ? [...calendarProposalIds] : undefined,
+          activity: finishActivity(activity, Date.now()),
         };
         setMessages(prev => [...prev, completedMessage]);
         setStreamingMessageId(null);
@@ -1534,6 +1579,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setIsGeneratingImage(false);
         setCurrentStreamingMessage('');
         setStreamingMessageId(null);
+        setStreamActivity(null);
       }
       abortControllerRef.current = null;
     }
@@ -1611,7 +1657,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     voiceCommittedRef.current = '';
     const text = input;
     setInput('');
+    await submitText(text);
+  };
 
+  // Отправка готового текста тем же путём, что из поля ввода: очередь, если
+  // ход идёт, и проверка удалённого хода. Отдельно от handleSendInner, потому
+  // что ответ из карточки вопроса приходит не из поля — черновик в поле
+  // трогать нельзя.
+  const submitText = async (text: string) => {
     // Ход ещё идёт — не шлём параллельно (релей убил бы текущий ответ), а
     // копим. Пин к низу ре-армим так же, как при обычной отправке: человек
     // только что написал и ждёт, что лента поедет за ним.
@@ -1659,6 +1712,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Обновляем контент домашнего виджета последней репликой (натив; на вебе no-op),
     // чтобы «последний разговор» в виджете был свежим, когда юзер свернёт приложение.
     try { refreshWidget(); } catch {}
+  };
+
+  // Ответ из карточки уточняющего вопроса (AskCard). Тот же замок, что у
+  // handleSend: двойное нажатие не должно уйти двумя ходами.
+  const handleAskAnswer = async (text: string) => {
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    try {
+      await submitText(text);
+    } finally {
+      sendingRef.current = false;
+    }
   };
 
   // Досылка очереди: ход договорил — отправляем накопленное одним сообщением.
@@ -2182,6 +2247,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const assistantMsgId = generateMessageId();
     setStreamingMessageId(assistantMsgId);
     setCurrentStreamingMessage('');
+    let activity = startActivity(Date.now());
+    setStreamActivity(activity);
 
     try {
       await apiClient.refreshTokenIfNeeded();
@@ -2204,6 +2271,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         formData.append('fresh', 'true');
         formData.append('freshTs', freshTs);
       }
+      // Шаги работы и карточки — как у текстового хода. multipart везёт
+      // объект строкой, бэк это учитывает (client-ui.ts).
+      formData.append('ui', JSON.stringify({ activity: true, ask: true }));
 
       const response = await apiClient.post('/webhook/agent/upload-and-chat', formData);
 
@@ -2237,9 +2307,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           if (!line.trim()) continue;
           try {
             const event = JSON.parse(line);
-            if (event.type === 'item' && event.content) {
+            if (event.type === 'activity') {
+              activity = addStep(activity, event.kind, event.detail);
+              setStreamActivity(activity);
+            } else if (event.type === 'item' && event.content) {
               accumulatedContent += event.content;
               setCurrentStreamingMessage(accumulatedContent);
+              const afterText = markTextStarted(activity);
+              if (afterText !== activity) {
+                activity = afterText;
+                setStreamActivity(activity);
+              }
             } else if (event.type === 'end') {
               accumulatedContent = event.content || accumulatedContent;
               lastTokensUsed = event.usage?.total || 0;
@@ -2254,6 +2332,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         content: accumulatedContent,
         timestamp: new Date(),
         tokensUsed: lastTokensUsed,
+        activity: finishActivity(activity, Date.now()),
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (error) {
@@ -2271,6 +2350,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setIsTyping(false);
       setStreamingMessageId(null);
       setCurrentStreamingMessage('');
+      setStreamActivity(null);
     }
   };
 
@@ -2714,7 +2794,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <div className="flex items-center justify-center py-8">
             <div className="w-6 h-6 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : messages.map((message) => (
+        ) : messages.map((message, mi) => (
           <div
             key={message.id}
             data-testid="chat-message"
@@ -2745,9 +2825,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </div>
               ) : message.type === 'assistant' ? (
                 <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+                  {message.activity && <ActivitySummaryView summary={message.activity} />}
                   {(() => {
                     const contentForRender = stripCalendarProposalMarkers(stripVideoJobMarkers(message.content));
-                    const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks } = parseCustomMarkdown(contentForRender);
+                    // Состояние карточки вопроса: ответили ли уже (следующее
+                    // сообщение — пользователя) и можно ли отвечать сейчас.
+                    const nextMsg = messages[mi + 1];
+                    const answered = nextMsg?.type === 'user';
+                    const askMode: AskMode = answered
+                      ? 'answered'
+                      : mi === messages.length - 1 && askLive ? 'active' : 'disabled';
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
@@ -2757,8 +2845,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
                     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
                     const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
+                    const askMatches = [...parsedContent.matchAll(/__ASK_(\d+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...askMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -2844,6 +2933,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                             />,
                           );
                         }
+                      } else if (match[0].startsWith('__ASK_')) {
+                        const block = asks.get(match[1]);
+                        if (block) {
+                          parts.push(
+                            <AskBlockView
+                              key={`ask-${idx}`}
+                              block={block}
+                              mode={askMode}
+                              answerText={answered ? nextMsg.content : undefined}
+                              onSubmit={handleAskAnswer}
+                              components={markdownComponents}
+                            />,
+                          );
+                        }
                       }
 
                       lastIndex = matchIndex + match[0].length;
@@ -2894,7 +2997,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {message.type === 'assistant' && !message.isStreaming && message.content && (
                   <button
                     type="button"
-                    onClick={() => handleCopyMessage(parseCustomMarkdown(stripCalendarProposalMarkers(stripVideoJobMarkers(message.content))).content || message.content, message.id)}
+                    onClick={() => handleCopyMessage(parseCustomMarkdown(askBlocksToPlainText(stripCalendarProposalMarkers(stripVideoJobMarkers(message.content)))).content || message.content, message.id)}
                     className="inline-flex items-center gap-1 text-gray-400 hover:text-forest-600 transition-colors"
                     title={t('chat.copy_message', 'Скопировать ответ')}
                   >
@@ -2960,6 +3063,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onLinkClick={handleLinkNavigation}
               meetingAgentId={Number(selectedAssistant?.id) || 0}
               onJoinMeeting={setMeetingCallId}
+              activity={streamActivity}
             />
           )
         )}
