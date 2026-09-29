@@ -1,6 +1,7 @@
 // src/components/chat/AskCard.test.tsx
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
+import { act } from 'react';
 import { mount, click, type, byButton, visibleText } from '../../test/dom';
 import { AskCard, AskBlockView } from './AskCard';
 import type { AskQuestion } from '../../utils/askBlock';
@@ -76,5 +77,51 @@ describe('карточка вопроса', () => {
   it('недописанный блок — «Готовлю вопрос…»', () => {
     const { container } = mount(<AskBlockView block={{ kind: 'pending' }} mode="disabled" onSubmit={() => {}} components={{}} />);
     expect(visibleText(container)).toContain('Готовлю вопрос…');
+  });
+
+  it('Enter в своём варианте отправляет ответ, но не во время набора через IME', () => {
+    const onSubmit = vi.fn();
+    const { container } = mount(<AskCard questions={[WHO]} mode="active" onSubmit={onSubmit} />);
+    click(byButton(container, /^Свой вариант$/)!);
+    const input = container.querySelector('input')!;
+    type(input, 'Тёще');
+    // Подтверждение кандидата IME (zh/ja) тоже шлёт keydown Enter — этот Enter
+    // не должен отправлять форму.
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, isComposing: true }));
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    expect(onSubmit).toHaveBeenCalledWith('Тёще');
+  });
+
+  it('закрытие «своего варианта» стирает набранный текст — скрытый текст не уходит в ответ', () => {
+    const onSubmit = vi.fn();
+    const { container } = mount(<AskCard questions={[TONE]} mode="active" onSubmit={onSubmit} />);
+    click(byButton(container, /^Свой вариант$/)!);
+    type(container.querySelector('input')!, 'стихами');
+    click(byButton(container, /^Свой вариант$/)!); // закрыли поле, не отправляя
+    click(byButton(container, /^Тёплый$/)!);
+    click(byButton(container, /^Ответить$/)!);
+    expect(onSubmit).toHaveBeenCalledWith('Тёплый');
+  });
+
+  it('кнопка «Свой вариант» — aria-expanded (раскрывает поле), а не aria-pressed (это не выбор)', () => {
+    const { container } = mount(<AskCard questions={[WHO]} mode="active" onSubmit={() => {}} />);
+    const btn = byButton(container, /^Свой вариант$/)!;
+    expect(btn.hasAttribute('aria-pressed')).toBe(false);
+    expect(btn.getAttribute('aria-expanded')).toBe('false');
+    click(btn);
+    expect(btn.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('длинный вариант без пробелов не растягивает карточку — перенос и ограничение ширины', () => {
+    const LONG: AskQuestion = { question: 'Какой баннер?', multi: false, options: ['a'.repeat(80), 'b'] };
+    const { container } = mount(<AskCard questions={[LONG]} mode="active" onSubmit={() => {}} />);
+    const btn = byButton(container, new RegExp(`^a{80}$`))!;
+    expect(btn.className).toContain('max-w-full');
+    expect(btn.className).toContain('break-words');
   });
 });

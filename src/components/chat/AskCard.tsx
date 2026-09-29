@@ -83,7 +83,7 @@ export function AskCard({ questions, mode, answerText, onSubmit }: AskCardProps)
                   aria-pressed={on}
                   onClick={() => toggle(qi, o)}
                   className={clsx(
-                    'text-sm rounded-full px-3 py-1.5 border transition-colors text-left',
+                    'max-w-full break-words text-sm rounded-full px-3 py-1.5 border transition-colors text-left',
                     on ? 'bg-forest-600 text-white border-forest-600' : 'bg-white text-forest-700 border-forest-300',
                     live ? !on && 'hover:border-forest-400 hover:bg-forest-50' : 'opacity-60 cursor-default',
                   )}
@@ -95,8 +95,14 @@ export function AskCard({ questions, mode, answerText, onSubmit }: AskCardProps)
             {live && (
               <button
                 type="button"
-                aria-pressed={customOpen[qi]}
-                onClick={() => setCustomOpen((c) => c.map((v, i) => (i === qi ? !v : v)))}
+                aria-expanded={customOpen[qi]}
+                onClick={() => {
+                  // Закрытие без отправки не должно оставлять набранный текст
+                  // висеть в состоянии — иначе следующий чип «допишет» его
+                  // молча в ответ, а пользователь его больше не видит.
+                  if (customOpen[qi]) setCustom(qi, '');
+                  setCustomOpen((c) => c.map((v, i) => (i === qi ? !v : v)));
+                }}
                 className={clsx(
                   'text-sm rounded-full px-3 py-1.5 border border-dashed bg-white transition-colors',
                   customOpen[qi] ? 'border-forest-500 text-forest-700' : 'border-forest-300 text-forest-600 hover:bg-forest-50',
@@ -109,12 +115,21 @@ export function AskCard({ questions, mode, answerText, onSubmit }: AskCardProps)
           {live && customOpen[qi] && (
             <input
               type="text"
-              value={picks[qi].custom}
+              value={picks[qi]?.custom ?? ''}
               onChange={(e) => setCustom(qi, e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') send(picks); }}
+              onKeyDown={(e) => {
+                // На вводе через IME (zh/ja) Enter подтверждает кандидата, а
+                // не форму — composing-нажатие отправкой считать нельзя.
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  send(picks);
+                }
+              }}
               placeholder={t('chat.ask.custom_placeholder')}
               aria-label={t('chat.ask.custom_placeholder')}
-              className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500"
+              // 16px (text-base) — иначе iOS Safari зумит страницу при фокусе
+              // на инпуте мельче.
+              className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-forest-500"
               autoFocus
             />
           )}
