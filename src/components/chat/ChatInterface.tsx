@@ -736,6 +736,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setIsTyping(false);
       setCurrentStreamingMessage('');
       setStreamingMessageId(null);
+      setStreamActivity(null);
       // Единственный путь, через который проходят ВСЕ смены ассистента.
       // historyLoading в эффекте досылки не успел бы прикрыть: он выставляется
       // внутри load() и виден только со следующего рендера — досылка успела бы

@@ -24,7 +24,10 @@ export type AskBlock =
 const MAX_QUESTIONS = 3;
 const MAX_OPTIONS = 4;
 const OPEN_RE = /(^|\n)[ \t]*```[ \t]*ask[ \t]*\r?\n/i;
-const CLOSE_RE = /(^|\r?\n)[ \t]*```[ \t]*(?=\r?\n|$)/;
+// Закрывающая строка. Модель иногда ставит бэктики сразу за JSON («}```») —
+// это тоже конец блока; `}` при этом остаётся в теле (см. bodyEnd ниже).
+// Без lookbehind: старый iOS Safari его не знает.
+const CLOSE_RE = /(^|\r?\n|\})[ \t]*```[ \t]*(?=\r?\n|$)/;
 // Во время стрима OPEN_RE ещё не совпадает, пока модель не дописала слово
 // "ask" и перевод строки после него — а до этого момента в тексте виден сырой
 // «```», «```a», «```as» или «```ask», который через мгновение исчезнет за
@@ -114,7 +117,9 @@ export function extractAskBlocks(
       rest = '';
       break;
     }
-    const body = close ? tail.slice(0, close.index) : tail;
+    // «}```»: скобка — часть JSON, её оставляем в теле.
+    const bodyEnd = close ? close.index + (close[1] === '}' ? 1 : 0) : tail.length;
+    const body = tail.slice(0, bodyEnd);
     const questions = parseAskJson(body);
     asks.set(id, questions ? { kind: 'card', questions } : { kind: 'fallback', text: askFallbackText(body) });
     rest = close ? tail.slice(close.index + close[0].length) : '';

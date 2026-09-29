@@ -117,3 +117,12 @@ describe('известное ограничение: ask внутри внешн
     expect(asks.get('0')).toEqual({ kind: 'card', questions: [Q] });
   });
 });
+
+describe('закрывающие бэктики на одной строке с JSON', () => {
+  it('«}```» — всё равно карточка, а не текст вместо неё', () => {
+    const src = '```ask\n{"questions":[{"question":"Тон?","options":["Тёплый","Деловой"]}]}```\nпосле';
+    const { content, asks } = extractAskBlocks(src);
+    expect(asks.get('0')?.kind).toBe('card');
+    expect(content).toBe('__ASK_0__\nпосле');
+  });
+});
