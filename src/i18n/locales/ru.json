@@ -368,7 +368,49 @@
         "linkeon": "Linkeon"
       }
     },
-    "actions_title": "Действия с чатом"
+    "actions_title": "Действия с чатом",
+    "activity": {
+      "thinking": "Думает",
+      "sec": "{{s}} с",
+      "min_sec": "{{m}} мин {{s}} с",
+      "steps_one": "{{count}} шаг",
+      "steps_few": "{{count}} шага",
+      "steps_many": "{{count}} шагов",
+      "steps_other": "{{count}} шага",
+      "show": "Показать шаги",
+      "hide": "Скрыть шаги",
+      "kind": {
+        "web_search": "Ищу в интернете",
+        "web_fetch": "Читаю страницу",
+        "read_upload": "Читаю ваш файл",
+        "read_file": "Читаю файл",
+        "read_file_plain": "Изучаю материалы",
+        "write_file": "Готовлю файл",
+        "search_files": "Ищу в материалах",
+        "compute": "Обрабатываю данные",
+        "image_generate": "Рисую изображение",
+        "image_edit": "Дорабатываю изображение",
+        "video": "Запускаю генерацию видео",
+        "speech": "Озвучиваю текст",
+        "calendar_read": "Смотрю календарь",
+        "calendar_propose": "Готовлю событие в календарь",
+        "routine": "Настраиваю напоминание",
+        "notes": "Работаю с заметками",
+        "messages_read": "Смотрю сообщения",
+        "message_send": "Отправляю сообщение",
+        "mail_read": "Смотрю почту",
+        "mail_send": "Отправляю письмо",
+        "product": "Работаю над вашим сайтом или ботом",
+        "other": "Работаю над задачей"
+      }
+    },
+    "ask": {
+      "custom": "Свой вариант",
+      "custom_placeholder": "Ваш ответ",
+      "submit": "Ответить",
+      "multi_hint": "Можно выбрать несколько",
+      "preparing": "Готовлю вопрос…"
+    }
   },
   "profile": {
     "title": "Мой профиль",

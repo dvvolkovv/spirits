@@ -366,7 +366,48 @@
         "linkeon": "Linkeon"
       }
     },
-    "actions_title": "Actions du chat"
+    "actions_title": "Actions du chat",
+    "activity": {
+      "thinking": "Réfléchit",
+      "sec": "{{s}} s",
+      "min_sec": "{{m}} min {{s}} s",
+      "steps_one": "{{count}} étape",
+      "steps_many": "{{count}} d'étapes",
+      "steps_other": "{{count}} étapes",
+      "show": "Afficher les étapes",
+      "hide": "Masquer les étapes",
+      "kind": {
+        "web_search": "Recherche sur internet",
+        "web_fetch": "Lecture d'une page",
+        "read_upload": "Lecture de ton fichier",
+        "read_file": "Lecture d'un fichier",
+        "read_file_plain": "Examen des documents",
+        "write_file": "Préparation d'un fichier",
+        "search_files": "Recherche dans les documents",
+        "compute": "Traitement des données",
+        "image_generate": "Création d'une image",
+        "image_edit": "Retouche de l'image",
+        "video": "Lancement de la génération vidéo",
+        "speech": "Mise en voix du texte",
+        "calendar_read": "Consultation du calendrier",
+        "calendar_propose": "Préparation d'un événement",
+        "routine": "Configuration d'un rappel",
+        "notes": "Travail sur les notes",
+        "messages_read": "Consultation des messages",
+        "message_send": "Envoi d'un message",
+        "mail_read": "Consultation du courrier",
+        "mail_send": "Envoi d'un e-mail",
+        "product": "Travail sur ton site ou ton bot",
+        "other": "Travail sur la tâche"
+      }
+    },
+    "ask": {
+      "custom": "Autre réponse",
+      "custom_placeholder": "Ta réponse",
+      "submit": "Répondre",
+      "multi_hint": "Plusieurs choix possibles",
+      "preparing": "Préparation d'une question…"
+    }
   },
   "profile": {
     "title": "Mon profil",

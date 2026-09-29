@@ -362,7 +362,46 @@
         "linkeon": "Linkeon"
       }
     },
-    "actions_title": "聊天操作"
+    "actions_title": "聊天操作",
+    "activity": {
+      "thinking": "思考中",
+      "sec": "{{s}} 秒",
+      "min_sec": "{{m}} 分 {{s}} 秒",
+      "steps_other": "{{count}} 个步骤",
+      "show": "显示步骤",
+      "hide": "隐藏步骤",
+      "kind": {
+        "web_search": "正在搜索网络",
+        "web_fetch": "正在阅读网页",
+        "read_upload": "正在阅读你的文件",
+        "read_file": "正在阅读文件",
+        "read_file_plain": "正在查看资料",
+        "write_file": "正在准备文件",
+        "search_files": "正在查找资料",
+        "compute": "正在处理数据",
+        "image_generate": "正在绘制图片",
+        "image_edit": "正在修改图片",
+        "video": "正在启动视频生成",
+        "speech": "正在为文本配音",
+        "calendar_read": "正在查看日历",
+        "calendar_propose": "正在准备日历事件",
+        "routine": "正在设置提醒",
+        "notes": "正在处理笔记",
+        "messages_read": "正在查看消息",
+        "message_send": "正在发送消息",
+        "mail_read": "正在查看邮件",
+        "mail_send": "正在发送邮件",
+        "product": "正在处理你的网站或机器人",
+        "other": "正在处理任务"
+      }
+    },
+    "ask": {
+      "custom": "其他答案",
+      "custom_placeholder": "你的回答",
+      "submit": "回答",
+      "multi_hint": "可多选",
+      "preparing": "正在准备问题…"
+    }
   },
   "profile": {
     "title": "我的个人资料",

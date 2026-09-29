@@ -364,7 +364,47 @@
         "linkeon": "Linkeon"
       }
     },
-    "actions_title": "Chat-Aktionen"
+    "actions_title": "Chat-Aktionen",
+    "activity": {
+      "thinking": "Denkt nach",
+      "sec": "{{s}} s",
+      "min_sec": "{{m}} Min. {{s}} s",
+      "steps_one": "{{count}} Schritt",
+      "steps_other": "{{count}} Schritte",
+      "show": "Schritte anzeigen",
+      "hide": "Schritte ausblenden",
+      "kind": {
+        "web_search": "Suche im Internet",
+        "web_fetch": "Lese eine Seite",
+        "read_upload": "Lese deine Datei",
+        "read_file": "Lese eine Datei",
+        "read_file_plain": "Sehe die Unterlagen durch",
+        "write_file": "Bereite eine Datei vor",
+        "search_files": "Durchsuche die Unterlagen",
+        "compute": "Verarbeite Daten",
+        "image_generate": "Zeichne ein Bild",
+        "image_edit": "Überarbeite das Bild",
+        "video": "Starte die Videoerstellung",
+        "speech": "Vertone den Text",
+        "calendar_read": "Sehe in den Kalender",
+        "calendar_propose": "Bereite einen Kalendertermin vor",
+        "routine": "Richte eine Erinnerung ein",
+        "notes": "Arbeite mit Notizen",
+        "messages_read": "Sehe Nachrichten durch",
+        "message_send": "Sende eine Nachricht",
+        "mail_read": "Sehe E-Mails durch",
+        "mail_send": "Sende eine E-Mail",
+        "product": "Arbeite an deiner Website oder deinem Bot",
+        "other": "Arbeite an der Aufgabe"
+      }
+    },
+    "ask": {
+      "custom": "Eigene Antwort",
+      "custom_placeholder": "Deine Antwort",
+      "submit": "Antworten",
+      "multi_hint": "Mehrfachauswahl möglich",
+      "preparing": "Bereite eine Frage vor…"
+    }
   },
   "profile": {
     "title": "Mein Profil",
