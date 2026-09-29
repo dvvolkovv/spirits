@@ -54,7 +54,7 @@ export function LiveActivity({ activity }: { activity: TurnActivity }) {
   }
   return (
     <div className="mb-2 not-prose">
-      <ul className="space-y-0.5">
+      <ul className="space-y-0.5" aria-live="polite">
         {activity.steps.map((s, i) => <StepRow key={i} step={s} />)}
       </ul>
       <div className="text-[11px] text-gray-400 mt-1">{elapsed}</div>

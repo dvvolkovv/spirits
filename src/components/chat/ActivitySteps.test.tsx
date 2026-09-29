@@ -55,4 +55,15 @@ describe('шаги работы на экране', () => {
     const { container } = mount(<ActivitySummaryView summary={summary} />);
     expect(visibleText(container)).toContain('1 шаг · 3 мин 5 с');
   });
+
+  it('список шагов объявляется скринридером — aria-live на списке, не на тикающем таймере', () => {
+    const a = addStep(startActivity(Date.now()), 'compute');
+    const { container } = mount(<LiveActivity activity={a} />);
+    const ul = container.querySelector('ul')!;
+    expect(ul.getAttribute('aria-live')).toBe('polite');
+    // Таймер меняется каждую секунду — если бы aria-live висел на его
+    // контейнере, скринридер зачитывал бы «5 с», «6 с», «7 с» без остановки.
+    const timer = container.querySelector('.text-\\[11px\\]');
+    expect(timer?.getAttribute('aria-live')).toBeNull();
+  });
 });
