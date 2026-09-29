@@ -25,6 +25,14 @@ const MAX_QUESTIONS = 3;
 const MAX_OPTIONS = 4;
 const OPEN_RE = /(^|\n)[ \t]*```[ \t]*ask[ \t]*\r?\n/i;
 const CLOSE_RE = /(^|\r?\n)[ \t]*```[ \t]*(?=\r?\n|$)/;
+// Во время стрима OPEN_RE ещё не совпадает, пока модель не дописала слово
+// "ask" и перевод строки после него — а до этого момента в тексте виден сырой
+// «```», «```a», «```as» или «```ask», который через мгновение исчезнет за
+// карточкой. Эта строка — только в самом хвосте текста (иначе где-то
+// «застрявшая» ```-строка посреди готового ответа пряталась бы навсегда) и
+// только для префиксов именно слова "ask": другой язык (```js) — это не
+// недописанный ask, а обычный код, его трогать нельзя.
+const TRAILING_PARTIAL_OPEN_RE = /(^|\n)[ \t]*`{1,3}[ \t]*(?:a(?:s(?:k)?)?)?[ \t]*$/i;
 
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
@@ -111,7 +119,11 @@ export function extractAskBlocks(
     asks.set(id, questions ? { kind: 'card', questions } : { kind: 'fallback', text: askFallbackText(body) });
     rest = close ? tail.slice(close.index + close[0].length) : '';
   }
-  return { content: out + rest, asks };
+  let result = out + rest;
+  if (opts.streaming) {
+    result = result.replace(TRAILING_PARTIAL_OPEN_RE, '$1');
+  }
+  return { content: result, asks };
 }
 
 /** Текст для копирования: вместо блоков — вопросы и варианты. */
