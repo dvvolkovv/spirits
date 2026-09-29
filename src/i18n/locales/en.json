@@ -364,7 +364,47 @@
         "linkeon": "Linkeon"
       }
     },
-    "actions_title": "Chat actions"
+    "actions_title": "Chat actions",
+    "activity": {
+      "thinking": "Thinking",
+      "sec": "{{s}}s",
+      "min_sec": "{{m}}m {{s}}s",
+      "steps_one": "{{count}} step",
+      "steps_other": "{{count}} steps",
+      "show": "Show steps",
+      "hide": "Hide steps",
+      "kind": {
+        "web_search": "Searching the web",
+        "web_fetch": "Reading a page",
+        "read_upload": "Reading your file",
+        "read_file": "Reading a file",
+        "read_file_plain": "Reviewing materials",
+        "write_file": "Preparing a file",
+        "search_files": "Searching the materials",
+        "compute": "Processing data",
+        "image_generate": "Drawing an image",
+        "image_edit": "Refining the image",
+        "video": "Starting video generation",
+        "speech": "Voicing the text",
+        "calendar_read": "Checking the calendar",
+        "calendar_propose": "Preparing a calendar event",
+        "routine": "Setting up a reminder",
+        "notes": "Working with notes",
+        "messages_read": "Checking messages",
+        "message_send": "Sending a message",
+        "mail_read": "Checking mail",
+        "mail_send": "Sending an email",
+        "product": "Working on your website or bot",
+        "other": "Working on the task"
+      }
+    },
+    "ask": {
+      "custom": "Other",
+      "custom_placeholder": "Your answer",
+      "submit": "Reply",
+      "multi_hint": "You can pick several",
+      "preparing": "Preparing a question…"
+    }
   },
   "profile": {
     "title": "My profile",

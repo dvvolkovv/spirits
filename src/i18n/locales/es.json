@@ -366,7 +366,48 @@
         "linkeon": "Linkeon"
       }
     },
-    "actions_title": "Acciones del chat"
+    "actions_title": "Acciones del chat",
+    "activity": {
+      "thinking": "Pensando",
+      "sec": "{{s}} s",
+      "min_sec": "{{m}} min {{s}} s",
+      "steps_one": "{{count}} paso",
+      "steps_many": "{{count}} de pasos",
+      "steps_other": "{{count}} pasos",
+      "show": "Mostrar pasos",
+      "hide": "Ocultar pasos",
+      "kind": {
+        "web_search": "Buscando en internet",
+        "web_fetch": "Leyendo una página",
+        "read_upload": "Leyendo tu archivo",
+        "read_file": "Leyendo un archivo",
+        "read_file_plain": "Revisando materiales",
+        "write_file": "Preparando un archivo",
+        "search_files": "Buscando en los materiales",
+        "compute": "Procesando datos",
+        "image_generate": "Dibujando una imagen",
+        "image_edit": "Retocando la imagen",
+        "video": "Iniciando la generación del vídeo",
+        "speech": "Poniendo voz al texto",
+        "calendar_read": "Consultando el calendario",
+        "calendar_propose": "Preparando un evento de calendario",
+        "routine": "Configurando un recordatorio",
+        "notes": "Trabajando con notas",
+        "messages_read": "Revisando mensajes",
+        "message_send": "Enviando un mensaje",
+        "mail_read": "Revisando el correo",
+        "mail_send": "Enviando un correo",
+        "product": "Trabajando en tu sitio web o bot",
+        "other": "Trabajando en la tarea"
+      }
+    },
+    "ask": {
+      "custom": "Otra respuesta",
+      "custom_placeholder": "Tu respuesta",
+      "submit": "Responder",
+      "multi_hint": "Puedes elegir varias",
+      "preparing": "Preparando una pregunta…"
+    }
   },
   "profile": {
     "title": "Mi perfil",

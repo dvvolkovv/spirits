@@ -1,5 +1,6 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
+import { extractAskBlocks, type AskBlock } from './askBlock';
 
 export interface ButtonConfig {
   text: string;
@@ -69,7 +70,7 @@ const VOICE_CALL_REGEX = /\{\{voice_call:\s*id=([a-f0-9-]{36})\}\}/g;
 const MEETING_JOIN_REGEX =
   /\{\{meeting_join:\s*(?:provider=(talerid|meet|zoom|teams|telemost)\s+)?code=([2-9A-HJ-NP-Z]{6}|[A-Fa-f0-9]{6,64}|[a-z]{3}-[a-z]{4}-[a-z]{3}|\d{9,20})\s+(?:url=([^\s{}]+)\s+)?title=([^}]*?)\}\}/g;
 
-export const parseCustomMarkdown = (content: string): {
+export const parseCustomMarkdown = (content: string, opts: { streaming?: boolean } = {}): {
   content: string;
   buttons: Map<string, ButtonConfig>;
   links: Map<string, LinkConfig>;
@@ -78,6 +79,7 @@ export const parseCustomMarkdown = (content: string): {
   audioClips: Map<string, string>;
   voiceCalls: Map<string, string>;
   meetings: Map<string, MeetingCard>;
+  asks: Map<string, AskBlock>;
 } => {
   const buttons = new Map<string, ButtonConfig>();
   const links = new Map<string, LinkConfig>();
@@ -87,7 +89,10 @@ export const parseCustomMarkdown = (content: string): {
   const voiceCalls = new Map<string, string>();
   const meetings = new Map<string, MeetingCard>();
 
-  let parsedContent = content;
+  // Первым делом — блоки уточняющих вопросов: внутри них JSON, и регулярки
+  // ссылок и картинок ниже разобрали бы варианты ответа как разметку.
+  const { content: withoutAsks, asks } = extractAskBlocks(content, opts);
+  let parsedContent = withoutAsks;
 
   parsedContent = parsedContent.replace(BUTTON_REGEX, (match, text, action, variant, icon) => {
     const buttonId = `btn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -153,7 +158,7 @@ export const parseCustomMarkdown = (content: string): {
     return `__MEETING_${key}__`;
   });
 
-  return { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings };
+  return { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks };
 };
 
 export const createVideoComponent = (src: string, key?: string): React.ReactNode => {
