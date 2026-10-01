@@ -5,6 +5,7 @@ import { apiClient } from '../../services/apiClient';
 import { resolveLanguage } from '../../i18n/languages';
 import { avatarService } from '../../services/avatarService';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
+import { takePendingAssistant } from '../../utils/pendingAssistant';
 import { clsx } from 'clsx';
 
 interface Assistant {
@@ -17,9 +18,17 @@ interface Assistant {
 
 interface ChatLayoutProps {
   children: (props: { selectedAssistant: Assistant | null; onSelectAssistant: (a: Assistant) => void; assistants: Assistant[] }) => React.ReactNode;
+  /**
+   * Ассистент выбран по ссылке: ?assistant= или выбор, запомненный до входа.
+   * `null` — ссылка была (параметр или запомненное значение присутствовали),
+   * но такого ассистента в текущем ростере нет (сняли после выката лендинга):
+   * человек ничего не выбирал, это не повод закрывать онбординг или прятать
+   * экран выбора темы.
+   */
+  onDeepLink?: (a: Assistant | null) => void;
 }
 
-const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
+const ChatLayout: React.FC<ChatLayoutProps> = ({ children, onDeepLink }) => {
   const { t, i18n } = useTranslation();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
@@ -104,12 +113,39 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   // путь тот же, а прежний эффект был one-shot по ref + deps [assistants].
   const location = useLocation();
   const lastAppliedNav = useRef<string>('');
+
+  // Через ref: эффект deep-link не должен перезапускаться от новой функции на
+  // каждом рендере родителя. Синхронизация — эффектом, объявленным раньше:
+  // в одном коммите он отрабатывает первым.
+  const onDeepLinkRef = useRef(onDeepLink);
+  useEffect(() => {
+    onDeepLinkRef.current = onDeepLink;
+  }, [onDeepLink]);
+
+  // Исход ссылки родитель узнаёт хотя бы раз — при первом прогоне с
+  // загруженным списком. Иначе ChatPage остался бы в 'pending' и спрятал экран
+  // тем у новичка, когда ссылки на деле нет (запись стёрла ветка resume,
+  // параметр пропал из адреса до загрузки списка, запись истекла).
+  const settledRef = useRef(false);
+  const report = (a: Assistant | null) => {
+    settledRef.current = true;
+    onDeepLinkRef.current?.(a);
+  };
+
   useEffect(() => {
     if (assistants.length === 0) return;
     const params = new URLSearchParams(location.search);
-    const q = params.get('assistant');
+    const fromUrl = params.get('assistant')?.trim() || null;
     const resume = params.get('resume') === '1';
-    if (!q && !resume) return;
+    // Выбор, сделанный до входа (страница ассистента → экран входа → голый
+    // /chat), см. utils/pendingAssistant.ts. Забирается всегда: явный параметр
+    // в адресе побеждает, и запомненное не должно всплыть при следующем переходе.
+    const pending = takePendingAssistant();
+    const q = fromUrl || (resume ? null : pending);
+    if (!q && !resume) {
+      if (!settledRef.current) report(null);
+      return;
+    }
     const navKey = location.key + '|' + location.search;
     if (lastAppliedNav.current === navKey) return;
     lastAppliedNav.current = navKey;
@@ -127,7 +163,14 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
         (a.name || '').toLowerCase() === norm ||
         (a.displayName || '').toLowerCase() === norm,
       );
-      if (match) handleSelect(match);
+      if (match) {
+        handleSelect(match);
+        report(match);
+      } else {
+        // Ссылка была (id/имя в параметре или в запомненном до входа выборе),
+        // но в текущем ростере такого ассистента нет.
+        report(null);
+      }
     } else if (resume) {
       try {
         const last = localStorage.getItem('linkeon_last_assistant');
@@ -141,6 +184,11 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
           }
         }
       } catch { /* нет сохранённого — просто останется пикер */ }
+      // resume — не ссылка на конкретного ассистента (как ?assistant=), это
+      // отдельный смысл («Продолжить»). Для ChatPage исход — null, даже если
+      // resume нашёл и выбрал последнего ассистента: выбор применился через
+      // handleSelect выше, а deep-link-состояние родителя тут ни при чём.
+      if (!settledRef.current) report(null);
     }
   }, [assistants, location.key, location.search]);
 

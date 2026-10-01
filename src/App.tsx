@@ -8,6 +8,7 @@ import Navigation from './components/layout/Navigation';
 import ReferralWelcomeBanner from './components/referral/ReferralWelcomeBanner';
 import AuthLinkPage from './pages/AuthLinkPage';                // eager: сюда уводит остановленный вход, аккаунта ещё нет
 import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
+import RootRedirect from './components/RootRedirect';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track, trackAuthed } from './services/eventsClient';
@@ -246,7 +247,7 @@ const AppContent: React.FC = () => {
             <Route path="/contact-requests" element={<ContactRequestsPage />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
-            <Route path="/" element={<Navigate to="/chat" replace />} />
+            <Route path="/" element={<RootRedirect />} />
           </Routes>
           </Suspense>
         </ErrorBoundary>
