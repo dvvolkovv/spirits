@@ -1308,6 +1308,7 @@ describe('реальный кейс', () => {
     expect((q('blog-new-topic') as HTMLTextAreaElement).value).toHaveLength(4001);
     expect(q('blog-new-topic')!.hasAttribute('maxlength')).toBe(false);
     expect(q('blog-real-case-count')!.textContent).toContain('4001 / 4000');
+    expect(q('blog-real-case-count')!.classList.contains('text-red-600')).toBe(true);
     expect((q('blog-add-topic') as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -1320,6 +1321,60 @@ describe('реальный кейс', () => {
     expect(q('blog-story-hint')?.textContent).toContain('Реальный кейс');
 
     await choose('blog-new-rubric', 'real');
+    expect(q('blog-story-hint')).toBeNull();
+    expect((q('blog-new-topic') as HTMLTextAreaElement).value).toBe('а'.repeat(250));
+  });
+
+  // Однострочное поле вырезает переносы: общая строка склеила бы абзацы истории
+  // при переключении «Реальный кейс» → «Кейс» и обратно.
+  it('история не портится при переключении режимов', async () => {
+    setup();
+    await mount();
+    await choose('blog-new-rubric', 'real');
+    await type('blog-new-topic', STORY);
+    await choose('blog-new-rubric', 'case');
+    await type('blog-new-topic', 'другая тема');
+    await choose('blog-new-rubric', 'real');
+
+    expect((q('blog-new-topic') as HTMLTextAreaElement).value).toBe(STORY);
+  });
+
+  // Отказ бэка (коротко, длинно) — причина в баннере, история остаётся в поле.
+  it('отказ бэка — причина видна, история в поле цела', async () => {
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'list') return res(200, []);
+      if (payload.action === 'add_topic') {
+        return res(400, { statusCode: 400, message: 'история слишком короткая: нужно хотя бы 40 знаков', error: 'Bad Request' });
+      }
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+    await choose('blog-new-rubric', 'real');
+    await type('blog-new-topic', 'коротко\nи ясно');
+    await click('blog-add-topic');
+
+    expect(q('blog-error')!.textContent).toContain('история слишком короткая');
+    expect((q('blog-new-topic') as HTMLTextAreaElement).value).toBe('коротко\nи ясно');
+  });
+
+  it('ровно 4000 знаков — можно: кнопка активна, счётчик не красный', async () => {
+    setup();
+    await mount();
+    await choose('blog-new-rubric', 'real');
+    await type('blog-new-topic', 'а'.repeat(4000));
+
+    expect((q('blog-add-topic') as HTMLButtonElement).disabled).toBe(false);
+    expect(q('blog-real-case-count')!.classList.contains('text-red-600')).toBe(false);
+  });
+
+  it('подсказки нет на коротком тексте и в режиме «Новинка»', async () => {
+    setup();
+    await mount();
+    await type('blog-new-topic', 'а'.repeat(200));
+    expect(q('blog-story-hint')).toBeNull();
+
+    await choose('blog-new-rubric', 'news');
+    await type('blog-new-topic', 'а'.repeat(250));
     expect(q('blog-story-hint')).toBeNull();
   });
 });
