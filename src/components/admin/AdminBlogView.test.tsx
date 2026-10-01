@@ -1230,3 +1230,96 @@ describe('«Опубликовать сейчас»', () => {
     expect(blog.get('k1').body).toBe('Текст про Киру, исправленный');
   });
 });
+
+describe('реальный кейс', () => {
+  const STORY = 'Рассказчик — Дмитрий, основатель Linkeon.\nРоман прочитал полис КАСКО целиком.';
+
+  /** Выбор в списке — React слушает change, а значение ставится через прототип. */
+  const choose = async (testid: string, value: string) => {
+    const el = q(testid) as HTMLSelectElement;
+    if (!el) throw new Error(`нет списка ${testid}`);
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(el, value);
+    await act(async () => {
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  };
+
+  const setup = (posts: any[] = []) => {
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'list') return res(200, posts);
+      if (payload.action === 'add_topic') return res(200, { id: 'new' });
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+  };
+
+  it('«Реальный кейс» превращает строку темы в многострочное поле', async () => {
+    setup();
+    await mount();
+    expect(q('blog-new-topic')!.tagName).toBe('INPUT');
+
+    await choose('blog-new-rubric', 'real');
+
+    expect(q('blog-new-topic')!.tagName).toBe('TEXTAREA');
+  });
+
+  it('история уходит целиком, с переносами строк, как реальный кейс — без рубрики', async () => {
+    setup();
+    await mount();
+    await choose('blog-new-rubric', 'real');
+    await type('blog-new-topic', STORY);
+    await click('blog-add-topic');
+
+    expect(sentActions().find((a) => a.action === 'add_topic')).toEqual({ action: 'add_topic', kind: 'real', topic: STORY });
+  });
+
+  it('обычная тема уходит как раньше — с рубрикой и без kind', async () => {
+    setup();
+    await mount();
+    await type('blog-new-topic', 'про аренду');
+    await click('blog-add-topic');
+
+    expect(sentActions().find((a) => a.action === 'add_topic')).toEqual({ action: 'add_topic', rubric: 'case', topic: 'про аренду' });
+  });
+
+  // Сверяем саму подпись поста, а не весь экран: в списке рубрик над очередью
+  // есть пункт «Реальный кейс», и проверка по textContent зеленела бы без правки.
+  it('реальный кейс в очереди подписан словами, а не кодом источника', async () => {
+    setup([{ ...basePost, source: 'real', status: 'idea', title: null, body: null }]);
+    await mount();
+
+    expect(q('blog-rubric-p1')?.textContent).toBe('Реальный кейс');
+  });
+
+  it('у остальных постов подпись прежняя — рубрика и источник', async () => {
+    setup([{ ...basePost, source: 'stats', status: 'idea', title: null, body: null }]);
+    await mount();
+
+    expect(q('blog-rubric-p1')?.textContent).toBe('Кейс · stats');
+  });
+
+  // maxLength молча режет вставку — у истории пропал бы финал. Вместо него
+  // счётчик и неактивная кнопка: лишнее не уходит, но и не теряется.
+  it('длинная история не обрезается: счётчик краснеет, кнопка неактивна', async () => {
+    setup();
+    await mount();
+    await choose('blog-new-rubric', 'real');
+    await type('blog-new-topic', 'а'.repeat(4001));
+
+    expect((q('blog-new-topic') as HTMLTextAreaElement).value).toHaveLength(4001);
+    expect(q('blog-new-topic')!.hasAttribute('maxlength')).toBe(false);
+    expect(q('blog-real-case-count')!.textContent).toContain('4001 / 4000');
+    expect((q('blog-add-topic') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // История, вставленная в режиме обычной темы, ушла бы выдуманным кейсом: поле
+  // срежет абзацы, а правила кейса перескажут её вымыслом. Подсказка — до отправки.
+  it('длинный текст в режиме «Кейс» — подсказка выбрать «Реальный кейс»', async () => {
+    setup();
+    await mount();
+    await type('blog-new-topic', 'а'.repeat(250));
+    expect(q('blog-story-hint')?.textContent).toContain('Реальный кейс');
+
+    await choose('blog-new-rubric', 'real');
+    expect(q('blog-story-hint')).toBeNull();
+  });
+});
