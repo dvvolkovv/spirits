@@ -122,17 +122,30 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children, onDeepLink }) => {
     onDeepLinkRef.current = onDeepLink;
   }, [onDeepLink]);
 
+  // Исход ссылки родитель узнаёт хотя бы раз — при первом прогоне с
+  // загруженным списком. Иначе ChatPage остался бы в 'pending' и спрятал экран
+  // тем у новичка, когда ссылки на деле нет (запись стёрла ветка resume,
+  // параметр пропал из адреса до загрузки списка, запись истекла).
+  const settledRef = useRef(false);
+  const report = (a: Assistant | null) => {
+    settledRef.current = true;
+    onDeepLinkRef.current?.(a);
+  };
+
   useEffect(() => {
     if (assistants.length === 0) return;
     const params = new URLSearchParams(location.search);
-    const fromUrl = params.get('assistant');
+    const fromUrl = params.get('assistant')?.trim() || null;
     const resume = params.get('resume') === '1';
     // Выбор, сделанный до входа (страница ассистента → экран входа → голый
     // /chat), см. utils/pendingAssistant.ts. Забирается всегда: явный параметр
     // в адресе побеждает, и запомненное не должно всплыть при следующем переходе.
     const pending = takePendingAssistant();
     const q = fromUrl || (resume ? null : pending);
-    if (!q && !resume) return;
+    if (!q && !resume) {
+      if (!settledRef.current) report(null);
+      return;
+    }
     const navKey = location.key + '|' + location.search;
     if (lastAppliedNav.current === navKey) return;
     lastAppliedNav.current = navKey;
@@ -152,11 +165,11 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children, onDeepLink }) => {
       );
       if (match) {
         handleSelect(match);
-        onDeepLinkRef.current?.(match);
+        report(match);
       } else {
         // Ссылка была (id/имя в параметре или в запомненном до входа выборе),
         // но в текущем ростере такого ассистента нет.
-        onDeepLinkRef.current?.(null);
+        report(null);
       }
     } else if (resume) {
       try {
@@ -171,6 +184,11 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children, onDeepLink }) => {
           }
         }
       } catch { /* нет сохранённого — просто останется пикер */ }
+      // resume — не ссылка на конкретного ассистента (как ?assistant=), это
+      // отдельный смысл («Продолжить»). Для ChatPage исход — null, даже если
+      // resume нашёл и выбрал последнего ассистента: выбор применился через
+      // handleSelect выше, а deep-link-состояние родителя тут ни при чём.
+      if (!settledRef.current) report(null);
     }
   }, [assistants, location.key, location.search]);
 

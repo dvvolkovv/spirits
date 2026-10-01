@@ -47,6 +47,7 @@ vi.mock('../components/chat/ChatInterface', () => ({
 }));
 
 import ChatPage from './ChatPage';
+import { apiClient } from '../services/apiClient';
 
 const PICKER = tRu('onboarding.match.subtitle');
 let view: Mounted | null = null;
@@ -189,5 +190,44 @@ describe('приветствие привязано к ассистенту, н�
     const text2 = visibleText(view!.container);
     expect(text2).toContain('чат: Оля');
     expect(text2).not.toContain('Я Райя');
+  });
+});
+
+describe('исход ссылки сообщается всегда — новичок не застревает без экрана тем', () => {
+  it('пустой ?assistant= — не ссылка: новичок видит экран выбора темы', async () => {
+    const text = await open('/chat?assistant=');
+    expect(text).toContain(PICKER);
+    expect(auth.completeOnboarding).not.toHaveBeenCalled();
+  });
+
+  it('пока список грузится, экран тем не мелькает', async () => {
+    // Ответ списка откладываем: пока он не пришёл, ChatLayout не прогнал
+    // deep-link-эффект ни разу, и deepLink в ChatPage должен оставаться
+    // 'pending' (не 'none') — иначе экран тем мигнёт поверх открывающегося чата.
+    let resolveAgents!: (v: { ok: boolean; json: () => Promise<typeof AGENTS> }) => void;
+    vi.mocked(apiClient.get).mockImplementationOnce(
+      () => new Promise((resolve) => { resolveAgents = resolve; }),
+    );
+
+    view = mount(page('/chat?assistant=14'));
+    await flush();
+    expect(visibleText(view.container)).not.toContain(PICKER);
+
+    resolveAgents({ ok: true, json: async () => AGENTS });
+    for (let i = 0; i < 6; i++) await flush();
+    const text = visibleText(view.container);
+    expect(text).toContain('чат: Райя');
+    expect(text).not.toContain(PICKER);
+  });
+
+  it('ссылка исчезла до загрузки списка (resume забрал запись, совпадения нет) — новичку экран тем', async () => {
+    // deepLink стартует как 'pending' из-за непросроченной записи. Ветка resume
+    // забирает её первой (?resume=1 важнее запомненного), linkeon_last_assistant
+    // пуст — никого не находит. Исход должен прийти null, а не оставить
+    // deepLink в 'pending' навечно (тогда экран тем не показался бы никогда).
+    localStorage.setItem('pending_assistant', JSON.stringify({ value: '14', expires: Date.now() + 60_000 }));
+    const text = await open('/chat?resume=1');
+    expect(text).toContain(PICKER);
+    expect(auth.completeOnboarding).not.toHaveBeenCalled();
   });
 });
