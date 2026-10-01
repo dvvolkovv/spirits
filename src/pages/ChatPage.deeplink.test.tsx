@@ -14,6 +14,10 @@ const AGENTS = [
   { id: 14, name: 'Райя', displayName: 'Райя', description: 'Human Design ридер', category: 'personal' },
 ];
 type Agent = (typeof AGENTS)[number];
+// Форма ответа мока apiClient.get в тестах — не настоящий Response (у него
+// нет headers/status/clone/…), поэтому отложенный промис типизируем явно
+// этим типом, а не выводом из реальной сигнатуры apiClient.get.
+type AgentsResponse = { ok: boolean; json: () => Promise<typeof AGENTS> };
 
 const auth = vi.hoisted(() => ({
   user: { onboarded: false } as { onboarded?: boolean },
@@ -204,9 +208,13 @@ describe('исход ссылки сообщается всегда — нови
     // Ответ списка откладываем: пока он не пришёл, ChatLayout не прогнал
     // deep-link-эффект ни разу, и deepLink в ChatPage должен оставаться
     // 'pending' (не 'none') — иначе экран тем мигнёт поверх открывающегося чата.
-    let resolveAgents!: (v: { ok: boolean; json: () => Promise<typeof AGENTS> }) => void;
+    let resolveAgents!: (v: AgentsResponse) => void;
+    const deferred = new Promise<AgentsResponse>((resolve) => { resolveAgents = resolve; });
+    // apiClient.get в реальной сигнатуре отдаёт Promise<Response> — мок отдаёт
+    // облегчённую форму (см. AgentsResponse выше), отсюда честное приведение
+    // на границе мока, а не подгонка типа самого промиса.
     vi.mocked(apiClient.get).mockImplementationOnce(
-      () => new Promise((resolve) => { resolveAgents = resolve; }),
+      () => deferred as unknown as ReturnType<typeof apiClient.get>,
     );
 
     view = mount(page('/chat?assistant=14'));
