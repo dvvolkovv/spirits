@@ -260,6 +260,10 @@ const AdminBlogView: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [newTopic, setNewTopic] = useState('');
+  // Реальный кейс — своё поле: однострочный input вырезает переносы строк, и
+  // общая строка при переключении «Реальный кейс» → «Кейс» молча склеила бы
+  // абзацы истории.
+  const [newStory, setNewStory] = useState('');
   const [newRubric, setNewRubric] = useState<NewTopicKind>('case');
   const [editing, setEditing] = useState<Record<string, Draft>>({});
   const [picker, setPicker] = useState<SlotPicker | null>(null);
@@ -541,25 +545,30 @@ const AdminBlogView: React.FC = () => {
   };
 
   const addTopic = async () => {
-    const topic = newTopic.trim();
+    const real = newRubric === 'real';
+    const sent = real ? newStory : newTopic;
+    const topic = sent.trim();
     if (!topic) return;
     // Реальный кейс — история целиком: бэк сам знает, что это кейс, и рубрику
     // для него не читает.
-    const payload = newRubric === 'real'
+    const payload = real
       ? { action: 'add_topic', kind: 'real', topic }
       : { action: 'add_topic', rubric: newRubric, topic };
-    if (await act(payload)) setNewTopic('');
+    // Пока идёт запрос, поле редактируемо: стираем, только если текст не меняли.
+    const clear = (cur: string) => (cur === sent ? '' : cur);
+    if (await act(payload)) (real ? setNewStory : setNewTopic)(clear);
   };
 
   // Длина истории — один раз за рендер: ею живут и счётчик, и кнопка.
-  const realCaseLen = newRubric === 'real' ? realCaseChars(newTopic) : 0;
+  const realCaseLen = newRubric === 'real' ? realCaseChars(newStory) : 0;
   // Сверх предела история не уходит: бэк её отклонит, а резать её мы не
   // станем — пропал бы финал.
   const realCaseTooLong = realCaseLen > REAL_CASE_MAX_CHARS;
-  // Длинный текст в режиме обычной темы почти наверняка история, вставленная
-  // не туда: однострочное поле срежет абзацы, а правила выдуманного кейса
-  // перескажут её вымыслом. Не запрещаем — подсказываем.
-  const looksLikeStory = newRubric !== 'real' && newTopic.trim().length > STORY_HINT_CHARS;
+  // Длинный текст именно в «Кейсе» почти наверняка история, вставленная не
+  // туда: однострочное поле срежет абзацы, а правила выдуманного кейса
+  // перескажут её вымыслом. В «Новинке» подсказка про кейс была бы не к
+  // месту, поэтому только «Кейс». Не запрещаем — подсказываем.
+  const looksLikeStory = newRubric === 'case' && newTopic.trim().length > STORY_HINT_CHARS;
 
   const toggleDay = (day: number) => {
     setSettings((prev) => {
@@ -724,10 +733,12 @@ const AdminBlogView: React.FC = () => {
             <div className="w-full">
               <textarea
                 data-testid="blog-new-topic"
-                value={newTopic}
-                onChange={(e) => setNewTopic(e.target.value)}
+                value={newStory}
+                onChange={(e) => setNewStory(e.target.value)}
                 rows={6}
                 placeholder="Кто рассказывает, что случилось, что сделал ассистент, чем кончилось, в чём суть"
+                aria-label="История реального кейса"
+                aria-invalid={realCaseTooLong}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-forest-500"
               />
               <div
@@ -743,32 +754,41 @@ const AdminBlogView: React.FC = () => {
               value={newTopic}
               onChange={(e) => setNewTopic(e.target.value)}
               placeholder="Своя тема одной строкой"
+              aria-label="Тема одной строкой"
               className="flex-1 min-w-[12rem] border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-forest-500"
             />
           )}
           <select
             data-testid="blog-new-rubric"
             value={newRubric}
-            onChange={(e) => setNewRubric(toNewTopicKind(e.target.value))}
+            aria-label="Вид темы"
+            onChange={(e) => {
+              const next = toNewTopicKind(e.target.value);
+              // Подсказка зовёт переключиться с уже набранным текстом — переносим
+              // его в поле истории, если оно пустое.
+              if (next === 'real' && !newStory.trim()) setNewStory(newTopic);
+              setNewRubric(next);
+            }}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
           >
             <option value="case">Кейс</option>
             <option value="real">Реальный кейс</option>
             <option value="news">Новинка</option>
           </select>
-          {looksLikeStory && (
-            <div data-testid="blog-story-hint" className="w-full text-xs text-amber-800">
-              Похоже на историю. Для реального кейса выберите «Реальный кейс» — иначе редактор перескажет её выдумкой.
-            </div>
-          )}
           <button
             data-testid="blog-add-topic"
             onClick={addTopic}
-            disabled={!newTopic.trim() || busy || realCaseTooLong}
+            disabled={!(newRubric === 'real' ? newStory : newTopic).trim() || busy || realCaseTooLong}
             className="px-4 py-2 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 disabled:opacity-50"
           >
             Добавить
           </button>
+          {looksLikeStory && (
+            <div data-testid="blog-story-hint" className="w-full text-xs text-amber-800">
+              Похоже на историю. Для реального кейса выберите «Реальный кейс» — иначе редактор перескажет её выдумкой.
+              Абзацы строка склеила: после переключения лучше вставить историю заново.
+            </div>
+          )}
         </div>
       )}
 
@@ -961,7 +981,7 @@ const AdminBlogView: React.FC = () => {
                         )}
                       </>
                     ) : (
-                      <div className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-6">{p.topicHint || p.topicKey}</div>
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-6 break-words">{p.topicHint || p.topicKey}</div>
                     )}
 
                     {/*
