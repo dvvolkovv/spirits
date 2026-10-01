@@ -764,9 +764,13 @@ const AdminBlogView: React.FC = () => {
             aria-label="Вид темы"
             onChange={(e) => {
               const next = toNewTopicKind(e.target.value);
-              // Подсказка зовёт переключиться с уже набранным текстом — переносим
-              // его в поле истории, если оно пустое.
-              if (next === 'real' && !newStory.trim()) setNewStory(newTopic);
+              // Подсказка зовёт переключиться с уже вставленной историей —
+              // переносим её в поле истории (не копируем: иначе она осталась бы
+              // в строке и легко ушла бы второй раз выдуманным кейсом).
+              if (next === 'real' && looksLikeStory && !newStory.trim()) {
+                setNewStory(newTopic);
+                setNewTopic('');
+              }
               setNewRubric(next);
             }}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
@@ -786,7 +790,7 @@ const AdminBlogView: React.FC = () => {
           {looksLikeStory && (
             <div data-testid="blog-story-hint" className="w-full text-xs text-amber-800">
               Похоже на историю. Для реального кейса выберите «Реальный кейс» — иначе редактор перескажет её выдумкой.
-              Абзацы строка склеила: после переключения лучше вставить историю заново.
+              В строке абзацы склеились — после переключения лучше вставить историю заново.
             </div>
           )}
         </div>
