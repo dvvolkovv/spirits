@@ -9,6 +9,9 @@ import {
   normalizeSlotDays,
   isValidSlotHour,
   SLOT_DAYS,
+  rubricLabel,
+  REAL_CASE_MAX_CHARS,
+  realCaseChars,
 } from './blogStatus';
 
 describe('statusLabel', () => {
@@ -116,5 +119,29 @@ describe('час слота', () => {
   it('пустое поле — не полночь', () => {
     expect(isValidSlotHour('')).toBe(false);
     expect(isValidSlotHour(NaN)).toBe(false);
+  });
+});
+
+describe('rubricLabel', () => {
+  it('реальный кейс подписан словами — код источника наружу не торчит', () => {
+    expect(rubricLabel({ rubric: 'case', source: 'real' })).toBe('Реальный кейс');
+  });
+
+  it('остальные — как раньше: рубрика и источник', () => {
+    expect(rubricLabel({ rubric: 'case', source: 'stats' })).toBe('Кейс · stats');
+    expect(rubricLabel({ rubric: 'news', source: 'git' })).toBe('Новинка · git');
+  });
+});
+
+describe('REAL_CASE_MAX_CHARS и realCaseChars', () => {
+  it('предел совпадает с бэком (blog-real-case.ts)', () => {
+    expect(REAL_CASE_MAX_CHARS).toBe(4000);
+  });
+
+  // Бэк считает символы, а не UTF-16, и обрезает пробелы по краям — счётчик в
+  // форме обязан считать так же, иначе кнопка пускала бы то, что бэк отклонит.
+  it('считает символы без пробелов по краям, эмодзи — за один', () => {
+    expect(realCaseChars('  абв\n')).toBe(3);
+    expect(realCaseChars('😀')).toBe(1);
   });
 });
