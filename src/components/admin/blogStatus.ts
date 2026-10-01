@@ -112,3 +112,31 @@ export function isValidSlotHour(hour: unknown): boolean {
   const h = Number(hour);
   return Number.isInteger(h) && h >= 0 && h <= 23;
 }
+
+/**
+ * Подпись поста в очереди и архиве. Реальный кейс подписан словами: «Кейс ·
+ * real» выдавал бы наружу внутренний код источника.
+ */
+export function rubricLabel(post: { rubric: string; source: string }): string {
+  if (post.source === 'real') return 'Реальный кейс';
+  return `${post.rubric === 'news' ? 'Новинка' : 'Кейс'} · ${post.source}`;
+}
+
+/**
+ * Предел длины истории реального кейса — копия бэка (`REAL_CASE_MAX_CHARS` в
+ * `src/blog/blog-real-case.ts`).
+ *
+ * Полем он не навязывается: `maxLength` молча режет вставленный текст, и у
+ * истории пропал бы конец — чаще всего финал, ради которого кейс и пишется.
+ * Форма вместо этого показывает счётчик и не даёт отправить лишнее.
+ */
+export const REAL_CASE_MAX_CHARS = 4000;
+
+/** Длина истории так, как её меряет бэк: символы, а не UTF-16, без пробелов по краям. */
+export function realCaseChars(text: string): number {
+  const s = text.trim();
+  // Как на бэке (prepareRealCase): сверх двух пределов в UTF-16 текст заведомо
+  // длиннее предела и в символах, а Array.from на вставленном целиком документе
+  // стоил бы заметной задержки на каждое нажатие.
+  return s.length > 2 * REAL_CASE_MAX_CHARS ? s.length : Array.from(s).length;
+}

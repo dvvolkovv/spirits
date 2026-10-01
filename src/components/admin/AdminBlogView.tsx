@@ -11,6 +11,9 @@ import {
   isValidSlotHour,
   SLOT_DAYS,
   BlogStatus,
+  rubricLabel,
+  REAL_CASE_MAX_CHARS,
+  realCaseChars,
 } from './blogStatus';
 import { formatSlotAt } from './blogSlotFormat';
 
@@ -37,6 +40,14 @@ interface BlogSettings {
   slotHourMsk: number;
   imageStyle: string;
 }
+
+/** Что заводит форма над очередью: рубрика обычной темы или реальный кейс. */
+type NewTopicKind = 'news' | 'case' | 'real';
+
+const toNewTopicKind = (v: string): NewTopicKind => (v === 'news' || v === 'real' ? v : 'case');
+
+/** Длиннее — уже не тема одной строкой, а, скорее всего, вставленная история. */
+const STORY_HINT_CHARS = 200;
 
 type Screen = 'queue' | 'archive' | 'settings';
 
@@ -249,7 +260,11 @@ const AdminBlogView: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [newTopic, setNewTopic] = useState('');
-  const [newRubric, setNewRubric] = useState<'news' | 'case'>('case');
+  // Реальный кейс — своё поле: однострочный input вырезает переносы строк, и
+  // общая строка при переключении «Реальный кейс» → «Кейс» молча склеила бы
+  // абзацы истории.
+  const [newStory, setNewStory] = useState('');
+  const [newRubric, setNewRubric] = useState<NewTopicKind>('case');
   const [editing, setEditing] = useState<Record<string, Draft>>({});
   const [picker, setPicker] = useState<SlotPicker | null>(null);
   const slotsRequest = useRef(0);
@@ -530,10 +545,30 @@ const AdminBlogView: React.FC = () => {
   };
 
   const addTopic = async () => {
-    const topic = newTopic.trim();
+    const real = newRubric === 'real';
+    const sent = real ? newStory : newTopic;
+    const topic = sent.trim();
     if (!topic) return;
-    if (await act({ action: 'add_topic', rubric: newRubric, topic })) setNewTopic('');
+    // Реальный кейс — история целиком: бэк сам знает, что это кейс, и рубрику
+    // для него не читает.
+    const payload = real
+      ? { action: 'add_topic', kind: 'real', topic }
+      : { action: 'add_topic', rubric: newRubric, topic };
+    // Пока идёт запрос, поле редактируемо: стираем, только если текст не меняли.
+    const clear = (cur: string) => (cur === sent ? '' : cur);
+    if (await act(payload)) (real ? setNewStory : setNewTopic)(clear);
   };
+
+  // Длина истории — один раз за рендер: ею живут и счётчик, и кнопка.
+  const realCaseLen = newRubric === 'real' ? realCaseChars(newStory) : 0;
+  // Сверх предела история не уходит: бэк её отклонит, а резать её мы не
+  // станем — пропал бы финал.
+  const realCaseTooLong = realCaseLen > REAL_CASE_MAX_CHARS;
+  // Длинный текст именно в «Кейсе» почти наверняка история, вставленная не
+  // туда: однострочное поле срежет абзацы, а правила выдуманного кейса
+  // перескажут её вымыслом. В «Новинке» подсказка про кейс была бы не к
+  // месту, поэтому только «Кейс». Не запрещаем — подсказываем.
+  const looksLikeStory = newRubric === 'case' && newTopic.trim().length > STORY_HINT_CHARS;
 
   const toggleDay = (day: number) => {
     setSettings((prev) => {
@@ -694,30 +729,70 @@ const AdminBlogView: React.FC = () => {
 
       {screen === 'queue' && (
         <div className="mb-4 flex flex-wrap gap-2">
-          <input
-            data-testid="blog-new-topic"
-            value={newTopic}
-            onChange={(e) => setNewTopic(e.target.value)}
-            placeholder="Своя тема одной строкой"
-            className="flex-1 min-w-[12rem] border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-forest-500"
-          />
+          {newRubric === 'real' ? (
+            <div className="w-full">
+              <textarea
+                data-testid="blog-new-topic"
+                value={newStory}
+                onChange={(e) => setNewStory(e.target.value)}
+                rows={6}
+                placeholder="Кто рассказывает, что случилось, что сделал ассистент, чем кончилось, в чём суть"
+                aria-label="История реального кейса"
+                aria-invalid={realCaseTooLong}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-forest-500"
+              />
+              <div
+                data-testid="blog-real-case-count"
+                className={clsx('text-xs text-right', realCaseTooLong ? 'text-red-600' : 'text-gray-500')}
+              >
+                {realCaseLen} / {REAL_CASE_MAX_CHARS}
+              </div>
+            </div>
+          ) : (
+            <input
+              data-testid="blog-new-topic"
+              value={newTopic}
+              onChange={(e) => setNewTopic(e.target.value)}
+              placeholder="Своя тема одной строкой"
+              aria-label="Тема одной строкой"
+              className="flex-1 min-w-[12rem] border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-forest-500"
+            />
+          )}
           <select
             data-testid="blog-new-rubric"
             value={newRubric}
-            onChange={(e) => setNewRubric(e.target.value === 'news' ? 'news' : 'case')}
+            aria-label="Вид темы"
+            onChange={(e) => {
+              const next = toNewTopicKind(e.target.value);
+              // Подсказка зовёт переключиться с уже вставленной историей —
+              // переносим её в поле истории (не копируем: иначе она осталась бы
+              // в строке и легко ушла бы второй раз выдуманным кейсом).
+              if (next === 'real' && looksLikeStory && !newStory.trim()) {
+                setNewStory(newTopic);
+                setNewTopic('');
+              }
+              setNewRubric(next);
+            }}
             className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
           >
             <option value="case">Кейс</option>
+            <option value="real">Реальный кейс</option>
             <option value="news">Новинка</option>
           </select>
           <button
             data-testid="blog-add-topic"
             onClick={addTopic}
-            disabled={!newTopic.trim() || busy}
+            disabled={!(newRubric === 'real' ? newStory : newTopic).trim() || busy || realCaseTooLong}
             className="px-4 py-2 bg-forest-600 text-white text-sm font-medium rounded-md hover:bg-forest-700 disabled:opacity-50"
           >
             Добавить
           </button>
+          {looksLikeStory && (
+            <div data-testid="blog-story-hint" className="w-full text-xs text-amber-800">
+              Похоже на историю. Для реального кейса выберите «Реальный кейс» — иначе редактор перескажет её выдумкой.
+              В строке абзацы склеились — после переключения лучше вставить историю заново.
+            </div>
+          )}
         </div>
       )}
 
@@ -848,8 +923,8 @@ const AdminBlogView: React.FC = () => {
                       <span className={clsx('px-2 py-0.5 text-xs rounded', statusTone(p.status))}>
                         {statusLabel(p.status)}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        {p.rubric === 'news' ? 'Новинка' : 'Кейс'} · {p.source}
+                      <span data-testid={`blog-rubric-${p.id}`} className="text-xs text-gray-500">
+                        {rubricLabel(p)}
                       </span>
                       {/* Та же фраза, что владелец получил в Telegram при апруве. */}
                       {p.status === 'approved' ? (
@@ -910,7 +985,7 @@ const AdminBlogView: React.FC = () => {
                         )}
                       </>
                     ) : (
-                      <div className="text-sm text-gray-700">{p.topicHint || p.topicKey}</div>
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-6 break-words">{p.topicHint || p.topicKey}</div>
                     )}
 
                     {/*
