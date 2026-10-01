@@ -5,8 +5,8 @@
 // «С чего начнём?», даже когда ассистент уже выбран, а после входа параметр
 // терялся вовсе. Тесты смотрят на экран — что человек видит.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
-import { byButton, click, flush, mount, tRu, visibleText, type Mounted } from '../test/dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { actAsync, byButton, click, flush, mount, tRu, visibleText, type Mounted } from '../test/dom';
 
 const AGENTS = [
   { id: 12, name: 'Роман', displayName: 'Роман', description: 'Помогаю делать все, что не могут другие', category: 'assistant' },
@@ -229,5 +229,53 @@ describe('исход ссылки сообщается всегда — нови
     const text = await open('/chat?resume=1');
     expect(text).toContain(PICKER);
     expect(auth.completeOnboarding).not.toHaveBeenCalled();
+  });
+});
+
+describe('повторный прогон без ссылки после применения не отменяет выбор', () => {
+  it('SMS-вход: список и ?assistant= применились раньше навигации на голый /chat, профиль догрузился позже', async () => {
+    // Сценарий входа по SMS: ChatLayout успевает получить список и применить
+    // ?assistant=14 ДО того, как SmsLoginPane убирает параметр из адреса своим
+    // navigate('/chat', { replace: true }) — а ответ профиля (onboarded)
+    // приходит ещё позже этого. Смена адреса меняет location.key/search и
+    // заново прогоняет deep-link-эффект ChatLayout; без защёлки settledRef
+    // этот повторный прогон (ни ссылки, ни resume) сообщил бы родителю null
+    // поверх уже сделанного выбора — запоздавший профиль открыл бы экран тем
+    // над чатом Райи и не закрыл бы онбординг.
+    auth.user = {}; // профиль ещё не догрузился
+    localStorage.setItem('pending_assistant', JSON.stringify({ value: '14', expires: Date.now() + 60_000 }));
+
+    // useNavigate() изнутри того же дерева — нужен РЕАЛЬНЫЙ переход (меняющий
+    // location.key), а не просто новый проп у MemoryRouter: так SmsLoginPane
+    // убирает ?assistant= из адреса после входа.
+    let nav: ReturnType<typeof useNavigate> | null = null;
+    const NavGrab = () => { nav = useNavigate(); return null; };
+
+    view = mount(
+      <MemoryRouter initialEntries={['/chat?assistant=14']}>
+        <NavGrab />
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    for (let i = 0; i < 6; i++) await flush();
+    expect(visibleText(view.container)).toContain('чат: Райя');
+
+    await actAsync(() => nav?.('/chat', { replace: true }));
+    for (let i = 0; i < 3; i++) await flush();
+
+    // Профиль догрузился позже навигации — новичок, onboarded явно false.
+    auth.user = { onboarded: false };
+    view.rerender(
+      <MemoryRouter initialEntries={['/chat']}>
+        <NavGrab />
+        <ChatPage />
+      </MemoryRouter>,
+    );
+    for (let i = 0; i < 3; i++) await flush();
+
+    const text = visibleText(view.container);
+    expect(text).toContain('чат: Райя');
+    expect(text).not.toContain(PICKER);
+    expect(auth.completeOnboarding).toHaveBeenCalled();
   });
 });
