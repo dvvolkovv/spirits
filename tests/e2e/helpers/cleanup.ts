@@ -1,6 +1,7 @@
 import { Page } from '@playwright/test';
 import { API_URL } from './testData';
 import { assertIsTestPhone } from './guards';
+import { debugHeaders } from './debugSecret';
 
 /**
  * Извлечь JWT access token из localStorage текущей страницы.
@@ -61,7 +62,7 @@ export async function resetTokens(phone: string, delta: number): Promise<void> {
   assertIsTestPhone(phone);
   const res = await fetch(
     `${API_URL}/webhook/debug/add-tokens/${phone}/${delta}`,
-    { method: 'POST' },
+    { method: 'POST', headers: debugHeaders() },
   );
   if (!res.ok) {
     throw new Error(`resetTokens failed: ${res.status} ${await res.text()}`);

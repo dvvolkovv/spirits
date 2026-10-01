@@ -1,9 +1,11 @@
 import { API_URL } from './testData';
 import { assertIsTestPhone } from './guards';
+import { debugHeaders } from './debugSecret';
 
 /**
  * Получить последний SMS-код для тестового номера через debug-эндпоинт.
- * Работает только если на бэке DEBUG_SMS_CODES=true и номер в whitelist.
+ * Работает только если на бэке DEBUG_SMS_CODES=true, номер в whitelist и задан
+ * DEBUG_SECRET (см. debugSecret.ts).
  *
  * @param phone — цифровая строка без +, например '70000000000'
  * @param opts.retries — сколько раз ретраить (код может ещё не успеть записаться в Redis)
@@ -18,7 +20,7 @@ export async function fetchOtp(
   const delayMs = opts.delayMs ?? 1000;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const res = await fetch(`${API_URL}/webhook/debug/sms-code/${phone}`);
+    const res = await fetch(`${API_URL}/webhook/debug/sms-code/${phone}`, { headers: debugHeaders() });
     if (res.ok) {
       const body = (await res.json()) as { code?: string };
       if (body.code) return body.code;

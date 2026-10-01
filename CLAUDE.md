@@ -270,7 +270,7 @@ src/
 
 Ключевые эндпоинты (полный список — в `~/Downloads/spirits_back/CLAUDE.md`):
 - Auth: `GET /webhook/{uuid}/sms/:phone`, `GET /webhook/{uuid}/check-code/:phone/:code`, `POST /webhook/auth/refresh`
-- Debug OTP: `GET /webhook/debug/sms-code/:phone` (активно при `DEBUG_SMS_CODES=true`)
+- Debug OTP: `GET /webhook/debug/sms-code/:phone` — только с заголовком `X-Debug-Secret` (секрет `DEBUG_SECRET` из `.env` бэкенда этой среды; без него 404)
 - Profile: `GET/POST /webhook/profile`, `POST /webhook/profile-update`, `GET /webhook/user-profile?userId=`
 - Agents: `GET /webhook/agents`, `POST /webhook/change-agent`
 - Chat (streaming NDJSON): `POST /webhook/soulmate/chat`, `GET /webhook/chat/history`
@@ -286,7 +286,7 @@ src/
 | Admin (isadmin=true, реферальный лидер) | `79030169187` |
 | Test user | `70000000000` |
 
-OTP-код для этих номеров — через `GET /webhook/debug/sms-code/:phone` (работает при `DEBUG_SMS_CODES=true` на бэке).
+OTP-код для этих номеров — через `GET /webhook/debug/sms-code/:phone` с заголовком `X-Debug-Secret: $DEBUG_SECRET` (секрет — в `.env` бэкенда той среды, в репозиторий не класть; для экспериментов брать секрет test). E2e-помощники (`tests/e2e/helpers`) читают его из переменной окружения `DEBUG_SECRET`. Неверный код 5 раз подряд гасит код — запросить новый.
 
 ## Автотесты
 
