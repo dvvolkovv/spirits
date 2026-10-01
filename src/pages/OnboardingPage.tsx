@@ -5,6 +5,7 @@ import { Download } from 'lucide-react';
 import LoginTabs from '../components/onboarding/LoginTabs';
 import { LanguageSelect } from '../components/settings/LanguageSelect';
 import { ANDROID_APK_URL } from '../androidApp';
+import { rememberPendingAssistant } from '../utils/pendingAssistant';
 
 const REFERRAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
 
@@ -18,6 +19,10 @@ const OnboardingPage: React.FC = () => {
       localStorage.setItem('referral_slug', refSlug);
       localStorage.setItem('referral_slug_expires', String(Date.now() + REFERRAL_TTL_MS));
     }
+
+    // Пришёл со страницы ассистента (linkeon.io/assistants/…): запоминаем, к
+    // кому, — после входа кабинет откроет чат с ним, а не экран выбора темы.
+    rememberPendingAssistant(searchParams.get('assistant'));
   }, [searchParams]);
 
   // Message-match: пришёл с рекламы под персону (?seg=biz/creator) — показываем

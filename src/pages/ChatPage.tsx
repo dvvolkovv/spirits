@@ -6,6 +6,7 @@ import ChatLayout from '../components/chat/ChatLayout';
 import OnboardingMatch from '../components/onboarding/OnboardingMatch';
 import { useAuth } from '../contexts/AuthContext';
 import { TokenPackages } from '../components/tokens/TokenPackages';
+import { peekPendingAssistant } from '../utils/pendingAssistant';
 
 const ChatPage: React.FC = () => {
   const { t } = useTranslation();
@@ -15,6 +16,22 @@ const ChatPage: React.FC = () => {
   const [openTokens, setOpenTokens] = useState(false);
   const [dismissed, setDismissed] = useState(false);    // прошёл match в этой сессии
   const [greeting, setGreeting] = useState<string | undefined>(undefined);
+
+  // Пришёл по ссылке на конкретного ассистента — со страницы на linkeon.io
+  // (через вход: запомненный выбор) или по шорткату (?assistant=). Выбор уже
+  // сделан, экран «С чего начнём?» ему не нужен. Считается один раз при
+  // монтировании: ChatLayout стирает запомненное, применив его, и пересчёт
+  // вернул бы экран выбора поверх открытого чата.
+  const [deepLinkRequested] = useState(
+    () => new URLSearchParams(location.search).has('assistant') || peekPendingAssistant() !== null,
+  );
+
+  // Онбординг пройден: ассистента человек выбрал сам. Отдельным эффектом, а не
+  // в onDeepLink: профиль с флагом onboarded может догрузиться позже списка
+  // ассистентов.
+  useEffect(() => {
+    if (deepLinkRequested && user?.onboarded === false) completeOnboarding();
+  }, [deepLinkRequested, user?.onboarded, completeOnboarding]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -26,8 +43,10 @@ const ChatPage: React.FC = () => {
   // Показ ТОЛЬКО при onboarded === false (явно). undefined/неизвестно
   // (профиль не догрузился) → fail-open в чат, возвращающихся не блокируем.
   // Ручного переоткрытия нет: ссылка «Подобрать специалиста» убрана из шапки,
-  // смена ассистента живёт в выпадающем списке.
-  const showMatch = user?.onboarded === false && !dismissed;
+  // смена ассистента живёт в выпадающем списке. Пришедшего по ссылке на
+  // конкретного ассистента (deepLinkRequested) экран выбора темы не встречает:
+  // выбор уже сделан на странице ассистента на linkeon.io.
+  const showMatch = user?.onboarded === false && !dismissed && !deepLinkRequested;
 
   return (
     <>
@@ -54,7 +73,12 @@ const ChatPage: React.FC = () => {
           }}
         />
       )}
-      <ChatLayout>
+      <ChatLayout
+        onDeepLink={(a) =>
+          // То же приветствие, что после выбора темы: видно только в пустом чате.
+          setGreeting(t('onboarding.match.greeting', { name: a.displayName || a.name, role: a.description || '' }))
+        }
+      >
       {({ selectedAssistant, onSelectAssistant, assistants }) =>
         showMatch ? (
           <OnboardingMatch

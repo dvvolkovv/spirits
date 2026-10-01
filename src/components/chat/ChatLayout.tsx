@@ -5,6 +5,7 @@ import { apiClient } from '../../services/apiClient';
 import { resolveLanguage } from '../../i18n/languages';
 import { avatarService } from '../../services/avatarService';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
+import { takePendingAssistant } from '../../utils/pendingAssistant';
 import { clsx } from 'clsx';
 
 interface Assistant {
@@ -17,9 +18,11 @@ interface Assistant {
 
 interface ChatLayoutProps {
   children: (props: { selectedAssistant: Assistant | null; onSelectAssistant: (a: Assistant) => void; assistants: Assistant[] }) => React.ReactNode;
+  /** Ассистент выбран по ссылке: ?assistant= или выбор, запомненный до входа. */
+  onDeepLink?: (a: Assistant) => void;
 }
 
-const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
+const ChatLayout: React.FC<ChatLayoutProps> = ({ children, onDeepLink }) => {
   const { t, i18n } = useTranslation();
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
@@ -104,11 +107,25 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
   // путь тот же, а прежний эффект был one-shot по ref + deps [assistants].
   const location = useLocation();
   const lastAppliedNav = useRef<string>('');
+
+  // Через ref: эффект deep-link не должен перезапускаться от новой функции на
+  // каждом рендере родителя. Синхронизация — эффектом, объявленным раньше:
+  // в одном коммите он отрабатывает первым.
+  const onDeepLinkRef = useRef(onDeepLink);
+  useEffect(() => {
+    onDeepLinkRef.current = onDeepLink;
+  }, [onDeepLink]);
+
   useEffect(() => {
     if (assistants.length === 0) return;
     const params = new URLSearchParams(location.search);
-    const q = params.get('assistant');
+    const fromUrl = params.get('assistant');
     const resume = params.get('resume') === '1';
+    // Выбор, сделанный до входа (страница ассистента → экран входа → голый
+    // /chat), см. utils/pendingAssistant.ts. Забирается всегда: явный параметр
+    // в адресе побеждает, и запомненное не должно всплыть при следующем переходе.
+    const pending = takePendingAssistant();
+    const q = fromUrl || (resume ? null : pending);
     if (!q && !resume) return;
     const navKey = location.key + '|' + location.search;
     if (lastAppliedNav.current === navKey) return;
@@ -127,7 +144,10 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children }) => {
         (a.name || '').toLowerCase() === norm ||
         (a.displayName || '').toLowerCase() === norm,
       );
-      if (match) handleSelect(match);
+      if (match) {
+        handleSelect(match);
+        onDeepLinkRef.current?.(match);
+      }
     } else if (resume) {
       try {
         const last = localStorage.getItem('linkeon_last_assistant');

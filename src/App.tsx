@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast, { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -48,6 +48,13 @@ const RouteFallback: React.FC = () => (
     <div className="w-8 h-8 border-2 border-forest-300 border-t-forest-600 rounded-full animate-spin" />
   </div>
 );
+
+// `/` → `/chat` с параметрами: ссылка вида my.linkeon.io/?assistant=14
+// иначе теряла бы выбор ассистента ещё до чата.
+const RootRedirect: React.FC = () => {
+  const location = useLocation();
+  return <Navigate to={{ pathname: '/chat', search: location.search }} replace />;
+};
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading, user, login } = useAuth();
@@ -246,7 +253,7 @@ const AppContent: React.FC = () => {
             <Route path="/contact-requests" element={<ContactRequestsPage />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
-            <Route path="/" element={<Navigate to="/chat" replace />} />
+            <Route path="/" element={<RootRedirect />} />
           </Routes>
           </Suspense>
         </ErrorBoundary>
