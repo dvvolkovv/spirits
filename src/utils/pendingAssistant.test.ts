@@ -20,11 +20,25 @@ describe('ассистент, выбранный до входа', () => {
     expect(takePendingAssistant(NOW)).toBe('14');
   });
 
-  // Через неделю это уже не намерение, а сюрприз: зашёл — открылась Райя.
+  // Дольше часа это уже не намерение: зашёл через неделю — а открылась Райя.
   it('через час забывается', () => {
+    // Ровно в момент истечения запись уже просрочена (expires <= now).
+    // Отдельный rememberPendingAssistant перед каждой проверкой — чтобы
+    // первая проверка не стёрла запись до второй.
+    rememberPendingAssistant('14', NOW);
+    expect(peekPendingAssistant(NOW + HOUR)).toBeNull();
+
     rememberPendingAssistant('14', NOW);
     expect(peekPendingAssistant(NOW + HOUR + 1)).toBeNull();
     expect(localStorage.getItem('pending_assistant')).toBeNull();
+  });
+
+  it('значение обрезается по краям, 64 знака — ещё можно', () => {
+    rememberPendingAssistant('  14  ', NOW);
+    expect(takePendingAssistant(NOW)).toBe('14');
+
+    rememberPendingAssistant('x'.repeat(64), NOW);
+    expect(takePendingAssistant(NOW)).toBe('x'.repeat(64));
   });
 
   it('пустое и мусор не запоминаются', () => {
