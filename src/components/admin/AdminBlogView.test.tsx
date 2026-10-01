@@ -1323,6 +1323,20 @@ describe('реальный кейс', () => {
     await choose('blog-new-rubric', 'real');
     expect(q('blog-story-hint')).toBeNull();
     expect((q('blog-new-topic') as HTMLTextAreaElement).value).toBe('а'.repeat(250));
+
+    // Перенесённое — забрано, а не скопировано: иначе тот же текст остался бы
+    // в строке и мог уйти второй раз уже выдуманным кейсом.
+    await choose('blog-new-rubric', 'case');
+    expect((q('blog-new-topic') as HTMLInputElement).value).toBe('');
+  });
+
+  it('короткая тема в «Кейсе» не переносится в историю', async () => {
+    setup();
+    await mount();
+    await type('blog-new-topic', 'про аренду');
+    await choose('blog-new-rubric', 'real');
+
+    expect((q('blog-new-topic') as HTMLTextAreaElement).value).toBe('');
   });
 
   // Однострочное поле вырезает переносы: общая строка склеила бы абзацы истории
@@ -1376,5 +1390,32 @@ describe('реальный кейс', () => {
     await choose('blog-new-rubric', 'news');
     await type('blog-new-topic', 'а'.repeat(250));
     expect(q('blog-story-hint')).toBeNull();
+  });
+
+  it('после успеха нетронутая история очищается', async () => {
+    setup();
+    await mount();
+    await choose('blog-new-rubric', 'real');
+    await type('blog-new-topic', STORY);
+    await click('blog-add-topic');
+    expect((q('blog-new-topic') as HTMLTextAreaElement).value).toBe('');
+  });
+
+  // Пока идёт запрос, поле редактируемо: дописанное не стирается успехом.
+  it('дописанное во время запроса не стирается', async () => {
+    let resolveAdd!: (v: any) => void;
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'list') return res(200, []);
+      if (payload.action === 'add_topic') return new Promise((r) => { resolveAdd = r; });
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+    await choose('blog-new-rubric', 'real');
+    await type('blog-new-topic', STORY);
+    await click('blog-add-topic');
+    await type('blog-new-topic', `${STORY}\nдописано`);
+    await act(async () => { resolveAdd(res(200, { id: 'new' })); });
+    await act(async () => {});   // перечитать очередь после успеха
+    expect((q('blog-new-topic') as HTMLTextAreaElement).value).toBe(`${STORY}\nдописано`);
   });
 });
