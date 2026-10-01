@@ -18,8 +18,14 @@ interface Assistant {
 
 interface ChatLayoutProps {
   children: (props: { selectedAssistant: Assistant | null; onSelectAssistant: (a: Assistant) => void; assistants: Assistant[] }) => React.ReactNode;
-  /** Ассистент выбран по ссылке: ?assistant= или выбор, запомненный до входа. */
-  onDeepLink?: (a: Assistant) => void;
+  /**
+   * Ассистент выбран по ссылке: ?assistant= или выбор, запомненный до входа.
+   * `null` — ссылка была (параметр или запомненное значение присутствовали),
+   * но такого ассистента в текущем ростере нет (сняли после выката лендинга):
+   * человек ничего не выбирал, это не повод закрывать онбординг или прятать
+   * экран выбора темы.
+   */
+  onDeepLink?: (a: Assistant | null) => void;
 }
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({ children, onDeepLink }) => {
@@ -147,6 +153,10 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ children, onDeepLink }) => {
       if (match) {
         handleSelect(match);
         onDeepLinkRef.current?.(match);
+      } else {
+        // Ссылка была (id/имя в параметре или в запомненном до входа выборе),
+        // но в текущем ростере такого ассистента нет.
+        onDeepLinkRef.current?.(null);
       }
     } else if (resume) {
       try {

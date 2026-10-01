@@ -6,13 +6,14 @@
 // терялся вовсе. Тесты смотрят на экран — что человек видит.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { flush, mount, tRu, visibleText, type Mounted } from '../test/dom';
+import { byButton, click, flush, mount, tRu, visibleText, type Mounted } from '../test/dom';
 
 const AGENTS = [
   { id: 12, name: 'Роман', displayName: 'Роман', description: 'Помогаю делать все, что не могут другие', category: 'assistant' },
   { id: 2, name: 'Оля', displayName: 'Оля', description: 'Психолог и фасилитатор самоисследования', category: 'personal' },
   { id: 14, name: 'Райя', displayName: 'Райя', description: 'Human Design ридер', category: 'personal' },
 ];
+type Agent = (typeof AGENTS)[number];
 
 const auth = vi.hoisted(() => ({
   user: { onboarded: false } as { onboarded?: boolean },
@@ -31,9 +32,16 @@ vi.mock('../services/avatarService', () => ({ avatarService: { getAvatarUrl: vi.
 vi.mock('../services/customAgentsApi', () => ({ customAgentsApi: { list: vi.fn(async () => []) } }));
 vi.mock('../components/tokens/TokenPackages', () => ({ TokenPackages: () => null }));
 vi.mock('../components/chat/ChatInterface', () => ({
-  default: (p: { preSelectedAssistant: { displayName?: string } | null; welcomeMessage?: string }) => (
+  default: (p: {
+    preSelectedAssistant: { displayName?: string } | null;
+    welcomeMessage?: string;
+    onAssistantSelected?: (a: Agent) => void;
+  }) => (
     <div data-testid="chat">
       чат: {p.preSelectedAssistant?.displayName ?? 'без ассистента'} | {p.welcomeMessage}
+      {/* Переключение собеседника БЕЗ выхода из чата — тем же путём, которым
+          приветствие одного ассистента утекало в чат другого. */}
+      <button onClick={() => p.onAssistantSelected?.(AGENTS[1])}>выбрать Олю</button>
     </div>
   ),
 }));
@@ -42,15 +50,36 @@ import ChatPage from './ChatPage';
 
 const PICKER = tRu('onboarding.match.subtitle');
 let view: Mounted | null = null;
+let lastUrl: string | null = null;
 
-async function open(url: string): Promise<string> {
-  view = mount(
+// Функция, а не сохранённый элемент: React бросает ПОЛНЫЙ bailout, если
+// root.render() вызвать второй раз с ТЕМ ЖЕ объектом элемента (в HostRoot
+// nextChildren === prevChildren по ссылке) — тогда ни один компонент дерева
+// не перерисовывается, и мутация внешнего мока (auth.user) до ChatPage
+// никогда не доходит. Здесь каждый вызов строит новый объект с тем же
+// маршрутом — React не бастует, а MemoryRouter всё равно не сбрасывает
+// историю: initialEntries читается только в его ленивом инициализаторе.
+function page(url: string) {
+  return (
     <MemoryRouter initialEntries={[url]}>
       <ChatPage />
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+}
+
+async function open(url: string): Promise<string> {
+  lastUrl = url;
+  view = mount(page(url));
   // Список ассистентов приходит промисом, выбор применяется эффектом после него.
   for (let i = 0; i < 6; i++) await flush();
+  return visibleText(view.container);
+}
+
+/** Перерисовать тот же экран (после open) и дождаться эффектов — напр. когда профиль догрузился позже. */
+async function rerenderAndFlush(): Promise<string> {
+  if (!view || lastUrl === null) throw new Error('сначала нужно открыть страницу через open()');
+  view.rerender(page(lastUrl));
+  await flush();
   return visibleText(view.container);
 }
 
@@ -70,6 +99,7 @@ beforeEach(() => {
 afterEach(() => {
   view?.unmount();
   view = null;
+  lastUrl = null;
 });
 
 describe('новичок пришёл к конкретному ассистенту', () => {
@@ -87,6 +117,23 @@ describe('новичок пришёл к конкретному ассистен
     expect(text).not.toContain(PICKER);
     expect(text).toContain('чат: Райя');
     expect(localStorage.getItem('pending_assistant')).toBeNull();
+    expect(auth.completeOnboarding).toHaveBeenCalled();
+  });
+
+  it('профиль пришёл позже списка ассистентов — онбординг закрывается после подгрузки флага', async () => {
+    // onboarded ещё неизвестен (профиль не догрузился) — fail-open в чат,
+    // но закрывать онбординг рано: неизвестно, нужно ли это вообще.
+    auth.user = {};
+    const text1 = await open('/chat?assistant=14');
+    expect(text1).not.toContain(PICKER);
+    expect(auth.completeOnboarding).not.toHaveBeenCalled();
+
+    // Профиль догрузился ПОСЛЕ того, как deep-link уже применился.
+    auth.user = { onboarded: false };
+    const text2 = await rerenderAndFlush();
+    expect(auth.completeOnboarding).toHaveBeenCalled();
+    expect(text2).not.toContain(PICKER);
+    expect(text2).toContain('чат: Райя');
   });
 });
 
@@ -105,5 +152,42 @@ describe('всё остальное — как раньше', () => {
     const text = await open('/chat?assistant=14');
     expect(text).toContain('чат: Райя');
     expect(auth.completeOnboarding).not.toHaveBeenCalled();
+  });
+
+  it('resume важнее запомненного выбора, но запомненное всё равно стирается', async () => {
+    auth.user = { onboarded: true };
+    localStorage.setItem('linkeon_last_assistant', JSON.stringify(AGENTS[1])); // Оля — «Продолжить»
+    localStorage.setItem('pending_assistant', JSON.stringify({ value: '14', expires: Date.now() + 60_000 })); // Райя — запомнена до входа
+    const text = await open('/chat?resume=1');
+    expect(text).toContain('чат: Оля');
+    expect(localStorage.getItem('pending_assistant')).toBeNull();
+  });
+});
+
+describe('неизвестный ассистент в ссылке', () => {
+  it('новичку — обычный экран тем, онбординг не закрывается', async () => {
+    // Ассистента сняли с ростера после выката лендинга — ссылка на linkeon.io
+    // ведёт на id, которого уже нет. Человек ничего не выбрал: это не должно
+    // выглядеть как выбор.
+    const text = await open('/chat?assistant=999');
+    expect(text).toContain(PICKER);
+    expect(auth.completeOnboarding).not.toHaveBeenCalled();
+  });
+});
+
+describe('приветствие привязано к ассистенту, не к странице', () => {
+  it('не перетекает к другому ассистенту при переключении внутри чата', async () => {
+    auth.user = { onboarded: true };
+    const text1 = await open('/chat?assistant=14');
+    expect(text1).toContain('Я Райя');
+
+    const switchButton = byButton(view!.container, /выбрать Олю/);
+    expect(switchButton).not.toBeNull();
+    click(switchButton!);
+    await flush();
+
+    const text2 = visibleText(view!.container);
+    expect(text2).toContain('чат: Оля');
+    expect(text2).not.toContain('Я Райя');
   });
 });
