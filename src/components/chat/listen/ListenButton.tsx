@@ -43,7 +43,7 @@ const ListenButton: React.FC<ListenButtonProps> = ({ messageId, content, assista
     <button
       type="button"
       onClick={() => onToggle(messageId, text, assistant)}
-      disabled={tooLong}
+      disabled={tooLong || phase === 'loading'}
       title={hint}
       aria-label={hint}
       className="inline-flex items-center gap-1 text-gray-400 hover:text-forest-600 transition-colors disabled:opacity-40 disabled:hover:text-gray-400"

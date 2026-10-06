@@ -118,11 +118,9 @@ describe('плеер ответа', () => {
 
     await clickAsync(btn(container, 'm1')!);
     expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen_loading'));
-    expect(post).toHaveBeenCalledWith(
-      '/webhook/speech/listen',
-      { text: 'Привет! Это ответ.', assistant: 'Роман' },
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    // Без AbortSignal: синтез оплачивается на сервере в любом случае, брошенный
+    // запрос доживает и кладёт куски в кэш.
+    expect(post).toHaveBeenCalledWith('/webhook/speech/listen', { text: 'Привет! Это ответ.', assistant: 'Роман' });
 
     await actAsync(() => d.resolve(OK(['https://m.test/a-0.mp3', 'https://m.test/a-1.mp3'])));
     await settle();

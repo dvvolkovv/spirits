@@ -33,6 +33,7 @@ const SILENT_WAV =
   'gICAgICAgICAgICA';
 
 interface State { id: string | null; phase: ListenPhase }
+const IDLE: State = { id: null, phase: 'idle' };
 
 /** Тело ответа POST /webhook/speech/listen — и успеха, и отказа. */
 interface ListenReply {
@@ -42,13 +43,16 @@ interface ListenReply {
   required?: number;
   maxChars?: number;
 }
-const IDLE: State = { id: null, phase: 'idle' };
+
+/** Итог запроса озвучки: куски или текст для тоста. */
+type Fetched = { parts: string[] } | { error: string };
 
 /** Заглушить элемент и отвязать его обработчики от прошлого прогона. */
-function silence(el: HTMLAudioElement | null): void {
+function release(el: HTMLAudioElement | null): void {
   if (!el) return;
   el.onended = null;
   el.onerror = null;
+  el.onpause = null;
   try {
     el.pause();
     el.removeAttribute('src');
@@ -64,33 +68,52 @@ function silence(el: HTMLAudioElement | null): void {
 export function useListenPlayer(): ListenPlayer {
   const { t } = useTranslation();
   const [state, setState] = useState<State>(IDLE);
+  // Свежее состояние для обработчиков: два нажатия до перерисовки (двойной
+  // клик) обязаны видеть друг друга, а не одно и то же «idle».
   const stateRef = useRef<State>(IDLE);
-  stateRef.current = state;
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Следующий кусок, подгружаемый заранее, — чтобы на стыке не было паузы.
+  const nextRef = useRef<HTMLAudioElement | null>(null);
   const runRef = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
   // Куски по (id, текст): повтор в той же сессии не ходит на бэк вовсе.
   const partsRef = useRef(new Map<string, string[]>());
+  // Запросы в полёте по тому же ключу. Синтез оплачивается на сервере в любом
+  // случае, поэтому брошенный запрос не отменяется: его куски ложатся в
+  // partsRef, а вернувшийся к ответу ждёт тот же запрос, а не шлёт второй.
+  const inflightRef = useRef(new Map<string, Promise<Fetched>>());
+
+  const update = useCallback((next: State) => {
+    stateRef.current = next;
+    setState(next);
+  }, []);
 
   const element = useCallback((): HTMLAudioElement => {
     if (!audioRef.current) audioRef.current = document.createElement('audio');
     return audioRef.current;
   }, []);
 
-  const stop = useCallback(() => {
-    runRef.current += 1;
-    abortRef.current?.abort();
-    abortRef.current = null;
-    silence(audioRef.current);
-    setState((s) => (s.id === null ? s : IDLE));
+  const silence = useCallback(() => {
+    release(audioRef.current);
+    release(nextRef.current);
+    nextRef.current = null;
   }, []);
 
+  const stop = useCallback(() => {
+    runRef.current += 1;
+    silence();
+    if (stateRef.current.id !== null) update(IDLE);
+  }, [silence, update]);
+
+  // Ошибка прогона — один тост на прогон. Номер прогона двигаем: браузер шлёт
+  // событие error и следом отклоняет висящий play(), и без этого обе ветки
+  // показали бы по тосту.
   const fail = useCallback((run: number, message: string) => {
     if (run !== runRef.current) return;
+    runRef.current += 1;
     toast.error(message);
-    silence(audioRef.current);
-    setState(IDLE);
-  }, []);
+    silence();
+    update(IDLE);
+  }, [silence, update]);
 
   const errorMessage = useCallback((status: number, body: ListenReply | null): string => {
     if (status === 402) {
@@ -103,14 +126,56 @@ export function useListenPlayer(): ListenPlayer {
     return t('chat.listen_failed');
   }, [t]);
 
+  const fetchParts = useCallback((key: string, text: string, assistant?: string): Promise<Fetched> => {
+    const pending = inflightRef.current.get(key);
+    if (pending) return pending;
+    const request = (async (): Promise<Fetched> => {
+      try {
+        const res = await apiClient.post('/webhook/speech/listen', { text, assistant });
+        const body: ListenReply | null = await res.json().catch(() => null);
+        if (res.ok && body?.ok && Array.isArray(body.parts) && body.parts.length > 0) {
+          const parts = body.parts.map(String);
+          partsRef.current.set(key, parts);
+          return { parts };
+        }
+        return { error: errorMessage(res.status, body) };
+      } catch {
+        return { error: t('chat.listen_failed') };
+      } finally {
+        inflightRef.current.delete(key);
+      }
+    })();
+    inflightRef.current.set(key, request);
+    return request;
+  }, [errorMessage, t]);
+
   const play = useCallback((run: number, id: string, key: string, parts: string[]) => {
     const el = element();
     let index = 0;
+    // Пауза извне — звонок, экран блокировки, гарнитура. Слушаем её только
+    // пока кусок реально звучит: на стыке и при разблокировке src меняется, и
+    // браузер вправе прислать pause, которая остановкой не является. В конце
+    // куска pause приходит перед ended — её отличает el.ended.
+    const onPause = () => {
+      if (run === runRef.current && !el.ended) stop();
+    };
+    const preload = (i: number) => {
+      release(nextRef.current);
+      nextRef.current = null;
+      if (i >= parts.length) return;
+      const next = document.createElement('audio');
+      next.preload = 'auto';
+      next.src = parts[i];
+      nextRef.current = next;
+    };
     const start = () => {
+      el.onpause = null;
       el.src = parts[index];
       Promise.resolve(el.play()).then(
         () => {
-          if (run === runRef.current) setState({ id, phase: 'playing' });
+          if (run !== runRef.current) return;
+          el.onpause = onPause;
+          update({ id, phase: 'playing' });
         },
         (err: unknown) => {
           if (run !== runRef.current) return;
@@ -121,6 +186,7 @@ export function useListenPlayer(): ListenPlayer {
           fail(run, blocked ? t('chat.listen_tap_again') : t('chat.listen_failed'));
         },
       );
+      preload(index + 1);
     };
     el.onended = () => {
       if (run !== runRef.current) return;
@@ -129,9 +195,8 @@ export function useListenPlayer(): ListenPlayer {
         start();
         return;
       }
-      el.onended = null;
-      el.onerror = null;
-      setState(IDLE);
+      silence();
+      update(IDLE);
     };
     el.onerror = () => {
       if (run !== runRef.current) return;
@@ -139,11 +204,14 @@ export function useListenPlayer(): ListenPlayer {
       fail(run, t('chat.listen_failed'));
     };
     start();
-  }, [element, fail, t]);
+  }, [element, fail, silence, stop, t, update]);
 
   const toggle = useCallback((id: string, text: string, assistant?: string) => {
     const cur = stateRef.current;
-    if (cur.id === id && cur.phase !== 'idle') {
+    if (cur.id === id) {
+      // Пока озвучивается, нажатие ничего не отменяет: синтез уже оплачивается
+      // на сервере, «отмена» значила бы заплатить и ничего не услышать.
+      if (cur.phase === 'loading') return;
       stop();
       return;
     }
@@ -156,45 +224,26 @@ export function useListenPlayer(): ListenPlayer {
       el.src = SILENT_WAV;
       Promise.resolve(el.play()).catch(() => { /* прервётся настоящим куском */ });
     } catch { /* движок без промиса у play() */ }
-    setState({ id, phase: 'loading' });
+    update({ id, phase: 'loading' });
 
-    const key = `${id}\u0000${text}`;
+    const key = JSON.stringify([id, text]);
     const known = partsRef.current.get(key);
     if (known) {
       play(run, id, key, known);
       return;
     }
-
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    void (async () => {
-      let res: Response;
-      let body: ListenReply | null = null;
-      try {
-        res = await apiClient.post('/webhook/speech/listen', { text, assistant }, { signal: ctrl.signal });
-        body = await res.json().catch(() => null);
-      } catch {
-        fail(run, t('chat.listen_failed'));
-        return;
-      }
+    void fetchParts(key, text, assistant).then((result) => {
       if (run !== runRef.current) return;
-      if (abortRef.current === ctrl) abortRef.current = null;
-      if (res.ok && body?.ok && Array.isArray(body.parts) && body.parts.length > 0) {
-        const parts = body.parts.map(String);
-        partsRef.current.set(key, parts);
-        play(run, id, key, parts);
-        return;
-      }
-      fail(run, errorMessage(res.status, body));
-    })();
-  }, [element, errorMessage, fail, play, stop, t]);
+      if ('parts' in result) play(run, id, key, result.parts);
+      else fail(run, result.error);
+    });
+  }, [element, fail, fetchParts, play, stop, update]);
 
-  // Уход из чата не оставляет играющий звук и висящий запрос.
+  // Уход из чата не оставляет играющий звук.
   useEffect(() => () => {
     runRef.current += 1;
-    abortRef.current?.abort();
-    silence(audioRef.current);
-  }, []);
+    silence();
+  }, [silence]);
 
   const phaseOf = useCallback(
     (id: string): ListenPhase => (state.id === id ? state.phase : 'idle'),
