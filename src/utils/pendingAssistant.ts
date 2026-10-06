@@ -75,3 +75,8 @@ export function takePendingAssistant(now = Date.now()): string | null {
   forget();
   return value;
 }
+
+/** Стереть запомненное: у человека появилось более новое намерение (utils/loginIntent.ts). */
+export function forgetPendingAssistant(): void {
+  forget();
+}
