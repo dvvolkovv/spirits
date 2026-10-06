@@ -30,7 +30,8 @@ async function open(url: string): Promise<string> {
   return visibleText(view.container);
 }
 
-// Свидетель с кнопкой, повторяющей уход в чат после входа (так делают OAuth и прочие пути).
+// Свидетель с кнопкой, повторяющей уход на голый /chat после входа, когда оболочка
+// уже стоит на другом адресе (так приходит Taler ID: / → RootRedirect → /chat).
 const WhereWithChat = () => {
   const l = useLocation();
   const type = useNavigationType();
