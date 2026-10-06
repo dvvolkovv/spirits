@@ -32,6 +32,8 @@ describe('раздел, куда человек шёл до входа', () => {
       ['/admin', '?tab=products'],
       ['//evil.example/studio', '?tab=products'],
       ['/chat', ''],
+      ['/studio', '?tab=productsx'],
+      ['/studio', '?tab=bots&tab=products'],
     ];
     for (const [path, search] of others) {
       expect(rememberPendingDestination(path, search, NOW), `${path}${search}`).toBe(false);
@@ -40,6 +42,10 @@ describe('раздел, куда человек шёл до входа', () => {
   });
 
   it('через час забывается', () => {
+    rememberPendingDestination('/studio', '?tab=products', NOW);
+    expect(takePendingDestination(NOW + HOUR - 1)).toBe('/studio?tab=products');
+    rememberPendingDestination('/studio', '?tab=products', NOW);
+    expect(takePendingDestination(NOW + HOUR)).toBeNull();
     rememberPendingDestination('/studio', '?tab=products', NOW);
     expect(takePendingDestination(NOW + HOUR + 1)).toBeNull();
     expect(localStorage.getItem('pending_destination')).toBeNull();
@@ -50,10 +56,27 @@ describe('раздел, куда человек шёл до входа', () => {
     expect(takePendingDestination(NOW)).toBeNull();
   });
 
+  it('подменённая запись с разрешённым путём на чужом хосте не отдаётся', () => {
+    for (const value of ['https://evil.example/studio?tab=products', '//evil.example/studio?tab=products']) {
+      localStorage.setItem('pending_destination', JSON.stringify({ value, expires: NOW + HOUR }));
+      expect(takePendingDestination(NOW), value).toBeNull();
+    }
+  });
+
+  it('отдаётся канонический адрес, а не строка из хранилища', () => {
+    localStorage.setItem('pending_destination', JSON.stringify({ value: '/studio?tab=products&next=//evil.example', expires: NOW + HOUR }));
+    expect(takePendingDestination(NOW)).toBe('/studio?tab=products');
+  });
+
   it('битая запись не роняет и стирается', () => {
     localStorage.setItem('pending_destination', '{oops');
     expect(takePendingDestination(NOW)).toBeNull();
     expect(localStorage.getItem('pending_destination')).toBeNull();
+  });
+
+  it('запись без срока не живёт вечно', () => {
+    localStorage.setItem('pending_destination', JSON.stringify({ value: '/studio?tab=products' }));
+    expect(takePendingDestination(NOW)).toBeNull();
   });
 
   it('forget стирает запомненное', () => {

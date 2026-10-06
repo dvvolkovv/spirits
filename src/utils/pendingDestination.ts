@@ -30,6 +30,7 @@ export function allowedDestination(pathname: string, search: string): string | n
   return hit ? `${hit.path}?tab=${hit.tab}` : null;
 }
 
+/** Стереть запомненное: у человека появилось более новое намерение (utils/loginIntent.ts). */
 export function forgetPendingDestination(): void {
   try {
     localStorage.removeItem(KEY);
