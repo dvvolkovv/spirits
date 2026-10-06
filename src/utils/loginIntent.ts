@@ -9,11 +9,11 @@ import { forgetPendingDestination, rememberPendingDestination } from './pendingD
  * Побеждает последнее: кто сначала нажал «Сделать сайт», а потом пришёл со
  * страницы Райи, после входа должен попасть к Райе, а не в Студию, — и
  * наоборот. Иначе старое намерение всплыло бы после входа поверх нового.
+ * Если ассистент и раздел пришли в одном адресе, побеждает ассистент — такие
+ * ссылки сегодня никто не строит, правило закреплено тестом.
  */
 export function rememberLoginIntent(pathname: string, search: string, now = Date.now()): void {
-  const assistant = new URLSearchParams(search).get('assistant');
-  if (assistant?.trim()) {
-    rememberPendingAssistant(assistant, now);
+  if (rememberPendingAssistant(new URLSearchParams(search).get('assistant'), now)) {
     forgetPendingDestination();
     return;
   }

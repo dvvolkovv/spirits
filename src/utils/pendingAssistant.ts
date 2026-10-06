@@ -47,14 +47,16 @@ function read(): Stored | null {
   return null;
 }
 
-/** id или имя ассистента из ?assistant= — до входа. Пустое и длинное игнорируется. */
-export function rememberPendingAssistant(value: string | null, now = Date.now()): void {
+/** id или имя ассистента из ?assistant= — до входа. Пустое и длинное игнорируется. Возвращает, запомнен ли. */
+export function rememberPendingAssistant(value: string | null, now = Date.now()): boolean {
   const v = value?.trim();
-  if (!v || v.length > MAX_LENGTH) return;
+  if (!v || v.length > MAX_LENGTH) return false;
   try {
     localStorage.setItem(KEY, JSON.stringify({ value: v, expires: now + TTL_MS }));
+    return true;
   } catch {
     /* переполненное хранилище не должно ломать вход */
+    return false;
   }
 }
 
