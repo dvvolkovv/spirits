@@ -5,7 +5,7 @@
 // элемента в момент play(), без беззвучной разблокировки.
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { actAsync, clickAsync, flush, mount, tRu } from '../../../test/dom';
+import { actAsync, click, clickAsync, flush, mount, tRu } from '../../../test/dom';
 import ListenButton from './ListenButton';
 import { useListenPlayer } from './useListenPlayer';
 import { apiClient } from '../../../services/apiClient';
@@ -134,6 +134,22 @@ describe('плеер ответа', () => {
 
     await fire('ended');
     expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen'));
+  });
+
+  it('звук разблокируется синхронно в момент нажатия — до ответа бэка', () => {
+    // iOS даёт звук только элементу, который уже играл по жесту, а куски
+    // приходят через секунды синтеза. Без беззвучного play() внутри самого
+    // нажатия первый ответ на айфоне молчал бы. В jsdom политики автозапуска
+    // нет — поэтому сторожим сам вызов.
+    post.mockImplementation(() => deferred<Response>().promise);
+    const srcs: string[] = [];
+    vi.mocked(HTMLMediaElement.prototype.play).mockImplementation(function (this: HTMLMediaElement) {
+      srcs.push(this.src.split(';')[0]);
+      return Promise.resolve();
+    });
+    const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет!' }]} />);
+    click(btn(container, 'm1')!);
+    expect(srcs).toEqual(['data:audio/wav']);
   });
 
   it('повторное нажатие на звучащий ответ останавливает его', async () => {
