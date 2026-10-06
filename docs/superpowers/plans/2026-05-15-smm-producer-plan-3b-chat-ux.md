@@ -853,7 +853,7 @@ If anything breaks visually (broken Tailwind classes, missing colors), tweak the
 Cleanup test data after manual QA:
 
 ```bash
-ssh dvolkov@212.113.106.202 "PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c \"
+ssh dvolkov@212.113.106.202 "PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c \"
 DELETE FROM smm_billing_ledger WHERE user_id='79030169187';
 DELETE FROM smm_campaign WHERE user_id='79030169187';
 \""
@@ -909,7 +909,7 @@ In a browser, navigate to `https://my.linkeon.io/chat`, login as admin, repeat t
 Cleanup test data:
 
 ```bash
-ssh dvolkov@212.113.106.202 "PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c \"
+ssh dvolkov@212.113.106.202 "PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c \"
 DELETE FROM smm_billing_ledger WHERE user_id='79030169187';
 DELETE FROM smm_campaign WHERE user_id='79030169187';
 \""

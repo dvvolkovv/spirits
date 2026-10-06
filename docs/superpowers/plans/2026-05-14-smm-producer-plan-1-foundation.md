@@ -470,7 +470,7 @@ main()
 
 ```bash
 cd ~/Downloads/spirits_back
-DATABASE_URL="postgresql://linkeon:linkeon_pass_2026@212.113.106.202:5433/linkeon" npm run migrate:dry
+DATABASE_URL="postgresql://linkeon:<пароль из .env>@212.113.106.202:5433/linkeon" npm run migrate:dry
 ```
 
 Ожидаемый вывод (если миграции ещё не применены):
@@ -485,7 +485,7 @@ Pending migrations (2):
 Если эти миграции УЖЕ применены вручную раньше — раннер этого не знает. Сделаем backfill:
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
 INSERT INTO schema_migrations (filename) VALUES
   ('peer/001_peer_tables.sql'),
   ('support/001_support.sql'),
@@ -722,7 +722,7 @@ ON CONFLICT (id) DO UPDATE
 
 ```bash
 cd ~/Downloads/spirits_back
-DATABASE_URL="postgresql://linkeon:linkeon_pass_2026@212.113.106.202:5433/linkeon" npm run migrate
+DATABASE_URL="postgresql://linkeon:<пароль из .env>@212.113.106.202:5433/linkeon" npm run migrate
 ```
 
 Ожидаемый вывод:
@@ -738,7 +738,7 @@ Applied 2 migration(s)
 - [ ] **Step 3.4: Проверить таблицы и тарифы в БД**
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public' AND table_name LIKE 'smm_%'
 ORDER BY table_name;
@@ -763,7 +763,7 @@ ORDER BY table_name;
 Проверить тарифы:
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
 SELECT id, tokens_cost, display_name FROM smm_pricing ORDER BY tokens_cost;
 "
 ```
@@ -2615,7 +2615,7 @@ npm run build 2>&1 | tail -10
 
 ```bash
 cd ~/Downloads/spirits_back
-DATABASE_URL="postgresql://linkeon:linkeon_pass_2026@212.113.106.202:5433/linkeon" npm run start:dev &
+DATABASE_URL="postgresql://linkeon:<пароль из .env>@212.113.106.202:5433/linkeon" npm run start:dev &
 APP_PID=$!
 sleep 8  # Wait for Nest to start
 curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:3001/webhook/smm/campaigns \
@@ -2634,7 +2634,7 @@ Test admin использует phone `70000099999` (см. fixtures/admin-user.s
 
 ```bash
 # Применить фикстуру
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon \
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon \
   -f ~/Downloads/spirits_back/tests/smm/fixtures/admin-user.sql
 
 # Получить OTP-код (требует DEBUG_SMS_CODES=true на бэке)

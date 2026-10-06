@@ -74,14 +74,14 @@ CREATE INDEX IF NOT EXISTS idx_video_jobs_active_status
 
 Run:
 ```bash
-ssh -p 60322 dvolkov@82.202.197.230 "PGPASSWORD=linkeon_pass_2026 psql -U linkeon -h localhost -d linkeon" < ~/Downloads/spirits_back/src/video/migrations/001_video_jobs.sql
+ssh -p 60322 dvolkov@82.202.197.230 "PGPASSWORD=<пароль из .env> psql -U linkeon -h localhost -d linkeon" < ~/Downloads/spirits_back/src/video/migrations/001_video_jobs.sql
 ```
 
 - [ ] **Step 3: Verify schema**
 
 Run:
 ```bash
-ssh -p 60322 dvolkov@82.202.197.230 "PGPASSWORD=linkeon_pass_2026 psql -U linkeon -h localhost -d linkeon -c '\d video_jobs'"
+ssh -p 60322 dvolkov@82.202.197.230 "PGPASSWORD=<пароль из .env> psql -U linkeon -h localhost -d linkeon -c '\d video_jobs'"
 ```
 Expected: all columns listed with correct types; two indexes present.
 

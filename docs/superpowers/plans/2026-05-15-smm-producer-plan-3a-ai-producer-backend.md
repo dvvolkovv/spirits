@@ -70,7 +70,7 @@ PERPLEXITY_API_KEY=...     # required for trends mode; falls back gracefully if 
 - [ ] **Step 1.1: Inspect existing agents schema**
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "\d agents"
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "\d agents"
 ```
 
 Expected: shows columns `id`, `name`, `description`, `system_prompt`, `category`, etc.
@@ -106,14 +106,14 @@ NOTE: if the `agents` table doesn't have a UNIQUE constraint on `name`, the ON C
 
 ```bash
 cd /Users/dmitry/Downloads/spirits_back
-DATABASE_URL="postgresql://linkeon:linkeon_pass_2026@212.113.106.202:5433/linkeon" \
+DATABASE_URL="postgresql://linkeon:<пароль из .env>@212.113.106.202:5433/linkeon" \
   npm run migrate:dry
 ```
 
 Expected: 1 pending — `smm/005_smm_producer_agent.sql`.
 
 ```bash
-DATABASE_URL="postgresql://linkeon:linkeon_pass_2026@212.113.106.202:5433/linkeon" \
+DATABASE_URL="postgresql://linkeon:<пароль из .env>@212.113.106.202:5433/linkeon" \
   npm run migrate
 ```
 
@@ -122,7 +122,7 @@ Expected: `✓ applied smm/005_smm_producer_agent.sql`.
 If it fails with "no unique constraint matches ON CONFLICT", inspect the agents table:
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
 SELECT conname, contype, pg_get_constraintdef(oid)
 FROM pg_constraint
 WHERE conrelid = 'agents'::regclass;
@@ -134,7 +134,7 @@ Adjust migration accordingly (e.g., use `INSERT ... WHERE NOT EXISTS` instead of
 - [ ] **Step 1.4: Verify the row exists**
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
   "SELECT id, name, category FROM agents WHERE name='smm_producer';"
 ```
 
@@ -1639,7 +1639,7 @@ ADMIN_JWT=$(curl -s "https://my.linkeon.io/webhook/a376a8ed-3bf7-4f23-aaa5-236ee
 Get smm_producer agent id from DB:
 
 ```bash
-SMM_AGENT_ID=$(PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -tA -c "SELECT id FROM agents WHERE name='smm_producer'")
+SMM_AGENT_ID=$(PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -tA -c "SELECT id FROM agents WHERE name='smm_producer'")
 echo "agent id: $SMM_AGENT_ID"
 ```
 
@@ -1670,7 +1670,7 @@ If the chat endpoint path differs, adjust. Note: this smoke takes 30-60 sec beca
 
 ```bash
 kill $APP_PID 2>/dev/null || true
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
   "DELETE FROM smm_campaign WHERE user_id='79030169187';"
 ```
 
@@ -1883,7 +1883,7 @@ Get fresh JWT (admin = 79030169187), find agent id, send a message:
 
 ```bash
 ADMIN_JWT=...   # via OTP flow as in Plan 1 Task 9
-SMM_AGENT_ID=$(PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -tA -c "SELECT id FROM agents WHERE name='smm_producer'")
+SMM_AGENT_ID=$(PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -tA -c "SELECT id FROM agents WHERE name='smm_producer'")
 echo "agent id: $SMM_AGENT_ID"
 
 curl -N -X POST https://my.linkeon.io/webhook/soulmate/chat \
@@ -1897,7 +1897,7 @@ Expected: streaming response with `{"type":"item","content":"..."}` chunks then 
 Verify in DB:
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
 SELECT s.title, s.status, s.assistant_role, s.mood
 FROM smm_scenario s JOIN smm_campaign c ON c.id = s.campaign_id
 WHERE c.user_id = '79030169187' ORDER BY s.created_at DESC LIMIT 5;
@@ -1909,7 +1909,7 @@ Should show 2 fresh scenarios with status=pending_review.
 Cleanup:
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
   "DELETE FROM smm_campaign WHERE user_id='79030169187'"
 ```
 
@@ -1925,14 +1925,14 @@ curl -X POST https://my.linkeon.io/webhook/smm/scenarios/$SCENARIO_ID/approve \
 # Watch the video status
 VIDEO_ID=...   # from response
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-  STATUS=$(PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -tA -c "SELECT status||'|'||COALESCE(mp4_url,'') FROM smm_video WHERE id='$VIDEO_ID'")
+  STATUS=$(PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -tA -c "SELECT status||'|'||COALESCE(mp4_url,'') FROM smm_video WHERE id='$VIDEO_ID'")
   echo "$(date +%H:%M:%S) $STATUS"
   if echo "$STATUS" | grep -qE '^ready\||^failed\|'; then break; fi
   sleep 10
 done
 
 # Cleanup
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
   "DELETE FROM smm_campaign WHERE user_id='79030169187'; DELETE FROM smm_billing_ledger WHERE user_id='79030169187';"
 ```
 

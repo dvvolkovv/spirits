@@ -67,13 +67,13 @@ COMMIT;
 Сначала прогон на test-сервере:
 ```bash
 scp ~/Downloads/spirits_back/src/identity/migrations/001_identity_init.sql dv@85.192.61.231:/tmp/
-ssh dv@85.192.61.231 'PGPASSWORD=linkeon_pass_2026 psql -U linkeon -h localhost -p 5433 -d linkeon -f /tmp/001_identity_init.sql'
+ssh dv@85.192.61.231 'PGPASSWORD=<пароль из .env> psql -U linkeon -h localhost -p 5433 -d linkeon -f /tmp/001_identity_init.sql'
 ```
 Ожидание: `BEGIN`, серия `CREATE TABLE`/`ALTER TABLE`/`CREATE INDEX`/`UPDATE`/`INSERT`, `COMMIT` — без ошибок.
 
 Проверка:
 ```bash
-ssh dv@85.192.61.231 'PGPASSWORD=linkeon_pass_2026 psql -U linkeon -h localhost -p 5433 -d linkeon -c "\d user_identities; SELECT COUNT(*) FROM user_identities WHERE provider=\"phone\";"'
+ssh dv@85.192.61.231 'PGPASSWORD=<пароль из .env> psql -U linkeon -h localhost -p 5433 -d linkeon -c "\d user_identities; SELECT COUNT(*) FROM user_identities WHERE provider=\"phone\";"'
 ```
 Expected: schema видна, count > 0 (количество существующих юзеров).
 

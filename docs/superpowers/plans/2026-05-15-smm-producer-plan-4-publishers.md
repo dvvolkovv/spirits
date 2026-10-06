@@ -137,7 +137,7 @@ CREATE INDEX IF NOT EXISTS idx_smm_publication_user_scheduled
 
 ```bash
 cd /Users/dmitry/Downloads/spirits_back/.worktrees/<your-worktree>
-DATABASE_URL="postgresql://linkeon:linkeon_pass_2026@127.0.0.1:5433/linkeon" npm run migrate
+DATABASE_URL="postgresql://linkeon:<пароль из .env>@127.0.0.1:5433/linkeon" npm run migrate
 ```
 
 Expected:
@@ -149,7 +149,7 @@ Applied 1 migration(s)
 Verify:
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c "\d smm_oauth_state"
+PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c "\d smm_oauth_state"
 ```
 
 Expected: table exists with 5 columns and the platform CHECK.
@@ -3050,7 +3050,7 @@ echo "Video id: $VIDEO_ID"
 
 # 3) Wait for render to finish (~75s)
 for i in $(seq 1 20); do
-  STATUS=$(ssh dvolkov@212.113.106.202 "PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -tA -c \"SELECT status FROM smm_video WHERE id='$VIDEO_ID'\"")
+  STATUS=$(ssh dvolkov@212.113.106.202 "PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -tA -c \"SELECT status FROM smm_video WHERE id='$VIDEO_ID'\"")
   echo "$(date +%H:%M:%S) status=$STATUS"
   if [ "$STATUS" = "ready" ] || [ "$STATUS" = "failed" ]; then break; fi
   sleep 8
@@ -3074,7 +3074,7 @@ Verify in Telegram channel: the video should appear there.
 Cleanup test data:
 
 ```bash
-ssh dvolkov@212.113.106.202 "PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c \"
+ssh dvolkov@212.113.106.202 "PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c \"
 DELETE FROM smm_billing_ledger WHERE user_id='79030169187';
 DELETE FROM smm_campaign WHERE user_id='79030169187';
 \""

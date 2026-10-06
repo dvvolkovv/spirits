@@ -558,7 +558,7 @@ echo "Video ID: $VIDEO_ID"
 # Step C: wait for render (~75s)
 echo "--- C: waiting for render ---"
 for i in $(seq 1 12); do
-  STATUS=$(ssh dvolkov@212.113.106.202 "PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -tA -c \"SELECT status FROM smm_video WHERE id='$VIDEO_ID'\"")
+  STATUS=$(ssh dvolkov@212.113.106.202 "PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -tA -c \"SELECT status FROM smm_video WHERE id='$VIDEO_ID'\"")
   echo "[$i] status=$STATUS"
   if [ "$STATUS" = "ready" ] || [ "$STATUS" = "failed" ]; then break; fi
   sleep 8
@@ -573,7 +573,7 @@ cat /tmp/chat-publish.log | jq -c 'select(.type == "tool_start" or .type == "too
 
 # Step E: wait ~10 sec for worker to pick up the publish job, check publication status
 sleep 10
-ssh dvolkov@212.113.106.202 'PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c "SELECT status, external_url, error_message FROM smm_publication ORDER BY created_at DESC LIMIT 3"'
+ssh dvolkov@212.113.106.202 'PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c "SELECT status, external_url, error_message FROM smm_publication ORDER BY created_at DESC LIMIT 3"'
 ```
 
 Expected:

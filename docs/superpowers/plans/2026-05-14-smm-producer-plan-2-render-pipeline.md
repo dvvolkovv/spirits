@@ -1074,7 +1074,7 @@ Smoke (locally with dev server running):
 
 ```bash
 # create a test video row in DB first
-VIDEO_ID=$(PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -At -c "
+VIDEO_ID=$(PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -At -c "
 WITH c AS (
   INSERT INTO smm_campaign (user_id, source_mode, requested_count)
   VALUES ('70000099999', 'topic', 1) RETURNING id
@@ -1090,7 +1090,7 @@ cd /Users/dmitry/Downloads/spirits_back/worker
 npx ts-node scripts/smoke-api-client.ts "$VIDEO_ID"
 
 # cleanup
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c "
 DELETE FROM smm_campaign WHERE user_id='70000099999' AND topic IS NULL;
 "
 ```
@@ -1855,13 +1855,13 @@ Then run seed:
 
 ```bash
 cd /Users/dmitry/Downloads/spirits_back
-DATABASE_URL="postgresql://linkeon:linkeon_pass_2026@212.113.106.202:5433/linkeon" npm run seed-music
+DATABASE_URL="postgresql://linkeon:<пароль из .env>@212.113.106.202:5433/linkeon" npm run seed-music
 ```
 
 Verify:
 
 ```bash
-PGPASSWORD=linkeon_pass_2026 psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
+PGPASSWORD=<пароль из .env> psql -h 212.113.106.202 -p 5433 -U linkeon -d linkeon -c \
   "SELECT id, mood, duration_sec FROM smm_music_track ORDER BY mood;"
 ```
 
@@ -3725,7 +3725,7 @@ Create a minimal scenario via psql + enqueue and watch for the MP4:
 
 ```bash
 ssh dvolkov@212.113.106.202 '
-PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -At <<SQL
+PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -At <<SQL
 INSERT INTO ai_profiles_consolidated (user_id, isadmin, tokens, updated_at)
   VALUES (\$\$70000099999\$\$, true, 1000000, now())
   ON CONFLICT (user_id) DO UPDATE SET tokens = 1000000;
@@ -3762,7 +3762,7 @@ q.add('smoke', { videoId: '$VIDEO_ID', scenarioId: '00000000-0000-0000-0000-0000
 
 # Poll status
 for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24; do
-  S=$(ssh dvolkov@212.113.106.202 "PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -At -c \"SELECT status, mp4_url, error_message FROM smm_video WHERE id='$VIDEO_ID'\"")
+  S=$(ssh dvolkov@212.113.106.202 "PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -At -c \"SELECT status, mp4_url, error_message FROM smm_video WHERE id='$VIDEO_ID'\"")
   echo "$(date +%H:%M:%S) $S"
   if echo "$S" | grep -qE '^ready\|'; then break; fi
   if echo "$S" | grep -qE '^failed\|'; then break; fi
@@ -3770,7 +3770,7 @@ for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24; do
 done
 
 # Cleanup
-ssh dvolkov@212.113.106.202 "PGPASSWORD=linkeon_pass_2026 psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c \"DELETE FROM smm_campaign WHERE user_id='70000099999'\""
+ssh dvolkov@212.113.106.202 "PGPASSWORD=<пароль из .env> psql -h 127.0.0.1 -p 5433 -U linkeon -d linkeon -c \"DELETE FROM smm_campaign WHERE user_id='70000099999'\""
 ```
 
 Expected: status flips to `ready` within ~3 minutes, mp4_url points to MinIO public URL. Open it in a browser to visually verify.
