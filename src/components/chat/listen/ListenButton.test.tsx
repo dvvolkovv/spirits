@@ -3,7 +3,6 @@
 // Кнопка «Прослушать» вместе с общим плеером ленты. Утверждения — про надпись
 // на кнопке (что видит человек) и про то, что реально ушло в динамик: src
 // элемента в момент play(), без беззвучной разблокировки.
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { actAsync, click, clickAsync, flush, mount, tRu } from '../../../test/dom';
 import ListenButton from './ListenButton';
@@ -81,8 +80,10 @@ function Feed({ items }: { items: Array<{ id: string; content: string }> }) {
 const btn = (c: HTMLElement, id: string) => c.querySelector(`[data-id="${id}"] button`) as HTMLButtonElement | null;
 const settle = async () => { for (let i = 0; i < 6; i++) await flush(); };
 /** Общий <audio> ленты — тот, на ком последний раз звали play(). */
-const audio = (): HTMLMediaElement =>
-  vi.mocked(HTMLMediaElement.prototype.play).mock.contexts.at(-1) as HTMLMediaElement;
+const audio = (): HTMLMediaElement => {
+  const contexts = vi.mocked(HTMLMediaElement.prototype.play).mock.contexts;
+  return contexts[contexts.length - 1] as HTMLMediaElement;
+};
 const fire = async (type: 'ended' | 'error') => {
   await actAsync(() => { audio().dispatchEvent(new Event(type)); });
   await settle();
