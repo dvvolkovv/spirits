@@ -4,7 +4,7 @@
 // на кнопке (что видит человек) и про то, что реально ушло в динамик: src
 // элемента в момент play(), без беззвучной разблокировки.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { actAsync, click, clickAsync, flush, mount, tRu } from '../../../test/dom';
+import { actAsync, click, clickAsync, doubleClick, flush, mount, tRu } from '../../../test/dom';
 import ListenButton from './ListenButton';
 import { useListenPlayer } from './useListenPlayer';
 import { apiClient } from '../../../services/apiClient';
@@ -84,7 +84,7 @@ const audio = (): HTMLMediaElement => {
   const contexts = vi.mocked(HTMLMediaElement.prototype.play).mock.contexts;
   return contexts[contexts.length - 1] as HTMLMediaElement;
 };
-const fire = async (type: 'ended' | 'error') => {
+const fire = async (type: 'ended' | 'error' | 'pause') => {
   await actAsync(() => { audio().dispatchEvent(new Event(type)); });
   await settle();
 };
@@ -252,6 +252,135 @@ describe('плеер ответа', () => {
     await clickAsync(btn(container, 'm1')!);
     await settle();
     expect(post).toHaveBeenCalledTimes(2);
+  });
+
+  it('битый кусок: и error, и отказ play() — но тост один', async () => {
+    // Браузер сначала шлёт событие error, следом отклоняет висящий play() с
+    // NotSupportedError (проверено в Chromium). Обе ветки ведут в общий
+    // обработчик ошибки, и без защиты пользователь видел два одинаковых тоста.
+    post.mockResolvedValue(OK(['https://m.test/a-0.mp3']));
+    let rejectPlay!: (e: unknown) => void;
+    playImpl = () => new Promise<void>((_, rej) => { rejectPlay = rej; });
+    const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет!' }]} />);
+    await clickAsync(btn(container, 'm1')!);
+    await settle();
+    await actAsync(() => {
+      audio().dispatchEvent(new Event('error'));
+      rejectPlay(Object.assign(new Error('no supported source'), { name: 'NotSupportedError' }));
+    });
+    await settle();
+    expect(toastError).toHaveBeenCalledTimes(1);
+    expect(toastError).toHaveBeenCalledWith(tRu('chat.listen_failed'));
+  });
+
+  it('пока озвучивается, кнопка погашена: повторное нажатие не отменяет оплаченный синтез', async () => {
+    // Синтез оплачивается на сервере независимо от клиента: «отменить» его
+    // нажатием значило бы заплатить и ничего не услышать.
+    const d = deferred<Response>();
+    post.mockImplementation(() => d.promise);
+    const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет!' }]} />);
+    await clickAsync(btn(container, 'm1')!);
+    expect(btn(container, 'm1')!.disabled).toBe(true);
+    await clickAsync(btn(container, 'm1')!);
+    await actAsync(() => d.resolve(OK(['https://m.test/a-0.mp3'])));
+    await settle();
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(played).toEqual(['https://m.test/a-0.mp3']);
+    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen_stop'));
+  });
+
+  it('двойной клик (оба нажатия до перерисовки) — один запрос, и звук всё равно звучит', async () => {
+    const d = deferred<Response>();
+    post.mockImplementation(() => d.promise);
+    const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет!' }]} />);
+    doubleClick(btn(container, 'm1')!);
+    await actAsync(() => d.resolve(OK(['https://m.test/a-0.mp3'])));
+    await settle();
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(played).toEqual(['https://m.test/a-0.mp3']);
+    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen_stop'));
+  });
+
+  it('брошенная озвучка не пропадает: вернулся к ответу — звучит без второго запроса', async () => {
+    const d1 = deferred<Response>();
+    post
+      .mockImplementationOnce(() => d1.promise)
+      .mockImplementation(async () => OK(['https://m.test/second.mp3']));
+    const { container } = mount(
+      <Feed items={[{ id: 'm1', content: 'Первый.' }, { id: 'm2', content: 'Второй.' }]} />,
+    );
+    await clickAsync(btn(container, 'm1')!);
+    await clickAsync(btn(container, 'm2')!);
+    await settle();
+    await actAsync(() => d1.resolve(OK(['https://m.test/first.mp3'])));
+    await settle();
+    expect(played).toEqual(['https://m.test/second.mp3']);
+
+    await clickAsync(btn(container, 'm1')!);
+    await settle();
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(played).toEqual(['https://m.test/second.mp3', 'https://m.test/first.mp3']);
+  });
+
+  it('вернулся к ответу, пока он ещё озвучивается, — ждём тот же запрос, второго не шлём', async () => {
+    const d1 = deferred<Response>();
+    post
+      .mockImplementationOnce(() => d1.promise)
+      .mockImplementation(async () => OK(['https://m.test/second.mp3']));
+    const { container } = mount(
+      <Feed items={[{ id: 'm1', content: 'Первый.' }, { id: 'm2', content: 'Второй.' }]} />,
+    );
+    await clickAsync(btn(container, 'm1')!);
+    await clickAsync(btn(container, 'm2')!);
+    await settle();
+    await clickAsync(btn(container, 'm1')!);
+    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen_loading'));
+    await actAsync(() => d1.resolve(OK(['https://m.test/first.mp3'])));
+    await settle();
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(played).toEqual(['https://m.test/second.mp3', 'https://m.test/first.mp3']);
+    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen_stop'));
+  });
+
+  it('пауза извне (звонок, экран блокировки) возвращает «Прослушать»', async () => {
+    post.mockResolvedValue(OK(['https://m.test/a-0.mp3']));
+    const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет!' }]} />);
+    await clickAsync(btn(container, 'm1')!);
+    await settle();
+    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen_stop'));
+    await fire('pause');
+    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen'));
+  });
+
+  it('пауза в конце куска — не стоп: браузер шлёт её перед ended, следующий кусок играет', async () => {
+    post.mockResolvedValue(OK(['https://m.test/a-0.mp3', 'https://m.test/a-1.mp3']));
+    const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет!' }]} />);
+    await clickAsync(btn(container, 'm1')!);
+    await settle();
+    const el = audio();
+    Object.defineProperty(el, 'ended', { configurable: true, get: () => true });
+    await fire('pause');
+    delete (el as unknown as { ended?: boolean }).ended;
+    await fire('ended');
+    expect(played).toEqual(['https://m.test/a-0.mp3', 'https://m.test/a-1.mp3']);
+    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen_stop'));
+  });
+
+  it('следующий кусок подгружается заранее — без паузы на стыке', async () => {
+    post.mockResolvedValue(OK(['https://m.test/a-0.mp3', 'https://m.test/a-1.mp3']));
+    const created: HTMLAudioElement[] = [];
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation(((tag: string, options?: ElementCreationOptions) => {
+      const el = createElement(tag, options);
+      if (tag === 'audio') created.push(el as HTMLAudioElement);
+      return el;
+    }) as typeof document.createElement);
+    const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет!' }]} />);
+    await clickAsync(btn(container, 'm1')!);
+    await settle();
+    const next = created.filter((el) => el.getAttribute('src') === 'https://m.test/a-1.mp3');
+    expect(next).toHaveLength(1);
+    expect(next[0].preload).toBe('auto');
   });
 
   it('поздний ответ бэка по брошенному ответу не включает его звук', async () => {
