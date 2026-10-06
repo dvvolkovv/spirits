@@ -1892,7 +1892,10 @@
       "invalidPhone": "Verifique o número de telemóvel.",
       "tooManyRequests_one": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} minuto.",
       "tooManyRequests_many": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} de minutos.",
-      "tooManyRequests_other": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} minutos."
+      "tooManyRequests_other": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} minutos.",
+      "tooManyRequestsHours_one": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} hora.",
+      "tooManyRequestsHours_many": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} de horas.",
+      "tooManyRequestsHours_other": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} horas."
     },
     "consent": {
       "ageAndPrefix": "Tenho mais de 18 anos, li a ",

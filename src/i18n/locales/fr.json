@@ -1539,7 +1539,10 @@
       "invalidPhone": "Vérifie le numéro de téléphone.",
       "tooManyRequests_one": "Trop de tentatives. Tu pourras demander un nouveau code dans {{count}} minute.",
       "tooManyRequests_many": "Trop de tentatives. Tu pourras demander un nouveau code dans {{count}} de minutes.",
-      "tooManyRequests_other": "Trop de tentatives. Tu pourras demander un nouveau code dans {{count}} minutes."
+      "tooManyRequests_other": "Trop de tentatives. Tu pourras demander un nouveau code dans {{count}} minutes.",
+      "tooManyRequestsHours_one": "Trop de tentatives. Tu pourras demander un nouveau code dans {{count}} heure.",
+      "tooManyRequestsHours_many": "Trop de tentatives. Tu pourras demander un nouveau code dans {{count}} d'heures.",
+      "tooManyRequestsHours_other": "Trop de tentatives. Tu pourras demander un nouveau code dans {{count}} heures."
     },
     "consent": {
       "ageAndPrefix": "J'ai plus de 18 ans, j'ai pris connaissance de ",

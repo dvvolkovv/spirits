@@ -57,6 +57,21 @@ describe('authService.requestSMSCode: лимит отправки (429)', () => 
     expect(String(fetchMock.mock.calls[0][0])).toContain('/sms/79991234567');
   });
 
+  it('от часа — в часах с формой числа, вверх до часа; меньше часа — в минутах', async () => {
+    const cases: Array<[number, string]> = [
+      [3540, 'Слишком часто. Новый код можно запросить через 59 минут.'],
+      [3600, 'Слишком часто. Новый код можно запросить через 1 час.'],
+      [3601, 'Слишком часто. Новый код можно запросить через 2 часа.'], // 61 минута — не занижаем
+      [18000, 'Слишком часто. Новый код можно запросить через 5 часов.'],
+      [75600, 'Слишком часто. Новый код можно запросить через 21 час.'],
+      [82680, 'Слишком часто. Новый код можно запросить через 23 часа.'], // суточное окно
+    ];
+    for (const [sec, text] of cases) {
+      fetchMock.mockResolvedValueOnce(reply(429, { error: 'too_many_requests', retryAfterSec: sec }));
+      expect({ sec, message: (await authService.requestSMSCode('79991234567')).message }).toEqual({ sec, message: text });
+    }
+  });
+
   it('нет числа в теле — срок из Retry-After; нет и его — минимум минута', async () => {
     fetchMock.mockResolvedValueOnce(reply(429, { error: 'too_many_requests' }, { 'Retry-After': '600' }));
     expect((await authService.requestSMSCode('79991234567')).message)
@@ -72,18 +87,35 @@ describe('authService.requestSMSCode: лимит отправки (429)', () => 
   });
 
   it('фраза — на языке интерфейса, с формой числа этого языка', async () => {
-    const expected: Record<string, [string, string]> = {
-      en: ['Too many attempts. You can request a new code in 1 minute.', 'Too many attempts. You can request a new code in 57 minutes.'],
-      de: ['Zu viele Versuche. Einen neuen Code kannst du in 1 Minute anfordern.', 'Zu viele Versuche. Einen neuen Code kannst du in 57 Minuten anfordern.'],
-      zh: ['请求过于频繁，请在 1 分钟后重新获取验证码。', '请求过于频繁，请在 57 分钟后重新获取验证码。'],
+    // [30 с, 57 мин, 1 ч, 23 ч]
+    const expected: Record<string, string[]> = {
+      en: [
+        'Too many attempts. You can request a new code in 1 minute.',
+        'Too many attempts. You can request a new code in 57 minutes.',
+        'Too many attempts. You can request a new code in 1 hour.',
+        'Too many attempts. You can request a new code in 23 hours.',
+      ],
+      de: [
+        'Zu viele Versuche. Einen neuen Code kannst du in 1 Minute anfordern.',
+        'Zu viele Versuche. Einen neuen Code kannst du in 57 Minuten anfordern.',
+        'Zu viele Versuche. Einen neuen Code kannst du in 1 Stunde anfordern.',
+        'Zu viele Versuche. Einen neuen Code kannst du in 23 Stunden anfordern.',
+      ],
+      zh: [
+        '请求过于频繁，请在 1 分钟后重新获取验证码。',
+        '请求过于频繁，请在 57 分钟后重新获取验证码。',
+        '请求过于频繁，请在 1 小时后重新获取验证码。',
+        '请求过于频繁，请在 23 小时后重新获取验证码。',
+      ],
     };
     try {
-      for (const [lang, [one, many]] of Object.entries(expected)) {
+      for (const [lang, texts] of Object.entries(expected)) {
         await i18n.changeLanguage(lang);
-        fetchMock.mockResolvedValueOnce(reply(429, { error: 'too_many_requests', retryAfterSec: 30 }));
-        expect((await authService.requestSMSCode('79991234567')).message).toBe(one);
-        fetchMock.mockResolvedValueOnce(reply(429, { error: 'too_many_requests', retryAfterSec: 3420 }));
-        expect((await authService.requestSMSCode('79991234567')).message).toBe(many);
+        for (const [i, sec] of [30, 3420, 3600, 82680].entries()) {
+          fetchMock.mockResolvedValueOnce(reply(429, { error: 'too_many_requests', retryAfterSec: sec }));
+          expect({ lang, sec, message: (await authService.requestSMSCode('79991234567')).message })
+            .toEqual({ lang, sec, message: texts[i] });
+        }
       }
     } finally {
       await i18n.changeLanguage('ru');

@@ -1905,7 +1905,11 @@
       "tooManyRequests_one": "Слишком часто. Новый код можно запросить через {{count}} минуту.",
       "tooManyRequests_few": "Слишком часто. Новый код можно запросить через {{count}} минуты.",
       "tooManyRequests_many": "Слишком часто. Новый код можно запросить через {{count}} минут.",
-      "tooManyRequests_other": "Слишком часто. Новый код можно запросить через {{count}} минуты."
+      "tooManyRequests_other": "Слишком часто. Новый код можно запросить через {{count}} минуты.",
+      "tooManyRequestsHours_one": "Слишком часто. Новый код можно запросить через {{count}} час.",
+      "tooManyRequestsHours_few": "Слишком часто. Новый код можно запросить через {{count}} часа.",
+      "tooManyRequestsHours_many": "Слишком часто. Новый код можно запросить через {{count}} часов.",
+      "tooManyRequestsHours_other": "Слишком часто. Новый код можно запросить через {{count}} часа."
     },
     "consent": {
       "ageAndPrefix": "Мне больше 18 лет, я ознакомлен(а) с ",

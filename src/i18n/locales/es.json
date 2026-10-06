@@ -1539,7 +1539,10 @@
       "invalidPhone": "Revisa el número de teléfono.",
       "tooManyRequests_one": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} minuto.",
       "tooManyRequests_many": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} de minutos.",
-      "tooManyRequests_other": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} minutos."
+      "tooManyRequests_other": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} minutos.",
+      "tooManyRequestsHours_one": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} hora.",
+      "tooManyRequestsHours_many": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} de horas.",
+      "tooManyRequestsHours_other": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} horas."
     },
     "consent": {
       "ageAndPrefix": "Soy mayor de 18 años, he leído ",

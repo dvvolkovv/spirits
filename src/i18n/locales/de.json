@@ -1531,7 +1531,9 @@
       "resendError": "Fehler beim erneuten Senden der SMS. Bitte versuche es erneut.",
       "invalidPhone": "Bitte überprüfe die Telefonnummer.",
       "tooManyRequests_one": "Zu viele Versuche. Einen neuen Code kannst du in {{count}} Minute anfordern.",
-      "tooManyRequests_other": "Zu viele Versuche. Einen neuen Code kannst du in {{count}} Minuten anfordern."
+      "tooManyRequests_other": "Zu viele Versuche. Einen neuen Code kannst du in {{count}} Minuten anfordern.",
+      "tooManyRequestsHours_one": "Zu viele Versuche. Einen neuen Code kannst du in {{count}} Stunde anfordern.",
+      "tooManyRequestsHours_other": "Zu viele Versuche. Einen neuen Code kannst du in {{count}} Stunden anfordern."
     },
     "consent": {
       "ageAndPrefix": "Ich bin über 18 und habe die ",
