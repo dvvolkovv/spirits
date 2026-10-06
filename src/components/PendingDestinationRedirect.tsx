@@ -4,11 +4,18 @@ import { takePendingDestination } from '../utils/pendingDestination';
 
 // После входа — в раздел, куда человек шёл до него (utils/pendingDestination.ts).
 //
-// Все пути входа кончаются голым /chat: SMS и OAuth, экран привязки, ссылка
-// из письма (её обслуживает страница бэкенда с location.replace('/chat')).
-// Поэтому ловим именно голый /chat, а не правим каждый путь — так покрыт и
-// вход по письму, до которого фронт не дотягивается. /chat с параметрами —
-// чей-то явный адрес (?assistant=, ?view=tokens), его не трогаем.
+// Покрывает пути, которые кончаются голым /chat уже ПОСЛЕ того, как оболочка
+// вошедшего смонтирована: OAuth-колбэк, экран привязки, страница почтовой
+// ссылки (бэкенд делает location.replace('/chat')), Taler ID (/?talerid_login=
+// → RootRedirect → голый /chat). /chat с параметрами — чей-то явный адрес
+// (?assistant=, ?view=tokens), его не трогаем.
+//
+// SMS — отдельно и НЕ здесь: AuthContext.login() делает setUser ДО того, как
+// SmsLoginPane успевает перейти на /chat, — оболочка вошедшего рисуется сразу
+// по адресу экрана входа («/» или голый /chat), и этот компонент забрал бы
+// запись сам, а navigate('/chat') из SmsLoginPane увёл бы обратно в чат.
+// Поэтому SmsLoginPane забирает запись ДО login() и уходит прямо в раздел
+// (см. SmsLoginPane.tsx, handleOTPSubmit).
 const PendingDestinationRedirect: React.FC = () => {
   const { pathname, search } = useLocation();
   const navigate = useNavigate();

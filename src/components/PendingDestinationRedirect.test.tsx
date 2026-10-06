@@ -4,8 +4,8 @@
 // «Сделать сайт или бота», после входа должен оказаться во вкладке продуктов,
 // а явные адреса (/chat?assistant=…, другие разделы) перехватывать нельзя.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { flush, mount, visibleText, type Mounted } from '../test/dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { byButton, click, flush, mount, visibleText, type Mounted } from '../test/dom';
 import PendingDestinationRedirect from './PendingDestinationRedirect';
 import { rememberPendingDestination } from '../utils/pendingDestination';
 
@@ -29,6 +29,36 @@ async function open(url: string): Promise<string> {
   await flush();
   return visibleText(view.container);
 }
+
+// Свидетель с кнопкой, повторяющей уход в чат после входа (так делают OAuth и прочие пути).
+const WhereWithChat = () => {
+  const l = useLocation();
+  const type = useNavigationType();
+  const nav = useNavigate();
+  return (
+    <div>
+      <span data-at>{`${l.pathname}${l.search}`}</span>
+      <span data-type>{type}</span>
+      <button onClick={() => nav('/chat', { replace: true })}>в чат</button>
+    </div>
+  );
+};
+
+async function openWithChat(url: string): Promise<Mounted> {
+  view = mount(
+    <MemoryRouter initialEntries={[url]}>
+      <PendingDestinationRedirect />
+      <Routes>
+        <Route path="*" element={<WhereWithChat />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+  await flush();
+  return view;
+}
+
+const at = (v: Mounted): string | null => v.container.querySelector('[data-at]')?.textContent ?? null;
+const navType = (v: Mounted): string | null => v.container.querySelector('[data-type]')?.textContent ?? null;
 
 beforeEach(() => localStorage.clear());
 
@@ -56,5 +86,36 @@ describe('после входа — в раздел, куда человек ш�
   it('другой раздел не перехватывается', async () => {
     rememberPendingDestination('/studio', '?tab=products');
     expect(await open('/profile')).toBe('at:/profile');
+  });
+});
+
+describe('оболочка вошедшего живёт дольше одного мгновения', () => {
+  it('оболочка сначала на странице кнопки, потом голый /chat — вкладка продуктов, адрес заменён', async () => {
+    rememberPendingDestination('/studio', '?tab=products');
+    const v = await openWithChat('/studio?tab=products&utm_content=sites');
+    // До перехода в чат адрес не трогаем: pathname не /chat, запись не наша забота.
+    expect(at(v)).toBe('/studio?tab=products&utm_content=sites');
+
+    const btn = byButton(v.container, /в чат/);
+    expect(btn).not.toBeNull();
+    click(btn!);
+    await flush();
+
+    expect(at(v)).toBe('/studio?tab=products');
+    expect(navType(v)).toBe('REPLACE');
+  });
+
+  it('после перехода в раздел следующий голый /chat остаётся чатом', async () => {
+    rememberPendingDestination('/studio', '?tab=products');
+    const v = await openWithChat('/chat');
+    expect(at(v)).toBe('/studio?tab=products');
+
+    const btn = byButton(v.container, /в чат/);
+    expect(btn).not.toBeNull();
+    click(btn!);
+    await flush();
+
+    // Запись уже забрана первым переходом — повторный голый /chat её не находит.
+    expect(at(v)).toBe('/chat');
   });
 });
