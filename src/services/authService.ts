@@ -36,6 +36,12 @@ function attribQuery(): string {
   }
 }
 
+/** Неотрицательное число секунд из тела или заголовка Retry-After, иначе null. */
+function secondsFrom(value: unknown): number | null {
+  const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 class AuthService {
   async requestSMSCode(phone: string): Promise<SMSResponse> {
     try {
@@ -46,6 +52,22 @@ class AuthService {
 
       if (response.ok) {
         return { success: true, message: 'SMS sent' };
+      } else if (response.status === 429) {
+        // Лимит отправки SMS: сервер говорит, через сколько секунд можно снова.
+        const body = await response.json().catch(() => null);
+        const retryAfterSec = secondsFrom(body?.retryAfterSec) ?? secondsFrom(response.headers.get('Retry-After')) ?? 60;
+        return {
+          success: false,
+          error: 'too_many_requests',
+          retryAfterSec,
+          message: i18n.t('auth.sms.tooManyRequests', { count: Math.max(1, Math.ceil(retryAfterSec / 60)) }),
+        };
+      } else if (response.status === 400) {
+        const body = await response.json().catch(() => null);
+        if (body?.error === 'invalid_phone') {
+          return { success: false, error: 'invalid_phone', message: i18n.t('auth.sms.invalidPhone') };
+        }
+        return { success: false, message: 'Failed to send SMS' };
       } else if (response.status === 403) {
         const errorText = await response.text();
         return { success: false, message: errorText || 'User blocked' };

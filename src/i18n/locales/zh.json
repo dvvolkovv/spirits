@@ -1521,7 +1521,9 @@
       "codeNotFound": "未找到验证码，请重新获取。",
       "userDisabled": "你的账户已被禁用，请联系客服。",
       "verifyError": "验证码校验失败，请重试。",
-      "resendError": "短信重新发送失败，请重试。"
+      "resendError": "短信重新发送失败，请重试。",
+      "invalidPhone": "请检查手机号码。",
+      "tooManyRequests_other": "请求过于频繁，请在 {{count}} 分钟后重新获取验证码。"
     },
     "consent": {
       "ageAndPrefix": "我已年满18周岁，已阅读",

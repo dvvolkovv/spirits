@@ -22,6 +22,13 @@ export interface APIError {
 export interface SMSResponse {
   success: boolean;
   message?: string;
+  /**
+   * Отказ, который сервер объяснил сам. Тогда `message` — уже переведённая
+   * фраза для человека, её и надо показать вместо общего «не удалось».
+   */
+  error?: 'too_many_requests' | 'invalid_phone';
+  /** При too_many_requests: через сколько секунд можно запросить новый код. */
+  retryAfterSec?: number;
 }
 
 export interface Identity {

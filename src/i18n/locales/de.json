@@ -1528,7 +1528,10 @@
       "codeNotFound": "Code nicht gefunden. Bitte fordere einen neuen Code an.",
       "userDisabled": "Dein Konto ist deaktiviert. Bitte wende dich an den Support.",
       "verifyError": "Fehler bei der Codeprüfung. Bitte versuche es erneut.",
-      "resendError": "Fehler beim erneuten Senden der SMS. Bitte versuche es erneut."
+      "resendError": "Fehler beim erneuten Senden der SMS. Bitte versuche es erneut.",
+      "invalidPhone": "Bitte überprüfe die Telefonnummer.",
+      "tooManyRequests_one": "Zu viele Versuche. Einen neuen Code kannst du in {{count}} Minute anfordern.",
+      "tooManyRequests_other": "Zu viele Versuche. Einen neuen Code kannst du in {{count}} Minuten anfordern."
     },
     "consent": {
       "ageAndPrefix": "Ich bin über 18 und habe die ",

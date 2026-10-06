@@ -66,6 +66,12 @@ describe('runSendCode', () => {
     (authService.requestSMSCode as any).mockResolvedValue({ success: false, message: 'blocked' });
     expect(await runSendCode('123')).toEqual({ ok: false });
   });
+
+  it('отказ с объяснением (лимит SMS, неверный номер) несёт переведённую фразу для экрана', async () => {
+    const message = 'Слишком часто. Новый код можно запросить через 3 минуты.';
+    vi.mocked(authService.requestSMSCode).mockResolvedValue({ success: false, error: 'too_many_requests', retryAfterSec: 150, message });
+    expect(await runSendCode('+79991234567')).toEqual({ ok: false, message });
+  });
 });
 
 describe('runConfirmLink — порядок вход-потом-привязка', () => {

@@ -38,7 +38,7 @@ export function ChoiceScreen({ onAuthenticated }: Props) {
     const r = await runSendCode(phone);
     setBusy(false);
     if (r.ok) setStage('code');
-    else setError(t('tma.choice.failed'));
+    else setError(r.message ?? t('tma.choice.failed'));
   };
 
   const handleConfirm = async () => {

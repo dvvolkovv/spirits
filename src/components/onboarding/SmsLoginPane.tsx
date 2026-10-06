@@ -35,7 +35,11 @@ const SmsLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
       if (result.success) {
         setStep('otp');
       } else {
-        if (result.message === 'User blocked') {
+        if (result.error && result.message) {
+          // Сервер объяснил отказ (лимит SMS, неверный номер) — фраза уже
+          // переведена в authService, общее «ошибка отправки» тут неправда.
+          toast.error(result.message);
+        } else if (result.message === 'User blocked') {
           toast.error(t('auth.sms.userBlocked', 'Ваш аккаунт заблокирован. Пожалуйста, свяжитесь с поддержкой.'));
         } else {
           toast.error(t('auth.sms.sendError', 'Ошибка отправки СМС. Попробуйте еще раз.'));
@@ -91,7 +95,11 @@ const SmsLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
     try {
       const result = await authService.requestSMSCode(phone);
       if (!result.success) {
-        toast.error(t('auth.sms.resendError', 'Ошибка повторной отправки СМС. Попробуйте еще раз.'));
+        toast.error(
+          result.error && result.message
+            ? result.message
+            : t('auth.sms.resendError', 'Ошибка повторной отправки СМС. Попробуйте еще раз.'),
+        );
       }
     } catch (error) {
       console.error('Error resending SMS:', error);

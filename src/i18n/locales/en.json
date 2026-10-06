@@ -1887,7 +1887,10 @@
       "codeNotFound": "Code not found. Please request a new code.",
       "userDisabled": "Your account is disabled. Please contact support.",
       "verifyError": "Error verifying code. Please try again.",
-      "resendError": "Error resending SMS. Please try again."
+      "resendError": "Error resending SMS. Please try again.",
+      "invalidPhone": "Please check the phone number.",
+      "tooManyRequests_one": "Too many attempts. You can request a new code in {{count}} minute.",
+      "tooManyRequests_other": "Too many attempts. You can request a new code in {{count}} minutes."
     },
     "consent": {
       "ageAndPrefix": "I am 18 or older, I have read the ",

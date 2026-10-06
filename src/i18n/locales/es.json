@@ -1535,7 +1535,11 @@
       "codeNotFound": "Código no encontrado. Solicita un nuevo código.",
       "userDisabled": "Tu cuenta está desactivada. Ponte en contacto con soporte.",
       "verifyError": "Error al verificar el código. Inténtalo de nuevo.",
-      "resendError": "Error al reenviar el SMS. Inténtalo de nuevo."
+      "resendError": "Error al reenviar el SMS. Inténtalo de nuevo.",
+      "invalidPhone": "Revisa el número de teléfono.",
+      "tooManyRequests_one": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} minuto.",
+      "tooManyRequests_many": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} de minutos.",
+      "tooManyRequests_other": "Demasiados intentos. Podrás solicitar un nuevo código dentro de {{count}} minutos."
     },
     "consent": {
       "ageAndPrefix": "Soy mayor de 18 años, he leído ",

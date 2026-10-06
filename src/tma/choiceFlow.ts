@@ -68,10 +68,12 @@ export async function runConfirmLink(phone: string, code: string): Promise<Confi
   return linked.status === 'conflict' ? { status: 'conflict' } : { status: 'failed' };
 }
 
-export type SendCodeResult = { ok: true } | { ok: false };
+/** `message` — переведённое объяснение отказа (лимит SMS, неверный номер), если сервер его дал. */
+export type SendCodeResult = { ok: true } | { ok: false; message?: string };
 
 /** Промежуточный шаг «Получить код» — просто прокси к authService с типизированным результатом. */
 export async function runSendCode(phone: string): Promise<SendCodeResult> {
   const r = await authService.requestSMSCode(phone);
-  return { ok: r.success };
+  if (r.success) return { ok: true };
+  return r.error && r.message ? { ok: false, message: r.message } : { ok: false };
 }

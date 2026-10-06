@@ -1888,7 +1888,11 @@
       "codeNotFound": "Código não encontrado. Peça um novo código.",
       "userDisabled": "A sua conta está desativada. Contacte o apoio ao cliente.",
       "verifyError": "Erro ao validar o código. Tente novamente.",
-      "resendError": "Erro ao reenviar o SMS. Tente novamente."
+      "resendError": "Erro ao reenviar o SMS. Tente novamente.",
+      "invalidPhone": "Verifique o número de telemóvel.",
+      "tooManyRequests_one": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} minuto.",
+      "tooManyRequests_many": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} de minutos.",
+      "tooManyRequests_other": "Demasiadas tentativas. Poderá pedir um novo código daqui a {{count}} minutos."
     },
     "consent": {
       "ageAndPrefix": "Tenho mais de 18 anos, li a ",
