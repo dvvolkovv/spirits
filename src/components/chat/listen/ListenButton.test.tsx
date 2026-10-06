@@ -26,15 +26,12 @@ const post = vi.mocked(apiClient.post);
 const toastError = vi.mocked(toast.error);
 
 let played: string[] = [];
-let audioEl: HTMLMediaElement | null = null;
 let playImpl: () => Promise<void> = async () => {};
 
 beforeEach(() => {
   played = [];
-  audioEl = null;
   playImpl = async () => {};
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(function (this: HTMLMediaElement) {
-    audioEl = this;
     if (this.src.startsWith('data:')) return Promise.resolve();
     played.push(this.src);
     return playImpl();
@@ -83,8 +80,11 @@ function Feed({ items }: { items: Array<{ id: string; content: string }> }) {
 
 const btn = (c: HTMLElement, id: string) => c.querySelector(`[data-id="${id}"] button`) as HTMLButtonElement | null;
 const settle = async () => { for (let i = 0; i < 6; i++) await flush(); };
+/** Общий <audio> ленты — тот, на ком последний раз звали play(). */
+const audio = (): HTMLMediaElement =>
+  vi.mocked(HTMLMediaElement.prototype.play).mock.contexts.at(-1) as HTMLMediaElement;
 const fire = async (type: 'ended' | 'error') => {
-  await actAsync(() => { audioEl!.dispatchEvent(new Event(type)); });
+  await actAsync(() => { audio().dispatchEvent(new Event(type)); });
   await settle();
 };
 
@@ -165,12 +165,12 @@ describe('плеер ответа', () => {
     expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
 
     // Поздний 'ended' остановленного куска ничего не включает.
-    audioEl!.dispatchEvent(new Event('ended'));
+    audio().dispatchEvent(new Event('ended'));
     expect(played).toEqual(['https://m.test/a-0.mp3']);
   });
 
   it('второй ответ глушит первый', async () => {
-    post.mockImplementation(async (_url: string, body: any) => OK([`https://m.test/${body.text.length}.mp3`]));
+    post.mockImplementation(async (_url: string, body: { text: string }) => OK([`https://m.test/${body.text.length}.mp3`]));
     const { container } = mount(
       <Feed items={[{ id: 'm1', content: 'Первый.' }, { id: 'm2', content: 'Второй, подлиннее.' }]} />,
     );

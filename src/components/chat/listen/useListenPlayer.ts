@@ -33,6 +33,15 @@ const SILENT_WAV =
   'gICAgICAgICAgICA';
 
 interface State { id: string | null; phase: ListenPhase }
+
+/** Тело ответа POST /webhook/speech/listen — и успеха, и отказа. */
+interface ListenReply {
+  ok?: boolean;
+  parts?: unknown;
+  error?: string;
+  required?: number;
+  maxChars?: number;
+}
 const IDLE: State = { id: null, phase: 'idle' };
 
 /** Заглушить элемент и отвязать его обработчики от прошлого прогона. */
@@ -83,7 +92,7 @@ export function useListenPlayer(): ListenPlayer {
     setState(IDLE);
   }, []);
 
-  const errorMessage = useCallback((status: number, body: any): string => {
+  const errorMessage = useCallback((status: number, body: ListenReply | null): string => {
     if (status === 402) {
       return t('chat.listen_no_tokens', { required: formatNumber(Number(body?.required) || 0) });
     }
@@ -160,7 +169,7 @@ export function useListenPlayer(): ListenPlayer {
     abortRef.current = ctrl;
     void (async () => {
       let res: Response;
-      let body: any = null;
+      let body: ListenReply | null = null;
       try {
         res = await apiClient.post('/webhook/speech/listen', { text, assistant }, { signal: ctrl.signal });
         body = await res.json().catch(() => null);
@@ -171,8 +180,9 @@ export function useListenPlayer(): ListenPlayer {
       if (run !== runRef.current) return;
       if (abortRef.current === ctrl) abortRef.current = null;
       if (res.ok && body?.ok && Array.isArray(body.parts) && body.parts.length > 0) {
-        partsRef.current.set(key, body.parts);
-        play(run, id, key, body.parts);
+        const parts = body.parts.map(String);
+        partsRef.current.set(key, parts);
+        play(run, id, key, parts);
         return;
       }
       fail(run, errorMessage(res.status, body));
