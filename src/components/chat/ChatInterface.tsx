@@ -26,6 +26,8 @@ import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { VoiceDictation } from '../../services/voiceDictation';
 import AudioClip from './AudioClip';
+import ListenButton from './listen/ListenButton';
+import { useListenPlayer } from './listen/useListenPlayer';
 import VoiceCallCard from './VoiceCallCard';
 import MeetingJoinCard from './MeetingJoinCard';
 import MeetingStatusBar from './MeetingStatusBar';
@@ -623,6 +625,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  // Один плеер на ленту: «Прослушать» у второго ответа глушит первый.
+  const listen = useListenPlayer();
+  const stopListening = listen.stop;
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -752,6 +757,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setShowTokenPackages(true);
     }
   }, [initialShowTokens]);
+
+  // Озвучка ответа прошлого ассистента не должна звучать поверх ленты нового.
+  useEffect(() => {
+    stopListening();
+  }, [selectedAssistant?.id, stopListening]);
 
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
@@ -2985,7 +2995,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-forest-500 rounded-full animate-pulse" />
               )}
               <div className={clsx(
-                'flex items-center gap-2 text-xs mt-1',
+                'flex flex-wrap items-center gap-2 text-xs mt-1',
                 message.type === 'user' ? 'text-forest-100' : 'text-gray-500'
               )}>
                 <span>
@@ -3006,6 +3016,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       ? <><Check className="w-3.5 h-3.5" /> {t('chat.copied', 'Скопировано')}</>
                       : <><Copy className="w-3.5 h-3.5" /> {t('chat.copy', 'Копировать')}</>}
                   </button>
+                )}
+                {message.type === 'assistant' && !message.isStreaming && message.content && (
+                  <ListenButton
+                    messageId={message.id}
+                    content={message.content}
+                    assistant={selectedAssistant?.name}
+                    phase={listen.phaseOf(message.id)}
+                    isKnown={listen.isKnown}
+                    onToggle={listen.toggle}
+                  />
                 )}
               </div>
             </div>
