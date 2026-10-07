@@ -82,7 +82,7 @@ function open(lang: string): HTMLElement {
 const info = (lang: string) => (LOCALES[lang].payment as Dict).info as Dict;
 const digits = (s: string) => s.replace(/\D/g, '');
 /** Сравнение без регистра и без разницы между ’ и ': оферта на лендинге пишет типографский апостроф. */
-const norm = (s: string) => s.replace(/’/g, "'").toLowerCase();
+const norm = (s: string) => s.replace(/\u2019/g, "'").toLowerCase();
 
 /**
  * §8 оферты: возврат денег производится ТОЛЬКО при техническом сбое дольше

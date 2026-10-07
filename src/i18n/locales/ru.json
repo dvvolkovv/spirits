@@ -1613,7 +1613,6 @@
       "table_header_package": "Пакет",
       "table_header_amount": "Кол-во токенов",
       "table_header_price": "Стоимость",
-      "package_basic": "Стартовый",
       "package_basic_amount": "50 000 токенов",
       "package_extended": "Расширенный",
       "package_extended_amount": "200 000 токенов",

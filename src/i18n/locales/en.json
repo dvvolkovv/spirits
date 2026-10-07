@@ -1600,7 +1600,6 @@
       "table_header_package": "Package",
       "table_header_amount": "Number of tokens",
       "table_header_price": "Price",
-      "package_basic": "Starter",
       "package_basic_amount": "50,000 tokens",
       "package_extended": "Extended",
       "package_extended_amount": "200,000 tokens",
