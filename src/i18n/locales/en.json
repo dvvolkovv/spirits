@@ -292,6 +292,8 @@
     "listen_loading": "Voicing…",
     "listen_stop": "Stop",
     "listen_title": "Listen to this reply in the assistant's voice: {{tokens}} {{unit}}, replays are free",
+    "listen_priced": "Listen · {{tokens}}",
+    "listen_title_free": "Listen again — free",
     "listen_too_long": "This reply is too long to voice — over {{max}} characters",
     "listen_no_tokens": "Not enough tokens to voice this reply: {{required}} needed",
     "listen_rate_limited": "Too many voicings in a row — try again in a minute",

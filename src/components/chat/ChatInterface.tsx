@@ -3023,6 +3023,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     content={message.content}
                     assistant={selectedAssistant?.name}
                     phase={listen.phaseOf(message.id)}
+                    isKnown={listen.isKnown}
                     onToggle={listen.toggle}
                   />
                 )}

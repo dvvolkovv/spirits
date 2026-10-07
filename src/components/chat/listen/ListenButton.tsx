@@ -13,6 +13,8 @@ interface ListenButtonProps {
   /** Внутреннее имя ассистента ленты: по нему бэк выбирает голос. */
   assistant?: string;
   phase: ListenPhase;
+  /** Куски уже в памяти плеера — повтор бесплатен. */
+  isKnown: (id: string, text: string) => boolean;
   onToggle: (id: string, text: string, assistant?: string) => void;
 }
 
@@ -21,22 +23,29 @@ interface ListenButtonProps {
  * memo + useMemo: лента перерисовывается на каждый кусок стрима, а текст для
  * чтения считается регулярками — только когда меняется сам ответ.
  */
-const ListenButton: React.FC<ListenButtonProps> = ({ messageId, content, assistant, phase, onToggle }) => {
+const ListenButton: React.FC<ListenButtonProps> = ({ messageId, content, assistant, phase, isKnown, onToggle }) => {
   const { t } = useTranslation();
   const text = useMemo(() => toSpeechText(content), [content]);
   if (!text) return null;
 
   const tooLong = text.length > LISTEN_MAX_CHARS;
+  const free = !tooLong && isKnown(messageId, text);
+  const price = formatNumber(listenPrice(text.length));
+  // Цена — прямо в надписи: подсказку (title) телефон не показывает, а платит
+  // человек нажатием. Прослушанный в этой сессии ответ повторяется бесплатно.
+  const idleLabel = tooLong || free ? t('chat.listen') : t('chat.listen_priced', { tokens: price });
   const label =
     phase === 'loading' ? t('chat.listen_loading')
       : phase === 'playing' ? t('chat.listen_stop')
-        : t('chat.listen');
+        : idleLabel;
   // Цена кратна 1000, поэтому форма множественного числа у суффикса одна.
   const hint = tooLong
     ? t('chat.listen_too_long', { max: formatNumber(LISTEN_MAX_CHARS) })
-    : phase === 'idle'
-      ? t('chat.listen_title', { tokens: formatNumber(listenPrice(text.length)), unit: t('chat.tokens_suffix') })
-      : label;
+    : phase !== 'idle'
+      ? label
+      : free
+        ? t('chat.listen_title_free')
+        : t('chat.listen_title', { tokens: price, unit: t('chat.tokens_suffix') });
   const Icon = phase === 'loading' ? Loader2 : phase === 'playing' ? Square : Volume2;
 
   return (

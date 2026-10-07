@@ -292,6 +292,8 @@
     "listen_loading": "Wird vertont…",
     "listen_stop": "Stopp",
     "listen_title": "Antwort mit der Stimme des Assistenten anhören: {{tokens}} {{unit}}, erneutes Anhören kostenlos",
+    "listen_priced": "Anhören · {{tokens}}",
+    "listen_title_free": "Erneut anhören – kostenlos",
     "listen_too_long": "Die Antwort ist zu lang zum Vertonen – mehr als {{max}} Zeichen",
     "listen_no_tokens": "Nicht genug Tokens für die Vertonung: {{required}} nötig",
     "listen_rate_limited": "Zu viele Vertonungen hintereinander – bitte in einer Minute erneut versuchen",

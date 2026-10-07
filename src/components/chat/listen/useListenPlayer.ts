@@ -11,6 +11,8 @@ export type ListenPhase = 'idle' | 'loading' | 'playing';
 export interface ListenPlayer {
   /** Фаза кнопки конкретного ответа: звучит не больше одного. */
   phaseOf: (id: string) => ListenPhase;
+  /** Куски ответа уже в памяти — повтор бесплатен, цену в надписи не показываем. */
+  isKnown: (id: string, text: string) => boolean;
   /** Нажатие на кнопку ответа: запустить, а на звучащем — остановить. */
   toggle: (id: string, text: string, assistant?: string) => void;
   stop: () => void;
@@ -81,6 +83,24 @@ export function useListenPlayer(): ListenPlayer {
   // случае, поэтому брошенный запрос не отменяется: его куски ложатся в
   // partsRef, а вернувшийся к ответу ждёт тот же запрос, а не шлёт второй.
   const inflightRef = useRef(new Map<string, Promise<Fetched>>());
+  // Те же ключи, но в состоянии: кнопка перерисовывается без цены, как только
+  // куски легли в память (повтор уже оплачен).
+  const [known, setKnown] = useState<ReadonlySet<string>>(() => new Set());
+
+  const remember = useCallback((key: string, parts: string[]) => {
+    partsRef.current.set(key, parts);
+    setKnown((prev) => (prev.has(key) ? prev : new Set(prev).add(key)));
+  }, []);
+
+  const forget = useCallback((key: string) => {
+    partsRef.current.delete(key);
+    setKnown((prev) => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  }, []);
 
   const update = useCallback((next: State) => {
     stateRef.current = next;
@@ -135,7 +155,7 @@ export function useListenPlayer(): ListenPlayer {
         const body: ListenReply | null = await res.json().catch(() => null);
         if (res.ok && body?.ok && Array.isArray(body.parts) && body.parts.length > 0) {
           const parts = body.parts.map(String);
-          partsRef.current.set(key, parts);
+          remember(key, parts);
           return { parts };
         }
         return { error: errorMessage(res.status, body) };
@@ -147,7 +167,7 @@ export function useListenPlayer(): ListenPlayer {
     })();
     inflightRef.current.set(key, request);
     return request;
-  }, [errorMessage, t]);
+  }, [errorMessage, remember, t]);
 
   const play = useCallback((run: number, id: string, key: string, parts: string[]) => {
     const el = element();
@@ -182,7 +202,7 @@ export function useListenPlayer(): ListenPlayer {
           // Браузер не дал звук без свежего жеста — куски уже есть, второе
           // нажатие сыграет их сразу. Иначе файл битый: куски забываем.
           const blocked = (err as { name?: string } | null)?.name === 'NotAllowedError';
-          if (!blocked) partsRef.current.delete(key);
+          if (!blocked) forget(key);
           fail(run, blocked ? t('chat.listen_tap_again') : t('chat.listen_failed'));
         },
       );
@@ -200,11 +220,11 @@ export function useListenPlayer(): ListenPlayer {
     };
     el.onerror = () => {
       if (run !== runRef.current) return;
-      partsRef.current.delete(key);
+      forget(key);
       fail(run, t('chat.listen_failed'));
     };
     start();
-  }, [element, fail, silence, stop, t, update]);
+  }, [element, fail, forget, silence, stop, t, update]);
 
   const toggle = useCallback((id: string, text: string, assistant?: string) => {
     const cur = stateRef.current;
@@ -250,5 +270,10 @@ export function useListenPlayer(): ListenPlayer {
     [state],
   );
 
-  return { phaseOf, toggle, stop };
+  const isKnown = useCallback(
+    (id: string, text: string): boolean => known.has(JSON.stringify([id, text])),
+    [known],
+  );
+
+  return { phaseOf, isKnown, toggle, stop };
 }

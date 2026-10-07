@@ -294,6 +294,8 @@
     "listen_loading": "Gerando áudio…",
     "listen_stop": "Parar",
     "listen_title": "Ouvir a resposta na voz do assistente: {{tokens}} {{unit}}, ouvir de novo é grátis",
+    "listen_priced": "Ouvir · {{tokens}}",
+    "listen_title_free": "Ouvir de novo — grátis",
     "listen_too_long": "A resposta é longa demais para virar áudio — mais de {{max}} caracteres",
     "listen_no_tokens": "Tokens insuficientes para o áudio: são necessários {{required}}",
     "listen_rate_limited": "Muitos áudios seguidos — tente novamente em um minuto",
