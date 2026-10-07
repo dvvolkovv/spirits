@@ -1,7 +1,7 @@
 {
   "name": "LinkeonPWA",
   "short_name": "LinkeonPWA",
-  "description": "Твои AI-ассистенты: коуч, психолог, маркетолог и универсальный агент Роман. Всегда под рукой.",
+  "description": "Твои AI-ассистенты: коуч, маркетолог и универсальный помощник Роман. Всегда под рукой.",
   "start_url": "/chat?src=pwa",
   "scope": "/",
   "display": "standalone",
