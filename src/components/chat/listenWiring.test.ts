@@ -41,6 +41,7 @@ describe('связка кнопки «Прослушать»', () => {
     expect(tag).toContain('assistant={selectedAssistant?.name}');
     expect(tag).toContain('phase={listen.phaseOf(message.id)}');
     expect(tag).toContain('onToggle={listen.toggle}');
+    expect(tag).toContain('isKnown={listen.isKnown}');
   });
 
   it('смена ассистента глушит озвучку', () => {

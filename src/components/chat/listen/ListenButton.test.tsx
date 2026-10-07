@@ -69,6 +69,7 @@ function Feed({ items }: { items: Array<{ id: string; content: string }> }) {
             content={m.content}
             assistant="Роман"
             phase={listen.phaseOf(m.id)}
+            isKnown={listen.isKnown}
             onToggle={listen.toggle}
           />
         </div>
@@ -76,6 +77,9 @@ function Feed({ items }: { items: Array<{ id: string; content: string }> }) {
     </div>
   );
 }
+
+/** Надпись в покое: с ценой, пока ответ не прослушан в этой сессии. */
+const priced = (tokens: number) => tRu('chat.listen_priced', { tokens: formatNumber(tokens) });
 
 const btn = (c: HTMLElement, id: string) => c.querySelector(`[data-id="${id}"] button`) as HTMLButtonElement | null;
 const settle = async () => { for (let i = 0; i < 6; i++) await flush(); };
@@ -90,11 +94,23 @@ const fire = async (type: 'ended' | 'error' | 'pause') => {
 };
 
 describe('ListenButton — вид', () => {
-  it('в покое «Прослушать», цена — в подсказке', () => {
+  it('в покое цена видна прямо в надписи — на телефоне подсказок нет', () => {
     const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет! Это ответ ассистента.' }]} />);
     const b = btn(container, 'm1')!;
-    expect(b.textContent).toBe(tRu('chat.listen'));
+    expect(b.textContent).toBe(priced(1000));
     expect(b.title).toBe(tRu('chat.listen_title', { tokens: formatNumber(1000), unit: tRu('chat.tokens_suffix') }));
+  });
+
+  it('после прослушивания в этой сессии повтор бесплатен — цена из надписи уходит', async () => {
+    post.mockResolvedValue(OK(['https://m.test/a-0.mp3']));
+    const { container } = mount(<Feed items={[{ id: 'm1', content: 'Привет!' }, { id: 'm2', content: 'Другой.' }]} />);
+    await clickAsync(btn(container, 'm1')!);
+    await settle();
+    await fire('ended');
+    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen'));
+    expect(btn(container, 'm1')!.title).toBe(tRu('chat.listen_title_free'));
+    // Соседний, ещё не прослушанный ответ цену показывает по-прежнему.
+    expect(btn(container, 'm2')!.textContent).toBe(priced(1000));
   });
 
   it('ответ без текста для чтения — кнопки нет', () => {
@@ -102,10 +118,11 @@ describe('ListenButton — вид', () => {
     expect(btn(container, 'm1')).toBeNull();
   });
 
-  it('слишком длинный ответ — кнопка погашена и объясняет почему', () => {
+  it('слишком длинный ответ — кнопка погашена, без цены, и объясняет почему', () => {
     const { container } = mount(<Feed items={[{ id: 'm1', content: 'я'.repeat(10_001) }]} />);
     const b = btn(container, 'm1')!;
     expect(b.disabled).toBe(true);
+    expect(b.textContent).toBe(tRu('chat.listen'));
     expect(b.title).toBe(tRu('chat.listen_too_long', { max: formatNumber(10_000) }));
   });
 });
@@ -201,7 +218,7 @@ describe('плеер ответа', () => {
     await clickAsync(btn(container, 'm1')!);
     await settle();
     expect(toastError).toHaveBeenCalledWith(tRu('chat.listen_no_tokens', { required: formatNumber(2000) }));
-    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen'));
+    expect(btn(container, 'm1')!.textContent).toBe(priced(1000));
     expect(played).toEqual([]);
   });
 
@@ -219,7 +236,7 @@ describe('плеер ответа', () => {
     await clickAsync(btn(container, 'm1')!);
     await settle();
     expect(toastError).toHaveBeenCalledWith(tRu('chat.listen_failed'));
-    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen'));
+    expect(btn(container, 'm1')!.textContent).toBe(priced(1000));
   });
 
   it('браузер не дал играть — просим нажать ещё раз; второе нажатие без запроса', async () => {
@@ -245,7 +262,8 @@ describe('плеер ответа', () => {
     await settle();
     await fire('error');
     expect(toastError).toHaveBeenCalledWith(tRu('chat.listen_failed'));
-    expect(btn(container, 'm1')!.textContent).toBe(tRu('chat.listen'));
+    // Битые куски забыты — следующий раз снова запрос, а значит, снова цена.
+    expect(btn(container, 'm1')!.textContent).toBe(priced(1000));
 
     await clickAsync(btn(container, 'm1')!);
     await settle();
