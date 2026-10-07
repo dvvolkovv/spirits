@@ -47,7 +47,7 @@
     {
       "name": "Спросить Романа",
       "short_name": "Роман",
-      "description": "Универсальный AI-агент — задачи, поиск, действия",
+      "description": "Универсальный AI-ассистент — задачи, поиск, действия",
       "url": "/chat?assistant=roman&src=shortcut",
       "icons": [
         {
