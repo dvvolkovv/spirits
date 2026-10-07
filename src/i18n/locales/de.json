@@ -262,7 +262,7 @@
     "tokens_suffix": "Tokens",
     "switched_to": "Gewechselt zu {{name}}",
     "assistant_role_coach": "Coach",
-    "assistant_role_psych": "Psychologe",
+    "assistant_role_psych": "Werte-Erkundung",
     "assistant_role_gameplay": "Spielpraktiker",
     "assistant_role_astro": "Astrologe",
     "assistant_role_hd": "Human Design",
@@ -1106,7 +1106,7 @@
       },
       {
         "q": "Welche Assistenten stehen zur Verfügung?",
-        "a": "Die Plattform bietet zwei Arten von Assistenten:\n\n• Für dein Business — HR-Spezialist, Buchhalter, Anwalt, Marketer, Business-Mentor, Copywriter\n• Für persönliches Wachstum — Coach, Psychologe, Spielpraktiker, Numerologe, Achtsamkeits-Assistent\n• Persönlicher Assistent Roman — hilft bei allen Aufgaben"
+        "a": "Die Plattform bietet zwei Arten von Assistenten:\n\n• Für dein Business — Anwalt, Buchhalter, Finanzchef, Marketer, Copywriter, Designer, Vertrieb, Unternehmensgründung, technischer Leiter, Karriereberater\n• Für persönliches Wachstum — Coach, Werte-Erkundung, Spielpraktiker, Numerologe, vedischer Astrologe, Human Design, Lifestyle-Coach\n• Persönlicher Assistent Roman — hilft bei allen Aufgaben"
       },
       {
         "q": "Wie funktioniert Networking?",
@@ -1223,7 +1223,7 @@
       "site_label": "Website:",
       "section1_title": "Was Linkeon bietet",
       "section1_body": "Linkeon ist eine Online-Plattform mit KI-Assistenten, Content-Generierung und einem einheitlichen Nutzerprofil. Den Nutzern werden digitale Dienste bereitgestellt, darunter:",
-      "section1_item1": "Empfehlungen und Beratung durch KI-Assistenten zu persönlichen und geschäftlichen Themen (Coach, Psychologe, HR-Spezialist, Jurist, Buchhalter, Finanzchef, Marketer, Texter, SMM-Producer, Numerologe, Astrologe, Human Design, Spielpraktiker u. a.)",
+      "section1_item1": "Empfehlungen und Beratung durch KI-Assistenten zu persönlichen und geschäftlichen Themen (Allround-Assistent, Coach, Werte-Erkundung, Karriereberater, Jurist, Buchhalter, Finanzchef, Marketer, Texter, Designer, Vertrieb, Unternehmensgründung, technischer Leiter, Lifestyle-Coach, Numerologe, Astrologe, Human Design, Spielpraktiker u. a.)",
       "section1_item2": "Bilderzeugung und -bearbeitung, Erzeugung kurzer Videos",
       "section1_item3": "Analyse des persönlichen Profils, der Werte und Absichten",
       "section1_item4": "Networking: Personensuche nach Kompatibilität, Antworten und Nachrichten",

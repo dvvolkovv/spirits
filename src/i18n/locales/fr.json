@@ -263,7 +263,7 @@
     "tokens_suffix": "jetons",
     "switched_to": "Basculé sur {{name}}",
     "assistant_role_coach": "Coach",
-    "assistant_role_psych": "Psychologue",
+    "assistant_role_psych": "Exploration des valeurs",
     "assistant_role_gameplay": "Ludopédagogue",
     "assistant_role_astro": "Astrologue",
     "assistant_role_hd": "Human Design",
@@ -1109,7 +1109,7 @@
       },
       {
         "q": "Quels assistants sont disponibles ?",
-        "a": "La plateforme propose deux types d'assistants :\n\n• Pour le business — RH, comptable, juriste, marketeur, mentor business, copywriter\n• Pour le développement personnel — coach, psychologue, ludopédagogue, numérologue, assistant pleine conscience\n• L'assistant personnel Roman — pour toutes tes tâches"
+        "a": "La plateforme propose deux types d'assistants :\n\n• Pour le business — juriste, comptable, directeur financier, marketeur, copywriter, designer, ventes, création d'entreprise, directeur technique, conseiller en carrière\n• Pour le développement personnel — coach, exploration des valeurs, ludopédagogue, numérologue, astrologue védique, Human Design, coach mode de vie\n• L'assistant personnel Roman — pour toutes tes tâches"
       },
       {
         "q": "Comment fonctionne le Réseautage ?",
@@ -1230,7 +1230,7 @@
       "site_label": "Site :",
       "section1_title": "Ce que propose Linkeon",
       "section1_body": "Linkeon est une plateforme en ligne dotée d'assistants IA, de génération de contenu et d'un profil utilisateur unique. Les services numériques proposés aux utilisateurs comprennent :",
-      "section1_item1": "recommandations et conseils d'assistants IA sur des sujets personnels et professionnels (coach, psychologue, spécialiste RH, juriste, comptable, directeur financier, marketeur, rédacteur, producteur SMM, numérologue, astrologue, Human Design, praticien de jeux, etc.)",
+      "section1_item1": "recommandations et conseils d'assistants IA sur des sujets personnels et professionnels (assistant polyvalent, coach, exploration des valeurs, conseiller en carrière, juriste, comptable, directeur financier, marketeur, rédacteur, designer, ventes, création d'entreprise, directeur technique, coach mode de vie, numérologue, astrologue, Human Design, praticien de jeux, etc.)",
       "section1_item2": "génération et retouche d'images, génération de vidéos courtes",
       "section1_item3": "analyse du profil personnel, des valeurs et des intentions",
       "section1_item4": "networking : mise en relation par compatibilité, réponses et messagerie",

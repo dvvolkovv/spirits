@@ -264,7 +264,7 @@
     "tokens_suffix": "tokens",
     "switched_to": "Mudou para {{name}}",
     "assistant_role_coach": "Coach",
-    "assistant_role_psych": "Psicólogo",
+    "assistant_role_psych": "Exploração de valores",
     "assistant_role_gameplay": "Facilitador de jogos",
     "assistant_role_astro": "Astrólogo",
     "assistant_role_hd": "Human Design",
@@ -1462,7 +1462,7 @@
       },
       {
         "q": "Que assistentes estão disponíveis?",
-        "a": "A plataforma oferece assistentes de dois tipos:\n\n• Para o negócio — especialista de RH, contabilista, advogado, especialista de marketing, mentor de negócios, copywriter\n• Para o crescimento pessoal — coach, psicólogo, facilitador de jogos, numerólogo, assistente de mindfulness\n• Assistente pessoal Roman — ajuda em qualquer tarefa"
+        "a": "A plataforma oferece assistentes de dois tipos:\n\n• Para o negócio — advogado, contabilista, diretor financeiro, especialista de marketing, copywriter, designer, vendas, lançamento de negócio, diretor técnico, orientador de carreira\n• Para o crescimento pessoal — coach, exploração de valores, facilitador de jogos, numerólogo, astrólogo védico, Human Design, coach de estilo de vida\n• Assistente pessoal Roman — ajuda em qualquer tarefa"
       },
       {
         "q": "Como funciona o Networking?",
@@ -1583,7 +1583,7 @@
       "site_label": "Site:",
       "section1_title": "O que o Linkeon oferece",
       "section1_body": "O Linkeon é uma plataforma online com assistentes de IA, geração de conteúdos e um perfil de utilizador unificado. Os utilizadores dispõem de serviços digitais que incluem:",
-      "section1_item1": "recomendações e consultas de assistentes de IA sobre temas pessoais e profissionais (coach, psicólogo, especialista de RH, advogado, contabilista, diretor financeiro, especialista de marketing, copywriter, produtor de SMM, numerólogo, astrólogo, Human Design, facilitador de jogos e outros)",
+      "section1_item1": "recomendações e consultas de assistentes de IA sobre temas pessoais e profissionais (assistente generalista, coach, exploração de valores, orientador de carreira, advogado, contabilista, diretor financeiro, especialista de marketing, copywriter, designer, vendas, lançamento de negócio, diretor técnico, coach de estilo de vida, numerólogo, astrólogo, Human Design, facilitador de jogos e outros)",
       "section1_item2": "geração e edição de imagens, geração de vídeos curtos",
       "section1_item3": "análise do perfil pessoal, dos valores e das intenções",
       "section1_item4": "networking: seleção de pessoas por compatibilidade, respostas e conversas",

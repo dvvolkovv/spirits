@@ -262,7 +262,7 @@
     "tokens_suffix": "tokens",
     "switched_to": "Switched to {{name}}",
     "assistant_role_coach": "Coach",
-    "assistant_role_psych": "Psychologist",
+    "assistant_role_psych": "Values Exploration",
     "assistant_role_gameplay": "Game Practitioner",
     "assistant_role_astro": "Astrologer",
     "assistant_role_hd": "Human Design",
@@ -1465,7 +1465,7 @@
       },
       {
         "q": "Which assistants are available?",
-        "a": "The platform offers two kinds of assistants:\n\n• For business — HR specialist, accountant, lawyer, marketer, business mentor, copywriter\n• For personal growth — coach, psychologist, game practitioner, numerologist, mindfulness assistant\n• Personal assistant Roman — helps with any task"
+        "a": "The platform offers two kinds of assistants:\n\n• For business — lawyer, accountant, CFO, marketer, copywriter, designer, sales, business launch, CTO, career consultant\n• For personal growth — coach, values exploration, game practitioner, numerologist, Vedic astrologer, Human Design, lifestyle coach\n• Personal assistant Roman — helps with any task"
       },
       {
         "q": "How does Networking work?",
@@ -1582,7 +1582,7 @@
       "site_label": "Website:",
       "section1_title": "What Linkeon provides",
       "section1_body": "Linkeon is an online platform with AI assistants, content generation and a single user profile. Users are provided with digital services including:",
-      "section1_item1": "recommendations and consultations from AI assistants on personal and business topics (coach, psychologist, HR specialist, lawyer, accountant, CFO, marketer, copywriter, SMM producer, numerologist, astrologer, Human Design, game practitioner and others)",
+      "section1_item1": "recommendations and consultations from AI assistants on personal and business topics (general-purpose assistant, coach, values exploration, career consultant, lawyer, accountant, CFO, marketer, copywriter, designer, sales, business launch, CTO, lifestyle coach, numerologist, astrologer, Human Design, game practitioner and others)",
       "section1_item2": "image generation and editing, short video generation",
       "section1_item3": "analysis of the personal profile, values and intentions",
       "section1_item4": "networking: matching people by compatibility, responses and messaging",
