@@ -9,6 +9,7 @@ import ReferralWelcomeBanner from './components/referral/ReferralWelcomeBanner';
 import AuthLinkPage from './pages/AuthLinkPage';                // eager: сюда уводит остановленный вход, аккаунта ещё нет
 import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
 import RootRedirect from './components/RootRedirect';
+import PendingDestinationRedirect from './components/PendingDestinationRedirect';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track, trackAuthed } from './services/eventsClient';
@@ -215,6 +216,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* После входа — в раздел, куда человек шёл до него (кнопка «Сделать сайт или бота» на linkeon.io). */}
+      <PendingDestinationRedirect />
       <ReferralWelcomeBanner />
       {/* Navigation - hidden on mobile for main content */}
       <div className="hidden md:block">

@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import PhoneInput from './PhoneInput';
 import OTPInput from './OTPInput';
 import { authService, STORAGE_FULL } from '../../services/authService';
+import { takePendingDestination } from '../../utils/pendingDestination';
 
 type Step = 'phone' | 'otp';
 
@@ -59,6 +60,12 @@ const SmsLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
     try {
       const result = await authService.verifyCode(phone, code);
       if (result.success) {
+        // Раздел, куда человек шёл до входа (кнопка «Сделать сайт или бота» на
+        // linkeon.io), забираем ДО login(): после setUser оболочка вошедшего
+        // рисуется сразу по адресу экрана входа, и с «/» или голого /chat
+        // PendingDestinationRedirect забрал бы запись сам, а наш переход на
+        // /chat ниже увёл бы обратно в чат.
+        const destination = takePendingDestination();
         if (result.tokens) {
           await login(phone, result.tokens['access-token']);
         } else {
@@ -66,7 +73,7 @@ const SmsLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
         }
         // registerReferral теперь вызывается централизованно в AuthContext.login()
         // (покрывает SMS/OAuth/email) — здесь дублировать не нужно.
-        navigate('/chat', { replace: true });
+        navigate(destination ?? '/chat', { replace: true });
       } else {
         if (result.error === STORAGE_FULL) {
           // Код был верным и уже погашен сервером — предлагать «ввести ещё раз»

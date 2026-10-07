@@ -52,4 +52,10 @@ describe('ассистент, выбранный до входа', () => {
     localStorage.setItem('pending_assistant', '{oops');
     expect(takePendingAssistant(NOW)).toBeNull();
   });
+
+  it('сообщает, запомнено ли', () => {
+    expect(rememberPendingAssistant('14', NOW)).toBe(true);
+    expect(rememberPendingAssistant('   ', NOW)).toBe(false);
+    expect(rememberPendingAssistant('x'.repeat(65), NOW)).toBe(false);
+  });
 });
