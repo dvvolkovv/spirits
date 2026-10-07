@@ -202,7 +202,7 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
         </p>
         <ul className="space-y-2 ml-4">
           <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">personal profile analysis</span></li>
-          <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">recommendations and consultations from AI assistants (coach, psychologist, HR specialist, numerologist, game practitioner, and others)</span></li>
+          <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">recommendations and consultations from AI assistants on personal and business topics (general-purpose assistant, coach, values exploration, career consultant, lawyer, accountant, CFO, marketer, copywriter, designer, sales, business launch, CTO, lifestyle coach, numerologist, astrologer, Human Design, game practitioner, and others)</span></li>
           <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">matching people by compatibility</span></li>
           <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">career-path analysis</span></li>
           <li className="flex items-start"><span className="text-forest-500 mr-2">•</span><span className="text-gray-700">advanced tools for working with your profile and values</span></li>
