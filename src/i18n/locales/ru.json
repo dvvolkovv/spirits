@@ -1591,6 +1591,7 @@
     "error_exception": "Произошла ошибка при проверке платежа: {{error}}",
     "error_unknown": "Неизвестная ошибка",
     "info": {
+      "translation_notice": "Перевод на этот язык приведён для удобства. При любом расхождении преимущественную силу имеет русская редакция, юридически обязательная по законодательству Российской Федерации.",
       "service_title": "Сервис: Linkeon",
       "site_label": "Сайт:",
       "section1_title": "Что предоставляет Linkeon",
@@ -1612,7 +1613,6 @@
       "table_header_package": "Пакет",
       "table_header_amount": "Кол-во токенов",
       "table_header_price": "Стоимость",
-      "package_basic": "Стартовый",
       "package_basic_amount": "50 000 токенов",
       "package_extended": "Расширенный",
       "package_extended_amount": "200 000 токенов",
