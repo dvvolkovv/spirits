@@ -164,6 +164,29 @@ describe('условия оплаты: текст из локали на каж�
         }
       });
 
+      it('весь видимый текст — из локали, ни строки, вписанной в компонент', () => {
+        // Проверки на кириллицу и на английский не видят текст, вписанный
+        // в компонент на языке самой страницы, — а этот баг был именно таким.
+        // Вычитаем всё, что пришло из локали, и служебные литералы, которые
+        // не переводятся (адреса, дескриптор выписки). Букв остаться не должно:
+        // цифры, «₽», «•» и номера пунктов буквами не считаются.
+        const t = tIn(lang);
+        const fromLocale = [
+          t('onboarding.payment_info_link'),
+          ...Object.entries(info(lang))
+            .filter(([key]) => !(key === 'translation_notice' && lang === 'ru'))
+            .map(([, value]) => value as string),
+          ...RUB_PACKAGES.map((p) => t(p.nameKey)),
+          'LINKEON.IO / LINK EON SERVICE',
+          'support@linkeon.io',
+          'linkeon.io',
+        ];
+        let rest = visibleText(open(lang));
+        // Сначала длинные: короткая строка может оказаться частью длинной.
+        for (const s of fromLocale.sort((a, b) => b.length - a.length)) rest = rest.split(s).join(' ');
+        expect(rest).not.toMatch(/\p{L}/u);
+      });
+
       it('нет английских фраз прежнего рукописного блока', () => {
         const text = norm(visibleText(open(lang)));
         for (const phrase of STALE_ENGLISH) expect(text).not.toContain(phrase);
