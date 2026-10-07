@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X, CreditCard, Shield, Info, Mail } from 'lucide-react';
 import { RUB_PACKAGES } from '../../config/tokenPackages';
@@ -30,7 +31,10 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
   // говорит оговорка — та же, что в переводах оферты на лендинге.
   const isRu = (i18n?.language ?? '').startsWith('ru');
 
-  return (
+  // Портал в body, а не на месте вызова: карточка входа после анимации
+  // появления остаётся с transform, и fixed-обёртка внутри неё растягивалась
+  // на карточку, а не на экран (см. LoginConsentBlock.test.tsx).
+  return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         <div className="bg-gradient-to-r from-forest-600 to-warm-600 px-6 py-4 flex items-center justify-between">
@@ -229,7 +233,8 @@ const PaymentInfoModal: React.FC<PaymentInfoModalProps> = ({ isOpen, onClose }) 
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

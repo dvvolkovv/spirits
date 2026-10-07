@@ -76,7 +76,11 @@ function open(lang: string): HTMLElement {
   state.lang = lang;
   state.t = tIn(lang);
   mounted = mount(<PaymentInfoModal isOpen onClose={() => {}} />);
-  return mounted.container;
+  // Модалка рисуется порталом прямо в body (LoginConsentBlock.test.tsx), в
+  // контейнере монтирования её нет — меряем саму модалку.
+  const modal = document.body.querySelector<HTMLElement>('.fixed.inset-0');
+  if (!modal) throw new Error('модалка не открылась');
+  return modal;
 }
 
 const info = (lang: string) => (LOCALES[lang].payment as Dict).info as Dict;
