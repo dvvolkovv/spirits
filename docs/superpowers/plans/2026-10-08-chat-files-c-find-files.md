@@ -1014,7 +1014,8 @@ const L = {
   de: 'Suche Dateien aus unseren Gesprächen',
   es: 'Busco archivos de nuestras conversaciones',
   fr: 'Je cherche des fichiers de nos conversations',
-  pt: 'Procurando arquivos das nossas conversas',
+  // pt.json — европейский португальский («ficheiro», «A carregar»), не бразильский.
+  pt: 'A procurar ficheiros das nossas conversas',
   zh: '正在查找我们对话中的文件',
 };
 for (const [lang, label] of Object.entries(L)) {
