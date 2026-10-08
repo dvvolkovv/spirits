@@ -252,6 +252,28 @@ describe('ChatFilesPanel', () => {
     expect(document.activeElement).toBe(first);
   });
 
+  it('ловушка пропускает невидимую кнопку («назад» скрыт CSS на десктопе) в обе стороны', async () => {
+    api.get.mockResolvedValue(ok([]));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const backBtn = container.querySelector(`button[aria-label="${tRu('chat.files.back')}"]`) as HTMLButtonElement;
+    // Инлайн, а не класс: Tailwind не подключён в jsdom (sm:hidden ничего не
+    // меняет без реального CSS) — имитируем именно итог media-query на десктопе.
+    backBtn.style.display = 'none';
+    const closeBtn = container.querySelector(`button[aria-label="${tRu('chat.files.close')}"]`) as HTMLButtonElement;
+    const focusables = Array.from(container.querySelectorAll('button, a[href], video')) as HTMLElement[];
+    const last = focusables[focusables.length - 1];
+    expect(last).not.toBe(backBtn);
+
+    closeBtn.focus();
+    pressShiftTab();
+    expect(document.activeElement).toBe(last);
+
+    last.focus();
+    press('Tab');
+    expect(document.activeElement).toBe(closeBtn);
+  });
+
   it('Tab из открытого просмотра не утекает на кнопки панели под подложкой — у каждого своя ловушка', async () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
