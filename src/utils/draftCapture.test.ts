@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DRAFT_KEY, DRAFT_MAX_LENGTH, takePendingDraftFor } from './pendingDraft';
+import { DRAFT_KEY, DRAFT_MAX_LENGTH, DRAFT_TTL_MS, takePendingDraftFor } from './pendingDraft';
 
 /**
  * Скрипт в index.html, который забирает #draft=… до Метрики. Тест исполняет
@@ -56,5 +56,13 @@ describe('черновик из адреса', () => {
     open('/chat#settings');
     expect(window.location.hash).toBe('#settings');
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  // Скрипт в index.html вне tsc и eslint: числа в нём обязаны совпадать с
+  // pendingDraft.ts, иначе рассинхрон молча пропустит или отбросит черновик.
+  it('ключ, длина и срок в скрипте — те же, что в pendingDraft.ts', () => {
+    expect(SCRIPT).toContain(`'${DRAFT_KEY}'`);
+    expect(SCRIPT).toContain(`> ${DRAFT_MAX_LENGTH}`);
+    expect(SCRIPT).toContain(`+ ${DRAFT_TTL_MS}`);
   });
 });
