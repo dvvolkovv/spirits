@@ -1,0 +1,60 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi } from 'vitest';
+import { act } from 'react';
+import { mount, click, byLink, tRu } from '../../../test/dom';
+import MediaViewer from './MediaViewer';
+import type { ChatFileItem } from './chatFiles';
+
+vi.mock('react-i18next', async () => {
+  const { tRu: t } = await import('../../../test/dom');
+  return { useTranslation: () => ({ t, i18n: { language: 'ru' } }) };
+});
+
+const img = (n: number): ChatFileItem => ({
+  key: `k${n}`, kind: 'image', url: `https://pub/${n}.png`, name: `${n}.png`, ext: 'png',
+  createdAt: '2026-10-05T10:00:00.000Z', messageId: n, stored: true,
+});
+const video: ChatFileItem = { ...img(9), key: 'v', kind: 'video', url: 'https://pub/v.mp4', name: 'v.mp4', ext: 'mp4' };
+const key = (k: string) => act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: k })); });
+const byAria = (c: HTMLElement, label: string) => c.querySelector(`button[aria-label="${label}"]`) as HTMLButtonElement | null;
+
+describe('MediaViewer', () => {
+  it('показывает картинку и даёт её скачать под своим именем', () => {
+    const { container } = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    expect(container.querySelector('img')?.getAttribute('src')).toBe('https://pub/1.png');
+    const a = byLink(container, new RegExp(tRu('chat.files.download')))!;
+    expect(a.getAttribute('href')).toBe('https://pub/1.png');
+    expect(a.getAttribute('download')).toBe('1.png');
+  });
+
+  it('стрелки: у первой нет «назад», у последней нет «вперёд»', () => {
+    const onIndex = vi.fn();
+    const first = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={onIndex} onClose={vi.fn()} />);
+    expect(byAria(first.container, tRu('chat.files.prev'))).toBeNull();
+    click(byAria(first.container, tRu('chat.files.next'))!);
+    expect(onIndex).toHaveBeenCalledWith(1);
+    first.unmount();
+
+    const last = mount(<MediaViewer items={[img(1), img(2)]} index={1} onIndexChange={onIndex} onClose={vi.fn()} />);
+    expect(byAria(last.container, tRu('chat.files.next'))).toBeNull();
+    last.unmount();
+  });
+
+  it('клавиатура: ← → листают, Esc закрывает', () => {
+    const onIndex = vi.fn();
+    const onClose = vi.fn();
+    const m = mount(<MediaViewer items={[img(1), img(2), img(3)]} index={1} onIndexChange={onIndex} onClose={onClose} />);
+    key('ArrowRight');
+    expect(onIndex).toHaveBeenLastCalledWith(2);
+    key('ArrowLeft');
+    expect(onIndex).toHaveBeenLastCalledWith(0);
+    key('Escape');
+    expect(onClose).toHaveBeenCalledTimes(1);
+    m.unmount();
+  });
+
+  it('видео — плеер', () => {
+    const { container } = mount(<MediaViewer items={[video]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    expect(container.querySelector('video')?.getAttribute('src')).toBe('https://pub/v.mp4');
+  });
+});
