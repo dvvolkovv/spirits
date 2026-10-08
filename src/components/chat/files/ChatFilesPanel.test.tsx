@@ -53,6 +53,21 @@ describe('ChatFilesPanel', () => {
     expect(text).toContain('Сентябрь 2026 г.');
   });
 
+  it('миниатюра, которая не загрузилась, — нейтральная заглушка, а не битая картинка', async () => {
+    api.get.mockResolvedValue(ok(ITEMS));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const img = container.querySelector('img[src="https://pub/i1.png"]') as HTMLImageElement;
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('decoding')).toBe('async');
+    expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).toBeNull();
+
+    act(() => { img.dispatchEvent(new Event('error')); });
+
+    expect(container.querySelector('img[src="https://pub/i1.png"]')).toBeNull();
+    expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).not.toBeNull();
+  });
+
   it('файл скачивается по ссылке под своим именем', async () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
