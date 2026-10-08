@@ -223,6 +223,10 @@ describe('extractChatFiles — что считается файлом', () => {
     ]);
   });
 
+  it('парные скобки в имени файла на релее не обрезают адрес', () => {
+    expect(x(`[Скачать Договор (1).docx](${RELAY}/Договор (1).docx)`).map((f) => f.name)).toEqual(['Договор (1).docx']);
+  });
+
   it('ссылка на сохранённый файл переписки', () => {
     expect(x(`[Скачать report.pdf](${CHAT_FILE})`).map(pick)).toEqual([
       { kind: 'document', name: 'report.pdf', stored: true, url: CHAT_FILE, refId: undefined },
@@ -312,7 +316,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ```ts
 // src/chat/chat-files/extract.ts
-import { fileExt, lastPathSegment, safeFileName } from './file-meta';
+import { fileExt, lastPathSegment, relayFileName, safeFileName } from './file-meta';
 
 /**
  * Что из текста ответа ассистента — файл. Нужно панели «Медиа и файлы» и
@@ -351,10 +355,12 @@ export interface ExtractEnv {
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const VIDEO_JOB_RE = new RegExp(`\\[VIDEO_JOB:(${UUID})\\]`, 'gi');
 const AUDIO_RE = new RegExp(`\\{\\{audio:id=(${UUID})\\}\\}`, 'gi');
-const MD_IMAGE_RE = /!\[([^\]]*)\]\(([^)\n]+)\)/g;
+// Цель ссылки допускает один уровень парных скобок: имена вида
+// «Договор (1).docx» на релее не кодируются, и `[^)]+` обрезал бы адрес.
+const MD_IMAGE_RE = /!\[([^\]]*)\]\(((?:[^()\n]|\([^()\n]*\))+)\)/g;
 // (?<!!) — не картинка; просмотр назад, а не захват символа: иначе соседние
 // ссылки `[a](x)[b](y)` теряли бы вторую.
-const MD_LINK_RE = /(?<!!)\[([^\]]*)\]\(([^)\n]+)\)/g;
+const MD_LINK_RE = /(?<!!)\[([^\]]*)\]\(((?:[^()\n]|\([^()\n]*\))+)\)/g;
 // Те же, что IMAGE_URL_REGEX и VIDEO_URL_REGEX во фронте (customMarkdown.tsx).
 const BARE_IMAGE_RE = /(?<!\()https?:\/\/\S+?\.(?:png|jpe?g|webp|gif)(?:\?\S*)?/gi;
 const BARE_VIDEO_RE = /(?<!\()https?:\/\/\S+?\.(?:mp4|webm)(?:\?\S*)?/gi;
@@ -397,7 +403,8 @@ export function extractChatFiles(content: string, env: ExtractEnv): ExtractedFil
     url.startsWith(relayPrefix);
 
   const fromUrl = (url: string, index: number, kind?: ChatFileKind): ExtractedFile | null => {
-    const seg = lastPathSegment(url);
+    // Адреса релея сырые: `#` и `?` там — часть имени, а не якорь и запрос.
+    const seg = url.startsWith(relayPrefix) ? relayFileName(url) : lastPathSegment(url);
     const ext = fileExt(seg);
     if (!kind && !ext) return null;
     let name = safeFileName(seg);

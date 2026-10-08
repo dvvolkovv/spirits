@@ -1636,7 +1636,7 @@ describe('runBackfill', () => {
       probe: async (u) => u.endsWith('a.pdf'), journal: jest.fn(), log: jest.fn(),
     });
 
-    expect(r).toMatchObject({ rows: 1, urls: 2, alive: 1, missing: 1, updatedRows: 0 });
+    expect(r).toMatchObject({ rows: 1, urls: 2, alive: 1, missing: 1, updatedRows: 0, missingUrls: [`${R}/b.pdf`] });
     expect(store.persist).not.toHaveBeenCalled();
     expect(pg.calls.some((c) => /^UPDATE/.test(c.sql))).toBe(false);
   });
@@ -1651,7 +1651,7 @@ describe('runBackfill', () => {
     expect(store.persist).toHaveBeenCalledWith([`${R}/a.pdf`, `${R}/gone.pdf`], { budgetMs: Infinity });
     expect(pg.table.get(1)).toBe(`[Скачать a.pdf](https://pub/linkeon-chat-files/id/a.pdf) и [Скачать gone.pdf](${R}/gone.pdf)`);
     expect(journal).toEqual([{ rowId: 1, relayUrl: `${R}/a.pdf`, storedUrl: 'https://pub/linkeon-chat-files/id/a.pdf' }]);
-    expect(r).toMatchObject({ updatedRows: 1, skippedRows: 0, alive: 1, missing: 1 });
+    expect(r).toMatchObject({ updatedRows: 1, skippedRows: 0, alive: 1, missing: 1, missingUrls: [`${R}/gone.pdf`] });
   });
 
   it('строку изменили во время переноса — она пропускается, журнала нет', async () => {
@@ -1745,23 +1745,23 @@ export const SELECT_BACKFILL_ROWS_SQL = `SELECT id, content FROM custom_chat_his
 
 const UPDATE_SQL = `UPDATE custom_chat_history SET content = $1 WHERE id = $2 AND content = $3`;
 
-/** Сколько адресов из списка живы, не больше `limit` проверок одновременно. */
-async function countAlive(urls: string[], probe: (u: string) => Promise<boolean>, limit = 5): Promise<number> {
-  let alive = 0;
+/** Адреса, которые не отвечают, — не больше `limit` проверок одновременно. Порядок — как во входе. */
+async function deadUrls(urls: string[], probe: (u: string) => Promise<boolean>, limit = 5): Promise<string[]> {
+  const alive = new Set<string>();
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(limit, urls.length) }, async () => {
       while (next < urls.length) {
         const u = urls[next++];
         try {
-          if (await probe(u)) alive++;
+          if (await probe(u)) alive.add(u);
         } catch {
           // недоступен — значит не жив
         }
       }
     }),
   );
-  return alive;
+  return urls.filter((u) => !alive.has(u));
 }
 
 export async function runBackfill(p: {
@@ -1772,7 +1772,16 @@ export async function runBackfill(p: {
   probe: (url: string) => Promise<boolean>;
   journal: (e: JournalEntry) => void;
   log: (m: string) => void;
-}): Promise<{ rows: number; urls: number; alive: number; missing: number; updatedRows: number; skippedRows: number }> {
+}): Promise<{
+  rows: number;
+  urls: number;
+  alive: number;
+  missing: number;
+  updatedRows: number;
+  skippedRows: number;
+  /** Что не нашлось на релее: видно глазами, нет ли ложных пропаж (например, обрезанных адресов). */
+  missingUrls: string[];
+}> {
   const agentUrl = p.agentUrl.replace(/\/$/, '');
   const { rows } = await p.pg.query(SELECT_BACKFILL_ROWS_SQL, [`%${agentUrl}/files/%`]);
   const perRow = rows.map((r: any) => ({
@@ -1784,8 +1793,16 @@ export async function runBackfill(p: {
   p.log(`строк со ссылками на релей: ${perRow.length}, уникальных адресов: ${unique.length}`);
 
   if (!p.apply) {
-    const alive = await countAlive(unique, p.probe);
-    return { rows: perRow.length, urls: unique.length, alive, missing: unique.length - alive, updatedRows: 0, skippedRows: 0 };
+    const missingUrls = await deadUrls(unique, p.probe);
+    return {
+      rows: perRow.length,
+      urls: unique.length,
+      alive: unique.length - missingUrls.length,
+      missing: missingUrls.length,
+      updatedRows: 0,
+      skippedRows: 0,
+      missingUrls,
+    };
   }
 
   const stored = await p.store.persist(unique, { budgetMs: Infinity });
@@ -1810,7 +1827,16 @@ export async function runBackfill(p: {
       p.log(`строка ${r.id} изменилась во время переноса — пропущена`);
     }
   }
-  return { rows: perRow.length, urls: unique.length, alive: stored.size, missing: unique.length - stored.size, updatedRows, skippedRows };
+  const missingUrls = unique.filter((u) => !stored.has(u));
+  return {
+    rows: perRow.length,
+    urls: unique.length,
+    alive: stored.size,
+    missing: missingUrls.length,
+    updatedRows,
+    skippedRows,
+    missingUrls,
+  };
 }
 
 /** Откат по журналу: наш адрес → адрес релея, с той же проверкой прежнего текста. */
@@ -1940,7 +1966,12 @@ async function main() {
       journal: (e) => fs.appendFileSync(journalPath, JSON.stringify(e) + '\n'),
       log: (m) => console.log(m),
     });
-    console.log(JSON.stringify(r));
+    // Список пропавших — в файл, а не в консоль: там могут быть тысячи адресов.
+    const { missingUrls, ...summary } = r;
+    console.log(JSON.stringify(summary));
+    const missingPath = journalPath.replace(/\.jsonl$/, '.missing.txt');
+    fs.writeFileSync(missingPath, missingUrls.length > 0 ? missingUrls.join('\n') + '\n' : '');
+    console.log(`не нашлось на релее: ${missingUrls.length}, список: ${missingPath}`);
     if (apply) console.log(`журнал: ${journalPath}`);
   } finally {
     await pg.end();
@@ -2140,6 +2171,15 @@ git -C $BACK log -1 --oneline
 
 **Files:** нет (действия на серверах).
 
+- [ ] **Step 0: Убедиться, что подмена типа закрыта.** Без этого HTML-файлы ассистентов откроются страницей на нашем домене рядом с токенами входа. Ожидание для обоих запросов: исходный тип файла и `Content-Security-Policy: sandbox`.
+
+```bash
+curl -sI 'https://my.linkeon.io/smm-media/linkeon-assets/avatars/agents/1.jpg?response-content-type=text/html' | grep -iE '^(content-type|content-security-policy):'
+curl -sI 'https://test.linkeon.io/minio/linkeon-assets/speech-samples/alena.mp3?response-content-type=text/html' | grep -iE '^(content-type|content-security-policy):'
+```
+
+Если пришло `text/html` или нет CSP, бакет не создавать: сначала вернуть правку nginx (см. `docs/dr-runbook.md`, раздел MinIO).
+
 - [ ] **Step 1: Спросить владельца** — «Создаю бакет `linkeon-chat-files` с политикой "только скачивание" на test и проде?»
 
 - [ ] **Step 2: Test**
@@ -2210,7 +2250,15 @@ ssh dvolkov@212.113.106.202 'cd ~/spirits_back && git log -1 --oneline && grep -
 curl -sI "<адрес из ссылки>" | grep -iE '^(HTTP|content-type|content-disposition|x-content-type-options):'
 ```
 
-Ожидание: `200`, `application/pdf`, `attachment; filename=…`, `nosniff`.
+Ожидание: `200`, `application/pdf`, `attachment; filename=…`, `nosniff`, `Content-Security-Policy: sandbox`.
+
+Подмена типа параметрами ссылки не должна работать (nginx срезает строку запроса, закрыто 08.10.2026):
+
+```bash
+curl -sI "<адрес из ссылки>?response-content-type=text/html&response-content-disposition=inline" | grep -iE '^(content-type|content-disposition|content-security-policy):'
+```
+
+Ожидание: тот же `application/pdf`, `attachment`, `sandbox`. Если пришло `text/html`, выкат остановить: значит, правка nginx потеряна.
 
 Попросить ассистента сделать `.html`-файл. Ожидание: `Content-Type: application/octet-stream`, в браузере по клику файл скачивается, а не открывается.
 
@@ -2242,7 +2290,15 @@ ssh dv@5.101.115.184 'cp -a /home/dv/agent-output-snapshot-2026-10-08/. /tmp/age
 ssh dv@85.192.61.231 'cd ~/spirits_back && source ~/.nvm/nvm.sh && npx ts-node scripts/backfill-chat-files.ts'
 ```
 
-Показать владельцу счётчики `rows/urls/alive/missing` и спросить OK на `--apply`. После OK:
+Сверить список пропавших со снапшотом. Ни один пропавший файл не должен в нём находиться, иначе адрес разобран неверно (например, обрезан на скобке) и файл будет потерян:
+
+```bash
+scp dv@85.192.61.231:'~/backfill-chat-files-*.missing.txt' /tmp/missing-test.txt 2>/dev/null; ls -la /tmp/missing-test.txt
+ssh dv@5.101.115.184 'cd /home/dv/agent-output-snapshot-2026-10-08 && find . -type f | sed "s#^\./##"' > /tmp/snapshot-files.txt
+sed 's#^https://r.linkeon.io/files/##' /tmp/missing-test.txt | while read -r p; do grep -qxF "$p" /tmp/snapshot-files.txt && echo "ЛОЖНАЯ ПРОПАЖА: $p"; done; echo сверка-закончена
+```
+
+Если файлов списка несколько (запусков было больше одного), сверять последний. Показать владельцу счётчики `rows/urls/alive/missing` и итог сверки, спросить OK на `--apply`. После OK:
 
 ```bash
 ssh dv@85.192.61.231 'cd ~/spirits_back && source ~/.nvm/nvm.sh && npx ts-node scripts/backfill-chat-files.ts --apply'
@@ -2256,7 +2312,7 @@ ssh dv@85.192.61.231 'cd ~/spirits_back && source ~/.nvm/nvm.sh && npx ts-node s
 ssh dvolkov@212.113.106.202 'cd ~/spirits_back && npx ts-node scripts/backfill-chat-files.ts'
 ```
 
-Показать счётчики владельцу и спросить OK на `--apply`. После OK:
+Сверить список пропавших со снапшотом, как на test: файл `~/backfill-chat-files-*.missing.txt` на проде, команды те же, но `scp` с `dvolkov@212.113.106.202`. Ложных пропаж быть не должно. Показать счётчики и итог сверки владельцу, спросить OK на `--apply`. После OK:
 
 ```bash
 ssh dvolkov@212.113.106.202 'cd ~/spirits_back && npx ts-node scripts/backfill-chat-files.ts --apply'
