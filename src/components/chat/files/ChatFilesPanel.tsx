@@ -198,7 +198,10 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
         <div
           role="tabpanel"
           id={TABPANEL_ID}
-          aria-labelledby={`chat-files-tab-${current}`}
+          // tab, не current: до первого ответа API ни одна вкладка не выбрана
+          // (aria-selected тоже всюду false в этот момент) — tabpanel не
+          // должен ссылаться на «Медиа» только из-за дефолта в current.
+          aria-labelledby={tab ? `chat-files-tab-${tab}` : undefined}
           className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
         >
           {error ? (
