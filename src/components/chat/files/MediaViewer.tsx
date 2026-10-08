@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import type { ChatFileItem } from './chatFiles';
@@ -17,6 +17,13 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
   const item = items[index];
   const hasPrev = index > 0;
   const hasNext = index < items.length - 1;
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Один раз на открытие (не на каждую навигацию ← →): иначе «Закрыть»
+  // перехватывал бы фокус у пользователя при каждом нажатии стрелки.
+  useEffect(() => {
+    closeBtnRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -36,7 +43,13 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
   if (!item?.url) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black/90" role="dialog" aria-modal="true" data-testid="media-viewer">
+    <div
+      className="fixed inset-0 z-[60] flex flex-col bg-black/90"
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.name}
+      data-testid="media-viewer"
+    >
       <div className="flex items-center justify-end gap-2 p-3">
         <a
           href={item.url}
@@ -49,6 +62,7 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
           {t('chat.files.download')}
         </a>
         <button
+          ref={closeBtnRef}
           type="button"
           onClick={onClose}
           aria-label={t('chat.files.close')}

@@ -219,7 +219,10 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
                         <button
                           key={it.key}
                           type="button"
-                          onClick={() => setViewerIndex(media.stored.indexOf(it))}
+                          onClick={(e) => {
+                            lastTileRef.current = e.currentTarget;
+                            setViewerIndex(media.stored.indexOf(it));
+                          }}
                           aria-label={t(it.kind === 'video' ? 'chat.files.video' : 'chat.files.image')}
                           className="relative aspect-square overflow-hidden bg-gray-100"
                         >
@@ -305,7 +308,10 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
           items={media.stored}
           index={viewerIndex}
           onIndexChange={setViewerIndex}
-          onClose={() => setViewerIndex(null)}
+          onClose={() => {
+            setViewerIndex(null);
+            lastTileRef.current?.focus();
+          }}
         />
       )}
     </div>
