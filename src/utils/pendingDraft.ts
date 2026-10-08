@@ -68,3 +68,8 @@ export function takePendingDraftFor(assistantId: string | number, now = Date.now
   forget();
   return stored.text;
 }
+
+/** Забыть черновик — при выходе из аккаунта и удалении профиля (clearAppStorage). */
+export function forgetPendingDraft(): void {
+  forget();
+}
