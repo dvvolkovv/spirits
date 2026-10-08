@@ -85,6 +85,10 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
   const load = useCallback(async () => {
     setError(false);
     setItems(null);
+    // Сбрасываем и заглушки «не загрузилась»: без этого «Повторить» с теми
+    // же данными мог бы навечно держать миниатюру заглушкой, даже если
+    // адрес уже ожил, — ключ в brokenKeys от прежней попытки переживал load().
+    setBrokenKeys(new Set());
     try {
       const list = await fetchChatFiles(assistantId, freshTs);
       setItems(list);
