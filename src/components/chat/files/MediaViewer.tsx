@@ -50,8 +50,11 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
       // Alt/Ctrl/Meta/Shift+стрелка — чужая горячая клавиша (навигация
       // браузера, расширения и т. п.), не листание просмотра.
       if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-      // Стрелка с фокусом на <video>/<audio> — родная перемотка плеера.
-      if (e.target instanceof HTMLVideoElement || e.target instanceof HTMLAudioElement) return;
+      // Стрелка с фокусом на <video> — родная перемотка плеера. <audio> сюда
+      // не попадает: items — это media.stored из ChatFilesPanel.tsx, а туда
+      // splitTab() с isMedia() пускает только kind 'image'|'video', просмотр
+      // аудио не рисует вовсе.
+      if (e.target instanceof HTMLVideoElement) return;
       if (e.key === 'ArrowLeft' && hasPrev) onIndexChange(index - 1);
       else if (e.key === 'ArrowRight' && hasNext) onIndexChange(index + 1);
     };
