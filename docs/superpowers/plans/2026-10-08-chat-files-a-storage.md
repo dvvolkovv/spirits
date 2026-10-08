@@ -2268,7 +2268,7 @@ curl -sI "<адрес из ссылки>?response-content-type=text/html&respons
 
 Попросить ассистента сделать `.html`-файл. Ожидание: `Content-Type: application/octet-stream`, в браузере по клику файл скачивается, а не открывается.
 
-Попросить файл с неудобным именем — `Отчёт (1) 'итог' #3?.txt`. Ожидание:
+Попросить файл с неудобным именем — `Отчёт (1) 'итог' #3?.txt`, затем ещё один — `a+b 100%.txt`. nginx при `proxy_pass` с URI раскодирует путь и кодирует заново не все символы, `+` и `%` проверяются отдельно. Ожидание для обоих:
 - ссылка в чате кликается целиком, адрес с `%28`, `%29`, `%27`, `%23`, `%3F`;
 - `curl -sI` по ней даёт `200` и `attachment`;
 - скачанный файл называется так же.
@@ -2326,7 +2326,13 @@ ssh dvolkov@212.113.106.202 'cd ~/spirits_back && npx ts-node scripts/backfill-c
 Сверить список пропавших со снапшотом, как на test: файл `~/backfill-chat-files-*.missing.txt` на проде, команды те же, но `scp` с `dvolkov@212.113.106.202`. Ложных пропаж быть не должно. Показать счётчики и итог сверки владельцу, спросить OK на `--apply`. После OK:
 
 ```bash
-ssh dvolkov@212.113.106.202 'cd ~/spirits_back && npx ts-node scripts/backfill-chat-files.ts --apply'
+ssh dvolkov@212.113.106.202 'cd ~/spirits_back && setsid -f bash -c "npx ts-node scripts/backfill-chat-files.ts --apply > ~/backfill-apply-prod.log 2>&1" < /dev/null; echo запущен'
+```
+
+Запуск отвязанный: обрыв ssh посреди копирования не испортит базу, потому что UPDATE идут после всех копий, но работу пришлось бы начинать заново. Следить по логу, пока не появится строка `журнал: …`:
+
+```bash
+ssh dvolkov@212.113.106.202 'tail -5 ~/backfill-apply-prod.log'
 ```
 
 Записать путь к журналу из вывода. Откат: `npx ts-node scripts/backfill-chat-files.ts --revert <журнал>`.
