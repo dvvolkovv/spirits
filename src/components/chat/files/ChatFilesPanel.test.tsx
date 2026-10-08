@@ -135,6 +135,41 @@ describe('ChatFilesPanel', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  it('при открытии фокус уходит в панель, при закрытии — обратно на кнопку, что её открыла', async () => {
+    api.get.mockResolvedValue(ok([]));
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    expect(document.activeElement).toBe(opener);
+    try {
+      const { container, unmount } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+      await settle();
+      // Иначе Tab уходит на «Перегенерировать» под подложкой, а Enter там
+      // срабатывает по кнопке, которая была в фокусе до открытия панели.
+      expect(container.contains(document.activeElement)).toBe(true);
+
+      unmount();
+      expect(document.activeElement).toBe(opener);
+    } finally {
+      opener.remove();
+    }
+  });
+
+  it('Tab с последнего фокусируемого элемента внутри панели переходит на первый (ловушка)', async () => {
+    api.get.mockResolvedValue(ok([]));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const focusables = Array.from(container.querySelectorAll('button, a[href], video')) as HTMLElement[];
+    expect(focusables.length).toBeGreaterThan(1);
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    last.focus();
+    expect(document.activeElement).toBe(last);
+
+    press('Tab');
+    expect(document.activeElement).toBe(first);
+  });
+
   it('Esc, уже обработанный чужим кодом страницы (capture), панель не закрывает', async () => {
     api.get.mockResolvedValue(ok([]));
     const onClose = vi.fn();
