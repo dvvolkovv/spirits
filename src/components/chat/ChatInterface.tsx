@@ -2012,13 +2012,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // utils/pendingDraft.ts): текст в поле ввода, БЕЗ отправки — отправляет
   // человек сам. Ждём историю именно выбранного ассистента: её загрузка
   // перерисовывает чат, а флаг historyLoading при смене ассистента ещё
-  // старый. Набранное человеком не затираем.
+  // старый. Если человек уже что-то набрал, не трогаем ни поле, ни черновик:
+  // черновик выдаётся один раз, и забрать его сейчас значило бы потерять.
   useEffect(() => {
     if (!selectedAssistant || historyLoading) return;
     if (historyLoadedForRef.current !== selectedAssistant.id) return;
+    if (textareaRef.current?.value.trim()) return;
     const draft = takePendingDraftFor(selectedAssistant.id);
     if (!draft) return;
-    setInput((current) => (current.trim() ? current : draft));
+    setInput(draft);
     textareaRef.current?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAssistant?.id, historyLoading]);

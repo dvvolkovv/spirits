@@ -14,7 +14,9 @@ const effect = (): string => {
   const a = SRC.indexOf('takePendingDraftFor(selectedAssistant.id)');
   expect(a).toBeGreaterThan(-1);
   const start = SRC.lastIndexOf('useEffect(', a);
-  return SRC.slice(start, SRC.indexOf('}, [', a));
+  const end = SRC.indexOf('}, [selectedAssistant?.id, historyLoading]);', a);
+  expect(end).toBeGreaterThan(-1);
+  return SRC.slice(start, end);
 };
 
 describe('черновик со страницы linkeon.io', () => {
@@ -33,11 +35,23 @@ describe('черновик со страницы linkeon.io', () => {
     expect(effect()).not.toContain('handleSend');
   });
 
+  // Черновик выдаётся один раз: забрать его при занятом поле — потерять.
+  it('при занятом поле черновик не забирается', () => {
+    const body = effect();
+    const check = body.indexOf('if (textareaRef.current?.value.trim()) return;');
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(body.indexOf('takePendingDraftFor('));
+  });
+
   // Иначе вебвизор кабинета записал бы подставленные данные рождения до того,
   // как человек решил их отправить.
   it('поле ввода чата скрыто от Вебвизора', () => {
     const at = SRC.indexOf('data-testid="chat-input"');
     expect(at).toBeGreaterThan(-1);
-    expect(SRC.slice(SRC.lastIndexOf('<textarea', at), at)).toContain('ym-disable-keys');
+    const tag = SRC.slice(SRC.lastIndexOf('<textarea', at), at);
+    // Именно в className: рядом комментарий с тем же словом, и поиск по всему
+    // тегу не заметил бы, что класс уехал на другое поле.
+    const classes = tag.match(/className="([^"]*)"/)?.[1].split(/\s+/) ?? [];
+    expect(classes).toContain('ym-disable-keys');
   });
 });
