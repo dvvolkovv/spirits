@@ -53,6 +53,35 @@ describe('ChatFilesPanel', () => {
     expect(text).toContain('Сентябрь 2026 г.');
   });
 
+  it('вкладки: id/aria-controls у табов, у контента role=tabpanel и aria-labelledby активного', async () => {
+    api.get.mockResolvedValue(ok(ITEMS));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const mediaTab = tab(container, 'chat.files.tab_media');
+    const filesTab = tab(container, 'chat.files.tab_files');
+    const panel = container.querySelector('[role="tabpanel"]') as HTMLElement;
+    expect(panel).not.toBeNull();
+    expect(mediaTab.id).toBeTruthy();
+    expect(filesTab.id).toBeTruthy();
+    expect(mediaTab.id).not.toBe(filesTab.id);
+    expect(mediaTab.getAttribute('aria-controls')).toBe(panel.id);
+    expect(filesTab.getAttribute('aria-controls')).toBe(panel.id);
+    expect(panel.getAttribute('aria-labelledby')).toBe(mediaTab.id);
+
+    click(filesTab);
+    expect(panel.getAttribute('aria-labelledby')).toBe(filesTab.id);
+  });
+
+  it('у плитки в accessible-имени есть имя файла', async () => {
+    api.get.mockResolvedValue(ok(ITEMS));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const tiles = container.querySelectorAll(`button[aria-label^="${tRu('chat.files.image')}"]`);
+    expect(tiles[1].getAttribute('aria-label')).toBe(`${tRu('chat.files.image')}: i2.png`);
+    const videoTile = container.querySelector(`button[aria-label^="${tRu('chat.files.video')}"]`)!;
+    expect(videoTile.getAttribute('aria-label')).toBe(`${tRu('chat.files.video')}: v1.mp4`);
+  });
+
   it('миниатюра, которая не загрузилась, — нейтральная заглушка, а не битая картинка', async () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
