@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import type { ChatFileItem } from './chatFiles';
+import { trapTab } from './focusTrap';
 
 interface Props {
   /** Только сохранённые медиа: у них есть адрес. */
@@ -18,6 +19,11 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
   const hasPrev = index > 0;
   const hasNext = index < items.length - 1;
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  // Свой корень для ловушки Tab/Shift+Tab: ChatFilesPanel рисует просмотр
+  // внутри собственного dialogRef, и ловушка панели нарочно бездействует,
+  // пока просмотр открыт (ChatFilesPanel.tsx) — иначе Tab утекал бы на её
+  // «Назад»/«Закрыть» под опаской подложкой.
+  const rootRef = useRef<HTMLDivElement>(null);
 
   // Один раз на открытие (не на каждую навигацию ← →): иначе «Закрыть»
   // перехватывал бы фокус у пользователя при каждом нажатии стрелки.
@@ -33,6 +39,11 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
         // её обработчика закрывает и просмотр, и панель одним Esc.
         e.preventDefault();
         onClose();
+        return;
+      }
+      if (e.key === 'Tab') {
+        const root = rootRef.current;
+        if (root) trapTab(root, e);
         return;
       }
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -52,6 +63,7 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
 
   return (
     <div
+      ref={rootRef}
       className="fixed inset-0 z-[60] flex flex-col bg-black/90"
       role="dialog"
       aria-modal="true"

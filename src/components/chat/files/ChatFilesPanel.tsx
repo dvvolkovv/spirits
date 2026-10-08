@@ -9,6 +9,7 @@ import MediaViewer from './MediaViewer';
 import {
   ChatFileItem, FileIconKind, FilesTab, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab,
 } from './chatFiles';
+import { trapTab } from './focusTrap';
 
 interface Props {
   assistantId: string | number;
@@ -105,23 +106,15 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
         return;
       }
       if (e.key !== 'Tab') return;
+      // Просмотр открыт — у него своя ловушка над своим корнем (MediaViewer.tsx).
+      // Наш dialogRef физически содержит и узлы MediaViewer (он рисуется внутри
+      // того же корня), поэтому без этой проверки наша ловушка решала бы, что
+      // последний фокусируемый элемент — это элемент просмотра, и после Tab
+      // отправляла бы фокус на «Назад»/«Закрыть» панели под опаской подложкой.
+      if (viewerOpen.current) return;
       const root = dialogRef.current;
       if (!root) return;
-      // Живой querySelectorAll, а не запомненный список: содержимое меняется
-      // (вкладки, открытие просмотра), список должен быть всегда актуальным.
-      const focusables = Array.from(
-        root.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], video, [tabindex]:not([tabindex="-1"])'),
-      );
-      if (focusables.length === 0) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
+      trapTab(root, e);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
