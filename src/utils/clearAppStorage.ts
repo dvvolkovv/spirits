@@ -1,3 +1,5 @@
+import { forgetPendingDraft } from './pendingDraft';
+
 /**
  * Список ключей localStorage, используемых приложением
  */
@@ -36,4 +38,7 @@ export function clearAppStorage(): void {
     }
   }
   keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+  // черновик со страницы linkeon.io: в нём данные рождения — не оставлять следующему, кто войдёт с этого устройства
+  forgetPendingDraft();
 }

@@ -41,6 +41,30 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Черновик сообщения ассистенту со страницы linkeon.io (#draft=…):
+         забрать в localStorage и стереть из адреса ДО Метрики — вебвизор пишет
+         адрес страницы, и данные рождения в нём ушли бы в Метрику. Формат
+         записи и чтение — src/utils/pendingDraft.ts, тест — draftCapture.test.ts. -->
+    <script data-draft-capture>
+      (function () {
+        try {
+          var hash = location.hash;
+          if (hash.indexOf('#draft=') !== 0) return;
+          // Сначала стереть: битый или длинный черновик тоже не должен
+          // остаться в адресе.
+          history.replaceState(history.state, '', location.pathname + location.search);
+          var text = decodeURIComponent(hash.slice(7)).trim();
+          var assistant = (new URLSearchParams(location.search).get('assistant') || '').trim();
+          if (!text || text.length > 600 || !assistant) return;
+          localStorage.setItem('pending_draft', JSON.stringify({
+            text: text,
+            assistant: assistant,
+            expires: Date.now() + 3600000
+          }));
+        } catch (e) { /* битый черновик отбрасывается */ }
+      })();
+    </script>
+
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){

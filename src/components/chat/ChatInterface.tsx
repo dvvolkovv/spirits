@@ -56,6 +56,7 @@ import { startActivity, addStep, markTextStarted, finishActivity, type TurnActiv
 import { LiveActivity, ActivitySummaryView } from './ActivitySteps';
 import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
+import { takePendingDraftFor } from '../../utils/pendingDraft';
 
 interface Assistant {
   id: number;
@@ -2015,6 +2016,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key, location.search]);
 
+  // Черновик со страницы linkeon.io (калькулятор Human Design → Райя, см.
+  // utils/pendingDraft.ts): текст в поле ввода, БЕЗ отправки — отправляет
+  // человек сам. Ждём историю именно выбранного ассистента: её загрузка
+  // перерисовывает чат, а флаг historyLoading при смене ассистента ещё
+  // старый. Если человек уже что-то набрал, не трогаем ни поле, ни черновик:
+  // черновик выдаётся один раз, и забрать его сейчас значило бы потерять.
+  useEffect(() => {
+    if (!selectedAssistant || historyLoading) return;
+    if (historyLoadedForRef.current !== selectedAssistant.id) return;
+    if (textareaRef.current?.value.trim()) return;
+    const draft = takePendingDraftFor(selectedAssistant.id);
+    if (!draft) return;
+    setInput(draft);
+    textareaRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAssistant?.id, historyLoading]);
+
   // ?say=<text> → автоотправка первого сообщения. Ждём, пока ассистент выбран
   // (?assistant=roman → универсальный Роман), чтобы уйти к нужному.
   // ВАЖНО [d0fbc717 fix]: реагируем на КАЖДУЮ навигацию (location.key/search) — как voice-эффект.
@@ -3247,7 +3265,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
               placeholder={t('chat.placeholder')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+              // ym-disable-keys: вебвизор не пишет набираемое — в том числе
+              // подставленный черновик с данными рождения (utils/pendingDraft.ts).
+              className="ym-disable-keys w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent"
               rows={2}
               style={{ minHeight: '72px', maxHeight: '240px' }}
               data-testid="chat-input"
