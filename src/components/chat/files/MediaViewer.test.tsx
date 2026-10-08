@@ -99,6 +99,39 @@ describe('MediaViewer', () => {
     m.unmount();
   });
 
+  it('Tab с последней кнопки переходит на первую (ловушка над своим корнем)', () => {
+    const m = mount(<MediaViewer items={[img(1), img(2), img(3)]} index={1} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    const viewer = m.container.querySelector('[data-testid="media-viewer"]') as HTMLElement;
+    const focusables = Array.from(viewer.querySelectorAll('button, a[href]')) as HTMLElement[];
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    last.focus();
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true })); });
+    expect(document.activeElement).toBe(first);
+    m.unmount();
+  });
+
+  it('ловушка просмотра тоже пропускает невидимую кнопку (тот же помощник, что у панели)', () => {
+    const m = mount(<MediaViewer items={[img(1), img(2), img(3)]} index={1} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    const viewer = m.container.querySelector('[data-testid="media-viewer"]') as HTMLElement;
+    const download = byLink(viewer, new RegExp(tRu('chat.files.download')))!;
+    // Инлайн, не класс: как и в ChatFilesPanel.test.tsx, Tailwind не подключён в jsdom.
+    download.style.display = 'none';
+    const closeBtn = byAria(viewer, tRu('chat.files.close'))!;
+    const focusables = Array.from(viewer.querySelectorAll('button, a[href]')) as HTMLElement[];
+    const last = focusables[focusables.length - 1];
+    expect(closeBtn).not.toBe(download);
+
+    closeBtn.focus();
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true })); });
+    expect(document.activeElement).toBe(last);
+
+    last.focus();
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true })); });
+    expect(document.activeElement).toBe(closeBtn);
+    m.unmount();
+  });
+
   it('стрелки не помечаются обработанными — на них может быть завязан другой код страницы', () => {
     const onIndex = vi.fn();
     const m = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={onIndex} onClose={vi.fn()} />);
