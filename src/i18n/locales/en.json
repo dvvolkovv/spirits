@@ -406,6 +406,7 @@
         "mail_read": "Checking mail",
         "mail_send": "Sending an email",
         "product": "Working on your website or bot",
+        "find_files": "Looking for files from our conversations",
         "other": "Working on the task"
       }
     },

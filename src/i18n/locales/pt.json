@@ -409,6 +409,7 @@
         "mail_read": "A consultar o correio",
         "mail_send": "A enviar um e-mail",
         "product": "A trabalhar no seu site ou bot",
+        "find_files": "A procurar ficheiros das nossas conversas",
         "other": "A trabalhar na tarefa"
       }
     },

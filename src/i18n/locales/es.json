@@ -409,6 +409,7 @@
         "mail_read": "Revisando el correo",
         "mail_send": "Enviando un correo",
         "product": "Trabajando en tu sitio web o bot",
+        "find_files": "Busco archivos de nuestras conversaciones",
         "other": "Trabajando en la tarea"
       }
     },

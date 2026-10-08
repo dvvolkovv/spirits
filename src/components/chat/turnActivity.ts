@@ -9,7 +9,7 @@ export const ACTIVITY_KINDS = [
   'web_search', 'web_fetch', 'read_upload', 'read_file', 'write_file', 'search_files',
   'compute', 'image_generate', 'image_edit', 'video', 'speech', 'calendar_read',
   'calendar_propose', 'routine', 'notes', 'messages_read', 'message_send',
-  'mail_read', 'mail_send', 'product', 'other',
+  'mail_read', 'mail_send', 'product', 'find_files', 'other',
 ] as const;
 
 export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
