@@ -20,6 +20,17 @@ describe('связка панели «Медиа и файлы»', () => {
     expect(SRC.slice(at - 120, at)).toContain('showFilesPanel && selectedAssistant && (');
   });
 
+  it('у панели есть key по ассистенту и freshTs — устаревший ответ не перепишет данные другого чата', () => {
+    const at = SRC.indexOf('<ChatFilesPanel');
+    const tag = SRC.slice(at, SRC.indexOf('/>', at));
+    // Без key React при смене freshTs (переключение «Чистого листа» при
+    // открытой панели) не размонтирует ChatFilesPanel, а только меняет
+    // пропсы — и ответ по старому freshTs, пришедший позже нового запроса,
+    // может переписать уже верные данные. key заставляет React пересоздать
+    // компонент целиком: старый fetch дозревает уже у выброшенного инстанса.
+    expect(tag).toContain("key={`${selectedAssistant.id}|${freshTs ?? ''}`}");
+  });
+
   it('на мобиле — первый пункт меню «⋯»', () => {
     const menu = SRC.indexOf('role="menu"');
     const item = SRC.indexOf('data-testid="chat-files-menuitem"', menu);
