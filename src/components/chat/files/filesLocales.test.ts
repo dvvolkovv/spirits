@@ -26,4 +26,30 @@ describe('тексты панели «Медиа и файлы»', () => {
       expect(loc.chat.files.unsaved).toContain('{{n}}');
     });
   }
+
+  // pt.json — европейский португальский (pt-PT) во всём остальном файле
+  // («ficheiro», «Descarregar», «Seguinte»); первая редакция chat.files.*
+  // была бразильской («arquivo», «Baixar», «Próximo») — здесь это закреплено,
+  // чтобы не вернулось при следующей правке локали.
+  it('pt: европейский вариант (ficheiro/Descarregar/Seguinte), не бразильский', () => {
+    expect(pt.chat.files).toEqual({
+      open: 'Multimédia e ficheiros',
+      title: 'Multimédia e ficheiros',
+      tab_media: 'Multimédia',
+      tab_files: 'Ficheiros',
+      empty_media: 'As imagens e os vídeos desta conversa aparecerão aqui',
+      empty_files: 'Os ficheiros criados pelo assistente aparecerão aqui',
+      load_error: 'Não foi possível carregar',
+      retry: 'Tentar novamente',
+      download: 'Descarregar',
+      close: 'Fechar',
+      back: 'Voltar',
+      prev: 'Anterior',
+      next: 'Seguinte',
+      unsaved: 'Não guardados: {{n}}',
+      unsaved_hint: 'O ficheiro estava num servidor temporário e foi eliminado',
+      video: 'Vídeo',
+      image: 'Imagem',
+    });
+  });
 });
