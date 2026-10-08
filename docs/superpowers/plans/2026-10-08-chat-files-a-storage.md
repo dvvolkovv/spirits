@@ -1590,7 +1590,7 @@ Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>"
 
 ```ts
 // src/chat/chat-files/backfill.spec.ts
-import { JournalEntry, SELECT_BACKFILL_ROWS_SQL, revertBackfill, runBackfill } from './backfill';
+import { BACKFILL_FILE_TIMEOUT_MS, JournalEntry, SELECT_BACKFILL_ROWS_SQL, revertBackfill, runBackfill } from './backfill';
 
 const AGENT = 'https://r.linkeon.io';
 const R = `${AGENT}/files/u1_12_ru`;
@@ -1648,7 +1648,7 @@ describe('runBackfill', () => {
 
     const r = await runBackfill({ pg, store, agentUrl: AGENT, apply: true, probe: jest.fn(), journal: (e) => journal.push(e), log: jest.fn() });
 
-    expect(store.persist).toHaveBeenCalledWith([`${R}/a.pdf`, `${R}/gone.pdf`], { budgetMs: Infinity });
+    expect(store.persist).toHaveBeenCalledWith([`${R}/a.pdf`, `${R}/gone.pdf`], { budgetMs: Infinity, fileTimeoutMs: BACKFILL_FILE_TIMEOUT_MS });
     expect(pg.table.get(1)).toBe(`[Скачать a.pdf](https://pub/linkeon-chat-files/id/a.pdf) и [Скачать gone.pdf](${R}/gone.pdf)`);
     expect(journal).toEqual([{ rowId: 1, relayUrl: `${R}/a.pdf`, storedUrl: 'https://pub/linkeon-chat-files/id/a.pdf' }]);
     expect(r).toMatchObject({ updatedRows: 1, skippedRows: 0, alive: 1, missing: 1, missingUrls: [`${R}/gone.pdf`] });
@@ -1731,7 +1731,7 @@ export interface BackfillPg {
   query: (sql: string, params?: any[]) => Promise<{ rows: any[]; rowCount?: number | null }>;
 }
 export interface BackfillStore {
-  persist: (urls: string[], opts?: { budgetMs?: number }) => Promise<Map<string, string>>;
+  persist: (urls: string[], opts?: { budgetMs?: number; fileTimeoutMs?: number }) => Promise<Map<string, string>>;
 }
 export interface JournalEntry {
   rowId: number;
@@ -1744,6 +1744,9 @@ export const SELECT_BACKFILL_ROWS_SQL = `SELECT id, content FROM custom_chat_his
  ORDER BY id`;
 
 const UPDATE_SQL = `UPDATE custom_chat_history SET content = $1 WHERE id = $2 AND content = $3`;
+
+/** Срок на один файл при переносе — 5 минут на всё скачивание. */
+export const BACKFILL_FILE_TIMEOUT_MS = 300_000;
 
 /** Адреса, которые не отвечают, — не больше `limit` проверок одновременно. Порядок — как во входе. */
 async function deadUrls(urls: string[], probe: (u: string) => Promise<boolean>, limit = 5): Promise<string[]> {
@@ -1805,7 +1808,10 @@ export async function runBackfill(p: {
     };
   }
 
-  const stored = await p.store.persist(unique, { budgetMs: Infinity });
+  // Бюджета хода у переноса нет, а срок на файл длиннее, чем в живом ходе:
+  // safeGet считает его на всё скачивание целиком, и большой файл на медленном
+  // канале к релею за 30 с не успел бы.
+  const stored = await p.store.persist(unique, { budgetMs: Infinity, fileTimeoutMs: BACKFILL_FILE_TIMEOUT_MS });
   p.log(`скопировано файлов: ${stored.size} из ${unique.length}`);
   let updatedRows = 0;
   let skippedRows = 0;
@@ -2261,6 +2267,11 @@ curl -sI "<адрес из ссылки>?response-content-type=text/html&respons
 Ожидание: тот же `application/pdf`, `attachment`, `sandbox`. Если пришло `text/html`, выкат остановить: значит, правка nginx потеряна.
 
 Попросить ассистента сделать `.html`-файл. Ожидание: `Content-Type: application/octet-stream`, в браузере по клику файл скачивается, а не открывается.
+
+Попросить файл с неудобным именем — `Отчёт (1) 'итог' #3?.txt`. Ожидание:
+- ссылка в чате кликается целиком, адрес с `%28`, `%29`, `%27`, `%23`, `%3F`;
+- `curl -sI` по ней даёт `200` и `attachment`;
+- скачанный файл называется так же.
 
 - [ ] **Step 3: История**
 
