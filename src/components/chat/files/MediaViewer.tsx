@@ -58,7 +58,9 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
           <X className="h-5 w-5" />
         </button>
       </div>
-      <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 pb-6">
+      {/* max(): iPhone с «чёлкой»/индикатором даёт safe-area больше 1.5rem —
+          берём его; на обычном экране safe-area равен 0, остаётся 1.5rem. */}
+      <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         {item.kind === 'video' ? (
           <video key={item.key} src={item.url} controls autoPlay className="max-h-full max-w-full" />
         ) : (

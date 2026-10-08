@@ -116,6 +116,15 @@ describe('ChatFilesPanel', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('корень панели поверх нижней навигации (z-[60], та же у TokenPackages/VoiceCallModal)', async () => {
+    api.get.mockResolvedValue(ok([]));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const root = container.querySelector('[data-testid="chat-files-panel"]')!;
+    expect(root.className).toContain('z-[60]');
+    expect(root.className).not.toContain('z-50');
+  });
+
   it('«Назад» и крестик закрывают панель', async () => {
     api.get.mockResolvedValue(ok([]));
     const onClose = vi.fn();

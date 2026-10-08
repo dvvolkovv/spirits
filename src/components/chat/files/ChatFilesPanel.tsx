@@ -87,7 +87,9 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end"
+      // z-[60], а не z-50: нижняя мобильная навигация (Navigation.tsx) тоже
+      // z-50 и позже в DOM, без [60] она перекрывает низ панели и просмотра.
+      className="fixed inset-0 z-[60] flex justify-end"
       role="dialog"
       aria-modal="true"
       aria-label={t('chat.files.title')}
@@ -142,7 +144,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
           })}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
           {error ? (
             <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
               <p className="text-sm text-gray-500">{t('chat.files.load_error')}</p>
