@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import {
@@ -128,9 +128,13 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
   }, []);
 
   const current: FilesTab = tab ?? 'media';
-  const media = splitTab(items ?? [], 'media');
-  const files = splitTab(items ?? [], 'files');
+  // ChatInterface перерисовывает панель каждые ~5 с (поллинг баланса
+  // токенов) — без memo splitTab/groupByMonth пересчитывались бы на каждый
+  // такой ререндер, хотя items не менялись.
+  const media = useMemo(() => splitTab(items ?? [], 'media'), [items]);
+  const files = useMemo(() => splitTab(items ?? [], 'files'), [items]);
   const view = current === 'media' ? media : files;
+  const monthGroups = useMemo(() => groupByMonth(view.stored, lang), [view.stored, lang]);
 
   return (
     <div
@@ -227,7 +231,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
             </p>
           ) : (
             <>
-              {groupByMonth(view.stored, lang).map((g) => (
+              {monthGroups.map((g) => (
                 <section key={g.key}>
                   <h3 className="px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">{g.label}</h3>
                   {current === 'media' ? (
