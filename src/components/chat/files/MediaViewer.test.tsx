@@ -53,6 +53,27 @@ describe('MediaViewer', () => {
     m.unmount();
   });
 
+  it('Alt+→ не листает — горячая клавиша страницы/браузера, не навигация просмотра', () => {
+    const onIndex = vi.fn();
+    const m = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={onIndex} onClose={vi.fn()} />);
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, cancelable: true }));
+    });
+    expect(onIndex).not.toHaveBeenCalled();
+    m.unmount();
+  });
+
+  it('→ на фокусе <video> — родная перемотка плеера, не листание просмотра', () => {
+    const onIndex = vi.fn();
+    const m = mount(<MediaViewer items={[video, img(2)]} index={0} onIndexChange={onIndex} onClose={vi.fn()} />);
+    const videoEl = m.container.querySelector('video')!;
+    act(() => {
+      videoEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    });
+    expect(onIndex).not.toHaveBeenCalled();
+    m.unmount();
+  });
+
   it('видео — плеер', () => {
     const { container } = mount(<MediaViewer items={[video]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
     expect(container.querySelector('video')?.getAttribute('src')).toBe('https://pub/v.mp4');
