@@ -147,7 +147,7 @@ describe('ChatFilesPanel', () => {
     const onClose = vi.fn();
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={onClose} />);
     await settle();
-    const tiles = container.querySelectorAll(`button[aria-label="${tRu('chat.files.image')}"]`);
+    const tiles = container.querySelectorAll(`button[aria-label^="${tRu('chat.files.image')}"]`);
     click(tiles[1]);
     const viewer = container.querySelector('[data-testid="media-viewer"]')!;
     expect(viewer).not.toBeNull();
@@ -164,7 +164,7 @@ describe('ChatFilesPanel', () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
     await settle();
-    const tiles = container.querySelectorAll(`button[aria-label="${tRu('chat.files.image')}"]`);
+    const tiles = container.querySelectorAll(`button[aria-label^="${tRu('chat.files.image')}"]`);
     const tile = tiles[1] as HTMLButtonElement;
     click(tile);
     const closeBtn = container.querySelector(

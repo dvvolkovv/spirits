@@ -17,6 +17,9 @@ interface Props {
   onClose: () => void;
 }
 
+/** Один общий tabpanel на обе вкладки — контент каждой вкладки не живёт отдельным DOM-узлом. */
+const TABPANEL_ID = 'chat-files-tabpanel';
+
 const ICONS: Record<FileIconKind, React.ComponentType<{ className?: string }>> = {
   pdf: FileText,
   word: FileText,
@@ -171,9 +174,11 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
             return (
               <button
                 key={name}
+                id={`chat-files-tab-${name}`}
                 type="button"
                 role="tab"
                 aria-selected={current === name}
+                aria-controls={TABPANEL_ID}
                 onClick={() => {
                   setTab(name);
                   setShowUnsaved(false);
@@ -190,7 +195,12 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
           })}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+        <div
+          role="tabpanel"
+          id={TABPANEL_ID}
+          aria-labelledby={`chat-files-tab-${current}`}
+          className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+        >
           {error ? (
             <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
               <p className="text-sm text-gray-500">{t('chat.files.load_error')}</p>
@@ -227,7 +237,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
                             lastTileRef.current = e.currentTarget;
                             setViewerIndex(media.stored.indexOf(it));
                           }}
-                          aria-label={t(it.kind === 'video' ? 'chat.files.video' : 'chat.files.image')}
+                          aria-label={`${t(it.kind === 'video' ? 'chat.files.video' : 'chat.files.image')}: ${it.name}`}
                           className="relative aspect-square overflow-hidden bg-gray-100"
                         >
                           {it.kind === 'video' && !it.thumbUrl ? (
