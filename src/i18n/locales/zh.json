@@ -412,6 +412,25 @@
       "submit": "回答",
       "multi_hint": "可多选",
       "preparing": "正在准备问题…"
+    },
+    "files": {
+      "open": "媒体和文件",
+      "title": "媒体和文件",
+      "tab_media": "媒体",
+      "tab_files": "文件",
+      "empty_media": "此对话中的图片和视频将显示在这里",
+      "empty_files": "助手创建的文件将显示在这里",
+      "load_error": "加载失败",
+      "retry": "重试",
+      "download": "下载",
+      "close": "关闭",
+      "back": "返回",
+      "prev": "上一个",
+      "next": "下一个",
+      "unsaved": "未保存：{{n}}",
+      "unsaved_hint": "该文件存放在临时服务器上，已被删除",
+      "video": "视频",
+      "image": "图片"
     }
   },
   "profile": {

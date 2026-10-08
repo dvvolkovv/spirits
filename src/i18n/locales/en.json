@@ -415,6 +415,25 @@
       "submit": "Reply",
       "multi_hint": "You can pick several",
       "preparing": "Preparing a question…"
+    },
+    "files": {
+      "open": "Media and files",
+      "title": "Media and files",
+      "tab_media": "Media",
+      "tab_files": "Files",
+      "empty_media": "Images and videos from this conversation will appear here",
+      "empty_files": "Files the assistant creates will appear here",
+      "load_error": "Couldn't load",
+      "retry": "Try again",
+      "download": "Download",
+      "close": "Close",
+      "back": "Back",
+      "prev": "Previous",
+      "next": "Next",
+      "unsaved": "Not saved: {{n}}",
+      "unsaved_hint": "The file was kept on a temporary server and has been deleted",
+      "video": "Video",
+      "image": "Image"
     }
   },
   "profile": {

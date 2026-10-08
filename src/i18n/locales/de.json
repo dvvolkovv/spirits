@@ -415,6 +415,25 @@
       "submit": "Antworten",
       "multi_hint": "Mehrfachauswahl möglich",
       "preparing": "Bereite eine Frage vor…"
+    },
+    "files": {
+      "open": "Medien und Dateien",
+      "title": "Medien und Dateien",
+      "tab_media": "Medien",
+      "tab_files": "Dateien",
+      "empty_media": "Hier erscheinen Bilder und Videos aus diesem Gespräch",
+      "empty_files": "Hier erscheinen Dateien, die der Assistent erstellt",
+      "load_error": "Laden fehlgeschlagen",
+      "retry": "Erneut versuchen",
+      "download": "Herunterladen",
+      "close": "Schließen",
+      "back": "Zurück",
+      "prev": "Vorheriges",
+      "next": "Nächstes",
+      "unsaved": "Nicht gespeichert: {{n}}",
+      "unsaved_hint": "Die Datei lag auf einem temporären Server und wurde gelöscht",
+      "video": "Video",
+      "image": "Bild"
     }
   },
   "profile": {

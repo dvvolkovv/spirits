@@ -418,6 +418,25 @@
       "submit": "Répondre",
       "multi_hint": "Plusieurs choix possibles",
       "preparing": "Préparation d'une question…"
+    },
+    "files": {
+      "open": "Médias et fichiers",
+      "title": "Médias et fichiers",
+      "tab_media": "Médias",
+      "tab_files": "Fichiers",
+      "empty_media": "Les images et vidéos de cette conversation apparaîtront ici",
+      "empty_files": "Les fichiers créés par l'assistant apparaîtront ici",
+      "load_error": "Échec du chargement",
+      "retry": "Réessayer",
+      "download": "Télécharger",
+      "close": "Fermer",
+      "back": "Retour",
+      "prev": "Précédent",
+      "next": "Suivant",
+      "unsaved": "Non enregistrés : {{n}}",
+      "unsaved_hint": "Le fichier était sur un serveur temporaire et a été supprimé",
+      "video": "Vidéo",
+      "image": "Image"
     }
   },
   "profile": {

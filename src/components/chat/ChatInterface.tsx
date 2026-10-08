@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { resolveLanguage } from '../../i18n/languages';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X, Phone, MoreHorizontal } from 'lucide-react';
+import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X, Phone, MoreHorizontal, Images } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,6 +26,7 @@ import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { VoiceDictation } from '../../services/voiceDictation';
 import AudioClip from './AudioClip';
+import ChatFilesPanel from './files/ChatFilesPanel';
 import ListenButton from './listen/ListenButton';
 import { useListenPlayer } from './listen/useListenPlayer';
 import VoiceCallCard from './VoiceCallCard';
@@ -654,6 +655,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // балансом и именем ассистента (на 390 px не хватало 45 px — замер 04.09.2026).
   const [showChatActions, setShowChatActions] = useState(false);
   const chatActionsRef = useRef<HTMLDivElement>(null);
+  // Панель «Медиа и файлы» (files/ChatFilesPanel.tsx).
+  const [showFilesPanel, setShowFilesPanel] = useState(false);
 
   // Актуальный ассистент для async-колбэков (loadMoreHistory): state в замыкании
   // устаревает, пока fetch в полёте, а ref всегда свежий.
@@ -762,6 +765,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     stopListening();
   }, [selectedAssistant?.id, stopListening]);
+
+  // Панель показывает переписку открытого ассистента — при смене ассистента закрываем.
+  useEffect(() => {
+    setShowFilesPanel(false);
+  }, [selectedAssistant?.id]);
 
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
@@ -2502,6 +2510,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <TokenPackages onClose={() => setShowTokenPackages(false)} />
       )}
 
+      {showFilesPanel && selectedAssistant && (
+        <ChatFilesPanel
+          // key по ассистенту и freshTs: смена «Чистого листа» при открытой
+          // панели иначе не размонтирует её, а только меняет пропсы — и
+          // устаревший ответ fetchChatFiles по старому freshTs, если он
+          // разрешится позже нового запроса, переписывает уже верные данные.
+          // key заставляет React пересоздать компонент, старый fetch
+          // дозревает уже у выброшенного инстанса.
+          key={`${selectedAssistant.id}|${freshTs ?? ''}`}
+          assistantId={selectedAssistant.id}
+          freshTs={freshTs}
+          onClose={() => setShowFilesPanel(false)}
+        />
+      )}
+
       {showVoiceCall && selectedAssistant && (
         <React.Suspense fallback={null}>
         <VoiceCallModal
@@ -2709,7 +2732,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             {renderFreshToggle('fresh-mode-toggle', 'hidden md:flex')}
             {messages.length > 1 && (
               <>
-                {/* Десктоп: обе кнопки в ряд. */}
+                {/* Десктоп: кнопки в ряд. «Медиа и файлы» — как раздел медиа в
+                    Telegram; на мобиле тот же пункт первым в «⋯». */}
+                <button
+                  data-testid="chat-files-toggle"
+                  onClick={() => setShowFilesPanel(true)}
+                  className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title={t('chat.files.open')}
+                  aria-label={t('chat.files.open')}
+                >
+                  <Images className="w-4 h-4" />
+                </button>
                 <button
                   onClick={handleRegenerateResponse}
                   disabled={turnBusy}
@@ -2744,6 +2777,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       role="menu"
                       className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg z-50"
                     >
+                      <button
+                        role="menuitem"
+                        data-testid="chat-files-menuitem"
+                        onClick={() => { setShowChatActions(false); setShowFilesPanel(true); }}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Images className="w-4 h-4" />
+                        {t('chat.files.open')}
+                      </button>
                       {/* «Чистый лист» тоже сюда: с ним в шапке имени
                           ассистента доставалось 15 px из нужных 45. Кнопка
                           звонка осталась снаружи — у Романа это основное
