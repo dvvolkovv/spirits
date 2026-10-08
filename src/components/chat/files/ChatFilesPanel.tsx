@@ -177,7 +177,10 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
                 id={`chat-files-tab-${name}`}
                 type="button"
                 role="tab"
-                aria-selected={current === name}
+                // tab (а не current — у него уже дефолт 'media'): до первого
+                // ответа API ни одна вкладка не выбрана, а не «Медиа» поверх
+                // скелетона, которая следом может дёрнуться на «Файлы».
+                aria-selected={tab === name}
                 aria-controls={TABPANEL_ID}
                 onClick={() => {
                   setTab(name);
@@ -185,7 +188,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
                 }}
                 className={clsx(
                   'flex-1 px-4 py-2.5 text-sm font-medium transition-colors',
-                  current === name ? 'border-b-2 border-forest-600 text-forest-700' : 'text-gray-500 hover:text-gray-700',
+                  tab === name ? 'border-b-2 border-forest-600 text-forest-700' : 'text-gray-500 hover:text-gray-700',
                 )}
               >
                 {t(name === 'media' ? 'chat.files.tab_media' : 'chat.files.tab_files')}
