@@ -36,4 +36,9 @@ describe('черновик сообщения со страницы linkeon.io',
     expect(takePendingDraftFor(14, NOW)).toBeNull();
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
+
+  it('ровно DRAFT_MAX_LENGTH символов принимается', () => {
+    put({ text: 'я'.repeat(DRAFT_MAX_LENGTH), assistant: '14', expires: NOW + DRAFT_TTL_MS });
+    expect(takePendingDraftFor(14, NOW)).toBe('я'.repeat(DRAFT_MAX_LENGTH));
+  });
 });
