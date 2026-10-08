@@ -46,6 +46,25 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
   const viewerOpen = useRef(false);
   viewerOpen.current = viewerIndex !== null;
 
+  // Плитка, что открыла просмотр, — чтобы вернуть на неё фокус при закрытии
+  // (MediaViewer.tsx). Не React-ref на элемент списка: достаточно узла из
+  // currentTarget клика, список плиток между открытием и закрытием не меняется.
+  const lastTileRef = useRef<HTMLButtonElement | null>(null);
+
+  // Фокус-ловушка: без неё Tab после открытия панели уходит на кнопки под
+  // подложкой («Перегенерировать» и т. п.), а Enter там — например, сбрасывает
+  // последний ответ и шлёт запрос заново, тратя токены.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<Element | null>(null);
+  useEffect(() => {
+    previouslyFocused.current = document.activeElement;
+    dialogRef.current?.focus();
+    return () => {
+      const el = previouslyFocused.current;
+      if (el instanceof HTMLElement && document.contains(el)) el.focus();
+    };
+  }, []);
+
   // onClose меняет identity на каждый ререндер родителя (ChatInterface передаёт
   // инлайн-функцию, а баланс токенов перерисовывает его каждые 5 с). Если
   // подписка ниже зависит от onClose, такой ререндер снимает и ставит
@@ -74,7 +93,28 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       // defaultPrevented — MediaViewer уже обработал этот Esc (закрыл просмотр).
-      if (e.key === 'Escape' && !e.defaultPrevented && !viewerOpen.current) onCloseRef.current();
+      if (e.key === 'Escape' && !e.defaultPrevented && !viewerOpen.current) {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const root = dialogRef.current;
+      if (!root) return;
+      // Живой querySelectorAll, а не запомненный список: содержимое меняется
+      // (вкладки, открытие просмотра), список должен быть всегда актуальным.
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], video, [tabindex]:not([tabindex="-1"])'),
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -87,9 +127,11 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       // z-[60], а не z-50: нижняя мобильная навигация (Navigation.tsx) тоже
       // z-50 и позже в DOM, без [60] она перекрывает низ панели и просмотра.
-      className="fixed inset-0 z-[60] flex justify-end"
+      className="fixed inset-0 z-[60] flex justify-end outline-none"
       role="dialog"
       aria-modal="true"
       aria-label={t('chat.files.title')}
