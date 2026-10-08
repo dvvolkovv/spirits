@@ -36,6 +36,8 @@ const tab = (c: HTMLElement, key: string) =>
 // MediaViewer.tsx вызывает preventDefault, который без этого флага тихо
 // не отмечает событие обработанным).
 const press = (k: string) => act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: k, cancelable: true })); });
+const pressShiftTab = () =>
+  act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, cancelable: true })); });
 
 describe('ChatFilesPanel', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -248,6 +250,31 @@ describe('ChatFilesPanel', () => {
 
     press('Tab');
     expect(document.activeElement).toBe(first);
+  });
+
+  it('Tab из открытого просмотра не утекает на кнопки панели под подложкой — у каждого своя ловушка', async () => {
+    api.get.mockResolvedValue(ok(ITEMS));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const tiles = container.querySelectorAll(`button[aria-label^="${tRu('chat.files.image')}"]`);
+    // i2 (индекс 1 в media.stored) — есть и «назад», и «вперёд» у просмотра.
+    click(tiles[1]);
+    const viewer = container.querySelector('[data-testid="media-viewer"]') as HTMLElement;
+    expect(viewer).not.toBeNull();
+    const viewerFocusables = Array.from(viewer.querySelectorAll('button, a[href], video')) as HTMLElement[];
+    expect(viewerFocusables.length).toBeGreaterThan(1);
+    const first = viewerFocusables[0];
+    const last = viewerFocusables[viewerFocusables.length - 1];
+
+    last.focus();
+    press('Tab');
+    expect(document.activeElement).toBe(first);
+    expect(viewer.contains(document.activeElement)).toBe(true);
+
+    first.focus();
+    pressShiftTab();
+    expect(document.activeElement).toBe(last);
+    expect(viewer.contains(document.activeElement)).toBe(true);
   });
 
   it('Esc, уже обработанный чужим кодом страницы (capture), панель не закрывает', async () => {
