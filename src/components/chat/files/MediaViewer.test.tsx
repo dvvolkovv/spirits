@@ -57,4 +57,24 @@ describe('MediaViewer', () => {
     const { container } = mount(<MediaViewer items={[video]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
     expect(container.querySelector('video')?.getAttribute('src')).toBe('https://pub/v.mp4');
   });
+
+  it('Esc помечает событие обработанным — иначе то же нажатие закрывает и панель «Медиа и файлы»', () => {
+    const onClose = vi.fn();
+    const m = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={vi.fn()} onClose={onClose} />);
+    const ev = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    act(() => { window.dispatchEvent(ev); });
+    expect(ev.defaultPrevented).toBe(true);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    m.unmount();
+  });
+
+  it('стрелки не помечаются обработанными — на них может быть завязан другой код страницы', () => {
+    const onIndex = vi.fn();
+    const m = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={onIndex} onClose={vi.fn()} />);
+    const ev = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true });
+    act(() => { window.dispatchEvent(ev); });
+    expect(ev.defaultPrevented).toBe(false);
+    expect(onIndex).toHaveBeenCalledWith(1);
+    m.unmount();
+  });
 });

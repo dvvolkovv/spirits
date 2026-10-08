@@ -125,4 +125,51 @@ describe('ChatFilesPanel', () => {
     click(container.querySelector(`button[aria-label="${tRu('chat.files.close')}"]`)!);
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('Esc, уже обработанный чужим кодом страницы (capture), панель не закрывает', async () => {
+    api.get.mockResolvedValue(ok([]));
+    const onClose = vi.fn();
+    mount(<ChatFilesPanel assistantId={12} onClose={onClose} />);
+    await settle();
+    const swallow = (e: KeyboardEvent) => e.preventDefault();
+    window.addEventListener('keydown', swallow, { capture: true });
+    try {
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+      });
+      expect(onClose).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener('keydown', swallow, { capture: true });
+    }
+  });
+
+  it('перерисовка с новым onClose не переподписывает слушатель; срабатывает актуальный onClose', async () => {
+    api.get.mockResolvedValue(ok([]));
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+    try {
+      const keydownAdds = () => addSpy.mock.calls.filter((c) => c[0] === 'keydown').length;
+      const keydownRemoves = () => removeSpy.mock.calls.filter((c) => c[0] === 'keydown').length;
+      const a = vi.fn();
+      const b = vi.fn();
+      const { rerender } = mount(<ChatFilesPanel assistantId={12} onClose={a} />);
+      await settle();
+      const addsAfterMount = keydownAdds();
+      const removesAfterMount = keydownRemoves();
+
+      rerender(<ChatFilesPanel assistantId={12} onClose={b} />);
+      // Эффект подписки не завязан на identity onClose — ререндер с новым
+      // onClose не должен снимать и ставить слушатель заново (иначе он
+      // переставляется в конец списка слушателей window, после MediaViewer).
+      expect(keydownAdds()).toBe(addsAfterMount);
+      expect(keydownRemoves()).toBe(removesAfterMount);
+
+      press('Escape');
+      expect(b).toHaveBeenCalledTimes(1);
+      expect(a).not.toHaveBeenCalled();
+    } finally {
+      addSpy.mockRestore();
+      removeSpy.mockRestore();
+    }
+  });
 });
