@@ -48,7 +48,7 @@ describe('ChatFilesPanel', () => {
   });
 
   it('до первого ответа API ни одна вкладка не выбрана (вместо «Медиа» поверх скелетона)', async () => {
-    let resolve!: (v: unknown) => void;
+    let resolve!: (v: any) => void;
     api.get.mockReturnValue(new Promise((r) => { resolve = r; }));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
     await flush();
