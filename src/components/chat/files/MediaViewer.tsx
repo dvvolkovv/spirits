@@ -20,8 +20,13 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (e.key === 'ArrowLeft' && hasPrev) onIndexChange(index - 1);
+      if (e.key === 'Escape') {
+        // preventDefault — сигнал панели «Медиа и файлы» (ChatFilesPanel), что
+        // этот Esc уже обработан здесь: иначе то же нажатие при переподписке
+        // её обработчика закрывает и просмотр, и панель одним Esc.
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'ArrowLeft' && hasPrev) onIndexChange(index - 1);
       else if (e.key === 'ArrowRight' && hasNext) onIndexChange(index + 1);
     };
     window.addEventListener('keydown', onKey);

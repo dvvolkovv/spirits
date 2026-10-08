@@ -46,6 +46,15 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
   const viewerOpen = useRef(false);
   viewerOpen.current = viewerIndex !== null;
 
+  // onClose меняет identity на каждый ререндер родителя (ChatInterface передаёт
+  // инлайн-функцию, а баланс токенов перерисовывает его каждые 5 с). Если
+  // подписка ниже зависит от onClose, такой ререндер снимает и ставит
+  // слушателя keydown заново — тот уезжает в конец списка слушателей window,
+  // после слушателя MediaViewer, и один Esc закрывает и просмотр, и панель.
+  // Держим актуальный onClose в ref и подписываемся один раз.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   const load = useCallback(async () => {
     setError(false);
     setItems(null);
@@ -64,11 +73,12 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !viewerOpen.current) onClose();
+      // defaultPrevented — MediaViewer уже обработал этот Esc (закрыл просмотр).
+      if (e.key === 'Escape' && !e.defaultPrevented && !viewerOpen.current) onCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, []);
 
   const current: FilesTab = tab ?? 'media';
   const media = splitTab(items ?? [], 'media');
