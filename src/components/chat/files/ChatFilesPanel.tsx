@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import {
-  ArrowLeft, Download, File, FileArchive, FileAudio, FileCode, FileSpreadsheet, FileText, Play, Presentation, X,
+  ArrowLeft, Download, File, FileArchive, FileAudio, FileCode, FileSpreadsheet, FileText, ImageOff, Play,
+  Presentation, X,
 } from 'lucide-react';
 import MediaViewer from './MediaViewer';
 import {
@@ -40,6 +41,9 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
   const [tab, setTab] = useState<FilesTab | null>(null);
   const [showUnsaved, setShowUnsaved] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  // Миниатюры, у которых <img> отдал 'error' (адрес протух/404) — рисуем
+  // заглушку вместо штатной «битой картинки» браузера.
+  const [brokenKeys, setBrokenKeys] = useState<ReadonlySet<string>>(new Set());
   // Esc при открытом просмотре закрывает просмотр (MediaViewer), а не панель.
   // Ref, а не состояние: оба обработчика срабатывают на одно и то же нажатие,
   // и к моменту проверки здесь просмотр ещё не успел закрыться.
@@ -228,12 +232,21 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
                         >
                           {it.kind === 'video' && !it.thumbUrl ? (
                             <div className="h-full w-full bg-gray-800" />
+                          ) : brokenKeys.has(it.key) ? (
+                            <div
+                              className="flex h-full w-full items-center justify-center bg-gray-200"
+                              data-testid="chat-files-broken-thumb"
+                            >
+                              <ImageOff className="h-6 w-6 text-gray-400" aria-hidden="true" />
+                            </div>
                           ) : (
                             <img
                               src={it.kind === 'video' ? it.thumbUrl : it.url}
                               alt=""
                               loading="lazy"
+                              decoding="async"
                               className="h-full w-full object-cover"
+                              onError={() => setBrokenKeys((prev) => new Set(prev).add(it.key))}
                             />
                           )}
                           {it.kind === 'video' && (
