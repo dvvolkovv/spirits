@@ -19,17 +19,23 @@ const f = (p: Partial<ChatFileItem>): ChatFileItem => ({
   key: p.key ?? p.name ?? 'k', kind: 'image', url: 'https://pub/a.png', name: 'a.png', ext: 'png',
   createdAt: '2026-10-05T10:00:00.000Z', messageId: 1, stored: true, ...p,
 });
+// createdAt — не ближе ~14 ч к границе месяца: new Date(...).getMonth()
+// читает ЛОКАЛЬНОЕ время, и близкая к границе метка на машине с достаточно
+// отрицательным смещением от UTC съезжает в соседний месяц, меняя группировку.
 const ITEMS: ChatFileItem[] = [
   f({ key: 'i1', name: 'i1.png', url: 'https://pub/i1.png', createdAt: '2026-10-05T10:00:00.000Z' }),
   f({ key: 'i2', name: 'i2.png', url: 'https://pub/i2.png', createdAt: '2026-10-02T10:00:00.000Z' }),
-  f({ key: 'pdf', kind: 'document', ext: 'pdf', name: 'report.pdf', url: 'https://pub/report.pdf', createdAt: '2026-10-01T10:00:00.000Z' }),
+  f({ key: 'pdf', kind: 'document', ext: 'pdf', name: 'report.pdf', url: 'https://pub/report.pdf', createdAt: '2026-10-04T10:00:00.000Z' }),
   f({ key: 'v1', kind: 'video', ext: 'mp4', name: 'v1.mp4', url: 'https://pub/v1.mp4', thumbUrl: 'https://pub/v1.jpg', createdAt: '2026-09-20T10:00:00.000Z' }),
-  f({ key: 'gone-img', name: 'chart.png', stored: false, url: undefined, createdAt: '2026-08-01T10:00:00.000Z' }),
-  f({ key: 'gone-doc', kind: 'document', ext: 'docx', name: 'old.docx', stored: false, url: undefined, createdAt: '2026-08-01T10:00:00.000Z' }),
+  f({ key: 'gone-img', name: 'chart.png', stored: false, url: undefined, createdAt: '2026-08-03T10:00:00.000Z' }),
+  f({ key: 'gone-doc', kind: 'document', ext: 'docx', name: 'old.docx', stored: false, url: undefined, createdAt: '2026-08-03T10:00:00.000Z' }),
 ];
 const tab = (c: HTMLElement, key: string) =>
   Array.from(c.querySelectorAll('[role="tab"]')).find((b) => (b.textContent ?? '').startsWith(tRu(key))) as HTMLButtonElement;
-const press = (k: string) => act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: k })); });
+// cancelable: true — ближе к настоящим событиям клавиатуры (Escape в
+// MediaViewer.tsx вызывает preventDefault, который без этого флага тихо
+// не отмечает событие обработанным).
+const press = (k: string) => act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: k, cancelable: true })); });
 
 describe('ChatFilesPanel', () => {
   beforeEach(() => vi.clearAllMocks());

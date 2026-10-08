@@ -66,7 +66,10 @@ describe('groupByMonth', () => {
     const groups = groupByMonth(
       [
         item({ key: 'a', createdAt: '2026-10-05T10:00:00.000Z' }),
-        item({ key: 'b', createdAt: '2026-10-01T10:00:00.000Z' }),
+        // Середина месяца, не 10-01: у края месяца локальная дата (new Date
+        // + getMonth() — локальное время) может оказаться в соседнем месяце
+        // на машине с достаточно отрицательным смещением от UTC.
+        item({ key: 'b', createdAt: '2026-10-03T12:00:00.000Z' }),
         item({ key: 'c', createdAt: '2026-09-20T10:00:00.000Z' }),
       ],
       'ru',
