@@ -121,6 +121,34 @@ describe('ChatFilesPanel', () => {
     expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).not.toBeNull();
   });
 
+  it('повторная загрузка даёт битой миниатюре новый шанс, а не хранит старую заглушку', async () => {
+    api.get.mockResolvedValueOnce(ok(ITEMS));
+    const { container, rerender } = mount(<ChatFilesPanel assistantId={12} freshTs="t1" onClose={vi.fn()} />);
+    await settle();
+    const img = container.querySelector('img[src="https://pub/i1.png"]') as HTMLImageElement;
+    expect(img).not.toBeNull();
+    act(() => { img.dispatchEvent(new Event('error')); });
+    expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).not.toBeNull();
+
+    // freshTs меняется — как переключение на «Чистый лист» при открытой
+    // панели (комментарий у Props.freshTs) — и запускает новую загрузку;
+    // бэк на этот раз временно недоступен.
+    api.get.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) } as any);
+    rerender(<ChatFilesPanel assistantId={12} freshTs="t2" onClose={vi.fn()} />);
+    await settle();
+    expect(visibleText(container)).toContain(tRu('chat.files.load_error'));
+
+    // «Повторить» возвращает ТЕ ЖЕ данные (та же протухшая/восстановленная
+    // ссылка) — миниатюра должна получить честный повторный рендер <img>,
+    // а не остаться заглушкой из прошлого brokenKeys.
+    api.get.mockResolvedValueOnce(ok(ITEMS));
+    await clickAsync(byButton(container, new RegExp(tRu('chat.files.retry')))!);
+    await settle();
+
+    expect(container.querySelector('img[src="https://pub/i1.png"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).toBeNull();
+  });
+
   it('файл скачивается по ссылке под своим именем', async () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
