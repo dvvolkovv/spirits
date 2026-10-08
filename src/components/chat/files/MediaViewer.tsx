@@ -33,7 +33,15 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
         // её обработчика закрывает и просмотр, и панель одним Esc.
         e.preventDefault();
         onClose();
-      } else if (e.key === 'ArrowLeft' && hasPrev) onIndexChange(index - 1);
+        return;
+      }
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      // Alt/Ctrl/Meta/Shift+стрелка — чужая горячая клавиша (навигация
+      // браузера, расширения и т. п.), не листание просмотра.
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      // Стрелка с фокусом на <video>/<audio> — родная перемотка плеера.
+      if (e.target instanceof HTMLVideoElement || e.target instanceof HTMLAudioElement) return;
+      if (e.key === 'ArrowLeft' && hasPrev) onIndexChange(index - 1);
       else if (e.key === 'ArrowRight' && hasNext) onIndexChange(index + 1);
     };
     window.addEventListener('keydown', onKey);
