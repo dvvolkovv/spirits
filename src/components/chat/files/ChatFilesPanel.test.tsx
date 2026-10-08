@@ -56,6 +56,9 @@ describe('ChatFilesPanel', () => {
     await flush();
     expect(container.querySelector('[data-testid="chat-files-skeleton"]')).not.toBeNull();
     expect(container.querySelectorAll('[role="tab"][aria-selected="true"]').length).toBe(0);
+    // Как и с aria-selected: до первого ответа ни одна вкладка не выбрана,
+    // tabpanel не должен ссылаться на «Медиа» по умолчанию.
+    expect(container.querySelector('[role="tabpanel"]')!.hasAttribute('aria-labelledby')).toBe(false);
 
     resolve(ok(ITEMS));
     await settle();
