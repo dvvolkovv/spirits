@@ -41,6 +41,19 @@ describe('ChatFilesPanel', () => {
     expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12&freshTs=1728000000000');
   });
 
+  it('до первого ответа API ни одна вкладка не выбрана (вместо «Медиа» поверх скелетона)', async () => {
+    let resolve!: (v: unknown) => void;
+    api.get.mockReturnValue(new Promise((r) => { resolve = r; }));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await flush();
+    expect(container.querySelector('[data-testid="chat-files-skeleton"]')).not.toBeNull();
+    expect(container.querySelectorAll('[role="tab"][aria-selected="true"]').length).toBe(0);
+
+    resolve(ok(ITEMS));
+    await settle();
+    expect(container.querySelectorAll('[role="tab"][aria-selected="true"]').length).toBe(1);
+  });
+
   it('вкладки со счётчиками сохранённых, «Медиа» открыта первой, группы по месяцам', async () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
