@@ -58,6 +58,16 @@ describe('MediaViewer', () => {
     expect(container.querySelector('video')?.getAttribute('src')).toBe('https://pub/v.mp4');
   });
 
+  it('открытие переводит фокус на «Закрыть»; имя файла — в aria-label диалога', () => {
+    const { container, unmount } = mount(
+      <MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />,
+    );
+    const closeBtn = byAria(container, tRu('chat.files.close'));
+    expect(document.activeElement).toBe(closeBtn);
+    expect(container.querySelector('[data-testid="media-viewer"]')?.getAttribute('aria-label')).toBe('1.png');
+    unmount();
+  });
+
   it('Esc помечает событие обработанным — иначе то же нажатие закрывает и панель «Медиа и файлы»', () => {
     const onClose = vi.fn();
     const m = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={vi.fn()} onClose={onClose} />);

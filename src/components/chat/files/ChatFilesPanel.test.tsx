@@ -116,6 +116,23 @@ describe('ChatFilesPanel', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('закрытие просмотра возвращает фокус на плитку, что его открыла', async () => {
+    api.get.mockResolvedValue(ok(ITEMS));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const tiles = container.querySelectorAll(`button[aria-label="${tRu('chat.files.image')}"]`);
+    const tile = tiles[1] as HTMLButtonElement;
+    click(tile);
+    const closeBtn = container.querySelector(
+      `[data-testid="media-viewer"] button[aria-label="${tRu('chat.files.close')}"]`,
+    ) as HTMLButtonElement;
+    expect(document.activeElement).toBe(closeBtn);
+
+    click(closeBtn);
+    expect(container.querySelector('[data-testid="media-viewer"]')).toBeNull();
+    expect(document.activeElement).toBe(tile);
+  });
+
   it('корень панели поверх нижней навигации (z-[60], та же у TokenPackages/VoiceCallModal)', async () => {
     api.get.mockResolvedValue(ok([]));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
