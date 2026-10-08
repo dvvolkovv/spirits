@@ -418,6 +418,25 @@
       "submit": "Responder",
       "multi_hint": "Puedes elegir varias",
       "preparing": "Preparando una pregunta…"
+    },
+    "files": {
+      "open": "Multimedia y archivos",
+      "title": "Multimedia y archivos",
+      "tab_media": "Multimedia",
+      "tab_files": "Archivos",
+      "empty_media": "Aquí aparecerán las imágenes y los vídeos de esta conversación",
+      "empty_files": "Aquí aparecerán los archivos que cree el asistente",
+      "load_error": "No se pudo cargar",
+      "retry": "Reintentar",
+      "download": "Descargar",
+      "close": "Cerrar",
+      "back": "Atrás",
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "unsaved": "No guardados: {{n}}",
+      "unsaved_hint": "El archivo estaba en un servidor temporal y se eliminó",
+      "video": "Vídeo",
+      "image": "Imagen"
     }
   },
   "profile": {
