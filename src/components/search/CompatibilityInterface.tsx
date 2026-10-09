@@ -310,7 +310,8 @@ const CompatibilityInterface: React.FC = () => {
                   onChange={handlePhoneInputChange}
                   onKeyPress={handleKeyPress}
                   placeholder={t('compatibility.phone_placeholder')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-all"
+                  // ym-disable-keys: набираемый номер — личные данные другого человека.
+                  className="ym-disable-keys w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-all"
                   maxLength={18}
                   data-testid="compatibility-phone-input"
                 />
@@ -328,7 +329,11 @@ const CompatibilityInterface: React.FC = () => {
             </div>
 
             {phoneNumbers.length > 0 && (
-              <div className="space-y-2 mt-4">
+              <div
+                // ym-hide-content: номера других людей, с кем проверяется совместимость.
+                className="ym-hide-content space-y-2 mt-4"
+                data-testid="compatibility-added-numbers"
+              >
                 <h3 className="text-sm font-medium text-gray-700">{t('compatibility.added_numbers')}</h3>
                 {phoneNumbers.map((phone, index) => (
                   <div
@@ -369,7 +374,11 @@ const CompatibilityInterface: React.FC = () => {
         </div>
 
         {analysisResult && (
-          <div data-testid="compatibility-result" className="bg-white rounded-lg shadow-sm p-6">
+          <div
+            // ym-hide-content: разбор совместимости касается другого человека.
+            className="ym-hide-content bg-white rounded-lg shadow-sm p-6"
+            data-testid="compatibility-result"
+          >
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               {t('compatibility.result')}
             </h2>

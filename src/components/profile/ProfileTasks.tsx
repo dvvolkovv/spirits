@@ -155,7 +155,12 @@ const ProfileTasks: React.FC = () => {
           {t('profile.tasks.empty', 'Задач пока нет. Они появляются автоматически, когда ты обсуждаешь с ассистентами текущие дела.')}
         </p>
       ) : (
-        <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+        <div
+          // ym-hide-content: вебвизор не записывает содержательный текст
+          // задач и их события (ev.content).
+          className="ym-hide-content divide-y divide-gray-100 max-h-[600px] overflow-y-auto"
+          data-testid="profile-tasks-list"
+        >
           {tasks
             .filter(task => showInactive ? true : task.status === 'active')
             .map(task => {

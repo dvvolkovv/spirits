@@ -27,23 +27,50 @@ const ChatConversationView = readFileSync(join(__dirname, 'chats', 'ChatConversa
 const PeerInboxPanels = readFileSync(join(__dirname, 'peer', 'PeerInboxPanels.tsx'), 'utf8');
 const SupportView = readFileSync(join(__dirname, 'support', 'SupportView.tsx'), 'utf8');
 const TgBotMessagesView = readFileSync(join(__dirname, 'tg-bot', 'TgBotMessagesView.tsx'), 'utf8');
+const UserProfileModal = readFileSync(join(__dirname, 'search', 'UserProfileModal.tsx'), 'utf8');
+const SearchInterface = readFileSync(join(__dirname, 'search', 'SearchInterface.tsx'), 'utf8');
+const CompatibilityInterface = readFileSync(join(__dirname, 'search', 'CompatibilityInterface.tsx'), 'utf8');
+const ProfileTasks = readFileSync(join(__dirname, 'profile', 'ProfileTasks.tsx'), 'utf8');
+const ProfileView = readFileSync(join(__dirname, 'profile', 'ProfileView.tsx'), 'utf8');
+const BusinessCard = readFileSync(join(__dirname, 'profile', 'BusinessCard.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
  * его className — не во всём куске от начала тега до data-testid, куда
  * иначе попали бы соседние комментарии.
  *
+ * Границы тега — от своего `<tagName` до ближайшего следующего `>` ПОСЛЕ
+ * data-testid, а не до самого data-testid: порядок атрибутов не всегда
+ * одинаковый (у search-input, например, data-testid идёт раньше className),
+ * и срез только «до data-testid» в таком случае обрезал бы className.
+ *
+ * «Ближайший следующий `>`» — не первый попавшийся: инлайновые стрелочные
+ * обработчики (`onChange={(e) => ...}`) несут свой `>` внутри `=>`, и он
+ * почти всегда встречается раньше настоящего конца тега. closingBracket
+ * пропускает именно такие `>` (перед которыми стоит `=`) и берёт следующий.
+ *
  * Покрыт как простой случай (className="a b c"), так и динамический
  * (className={clsx(...)} / шаблонная строка): классы этой задачи всегда
  * добавляются литералом (см. «Важно» в задаче), поэтому достаточно собрать
  * строковые литералы внутри className={...} и разбить их по пробелам.
  */
+function closingBracket(src: string, from: number): number {
+  let i = from;
+  for (;;) {
+    const gt = src.indexOf('>', i);
+    if (gt === -1 || src[gt - 1] !== '=') return gt;
+    i = gt + 1;
+  }
+}
+
 function classesOf(src: string, testid: string, tagName: string): string[] {
   const at = src.indexOf(`data-testid="${testid}"`);
   expect(at).toBeGreaterThan(-1);
   const tagStart = src.lastIndexOf(`<${tagName}`, at);
   expect(tagStart).toBeGreaterThan(-1);
-  const tag = src.slice(tagStart, at);
+  const tagEnd = closingBracket(src, at);
+  expect(tagEnd).toBeGreaterThan(-1);
+  const tag = src.slice(tagStart, tagEnd);
 
   const plain = tag.match(/className="([^"]*)"/);
   if (plain) return plain[1].split(/\s+/).filter(Boolean);
@@ -89,6 +116,30 @@ describe('переписка скрыта от записи Вебвизора (
   it('история Telegram-бота', () => {
     expect(classesOf(TgBotMessagesView, 'tg-bot-messages-list', 'div')).toContain('ym-hide-content');
   });
+
+  it('анкета другого человека (UserProfileModal)', () => {
+    expect(classesOf(UserProfileModal, 'user-profile-modal', 'div')).toContain('ym-hide-content');
+  });
+
+  it('поиск собеседника — область результатов', () => {
+    expect(classesOf(SearchInterface, 'search-results', 'div')).toContain('ym-hide-content');
+  });
+
+  it('совместимость — добавленные номера', () => {
+    expect(classesOf(CompatibilityInterface, 'compatibility-added-numbers', 'div')).toContain('ym-hide-content');
+  });
+
+  it('совместимость — результат анализа', () => {
+    expect(classesOf(CompatibilityInterface, 'compatibility-result', 'div')).toContain('ym-hide-content');
+  });
+
+  it('журнал фоновых задач', () => {
+    expect(classesOf(ProfileTasks, 'profile-tasks-list', 'div')).toContain('ym-hide-content');
+  });
+
+  it('свой профиль — содержимое анкеты', () => {
+    expect(classesOf(ProfileView, 'profile-content', 'div')).toContain('ym-hide-content');
+  });
 });
 
 describe('поля ввода сообщений скрыты от записи Вебвизора (ym-disable-keys)', () => {
@@ -108,5 +159,37 @@ describe('поля ввода сообщений скрыты от записи 
 
   it('поддержка — поле сообщения', () => {
     expect(classesOf(SupportView, 'support-message-input', 'textarea')).toContain('ym-disable-keys');
+  });
+
+  it('поиск людей — строка запроса', () => {
+    expect(classesOf(SearchInterface, 'search-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('совместимость — номер телефона', () => {
+    expect(classesOf(CompatibilityInterface, 'compatibility-phone-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('анкета другого человека — сообщение к запросу контакта', () => {
+    expect(classesOf(UserProfileModal, 'user-profile-contact-request-input', 'textarea')).toContain('ym-disable-keys');
+  });
+
+  it('анкета другого человека — вступительное сообщение', () => {
+    expect(classesOf(UserProfileModal, 'user-profile-intro-input', 'textarea')).toContain('ym-disable-keys');
+  });
+
+  it('свой профиль — имя', () => {
+    expect(classesOf(ProfileView, 'profile-name-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('свой профиль — фамилия', () => {
+    expect(classesOf(ProfileView, 'profile-lastname-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('бизнес-карточка — однострочное поле', () => {
+    expect(classesOf(BusinessCard, 'business-card-text-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('бизнес-карточка — многострочное поле', () => {
+    expect(classesOf(BusinessCard, 'business-card-multiline-input', 'textarea')).toContain('ym-disable-keys');
   });
 });

@@ -138,20 +138,24 @@ const BusinessCard: React.FC = () => {
                         <textarea
                           autoFocus
                           rows={3}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none"
+                          // ym-disable-keys: набираемый текст поля бизнес-карточки.
+                          className="ym-disable-keys w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none"
                           value={draft}
                           onChange={e => setDraft(e.target.value)}
                           onBlur={() => save(f.key, draft)}
                           onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save(f.key, draft); }}
+                          data-testid="business-card-multiline-input"
                         />
                       ) : (
                         <input
                           autoFocus
-                          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                          // ym-disable-keys: набираемый текст поля бизнес-карточки.
+                          className="ym-disable-keys w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                           value={draft}
                           onChange={e => setDraft(e.target.value)}
                           onBlur={() => save(f.key, draft)}
                           onKeyDown={e => { if (e.key === 'Enter') save(f.key, draft); }}
+                          data-testid="business-card-text-input"
                         />
                       )
                     ) : (
