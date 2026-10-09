@@ -58,6 +58,36 @@ describe('черновик из адреса', () => {
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
 
+  // Без #draft= в адресе скрипт раньше выходил сразу и не трогал то, что уже
+  // лежит в localStorage: просроченная запись, если гость больше не открывал
+  // чат (единственное другое место чистки — takePendingDraftFor) и не
+  // выходил из аккаунта, оставалась навсегда. Час из pendingDraft.ts обязан
+  // быть сроком удаления, а не просто сроком «кто ещё читает».
+  it('просроченная запись стирается при обычном заходе без #draft=', () => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: DRAFT, assistant: '14', expires: Date.now() - 1000 }));
+    open('/chat');
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('свежая запись остаётся на месте при обычном заходе без #draft=', () => {
+    const fresh = JSON.stringify({ text: DRAFT, assistant: '14', expires: Date.now() + DRAFT_TTL_MS });
+    localStorage.setItem(DRAFT_KEY, fresh);
+    open('/chat');
+    expect(localStorage.getItem(DRAFT_KEY)).toBe(fresh);
+  });
+
+  it('битая запись стирается при обычном заходе без #draft=', () => {
+    localStorage.setItem(DRAFT_KEY, '{oops');
+    open('/chat');
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('новый #draft= поверх просроченной старой записи сохраняет новую', () => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: 'старый черновик', assistant: '14', expires: Date.now() - 1000 }));
+    open(`/chat?assistant=14#draft=${encodeURIComponent(DRAFT)}`);
+    expect(takePendingDraftFor(14)).toBe(DRAFT);
+  });
+
   // Скрипт в index.html вне tsc и eslint: числа в нём обязаны совпадать с
   // pendingDraft.ts, иначе рассинхрон молча пропустит или отбросит черновик.
   it('ключ, длина и срок в скрипте — те же, что в pendingDraft.ts', () => {

@@ -48,6 +48,19 @@
     <script data-draft-capture>
       (function () {
         try {
+          // Просроченная или битая запись иначе ждёт прихода в чат
+          // (takePendingDraftFor) или выхода из аккаунта — гость, который
+          // больше не открывал чат, носил бы её в localStorage навсегда, и
+          // час из pendingDraft.ts был бы сроком «кто ещё читает», а не
+          // сроком удаления. Чистим при каждом заходе, до разбора #draft=.
+          var oldRaw = localStorage.getItem('pending_draft');
+          if (oldRaw) {
+            var old = null;
+            try { old = JSON.parse(oldRaw); } catch (e) { old = null; }
+            if (!old || !(old.expires > Date.now())) {
+              localStorage.removeItem('pending_draft');
+            }
+          }
           var hash = location.hash;
           if (hash.indexOf('#draft=') !== 0) return;
           // Сначала стереть: битый или длинный черновик тоже не должен
