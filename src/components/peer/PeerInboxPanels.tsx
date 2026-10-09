@@ -91,7 +91,12 @@ export const ConversationsList: React.FC<ConversationsListProps> = ({ loading, i
     );
   }
   return (
-    <div className="divide-y divide-gray-100 bg-white">
+    <div
+      // ym-hide-content: вебвизор не записывает имена, аватары и текст
+      // последнего сообщения в списке чатов (решение владельца 09.10.2026).
+      className="ym-hide-content divide-y divide-gray-100 bg-white"
+      data-testid="peer-conversations-list"
+    >
       {items.map((c) => (
         <button
           key={c.id}
@@ -162,7 +167,12 @@ export const RequestsPanel: React.FC<RequestsPanelProps> = ({
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div
+      // ym-hide-content: вебвизор не записывает имена и текст запросов на
+      // знакомство (решение владельца 09.10.2026).
+      className="ym-hide-content p-4 space-y-6"
+      data-testid="peer-requests-panel"
+    >
       {incoming.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 px-1">

@@ -297,7 +297,8 @@ const SearchInterface: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={currentPlaceholder}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              // ym-disable-keys: запрос описывает, кого человек ищет.
+              className="ym-disable-keys w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <button
@@ -316,7 +317,12 @@ const SearchInterface: React.FC = () => {
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4">
+      <div
+        // ym-hide-content: вебвизор не записывает комментарий ИИ и карточки
+        // найденных людей (имена, фото, описания).
+        className="ym-hide-content flex-1 overflow-y-auto p-4 pb-20 md:pb-4"
+        data-testid="search-results"
+      >
         {/* Search Comment */}
         {(searchComment || isSearching) && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

@@ -150,23 +150,32 @@ const ChatConversationView: React.FC<Props> = ({ chatId }) => {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <AvatarBubble
-          name={conv.peerName}
-          url={conv.peerAvatar}
-          size="sm"
-          onClick={() => setProfileOpen(true)}
-          title={t('peer.profile.title', 'Профиль пользователя') as string}
-        />
-        <button
-          type="button"
-          onClick={() => setProfileOpen(true)}
-          className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+        {/* Та же пара «имя + аватар», что скрыта в списке переписок
+            (PeerInboxPanels.ConversationsList) — общего контейнера не было,
+            оборачиваем в свой div с теми же классами раскладки. */}
+        <div
+          // ym-hide-content: вебвизор не записывает имя и аватар собеседника.
+          className="ym-hide-content flex-1 min-w-0 flex items-center gap-3"
+          data-testid="peer-chat-header-identity"
         >
-          <h1 className="text-sm font-semibold text-gray-900 truncate">{conv.peerName}</h1>
-          <p className="text-[11px] text-gray-400 truncate">
-            {t('peer.chat.tapForProfile')}
-          </p>
-        </button>
+          <AvatarBubble
+            name={conv.peerName}
+            url={conv.peerAvatar}
+            size="sm"
+            onClick={() => setProfileOpen(true)}
+            title={t('peer.profile.title', 'Профиль пользователя') as string}
+          />
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+          >
+            <h1 className="text-sm font-semibold text-gray-900 truncate">{conv.peerName}</h1>
+            <p className="text-[11px] text-gray-400 truncate">
+              {t('peer.chat.tapForProfile')}
+            </p>
+          </button>
+        </div>
         <div className="relative">
           <button
             type="button"
@@ -219,7 +228,13 @@ const ChatConversationView: React.FC<Props> = ({ chatId }) => {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 bg-gray-50 space-y-2">
+      <div
+        ref={scrollRef}
+        // ym-hide-content: вебвизор не записывает текст переписки с
+        // собеседником (решение владельца 09.10.2026).
+        className="ym-hide-content flex-1 overflow-y-auto px-4 py-4 bg-gray-50 space-y-2"
+        data-testid="peer-messages-list"
+      >
         {messages.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-10">
             {t('peer.chat.emptyMessages', 'Напишите первое сообщение')}
@@ -273,8 +288,10 @@ const ChatConversationView: React.FC<Props> = ({ chatId }) => {
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value.slice(0, 2000))}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 resize-none"
+              // ym-disable-keys: вебвизор не пишет набираемый текст жалобы.
+              className="ym-disable-keys w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 resize-none"
               placeholder={t('peer.chat.reportPlaceholder', 'Причина жалобы…') as string}
+              data-testid="peer-report-reason-input"
             />
             <div className="flex justify-end gap-2 mt-3">
               <button
@@ -308,8 +325,10 @@ const ChatConversationView: React.FC<Props> = ({ chatId }) => {
             onKeyDown={handleKey}
             placeholder={t('peer.chat.inputPlaceholder', 'Напишите сообщение…') as string}
             rows={1}
-            className="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent max-h-32"
+            // ym-disable-keys: вебвизор не пишет набираемое сообщение.
+            className="ym-disable-keys flex-1 resize-none px-3 py-2 border border-gray-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent max-h-32"
             style={{ minHeight: '40px' }}
+            data-testid="peer-message-input"
           />
           <button
             type="button"

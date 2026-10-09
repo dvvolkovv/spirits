@@ -154,7 +154,13 @@ const SupportView: React.FC = () => {
       )}
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 bg-gray-50 space-y-3">
+      <div
+        ref={scrollRef}
+        // ym-hide-content: вебвизор не записывает текст обращений в
+        // поддержку (решение владельца 09.10.2026).
+        className="ym-hide-content flex-1 overflow-y-auto px-4 py-4 bg-gray-50 space-y-3"
+        data-testid="support-messages-list"
+      >
         {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="w-6 h-6 animate-spin text-forest-600" />
@@ -231,8 +237,10 @@ const SupportView: React.FC = () => {
               placeholder={composingNew ? t('support.new_ticket_placeholder') : t('support.input_placeholder')}
               rows={1}
               autoFocus={composingNew}
-              className="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent max-h-32"
+              // ym-disable-keys: вебвизор не пишет набираемое обращение в поддержку.
+              className="ym-disable-keys flex-1 resize-none px-3 py-2 border border-gray-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent max-h-32"
               style={{ minHeight: '40px' }}
+              data-testid="support-message-input"
             />
             <button
               type="button"

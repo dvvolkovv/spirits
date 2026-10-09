@@ -391,7 +391,13 @@ const ProfileView: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 p-4 pb-20 md:pb-4 space-y-6 overflow-y-auto">
+      <div
+        // ym-hide-content: вебвизор не записывает содержимое анкеты
+        // (ценности, интересы, описание, имя, фото). Кнопки и вкладки внутри
+        // не трогаем — клики всё равно записываются.
+        className="ym-hide-content flex-1 p-4 pb-20 md:pb-4 space-y-6 overflow-y-auto"
+        data-testid="profile-content"
+      >
         {/* Loading indicator */}
         {isLoadingProfile && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -548,7 +554,8 @@ const ProfileView: React.FC = () => {
                   value={editingInfo.firstName}
                   onChange={(e) => setEditingInfo(prev => ({ ...prev, firstName: e.target.value }))}
                   placeholder={t('profile.first_name_placeholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors"
+                  // ym-disable-keys: вебвизор не пишет набираемое имя.
+                  className="ym-disable-keys w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors"
                   maxLength={50}
                 />
               </div>
@@ -562,7 +569,8 @@ const ProfileView: React.FC = () => {
                   value={editingInfo.lastName}
                   onChange={(e) => setEditingInfo(prev => ({ ...prev, lastName: e.target.value }))}
                   placeholder={t('profile.last_name_placeholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors"
+                  // ym-disable-keys: вебвизор не пишет набираемую фамилию.
+                  className="ym-disable-keys w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors"
                   maxLength={50}
                 />
               </div>

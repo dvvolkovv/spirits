@@ -267,7 +267,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div
+      // ym-hide-content: вебвизор не записывает анкету другого человека
+      // (имя, фото, ценности, интересы, телефон и остальное из анкеты).
+      className="ym-hide-content fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      data-testid="user-profile-modal"
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="bg-white shadow-sm px-6 py-4 border-b flex items-center justify-between flex-shrink-0">
@@ -460,7 +465,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
                     onChange={(e) => setContactRequestMessage(e.target.value.slice(0, INTRO_MAX))}
                     placeholder={t('peer.profile.contactIntroPlaceholder') as string}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent resize-none"
+                    // ym-disable-keys: вебвизор не пишет набираемое сообщение к запросу контакта.
+                    className="ym-disable-keys w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent resize-none"
+                    data-testid="user-profile-contact-request-input"
                   />
                   <div className="flex items-center justify-end gap-2">
                     <button
@@ -513,8 +520,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ user, isOpen, onClo
                     onChange={(e) => setIntro(e.target.value.slice(0, INTRO_MAX))}
                     placeholder={t('peer.profile.introPlaceholder', 'Почему хотите познакомиться? (до 500 символов)') as string}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent resize-none"
+                    // ym-disable-keys: вебвизор не пишет набираемое вступительное сообщение.
+                    className="ym-disable-keys w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 focus:border-transparent resize-none"
                     autoFocus
+                    data-testid="user-profile-intro-input"
                   />
                   <div className="flex items-center justify-between">
                     <span className={`text-xs ${intro.length >= INTRO_MAX - 20 ? 'text-red-600' : 'text-gray-500'}`}>

@@ -306,7 +306,9 @@ const ReferralDashboard: React.FC = () => {
                     onChange={(e) => setWReq(e.target.value)}
                     placeholder={wMethod === 'sbp' ? t('referral.withdraw_placeholder_sbp') : t('referral.withdraw_placeholder_card')}
                     inputMode={wMethod === 'sbp' ? 'tel' : 'numeric'}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-300"
+                    // ym-disable-keys: номер карты или телефона для выплаты.
+                    className="ym-disable-keys w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-warm-300"
+                    data-testid="referral-withdraw-input"
                   />
                   <div className="flex gap-2">
                     <button
