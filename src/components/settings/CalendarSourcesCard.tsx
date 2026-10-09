@@ -240,23 +240,30 @@ const CalendarSourcesCard: React.FC = () => {
               <p className="text-xs text-gray-500">
                 {t('settings.calendar.outlook_form_desc')}
               </p>
+              {/* ym-disable-keys: адрес сервера Exchange. */}
               <input
                 value={exServer} onChange={(e) => setExServer(e.target.value)} placeholder={t('settings.calendar.server_placeholder') || ''}
-                className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                className="ym-disable-keys w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                data-testid="calendar-exchange-server-input"
               />
               <div className="flex gap-2">
+                {/* ym-disable-keys: домен и логин учётной записи Exchange. */}
                 <input
                   value={exDomain} onChange={(e) => setExDomain(e.target.value)} placeholder={t('settings.calendar.domain_placeholder') || ''}
-                  className="w-1/2 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                  className="ym-disable-keys w-1/2 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                  data-testid="calendar-exchange-domain-input"
                 />
                 <input
                   value={exLogin} onChange={(e) => setExLogin(e.target.value)} placeholder={t('settings.calendar.login_placeholder') || ''} autoComplete="username"
-                  className="w-1/2 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                  className="ym-disable-keys w-1/2 text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                  data-testid="calendar-exchange-login-input"
                 />
               </div>
+              {/* ym-disable-keys: пароль учётной записи Exchange. */}
               <input
                 type="password" value={exPassword} onChange={(e) => setExPassword(e.target.value)} placeholder={t('settings.calendar.password_placeholder') || ''} autoComplete="new-password"
-                className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                className="ym-disable-keys w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                data-testid="calendar-exchange-password-input"
               />
               {exError && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{exError}</div>
@@ -310,10 +317,12 @@ const CalendarSourcesCard: React.FC = () => {
                   <b> .ics</b> сюда. Это read-only: события будут видны в «сегодня».
                 </Trans>
               </p>
+              {/* ym-disable-keys: адрес ICS-подписки на календарь. */}
               <input
                 type="url" value={icsUrl} onChange={(e) => setIcsUrl(e.target.value)}
                 placeholder={t('settings.calendar.ics_url_placeholder') || ''}
-                className="w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                className="ym-disable-keys w-full text-sm px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-forest-500 focus:border-forest-500 outline-none"
+                data-testid="calendar-ics-url-input"
               />
               {icsError && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">{icsError}</div>

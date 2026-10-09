@@ -197,7 +197,8 @@ const RoutinesManager: React.FC = () => {
         {form && (
           <div className="p-4 rounded-lg border border-forest-200 bg-forest-50/40 space-y-3">
             <div className="text-sm font-medium text-gray-900">{form.id ? t('settings.routines.edit_form_title') : t('settings.routines.new_form_title')}</div>
-            <input className={inputCls} placeholder={t('settings.routines.name_placeholder') || ''} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+            {/* ym-disable-keys: не трогаем общий inputCls — он же у select ниже, которым класс не нужен. */}
+            <input className={inputCls + ' ym-disable-keys'} placeholder={t('settings.routines.name_placeholder') || ''} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} data-testid="routines-title-input" />
             <div className="grid grid-cols-2 gap-3">
               <select className={inputCls} value={form.assistantId} onChange={(e) => setForm({ ...form, assistantId: e.target.value })}>
                 {agents.map((a) => <option key={a.id} value={String(a.id)}>{a.displayName || a.name}</option>)}
@@ -225,7 +226,8 @@ const RoutinesManager: React.FC = () => {
                 })}
               </div>
             )}
-            <textarea className={inputCls} rows={3} placeholder={t('settings.routines.prompt_placeholder') || ''} value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} />
+            {/* ym-disable-keys: набираемый текст промпта рутины для ассистента. */}
+            <textarea className={inputCls + ' ym-disable-keys'} rows={3} placeholder={t('settings.routines.prompt_placeholder') || ''} value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} data-testid="routines-prompt-input" />
             <div className="flex items-center gap-2">
               <button onClick={saveForm} disabled={busy} className="px-4 py-2 rounded-lg bg-forest-600 text-white text-sm font-medium hover:bg-forest-700 disabled:opacity-50">
                 {form.id ? t('common.save') : t('settings.routines.create')}

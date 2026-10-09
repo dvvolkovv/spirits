@@ -33,6 +33,10 @@ const CompatibilityInterface = readFileSync(join(__dirname, 'search', 'Compatibi
 const ProfileTasks = readFileSync(join(__dirname, 'profile', 'ProfileTasks.tsx'), 'utf8');
 const ProfileView = readFileSync(join(__dirname, 'profile', 'ProfileView.tsx'), 'utf8');
 const BusinessCard = readFileSync(join(__dirname, 'profile', 'BusinessCard.tsx'), 'utf8');
+const RoutinesManager = readFileSync(join(__dirname, 'settings', 'RoutinesManager.tsx'), 'utf8');
+const LinkedAccountsView = readFileSync(join(__dirname, 'settings', 'LinkedAccountsView.tsx'), 'utf8');
+const CalendarSourcesCard = readFileSync(join(__dirname, 'settings', 'CalendarSourcesCard.tsx'), 'utf8');
+const ReferralDashboard = readFileSync(join(__dirname, 'profile', 'ReferralDashboard.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -191,5 +195,45 @@ describe('поля ввода сообщений скрыты от записи 
 
   it('бизнес-карточка — многострочное поле', () => {
     expect(classesOf(BusinessCard, 'business-card-multiline-input', 'textarea')).toContain('ym-disable-keys');
+  });
+
+  it('рутины — название', () => {
+    expect(classesOf(RoutinesManager, 'routines-title-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('рутины — текст промпта', () => {
+    expect(classesOf(RoutinesManager, 'routines-prompt-input', 'textarea')).toContain('ym-disable-keys');
+  });
+
+  it('привязка аккаунтов — телефон', () => {
+    expect(classesOf(LinkedAccountsView, 'linked-accounts-phone-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('привязка аккаунтов — код из SMS', () => {
+    expect(classesOf(LinkedAccountsView, 'linked-accounts-sms-code-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('календари — адрес сервера Exchange', () => {
+    expect(classesOf(CalendarSourcesCard, 'calendar-exchange-server-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('календари — домен Exchange', () => {
+    expect(classesOf(CalendarSourcesCard, 'calendar-exchange-domain-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('календари — логин Exchange', () => {
+    expect(classesOf(CalendarSourcesCard, 'calendar-exchange-login-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('календари — пароль Exchange', () => {
+    expect(classesOf(CalendarSourcesCard, 'calendar-exchange-password-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('календари — адрес ICS-подписки', () => {
+    expect(classesOf(CalendarSourcesCard, 'calendar-ics-url-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('реферальная выплата — номер карты или телефона', () => {
+    expect(classesOf(ReferralDashboard, 'referral-withdraw-input', 'input')).toContain('ym-disable-keys');
   });
 });

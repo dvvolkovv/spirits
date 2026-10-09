@@ -186,7 +186,9 @@ const LinkedAccountsView: React.FC = () => {
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   placeholder="+7 900 000-00-00"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  // ym-disable-keys: набираемый номер телефона для привязки.
+                  className="ym-disable-keys flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  data-testid="linked-accounts-phone-input"
                 />
                 <button
                   onClick={handleSendPhoneCode}
@@ -206,7 +208,9 @@ const LinkedAccountsView: React.FC = () => {
                   value={smsCode}
                   onChange={e => setSmsCode(e.target.value)}
                   placeholder={t('settings.linkedAccounts.codePlaceholder', 'Код из SMS')}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  // ym-disable-keys: набираемый код из SMS.
+                  className="ym-disable-keys flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  data-testid="linked-accounts-sms-code-input"
                 />
                 <button
                   onClick={handleLinkPhone}
