@@ -52,7 +52,13 @@ export const TgBotMessagesView: React.FC<Props> = ({ config, onClose }) => {
           </div>
           <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-700"><X size={20} /></button>
         </div>
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5">
+        <div
+          ref={scrollRef}
+          // ym-hide-content: вебвизор не записывает историю переписки
+          // Telegram-бота (решение владельца 09.10.2026).
+          className="ym-hide-content flex-1 overflow-y-auto p-5"
+          data-testid="tg-bot-messages-list"
+        >
           {loading ? (
             <div className="text-center text-gray-500 py-8">{t('common.loading')}</div>
           ) : messages.length === 0 ? (

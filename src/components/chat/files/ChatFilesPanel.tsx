@@ -139,7 +139,9 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
       tabIndex={-1}
       // z-[60], а не z-50: нижняя мобильная навигация (Navigation.tsx) тоже
       // z-50 и позже в DOM, без [60] она перекрывает низ панели и просмотра.
-      className="fixed inset-0 z-[60] flex justify-end outline-none"
+      // ym-hide-content: вебвизор не записывает список файлов и медиа
+      // переписки (решение владельца 09.10.2026).
+      className="ym-hide-content fixed inset-0 z-[60] flex justify-end outline-none"
       role="dialog"
       aria-modal="true"
       aria-label={t('chat.files.title')}

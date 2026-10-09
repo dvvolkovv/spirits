@@ -67,7 +67,9 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
   return (
     <div
       ref={rootRef}
-      className="fixed inset-0 z-[60] flex flex-col bg-black/90"
+      // ym-hide-content: вебвизор не записывает имя и содержимое файла
+      // переписки (решение владельца 09.10.2026).
+      className="ym-hide-content fixed inset-0 z-[60] flex flex-col bg-black/90"
       role="dialog"
       aria-modal="true"
       aria-label={item.name}

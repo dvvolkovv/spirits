@@ -2844,7 +2844,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Messages */}
       <div
-        className="flex-1 overflow-y-auto px-4 space-y-4 min-h-0 pt-20 md:pt-4 pb-4"
+        // ym-hide-content: вебвизор не записывает текст переписки с
+        // ассистентом (решение владельца 09.10.2026).
+        className="ym-hide-content flex-1 overflow-y-auto px-4 space-y-4 min-h-0 pt-20 md:pt-4 pb-4"
         ref={messagesContainerRef}
         onScroll={handleChatScroll}
         style={{ willChange: 'scroll-position' }}
