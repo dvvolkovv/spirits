@@ -150,23 +150,32 @@ const ChatConversationView: React.FC<Props> = ({ chatId }) => {
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <AvatarBubble
-          name={conv.peerName}
-          url={conv.peerAvatar}
-          size="sm"
-          onClick={() => setProfileOpen(true)}
-          title={t('peer.profile.title', 'Профиль пользователя') as string}
-        />
-        <button
-          type="button"
-          onClick={() => setProfileOpen(true)}
-          className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+        {/* Та же пара «имя + аватар», что скрыта в списке переписок
+            (PeerInboxPanels.ConversationsList) — общего контейнера не было,
+            оборачиваем в свой div с теми же классами раскладки. */}
+        <div
+          // ym-hide-content: вебвизор не записывает имя и аватар собеседника.
+          className="ym-hide-content flex-1 min-w-0 flex items-center gap-3"
+          data-testid="peer-chat-header-identity"
         >
-          <h1 className="text-sm font-semibold text-gray-900 truncate">{conv.peerName}</h1>
-          <p className="text-[11px] text-gray-400 truncate">
-            {t('peer.chat.tapForProfile')}
-          </p>
-        </button>
+          <AvatarBubble
+            name={conv.peerName}
+            url={conv.peerAvatar}
+            size="sm"
+            onClick={() => setProfileOpen(true)}
+            title={t('peer.profile.title', 'Профиль пользователя') as string}
+          />
+          <button
+            type="button"
+            onClick={() => setProfileOpen(true)}
+            className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+          >
+            <h1 className="text-sm font-semibold text-gray-900 truncate">{conv.peerName}</h1>
+            <p className="text-[11px] text-gray-400 truncate">
+              {t('peer.chat.tapForProfile')}
+            </p>
+          </button>
+        </div>
         <div className="relative">
           <button
             type="button"

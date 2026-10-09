@@ -70,6 +70,10 @@ describe('переписка скрыта от записи Вебвизора (
     expect(classesOf(ChatConversationView, 'peer-messages-list', 'div')).toContain('ym-hide-content');
   });
 
+  it('переписка с человеком — имя и аватар в шапке', () => {
+    expect(classesOf(ChatConversationView, 'peer-chat-header-identity', 'div')).toContain('ym-hide-content');
+  });
+
   it('список переписок — превью сообщений (ConversationsList)', () => {
     expect(classesOf(PeerInboxPanels, 'peer-conversations-list', 'div')).toContain('ym-hide-content');
   });
