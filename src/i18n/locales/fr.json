@@ -409,6 +409,7 @@
         "mail_read": "Consultation du courrier",
         "mail_send": "Envoi d'un e-mail",
         "product": "Travail sur ton site ou ton bot",
+        "find_files": "Je cherche des fichiers de nos conversations",
         "other": "Travail sur la tâche"
       }
     },

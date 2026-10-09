@@ -64,4 +64,8 @@ describe('шаги хода', () => {
     expect(durationParts(42_400)).toEqual({ m: 0, s: 42 });
     expect(durationParts(185_000)).toEqual({ m: 3, s: 5 });
   });
+
+  it('поиск файлов прошлых разговоров — известный вид шага', () => {
+    expect(addStep(startActivity(0), 'find_files').steps[0].kind).toBe('find_files');
+  });
 });
