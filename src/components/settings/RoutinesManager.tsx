@@ -169,7 +169,11 @@ const RoutinesManager: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div
+            // ym-hide-content: названия рутин (rt.title) — личный текст.
+            className="ym-hide-content space-y-2"
+            data-testid="routines-list"
+          >
             {routines.map((rt) => (
               <div key={rt.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200">
                 <div className="min-w-0 flex-1">

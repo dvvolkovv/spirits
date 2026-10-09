@@ -144,6 +144,21 @@ describe('переписка скрыта от записи Вебвизора (
   it('свой профиль — содержимое анкеты', () => {
     expect(classesOf(ProfileView, 'profile-content', 'div')).toContain('ym-hide-content');
   });
+
+  // Сейчас все три — внутри profile-content (SettingsView рендерится только
+  // в ProfileView, /settings редиректит на /profile), но если настройки
+  // когда-нибудь вынесут на свою страницу, эти строки открылись бы молча.
+  it('привязка аккаунтов — сохранённый телефон или почта способа входа', () => {
+    expect(classesOf(LinkedAccountsView, 'linked-accounts-provider-sub', 'p')).toContain('ym-hide-content');
+  });
+
+  it('календари — строка статуса с логином Exchange', () => {
+    expect(classesOf(CalendarSourcesCard, 'calendar-exchange-status', 'span')).toContain('ym-hide-content');
+  });
+
+  it('рутины — список с названиями', () => {
+    expect(classesOf(RoutinesManager, 'routines-list', 'div')).toContain('ym-hide-content');
+  });
 });
 
 describe('поля ввода сообщений скрыты от записи Вебвизора (ym-disable-keys)', () => {

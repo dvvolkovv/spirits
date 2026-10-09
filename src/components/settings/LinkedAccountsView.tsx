@@ -123,7 +123,8 @@ const LinkedAccountsView: React.FC = () => {
                 id.provider === 'talerid') && providerBadge(id.provider)}
               <div>
                 <p className="text-sm font-medium">{providerLabel(t, id.provider)}</p>
-                <p className="text-xs text-gray-500">{id.providerSub}</p>
+                {/* ym-hide-content: телефон или почта способа входа. */}
+                <p className="ym-hide-content text-xs text-gray-500" data-testid="linked-accounts-provider-sub">{id.providerSub}</p>
               </div>
             </div>
             <button

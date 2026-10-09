@@ -215,7 +215,11 @@ const CalendarSourcesCard: React.FC = () => {
           {/* ——— Outlook (рабочий) через Exchange EWS — вход по логину/паролю, read-only ——— */}
           {exchange.connected ? (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2.5">
-              <span className="inline-flex items-center text-sm font-medium text-forest-700 truncate">
+              <span
+                // ym-hide-content: строка статуса содержит логин учётной записи Exchange.
+                className="ym-hide-content inline-flex items-center text-sm font-medium text-forest-700 truncate"
+                data-testid="calendar-exchange-status"
+              >
                 <Check className="w-4 h-4 mr-1.5 shrink-0" />
                 {t('settings.calendar.outlook_work')}{exchange.username ? ` · ${exchange.username}` : ''}
               </span>
