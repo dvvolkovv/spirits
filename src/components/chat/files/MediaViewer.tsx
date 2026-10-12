@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
-import type { ChatFileItem } from './chatFiles';
+import type { ChatFileItem, ChatFileKind } from './chatFiles';
 import { trapTab } from './focusTrap';
 
 interface Props {
@@ -10,10 +10,12 @@ interface Props {
   index: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
+  /** Нажали «Скачать» — для статистики (ChatInterface шлёт событие). */
+  onDownload?: (kind: ChatFileKind) => void;
 }
 
 /** Картинка или видео на весь экран: «Скачать», «Закрыть», стрелки и клавиатура. */
-const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) => {
+const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, onDownload }) => {
   const { t } = useTranslation();
   const item = items[index];
   const hasPrev = index > 0;
@@ -81,6 +83,7 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose }) 
           download={item.name}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => onDownload?.(item.kind)}
           className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
         >
           <Download className="h-4 w-4" />

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import MediaViewer from './MediaViewer';
 import {
-  ChatFileItem, FileIconKind, FilesTab, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab, thumbUrlFor,
+  ChatFileItem, ChatFileKind, FileIconKind, FilesTab, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab, thumbUrlFor,
 } from './chatFiles';
 import { trapTab } from './focusTrap';
 
@@ -16,6 +16,8 @@ interface Props {
   /** Метка «Чистого листа»: панель показывает ту переписку, что на экране. */
   freshTs?: string | null;
   onClose: () => void;
+  /** Скачали файл из списка или из просмотра — для статистики. */
+  onDownload?: (kind: ChatFileKind, from: 'list' | 'viewer') => void;
 }
 
 /** Один общий tabpanel на обе вкладки — контент каждой вкладки не живёт отдельным DOM-узлом. */
@@ -37,7 +39,7 @@ const ICONS: Record<FileIconKind, React.ComponentType<{ className?: string }>> =
  * Список строит бэк из текста истории (GET /webhook/chat/files), поэтому в
  * панели ровно то, что есть в ленте, включая старую историю.
  */
-const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
+const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDownload }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n?.language || 'ru';
   const [items, setItems] = useState<ChatFileItem[] | null>(null);
@@ -299,6 +301,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
                               download={it.name}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={() => onDownload?.(it.kind, 'list')}
                               className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50"
                             >
                               <Icon className="h-8 w-8 flex-shrink-0 text-forest-600" />
@@ -356,6 +359,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
             setViewerIndex(null);
             lastTileRef.current?.focus();
           }}
+          onDownload={(kind) => onDownload?.(kind, 'viewer')}
         />
       )}
     </div>
