@@ -29,8 +29,17 @@ const pctOf = (part: number, whole: number) => (whole > 0 ? `${((part / whole) *
 const fmtBytes = (b: number | null) => {
   if (b === null) return '—';
   if (b >= 1024 ** 3) return `${(b / 1024 ** 3).toFixed(1)} ГБ`;
-  return `${Math.round(b / 1024 ** 2)} МБ`;
+  if (b >= 1024 ** 2) return `${Math.round(b / 1024 ** 2)} МБ`;
+  return `${Math.round(b / 1024)} КБ`;
 };
+
+// Категории — из Intl.PluralRules, а не руками скопированные окончания:
+// одна форма для «одного», другая для «двух-четырёх», третья для остального.
+const FILES_PLURAL = new Intl.PluralRules('ru-RU');
+const FILE_WORD_BY_CATEGORY: Partial<Record<Intl.LDMLPluralRule, string>> = {
+  one: 'файл', few: 'файла', many: 'файлов', other: 'файлов',
+};
+const filesWord = (n: number) => FILE_WORD_BY_CATEGORY[FILES_PLURAL.select(n)] ?? 'файлов';
 
 const MonitoringChatFilesSection: React.FC<{ files: ChatFilesStats }> = ({ files }) => {
   const { panel, downloads, findFiles, storage } = files;
@@ -48,7 +57,7 @@ const MonitoringChatFilesSection: React.FC<{ files: ChatFilesStats }> = ({ files
         <Stat icon={<HardDrive className="w-3.5 h-3.5" />} label="Сохранено файлов" value={fmtNum(storage.stored)}
           sub={`не удалось ${storage.failed}${top}`} />
         <Stat icon={<HardDrive className="w-3.5 h-3.5" />} label="Бакет linkeon-chat-files" value={fmtBytes(storage.bucketBytes)}
-          sub={storage.bucketObjects === null ? 'MinIO не ответил' : `${fmtNum(storage.bucketObjects)} файл(ов)`} />
+          sub={storage.bucketObjects === null ? 'MinIO не ответил' : `${fmtNum(storage.bucketObjects)} ${filesWord(storage.bucketObjects)}`} />
       </div>
     </section>
   );
