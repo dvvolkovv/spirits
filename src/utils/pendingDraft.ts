@@ -69,6 +69,12 @@ export function takePendingDraftFor(assistantId: string | number, now = Date.now
   return stored.text;
 }
 
+/** Ждёт ли черновик этого ассистента — без выдачи и без стирания (только битая или просроченная запись стирается, как при любом чтении). */
+export function hasPendingDraftFor(assistantId: string | number, now = Date.now()): boolean {
+  const stored = read(now);
+  return stored !== null && stored.assistant === String(assistantId);
+}
+
 /** Забыть черновик — при выходе из аккаунта и удалении профиля (clearAppStorage). */
 export function forgetPendingDraft(): void {
   forget();
