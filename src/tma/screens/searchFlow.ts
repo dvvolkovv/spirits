@@ -1,4 +1,5 @@
 import { postStream } from '../api';
+import { appendChunk } from './compatFlow';
 
 /**
  * Логика поиска людей, отделённая от экрана.
@@ -6,6 +7,12 @@ import { postStream } from '../api';
  * Так устроены и остальные экраны мини-аппа: разбор ответа и состояния живут
  * рядом, но проверяются без React. Здесь это особенно уместно — выдача идёт
  * потоком, и склейка результатов заслуживает собственных тестов.
+ *
+ * Формат ответа (spirits_back, MiscService.searchMate) — построчный поток
+ * кусков текста `{type:'item', content}`. Склеенный текст: сначала проза для
+ * человека, затем маркер `search_result:` и JSON-массив карточек; карточки
+ * приходят в самом конце. До 12.10.2026 здесь ждали в потоке готовые
+ * объекты-находки, каких сервер не шлёт, и выдача всегда была пустой.
  */
 
 export interface SearchMatch {
@@ -30,7 +37,9 @@ export function toMatch(raw: any): SearchMatch | null {
   return {
     userId: String(userId),
     name: String(name),
-    reason: typeof raw.reason === 'string' ? raw.reason : undefined,
+    // Бэк называет причину matchReason; reason — запасное имя.
+    reason: typeof raw.matchReason === 'string' ? raw.matchReason
+      : typeof raw.reason === 'string' ? raw.reason : undefined,
     avatarUrl: typeof raw.avatarUrl === 'string' ? raw.avatarUrl : undefined,
   };
 }
@@ -50,11 +59,37 @@ export function mergeMatch(list: SearchMatch[], next: SearchMatch): SearchMatch[
   return copy;
 }
 
+const MARKER = 'search_result:';
+
 /**
- * Запустить поиск, отдавая находки по мере прихода.
+ * Карточки из склеенного текста ответа, в порядке выдачи.
  *
- * @param onMatch зовётся на каждую распознанную находку — экран дорисовывает
- *   список, не дожидаясь конца.
+ * @returns null, если выдачи в ответе нет вовсе: так сервер отвечает на сбой
+ *   («Ошибка при обработке запроса.»), а это не то же, что «никого не нашлось».
+ */
+export function parseSearchResult(text: string): SearchMatch[] | null {
+  const at = text.indexOf(MARKER);
+  if (at < 0) return null;
+  const tail = text.slice(at + MARKER.length);
+  const start = tail.indexOf('[');
+  const end = tail.lastIndexOf(']');
+  if (start < 0 || end < start) return null;
+  let list: unknown;
+  try {
+    list = JSON.parse(tail.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(list)) return null;
+  return list.map(toMatch).filter((m): m is SearchMatch => m !== null);
+}
+
+/**
+ * Запустить поиск.
+ *
+ * @param onMatch зовётся на каждую находку по порядку. Карточки приходят в
+ *   самом конце ответа, после прозы, поэтому все вызовы — в конце.
+ * @throws если в ответе нет выдачи: экран покажет сбой, а не пустой список.
  */
 export async function runSearch(
   query: string,
@@ -64,8 +99,11 @@ export async function runSearch(
   // Пустой запрос до сервера не доводим: ответ был бы мусорным, а минута
   // ожидания — настоящей.
   if (!q) return;
+  let text = '';
   await postStream('/webhook/search-mate', { query: q }, (raw) => {
-    const m = toMatch(raw);
-    if (m) onMatch(m);
+    text = appendChunk(text, raw);
   });
+  const matches = parseSearchResult(text);
+  if (!matches) throw new Error('search-mate: в ответе нет выдачи');
+  for (const m of matches) onMatch(m);
 }
