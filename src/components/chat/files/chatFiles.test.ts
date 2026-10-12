@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { apiClient } from '../../../services/apiClient';
-import { ChatFileItem, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab } from './chatFiles';
+import { ChatFileItem, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab, thumbUrlFor } from './chatFiles';
 
 vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn() } }));
 const api = vi.mocked(apiClient);
@@ -89,5 +89,19 @@ describe('fileIconKind', () => {
     ['mp3', 'audio', 'audio'], ['stl', 'document', 'other'],
   ] as const)('%s (%s) → %s', (ext, kind, icon) => {
     expect(fileIconKind({ ext, kind })).toBe(icon);
+  });
+});
+
+describe('thumbUrlFor', () => {
+  it('достраивает путь ручки от адреса бэкенда', () => {
+    vi.stubEnv('VITE_BACKEND_URL', 'https://my.linkeon.io');
+    expect(thumbUrlFor('/webhook/chat/thumb?src=a%2Fb.jpg')).toBe('https://my.linkeon.io/webhook/chat/thumb?src=a%2Fb.jpg');
+    vi.unstubAllEnvs();
+  });
+
+  it('без адреса бэкенда — относительный путь', () => {
+    vi.stubEnv('VITE_BACKEND_URL', '');
+    expect(thumbUrlFor('/webhook/chat/thumb?src=a%2Fb.jpg')).toBe('/webhook/chat/thumb?src=a%2Fb.jpg');
+    vi.unstubAllEnvs();
   });
 });
