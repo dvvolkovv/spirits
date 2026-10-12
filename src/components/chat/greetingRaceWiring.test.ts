@@ -51,14 +51,18 @@ describe('загрузка истории не применяет устарев
   it('устаревший сбой не подставляет локальную копию', () => {
     const e = historyEffect();
     const c = e.indexOf('} catch {');
-    expect(e.indexOf('if (stale) return;', c)).toBeLessThan(e.indexOf('localStorage.getItem', c));
+    expect(c).toBeGreaterThan(-1);
+    const guard = e.indexOf('if (stale) return;', c);
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(e.indexOf('localStorage.getItem', c));
   });
 
   it('устаревший запуск не снимает признак загрузки за новый', () => {
     const e = historyEffect();
     const f = e.indexOf('} finally {');
     expect(f).toBeGreaterThan(-1);
-    const guard = e.indexOf('if (stale) return;', f);
+    // Не `return` — его в finally запрещает no-unsafe-finally.
+    const guard = e.indexOf('if (!stale) {', f);
     expect(guard).toBeGreaterThan(-1);
     expect(guard).toBeLessThan(e.indexOf('setHistoryLoading(false)', f));
   });
