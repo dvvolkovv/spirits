@@ -1080,7 +1080,11 @@
     "guides": [
       {
         "title": "Chat mit dem Assistenten",
-        "desc": "Wähle einen Assistenten im linken Bereich. Schreib eine Nachricht oder lade ein PDF hoch. Der Assistent antwortet unter Berücksichtigung deines Profils."
+        "desc": "Wähle einen Assistenten in der Liste oder in der Kopfzeile des Chats und beschreib deine Aufgabe. Dateien hängst du mit „+“ an; jede Antwort kannst du dir mit „Anhören“ vorlesen lassen."
+      },
+      {
+        "title": "Sprachanruf",
+        "desc": "Mit „Anrufen“ startest du ein Sprachgespräch mit Roman, deinem persönlichen Assistenten."
       },
       {
         "title": "Partnersuche",
@@ -1099,34 +1103,38 @@
         "desc": "Angenommene Anfragen erstellen Chats. Tausche Nachrichten aus, öffne das Profil deines Gesprächspartners, melde ihn oder blockiere ihn über das Drei-Punkte-Menü."
       },
       {
-        "title": "Bildgenerierung",
-        "desc": "Bereich Bilder oder im Chat „male…“. Die KI erstellt ein Bild nach deiner Beschreibung."
+        "title": "Bilder erstellen",
+        "desc": "Im Bereich „Bildgenerator“ oder direkt im Chat: „zeichne …“. Bilder lassen sich bearbeiten, kombinieren oder in ein Video verwandeln."
       },
       {
         "title": "Videogenerierung",
         "desc": "Bereich Video. Text→Video, Bild→Video, Verlängerung, Lippensync von Stimme und Bild. 5 oder 10 Sekunden."
       },
       {
-        "title": "Profil",
-        "desc": "Wird automatisch aus Gesprächen mit Assistenten befüllt. Du kannst den Namen bearbeiten, ein Foto hochladen und Werte/Interessen/Fähigkeiten einsehen."
+        "title": "Studio",
+        "desc": "Eigene Assistenten, Telegram-Bots für deine Gruppen und Produkte – eine Website oder ein Bot, den Linkeon hostet und nach deinen Wünschen weiterentwickelt."
+      },
+      {
+        "title": "Profil und Einstellungen",
+        "desc": "Werte, Interessen und Fähigkeiten werden aus deinen Gesprächen gesammelt. Unter „Einstellungen“ findest du Kalender, Benachrichtigungen, Stimmen der Assistenten und die Sprache."
       },
       {
         "title": "Tokens",
-        "desc": "Guthaben in der Seitenleiste. Lade es über YooKassa oder Promocodes auf. Der Verbrauch ist nach jeder Aktion sichtbar."
+        "desc": "Dein Guthaben steht im Block „Tokens“ im Menü; der Verbrauch wird nach jeder Aktion angezeigt. Dort lädst du auch auf."
       }
     ],
     "faq": [
       {
         "q": "Wie fange ich mit der Plattform an?",
-        "a": "Nach der Registrierung mit deiner Telefonnummer bekommst du ein Start-Token-Paket. Wähle einen Assistenten im linken Bereich und beginne das Gespräch. Der Assistent hilft dir, deine Ziele und Aufgaben zu klären."
+        "a": "Nach der Anmeldung bekommst du ein Start-Token-Paket. Wähle einen Assistenten und beschreib deine Aufgabe in eigenen Worten. Du weißt nicht, an wen du dich wenden sollst? Fang mit Roman an: Dein persönlicher Assistent hilft selbst oder sagt dir, welchen Spezialisten du brauchst."
       },
       {
         "q": "Was sind Tokens und wie werden sie verbraucht?",
-        "a": "Tokens sind die interne Währung der Plattform. Sie werden für Nachrichten an Assistenten, Bild- und Videogenerierung sowie die Personensuche verbraucht. Die Kosten hängen von der Komplexität der Aufgabe ab — das dynamische Preissystem passt sich dem Arbeitsaufwand an. Nach jeder Nachricht siehst du den Token-Verbrauch."
+        "a": "Tokens sind die interne Währung der Plattform. Sie werden für Nachrichten an Assistenten, Bild- und Videogenerierung, Vertonung, Sprachanrufe und die Personensuche verbraucht. Die Kosten hängen von der Komplexität der Aufgabe ab – die dynamische Preisgestaltung passt sich dem Arbeitsaufwand an. Nach jeder Aktion siehst du den Verbrauch."
       },
       {
         "q": "Welche Assistenten stehen zur Verfügung?",
-        "a": "Die Plattform bietet zwei Arten von Assistenten:\n\n• Für dein Business — Anwalt, Buchhalter, Finanzchef, Marketer, Copywriter, Designer, Vertrieb, Unternehmensgründung, technischer Leiter, Karriereberater\n• Für persönliches Wachstum — Coach, Werte-Erkundung, Spielpraktiker, Numerologe, vedischer Astrologe, Human Design, Lifestyle-Coach\n• Persönlicher Assistent Roman — hilft bei allen Aufgaben"
+        "a": "Die Plattform bietet zwei Arten von Assistenten:\n\n• Für dein Business — Anwalt, Buchhalter, Finanzchef, Marketer, Copywriter, Designer, Vertrieb, Unternehmensgründung, technischer Leiter, Karriereberater\n• Für persönliches Wachstum — Coach, Werte-Erkundung, Spielpraktiker, Numerologe, vedischer Astrologe, Human Design, Lifestyle-Coach\n• Persönlicher Assistent Roman — hilft bei allen Aufgaben\n\nEinen eigenen Assistenten mit eigener Rolle und eigenen Anweisungen erstellst du unter „Studio“ → „Assistenten“."
       },
       {
         "q": "Wie funktioniert Networking?",
@@ -1150,15 +1158,15 @@
       },
       {
         "q": "Wie entsteht mein Profil?",
-        "a": "Dein Profil entsteht automatisch aus deinen Gesprächen mit Assistenten. Die KI erkennt deine Werte, Interessen, Fähigkeiten, Wünsche und Absichten — sie werden in einer Graphdatenbank gespeichert und laufend präzisiert. Je mehr du kommunizierst, desto genauer wird dein Profil und desto besser die Ergebnisse bei Suche und Kompatibilität."
+        "a": "Dein Profil entsteht automatisch aus deinen Gesprächen mit Assistenten. Die KI erkennt deine Werte, Interessen, Fähigkeiten, Wünsche und Absichten — sie werden in einer Graphdatenbank gespeichert und laufend präzisiert. Je mehr du kommunizierst, desto genauer wird dein Profil und desto besser die Ergebnisse bei Suche und Kompatibilität. Über dein Geschäft erfahren die Assistenten aus der Karte „Mein Unternehmen“ in deinem Profil – du kannst sie selbst ergänzen."
       },
       {
         "q": "Kann ich Dokumente hochladen?",
-        "a": "Ja! Tippe im Chat auf „+“ und lade eine PDF-Datei hoch. Die KI analysiert das Dokument, extrahiert die wichtigsten Informationen und schlägt Nutzungsmöglichkeiten vor — Profil aktualisieren, Partner finden oder Daten analysieren."
+        "a": "Ja. Tippe im Chat auf „+“ und hänge eine Datei an – ein Dokument, eine Tabelle, eine Präsentation oder ein Bild, bis zu 10 Dateien auf einmal. Der Assistent wertet sie direkt im Gespräch aus (an Mascha kannst du nur PDFs schicken). Alles, was der Assistent in einem Gespräch erstellt hat – Bilder, Videos, Dateien –, findest du unter „Medien und Dateien“."
       },
       {
         "q": "Wie generiere ich Bilder?",
-        "a": "Zwei Möglichkeiten:\n\n• Im Chat — schreib dem Assistenten „male...“ oder „erstelle ein Bild...“.\n• Im Bereich Bilder — gib eine Beschreibung ein und tippe auf „Generieren“.\n\nDie Generierung kostet 5.000 Tokens pro Bild."
+        "a": "Zwei Wege:\n\n• Im Chat – bitte den Assistenten: „zeichne …“ oder „erstelle ein Bild …“.\n• Im Bereich „Bildgenerator“ – gib eine Beschreibung ein und starte die Generierung.\n\nNormale Qualität kostet 5000 Tokens, HD (4K) 10 000. Ein fertiges Bild kannst du bearbeiten, mit anderen kombinieren oder in ein Video verwandeln."
       },
       {
         "q": "Wie erstelle ich ein Video?",
@@ -1166,15 +1174,35 @@
       },
       {
         "q": "Wie lade ich Tokens auf?",
-        "a": "Tippe auf den Block „Tokens“ in der Seitenleiste oder gehe zum Aufladebereich. Pakete von 149 ₽ bis 1990 ₽ stehen zur Verfügung. Für Bonus-Tokens kannst du auch Promocodes nutzen."
+        "a": "Tippe im Menü auf den Block „Tokens“ und wähle ein Paket – Preise und Zahlungsarten stehen im Kauffenster. Mit einem Promo-Code bekommst du Bonus-Tokens."
       },
       {
         "q": "Was ist das Partnerprogramm?",
-        "a": "Du kannst Partner werden und Provision von den Zahlungen geworbener Nutzer erhalten. Wende dich zur Freischaltung an den Administrator. Die Provision wird automatisch bei jeder Zahlung eines Referrals gutgeschrieben."
+        "a": "Freunde lädst du mit dem Link aus dem Block „Lade einen Freund ein“ in deinem Profil ein. Das Partnerprogramm zahlt eine Provision auf die Zahlungen der Nutzer, die du mitbringst: Sie wird automatisch gutgeschrieben und lässt sich als Tokens oder Geld auszahlen. Um Partner zu werden, wende dich an den Administrator."
       },
       {
         "q": "Sind meine Daten sicher?",
         "a": "Ja. Wir geben deine Daten nicht an Dritte weiter. Telefonnummern anderer Nutzer sind verborgen — Kontakt ist nur über Anfragen und Chats der Plattform möglich. Kontaktanfragen erfordern deine ausdrückliche Zustimmung (Annehmen/Ablehnen). Du kannst jeden Nutzer blockieren und dein Konto mit allen Daten jederzeit über den Bereich Profil löschen."
+      },
+      {
+        "q": "Kann ich mit einem Assistenten sprechen?",
+        "a": "Ja. Mit „Anrufen“ in der Kopfzeile des Chats (auf dem Handy: die schwebende Schaltfläche in der Assistentenliste) startest du ein Sprachgespräch mit Roman. Jede Antwort kannst du dir mit „Anhören“ darunter vorlesen lassen; die Stimme jedes Assistenten wählst du unter „Einstellungen“ → „Stimmen der Assistenten“."
+      },
+      {
+        "q": "Was ist „Studio“?",
+        "a": "„Studio“ hat drei Tabs:\n\n• „Assistenten“ – eigene Assistenten mit eigener Rolle und eigenen Anweisungen.\n• „Telegram-Bots“ – ein Bot mit Assistent für deine Telegram-Gruppe; dafür verknüpfst du dein Telegram im Profil.\n• „Produkte“ – deine Website oder dein Telegram-Bot: Domain, Server und Updates übernimmt Linkeon, Änderungen wünschst du dir in eigenen Worten. Der erste Monat ist kostenlos, danach wird die Miete in Tokens bezahlt; bis zu zwei Produkte pro Konto."
+      },
+      {
+        "q": "Wie verbinde ich einen Kalender und Benachrichtigungen?",
+        "a": "„Mein Profil“ → „Einstellungen“ → „Kalender“: Yandex Kalender, Outlook (Arbeit), Google und iCloud per Link; dort verbindest du auch Taler ID. Die Assistenten sehen deinen Terminplan und können Termine als Karte vorschlagen – in den Kalender kommen sie erst, wenn du bestätigst.\n\nEin Assistent kann dir auch zu einer festen Zeit schreiben, zum Beispiel jeden Morgen eine „Energie des Tages“ schicken. Bitte ihn darum und aktiviere „Benachrichtigungen auf diesem Gerät“ unter „Einstellungen“."
+      },
+      {
+        "q": "Wie beginne ich ein Gespräch von vorn?",
+        "a": "Schalte „Neustart“ in der Kopfzeile des Chats ein: Der Assistent sieht deinen bisherigen Verlauf und deine Aufgaben nicht, dein Profil wird aber weiter ergänzt. Schaltest du es aus, geht das Gespräch mit dem bisherigen Kontext weiter."
+      },
+      {
+        "q": "Gibt es eine mobile App?",
+        "a": "Für Android – unter „Einstellungen“ → „Mobile App“: Die App wird per Datei installiert, nicht über Google Play."
       }
     ]
   },

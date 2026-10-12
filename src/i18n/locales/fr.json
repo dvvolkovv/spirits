@@ -1083,7 +1083,11 @@
     "guides": [
       {
         "title": "Chat avec l'assistant",
-        "desc": "Choisis un assistant dans le panneau de gauche. Écris un message ou charge un PDF. L'assistant répond en tenant compte de ton profil."
+        "desc": "Choisis un assistant dans la liste ou dans l'en-tête du chat et décris ta tâche. Joins un fichier avec le bouton « + » ; chaque réponse peut être écoutée avec « Écouter »."
+      },
+      {
+        "title": "Appel vocal",
+        "desc": "Le bouton « Appeler » lance une conversation vocale avec Roman, ton assistant personnel."
       },
       {
         "title": "Recherche de partenaires",
@@ -1103,33 +1107,37 @@
       },
       {
         "title": "Génération d'images",
-        "desc": "Section Images, ou dans le chat « dessine… ». L'IA crée une image à partir de ta description."
+        "desc": "La section « Générateur d'images » ou directement dans le chat : « dessine… ». Les images peuvent être retouchées, combinées ou transformées en vidéo."
       },
       {
         "title": "Génération de vidéo",
         "desc": "Section Vidéo. Texte→vidéo, image→vidéo, prolongation, lipsync voix/image. 5 ou 10 secondes."
       },
       {
-        "title": "Profil",
-        "desc": "Se remplit automatiquement à partir des échanges avec les assistants. Tu peux modifier ton nom, charger une photo, consulter tes valeurs/centres d'intérêt/compétences."
+        "title": "Studio",
+        "desc": "Tes propres assistants, des bots Telegram pour tes groupes et des produits : un site ou un bot que Linkeon héberge et fait évoluer à ta demande."
+      },
+      {
+        "title": "Profil et paramètres",
+        "desc": "Tes valeurs, intérêts et compétences sont tirés de tes conversations. Dans « Paramètres » : calendriers, notifications, voix des assistants et langue."
       },
       {
         "title": "Jetons",
-        "desc": "Solde dans le panneau latéral. Recharge via YooKassa ou avec des codes promo. La consommation s'affiche après chaque opération."
+        "desc": "Ton solde est dans le bloc « Jetons » du menu ; la dépense s'affiche après chaque opération. C'est aussi là que tu recharges."
       }
     ],
     "faq": [
       {
         "q": "Comment débuter sur la plateforme ?",
-        "a": "Après ton inscription par numéro de téléphone, tu reçois un pack de jetons de départ. Choisis un assistant dans le panneau de gauche et lance la conversation. L'assistant t'aide à définir tes objectifs et tes besoins."
+        "a": "Après la connexion, tu reçois un pack de jetons de départ. Choisis un assistant et décris ta tâche avec tes propres mots. Tu ne sais pas à qui t'adresser ? Commence par Roman : ton assistant personnel t'aidera lui-même ou te dira de quel spécialiste tu as besoin."
       },
       {
         "q": "Que sont les jetons et comment sont-ils consommés ?",
-        "a": "Les jetons sont la monnaie interne de la plateforme. Ils sont consommés pour les messages aux assistants, la génération d'images, la génération de vidéos et la recherche de personnes. Le coût dépend de la complexité de la tâche — la tarification dynamique s'ajuste au volume de travail. Tu vois la consommation après chaque message."
+        "a": "Les jetons sont la monnaie interne de la plateforme. Ils sont dépensés pour les messages aux assistants, la génération d'images et de vidéos, la synthèse vocale, les appels vocaux et la recherche de personnes. Le coût dépend de la complexité de la tâche : la tarification dynamique s'adapte au volume de travail. Après chaque opération, tu vois la dépense."
       },
       {
         "q": "Quels assistants sont disponibles ?",
-        "a": "La plateforme propose deux types d'assistants :\n\n• Pour le business — juriste, comptable, directeur financier, marketeur, copywriter, designer, ventes, création d'entreprise, directeur technique, conseiller en carrière\n• Pour le développement personnel — coach, exploration des valeurs, ludopédagogue, numérologue, astrologue védique, Human Design, coach mode de vie\n• L'assistant personnel Roman — pour toutes tes tâches"
+        "a": "La plateforme propose deux types d'assistants :\n\n• Pour le business — juriste, comptable, directeur financier, marketeur, copywriter, designer, ventes, création d'entreprise, directeur technique, conseiller en carrière\n• Pour le développement personnel — coach, exploration des valeurs, ludopédagogue, numérologue, astrologue védique, Human Design, coach mode de vie\n• L'assistant personnel Roman — pour toutes tes tâches\n\nTu peux créer ton propre assistant, avec son rôle et ses instructions, dans « Studio » → « Assistants »."
       },
       {
         "q": "Comment fonctionne le Réseautage ?",
@@ -1153,15 +1161,15 @@
       },
       {
         "q": "Comment se forme mon profil ?",
-        "a": "Ton profil se construit automatiquement à partir de tes conversations avec les assistants. L'IA extrait tes valeurs, intérêts, compétences, désirs et intentions — stockés dans une base de graphes et affinés progressivement. Plus tu échanges, plus ton profil est précis et meilleurs sont les résultats de recherche et de compatibilité."
+        "a": "Ton profil se construit automatiquement à partir de tes conversations avec les assistants. L'IA extrait tes valeurs, intérêts, compétences, désirs et intentions — stockés dans une base de graphes et affinés progressivement. Plus tu échanges, plus ton profil est précis et meilleurs sont les résultats de recherche et de compatibilité. Les assistants connaissent ton activité grâce à la fiche « Mon entreprise » de ton profil, que tu peux compléter toi-même."
       },
       {
         "q": "Peut-on charger des documents ?",
-        "a": "Oui ! Clique sur le bouton « + » dans le chat et charge un fichier PDF. L'IA analyse le document, en extrait les informations clés et propose des usages — mettre à jour ton profil, trouver des partenaires ou analyser les données."
+        "a": "Oui. Clique sur « + » dans le chat et joins un fichier : document, tableur, présentation ou image, jusqu'à 10 fichiers à la fois. L'assistant les analyse directement dans la conversation (à Macha, on ne peut envoyer que des PDF). Tout ce que l'assistant a créé dans une conversation — images, vidéos, fichiers — se trouve dans « Médias et fichiers »."
       },
       {
         "q": "Comment générer des images ?",
-        "a": "Deux façons :\n\n• Dans le chat — écris à l'assistant « dessine... » ou « crée une image... ».\n• Dans la section Images — entre une description et clique sur « Générer ».\n\nLa génération coûte 5 000 jetons par image."
+        "a": "Deux façons :\n\n• Dans le chat : demande à l'assistant « dessine… » ou « crée une image… ».\n• Dans la section « Générateur d'images » : saisis une description et lance la génération.\n\nLa qualité normale coûte 5 000 jetons, la HD (4K) 10 000. Une image terminée peut être retouchée, combinée avec d'autres ou transformée en vidéo."
       },
       {
         "q": "Comment créer une vidéo ?",
@@ -1169,15 +1177,35 @@
       },
       {
         "q": "Comment recharger mes jetons ?",
-        "a": "Clique sur le bloc « Jetons » dans le panneau latéral ou va dans la section de recharge. Des packs sont disponibles de 149₽ à 1990₽. Tu peux aussi utiliser des codes promo pour des jetons bonus."
+        "a": "Clique sur le bloc « Jetons » du menu et choisis un pack : les prix et les moyens de paiement sont indiqués dans la fenêtre d'achat. Un code promo te donne des jetons bonus."
       },
       {
         "q": "Qu'est-ce que le programme partenaire ?",
-        "a": "Tu peux devenir partenaire et toucher une commission sur les paiements des utilisateurs que tu as recommandés. Contacte l'administrateur pour t'inscrire. La commission est créditée automatiquement à chaque paiement d'un filleul."
+        "a": "Tu peux inviter un ami avec le lien du bloc « Invite un ami » de ton profil. Le programme partenaires verse une commission sur les paiements des utilisateurs que tu amènes : elle est créditée automatiquement et peut être retirée en jetons ou en argent. Pour devenir partenaire, contacte l'administrateur."
       },
       {
         "q": "Mes données sont-elles en sécurité ?",
         "a": "Oui. Nous ne partageons pas tes données avec des tiers. Les numéros des autres utilisateurs sont masqués — le contact ne se fait que via les demandes et chats de la plateforme. Les demandes de contact nécessitent ton accord explicite (Accepter/Refuser). Tu peux bloquer n'importe quel utilisateur et supprimer ton compte avec toutes tes données à tout moment depuis la section Profil."
+      },
+      {
+        "q": "Puis-je parler à un assistant à voix haute ?",
+        "a": "Oui. Le bouton « Appeler » dans l'en-tête du chat (sur téléphone, le bouton flottant dans la liste des assistants) lance une conversation vocale avec Roman. Chaque réponse peut être écoutée avec « Écouter », juste en dessous, et la voix de chaque assistant se choisit dans « Paramètres » → « Voix des assistants »."
+      },
+      {
+        "q": "Qu'est-ce que « Studio » ?",
+        "a": "« Studio » a trois onglets :\n\n• « Assistants » : tes propres assistants, avec leur rôle et leurs instructions.\n• « Bots Telegram » : un bot avec assistant pour ton groupe Telegram ; il faudra lier ton Telegram dans ton profil.\n• « Produits » : ton site ou ton bot Telegram. Le domaine, le serveur et les mises à jour sont gérés par Linkeon, et tu demandes les modifications avec tes propres mots. Le premier mois est gratuit, ensuite la location se paie en jetons ; jusqu'à deux produits par compte."
+      },
+      {
+        "q": "Comment connecter un calendrier et les notifications ?",
+        "a": "« Mon profil » → « Paramètres » → « Calendriers » : Yandex Agenda, Outlook professionnel, Google et iCloud via un lien ; Taler ID se connecte aussi là. Les assistants verront ton agenda et pourront te proposer des événements sous forme de carte : ils n'arrivent dans ton calendrier qu'après ta confirmation.\n\nUn assistant peut aussi t'écrire à heure fixe, par exemple t'envoyer chaque matin l'« énergie du jour ». Demande-le-lui et active « Notifications sur cet appareil » dans « Paramètres »."
+      },
+      {
+        "q": "Comment repartir de zéro dans une conversation ?",
+        "a": "Active « Page blanche » dans l'en-tête du chat : l'assistant ne verra plus l'historique ni les tâches précédentes, et ton profil continuera de s'enrichir. Désactive-le, et la conversation reprend avec le contexte précédent."
+      },
+      {
+        "q": "Y a-t-il une application mobile ?",
+        "a": "Pour Android, dans « Paramètres » → « Application mobile » : l'application s'installe à partir d'un fichier, pas via Google Play."
       }
     ]
   },

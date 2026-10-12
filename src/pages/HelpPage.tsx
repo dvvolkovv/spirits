@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronUp, MessageCircle, Search, Heart, Image, User, Coins, Film, Inbox, Users, Headphones } from 'lucide-react';
+import { ChevronDown, ChevronUp, MessageCircle, Search, Heart, Image, User, Coins, Film, Inbox, Users, Headphones, Phone, Sparkles } from 'lucide-react';
 
-const guideIcons = [MessageCircle, Search, Heart, Inbox, Users, Image, Film, User, Coins];
-
-// Maps a guide index → in-app route. Order matches help.guides[] in i18n.
-// null means "no destination" (the card stays informational only).
-const guideRoutes: (string | null)[] = [
-  '/chat',           // Чат с ассистентом
-  '/search',         // Поиск партнёров
-  '/compatibility',  // Проверка совместимости
-  '/chats',          // Запросы на общение
-  '/chats',          // Чаты между пользователями
-  '/chat',           // Генерация картинок (entry via chat: "нарисуй…")
-  '/chat?view=video', // Генерация видео
-  '/profile',        // Профиль
-  '/chat?view=tokens', // Токены — открывает модал покупки
+// Пункт инструкции → иконка и раздел. Порядок совпадает с help.guides[] в
+// локалях (helpContent.test.ts сверяет длину во всех семи). Маршруты — живые
+// разделы, не редиректы: «/compatibility» уводил на поиск, а не на вкладку.
+export const HELP_GUIDE_LINKS: { icon: React.ComponentType<{ className?: string }>; route: string }[] = [
+  { icon: MessageCircle, route: '/chat' },                      // Чат с ассистентом
+  { icon: Phone, route: '/chat' },                              // Голосовой звонок
+  { icon: Search, route: '/search' },                           // Поиск партнёров
+  { icon: Heart, route: '/search?tab=compatibility' },          // Проверка совместимости
+  { icon: Inbox, route: '/search?tab=requests' },               // Запросы на общение
+  { icon: Users, route: '/search?tab=chats' },                  // Чаты между пользователями
+  { icon: Image, route: '/image-gen' },                         // Генерация картинок
+  { icon: Film, route: '/video' },                              // Генерация видео
+  { icon: Sparkles, route: '/studio' },                         // Студия
+  { icon: User, route: '/profile' },                            // Профиль и настройки
+  { icon: Coins, route: '/chat?view=tokens' },                  // Токены — модал покупки
 ];
 
 const HelpPage: React.FC = () => {
@@ -61,8 +62,8 @@ const HelpPage: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">{t('help.quick_title')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {guides.map((g, i) => {
-              const Icon = guideIcons[i] ?? MessageCircle;
-              const route = guideRoutes[i] ?? null;
+              const Icon = HELP_GUIDE_LINKS[i]?.icon ?? MessageCircle;
+              const route = HELP_GUIDE_LINKS[i]?.route ?? null;
               const commonInner = (
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-forest-50 flex items-center justify-center flex-shrink-0">

@@ -1436,7 +1436,11 @@
     "guides": [
       {
         "title": "Chat com o assistente",
-        "desc": "Escolha um assistente no painel da esquerda. Escreva uma mensagem ou carregue um PDF. O assistente responde tendo em conta o seu perfil."
+        "desc": "Escolha um assistente na lista ou no cabeçalho do chat e descreva a sua tarefa. Anexe um ficheiro com o botão «+»; qualquer resposta pode ser ouvida com «Ouvir»."
+      },
+      {
+        "title": "Chamada de voz",
+        "desc": "O botão «Ligar» inicia uma conversa por voz com o Roman, o seu assistente pessoal."
       },
       {
         "title": "Procura de parceiros",
@@ -1456,33 +1460,37 @@
       },
       {
         "title": "Geração de imagens",
-        "desc": "Secção Imagens ou, no chat, «desenha…». A IA cria uma imagem a partir da descrição."
+        "desc": "A secção «Gerador de imagens» ou diretamente no chat: «desenha…». As imagens podem ser editadas, combinadas ou transformadas em vídeo."
       },
       {
         "title": "Geração de vídeo",
         "desc": "Secção Vídeo. Texto→vídeo, imagem→vídeo, continuação do clipe, sincronização labial de voz com imagem. 5 ou 10 segundos."
       },
       {
-        "title": "Perfil",
-        "desc": "É preenchido automaticamente a partir das conversas com os assistentes. Pode editar o nome, carregar uma foto e consultar valores, interesses e competências."
+        "title": "Estúdio",
+        "desc": "Assistentes próprios, bots do Telegram para os seus grupos e produtos — um site ou bot que o Linkeon aloja e melhora a seu pedido."
+      },
+      {
+        "title": "Perfil e definições",
+        "desc": "Os seus valores, interesses e competências são recolhidos das conversas. Em «Definições» encontra calendários, notificações, vozes dos assistentes e idioma."
       },
       {
         "title": "Tokens",
-        "desc": "Saldo no painel lateral. Carregue através da YooKassa ou de códigos promocionais. O consumo é visível depois de cada operação."
+        "desc": "O saldo está no bloco «Tokens» do menu; o gasto aparece após cada operação. É também aí que carrega o saldo."
       }
     ],
     "faq": [
       {
         "q": "Como começar a utilizar a plataforma?",
-        "a": "Depois do registo com o número de telemóvel, recebe um pacote inicial de tokens. Escolha um assistente no painel da esquerda e comece a conversar. O assistente ajuda-o a definir os seus objetivos e tarefas."
+        "a": "Depois de entrar, recebe um pacote inicial de tokens. Escolha um assistente e descreva a sua tarefa por palavras suas. Não sabe a quem recorrer? Comece pelo Roman: o seu assistente pessoal ajuda diretamente ou indica-lhe o especialista de que precisa."
       },
       {
         "q": "O que são os tokens e como são gastos?",
-        "a": "Os tokens são a moeda interna da plataforma. São gastos em mensagens para o assistente, na geração de imagens, na geração de vídeo e na procura de pessoas. O custo depende da complexidade da tarefa — o sistema de preços dinâmico ajusta-se ao volume de trabalho. Depois de cada mensagem vê o consumo de tokens."
+        "a": "Os tokens são a moeda interna da plataforma. São gastos em mensagens aos assistentes, geração de imagens e vídeos, locução, chamadas de voz e pesquisa de pessoas. O custo depende da complexidade da tarefa — o preço dinâmico ajusta-se ao volume de trabalho. Após cada operação vê o gasto."
       },
       {
         "q": "Que assistentes estão disponíveis?",
-        "a": "A plataforma oferece assistentes de dois tipos:\n\n• Para o negócio — advogado, contabilista, diretor financeiro, especialista de marketing, copywriter, designer, vendas, lançamento de negócio, diretor técnico, orientador de carreira\n• Para o crescimento pessoal — coach, exploração de valores, facilitador de jogos, numerólogo, astrólogo védico, Human Design, coach de estilo de vida\n• Assistente pessoal Roman — ajuda em qualquer tarefa"
+        "a": "A plataforma oferece assistentes de dois tipos:\n\n• Para o negócio — advogado, contabilista, diretor financeiro, especialista de marketing, copywriter, designer, vendas, lançamento de negócio, diretor técnico, orientador de carreira\n• Para o crescimento pessoal — coach, exploração de valores, facilitador de jogos, numerólogo, astrólogo védico, Human Design, coach de estilo de vida\n• Assistente pessoal Roman — ajuda em qualquer tarefa\n\nPode criar o seu próprio assistente, com o seu papel e as suas instruções, em «Estúdio» → «Assistentes»."
       },
       {
         "q": "Como funciona o Networking?",
@@ -1506,15 +1514,15 @@
       },
       {
         "q": "Como é construído o meu perfil?",
-        "a": "O perfil é construído automaticamente a partir das suas conversas com os assistentes. A IA extrai os seus valores, interesses, competências, desejos e intenções — ficam guardados numa base de dados de grafos e vão sendo afinados ao longo do tempo. Quanto mais conversar, mais rigoroso fica o seu perfil e melhores são os resultados da procura e da compatibilidade."
+        "a": "O perfil é construído automaticamente a partir das suas conversas com os assistentes. A IA extrai os seus valores, interesses, competências, desejos e intenções — ficam guardados numa base de dados de grafos e vão sendo afinados ao longo do tempo. Quanto mais conversar, mais rigoroso fica o seu perfil e melhores são os resultados da procura e da compatibilidade. Os assistentes ficam a conhecer o seu negócio pelo cartão «Meu negócio» no perfil — pode completá-lo à mão."
       },
       {
         "q": "É possível carregar documentos?",
-        "a": "Sim! Clique no botão «+» no chat e carregue um ficheiro PDF. A IA analisa o documento, extrai a informação essencial e sugere formas de a utilizar — atualizar o perfil, encontrar parceiros ou analisar os dados."
+        "a": "Sim. Clique em «+» no chat e anexe um ficheiro — documento, folha de cálculo, apresentação ou imagem, até 10 ficheiros de cada vez. O assistente analisa-os na própria conversa (à Macha só pode enviar PDF). Tudo o que o assistente criou numa conversa — imagens, vídeos, ficheiros — está em «Multimédia e ficheiros»."
       },
       {
         "q": "Como gerar imagens?",
-        "a": "Há duas formas:\n\n• No chat — escreva ao assistente «desenha...» ou «cria uma imagem...».\n• Na secção Imagens — introduza a descrição e clique em «Gerar».\n\nCada imagem custa 5 000 tokens."
+        "a": "Duas formas:\n\n• No chat — peça ao assistente «desenha…» ou «cria uma imagem…».\n• Na secção «Gerador de imagens» — escreva uma descrição e inicie a geração.\n\nA qualidade normal custa 5000 tokens, a HD (4K) 10 000. Uma imagem pronta pode ser editada, combinada com outras ou transformada em vídeo."
       },
       {
         "q": "Como criar um vídeo?",
@@ -1522,15 +1530,35 @@
       },
       {
         "q": "Como carregar tokens?",
-        "a": "Clique no bloco «Tokens» no painel lateral ou vá à secção de carregamento. Há pacotes de 149 ₽ a 1990 ₽. Também pode usar códigos promocionais para receber tokens de bónus."
+        "a": "Clique no bloco «Tokens» do menu e escolha um pacote — os preços e as formas de pagamento aparecem na janela de compra. Com um código promocional recebe tokens de bónus."
       },
       {
         "q": "O que é o programa de parceria?",
-        "a": "Pode tornar-se parceiro e receber uma comissão sobre os pagamentos dos utilizadores que trouxer. Contacte o administrador para aderir. A comissão é creditada automaticamente em cada pagamento de um referido."
+        "a": "Pode convidar um amigo com a ligação do bloco «Convida um amigo» no seu perfil. O programa de parceiros paga uma comissão sobre os pagamentos dos utilizadores que trouxer: é creditada automaticamente e pode ser levantada em tokens ou em dinheiro. Para se tornar parceiro, contacte o administrador."
       },
       {
         "q": "Os meus dados estão seguros?",
         "a": "Sim. Não partilhamos os seus dados com terceiros. Os números de telemóvel dos outros utilizadores estão ocultos — o contacto só é possível através dos pedidos e dos chats da plataforma. Os pedidos de contacto exigem o seu consentimento explícito (Aceitar/Recusar). Pode bloquear qualquer utilizador e apagar a conta com todos os dados a qualquer momento, na secção Perfil."
+      },
+      {
+        "q": "Posso falar com um assistente por voz?",
+        "a": "Sim. O botão «Ligar» no cabeçalho do chat (no telemóvel, o botão flutuante na lista de assistentes) inicia uma conversa por voz com o Roman. Qualquer resposta pode ser ouvida com «Ouvir», por baixo dela, e a voz de cada assistente escolhe-se em «Definições» → «Vozes dos assistentes»."
+      },
+      {
+        "q": "O que é o «Estúdio»?",
+        "a": "O «Estúdio» tem três separadores:\n\n• «Assistentes» — assistentes próprios, com o seu papel e as suas instruções.\n• «Bots do Telegram» — um bot com assistente para o seu grupo do Telegram; terá de associar o seu Telegram no perfil.\n• «Produtos» — o seu site ou bot do Telegram: o domínio, o servidor e as atualizações ficam a cargo do Linkeon, e as alterações pede-as por palavras suas. O primeiro mês é gratuito; depois, o aluguer paga-se em tokens. Até dois produtos por conta."
+      },
+      {
+        "q": "Como ligo um calendário e as notificações?",
+        "a": "«O meu perfil» → «Definições» → «Calendários»: Yandex Calendar, Outlook do trabalho, Google e iCloud por ligação; o Taler ID também se liga aí. Os assistentes veem a sua agenda e podem propor eventos num cartão — só entram no calendário depois de os confirmar.\n\nUm assistente também lhe pode escrever a uma hora fixa, por exemplo, enviar-lhe todas as manhãs a «energia do dia». Peça-lho e ative «Notificações neste dispositivo» em «Definições»."
+      },
+      {
+        "q": "Como começo uma conversa do zero?",
+        "a": "Ative «Página em branco» no cabeçalho do chat: o assistente não verá o histórico nem as tarefas anteriores, e o seu perfil continua a ser completado. Desative-o e a conversa continua com o contexto anterior."
+      },
+      {
+        "q": "Existe uma aplicação móvel?",
+        "a": "Para Android — em «Definições» → «Aplicação móvel»: a aplicação instala-se a partir de um ficheiro, não pelo Google Play."
       }
     ]
   },

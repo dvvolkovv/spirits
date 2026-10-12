@@ -1083,7 +1083,11 @@
     "guides": [
       {
         "title": "Chat con el asistente",
-        "desc": "Elige un asistente en el panel izquierdo. Escribe un mensaje o sube un PDF. El asistente responderá según tu perfil."
+        "desc": "Elige un asistente en la lista o en la cabecera del chat y describe tu tarea. Adjunta un archivo con el botón «+»; cualquier respuesta se puede escuchar con «Escuchar»."
+      },
+      {
+        "title": "Llamada de voz",
+        "desc": "El botón «Llamar» inicia una conversación de voz con Román, tu asistente personal."
       },
       {
         "title": "Buscar socios",
@@ -1103,33 +1107,37 @@
       },
       {
         "title": "Generación de imágenes",
-        "desc": "Sección Imágenes o escribe «dibuja…» en el chat. La IA creará una imagen a partir de tu descripción."
+        "desc": "La sección «Generador de imágenes» o directamente en el chat: «dibuja…». Las imágenes se pueden editar, combinar o convertir en vídeo."
       },
       {
         "title": "Generación de vídeo",
         "desc": "Sección Vídeo. Texto→vídeo, imagen→vídeo, continuar un vídeo, lipsync de voz con imagen. 5 o 10 segundos."
       },
       {
-        "title": "Perfil",
-        "desc": "Se completa automáticamente a partir de tus conversaciones con los asistentes. Puedes editar tu nombre, subir una foto y ver tus valores, intereses y habilidades."
+        "title": "Estudio",
+        "desc": "Tus propios asistentes, bots de Telegram para tus grupos y productos: un sitio web o bot que Linkeon aloja y mejora según lo que pidas."
+      },
+      {
+        "title": "Perfil y ajustes",
+        "desc": "Tus valores, intereses y habilidades se recogen de las conversaciones. En «Ajustes» están los calendarios, las notificaciones, las voces de los asistentes y el idioma."
       },
       {
         "title": "Tokens",
-        "desc": "El saldo está en el panel lateral. Recarga mediante YooKassa o con códigos promocionales. El gasto se muestra tras cada operación."
+        "desc": "El saldo está en el bloque «Tokens» del menú; el gasto se ve después de cada operación. Ahí también puedes recargar."
       }
     ],
     "faq": [
       {
         "q": "¿Cómo empiezo a usar la plataforma?",
-        "a": "Al registrarte con tu número de teléfono recibes un paquete inicial de tokens. Elige un asistente en el panel izquierdo y empieza a hablar. El asistente te ayudará a definir tus metas y tareas."
+        "a": "Al entrar recibes un paquete inicial de tokens. Elige un asistente y describe tu tarea con tus propias palabras. ¿No sabes a quién acudir? Empieza por Román: tu asistente personal te ayudará o te dirá qué especialista necesitas."
       },
       {
         "q": "¿Qué son los tokens y cómo se gastan?",
-        "a": "Los tokens son la moneda interna de la plataforma. Se gastan al enviar mensajes a los asistentes, generar imágenes o vídeos y buscar personas. El coste depende de la complejidad de la tarea: el sistema de precios dinámico se ajusta al volumen de trabajo. Verás el gasto de tokens después de cada mensaje."
+        "a": "Los tokens son la moneda interna de la plataforma. Se gastan en mensajes a los asistentes, generación de imágenes y vídeos, locuciones, llamadas de voz y búsqueda de personas. El coste depende de la complejidad de la tarea: la tarificación dinámica se ajusta al volumen de trabajo. Después de cada operación ves el gasto."
       },
       {
         "q": "¿Qué asistentes hay disponibles?",
-        "a": "La plataforma ofrece dos tipos de asistentes:\n\n• Para tu negocio — abogado, contable, director financiero, marketing, copywriter, diseñador, ventas, lanzamiento de negocio, director técnico, orientador profesional\n• Para el crecimiento personal — coach, exploración de valores, facilitador lúdico, numerólogo, astrólogo védico, Human Design, coach de estilo de vida\n• Asistente personal Román — ayuda con cualquier tarea"
+        "a": "La plataforma ofrece dos tipos de asistentes:\n\n• Para tu negocio — abogado, contable, director financiero, marketing, copywriter, diseñador, ventas, lanzamiento de negocio, director técnico, orientador profesional\n• Para el crecimiento personal — coach, exploración de valores, facilitador lúdico, numerólogo, astrólogo védico, Human Design, coach de estilo de vida\n• Asistente personal Román — ayuda con cualquier tarea\n\nPuedes crear tu propio asistente, con su papel y sus instrucciones, en «Estudio» → «Asistentes»."
       },
       {
         "q": "¿Cómo funciona el Networking?",
@@ -1153,15 +1161,15 @@
       },
       {
         "q": "¿Cómo se forma mi perfil?",
-        "a": "Tu perfil se genera automáticamente a partir de tus conversaciones con los asistentes. La IA extrae tus valores, intereses, habilidades, deseos e intenciones — se guardan en una base de datos de grafos y se van afinando. Cuanto más hables, más preciso será tu perfil y mejores los resultados de búsqueda y compatibilidad."
+        "a": "Tu perfil se genera automáticamente a partir de tus conversaciones con los asistentes. La IA extrae tus valores, intereses, habilidades, deseos e intenciones — se guardan en una base de datos de grafos y se van afinando. Cuanto más hables, más preciso será tu perfil y mejores los resultados de búsqueda y compatibilidad. Los asistentes conocen tu negocio por la tarjeta «Mi negocio» de tu perfil; puedes completarla tú mismo."
       },
       {
         "q": "¿Puedo subir documentos?",
-        "a": "¡Sí! Pulsa el botón «+» en el chat y sube un archivo PDF. La IA analizará el documento, extraerá la información clave y te propondrá cómo usarla — actualizar tu perfil, buscar socios o analizar los datos."
+        "a": "Sí. Pulsa «+» en el chat y adjunta un archivo: un documento, una hoja de cálculo, una presentación o una imagen, hasta 10 archivos a la vez. El asistente los analizará en la propia conversación (a Masha solo se le pueden enviar PDF). Todo lo que el asistente ha creado en una conversación —imágenes, vídeos, archivos— está en «Multimedia y archivos»."
       },
       {
         "q": "¿Cómo genero imágenes?",
-        "a": "Hay dos formas:\n\n• En el chat — escríbele al asistente «dibuja...» o «crea una imagen...».\n• En la sección Imágenes — introduce una descripción y pulsa «Generar».\n\nCada imagen cuesta 5000 tokens."
+        "a": "Dos formas:\n\n• En el chat: pide al asistente «dibuja…» o «crea una imagen…».\n• En la sección «Generador de imágenes»: escribe una descripción y lanza la generación.\n\nLa calidad normal cuesta 5000 tokens; la HD (4K), 10 000. Una imagen terminada se puede editar, combinar con otras o convertir en vídeo."
       },
       {
         "q": "¿Cómo creo un vídeo?",
@@ -1169,15 +1177,35 @@
       },
       {
         "q": "¿Cómo recargo tokens?",
-        "a": "Pulsa el bloque «Tokens» en el panel lateral o ve a la sección de recarga. Hay paquetes desde 149₽ hasta 1990₽. También puedes usar códigos promocionales para conseguir tokens extra."
+        "a": "Pulsa el bloque «Tokens» del menú y elige un paquete: los precios y las formas de pago aparecen en la ventana de compra. Con un código promocional obtienes tokens de regalo."
       },
       {
         "q": "¿Qué es el programa de partners?",
-        "a": "Puedes convertirte en partner y ganar una comisión por los pagos de los usuarios que traigas. Contacta con el administrador para activarlo. La comisión se genera automáticamente con cada pago de un referido."
+        "a": "Puedes invitar a un amigo con el enlace del bloque «Invita a un amigo» de tu perfil. El programa de partners paga una comisión por los pagos de los usuarios que traigas: se abona automáticamente y puedes retirarla en tokens o en dinero. Para ser partner, contacta con el administrador."
       },
       {
         "q": "¿Están seguros mis datos?",
         "a": "Sí. No compartimos tus datos con terceros. Los teléfonos de otros usuarios están ocultos — solo puedes contactar mediante solicitudes y chats de la plataforma. Las solicitudes de contacto requieren tu consentimiento explícito (Aceptar/Rechazar). Puedes bloquear a cualquier usuario y eliminar tu cuenta con todos tus datos en cualquier momento desde la sección Perfil."
+      },
+      {
+        "q": "¿Puedo hablar con un asistente por voz?",
+        "a": "Sí. El botón «Llamar» de la cabecera del chat (en el móvil, el botón flotante de la lista de asistentes) inicia una conversación de voz con Román. Cualquier respuesta se puede escuchar con «Escuchar», debajo de ella, y la voz de cada asistente se elige en «Ajustes» → «Voces de los asistentes»."
+      },
+      {
+        "q": "¿Qué es «Estudio»?",
+        "a": "«Estudio» tiene tres pestañas:\n\n• «Asistentes»: tus propios asistentes, con su papel y sus instrucciones.\n• «Bots de Telegram»: un bot con asistente para tu grupo de Telegram; tendrás que vincular tu Telegram en el perfil.\n• «Productos»: tu sitio web o bot de Telegram. El dominio, el servidor y las actualizaciones corren a cargo de Linkeon, y los cambios los pides con tus palabras. El primer mes es gratis; después, el alquiler se paga en tokens. Hasta dos productos por cuenta."
+      },
+      {
+        "q": "¿Cómo conecto un calendario y las notificaciones?",
+        "a": "«Mi perfil» → «Ajustes» → «Calendarios»: Yandex Calendar, Outlook del trabajo, Google e iCloud mediante enlace; ahí también se conecta Taler ID. Los asistentes verán tu agenda y podrán proponerte eventos en una tarjeta: llegan al calendario solo cuando los confirmas.\n\nUn asistente también puede escribirte a una hora fija, por ejemplo, enviarte cada mañana la «energía del día». Pídeselo y activa «Notificaciones en este dispositivo» en «Ajustes»."
+      },
+      {
+        "q": "¿Cómo empiezo una conversación desde cero?",
+        "a": "Activa «Hoja en blanco» en la cabecera del chat: el asistente no verá el historial ni las tareas anteriores, y tu perfil seguirá completándose. Desactívalo y la conversación continuará con el contexto anterior."
+      },
+      {
+        "q": "¿Hay aplicación móvil?",
+        "a": "Para Android, en «Ajustes» → «Aplicación móvil»: la aplicación se instala desde un archivo, no a través de Google Play."
       }
     ]
   },
