@@ -43,6 +43,7 @@ import { trackAuthed } from '../../services/eventsClient';
 import { getRoleForAssistant } from './assistantRole';
 import { formatTokensCompact } from '../../utils/formatters';
 import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
+import { greetingStillWanted } from './greetingGate';
 import { addToQueue, removeFromQueue, joinQueue, type QueuedMessage } from './sendQueue';
 import { shouldShowStreamError, needsActiveTurnProbe } from './streamFailure';
 import {
@@ -509,6 +510,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // уходило бы параллельно (guard по isTyping внутри sendMessageText читает
   // stale-значение из замыкания и не спасает).
   const sendingRef = useRef(false);
+  // Сколько ходов начато (sendMessageToAI). По нему автоприветствие видит, что
+  // человек успел отправить своё, пока оно ждало (greetingGate.ts).
+  const sendSeqRef = useRef(0);
 
   // Очередь пишем ТОЛЬКО через этот хелпер: ref обновляется в тот же момент,
   // что и состояние. Пока ref синхронизировался отдельным эффектом, он отставал
@@ -775,6 +779,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
 
+    // Ответ устаревшего запуска не применяем. Включение «Чистого листа» или
+    // смена ассистента запускают новую загрузку, а прежний запрос ещё в пути:
+    // придя позже, он показывал старую переписку и снимал признак загрузки за
+    // новый. Человек видел готовый чат и писал, а затем пустая история новой
+    // сессии затирала ленту и слала автоприветствие поверх его хода (прод,
+    // 08.10.2026; greetingRaceWiring.test.ts).
+    let stale = false;
+
     const load = async () => {
       setHistoryLoading(true);
       setHistoryOffset(0);
@@ -786,8 +798,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       try {
         const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
         const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=0${freshParam}`);
+        if (stale) return;
         if (response.ok) {
           const data = await response.json();
+          if (stale) return;
           const msgs = (data.messages || []).map((m: any) => {
             const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
             const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
@@ -806,6 +820,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           throw new Error('API error');
         }
       } catch {
+        if (stale) return;
         const saved = localStorage.getItem(getChatStorageKey(selectedAssistant.id));
         if (saved) {
           setMessages(JSON.parse(saved).map((m: any) => {
@@ -823,17 +838,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           sendInitialGreeting();
         }
       } finally {
-        // Маркер «история ИМЕННО этого ассистента загружена» — гейт для
-        // initial-scroll эффекта. Без него эффект срабатывал сразу при смене
-        // ассистента (пока в стейте старые messages и stale historyLoading=false),
-        // преждевременно помечал скролл сделанным — и настоящая история нового
-        // ассистента приезжала уже без скролла и без пина.
-        historyLoadedForRef.current = selectedAssistant.id;
-        setHistoryLoading(false);
+        // Признак загрузки и маркер снимает только актуальный запуск: у
+        // устаревшего их уже взвёл новый.
+        if (!stale) {
+          // Маркер «история ИМЕННО этого ассистента загружена» — гейт для
+          // initial-scroll эффекта. Без него эффект срабатывал сразу при смене
+          // ассистента (пока в стейте старые messages и stale historyLoading=false),
+          // преждевременно помечал скролл сделанным — и настоящая история нового
+          // ассистента приезжала уже без скролла и без пина.
+          historyLoadedForRef.current = selectedAssistant.id;
+          setHistoryLoading(false);
+        }
       }
     };
 
     load();
+    return () => {
+      stale = true;
+    };
   }, [selectedAssistant?.id, hasUserSelectedAssistant, freshTs]);
 
   // Подтянуть свежие строки истории и слить их в ленту.
@@ -954,6 +976,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // лишнее — ассистент потратил бы ход на общее представление.
     if (hasPendingDraftFor(selectedAssistant.id)) return;
 
+    // «Чат пуст» решили по ответу истории, а до отправки ещё смена ассистента
+    // на сервере и пауза. Если человек за это время отправил своё или положил
+    // в очередь, приветствие прервало бы его ход (greetingGate.ts).
+    const seqAtDecision = sendSeqRef.current;
+
     if (lastChangedAgentRef.current !== selectedAssistant.name) {
       isChangingAgentRef.current = true;
       lastChangedAgentRef.current = selectedAssistant.name;
@@ -961,6 +988,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       await new Promise(resolve => setTimeout(resolve, 500));
       isChangingAgentRef.current = false;
     }
+
+    if (!greetingStillWanted({
+      queuedCount: queuedRef.current.length,
+      sending: sendingRef.current,
+      sendSeqAtDecision: seqAtDecision,
+      sendSeqNow: sendSeqRef.current,
+    })) return;
 
     const greetingMessage = t('chat.initial_greeting');
     await sendMessageToAI(greetingMessage);
@@ -1287,6 +1321,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   const sendMessageToAI = async (userMessage: string) => {
+    sendSeqRef.current += 1;
     setIsTyping(true);
     setCurrentStreamingMessage('');
     // Шаги хода копятся локально (цикл ниже живёт дольше одного рендера) и
@@ -1699,7 +1734,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       applyQueued((prev) => addToQueue(prev, text, generateMessageId()));
     };
 
-    if (sendBlocked) {
+    // Пока грузится история, тоже копим: ответ истории перезапишет ленту, а
+    // пустая история нового чата ещё и запустит автоприветствие. Досылка ждёт
+    // конца загрузки, а приветствие уступает очереди — первым уйдёт то, что
+    // написал человек.
+    if (sendBlocked || historyLoading) {
       enqueue();
       return;
     }
