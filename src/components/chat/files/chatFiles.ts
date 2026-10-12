@@ -9,6 +9,8 @@ export interface ChatFileItem {
   /** Нет у stored=false: файл пропал, скачивать нечего. */
   url?: string;
   thumbUrl?: string;
+  /** Только у картинок из наших бакетов: путь ручки миниатюры на бэке (chat-thumb.controller.ts). */
+  thumbPath?: string;
   name: string;
   ext: string;
   createdAt: string;
@@ -24,6 +26,14 @@ export async function fetchChatFiles(assistantId: string | number, freshTs?: str
   if (!res.ok) throw new Error(`chat files: HTTP ${res.status}`);
   const data = await res.json();
   return Array.isArray(data?.items) ? data.items : [];
+}
+
+/**
+ * Адрес миниатюры: путь ручки достраивается от нашего бэкенда, поэтому test,
+ * прод и приложение на Capacitor берут миниатюры каждый со своего.
+ */
+export function thumbUrlFor(thumbPath: string): string {
+  return `${import.meta.env.VITE_BACKEND_URL || ''}${thumbPath}`;
 }
 
 const isMedia = (f: ChatFileItem) => f.kind === 'image' || f.kind === 'video';
