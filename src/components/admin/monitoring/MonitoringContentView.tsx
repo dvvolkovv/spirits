@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Loader, RefreshCw, Image, Video, Phone, Clock, Zap, Wallet } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../../services/apiClient';
+import Stat from './Stat';
+import MonitoringChatFilesSection, { type ChatFilesStats } from './MonitoringChatFilesSection';
 
 type Window = '24h' | '7d' | '30d' | '90d' | 'all';
 const WINDOW_LABEL: Record<Window, string> = {
@@ -24,6 +26,8 @@ interface ContentOverview {
     completionRatePct: number | null;
     avgDurationSec: number | null;
   };
+  /** Нет у старого бэка; null — события не прочитались. */
+  files?: ChatFilesStats | null;
 }
 
 const fmtNum = (n: number) => n.toLocaleString('ru-RU');
@@ -41,15 +45,6 @@ const successColor = (pct: number | null) => {
   if (pct >= 80) return 'text-amber-600';
   return 'text-rose-600';
 };
-
-const Stat: React.FC<{ icon: React.ReactNode; label: string; value: string; sub?: string; valueClass?: string }> =
-({ icon, label, value, sub, valueClass }) => (
-  <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">{icon}{label}</div>
-    <div className={clsx('text-lg font-semibold text-gray-900', valueClass)}>{value}</div>
-    {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
-  </div>
-);
 
 const MonitoringContentView: React.FC = () => {
   const [windowKey, setWindowKey] = useState<Window>('30d');
@@ -143,6 +138,14 @@ const MonitoringContentView: React.FC = () => {
               <Stat icon={<Clock className="w-3.5 h-3.5" />} label="Средн. длительность" value={fmtSec(data.dozvon.avgDurationSec)} />
             </div>
           </section>
+
+          {data.files && <MonitoringChatFilesSection files={data.files} />}
+          {data.files === null && (
+            <section>
+              <h3 className="text-sm font-medium text-gray-700 mb-1">Медиа и файлы</h3>
+              <div className="text-xs text-gray-400">Нет данных: события не прочитались.</div>
+            </section>
+          )}
 
           <div className="text-xs text-gray-400">
             Обновлено: {new Date(data.generatedAt).toLocaleString('ru-RU')}{' · '}
