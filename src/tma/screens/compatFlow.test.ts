@@ -25,6 +25,15 @@ describe('toCompatId', () => {
     expect(toCompatId('+7 (903) 016-91-87')).toBe('79030169187');
   });
 
+  it('суррогатный id из выдачи поиска годится и уходит как есть', () => {
+    // Поиск отдаёт ai_profiles_consolidated.id, а не телефон: телефонов в
+    // выдаче нет намеренно. Ручка узнаёт такой id по длине (короче 10 цифр).
+    // До 12.10.2026 кнопка разбора из-за этого не показывалась ни у кого.
+    expect(toCompatId('1741')).toBe('1741');
+    expect(toCompatId('55')).toBe('55');
+    expect(toCompatId('0')).toBeNull();
+  });
+
   it('UUID не годится для сравнения', () => {
     // userId при входе через почту или OAuth — UUID, и цифры из него мусор.
     // Лучше честно отказать, чем прислать ручке бессмыслицу.
@@ -37,6 +46,12 @@ describe('toCompatId', () => {
 });
 
 describe('runCompat', () => {
+  it('id из выдачи поиска уходит в ручку как есть', async () => {
+    const spy = vi.spyOn(api, 'postStream').mockResolvedValue(undefined);
+    expect(await runCompat('1741', () => {})).toBe(true);
+    expect(spy).toHaveBeenCalledWith('/webhook/analyze-compatibility', { users: ['1741'] }, expect.any(Function));
+  });
+
   it('отдаёт текст по мере генерации', async () => {
     vi.spyOn(api, 'postStream').mockImplementation(async (_u, _d, onChunk) => {
       onChunk({ type: 'begin' });
