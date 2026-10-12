@@ -149,6 +149,26 @@ describe('ChatFilesPanel', () => {
     expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).toBeNull();
   });
 
+  it('плитка берёт миниатюру, при ошибке — оригинал, потом значок', async () => {
+    api.get.mockResolvedValue(ok([f({ key: 'i1', name: 'i1.png', url: 'https://pub/i1.png', thumbPath: '/webhook/chat/thumb?src=x%2Fi1.png' })]));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    const img = () => container.querySelector('[role="tabpanel"] img') as HTMLImageElement | null;
+    expect(img()!.getAttribute('src')).toBe('/webhook/chat/thumb?src=x%2Fi1.png');
+    act(() => { img()!.dispatchEvent(new Event('error')); });
+    expect(img()!.getAttribute('src')).toBe('https://pub/i1.png');
+    act(() => { img()!.dispatchEvent(new Event('error')); });
+    expect(img()).toBeNull();
+    expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).not.toBeNull();
+  });
+
+  it('картинка без thumbPath — сразу оригинал', async () => {
+    api.get.mockResolvedValue(ok([f({ key: 'i1', name: 'i1.png', url: 'https://pub/i1.png' })]));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    expect(container.querySelector('[role="tabpanel"] img')!.getAttribute('src')).toBe('https://pub/i1.png');
+  });
+
   it('файл скачивается по ссылке под своим именем', async () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
