@@ -19,9 +19,28 @@ const effect = (): string => {
   return SRC.slice(start, end);
 };
 
+// Тело sendInitialGreeting — поиском соответствующей закрывающей скобки, а не
+// до следующего `const`: внутри своя `const greetingMessage = ...`, и наивный
+// поиск «до следующего const» обрежет тело ДО вызова sendMessageToAI, спрятав
+// от проверки именно то, что нужно проверить.
+const greeting = (): string => {
+  const marker = 'const sendInitialGreeting = async () => {';
+  const start = SRC.indexOf(marker);
+  expect(start).toBeGreaterThan(-1);
+  const bodyStart = start + marker.length;
+  let depth = 1;
+  let i = bodyStart;
+  while (depth > 0) {
+    if (SRC[i] === '{') depth++;
+    else if (SRC[i] === '}') depth--;
+    i++;
+  }
+  return SRC.slice(bodyStart, i - 1);
+};
+
 describe('черновик со страницы linkeon.io', () => {
   it('ChatInterface забирает черновик из utils/pendingDraft', () => {
-    expect(SRC).toContain("import { takePendingDraftFor } from '../../utils/pendingDraft';");
+    expect(SRC).toContain("import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';");
   });
 
   it('ждёт, пока загрузится история именно выбранного ассистента', () => {
@@ -53,5 +72,16 @@ describe('черновик со страницы linkeon.io', () => {
     // тегу не заметил бы, что класс уехал на другое поле.
     const classes = tag.match(/className="([^"]*)"/)?.[1].split(/\s+/) ?? [];
     expect(classes).toContain('ym-disable-keys');
+  });
+});
+
+describe('автоприветствие уступает черновику с калькулятора', () => {
+  // Если черновик ждёт этого ассистента, он сейчас подставится в поле ввода
+  // (эффект выше) — автоприветствие ассистенту ни к чему: это ход впустую.
+  it('sendInitialGreeting не отправляет приветствие, пока ждёт черновик этого ассистента', () => {
+    const body = greeting();
+    const guard = body.indexOf('hasPendingDraftFor(selectedAssistant.id)');
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(body.indexOf('sendMessageToAI('));
   });
 });
