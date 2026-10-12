@@ -27,6 +27,7 @@ import { parseCustomMarkdown, createButtonComponent, createLinkComponent, create
 import { VoiceDictation } from '../../services/voiceDictation';
 import AudioClip from './AudioClip';
 import ChatFilesPanel from './files/ChatFilesPanel';
+import type { ChatFileKind } from './files/chatFiles';
 import ListenButton from './listen/ListenButton';
 import { useListenPlayer } from './listen/useListenPlayer';
 import VoiceCallCard from './VoiceCallCard';
@@ -775,6 +776,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     setShowFilesPanel(false);
   }, [selectedAssistant?.id]);
+
+  // Открытие панели и скачивание из неё — в статистику админки (spirits_back:
+  // monitoring/product/chat-files-stats.ts). Шлём так же, как file_pick.
+  const openFilesPanel = (entry: 'header' | 'menu') => {
+    setShowFilesPanel(true);
+    if (user?.phone && selectedAssistant) {
+      trackAuthed('chat_files_panel_open', user.phone, { assistantId: selectedAssistant.id, fresh: !!freshTs, entry });
+    }
+  };
+  const trackFilesDownload = (kind: ChatFileKind, from: 'list' | 'viewer') => {
+    if (user?.phone) trackAuthed('chat_files_download', user.phone, { kind, from });
+  };
 
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
@@ -2584,6 +2597,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           assistantId={selectedAssistant.id}
           freshTs={freshTs}
           onClose={() => setShowFilesPanel(false)}
+          onDownload={trackFilesDownload}
         />
       )}
 
@@ -2798,7 +2812,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     Telegram; на мобиле тот же пункт первым в «⋯». */}
                 <button
                   data-testid="chat-files-toggle"
-                  onClick={() => setShowFilesPanel(true)}
+                  onClick={() => openFilesPanel('header')}
                   className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   title={t('chat.files.open')}
                   aria-label={t('chat.files.open')}
@@ -2842,7 +2856,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       <button
                         role="menuitem"
                         data-testid="chat-files-menuitem"
-                        onClick={() => { setShowChatActions(false); setShowFilesPanel(true); }}
+                        onClick={() => { setShowChatActions(false); openFilesPanel('menu'); }}
                         className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
                       >
                         <Images className="w-4 h-4" />
