@@ -56,7 +56,7 @@ import { startActivity, addStep, markTextStarted, finishActivity, type TurnActiv
 import { LiveActivity, ActivitySummaryView } from './ActivitySteps';
 import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
-import { takePendingDraftFor } from '../../utils/pendingDraft';
+import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';
 
 interface Assistant {
   id: number;
@@ -948,6 +948,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const sendInitialGreeting = async () => {
     if (!selectedAssistant) return;
+
+    // Человек пришёл с калькулятора с готовым первым сообщением: оно сейчас
+    // подставится в поле ввода (эффект черновика ниже). Автоприветствие тут
+    // лишнее — ассистент потратил бы ход на общее представление.
+    if (hasPendingDraftFor(selectedAssistant.id)) return;
 
     if (lastChangedAgentRef.current !== selectedAssistant.name) {
       isChangingAgentRef.current = true;
