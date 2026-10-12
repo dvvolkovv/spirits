@@ -37,7 +37,7 @@ describe('связка панели «Медиа и файлы»', () => {
     const fresh = SRC.indexOf('toggleFreshMode(); }}', menu);
     expect(item).toBeGreaterThan(menu);
     expect(item).toBeLessThan(fresh);
-    expect(SRC.slice(item, item + 400)).toContain('setShowChatActions(false); setShowFilesPanel(true);');
+    expect(SRC.slice(item, item + 400)).toContain("setShowChatActions(false); openFilesPanel('menu');");
   });
 
   it('на десктопе — кнопка в ряду перед «Перегенерировать»', () => {
@@ -46,7 +46,7 @@ describe('связка панели «Медиа и файлы»', () => {
     expect(btn).toBeGreaterThan(-1);
     expect(regen).toBeGreaterThan(btn);
     expect(SRC.slice(btn, regen)).toContain('hidden sm:block');
-    expect(SRC.slice(btn, regen)).toContain('onClick={() => setShowFilesPanel(true)}');
+    expect(SRC.slice(btn, regen)).toContain("onClick={() => openFilesPanel('header')}");
   });
 
   it('смена ассистента закрывает панель', () => {
