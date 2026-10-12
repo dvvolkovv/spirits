@@ -132,6 +132,13 @@ describe('MediaViewer', () => {
     m.unmount();
   });
 
+  it('«Скачать» сообщает вид файла', () => {
+    const onDownload = vi.fn();
+    const { container } = mount(<MediaViewer items={[img(0)]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} onDownload={onDownload} />);
+    click(container.querySelector('a[download]')!);
+    expect(onDownload).toHaveBeenCalledWith('image');
+  });
+
   it('стрелки не помечаются обработанными — на них может быть завязан другой код страницы', () => {
     const onIndex = vi.fn();
     const m = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={onIndex} onClose={vi.fn()} />);

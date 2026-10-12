@@ -179,6 +179,16 @@ describe('ChatFilesPanel', () => {
     expect(a.getAttribute('download')).toBe('report.pdf');
   });
 
+  it('скачивание из списка файлов сообщает вид файла', async () => {
+    api.get.mockResolvedValue(ok(ITEMS));
+    const onDownload = vi.fn();
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} onDownload={onDownload} />);
+    await settle();
+    click(tab(container, 'chat.files.tab_files'));
+    click(container.querySelector('[role="tabpanel"] a[href="https://pub/report.pdf"]')!);
+    expect(onDownload).toHaveBeenCalledWith('document', 'list');
+  });
+
   it('не сохранившиеся — свёрнутой строкой внизу, без ссылок', async () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
