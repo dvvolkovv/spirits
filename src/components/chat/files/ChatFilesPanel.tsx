@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import MediaViewer from './MediaViewer';
 import {
-  ChatFileItem, FileIconKind, FilesTab, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab,
+  ChatFileItem, FileIconKind, FilesTab, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab, thumbUrlFor,
 } from './chatFiles';
 import { trapTab } from './focusTrap';
 
@@ -48,6 +48,8 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
   // Миниатюры, у которых <img> отдал 'error' (адрес протух/404) — рисуем
   // заглушку вместо штатной «битой картинки» браузера.
   const [brokenKeys, setBrokenKeys] = useState<ReadonlySet<string>>(new Set());
+  // Миниатюра не загрузилась — плитка пробует оригинал, и только потом значок.
+  const [thumbFailedKeys, setThumbFailedKeys] = useState<ReadonlySet<string>>(new Set());
   // Esc при открытом просмотре закрывает просмотр (MediaViewer), а не панель.
   // Ref, а не состояние: оба обработчика срабатывают на одно и то же нажатие,
   // и к моменту проверки здесь просмотр ещё не успел закрыться.
@@ -89,6 +91,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
     // же данными мог бы навечно держать миниатюру заглушкой, даже если
     // адрес уже ожил, — ключ в brokenKeys от прежней попытки переживал load().
     setBrokenKeys(new Set());
+    setThumbFailedKeys(new Set());
     try {
       const list = await fetchChatFiles(assistantId, freshTs);
       setItems(list);
@@ -259,14 +262,23 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose }) => {
                               <ImageOff className="h-6 w-6 text-gray-400" aria-hidden="true" />
                             </div>
                           ) : (
-                            <img
-                              src={it.kind === 'video' ? it.thumbUrl : it.url}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="h-full w-full object-cover"
-                              onError={() => setBrokenKeys((prev) => new Set(prev).add(it.key))}
-                            />
+                            (() => {
+                              const useThumb = it.kind === 'image' && !!it.thumbPath && !thumbFailedKeys.has(it.key);
+                              return (
+                                <img
+                                  src={it.kind === 'video' ? it.thumbUrl : useThumb ? thumbUrlFor(it.thumbPath as string) : it.url}
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="h-full w-full object-cover"
+                                  onError={() =>
+                                    useThumb
+                                      ? setThumbFailedKeys((prev) => new Set(prev).add(it.key))
+                                      : setBrokenKeys((prev) => new Set(prev).add(it.key))
+                                  }
+                                />
+                              );
+                            })()
                           )}
                           {it.kind === 'video' && (
                             <span className="absolute inset-0 flex items-center justify-center">
