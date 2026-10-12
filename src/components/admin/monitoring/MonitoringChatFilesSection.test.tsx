@@ -20,7 +20,9 @@ describe('MonitoringChatFilesSection', () => {
     expect(text).toContain('50.0%');
     expect(text).toContain('не удалось 2 · чаще всего: таймаут');
     expect(text).toContain('309 МБ');
-    expect(text).toContain('601 файл');
+    // Строго «файл», а не «файлов»: без границы после слова «601 файлов»
+    // тоже прошёл бы, потому что начинается с той же подстроки.
+    expect(text).toMatch(/601 файл(?![а-я])/);
   });
 
   it('MinIO не ответил — так и пишет', () => {
@@ -31,5 +33,21 @@ describe('MonitoringChatFilesSection', () => {
   it('вызовов не было — проценты прочерком', () => {
     const files = { ...STATS, findFiles: { calls: 0, withResults: 0, withStored: 0 } };
     expect(visibleText(mount(<MonitoringChatFilesSection files={files} />).container)).toContain('—');
+  });
+
+  it.each([
+    [601, 'файл'],
+    [2, 'файла'],
+    [5, 'файлов'],
+    [11, 'файлов'],
+  ])('bucketObjects=%i — склоняется «файл(а/ов)»: %s', (bucketObjects, word) => {
+    const files = { ...STATS, storage: { ...STATS.storage, bucketObjects } };
+    const text = visibleText(mount(<MonitoringChatFilesSection files={files} />).container);
+    expect(text).toContain(`${bucketObjects} ${word}`);
+  });
+
+  it('бакет меньше 1 МБ — показывает КБ, а не округляет до «0 МБ»', () => {
+    const files = { ...STATS, storage: { ...STATS.storage, bucketBytes: 2048 } };
+    expect(visibleText(mount(<MonitoringChatFilesSection files={files} />).container)).toContain('2 КБ');
   });
 });
