@@ -105,16 +105,38 @@ describe('карточка «что это за бот» на вкладке б�
     expect(visibleText(c)).not.toContain(intro.lead);
   });
 
+  it('только личный чат с ботом — развёрнута: групповых ботов человек ещё не заводил', async () => {
+    // Личка заводит свою строку в том же списке: положительный id чата и имя
+    // «Linkeon» (ensurePrivateConfig на бэке). По ней человек не «опытный».
+    api.list.mockResolvedValue([
+      bot({ tgChatId: '987654321', tgChatTitle: null, displayName: 'Linkeon', addressingMode: 'always', voiceReplyMode: 'mirror' }),
+    ]);
+    const c = await openTab();
+    expect(visibleText(c)).toContain(intro.lead);
+  });
+
+  it('бот ждёт группы — свёрнута: мастер человек уже прошёл', async () => {
+    api.list.mockResolvedValue([bot({ status: 'pending', tgChatId: null, tgChatTitle: null })]);
+    const c = await openTab();
+    expect(visibleText(c)).toContain(intro.title);
+    expect(visibleText(c)).not.toContain(intro.lead);
+  });
+
   it('список не загрузился — развёрнута: о человеке ничего не известно', async () => {
     api.list.mockRejectedValue(new Error('HTTP 502'));
     const c = await openTab();
     expect(visibleText(c)).toContain(intro.lead);
   });
 
-  it('до ответа сервера карточки нет — иначе она прыгала бы из вида в вид', async () => {
+  it('до ответа сервера — только «Загрузка»: карточка не прыгает и не сдвигает кнопки', async () => {
     api.list.mockReturnValue(new Promise<TgBotConfig[]>(() => {}));
     const c = await openTab();
+    expect(visibleText(c)).toContain(ru.common.loading);
     expect(visibleText(c)).not.toContain(intro.title);
+    // Карточка встаёт НАД кнопкой «Создать» и вкладками. Нарисуй их раньше —
+    // у новичка на телефоне они уехали бы на экран вниз прямо под пальцем.
+    expect(visibleText(c)).not.toContain(ru.tgBot.create_button);
+    expect(visibleText(c)).not.toContain(ru.tgBot.tab_active);
   });
 
   it('раскрытая вручную не пропадает и не схлопывается, пока список перезагружается', async () => {

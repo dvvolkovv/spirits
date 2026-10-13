@@ -22,16 +22,25 @@ interface Props {
  * клиентов, решает, что такого у нас нет.
  *
  * Каждое утверждение текста сверено с бэкендом (src/tg-bot): за ответы всем
- * участникам платит владелец, все сообщения группы сохраняются и видны ему в
- * «Истории». Меняется поведение бота — меняется и текст.
+ * участникам платит владелец; сообщения группы сохраняются ещё до решения,
+ * отвечать ли (кроме пришедших при нулевом балансе и ссылок на встречу), и
+ * видны ему в «Истории». Меняется поведение бота — меняется и текст.
  */
 export const TgBotIntro: React.FC<Props> = ({ defaultOpen, onOpenProducts }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
 
-  const why = [t('tgBot.intro.why_work'), t('tgBot.intro.why_family'), t('tgBot.intro.why_personal')];
-  const how = [t('tgBot.intro.how_link'), t('tgBot.intro.how_setup'), t('tgBot.intro.how_add')];
+  const why = [
+    ['work', t('tgBot.intro.why_work')],
+    ['family', t('tgBot.intro.why_family')],
+    ['personal', t('tgBot.intro.why_personal')],
+  ] as const;
+  const how = [
+    ['link', t('tgBot.intro.how_link')],
+    ['setup', t('tgBot.intro.how_setup')],
+    ['add', t('tgBot.intro.how_add')],
+  ] as const;
 
   return (
     <section className="mb-5 bg-white rounded-2xl border border-gray-200">
@@ -62,15 +71,15 @@ export const TgBotIntro: React.FC<Props> = ({ defaultOpen, onOpenProducts }) => 
           <div>
             <h3 className="font-semibold text-gray-900 mb-1.5">{t('tgBot.intro.why_title')}</h3>
             <ul className="list-disc pl-5 space-y-1.5 marker:text-forest-700">
-              {why.map((text) => <li key={text}>{text}</li>)}
+              {why.map(([k, text]) => <li key={k}>{text}</li>)}
             </ul>
           </div>
 
           <div>
             <h3 className="font-semibold text-gray-900 mb-1.5">{t('tgBot.intro.how_title')}</h3>
             <ol className="space-y-1.5">
-              {how.map((text, i) => (
-                <li key={text} className="flex gap-2.5">
+              {how.map(([k, text], i) => (
+                <li key={k} className="flex gap-2.5">
                   <span className="w-5 h-5 shrink-0 rounded-full bg-forest-100 text-forest-700 text-xs font-semibold flex items-center justify-center">
                     {i + 1}
                   </span>
