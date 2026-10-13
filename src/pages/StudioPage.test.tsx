@@ -17,7 +17,7 @@
  * «Продукты» среди вкладок» и «что нарисовано под ними».
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mount, tRu } from '../test/dom';
+import { mount, click, byButton, tRu } from '../test/dom';
 import StudioPage from './StudioPage';
 
 vi.mock('react-i18next', async () => {
@@ -31,7 +31,14 @@ vi.mock('../components/custom-agents/CustomAgentsListView', () => ({
   CustomAgentsListView: () => <div>СПИСОК-АССИСТЕНТОВ</div>,
 }));
 vi.mock('../components/tg-bot/TgBotsListView', () => ({
-  TgBotsListView: () => <div>СПИСОК-БОТОВ</div>,
+  // Кнопка повторяет указатель из карточки «что это за бот»: по ней видно,
+  // какой переход Студия отдала вкладке ботов.
+  TgBotsListView: ({ onOpenProducts }: { onOpenProducts?: () => void }) => (
+    <div>
+      СПИСОК-БОТОВ
+      <button onClick={onOpenProducts}>В-ПРОДУКТЫ</button>
+    </div>
+  ),
 }));
 vi.mock('../components/products/ProductsSection', () => ({
   ProductsSection: () => <div>РАЗДЕЛ-ПРОДУКТОВ</div>,
@@ -51,8 +58,9 @@ vi.mock('../contexts/AuthContext', () => ({
 }));
 
 let search = '';
+const setParams = vi.fn();
 vi.mock('react-router-dom', () => ({
-  useSearchParams: () => [new URLSearchParams(search), vi.fn()],
+  useSearchParams: () => [new URLSearchParams(search), setParams],
 }));
 
 const tabsLabel = tRu('studio.tabs.products');
@@ -60,6 +68,7 @@ const tabsLabel = tRu('studio.tabs.products');
 afterEach(() => {
   isAdmin = false;
   search = '';
+  setParams.mockReset();
 });
 
 describe('вкладка «Продукты» в Студии', () => {
@@ -121,5 +130,22 @@ describe('вкладка «Продукты» в Студии', () => {
 
     expect(container.textContent).toContain('СПИСОК-БОТОВ');
     expect(container.textContent).not.toContain('РАЗДЕЛ-ПРОДУКТОВ');
+  });
+});
+
+describe('переход из вкладки ботов в «Продукты»', () => {
+  it('ведёт себя как нажатие на вкладку: параметры адреса на месте, история не растёт', () => {
+    // Ровно тот адрес, с которым владелец пришёл с лендинга.
+    search = 'utm_content=sites&lang=ru&tab=bots';
+    const { container } = mount(<StudioPage />);
+
+    click(byButton(container, /В-ПРОДУКТЫ/)!);
+
+    expect(setParams).toHaveBeenCalledTimes(1);
+    const [next, opts] = setParams.mock.calls[0] as [URLSearchParams, unknown];
+    expect(next.get('tab')).toBe('products');
+    expect(next.get('utm_content')).toBe('sites');
+    expect(next.get('lang')).toBe('ru');
+    expect(opts).toEqual({ replace: true });
   });
 });
