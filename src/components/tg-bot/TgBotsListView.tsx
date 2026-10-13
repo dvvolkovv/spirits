@@ -7,6 +7,7 @@ import { tgBotApi, type TgBotConfig } from '../../services/tgBotApi';
 import { TgBotCard } from './TgBotCard';
 import { TgBotEditModal } from './TgBotEditModal';
 import { TgBotMessagesView } from './TgBotMessagesView';
+import { TgBotIntro } from './TgBotIntro';
 
 // Модалка с новой claim-ссылкой после «Переподключить». Module-scope —
 // inline-FC внутри рендера ре-маунтится из-за token-poll (см. комментарий ниже).
@@ -51,9 +52,15 @@ const ReconnectLinkModal: React.FC<{ displayName: string; deepLink: string; onCl
 interface Props {
   /** Если true — без внешней h-full обёртки и без заголовка страницы. */
   embedded?: boolean;
+  /**
+   * Открыть вкладку «Продукты». Студия передаёт свой setTab, чтобы переход вёл
+   * себя как нажатие на вкладку: параметры адреса на месте, новой записи в
+   * истории нет. Без него — обычный переход на адрес вкладки.
+   */
+  onOpenProducts?: () => void;
 }
 
-export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
+export const TgBotsListView: React.FC<Props> = ({ embedded = false, onOpenProducts }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [configs, setConfigs] = useState<TgBotConfig[]>([]);
@@ -62,11 +69,26 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
   const [editing, setEditing] = useState<TgBotConfig | null>(null);
   const [viewingMessages, setViewingMessages] = useState<TgBotConfig | null>(null);
   const [reconnect, setReconnect] = useState<{ displayName: string; deepLink: string } | null>(null);
+  // Развёрнута ли карточка «что это за бот», решает ПЕРВАЯ загрузка списка:
+  // новичку (ни одного бота, даже в архиве) — целиком, остальным — строкой.
+  // null — список ещё не приходил, и карточку не рисуем: иначе она прыгала бы
+  // «развёрнута → свёрнута» на глазах. Повторные загрузки (архив,
+  // переподключение) значение не трогают: карточка, раскрытая вручную,
+  // схлопывалась бы после каждого действия со списком.
+  const [introOpen, setIntroOpen] = useState<boolean | null>(null);
 
   const reload = async () => {
     setLoading(true);
-    try { setConfigs(await tgBotApi.list()); }
-    catch (e: any) { toast.error(e?.message ?? t('tgBot.list_load_error')); }
+    try {
+      const list = await tgBotApi.list();
+      setConfigs(list);
+      setIntroOpen(prev => prev ?? list.length === 0);
+    }
+    catch (e: any) {
+      toast.error(e?.message ?? t('tgBot.list_load_error'));
+      // О человеке ничего не известно — объяснение лишним не будет.
+      setIntroOpen(prev => prev ?? true);
+    }
     finally { setLoading(false); }
   };
 
@@ -112,6 +134,13 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
           <Plus size={16} /> {t('tgBot.create_button')}
         </button>
       </div>
+      )}
+
+      {introOpen !== null && (
+        <TgBotIntro
+          defaultOpen={introOpen}
+          onOpenProducts={onOpenProducts ?? (() => navigate('/studio?tab=products'))}
+        />
       )}
 
       {embedded && (

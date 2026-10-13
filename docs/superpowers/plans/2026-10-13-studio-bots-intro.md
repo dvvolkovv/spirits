@@ -490,7 +490,7 @@ git commit -m "feat(tg-bot): карточка «что это за бот» — 
 // новичку целиком, остальным строкой заголовка. Решение принимается один раз,
 // по первой загрузке списка, и действия со списком его не отменяют.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mount, click, clickAsync, flush, visibleText } from '../../test/dom';
+import { mount, click, clickAsync, actAsync, flush, visibleText } from '../../test/dom';
 import type { Mounted } from '../../test/dom';
 import ru from '../../i18n/locales/ru.json';
 import { TgBotsListView } from './TgBotsListView';
@@ -603,7 +603,7 @@ describe('карточка «что это за бот» на вкладке б�
     expect(visibleText(c)).not.toContain(intro.title);
   });
 
-  it('раскрытая вручную не схлопывается после архивации бота', async () => {
+  it('раскрытая вручную не пропадает и не схлопывается, пока список перезагружается', async () => {
     api.list.mockResolvedValue([bot()]);
     vi.stubGlobal('confirm', () => true);
     const c = await openTab();
@@ -611,15 +611,23 @@ describe('карточка «что это за бот» на вкладке б�
     click(buttonWith(c, intro.title));
     expect(visibleText(c)).toContain(intro.lead);
 
-    // Архивация перезагружает список. Карточка, которую рисуют только вне
-    // загрузки, размонтировалась бы и вернулась свёрнутой.
-    api.list.mockResolvedValue([bot({ status: 'archived', archivedAt: '2026-10-13T10:00:00Z' })]);
+    // Архивация перезагружает список. Ответ сервера держим, пока не посмотрим
+    // на экран посреди загрузки: мгновенный ответ заглушки React склеивает с
+    // началом загрузки в одну отрисовку, и карточка, которую рисуют только
+    // вне загрузки, прошла бы этот тест — проверено мутацией. В браузере между
+    // запросом и ответом проходит время, и такая карточка размонтировалась бы
+    // и вернулась свёрнутой.
+    let answer!: (rows: TgBotConfig[]) => void;
+    api.list.mockReturnValueOnce(new Promise<TgBotConfig[]>((resolve) => { answer = resolve; }));
     const archive = c.querySelector(`button[aria-label="${ru.tgBot.card_archive_aria}"]`);
     expect(archive).not.toBeNull();
     await clickAsync(archive!);
     await flush();
 
     expect(api.list).toHaveBeenCalledTimes(2);
+    expect(visibleText(c)).toContain(intro.lead);
+
+    await actAsync(() => answer([bot({ status: 'archived', archivedAt: '2026-10-13T10:00:00Z' })]));
     expect(visibleText(c)).toContain(intro.lead);
   });
 
@@ -718,7 +726,7 @@ Expected: PASS — 8 тестов в `TgBotsListView.test.tsx` и 4 в `TgBotInt
 
 - [ ] **Step 5: Сломать нарочно**
 
-Обернуть карточку в `!loading && …` (рисовать только вне загрузки) → сценарий «раскрытая вручную не схлопывается…» должен покраснеть. Вернуть как было → зелёный. Правку не коммитить.
+Обернуть карточку в `!loading && …` (рисовать только вне загрузки) → сценарий «раскрытая вручную не пропадает и не схлопывается…» должен покраснеть. С мгновенным ответом заглушки он оставался зелёным: React склеивал начало и конец загрузки в одну отрисовку. Поэтому второй ответ списка придерживается до проверки экрана. Вернуть как было → зелёный. Правку не коммитить.
 
 - [ ] **Step 6: Коммит**
 
