@@ -32,7 +32,7 @@ PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH ./node_modules/.bin/vitest run 
 
 Типографика взята по соседним строкам `tgBot.*` той же локали:
 - de: „…“ и « – »;
-- fr: « … » с обычными пробелами, апостроф ’, обычный пробел перед « : » и « ? »;
+- fr: « … » с обычными пробелами, апостроф ’, обычный пробел перед « : » и « ? ». Это большинство файла (118 обычных пробелов перед двоеточием против 7 неразрывных), хотя в части соседних `tgBot.*` стоят U+00A0. Видимого вреда нет: перед `: ; ? !` браузер не переносит строку и после обычного пробела (UAX #14, LB13);
 - es и pt: «…»;
 - zh: 「…」 и ——, пробелы вокруг латиницы;
 - en и pt: « — ».
@@ -41,7 +41,7 @@ PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH ./node_modules/.bin/vitest run 
 - de: Guthaben, aufladen;
 - fr: jetons, solde, recharger;
 - es: saldo, recargar;
-- pt (европейский): separador, ficheiros, link, carregar;
+- pt (европейский): separador, ficheiros, link, carregar. Оговорка: `products.*` в `pt.json` написан на «você», а не на «tu»;
 - zh: 代币, 余额, 充值.
 
 Роли в примерах получили род реальных ассистентов: юрист Алексей, бухгалтер Анна, копирайтер Екатерина.
@@ -50,8 +50,8 @@ PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH ./node_modules/.bin/vitest run 
 
 ```js
 // Тексты карточки «что это за бот» (вкладка «Telegram-боты» Студии) на семи
-// языках. Идемпотентный: tgBot.intro перезаписывается целиком, в ru — ещё две
-// строки тона вкладки («ты» → «вы»).
+// языках. Идемпотентный: tgBot.intro перезаписывается целиком, в ru — ещё
+// четыре строки тона вкладки («ты» → «вы»).
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const ORDER = [
@@ -104,7 +104,7 @@ const INTRO = {
   },
   de: {
     title: "Ein Linkeon-Assistent in deiner Telegram-Gruppe",
-    lead: "Wähle eine Rolle (einen fertigen Linkeon-Assistenten oder einen eigenen aus dem Tab „Assistenten“) und einen Namen, auf den er reagiert. Der Assistent antwortet direkt im Chat – auf Text, Sprachnachrichten und geschickte Dateien – und auf Wunsch auch selbst per Sprache.",
+    lead: "Wähle eine Rolle (einen fertigen Linkeon-Assistenten oder einen eigenen aus dem Tab „Assistenten“) und einen Namen, auf den er reagiert. Der Assistent antwortet direkt im Chat – auf Textnachrichten, Sprachnachrichten und gesendete Dateien – und auf Wunsch auch selbst per Sprache.",
     why_title: "Wozu",
     why_work: "Arbeitschat: Ein Jurist prüft den Vertrag, der in die Gruppe geschickt wurde, eine Buchhalterin beantwortet Steuerfragen, eine Texterin entwirft einen Post.",
     why_family: "Familie oder Freunde: eine Reise planen, gemeinsame Ausgaben ausrechnen, ein Geschenk aussuchen.",
@@ -116,28 +116,28 @@ const INTRO = {
     cost_title: "Was es kostet",
     cost: "Jede Antwort des Bots kostet Tokens von deinem Guthaben – auch wenn ein anderes Gruppenmitglied gefragt hat. Sind die Tokens aufgebraucht, sagt der Bot der Gruppe Bescheid und schweigt, bis du aufgeladen hast.",
     note_title: "Gut zu wissen",
-    note_history: "Der Bot sieht die Nachrichten der Gruppe – so versteht er, worum es geht; den Verlauf findest du in der Karte des Bots.",
+    note_history: "Der Bot sieht die Nachrichten der Gruppe – so versteht er, worum es geht; den Verlauf findest du auf der Karte des Bots.",
     note_commands: "Befehle für dich als Besitzer in der Gruppe: /balance – Guthaben, /silent – der Bot schweigt, /resume – er antwortet wieder.",
-    products: "Du brauchst einen eigenen Bot für deine Kunden – unter deinem eigenen Namen in Telegram, der Termine vergibt, Anfragen annimmt und häufige Fragen beantwortet? Das ist ein Produkt, und ein Assistent baut es für dich.",
+    products: "Du brauchst einen eigenen Bot für deine Kunden, der unter deinem Namen in Telegram Termine vergibt, Anfragen annimmt und häufige Fragen beantwortet? Das ist ein Produkt, und ein Assistent baut es für dich.",
     products_button: "„Produkte“ öffnen",
   },
   fr: {
     title: "Un assistant Linkeon dans votre groupe Telegram",
-    lead: "Choisissez un rôle (un assistant Linkeon prêt à l’emploi ou l’un des vôtres dans l’onglet « Assistants ») et le nom auquel il répondra. L’assistant répond directement dans la conversation — aux messages écrits, aux messages vocaux et aux fichiers envoyés — et, si vous le souhaitez, il répond aussi à voix haute.",
+    lead: "Choisissez un rôle (un assistant Linkeon prêt à l’emploi ou l’un des vôtres dans l’onglet « Assistants ») et le nom auquel il répondra. L’assistant répond directement dans la conversation — aux messages écrits, aux messages vocaux et aux fichiers envoyés — et, si vous le souhaitez, il peut aussi répondre par message vocal.",
     why_title: "À quoi ça sert",
-    why_work: "Chat de travail : un juriste vérifie le contrat envoyé dans le groupe, une comptable répond aux questions d’impôts, une rédactrice ébauche une publication.",
+    why_work: "Chat de travail : un juriste vérifie le contrat envoyé dans le groupe, une comptable répond aux questions fiscales, une rédactrice ébauche une publication.",
     why_family: "Famille ou amis : planifier un voyage, calculer les dépenses communes, choisir un cadeau.",
     why_personal: "Votre propre chat : un groupe avec seulement vous et le bot — l’assistant toujours à portée de main dans Telegram.",
     how_title: "Comment le connecter",
     how_link: "Liez votre Telegram — c’est à faire une seule fois.",
-    how_setup: "Choisissez le rôle, le nom et quand le bot répond : seulement quand on s’adresse à lui, quand il juge utile d’intervenir, ou à chaque message.",
+    how_setup: "Choisissez le rôle, le nom et le moment où le bot répond : seulement quand on s’adresse à lui, quand il juge utile d’intervenir, ou à chaque message.",
     how_add: "Ajoutez le bot au groupe grâce au lien — il s’active tout seul.",
     cost_title: "Combien ça coûte",
-    cost: "Chaque réponse du bot est payée en jetons sur votre solde — même si la question vient d’un autre membre du groupe. Si vos jetons sont épuisés, le bot prévient le groupe et se tait jusqu’à ce que vous rechargiez.",
+    cost: "Chaque réponse du bot est débitée de votre solde de jetons — même si la question vient d’un autre membre du groupe. Si vos jetons sont épuisés, le bot prévient le groupe et se tait jusqu’à ce que vous rechargiez.",
     note_title: "Bon à savoir",
     note_history: "Le bot voit les messages du groupe — c’est ainsi qu’il comprend de quoi on parle ; l’historique de la conversation est consultable dans la fiche du bot.",
     note_commands: "Commandes du propriétaire dans le groupe : /balance — solde, /silent — le bot se tait, /resume — il répond de nouveau.",
-    products: "Besoin de votre propre bot pour vos clients — sous votre propre nom dans Telegram, qui prend les rendez-vous, reçoit les demandes et répond aux questions fréquentes ? C’est un produit : un assistant le construira pour vous.",
+    products: "Besoin de votre propre bot pour vos clients, qui porte votre nom dans Telegram, prend les rendez-vous, reçoit les demandes et répond aux questions fréquentes ? C’est un produit : un assistant le construira pour vous.",
     products_button: "Ouvrir « Produits »",
   },
   es: {
@@ -161,7 +161,7 @@ const INTRO = {
   },
   pt: {
     title: "Um assistente Linkeon no teu grupo do Telegram",
-    lead: "Escolhe uma função (um assistente Linkeon já pronto ou um dos teus, do separador «Assistentes») e o nome a que ele vai responder. O assistente responde diretamente na conversa — a texto, mensagens de voz e ficheiros enviados — e, se quiseres, também responde por voz.",
+    lead: "Escolhe uma função (um assistente Linkeon já pronto ou um dos teus, do separador «Assistentes») e o nome a que ele vai responder. O assistente responde diretamente na conversa — a mensagens de texto e de voz e a ficheiros enviados — e, se quiseres, também responde por voz.",
     why_title: "Para que serve",
     why_work: "Chat de trabalho: um jurista revê o contrato enviado para o grupo, uma contabilista responde sobre impostos, uma redatora faz o rascunho de uma publicação.",
     why_family: "Família ou amigos: planear uma viagem, calcular as despesas comuns, escolher um presente.",
@@ -175,12 +175,12 @@ const INTRO = {
     note_title: "Convém saber",
     note_history: "O bot vê as mensagens do grupo — é assim que percebe do que se está a falar; o histórico da conversa pode ser consultado no cartão do bot.",
     note_commands: "Comandos do proprietário no grupo: /balance — saldo, /silent — o bot fica calado, /resume — volta a responder.",
-    products: "Precisas de um bot próprio para os teus clientes — com o teu próprio nome no Telegram, que faz marcações, recebe pedidos e responde às perguntas frequentes? Isso é um produto, e um assistente constrói-o por ti.",
+    products: "Precisas de um bot só teu, que use o teu nome no Telegram, faça marcações, receba pedidos e responda às perguntas frequentes dos teus clientes? Isso é um produto, e um assistente constrói-o por ti.",
     products_button: "Abrir «Produtos»",
   },
   zh: {
     title: "您的 Telegram 群组中的 Linkeon 助手",
-    lead: "选择一个角色（现成的 Linkeon 助手，或您在「助手」标签页中创建的助手），并设定一个它会响应的名称。助手直接在聊天中回复文字、语音消息和发送的文件；如有需要，它也能用语音回答。",
+    lead: "选择一个角色（现成的 Linkeon 助手，或您在「助手」标签页中创建的助手），并设定一个它会响应的名称。助手直接在聊天中回复文字、语音消息和群里发送的文件；如有需要，它也能用语音回答。",
     why_title: "用途",
     why_work: "工作群：律师审阅群里发来的合同，会计解答税务问题，文案起草帖子。",
     why_family: "家人或朋友：规划旅行、计算共同开支、挑选礼物。",
@@ -194,7 +194,7 @@ const INTRO = {
     note_title: "须知",
     note_history: "机器人能看到群组消息——这样它才能理解大家在聊什么；聊天记录可在机器人卡片中查看。",
     note_commands: "机器人所有者在群组中可用的命令：/balance 查看余额，/silent 让机器人保持安静，/resume 恢复回复。",
-    products: "需要一个服务客户的专属机器人？它在 Telegram 中使用您自己的名称，可以预约、接收申请并回答常见问题。这属于产品，助手会为您搭建。",
+    products: "需要一个服务客户的专属机器人？它在 Telegram 中使用您自己的名称，可以接受预约、接收申请并回答常见问题。这属于产品，助手会为您搭建。",
     products_button: "打开「产品」",
   },
 };
@@ -202,6 +202,10 @@ const INTRO = {
 const RU_TONE = {
   bots_subtitle: "Telegram-боты для ваших групп",
   empty_active_hint: "Создайте бота для своей Telegram-группы",
+  // Модалка правки открывается только с этой вкладки; подзаголовок — у
+  // вкладки вне Студии. addgroup_hint общий с мастером и остаётся на «ты».
+  edit_fill_error: "Заполните имя и роль",
+  list_subtitle: "Telegram-боты, работающие в ваших группах",
 };
 
 const root = process.argv[2];
@@ -223,6 +227,8 @@ for (const [lang, texts] of Object.entries(INTRO)) {
   if (lang === 'ru') {
     json.pages.studio.bots_subtitle = RU_TONE.bots_subtitle;
     json.tgBot.empty_active_hint = RU_TONE.empty_active_hint;
+    json.tgBot.edit_fill_error = RU_TONE.edit_fill_error;
+    json.tgBot.list_subtitle = RU_TONE.list_subtitle;
   }
   writeFileSync(file, JSON.stringify(json, null, 2) + '\n');
   console.log(`✅ ${lang}: tgBot.intro — ${ORDER.length} ключей`);
@@ -374,16 +380,25 @@ interface Props {
  * клиентов, решает, что такого у нас нет.
  *
  * Каждое утверждение текста сверено с бэкендом (src/tg-bot): за ответы всем
- * участникам платит владелец, все сообщения группы сохраняются и видны ему в
- * «Истории». Меняется поведение бота — меняется и текст.
+ * участникам платит владелец; сообщения группы сохраняются ещё до решения,
+ * отвечать ли (кроме пришедших при нулевом балансе и ссылок на встречу), и
+ * видны ему в «Истории». Меняется поведение бота — меняется и текст.
  */
 export const TgBotIntro: React.FC<Props> = ({ defaultOpen, onOpenProducts }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
 
-  const why = [t('tgBot.intro.why_work'), t('tgBot.intro.why_family'), t('tgBot.intro.why_personal')];
-  const how = [t('tgBot.intro.how_link'), t('tgBot.intro.how_setup'), t('tgBot.intro.how_add')];
+  const why = [
+    ['work', t('tgBot.intro.why_work')],
+    ['family', t('tgBot.intro.why_family')],
+    ['personal', t('tgBot.intro.why_personal')],
+  ] as const;
+  const how = [
+    ['link', t('tgBot.intro.how_link')],
+    ['setup', t('tgBot.intro.how_setup')],
+    ['add', t('tgBot.intro.how_add')],
+  ] as const;
 
   return (
     <section className="mb-5 bg-white rounded-2xl border border-gray-200">
@@ -414,15 +429,15 @@ export const TgBotIntro: React.FC<Props> = ({ defaultOpen, onOpenProducts }) => 
           <div>
             <h3 className="font-semibold text-gray-900 mb-1.5">{t('tgBot.intro.why_title')}</h3>
             <ul className="list-disc pl-5 space-y-1.5 marker:text-forest-700">
-              {why.map((text) => <li key={text}>{text}</li>)}
+              {why.map(([k, text]) => <li key={k}>{text}</li>)}
             </ul>
           </div>
 
           <div>
             <h3 className="font-semibold text-gray-900 mb-1.5">{t('tgBot.intro.how_title')}</h3>
             <ol className="space-y-1.5">
-              {how.map((text, i) => (
-                <li key={text} className="flex gap-2.5">
+              {how.map(([k, text], i) => (
+                <li key={k} className="flex gap-2.5">
                   <span className="w-5 h-5 shrink-0 rounded-full bg-forest-100 text-forest-700 text-xs font-semibold flex items-center justify-center">
                     {i + 1}
                   </span>
@@ -591,16 +606,38 @@ describe('карточка «что это за бот» на вкладке б�
     expect(visibleText(c)).not.toContain(intro.lead);
   });
 
+  it('только личный чат с ботом — развёрнута: групповых ботов человек ещё не заводил', async () => {
+    // Личка заводит свою строку в том же списке: положительный id чата и имя
+    // «Linkeon» (ensurePrivateConfig на бэке). По ней человек не «опытный».
+    api.list.mockResolvedValue([
+      bot({ tgChatId: '987654321', tgChatTitle: null, displayName: 'Linkeon', addressingMode: 'always', voiceReplyMode: 'mirror' }),
+    ]);
+    const c = await openTab();
+    expect(visibleText(c)).toContain(intro.lead);
+  });
+
+  it('бот ждёт группы — свёрнута: мастер человек уже прошёл', async () => {
+    api.list.mockResolvedValue([bot({ status: 'pending', tgChatId: null, tgChatTitle: null })]);
+    const c = await openTab();
+    expect(visibleText(c)).toContain(intro.title);
+    expect(visibleText(c)).not.toContain(intro.lead);
+  });
+
   it('список не загрузился — развёрнута: о человеке ничего не известно', async () => {
     api.list.mockRejectedValue(new Error('HTTP 502'));
     const c = await openTab();
     expect(visibleText(c)).toContain(intro.lead);
   });
 
-  it('до ответа сервера карточки нет — иначе она прыгала бы из вида в вид', async () => {
+  it('до ответа сервера — только «Загрузка»: карточка не прыгает и не сдвигает кнопки', async () => {
     api.list.mockReturnValue(new Promise<TgBotConfig[]>(() => {}));
     const c = await openTab();
+    expect(visibleText(c)).toContain(ru.common.loading);
     expect(visibleText(c)).not.toContain(intro.title);
+    // Карточка встаёт НАД кнопкой «Создать» и вкладками. Нарисуй их раньше —
+    // у новичка на телефоне они уехали бы на экран вниз прямо под пальцем.
+    expect(visibleText(c)).not.toContain(ru.tgBot.create_button);
+    expect(visibleText(c)).not.toContain(ru.tgBot.tab_active);
   });
 
   it('раскрытая вручную не пропадает и не схлопывается, пока список перезагружается', async () => {
@@ -650,7 +687,7 @@ describe('карточка «что это за бот» на вкладке б�
 - [ ] **Step 2: Убедиться, что тест падает**
 
 Run: `PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH ./node_modules/.bin/vitest run src/components/tg-bot/TgBotsListView.test.tsx`
-Expected: FAIL. Сценарии «развёрнута/свёрнута» и кнопки не находят текста карточки. Сценарий «до ответа сервера карточки нет» проходит и сейчас: карточки ещё нет вовсе.
+Expected: FAIL — сценарии «развёрнута/свёрнута», «до ответа сервера только «Загрузка»» и кнопки не находят ожидаемого на экране.
 
 - [ ] **Step 3: Встроить карточку в `TgBotsListView.tsx`**
 
@@ -697,7 +734,7 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false, onOpenProduc
     try {
       const list = await tgBotApi.list();
       setConfigs(list);
-      setIntroOpen(prev => prev ?? list.length === 0);
+      setIntroOpen(prev => prev ?? !list.some(isGroupBot));
     }
     catch (e: any) {
       toast.error(e?.message ?? t('tgBot.list_load_error'));
@@ -708,25 +745,44 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false, onOpenProduc
   };
 ```
 
-В `content` — сразу после блока `{!embedded && (…заголовок страницы…)}` и перед блоком `{embedded && (…кнопка «Создать»…)}`:
+Перед `interface Props` — признак группового бота. Личный чат с ботом заводит свою строку в том же списке (`ensurePrivateConfig`: положительный `tg_chat_id`, имя «Linkeon»), и по ней новичок выглядел бы опытным:
 
 ```tsx
-      {introOpen !== null && (
-        <TgBotIntro
-          defaultOpen={introOpen}
-          onOpenProducts={onOpenProducts ?? (() => navigate('/studio?tab=products'))}
-        />
-      )}
+const isGroupBot = (c: TgBotConfig) => c.tgChatId === null || c.tgChatId.startsWith('-');
+```
+
+`content` до первого ответа сервера — только «Загрузка». Иначе карточка встала бы над уже нарисованными «Создать» и вкладками и сдвинула бы их на экран вниз:
+
+```tsx
+  const content = introOpen === null ? (
+    <div className="text-center text-gray-400 py-12">{t('common.loading')}</div>
+  ) : (
+    <>
+      …
+```
+
+Внутри фрагмента — сразу после блока `{!embedded && (…заголовок страницы…)}` и перед блоком `{embedded && (…кнопка «Создать»…)}`:
+
+```tsx
+      <TgBotIntro
+        defaultOpen={introOpen}
+        onOpenProducts={onOpenProducts ?? (() => navigate('/studio?tab=products'))}
+      />
 ```
 
 - [ ] **Step 4: Убедиться, что тесты проходят**
 
 Run: `PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH ./node_modules/.bin/vitest run src/components/tg-bot/`
-Expected: PASS — 8 тестов в `TgBotsListView.test.tsx` и 4 в `TgBotIntro.test.tsx`.
+Expected: PASS — 10 тестов в `TgBotsListView.test.tsx` и 4 в `TgBotIntro.test.tsx`.
 
 - [ ] **Step 5: Сломать нарочно**
 
-Обернуть карточку в `!loading && …` (рисовать только вне загрузки) → сценарий «раскрытая вручную не пропадает и не схлопывается…» должен покраснеть. С мгновенным ответом заглушки он оставался зелёным: React склеивал начало и конец загрузки в одну отрисовку. Поэтому второй ответ списка придерживается до проверки экрана. Вернуть как было → зелёный. Правку не коммитить.
+Три мутации, каждая должна покраснеть ровно на своём сценарии, затем вернуть как было:
+- обернуть карточку в `!loading && …` (рисовать только вне загрузки) → «раскрытая вручную не пропадает и не схлопывается…»;
+- критерий `list.length === 0` вместо `!list.some(isGroupBot)` → «только личный чат с ботом…»;
+- рисовать весь макет, пока `introOpen === null` → «до ответа сервера — только «Загрузка»…».
+
+Про первую мутацию: С мгновенным ответом заглушки он оставался зелёным: React склеивал начало и конец загрузки в одну отрисовку. Поэтому второй ответ списка придерживается до проверки экрана. Вернуть как было → зелёный. Правку не коммитить.
 
 - [ ] **Step 6: Коммит**
 
@@ -841,10 +897,10 @@ Expected: последняя строка — sha и сообщение комм
 ssh dv@85.192.61.231 'cd ~/ci/wt/studio-bots-intro && source ~/.nvm/nvm.sh >/dev/null && pnpm install --frozen-lockfile >/dev/null && ./node_modules/.bin/vitest run 2>&1 | tail -6; node scripts/check-locales.mjs | tail -7; node scripts/check-keys-exist.mjs; node scripts/check-no-hardcoded.mjs | tail -2; ./node_modules/.bin/tsc --noEmit -p tsconfig.app.json 2>&1 | grep "error TS" > /tmp/tsc-studio-bots.txt; wc -l < /tmp/tsc-studio-bots.txt; grep -E "tg-bot/|StudioPage" /tmp/tsc-studio-bots.txt; pnpm build 2>&1 | tail -3'
 ```
 
-Expected:
-- vitest: 109 файлов, 1429 тестов, все зелёные (база 107/1416 плюс 2 файла и 13 тестов: 4 + 8 + 1);
-- `check-locales` и `check-keys`: ✅;
-- `check-no-hardcoded`: ✅;
+Expected — «не хуже main»:
+- vitest: 109 файлов, 1431 тест, все зелёные (база 107/1416 плюс 2 файла и 15 тестов: 4 + 10 + 1);
+- `check-locales`: ✅ (en и de — 1632 ключа, у es/fr/pt — 1641: у них больше плюральных категорий, zh — 1623);
+- `check-keys` и `check-no-hardcoded`: красные уже на main (8 ключей `settings.linkedAccounts.*`; «млн»/«тыс» в `formatters.ts`) — вывод должен совпасть с базой, своих строк в нём нет;
 - tsc: `45`, а grep по своим файлам пуст;
 - build: `✓ built in …`.
 
