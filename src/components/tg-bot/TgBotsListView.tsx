@@ -7,6 +7,7 @@ import { tgBotApi, type TgBotConfig } from '../../services/tgBotApi';
 import { TgBotCard } from './TgBotCard';
 import { TgBotEditModal } from './TgBotEditModal';
 import { TgBotMessagesView } from './TgBotMessagesView';
+import { TgBotIntro } from './TgBotIntro';
 
 // Модалка с новой claim-ссылкой после «Переподключить». Module-scope —
 // inline-FC внутри рендера ре-маунтится из-за token-poll (см. комментарий ниже).
@@ -48,12 +49,26 @@ const ReconnectLinkModal: React.FC<{ displayName: string; deepLink: string; onCl
   );
 };
 
+/**
+ * Заводил ли человек группового бота. Личный чат с ботом заводит свою строку в
+ * том же списке (положительный id чата, имя «Linkeon» — ensurePrivateConfig на
+ * бэке), и по ней новичок выглядел бы опытным. Группа — отрицательный id; бот,
+ * который ждёт группы, — null.
+ */
+const isGroupBot = (c: TgBotConfig) => c.tgChatId === null || c.tgChatId.startsWith('-');
+
 interface Props {
   /** Если true — без внешней h-full обёртки и без заголовка страницы. */
   embedded?: boolean;
+  /**
+   * Открыть вкладку «Продукты». Студия передаёт свой setTab, чтобы переход вёл
+   * себя как нажатие на вкладку: параметры адреса на месте, новой записи в
+   * истории нет. Без него — обычный переход на адрес вкладки.
+   */
+  onOpenProducts?: () => void;
 }
 
-export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
+export const TgBotsListView: React.FC<Props> = ({ embedded = false, onOpenProducts }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [configs, setConfigs] = useState<TgBotConfig[]>([]);
@@ -62,11 +77,27 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
   const [editing, setEditing] = useState<TgBotConfig | null>(null);
   const [viewingMessages, setViewingMessages] = useState<TgBotConfig | null>(null);
   const [reconnect, setReconnect] = useState<{ displayName: string; deepLink: string } | null>(null);
+  // Развёрнута ли карточка «что это за бот», решает ПЕРВАЯ загрузка списка:
+  // новичку (ни одного группового бота, даже в архиве) — целиком, остальным —
+  // строкой. null — список ещё не приходил: тогда вкладка показывает только
+  // «Загрузка», иначе карточка прыгала бы «развёрнута → свёрнута» и сдвигала
+  // кнопки под пальцем. Повторные загрузки (архив, переподключение) значение
+  // не трогают: карточка, раскрытая вручную, схлопывалась бы после каждого
+  // действия со списком.
+  const [introOpen, setIntroOpen] = useState<boolean | null>(null);
 
   const reload = async () => {
     setLoading(true);
-    try { setConfigs(await tgBotApi.list()); }
-    catch (e: any) { toast.error(e?.message ?? t('tgBot.list_load_error')); }
+    try {
+      const list = await tgBotApi.list();
+      setConfigs(list);
+      setIntroOpen(prev => prev ?? !list.some(isGroupBot));
+    }
+    catch (e: any) {
+      toast.error(e?.message ?? t('tgBot.list_load_error'));
+      // О человеке ничего не известно — объяснение лишним не будет.
+      setIntroOpen(prev => prev ?? true);
+    }
     finally { setLoading(false); }
   };
 
@@ -97,7 +128,9 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
   // (а они идут из-за token-poll в AuthContext раз в 5 сек) — React видел
   // другой тип и ре-маунтил всё содержимое, включая модалку «История», которая
   // на каждом ре-маунте заново фетчила сообщения и моргала.
-  const content = (
+  const content = introOpen === null ? (
+    <div className="text-center text-gray-400 py-12">{t('common.loading')}</div>
+  ) : (
     <>
       {!embedded && (
       <div className="flex items-center justify-between mb-6">
@@ -113,6 +146,11 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false }) => {
         </button>
       </div>
       )}
+
+      <TgBotIntro
+        defaultOpen={introOpen}
+        onOpenProducts={onOpenProducts ?? (() => navigate('/studio?tab=products'))}
+      />
 
       {embedded && (
         <div className="flex justify-end mb-4">

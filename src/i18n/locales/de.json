@@ -1669,7 +1669,26 @@
     "empty_archived_title": "Archiv ist leer",
     "empty_active_hint": "Erstelle einen Bot für deine Telegram-Gruppe",
     "create_first_button": "Ersten erstellen",
-    "presets_label": "Linkeon-Vorlagen"
+    "presets_label": "Linkeon-Vorlagen",
+    "intro": {
+      "title": "Ein Linkeon-Assistent in deiner Telegram-Gruppe",
+      "lead": "Wähle eine Rolle (einen fertigen Linkeon-Assistenten oder einen eigenen aus dem Tab „Assistenten“) und einen Namen, auf den er reagiert. Der Assistent antwortet direkt im Chat – auf Textnachrichten, Sprachnachrichten und gesendete Dateien – und auf Wunsch auch selbst per Sprache.",
+      "why_title": "Wozu",
+      "why_work": "Arbeitschat: Ein Jurist prüft den Vertrag, der in die Gruppe geschickt wurde, eine Buchhalterin beantwortet Steuerfragen, eine Texterin entwirft einen Post.",
+      "why_family": "Familie oder Freunde: eine Reise planen, gemeinsame Ausgaben ausrechnen, ein Geschenk aussuchen.",
+      "why_personal": "Dein eigener Chat: eine Gruppe nur mit dir und dem Bot – so hast du den Assistenten in Telegram immer griffbereit.",
+      "how_title": "So richtest du ihn ein",
+      "how_link": "Verbinde dein Telegram – das ist nur einmal nötig.",
+      "how_setup": "Wähle Rolle, Namen und wann der Bot antwortet: nur wenn man ihn anspricht, wenn er selbst entscheidet, dass sich ein Beitrag lohnt, oder auf jede Nachricht.",
+      "how_add": "Füge den Bot über den Link zur Gruppe hinzu – er aktiviert sich von selbst.",
+      "cost_title": "Was es kostet",
+      "cost": "Jede Antwort des Bots kostet Tokens von deinem Guthaben – auch wenn ein anderes Gruppenmitglied gefragt hat. Sind die Tokens aufgebraucht, sagt der Bot der Gruppe Bescheid und schweigt, bis du aufgeladen hast.",
+      "note_title": "Gut zu wissen",
+      "note_history": "Der Bot sieht die Nachrichten der Gruppe – so versteht er, worum es geht; den Verlauf findest du auf der Karte des Bots.",
+      "note_commands": "Befehle für dich als Besitzer in der Gruppe: /balance – Guthaben, /silent – der Bot schweigt, /resume – er antwortet wieder.",
+      "products": "Du brauchst einen eigenen Bot für deine Kunden, der unter deinem Namen in Telegram Termine vergibt, Anfragen annimmt und häufige Fragen beantwortet? Das ist ein Produkt, und ein Assistent baut es für dich.",
+      "products_button": "„Produkte“ öffnen"
+    }
   },
   "imagegen": {
     "edit_modal_title": "Bild bearbeiten",

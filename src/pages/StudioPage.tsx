@@ -70,7 +70,7 @@ const StudioPage: React.FC = () => {
       </div>
 
       {tab === 'agents' && <CustomAgentsListView embedded />}
-      {tab === 'bots' && <TgBotsListView embedded />}
+      {tab === 'bots' && <TgBotsListView embedded onOpenProducts={() => setTab('products')} />}
       {tab === 'products' && <ProductsSection embedded />}
     </div>
   );

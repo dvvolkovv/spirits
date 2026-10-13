@@ -2028,7 +2028,26 @@
     "empty_archived_title": "The archive is empty",
     "empty_active_hint": "Create a bot for your Telegram group",
     "create_first_button": "Create the first one",
-    "presets_label": "Linkeon presets"
+    "presets_label": "Linkeon presets",
+    "intro": {
+      "title": "A Linkeon assistant in your Telegram group",
+      "lead": "Pick a role (a ready-made Linkeon assistant or one of your own from the Assistants tab) and a name it will answer to. The assistant replies right in the chat — to text, voice messages and files people send — and can reply by voice too if you want.",
+      "why_title": "What it's for",
+      "why_work": "Work chat: a lawyer checks a contract someone sent to the group, an accountant answers tax questions, a copywriter drafts a post.",
+      "why_family": "Family or friends: plan a trip, work out shared expenses, pick a gift.",
+      "why_personal": "Your own chat: a group with just you and the bot — your assistant is always at hand in Telegram.",
+      "how_title": "How to connect it",
+      "how_link": "Link your Telegram — you only need to do this once.",
+      "how_setup": "Choose a role, a name and when the bot replies: only when someone addresses it, when it decides it's worth chiming in, or to every message.",
+      "how_add": "Add the bot to your group with the link — it switches on by itself.",
+      "cost_title": "What it costs",
+      "cost": "Every bot reply is paid for with tokens from your balance — even if another group member asked the question. If you run out of tokens, the bot warns the group and goes quiet until you top up.",
+      "note_title": "Good to know",
+      "note_history": "The bot sees the group's messages — that's how it understands what the conversation is about; you can open the chat history on the bot's card.",
+      "note_commands": "Owner commands in the group: /balance — your balance, /silent — the bot goes quiet, /resume — it replies again.",
+      "products": "Need a bot of your own for your customers — under your own name in Telegram, taking bookings, collecting requests and answering common questions? That's a product, and an assistant will build it for you.",
+      "products_button": "Open Products"
+    }
   },
   "imagegen": {
     "edit_modal_title": "Edit image",

@@ -1678,7 +1678,26 @@
     "empty_archived_title": "L’archive est vide",
     "empty_active_hint": "Créez un bot pour votre groupe Telegram",
     "create_first_button": "Créer le premier",
-    "presets_label": "Préréglages Linkeon"
+    "presets_label": "Préréglages Linkeon",
+    "intro": {
+      "title": "Un assistant Linkeon dans votre groupe Telegram",
+      "lead": "Choisissez un rôle (un assistant Linkeon prêt à l’emploi ou l’un des vôtres dans l’onglet « Assistants ») et le nom auquel il répondra. L’assistant répond directement dans la conversation — aux messages écrits, aux messages vocaux et aux fichiers envoyés — et, si vous le souhaitez, il peut aussi répondre par message vocal.",
+      "why_title": "À quoi ça sert",
+      "why_work": "Chat de travail : un juriste vérifie le contrat envoyé dans le groupe, une comptable répond aux questions fiscales, une rédactrice ébauche une publication.",
+      "why_family": "Famille ou amis : planifier un voyage, calculer les dépenses communes, choisir un cadeau.",
+      "why_personal": "Votre propre chat : un groupe avec seulement vous et le bot — l’assistant toujours à portée de main dans Telegram.",
+      "how_title": "Comment le connecter",
+      "how_link": "Liez votre Telegram — c’est à faire une seule fois.",
+      "how_setup": "Choisissez le rôle, le nom et le moment où le bot répond : seulement quand on s’adresse à lui, quand il juge utile d’intervenir, ou à chaque message.",
+      "how_add": "Ajoutez le bot au groupe grâce au lien — il s’active tout seul.",
+      "cost_title": "Combien ça coûte",
+      "cost": "Chaque réponse du bot est débitée de votre solde de jetons — même si la question vient d’un autre membre du groupe. Si vos jetons sont épuisés, le bot prévient le groupe et se tait jusqu’à ce que vous rechargiez.",
+      "note_title": "Bon à savoir",
+      "note_history": "Le bot voit les messages du groupe — c’est ainsi qu’il comprend de quoi on parle ; l’historique de la conversation est consultable dans la fiche du bot.",
+      "note_commands": "Commandes du propriétaire dans le groupe : /balance — solde, /silent — le bot se tait, /resume — il répond de nouveau.",
+      "products": "Besoin de votre propre bot pour vos clients, qui porte votre nom dans Telegram, prend les rendez-vous, reçoit les demandes et répond aux questions fréquentes ? C’est un produit : un assistant le construira pour vous.",
+      "products_button": "Ouvrir « Produits »"
+    }
   },
   "imagegen": {
     "edit_modal_title": "Modifier l'image",

@@ -1678,7 +1678,26 @@
     "empty_archived_title": "El archivo está vacío",
     "empty_active_hint": "Crea un bot para tu grupo de Telegram",
     "create_first_button": "Crear el primero",
-    "presets_label": "Presets de Linkeon"
+    "presets_label": "Presets de Linkeon",
+    "intro": {
+      "title": "Un asistente de Linkeon en tu grupo de Telegram",
+      "lead": "Elige un rol (un asistente de Linkeon ya preparado o uno tuyo de la pestaña «Asistentes») y el nombre al que responderá. El asistente contesta directamente en la conversación: a textos, mensajes de voz y archivos que le envíen. Si quieres, también responde con voz.",
+      "why_title": "Para qué sirve",
+      "why_work": "Chat de trabajo: un abogado revisa el contrato que enviaron al grupo, una contable responde sobre impuestos, una redactora prepara el borrador de una publicación.",
+      "why_family": "Familia o amigos: planear un viaje, calcular los gastos comunes, elegir un regalo.",
+      "why_personal": "Tu propio chat: un grupo solo contigo y el bot, para tener al asistente siempre a mano en Telegram.",
+      "how_title": "Cómo conectarlo",
+      "how_link": "Vincula tu Telegram. Solo hace falta hacerlo una vez.",
+      "how_setup": "Elige el rol, el nombre y cuándo responde el bot: solo cuando se dirigen a él, cuando él mismo decide que conviene intervenir o a cada mensaje.",
+      "how_add": "Añade el bot al grupo con el enlace y se activará solo.",
+      "cost_title": "Cuánto cuesta",
+      "cost": "Cada respuesta del bot descuenta tokens de tu saldo, aunque la pregunta la haya hecho otro miembro del grupo. Si se acaban los tokens, el bot avisa al grupo y se queda en silencio hasta que recargues.",
+      "note_title": "Conviene saber",
+      "note_history": "El bot ve los mensajes del grupo: así entiende de qué se habla. El historial de la conversación está en la tarjeta del bot.",
+      "note_commands": "Comandos del propietario en el grupo: /balance — saldo, /silent — el bot se calla, /resume — vuelve a responder.",
+      "products": "¿Necesitas un bot propio para tus clientes, con tu propio nombre en Telegram, que gestione citas, recoja solicitudes y responda a las preguntas frecuentes? Eso es un producto, y un asistente lo creará por ti.",
+      "products_button": "Abrir «Productos»"
+    }
   },
   "imagegen": {
     "edit_modal_title": "Editar imagen",
