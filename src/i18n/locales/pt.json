@@ -2034,7 +2034,7 @@
     "presets_label": "Predefinições Linkeon",
     "intro": {
       "title": "Um assistente Linkeon no teu grupo do Telegram",
-      "lead": "Escolhe uma função (um assistente Linkeon já pronto ou um dos teus, do separador «Assistentes») e o nome a que ele vai responder. O assistente responde diretamente na conversa — a texto, mensagens de voz e ficheiros enviados — e, se quiseres, também responde por voz.",
+      "lead": "Escolhe uma função (um assistente Linkeon já pronto ou um dos teus, do separador «Assistentes») e o nome a que ele vai responder. O assistente responde diretamente na conversa — a mensagens de texto e de voz e a ficheiros enviados — e, se quiseres, também responde por voz.",
       "why_title": "Para que serve",
       "why_work": "Chat de trabalho: um jurista revê o contrato enviado para o grupo, uma contabilista responde sobre impostos, uma redatora faz o rascunho de uma publicação.",
       "why_family": "Família ou amigos: planear uma viagem, calcular as despesas comuns, escolher um presente.",
@@ -2048,7 +2048,7 @@
       "note_title": "Convém saber",
       "note_history": "O bot vê as mensagens do grupo — é assim que percebe do que se está a falar; o histórico da conversa pode ser consultado no cartão do bot.",
       "note_commands": "Comandos do proprietário no grupo: /balance — saldo, /silent — o bot fica calado, /resume — volta a responder.",
-      "products": "Precisas de um bot próprio para os teus clientes — com o teu próprio nome no Telegram, que faz marcações, recebe pedidos e responde às perguntas frequentes? Isso é um produto, e um assistente constrói-o por ti.",
+      "products": "Precisas de um bot só teu, que use o teu nome no Telegram, faça marcações, receba pedidos e responda às perguntas frequentes dos teus clientes? Isso é um produto, e um assistente constrói-o por ti.",
       "products_button": "Abrir «Produtos»"
     }
   },

@@ -1672,7 +1672,7 @@
     "presets_label": "Linkeon-Vorlagen",
     "intro": {
       "title": "Ein Linkeon-Assistent in deiner Telegram-Gruppe",
-      "lead": "Wähle eine Rolle (einen fertigen Linkeon-Assistenten oder einen eigenen aus dem Tab „Assistenten“) und einen Namen, auf den er reagiert. Der Assistent antwortet direkt im Chat – auf Text, Sprachnachrichten und geschickte Dateien – und auf Wunsch auch selbst per Sprache.",
+      "lead": "Wähle eine Rolle (einen fertigen Linkeon-Assistenten oder einen eigenen aus dem Tab „Assistenten“) und einen Namen, auf den er reagiert. Der Assistent antwortet direkt im Chat – auf Textnachrichten, Sprachnachrichten und gesendete Dateien – und auf Wunsch auch selbst per Sprache.",
       "why_title": "Wozu",
       "why_work": "Arbeitschat: Ein Jurist prüft den Vertrag, der in die Gruppe geschickt wurde, eine Buchhalterin beantwortet Steuerfragen, eine Texterin entwirft einen Post.",
       "why_family": "Familie oder Freunde: eine Reise planen, gemeinsame Ausgaben ausrechnen, ein Geschenk aussuchen.",
@@ -1684,9 +1684,9 @@
       "cost_title": "Was es kostet",
       "cost": "Jede Antwort des Bots kostet Tokens von deinem Guthaben – auch wenn ein anderes Gruppenmitglied gefragt hat. Sind die Tokens aufgebraucht, sagt der Bot der Gruppe Bescheid und schweigt, bis du aufgeladen hast.",
       "note_title": "Gut zu wissen",
-      "note_history": "Der Bot sieht die Nachrichten der Gruppe – so versteht er, worum es geht; den Verlauf findest du in der Karte des Bots.",
+      "note_history": "Der Bot sieht die Nachrichten der Gruppe – so versteht er, worum es geht; den Verlauf findest du auf der Karte des Bots.",
       "note_commands": "Befehle für dich als Besitzer in der Gruppe: /balance – Guthaben, /silent – der Bot schweigt, /resume – er antwortet wieder.",
-      "products": "Du brauchst einen eigenen Bot für deine Kunden – unter deinem eigenen Namen in Telegram, der Termine vergibt, Anfragen annimmt und häufige Fragen beantwortet? Das ist ein Produkt, und ein Assistent baut es für dich.",
+      "products": "Du brauchst einen eigenen Bot für deine Kunden, der unter deinem Namen in Telegram Termine vergibt, Anfragen annimmt und häufige Fragen beantwortet? Das ist ein Produkt, und ein Assistent baut es für dich.",
       "products_button": "„Produkte“ öffnen"
     }
   },
