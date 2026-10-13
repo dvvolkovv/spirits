@@ -1660,7 +1660,26 @@
     "empty_archived_title": "归档为空",
     "empty_active_hint": "为您的 Telegram 群组创建一个机器人",
     "create_first_button": "创建第一个",
-    "presets_label": "Linkeon 预设"
+    "presets_label": "Linkeon 预设",
+    "intro": {
+      "title": "您的 Telegram 群组中的 Linkeon 助手",
+      "lead": "选择一个角色（现成的 Linkeon 助手，或您在「助手」标签页中创建的助手），并设定一个它会响应的名称。助手直接在聊天中回复文字、语音消息和发送的文件；如有需要，它也能用语音回答。",
+      "why_title": "用途",
+      "why_work": "工作群：律师审阅群里发来的合同，会计解答税务问题，文案起草帖子。",
+      "why_family": "家人或朋友：规划旅行、计算共同开支、挑选礼物。",
+      "why_personal": "您自己的聊天：建一个只有您和机器人的群组，在 Telegram 里随时都能找到助手。",
+      "how_title": "如何接入",
+      "how_link": "绑定您的 Telegram——只需操作一次。",
+      "how_setup": "选择角色、名称以及机器人何时回复：仅在有人提及它时、在它自行判断值得介入时，或对每条消息都回复。",
+      "how_add": "通过链接将机器人添加到群组——它会自动激活。",
+      "cost_title": "费用",
+      "cost": "机器人的每条回复都会从您的余额中扣除代币——即使提问的是群组里的其他成员。代币用完后，机器人会在群组中提醒，并保持沉默直到您充值。",
+      "note_title": "须知",
+      "note_history": "机器人能看到群组消息——这样它才能理解大家在聊什么；聊天记录可在机器人卡片中查看。",
+      "note_commands": "机器人所有者在群组中可用的命令：/balance 查看余额，/silent 让机器人保持安静，/resume 恢复回复。",
+      "products": "需要一个服务客户的专属机器人？它在 Telegram 中使用您自己的名称，可以预约、接收申请并回答常见问题。这属于产品，助手会为您搭建。",
+      "products_button": "打开「产品」"
+    }
   },
   "imagegen": {
     "edit_modal_title": "编辑图片",
