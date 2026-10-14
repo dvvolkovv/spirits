@@ -298,7 +298,7 @@
     "listen_title_free": "Ouvir de novo — grátis",
     "listen_too_long": "A resposta é longa demais para virar áudio — mais de {{max}} caracteres",
     "listen_no_tokens": "Tokens insuficientes para o áudio: são necessários {{required}}",
-    "listen_rate_limited": "Muitos áudios seguidos — tente novamente em um minuto",
+    "listen_rate_limited": "Muitos áudios seguidos — tente novamente daqui a um minuto",
     "listen_failed": "Não foi possível gerar o áudio da resposta, tente novamente",
     "listen_tap_again": "O áudio está pronto — toque em “Ouvir” novamente",
     "copied": "Copiado",
@@ -324,7 +324,7 @@
     "queued_hint": "será enviado a seguir",
     "queued_remove": "Remover",
     "send_anyway": "Enviar mesmo assim",
-    "busy_try_later": "O assistente ainda está respondendo — tente novamente em um minuto",
+    "busy_try_later": "O assistente ainda está a responder — tente novamente daqui a um minuto",
     "voice_call": {
       "start": "Ligar",
       "ready": "Pronto para ligar",
@@ -359,12 +359,12 @@
     },
     "meeting": {
       "join": "Entrar",
-      "waiting_admit": "O assistente está pedindo para ser admitido. Confirme a entrada dele na reunião do {{platform}}",
-      "in_progress": "O assistente está em uma reunião",
+      "waiting_admit": "O assistente está a pedir para ser admitido. Confirme a entrada dele na reunião do {{platform}}",
+      "in_progress": "O assistente está numa reunião",
       "leave": "Sair",
-      "already_in": "O assistente já está em outra reunião ou chamada",
-      "meet_busy": "O assistente está em outra reunião no momento. Tente novamente quando ela terminar",
-      "join_failed": "No momento não é possível entrar na reunião",
+      "already_in": "O assistente já está noutra reunião ou chamada",
+      "meet_busy": "O assistente está noutra reunião neste momento. Tente novamente quando ela terminar",
+      "join_failed": "Neste momento não é possível entrar na reunião",
       "create": "Criar reunião",
       "create_failed": "Não foi possível criar a reunião",
       "copy_link": "Copiar link",
@@ -2305,7 +2305,7 @@
     "chat": {
       "placeholder": "O que devo alterar?",
       "send": "Enviar",
-      "busy": "O agente ainda está trabalhando no seu pedido anterior",
+      "busy": "O agente ainda está a trabalhar no seu pedido anterior",
       "sleeping": "O produto está a dormir: os tokens não chegaram para a renda. Carregue o saldo e ele acorda sozinho.",
       "failed": "Não foi possível enviar a alteração"
     },
@@ -2361,7 +2361,7 @@
       },
       "botSlugHint": "Nome do contêiner: {{slug}}"
     },
-    "hostAgentSilent": "O servidor de produtos não está respondendo — a criação não vai começar agora. Você ainda pode criar o produto: ele fica na fila e começa assim que a conexão voltar.",
+    "hostAgentSilent": "O servidor de produtos não está a responder — a criação não vai começar agora. Ainda pode criar o produto: fica na fila e começa assim que a ligação voltar.",
     "loadFailed": "Não foi possível atualizar a lista — exibindo a anterior",
     "reload": "Atualizar",
     "domain": {
