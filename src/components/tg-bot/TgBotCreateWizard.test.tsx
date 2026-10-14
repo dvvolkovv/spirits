@@ -80,7 +80,8 @@ describe('мастер: ссылка истекла — можно получи�
     expect(open().getAttribute('href')).toBe('https://t.me/bot?start=second');
     // Ссылка на экране не видна — меняется только адрес кнопки: без отклика
     // нажатие выглядело бы так, будто ничего не произошло.
-    expect(toast.success).toHaveBeenCalledWith(tRu('tgBot.link_refreshed'));
+    // Прежняя ссылка привязки гаснет (бэк) — так и говорим.
+    expect(toast.success).toHaveBeenCalledWith(tRu('tgBot.identity_link_refreshed'));
   });
 
   it('шаг 1: двойное нажатие — одна новая ссылка (каждая лишняя — ещё один живой токен)', async () => {
@@ -120,5 +121,63 @@ describe('мастер: ссылка истекла — можно получи�
     expect(buttons[buttons.length - 1]).toBe(tRu('common.done'));
     const copy = Array.from(c.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === tRu('referral.copy'));
     expect(copy).toBeDefined();
+  });
+
+  it('шаг 1: двойное нажатие на первую «Сгенерировать ссылку» — один запрос', async () => {
+    api.identityStatus.mockResolvedValue({ bound: false });
+    api.identityLink.mockResolvedValue({ token: 't1', deepLink: 'https://t.me/bot?start=first' });
+    view = mount(<TgBotCreateWizard />);
+    await flush();
+    doubleClick(byButton(view.container, exact(tRu('tgBot.generate_link_button')))!);
+    await flush();
+    await flush();
+    expect(api.identityLink).toHaveBeenCalledTimes(1);
+  });
+
+  it('шаг 1: пока выпускается новая ссылка, «Открыть в Telegram» не открывает ту, что вот-вот погаснет', async () => {
+    const c = await toIdentityLink();
+    let release: (v: unknown) => void = () => {};
+    api.identityLink.mockImplementationOnce(() => new Promise((r) => { release = r; }));
+    await clickAsync(byButton(c, exact(tRu('tgBot.new_link_button')))!);
+    const open = byLink(c, new RegExp(tRu('tgBot.open_in_telegram')))!;
+    expect(open.getAttribute('aria-disabled')).toBe('true');
+    release({ token: 't9', deepLink: 'https://t.me/bot?start=fresh' });
+    await flush();
+    await flush();
+    expect(open.getAttribute('aria-disabled')).not.toBe('true');
+  });
+
+  it('шаг 2: двойное нажатие «Создать» — один бот, а не два', async () => {
+    api.identityStatus.mockResolvedValue({ bound: true });
+    api.create.mockResolvedValue({ config: { id: 'cfg-1' }, claimToken: 'c1', deepLink: 'https://t.me/bot?startgroup=one' });
+    view = mount(<TgBotCreateWizard />);
+    await flush();
+    type(view.container.querySelector('input[type="text"]')!, 'Финансист');
+    await clickAsync(byButton(view.container, /pick-role/)!);
+    doubleClick(byButton(view.container, new RegExp(tRu('tgBot.wizard_submit_button')))!);
+    await flush();
+    await flush();
+    expect(api.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('шаг 3: перевыпуск проиграл гонку с привязкой — «бот уже в группе», а не сырая ошибка бэка', async () => {
+    const c = await toAddGroup();
+    api.get.mockResolvedValueOnce({ id: 'cfg-1', status: 'pending' }).mockResolvedValueOnce({ id: 'cfg-1', status: 'active' });
+    api.reissueClaim.mockRejectedValueOnce(new Error('reissue доступен только для pending/archived конфигов'));
+    await clickAsync(byButton(c, exact(tRu('tgBot.new_link_button')))!);
+    await flush();
+    await flush();
+    expect(toast.success).toHaveBeenCalledWith(tRu('tgBot.already_added'));
+    expect(toast.error).not.toHaveBeenCalledWith(expect.stringMatching(/reissue/));
+  });
+
+  it('шаг 3: перевыпуск не удался по другой причине — понятная ошибка на языке интерфейса', async () => {
+    const c = await toAddGroup();
+    api.get.mockResolvedValue({ id: 'cfg-1', status: 'pending' });
+    api.reissueClaim.mockRejectedValueOnce(new Error('Internal server error'));
+    await clickAsync(byButton(c, exact(tRu('tgBot.new_link_button')))!);
+    await flush();
+    await flush();
+    expect(toast.error).toHaveBeenCalledWith(tRu('tgBot.reconnect_error'));
   });
 });

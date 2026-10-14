@@ -208,3 +208,20 @@ describe('окно «Переподключить»: срок ссылки', () 
     expect(visibleText(c)).toContain(ru.tgBot.link_ttl_hint);
   });
 });
+
+describe('«Переподключить»: двойное нажатие', () => {
+  it('одна новая ссылка, а не две', async () => {
+    api.list.mockResolvedValue([bot({ status: 'pending', tgChatId: null, tgChatTitle: null })]);
+    let release: (v: unknown) => void = () => {};
+    api.reissueClaim.mockImplementation(() => new Promise((r) => { release = r; }) as any);
+    const c = await openTab();
+    const reconnect = Array.from(c.querySelectorAll('button')).find((b) => (b.textContent ?? '').includes(ru.tgBot.card_reconnect))!;
+    await actAsync(() => {
+      reconnect.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      reconnect.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    release({ config: bot({ status: 'pending' }), claimToken: 'c', deepLink: 'https://t.me/bot?startgroup=x' });
+    await flush();
+    expect(api.reissueClaim).toHaveBeenCalledTimes(1);
+  });
+});
