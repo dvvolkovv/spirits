@@ -1637,6 +1637,8 @@
     "generate_link_button": "Link generieren",
     "open_in_telegram": "In Telegram öffnen",
     "i_pressed_start": "Verknüpfung prüfen",
+    "new_link_button": "Neuer Link",
+    "link_ttl_hint": "Der Link gilt 15 Minuten. Nicht geschafft? Hol dir einen neuen.",
     "bound_success": "Verknüpft",
     "not_bound_error": "Noch nicht verknüpft. Öffne den Bot über den Link und tippe in Telegram auf „Starten“.",
     "name_in_group_label": "Bot-Name in der Gruppe",

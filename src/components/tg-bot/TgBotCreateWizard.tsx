@@ -21,6 +21,9 @@ export const TgBotCreateWizard: React.FC = () => {
   const [voiceReplyMode, setVoiceReplyMode] = useState<VoiceReplyMode>('never');
 
   const [claimDeepLink, setClaimDeepLink] = useState<string | null>(null);
+  // id созданного бота — чтобы перевыпустить ссылку в группу, если старая
+  // истекла (живёт 15 минут), не теряя мастер.
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   useEffect(() => {
     tgBotApi.identityStatus().then(s => {
@@ -48,8 +51,17 @@ export const TgBotCreateWizard: React.FC = () => {
         addressingMode,
         voiceReplyMode,
       });
+      setCreatedId(r.config.id);
       setClaimDeepLink(r.deepLink);
       setStep('addgroup');
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const reissueClaimLink = async () => {
+    if (!createdId) return;
+    try {
+      const r = await tgBotApi.reissueClaim(createdId);
+      setClaimDeepLink(r.deepLink);
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -96,6 +108,13 @@ export const TgBotCreateWizard: React.FC = () => {
               >
                 {t('tgBot.i_pressed_start')}
               </button>
+              <button
+                onClick={generateIdentityLink}
+                className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
+              >
+                {t('tgBot.new_link_button')}
+              </button>
+              <p className="w-full text-xs text-gray-500">{t('tgBot.link_ttl_hint')}</p>
             </div>
           )}
         </div>
@@ -198,7 +217,14 @@ export const TgBotCreateWizard: React.FC = () => {
             >
               {t('common.done')}
             </button>
+            <button
+              onClick={reissueClaimLink}
+              className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
+            >
+              {t('tgBot.new_link_button')}
+            </button>
           </div>
+          <p className="mt-2 text-xs text-gray-500">{t('tgBot.link_ttl_hint')}</p>
         </div>
       )}
     </div>

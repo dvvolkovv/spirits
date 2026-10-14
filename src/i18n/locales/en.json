@@ -1996,6 +1996,8 @@
     "generate_link_button": "Generate link",
     "open_in_telegram": "Open in Telegram",
     "i_pressed_start": "Check if linked",
+    "new_link_button": "New link",
+    "link_ttl_hint": "The link is valid for 15 minutes. Didn't make it in time? Get a new one.",
     "bound_success": "Linked",
     "not_bound_error": "Not linked yet. Open the bot via the link and press Start in Telegram.",
     "name_in_group_label": "Bot name in the group",

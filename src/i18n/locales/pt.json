@@ -1999,6 +1999,8 @@
     "generate_link_button": "Gerar link",
     "open_in_telegram": "Abrir no Telegram",
     "i_pressed_start": "Verificar associação",
+    "new_link_button": "Novo link",
+    "link_ttl_hint": "O link é válido durante 15 minutos. Não deu tempo? Obtém um novo.",
     "bound_success": "Associado",
     "not_bound_error": "Ainda não está associado. Abre o bot através do link e toca em «Iniciar» no Telegram.",
     "name_in_group_label": "Nome do bot no grupo",

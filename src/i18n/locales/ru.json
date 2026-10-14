@@ -2013,6 +2013,8 @@
     "generate_link_button": "Сгенерировать ссылку",
     "open_in_telegram": "Открыть в Telegram",
     "i_pressed_start": "Проверить привязку",
+    "new_link_button": "Новая ссылка",
+    "link_ttl_hint": "Ссылка действует 15 минут. Не успели — получите новую.",
     "bound_success": "Привязано",
     "not_bound_error": "Ещё не привязано. Откройте бота по ссылке и нажмите в Telegram «Запустить».",
     "name_in_group_label": "Имя бота в группе",
