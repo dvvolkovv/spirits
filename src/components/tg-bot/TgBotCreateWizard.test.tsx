@@ -137,7 +137,10 @@ describe('мастер: ссылка истекла — можно получи�
   it('шаг 1: пока выпускается новая ссылка, «Открыть в Telegram» не открывает ту, что вот-вот погаснет', async () => {
     const c = await toIdentityLink();
     let release: (v: unknown) => void = () => {};
-    api.identityLink.mockImplementationOnce(() => new Promise((r) => { release = r; }));
+    // Очередь «once»-ответов из toIdentityLink ещё не пуста — сбрасываем, иначе
+    // ответ придёт сразу и «зависшего» запроса не будет.
+    api.identityLink.mockReset();
+    api.identityLink.mockImplementation(() => new Promise((r) => { release = r; }));
     await clickAsync(byButton(c, exact(tRu('tgBot.new_link_button')))!);
     const open = byLink(c, new RegExp(tRu('tgBot.open_in_telegram')))!;
     expect(open.getAttribute('aria-disabled')).toBe('true');

@@ -213,6 +213,9 @@ describe('«Переподключить»: двойное нажатие', () =
   it('одна новая ссылка, а не две', async () => {
     api.list.mockResolvedValue([bot({ status: 'pending', tgChatId: null, tgChatTitle: null })]);
     let release: (v: unknown) => void = () => {};
+    // beforeEach этого файла reissueClaim не сбрасывает — счётчик тянулся бы из
+    // предыдущего теста.
+    api.reissueClaim.mockReset();
     api.reissueClaim.mockImplementation(() => new Promise((r) => { release = r; }) as any);
     const c = await openTab();
     const reconnect = Array.from(c.querySelectorAll('button')).find((b) => (b.textContent ?? '').includes(ru.tgBot.card_reconnect))!;
