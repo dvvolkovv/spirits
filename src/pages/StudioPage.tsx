@@ -51,21 +51,35 @@ const StudioPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('studio.title')}</h1>
         <p className="text-sm text-gray-500 mb-4">{subtitle}</p>
 
-        <div className="flex gap-1 border-b border-gray-200">
-          {tabs.map(([k, label, Icon]) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition ${
-                tab === k
-                  ? 'border-forest-600 text-forest-700'
-                  : 'border-transparent text-gray-500 hover:text-forest-600'
-              }`}
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
+        {/*
+          На телефоне три вкладки не влезали (при 390 px «Продукты» обрезались,
+          «Telegram-боты» ломались в две строки). На узком экране иконки скрыты,
+          и вкладки помещаются целиком; прокрутка вбок — страховка для длинных
+          языков и самых узких экранов.
+          Серая линия — у внешнего блока, а прокрутка — у внутреннего, сдвинутого
+          на 1px вниз: так подчёркивание активной вкладки ложится на линию и не
+          обрезается краем прокрутки.
+        */}
+        <div className="border-b border-gray-200">
+          <div
+            className="-mb-px flex gap-1 overflow-x-auto scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {tabs.map(([k, label, Icon]) => (
+              <button
+                key={k}
+                onClick={() => setTab(k)}
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition ${
+                  tab === k
+                    ? 'border-forest-600 text-forest-700'
+                    : 'border-transparent text-gray-500 hover:text-forest-600'
+                }`}
+              >
+                <Icon size={16} className="hidden sm:block" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

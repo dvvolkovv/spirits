@@ -1009,7 +1009,15 @@
       "lastMethod": "This is your only sign-in method",
       "loadError": "Failed to load",
       "unlinkError": "Failed to unlink",
-      "oauthError": "Failed to start linking"
+      "oauthError": "Failed to start linking",
+      "phoneInvalid": "Enter a phone number",
+      "smsError": "Failed to send the code",
+      "phoneConflict": "This number is already linked to another account. Sign in with it to merge the accounts.",
+      "phoneLinkError": "Failed to link the number",
+      "linkPhoneTitle": "Link a phone number",
+      "sendCode": "Get code",
+      "codePlaceholder": "SMS code",
+      "confirm": "Link"
     },
     "checking": "Checking…",
     "disconnect": "Disconnect",
@@ -1818,7 +1826,9 @@
     "sort": "Sort",
     "today": "Today",
     "yesterday": "Yesterday",
-    "upload": "Upload"
+    "upload": "Upload",
+    "compact_million": "{{value}}M",
+    "compact_thousand": "{{value}}K"
   },
   "peer": {
     "navTitle": "Chats",
@@ -2047,7 +2057,8 @@
       "note_commands": "Owner commands in the group: /balance — your balance, /silent — the bot goes quiet, /resume — it replies again.",
       "products": "Need a bot of your own for your customers — under your own name in Telegram, taking bookings, collecting requests and answering common questions? That's a product, and an assistant will build it for you.",
       "products_button": "Open Products"
-    }
+    },
+    "card_private_chat": "Private chat with the bot"
   },
   "imagegen": {
     "edit_modal_title": "Edit image",

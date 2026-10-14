@@ -115,6 +115,20 @@ describe('карточка «что это за бот» на вкладке б�
     expect(visibleText(c)).toContain(intro.lead);
   });
 
+  it('личный чат с ботом остаётся на вкладке своей карточкой — не «без названия»', async () => {
+    // Скрывать её нельзя: свой ассистент, режим ответа и голос на ней действуют
+    // на личку, а «История» — единственный способ увидеть переписку лички в
+    // вебе. Путала только подпись «без названия».
+    api.list.mockResolvedValue([
+      bot({ id: 'dm', tgChatId: '987654321', tgChatTitle: null, displayName: 'Linkeon', addressingMode: 'always', voiceReplyMode: 'mirror' }),
+      bot({ id: 'g1', displayName: 'Финансист' }),
+    ]);
+    const c = await openTab();
+    expect(c.querySelectorAll(`button[aria-label="${ru.tgBot.card_archive_aria}"]`)).toHaveLength(2);
+    expect(visibleText(c)).toContain('Личный чат с ботом');
+    expect(visibleText(c)).not.toContain(ru.tgBot.card_no_title);
+  });
+
   it('бот ждёт группы — свёрнута: мастер человек уже прошёл', async () => {
     api.list.mockResolvedValue([bot({ status: 'pending', tgChatId: null, tgChatTitle: null })]);
     const c = await openTab();

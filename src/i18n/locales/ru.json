@@ -1014,7 +1014,15 @@
       "lastMethod": "Это единственный способ входа",
       "loadError": "Не удалось загрузить",
       "unlinkError": "Не удалось отвязать",
-      "oauthError": "Не удалось начать привязку"
+      "oauthError": "Не удалось начать привязку",
+      "phoneInvalid": "Введите номер телефона",
+      "smsError": "Не удалось отправить код",
+      "phoneConflict": "Этот номер уже привязан к другому аккаунту. Войдите под ним, чтобы объединить.",
+      "phoneLinkError": "Не удалось привязать номер",
+      "linkPhoneTitle": "Привязать телефон",
+      "sendCode": "Код",
+      "codePlaceholder": "Код из SMS",
+      "confirm": "Привязать"
     },
     "checking": "Проверяю…",
     "disconnect": "Отключить",
@@ -1831,7 +1839,9 @@
     "sort": "Сортировка",
     "today": "Сегодня",
     "yesterday": "Вчера",
-    "upload": "Загрузить"
+    "upload": "Загрузить",
+    "compact_million": "{{value}} млн",
+    "compact_thousand": "{{value}} тыс"
   },
   "peer": {
     "navTitle": "Чаты",
@@ -1996,15 +2006,15 @@
     "card_history_aria": "История сообщений",
     "card_history_title": "История",
     "card_archive_aria": "Архивировать",
-    "wizard_fill_error": "Заполни имя и выбери роль",
+    "wizard_fill_error": "Заполните имя и выберите роль",
     "wizard_title": "Создать Telegram-бота",
-    "step1_title": "Шаг 1: Привяжи свой Telegram",
-    "step1_desc": "Это нужно один раз. Бот узнает, что твой Telegram-аккаунт связан с Linkeon — чтобы /balance и /silent были доступны только тебе.",
+    "step1_title": "Шаг 1: Привяжите свой Telegram",
+    "step1_desc": "Это нужно один раз. Бот узнает, что ваш Telegram-аккаунт связан с Linkeon — чтобы /balance и /silent были доступны только вам.",
     "generate_link_button": "Сгенерировать ссылку",
     "open_in_telegram": "Открыть в Telegram",
     "i_pressed_start": "Я нажал /start",
     "bound_success": "Привязано",
-    "not_bound_error": "Ещё не привязан. Нажми /start в Telegram.",
+    "not_bound_error": "Ещё не привязан. Нажмите /start в Telegram.",
     "name_in_group_label": "Имя бота в группе",
     "name_placeholder": "Финансист",
     "name_hint": "Бот будет реагировать, когда в сообщении встретится это имя (в strict-режиме)",
@@ -2020,8 +2030,8 @@
     "voice_mirror_desc": "Голос на голос, текст на текст",
     "voice_always_desc": "Каждый ответ голосом",
     "wizard_submit_button": "Создать и получить ссылку для группы",
-    "step3_title": "Шаг 3: Добавь бота в группу",
-    "addgroup_hint": "Открой ссылку — Telegram предложит выбрать группу. После добавления бот сам активируется. Ссылка работает 15 минут.",
+    "step3_title": "Шаг 3: Добавьте бота в группу",
+    "addgroup_hint": "Откройте ссылку — Telegram предложит выбрать группу. После добавления бот сам активируется. Ссылка работает 15 минут.",
     "edit_fill_error": "Заполните имя и роль",
     "saved_toast": "Сохранено",
     "save_error_fallback": "Не удалось сохранить",
@@ -2064,7 +2074,8 @@
       "note_commands": "Команды владельца в группе: /balance — баланс, /silent — бот замолкает, /resume — снова отвечает.",
       "products": "Нужен собственный бот для клиентов — со своим названием в Telegram, который ведёт запись, принимает заявки и отвечает на частые вопросы? Это продукт, его соберёт ассистент.",
       "products_button": "Открыть «Продукты»"
-    }
+    },
+    "card_private_chat": "Личный чат с ботом"
   },
   "imagegen": {
     "edit_modal_title": "Редактировать картинку",

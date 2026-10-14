@@ -653,7 +653,15 @@
       "lastMethod": "Es tu único método de acceso",
       "loadError": "No se pudo cargar",
       "unlinkError": "No se pudo desvincular",
-      "oauthError": "No se pudo iniciar la vinculación"
+      "oauthError": "No se pudo iniciar la vinculación",
+      "phoneInvalid": "Introduce un número de teléfono",
+      "smsError": "No se pudo enviar el código",
+      "phoneConflict": "Este número ya está vinculado a otra cuenta. Inicia sesión con ella para fusionar las cuentas.",
+      "phoneLinkError": "No se pudo vincular el número",
+      "linkPhoneTitle": "Vincular un teléfono",
+      "sendCode": "Recibir código",
+      "codePlaceholder": "Código del SMS",
+      "confirm": "Vincular"
     },
     "checking": "Comprobando…",
     "disconnect": "Desconectar",
@@ -1466,7 +1474,9 @@
     "sort": "Ordenar",
     "today": "Hoy",
     "yesterday": "Ayer",
-    "upload": "Subir"
+    "upload": "Subir",
+    "compact_million": "{{value}} M",
+    "compact_thousand": "{{value}} mil"
   },
   "peer": {
     "navTitle": "Chats",
@@ -1697,7 +1707,8 @@
       "note_commands": "Comandos del propietario en el grupo: /balance — saldo, /silent — el bot se calla, /resume — vuelve a responder.",
       "products": "¿Necesitas un bot propio para tus clientes, con tu propio nombre en Telegram, que gestione citas, recoja solicitudes y responda a las preguntas frecuentes? Eso es un producto, y un asistente lo creará por ti.",
       "products_button": "Abrir «Productos»"
-    }
+    },
+    "card_private_chat": "Chat privado con el bot"
   },
   "imagegen": {
     "edit_modal_title": "Editar imagen",

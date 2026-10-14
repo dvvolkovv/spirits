@@ -647,7 +647,15 @@
       "lastMethod": "这是唯一的登录方式",
       "loadError": "加载失败",
       "unlinkError": "解绑失败",
-      "oauthError": "无法开始绑定"
+      "oauthError": "无法开始绑定",
+      "phoneInvalid": "请输入手机号",
+      "smsError": "验证码发送失败",
+      "phoneConflict": "该号码已绑定其他账号。请用该账号登录以合并。",
+      "phoneLinkError": "号码绑定失败",
+      "linkPhoneTitle": "绑定手机号",
+      "sendCode": "获取验证码",
+      "codePlaceholder": "短信验证码",
+      "confirm": "绑定"
     },
     "checking": "检查中…",
     "disconnect": "断开连接",
@@ -1452,7 +1460,9 @@
     "sort": "排序",
     "today": "今天",
     "yesterday": "昨天",
-    "upload": "上传"
+    "upload": "上传",
+    "compact_million": "{{value}}百万",
+    "compact_thousand": "{{value}}千"
   },
   "peer": {
     "navTitle": "聊天",
@@ -1679,7 +1689,8 @@
       "note_commands": "机器人所有者在群组中可用的命令：/balance 查看余额，/silent 让机器人保持安静，/resume 恢复回复。",
       "products": "需要一个服务客户的专属机器人？它在 Telegram 中使用您自己的名称，可以接受预约、接收申请并回答常见问题。这属于产品，助手会为您搭建。",
       "products_button": "打开「产品」"
-    }
+    },
+    "card_private_chat": "与机器人的私聊"
   },
   "imagegen": {
     "edit_modal_title": "编辑图片",

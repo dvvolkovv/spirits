@@ -1006,7 +1006,15 @@
       "lastMethod": "Esta é a única forma de iniciar sessão",
       "loadError": "Não foi possível carregar",
       "unlinkError": "Não foi possível desassociar",
-      "oauthError": "Não foi possível iniciar a associação"
+      "oauthError": "Não foi possível iniciar a associação",
+      "phoneInvalid": "Introduza um número de telemóvel",
+      "smsError": "Não foi possível enviar o código",
+      "phoneConflict": "Este número já está associado a outra conta. Inicie sessão com ela para unir as contas.",
+      "phoneLinkError": "Não foi possível associar o número",
+      "linkPhoneTitle": "Associar telemóvel",
+      "sendCode": "Receber código",
+      "codePlaceholder": "Código do SMS",
+      "confirm": "Associar"
     },
     "checking": "A verificar…",
     "disconnect": "Desligar",
@@ -1819,7 +1827,9 @@
     "sort": "Ordenação",
     "today": "Hoje",
     "yesterday": "Ontem",
-    "upload": "Carregar"
+    "upload": "Carregar",
+    "compact_million": "{{value}} M",
+    "compact_thousand": "{{value}} mil"
   },
   "peer": {
     "navTitle": "Chats",
@@ -2050,7 +2060,8 @@
       "note_commands": "Comandos do proprietário no grupo: /balance — saldo, /silent — o bot fica calado, /resume — volta a responder.",
       "products": "Precisas de um bot só teu, que use o teu nome no Telegram, faça marcações, receba pedidos e responda às perguntas frequentes dos teus clientes? Isso é um produto, e um assistente constrói-o por ti.",
       "products_button": "Abrir «Produtos»"
-    }
+    },
+    "card_private_chat": "Conversa privada com o bot"
   },
   "imagegen": {
     "edit_modal_title": "Editar imagem",

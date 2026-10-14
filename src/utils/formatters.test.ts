@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import i18n from '../i18n';
 import { toIntlLocale, formatDate, formatDateTime, formatNumber, formatCurrency, formatTokensCompact } from './formatters';
 
@@ -9,8 +9,14 @@ describe('toIntlLocale', () => {
     expect(toIntlLocale('zh')).toBe('zh-CN');
   });
 
+  it('португальский — европейский pt-PT, а не русская локаль', () => {
+    // pt появился в SUPPORTED_CODES позже этой карты: даты и числа португальцам
+    // форматировались по-русски («04.08.2026» вместо «04/08/2026»).
+    expect(toIntlLocale('pt')).toBe('pt-PT');
+  });
+
   it('падает в русскую локаль на неизвестном языке', () => {
-    expect(toIntlLocale('pt')).toBe('ru-RU');
+    expect(toIntlLocale('it')).toBe('ru-RU');
   });
 });
 
@@ -79,7 +85,8 @@ describe('formatDateTime', () => {
 });
 
 describe('formatTokensCompact', () => {
-  beforeEach(() => { i18n.changeLanguage('ru'); });
+  beforeEach(async () => { await i18n.changeLanguage('ru'); });
+  afterAll(async () => { await i18n.changeLanguage('ru'); });
 
   it('миллионы — с одним знаком после запятой', () => {
     expect(formatTokensCompact(97_083_375)).toBe('97,1 млн');
@@ -97,5 +104,21 @@ describe('formatTokensCompact', () => {
 
   it('ноль остаётся нулём, а не «0 тыс»', () => {
     expect(formatTokensCompact(0)).toBe('0');
+  });
+
+  // Слова разрядов были вшиты по-русски: немец видел «97,1 млн» в шапке чата.
+  // Числа те же на всех языках — меняется только подпись разряда.
+  it.each([
+    ['en', '97.1M', '23K'],
+    ['de', '97,1 Mio.', '23 Tsd.'],
+    ['fr', '97,1 M', '23 k'],
+    ['es', '97,1 M', '23 mil'],
+    ['pt', '97,1 M', '23 mil'],
+    // Китайский считает в 万/亿 — CLDR через Intl, а не «百万/千».
+    ['zh', '9708.3万', '2.3万'],
+  ])('%s — разряды словами своего языка, а не «млн/тыс»', async (lng, million, thousand) => {
+    await i18n.changeLanguage(lng);
+    expect(formatTokensCompact(97_083_375)).toBe(million);
+    expect(formatTokensCompact(23_456)).toBe(thousand);
   });
 });

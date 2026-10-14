@@ -12,6 +12,7 @@ const INTL_LOCALES: Record<string, string> = {
   de: 'de-DE',
   fr: 'fr-FR',
   zh: 'zh-CN',
+  pt: 'pt-PT',
 };
 
 export function toIntlLocale(lang: string): string {
@@ -76,15 +77,22 @@ export function formatCurrency(value: number, currency = 'RUB'): string {
  * было самым дорогим элементом.
  *
  * Разряды подписываем словом, а не буквой: «97,1M» на кириллическом экране
- * читается как латиница посреди русского текста.
+ * читается как латиница посреди русского текста. Слово берётся из локали
+ * (common.compact_*): раньше «млн/тыс» были вшиты по-русски, и немец видел в
+ * шапке «97,1 млн». Числа на всех языках одинаковые.
  */
 export function formatTokensCompact(tokens: number): string {
   const abs = Math.abs(tokens);
+  // Китайский считает в 万/亿, а не в тысячах и миллионах: тут вернее CLDR
+  // («9708.3万», «2.3万»), чем подпись разряда из локали.
+  if (abs >= 10_000 && (i18n.language || '').startsWith('zh')) {
+    return new Intl.NumberFormat(activeLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(tokens);
+  }
   if (abs >= 1_000_000) {
-    return `${formatNumber(tokens / 1_000_000, { maximumFractionDigits: 1 })} млн`;
+    return i18n.t('common.compact_million', { value: formatNumber(tokens / 1_000_000, { maximumFractionDigits: 1 }) });
   }
   if (abs >= 10_000) {
-    return `${formatNumber(Math.round(tokens / 1000), { maximumFractionDigits: 0 })} тыс`;
+    return i18n.t('common.compact_thousand', { value: formatNumber(Math.round(tokens / 1000), { maximumFractionDigits: 0 }) });
   }
   return formatNumber(tokens);
 }
