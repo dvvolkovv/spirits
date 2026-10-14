@@ -653,7 +653,15 @@
       "lastMethod": "C'est ton seul moyen de connexion",
       "loadError": "Échec du chargement",
       "unlinkError": "Échec de la dissociation",
-      "oauthError": "Échec du démarrage de l'association"
+      "oauthError": "Échec du démarrage de l'association",
+      "phoneInvalid": "Saisis un numéro de téléphone",
+      "smsError": "Échec de l'envoi du code",
+      "phoneConflict": "Ce numéro est déjà associé à un autre compte. Connecte-toi avec celui-ci pour fusionner les comptes.",
+      "phoneLinkError": "Échec de l'association du numéro",
+      "linkPhoneTitle": "Associer un numéro de téléphone",
+      "sendCode": "Recevoir le code",
+      "codePlaceholder": "Code reçu par SMS",
+      "confirm": "Associer"
     },
     "checking": "Vérification…",
     "disconnect": "Déconnecter",
@@ -1466,7 +1474,9 @@
     "sort": "Trier",
     "today": "Aujourd'hui",
     "yesterday": "Hier",
-    "upload": "Charger"
+    "upload": "Charger",
+    "compact_million": "{{value}} M",
+    "compact_thousand": "{{value}} k"
   },
   "peer": {
     "navTitle": "Chats",

@@ -650,7 +650,15 @@
       "lastMethod": "Das ist die einzige Anmeldemethode",
       "loadError": "Laden fehlgeschlagen",
       "unlinkError": "Trennen fehlgeschlagen",
-      "oauthError": "Verknüpfung konnte nicht gestartet werden"
+      "oauthError": "Verknüpfung konnte nicht gestartet werden",
+      "phoneInvalid": "Telefonnummer eingeben",
+      "smsError": "Code konnte nicht gesendet werden",
+      "phoneConflict": "Diese Nummer ist bereits mit einem anderen Konto verknüpft. Melde dich damit an, um die Konten zusammenzuführen.",
+      "phoneLinkError": "Nummer konnte nicht verknüpft werden",
+      "linkPhoneTitle": "Telefonnummer verknüpfen",
+      "sendCode": "Code anfordern",
+      "codePlaceholder": "Code aus der SMS",
+      "confirm": "Verknüpfen"
     },
     "checking": "Prüfe …",
     "disconnect": "Trennen",
@@ -1459,7 +1467,9 @@
     "sort": "Sortierung",
     "today": "Heute",
     "yesterday": "Gestern",
-    "upload": "Hochladen"
+    "upload": "Hochladen",
+    "compact_million": "{{value}} Mio.",
+    "compact_thousand": "{{value}} Tsd."
   },
   "peer": {
     "navTitle": "Chats",

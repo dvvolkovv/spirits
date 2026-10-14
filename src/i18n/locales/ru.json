@@ -1014,7 +1014,15 @@
       "lastMethod": "Это единственный способ входа",
       "loadError": "Не удалось загрузить",
       "unlinkError": "Не удалось отвязать",
-      "oauthError": "Не удалось начать привязку"
+      "oauthError": "Не удалось начать привязку",
+      "phoneInvalid": "Введите номер телефона",
+      "smsError": "Не удалось отправить код",
+      "phoneConflict": "Этот номер уже привязан к другому аккаунту. Войдите под ним, чтобы объединить.",
+      "phoneLinkError": "Не удалось привязать номер",
+      "linkPhoneTitle": "Привязать телефон",
+      "sendCode": "Код",
+      "codePlaceholder": "Код из SMS",
+      "confirm": "Привязать"
     },
     "checking": "Проверяю…",
     "disconnect": "Отключить",
@@ -1831,7 +1839,9 @@
     "sort": "Сортировка",
     "today": "Сегодня",
     "yesterday": "Вчера",
-    "upload": "Загрузить"
+    "upload": "Загрузить",
+    "compact_million": "{{value}} млн",
+    "compact_thousand": "{{value}} тыс"
   },
   "peer": {
     "navTitle": "Чаты",

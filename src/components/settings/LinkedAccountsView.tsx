@@ -75,12 +75,12 @@ const LinkedAccountsView: React.FC = () => {
 
   const handleSendPhoneCode = async () => {
     const clean = phone.replace(/\D/g, '');
-    if (clean.length < 11) { setError(t('settings.linkedAccounts.phoneInvalid', 'Введите номер телефона')); return; }
+    if (clean.length < 11) { setError(t('settings.linkedAccounts.phoneInvalid')); return; }
     setPhoneBusy(true);
     const r = await authService.requestSMSCode(clean);
     setPhoneBusy(false);
     if (r.success) { setError(null); setPhoneStep('code'); }
-    else setError(r.message || t('settings.linkedAccounts.smsError', 'Не удалось отправить код'));
+    else setError(r.message || t('settings.linkedAccounts.smsError'));
   };
 
   const handleLinkPhone = async () => {
@@ -93,9 +93,9 @@ const LinkedAccountsView: React.FC = () => {
     } else if (r.reason === 'conflict') {
       // Номер уже привязан к другому аккаунту. Слияние по телефону из настроек
       // пока не заведено — честно объясняем, а не молчим.
-      setError(t('settings.linkedAccounts.phoneConflict', 'Этот номер уже привязан к другому аккаунту. Войдите под ним, чтобы объединить.'));
+      setError(t('settings.linkedAccounts.phoneConflict'));
     } else {
-      setError(t('settings.linkedAccounts.phoneLinkError', 'Не удалось привязать номер'));
+      setError(t('settings.linkedAccounts.phoneLinkError'));
     }
   };
 
@@ -176,7 +176,7 @@ const LinkedAccountsView: React.FC = () => {
           <div className="px-4 py-3 flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-gray-500" />
-              <p className="text-sm font-medium">{t('settings.linkedAccounts.linkPhoneTitle', 'Привязать телефон')}</p>
+              <p className="text-sm font-medium">{t('settings.linkedAccounts.linkPhoneTitle')}</p>
             </div>
             {phoneStep === 'phone' ? (
               <div className="flex gap-2">
@@ -197,7 +197,7 @@ const LinkedAccountsView: React.FC = () => {
                   className="px-3 py-2 bg-forest-600 text-white rounded-lg text-sm font-medium hover:bg-forest-700 disabled:opacity-50 flex items-center gap-1"
                 >
                   {phoneBusy && <Loader className="w-4 h-4 animate-spin" />}
-                  {t('settings.linkedAccounts.sendCode', 'Код')}
+                  {t('settings.linkedAccounts.sendCode')}
                 </button>
               </div>
             ) : (
@@ -208,7 +208,7 @@ const LinkedAccountsView: React.FC = () => {
                   autoFocus
                   value={smsCode}
                   onChange={e => setSmsCode(e.target.value)}
-                  placeholder={t('settings.linkedAccounts.codePlaceholder', 'Код из SMS')}
+                  placeholder={t('settings.linkedAccounts.codePlaceholder')}
                   // ym-disable-keys: набираемый код из SMS.
                   className="ym-disable-keys flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
                   data-testid="linked-accounts-sms-code-input"
@@ -219,7 +219,7 @@ const LinkedAccountsView: React.FC = () => {
                   className="px-3 py-2 bg-forest-600 text-white rounded-lg text-sm font-medium hover:bg-forest-700 disabled:opacity-50 flex items-center gap-1"
                 >
                   {phoneBusy && <Loader className="w-4 h-4 animate-spin" />}
-                  {t('settings.linkedAccounts.confirm', 'Привязать')}
+                  {t('settings.linkedAccounts.confirm')}
                 </button>
               </div>
             )}

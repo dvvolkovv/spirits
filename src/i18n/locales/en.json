@@ -1009,7 +1009,15 @@
       "lastMethod": "This is your only sign-in method",
       "loadError": "Failed to load",
       "unlinkError": "Failed to unlink",
-      "oauthError": "Failed to start linking"
+      "oauthError": "Failed to start linking",
+      "phoneInvalid": "Enter a phone number",
+      "smsError": "Failed to send the code",
+      "phoneConflict": "This number is already linked to another account. Sign in with it to merge the accounts.",
+      "phoneLinkError": "Failed to link the number",
+      "linkPhoneTitle": "Link a phone number",
+      "sendCode": "Get code",
+      "codePlaceholder": "Code from SMS",
+      "confirm": "Link"
     },
     "checking": "Checking…",
     "disconnect": "Disconnect",
@@ -1818,7 +1826,9 @@
     "sort": "Sort",
     "today": "Today",
     "yesterday": "Yesterday",
-    "upload": "Upload"
+    "upload": "Upload",
+    "compact_million": "{{value}}M",
+    "compact_thousand": "{{value}}K"
   },
   "peer": {
     "navTitle": "Chats",
