@@ -50,10 +50,12 @@ const ReconnectLinkModal: React.FC<{ displayName: string; deepLink: string; onCl
 };
 
 /**
- * Заводил ли человек группового бота. Личный чат с ботом заводит свою строку в
- * том же списке (положительный id чата, имя «Linkeon» — ensurePrivateConfig на
- * бэке), и по ней новичок выглядел бы опытным. Группа — отрицательный id; бот,
- * который ждёт группы, — null.
+ * Групповой ли это бот. Личный чат с ботом заводит свою строку в том же списке
+ * (положительный id чата, имя «Linkeon» — ensurePrivateConfig на бэке). На
+ * вкладке её не показываем: карточка «Linkeon / без названия» путала, правка
+ * роли на неё не действует (ассистент лички — из preferred_agent), а архивация
+ * лишь заводит строку заново на следующем сообщении. И новичок по ней не
+ * выглядит опытным. Группа — отрицательный id; бот, который ждёт группы, — null.
  */
 const isGroupBot = (c: TgBotConfig) => c.tgChatId === null || c.tgChatId.startsWith('-');
 
@@ -89,9 +91,9 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false, onOpenProduc
   const reload = async () => {
     setLoading(true);
     try {
-      const list = await tgBotApi.list();
-      setConfigs(list);
-      setIntroOpen(prev => prev ?? !list.some(isGroupBot));
+      const groupBots = (await tgBotApi.list()).filter(isGroupBot);
+      setConfigs(groupBots);
+      setIntroOpen(prev => prev ?? groupBots.length === 0);
     }
     catch (e: any) {
       toast.error(e?.message ?? t('tgBot.list_load_error'));
