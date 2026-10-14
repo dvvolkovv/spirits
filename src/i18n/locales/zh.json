@@ -1632,6 +1632,7 @@
     "link_ttl_hint": "链接有效期为 15 分钟。来不及的话，请获取新链接。",
     "already_added": "机器人已在群组中——请点击「完成」。",
     "link_refreshed": "链接已更新",
+    "identity_link_refreshed": "链接已更新——之前的链接已失效。",
     "bound_success": "已绑定",
     "not_bound_error": "尚未绑定。请通过链接打开机器人，在 Telegram 中点击「开始」（Start）。",
     "name_in_group_label": "机器人在群组中的名称",

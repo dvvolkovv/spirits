@@ -1641,6 +1641,7 @@
     "link_ttl_hint": "Der Link gilt 15 Minuten. Nicht geschafft? Hol dir einen neuen.",
     "already_added": "Der Bot ist schon in der Gruppe – tippe auf „Fertig“.",
     "link_refreshed": "Link aktualisiert",
+    "identity_link_refreshed": "Link aktualisiert – der vorherige funktioniert nicht mehr.",
     "bound_success": "Verknüpft",
     "not_bound_error": "Noch nicht verknüpft. Öffne den Bot über den Link und tippe in Telegram auf „Starten“.",
     "name_in_group_label": "Bot-Name in der Gruppe",

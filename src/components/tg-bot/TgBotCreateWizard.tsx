@@ -30,6 +30,8 @@ export const TgBotCreateWizard: React.FC = () => {
   // Замок — синхронный: два нажатия в одном тике приходят раньше, чем React
   // перерисует кнопку disabled, и проверка одного состояния пропустила бы оба.
   const linkLock = useRef(false);
+  // Двойное «Создать» заводило двух ботов.
+  const createLock = useRef(false);
 
   useEffect(() => {
     tgBotApi.identityStatus().then(s => {
@@ -38,10 +40,13 @@ export const TgBotCreateWizard: React.FC = () => {
   }, []);
 
   const generateIdentityLink = async () => {
+    if (linkLock.current) return;
+    linkLock.current = true;
+    setLinkBusy(true);
     try {
       const r = await tgBotApi.identityLink();
       setIdentityDeepLink(r.deepLink);
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); } finally { linkLock.current = false; setLinkBusy(false); }
   };
 
   // Новая ссылка привязки гасит прежнюю (бэк). На экране ссылки не видно —
@@ -53,7 +58,7 @@ export const TgBotCreateWizard: React.FC = () => {
     try {
       const r = await tgBotApi.identityLink();
       setIdentityDeepLink(r.deepLink);
-      toast.success(t('tgBot.link_refreshed'));
+      toast.success(t('tgBot.identity_link_refreshed'));
     } catch (e: any) { toast.error(e.message); } finally { linkLock.current = false; setLinkBusy(false); }
   };
 
@@ -62,6 +67,8 @@ export const TgBotCreateWizard: React.FC = () => {
       toast.error(t('tgBot.wizard_fill_error'));
       return;
     }
+    if (createLock.current) return;
+    createLock.current = true;
     try {
       const r = await tgBotApi.create({
         displayName: displayName.trim(),
@@ -73,7 +80,7 @@ export const TgBotCreateWizard: React.FC = () => {
       setCreatedId(r.config.id);
       setClaimDeepLink(r.deepLink);
       setStep('addgroup');
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message); } finally { createLock.current = false; }
   };
 
   const reissueClaimLink = async () => {
@@ -92,7 +99,13 @@ export const TgBotCreateWizard: React.FC = () => {
       const r = await tgBotApi.reissueClaim(createdId);
       setClaimDeepLink(r.deepLink);
       toast.success(t('tgBot.link_refreshed'));
-    } catch (e: any) { toast.error(e.message); } finally { linkLock.current = false; setLinkBusy(false); }
+    } catch {
+      // Привязка могла успеть между проверкой и перевыпуском — бэк тогда
+      // откажет. Проверяем ещё раз и говорим по-человечески, без сырой ошибки.
+      const now = await tgBotApi.get(createdId).catch(() => null);
+      if (now && (now.status === 'active' || now.status === 'silent')) toast.success(t('tgBot.already_added'));
+      else toast.error(t('tgBot.reconnect_error'));
+    } finally { linkLock.current = false; setLinkBusy(false); }
   };
 
   const copy = (s: string) => {
@@ -124,7 +137,11 @@ export const TgBotCreateWizard: React.FC = () => {
                 href={identityDeepLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium"
+                // Пока выпускается новая ссылка, прежняя вот-вот погаснет —
+                // открывать её незачем.
+                aria-disabled={linkBusy}
+                onClick={(e) => { if (linkBusy) e.preventDefault(); }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-forest-600 hover:bg-forest-700 text-white font-medium${linkBusy ? ' pointer-events-none opacity-50' : ''}`}
               >
                 <ExternalLink size={16} /> {t('tgBot.open_in_telegram')}
               </a>

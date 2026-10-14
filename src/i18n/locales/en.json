@@ -2000,6 +2000,7 @@
     "link_ttl_hint": "The link is valid for 15 minutes. Didn't make it in time? Get a new one.",
     "already_added": "The bot is already in the group — press “Done”.",
     "link_refreshed": "Link updated",
+    "identity_link_refreshed": "Link updated — the previous one no longer works.",
     "bound_success": "Linked",
     "not_bound_error": "Not linked yet. Open the bot via the link and press Start in Telegram.",
     "name_in_group_label": "Bot name in the group",
