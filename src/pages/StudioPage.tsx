@@ -61,12 +61,15 @@ const StudioPage: React.FC = () => {
           обрезается краем прокрутки.
         */}
         <div className="border-b border-gray-200">
-          <div className="-mb-px flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            className="-mb-px flex gap-1 overflow-x-auto scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             {tabs.map(([k, label, Icon]) => (
               <button
                 key={k}
                 onClick={() => setTab(k)}
-                className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 md:px-4 py-2.5 text-sm font-medium border-b-2 transition ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 sm:px-4 py-2.5 text-sm font-medium border-b-2 transition ${
                   tab === k
                     ? 'border-forest-600 text-forest-700'
                     : 'border-transparent text-gray-500 hover:text-forest-600'

@@ -12,6 +12,7 @@ const INTL_LOCALES: Record<string, string> = {
   de: 'de-DE',
   fr: 'fr-FR',
   zh: 'zh-CN',
+  pt: 'pt-PT',
 };
 
 export function toIntlLocale(lang: string): string {
@@ -82,6 +83,11 @@ export function formatCurrency(value: number, currency = 'RUB'): string {
  */
 export function formatTokensCompact(tokens: number): string {
   const abs = Math.abs(tokens);
+  // Китайский считает в 万/亿, а не в тысячах и миллионах: тут вернее CLDR
+  // («9708.3万», «2.3万»), чем подпись разряда из локали.
+  if (abs >= 10_000 && (i18n.language || '').startsWith('zh')) {
+    return new Intl.NumberFormat(activeLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(tokens);
+  }
   if (abs >= 1_000_000) {
     return i18n.t('common.compact_million', { value: formatNumber(tokens / 1_000_000, { maximumFractionDigits: 1 }) });
   }

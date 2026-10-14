@@ -656,7 +656,7 @@
       "oauthError": "Échec du démarrage de l'association",
       "phoneInvalid": "Saisis un numéro de téléphone",
       "smsError": "Échec de l'envoi du code",
-      "phoneConflict": "Ce numéro est déjà associé à un autre compte. Connecte-toi avec celui-ci pour fusionner les comptes.",
+      "phoneConflict": "Ce numéro est déjà associé à un autre compte. Connecte-toi avec ce numéro pour fusionner les comptes.",
       "phoneLinkError": "Échec de l'association du numéro",
       "linkPhoneTitle": "Associer un numéro de téléphone",
       "sendCode": "Recevoir le code",
@@ -1707,7 +1707,8 @@
       "note_commands": "Commandes du propriétaire dans le groupe : /balance — solde, /silent — le bot se tait, /resume — il répond de nouveau.",
       "products": "Besoin de votre propre bot pour vos clients, qui porte votre nom dans Telegram, prend les rendez-vous, reçoit les demandes et répond aux questions fréquentes ? C’est un produit : un assistant le construira pour vous.",
       "products_button": "Ouvrir « Produits »"
-    }
+    },
+    "card_private_chat": "Discussion privée avec le bot"
   },
   "imagegen": {
     "edit_modal_title": "Modifier l'image",

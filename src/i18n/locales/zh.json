@@ -1689,7 +1689,8 @@
       "note_commands": "机器人所有者在群组中可用的命令：/balance 查看余额，/silent 让机器人保持安静，/resume 恢复回复。",
       "products": "需要一个服务客户的专属机器人？它在 Telegram 中使用您自己的名称，可以接受预约、接收申请并回答常见问题。这属于产品，助手会为您搭建。",
       "products_button": "打开「产品」"
-    }
+    },
+    "card_private_chat": "与机器人的私聊"
   },
   "imagegen": {
     "edit_modal_title": "编辑图片",

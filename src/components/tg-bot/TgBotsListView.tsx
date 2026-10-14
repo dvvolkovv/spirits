@@ -8,6 +8,7 @@ import { TgBotCard } from './TgBotCard';
 import { TgBotEditModal } from './TgBotEditModal';
 import { TgBotMessagesView } from './TgBotMessagesView';
 import { TgBotIntro } from './TgBotIntro';
+import { isPrivateChat } from './chatKind';
 
 // Модалка с новой claim-ссылкой после «Переподключить». Module-scope —
 // inline-FC внутри рендера ре-маунтится из-за token-poll (см. комментарий ниже).
@@ -49,15 +50,6 @@ const ReconnectLinkModal: React.FC<{ displayName: string; deepLink: string; onCl
   );
 };
 
-/**
- * Групповой ли это бот. Личный чат с ботом заводит свою строку в том же списке
- * (положительный id чата, имя «Linkeon» — ensurePrivateConfig на бэке). На
- * вкладке её не показываем: карточка «Linkeon / без названия» путала, правка
- * роли на неё не действует (ассистент лички — из preferred_agent), а архивация
- * лишь заводит строку заново на следующем сообщении. И новичок по ней не
- * выглядит опытным. Группа — отрицательный id; бот, который ждёт группы, — null.
- */
-const isGroupBot = (c: TgBotConfig) => c.tgChatId === null || c.tgChatId.startsWith('-');
 
 interface Props {
   /** Если true — без внешней h-full обёртки и без заголовка страницы. */
@@ -91,9 +83,11 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false, onOpenProduc
   const reload = async () => {
     setLoading(true);
     try {
-      const groupBots = (await tgBotApi.list()).filter(isGroupBot);
-      setConfigs(groupBots);
-      setIntroOpen(prev => prev ?? groupBots.length === 0);
+      const list = await tgBotApi.list();
+      setConfigs(list);
+      // Личка — своя строка в том же списке. Новичка, у которого кроме неё
+      // ничего нет, она не делает «опытным»: групповых ботов он не заводил.
+      setIntroOpen(prev => prev ?? list.every(isPrivateChat));
     }
     catch (e: any) {
       toast.error(e?.message ?? t('tgBot.list_load_error'));

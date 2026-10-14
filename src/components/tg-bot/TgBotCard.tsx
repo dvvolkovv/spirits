@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Edit2, Trash2, Send, MessageSquare, RefreshCw } from 'lucide-react';
 import type { TgBotConfig } from '../../services/tgBotApi';
+import { isPrivateChat } from './chatKind';
 
 interface Props {
   config: TgBotConfig;
@@ -48,7 +49,11 @@ export const TgBotCard: React.FC<Props> = ({ config, onEdit, onDelete, onMessage
             <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>{t(badge.key)}</span>
           </div>
           <p className="text-sm text-gray-600 mt-1 truncate">
-            {config.tgChatTitle ?? (config.status === 'pending' ? '—' : t('tgBot.card_no_title'))}
+            {/* У лички нет названия чата — «без названия» путало, будто бот в
+                безымянной группе. */}
+            {config.tgChatTitle ?? (isPrivateChat(config)
+              ? t('tgBot.card_private_chat')
+              : config.status === 'pending' ? '—' : t('tgBot.card_no_title'))}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">
             {t('tgBot.card_mode_voice', {
