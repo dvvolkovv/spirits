@@ -22,7 +22,8 @@ describe('подсказки режимов бота — без жаргона',
   it.each([
     ['ru', ru], ['en', en], ['de', de], ['fr', fr], ['es', es], ['pt', pt], ['zh', zh],
   ] as const)('%s', (_lang, locale) => {
-    const tg = (locale as { tgBot: Record<string, string> }).tgBot;
+    // tgBot содержит и вложенный intro — к строкам приводим через unknown.
+    const tg = (locale as unknown as { tgBot: Record<string, string> }).tgBot;
     const jargon = KEYS.filter((k) => JARGON.test(tg[k]));
     expect(jargon).toEqual([]);
   });
