@@ -115,6 +115,28 @@ describe('карточка «что это за бот» на вкладке б�
     expect(visibleText(c)).toContain(intro.lead);
   });
 
+  it('личный чат с ботом карточкой не показывается: на вкладке только групповые боты', async () => {
+    // Карточка лички вводила в заблуждение: «Linkeon / без названия», правка
+    // роли на неё не действует (ассистент лички — из preferred_agent), а
+    // архивация лишь заводит строку заново на следующем сообщении.
+    api.list.mockResolvedValue([
+      bot({ id: 'dm', tgChatId: '987654321', tgChatTitle: null, displayName: 'Linkeon', addressingMode: 'always', voiceReplyMode: 'mirror' }),
+      bot({ id: 'g1', displayName: 'Финансист' }),
+    ]);
+    const c = await openTab();
+    expect(c.querySelectorAll(`button[aria-label="${ru.tgBot.card_archive_aria}"]`)).toHaveLength(1);
+    expect(visibleText(c)).toContain('Финансист');
+  });
+
+  it('только личный чат — список пуст, «Нет активных ботов»', async () => {
+    api.list.mockResolvedValue([
+      bot({ tgChatId: '987654321', tgChatTitle: null, displayName: 'Linkeon', addressingMode: 'always' }),
+    ]);
+    const c = await openTab();
+    expect(c.querySelectorAll(`button[aria-label="${ru.tgBot.card_archive_aria}"]`)).toHaveLength(0);
+    expect(visibleText(c)).toContain(ru.tgBot.empty_active_title);
+  });
+
   it('бот ждёт группы — свёрнута: мастер человек уже прошёл', async () => {
     api.list.mockResolvedValue([bot({ status: 'pending', tgChatId: null, tgChatTitle: null })]);
     const c = await openTab();
