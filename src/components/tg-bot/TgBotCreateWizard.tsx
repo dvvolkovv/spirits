@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -24,6 +24,12 @@ export const TgBotCreateWizard: React.FC = () => {
   // id созданного бота — чтобы перевыпустить ссылку в группу, если старая
   // истекла (живёт 15 минут), не теряя мастер.
   const [createdId, setCreatedId] = useState<string | null>(null);
+  // Пока идёт запрос новой ссылки — кнопка не жмётся второй раз: каждое
+  // лишнее нажатие выпустило бы ещё одну ссылку.
+  const [linkBusy, setLinkBusy] = useState(false);
+  // Замок — синхронный: два нажатия в одном тике приходят раньше, чем React
+  // перерисует кнопку disabled, и проверка одного состояния пропустила бы оба.
+  const linkLock = useRef(false);
 
   useEffect(() => {
     tgBotApi.identityStatus().then(s => {
@@ -36,6 +42,19 @@ export const TgBotCreateWizard: React.FC = () => {
       const r = await tgBotApi.identityLink();
       setIdentityDeepLink(r.deepLink);
     } catch (e: any) { toast.error(e.message); }
+  };
+
+  // Новая ссылка привязки гасит прежнюю (бэк). На экране ссылки не видно —
+  // меняется только адрес кнопки, поэтому говорим, что она обновилась.
+  const refreshIdentityLink = async () => {
+    if (linkLock.current) return;
+    linkLock.current = true;
+    setLinkBusy(true);
+    try {
+      const r = await tgBotApi.identityLink();
+      setIdentityDeepLink(r.deepLink);
+      toast.success(t('tgBot.link_refreshed'));
+    } catch (e: any) { toast.error(e.message); } finally { linkLock.current = false; setLinkBusy(false); }
   };
 
   const submitConfig = async () => {
@@ -58,11 +77,22 @@ export const TgBotCreateWizard: React.FC = () => {
   };
 
   const reissueClaimLink = async () => {
-    if (!createdId) return;
+    if (!createdId || linkLock.current) return;
+    linkLock.current = true;
+    setLinkBusy(true);
     try {
+      // Бот уже в группе — перевыпуск бэк отклонит, и человек увидел бы
+      // сырую ошибку. «Новая ссылка» тут легко принять за «ссылку для
+      // второй группы», поэтому говорим прямо: бот подключён, жмите «Готово».
+      const cfg = await tgBotApi.get(createdId);
+      if (cfg.status === 'active' || cfg.status === 'silent') {
+        toast.success(t('tgBot.already_added'));
+        return;
+      }
       const r = await tgBotApi.reissueClaim(createdId);
       setClaimDeepLink(r.deepLink);
-    } catch (e: any) { toast.error(e.message); }
+      toast.success(t('tgBot.link_refreshed'));
+    } catch (e: any) { toast.error(e.message); } finally { linkLock.current = false; setLinkBusy(false); }
   };
 
   const copy = (s: string) => {
@@ -109,8 +139,9 @@ export const TgBotCreateWizard: React.FC = () => {
                 {t('tgBot.i_pressed_start')}
               </button>
               <button
-                onClick={generateIdentityLink}
-                className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
+                onClick={refreshIdentityLink}
+                disabled={linkBusy}
+                className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 font-medium disabled:opacity-50"
               >
                 {t('tgBot.new_link_button')}
               </button>
@@ -198,7 +229,7 @@ export const TgBotCreateWizard: React.FC = () => {
           </p>
           <div className="flex items-center gap-2 mb-4">
             <input type="text" value={claimDeepLink} readOnly className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono" />
-            <button onClick={() => copy(claimDeepLink)} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+            <button onClick={() => copy(claimDeepLink)} className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50" aria-label={t('referral.copy')}>
               <Copy size={16} />
             </button>
           </div>
@@ -212,16 +243,17 @@ export const TgBotCreateWizard: React.FC = () => {
               <ExternalLink size={16} /> {t('tgBot.open_in_telegram')}
             </a>
             <button
+              onClick={reissueClaimLink}
+              disabled={linkBusy}
+              className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 font-medium disabled:opacity-50"
+            >
+              {t('tgBot.new_link_button')}
+            </button>
+            <button
               onClick={() => navigate('/telegram-bots')}
               className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 font-medium"
             >
               {t('common.done')}
-            </button>
-            <button
-              onClick={reissueClaimLink}
-              className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
-            >
-              {t('tgBot.new_link_button')}
             </button>
           </div>
           <p className="mt-2 text-xs text-gray-500">{t('tgBot.link_ttl_hint')}</p>
