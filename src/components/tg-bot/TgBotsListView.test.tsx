@@ -195,3 +195,16 @@ describe('карточка «что это за бот» на вкладке б�
     expect(nav.navigate).toHaveBeenCalledWith('/studio?tab=products');
   });
 });
+
+describe('окно «Переподключить»: срок ссылки', () => {
+  it('показывает, что ссылка действует 15 минут, — как шаг мастера', async () => {
+    api.list.mockResolvedValue([bot({ status: 'pending', tgChatId: null, tgChatTitle: null })]);
+    api.reissueClaim.mockResolvedValue({ config: bot({ status: 'pending' }), claimToken: 'c', deepLink: 'https://t.me/bot?startgroup=x' } as any);
+    const c = await openTab();
+    const reconnect = Array.from(c.querySelectorAll('button')).find((b) => (b.textContent ?? '').includes(ru.tgBot.card_reconnect))!;
+    await clickAsync(reconnect);
+    await flush();
+    expect(visibleText(c)).toContain(ru.tgBot.reconnect_modal_title.replace('{{name}}', 'Финансист'));
+    expect(visibleText(c)).toContain(ru.tgBot.link_ttl_hint);
+  });
+});
