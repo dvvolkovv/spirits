@@ -42,6 +42,12 @@ const card = (mode: VoiceReplyMode) => {
 };
 
 describe('карточка бота: режим голоса словами', () => {
+  it('строка целиком — без сборки ожидания из той же локали', () => {
+    // Ожидание из tRu совпало бы с выводом и при пропавшем ключе — оба стали бы
+    // сырым ключом. Одна строка задана руками.
+    expect(card('never')).toContain('По обращению · голос: Никогда');
+  });
+
   // Было «По обращению · голос: mirror» — код режима прямо в интерфейсе.
   it.each([
     ['never', 'tgBot.voice_never_label'],
@@ -51,5 +57,19 @@ describe('карточка бота: режим голоса словами', ()
     const text = card(mode);
     expect(text).toContain(tRu('tgBot.card_mode_voice', { mode: tRu('tgBot.mode_strict'), voice: tRu(labelKey) }));
     expect(text).not.toContain(`: ${mode}`);
+  });
+});
+
+describe('карточка лички', () => {
+  it('вместо «без названия» — «Личный чат с ботом»', () => {
+    view = mount(
+      <TgBotCard
+        config={{ ...bot('mirror'), tgChatId: '987654321', tgChatTitle: null, displayName: 'Linkeon', addressingMode: 'always' }}
+        onEdit={() => {}} onDelete={() => {}} onMessages={() => {}}
+      />,
+    );
+    const text = visibleText(view.container);
+    expect(text).toContain('Личный чат с ботом');
+    expect(text).not.toContain(tRu('tgBot.card_no_title'));
   });
 });
