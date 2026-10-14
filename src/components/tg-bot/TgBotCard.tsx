@@ -17,6 +17,14 @@ const modeLabelKey: Record<string, string> = {
   smart: 'tgBot.mode_smart',
 };
 
+// Подписи режимов голоса — те же, что в мастере. Раньше в карточке стоял код
+// режима: «По обращению · голос: mirror».
+const voiceLabelKey: Record<string, string> = {
+  never: 'tgBot.voice_never_label',
+  mirror: 'tgBot.voice_mirror_label',
+  always: 'tgBot.mode_always',
+};
+
 const statusBadge: Record<string, { key: string; cls: string }> = {
   pending: { key: 'tgBot.status_pending', cls: 'bg-yellow-100 text-yellow-800' },
   active: { key: 'tgBot.status_active', cls: 'bg-green-100 text-green-800' },
@@ -43,7 +51,10 @@ export const TgBotCard: React.FC<Props> = ({ config, onEdit, onDelete, onMessage
             {config.tgChatTitle ?? (config.status === 'pending' ? '—' : t('tgBot.card_no_title'))}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">
-            {t('tgBot.card_mode_voice', { mode: t(modeLabelKey[config.addressingMode]), voice: config.voiceReplyMode })}
+            {t('tgBot.card_mode_voice', {
+              mode: t(modeLabelKey[config.addressingMode]),
+              voice: voiceLabelKey[config.voiceReplyMode] ? t(voiceLabelKey[config.voiceReplyMode]) : config.voiceReplyMode,
+            })}
           </p>
         </div>
       </div>
