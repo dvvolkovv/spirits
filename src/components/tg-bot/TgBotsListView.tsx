@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -24,9 +24,10 @@ const ReconnectLinkModal: React.FC<{ displayName: string; deepLink: string; onCl
           <X size={18} />
         </button>
       </div>
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="text-sm text-gray-600 mb-2">
         {t('tgBot.addgroup_hint')}
       </p>
+      <p className="text-xs text-gray-500 mb-4">{t('tgBot.link_ttl_hint')}</p>
       <div className="flex items-center gap-2 mb-4">
         <input type="text" value={deepLink} readOnly className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono" />
         <button
@@ -71,6 +72,8 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false, onOpenProduc
   const [editing, setEditing] = useState<TgBotConfig | null>(null);
   const [viewingMessages, setViewingMessages] = useState<TgBotConfig | null>(null);
   const [reconnect, setReconnect] = useState<{ displayName: string; deepLink: string } | null>(null);
+  // Двойное «Переподключить» выпускало две ссылки.
+  const reconnectLock = useRef(false);
   // Развёрнута ли карточка «что это за бот», решает ПЕРВАЯ загрузка списка:
   // новичку (ни одного группового бота, даже в архиве) — целиком, остальным —
   // строкой. null — список ещё не приходил: тогда вкладка показывает только
@@ -102,12 +105,14 @@ export const TgBotsListView: React.FC<Props> = ({ embedded = false, onOpenProduc
   const filtered = configs.filter(c => tab === 'active' ? c.status !== 'archived' : c.status === 'archived');
 
   const handleReconnect = async (c: TgBotConfig) => {
+    if (reconnectLock.current) return;
+    reconnectLock.current = true;
     try {
       const r = await tgBotApi.reissueClaim(c.id);
       setReconnect({ displayName: c.displayName, deepLink: r.deepLink });
       setTab('active'); // конфиг разархивирован → переехал во вкладку «Активные»
       reload();
-    } catch (e: any) { toast.error(e?.message ?? t('tgBot.reconnect_error')); }
+    } catch (e: any) { toast.error(e?.message ?? t('tgBot.reconnect_error')); } finally { reconnectLock.current = false; }
   };
 
   const handleDelete = async (c: TgBotConfig) => {

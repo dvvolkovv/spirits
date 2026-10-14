@@ -102,3 +102,13 @@ describe('мастер: подсказки говорят то, что есть'
     expect(strings(tgOf(en)).filter((s) => s.includes('’'))).toEqual([]);
   });
 });
+
+describe('шаг 3 и окно переподключения: срок ссылки — одной подсказкой', () => {
+  // Подсказка шага сама говорила «ссылка работает 15 минут», а под ней новая
+  // подсказка повторяла то же (в zh и pt — дословно).
+  it.each(LOCALES)('%s: в addgroup_hint нет повтора про 15 минут — это говорит link_ttl_hint', (_lang, locale) => {
+    const tg = tgOf(locale);
+    expect(str(tg, 'addgroup_hint')).not.toMatch(/15/);
+    expect(str(tg, 'link_ttl_hint')).toMatch(/15/);
+  });
+});
