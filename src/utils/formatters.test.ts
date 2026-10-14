@@ -98,4 +98,19 @@ describe('formatTokensCompact', () => {
   it('ноль остаётся нулём, а не «0 тыс»', () => {
     expect(formatTokensCompact(0)).toBe('0');
   });
+
+  // Слова разрядов были вшиты по-русски: немец видел «97,1 млн» в шапке чата.
+  // Числа те же на всех языках — меняется только подпись разряда.
+  it.each([
+    ['en', '97.1M', '23K'],
+    ['de', '97,1 Mio.', '23 Tsd.'],
+    ['fr', '97,1 M', '23 k'],
+    ['es', '97,1 M', '23 mil'],
+    ['pt', '97,1 M', '23 mil'],
+    ['zh', '97.1百万', '23千'],
+  ])('%s — разряды словами своего языка, а не «млн/тыс»', async (lng, million, thousand) => {
+    await i18n.changeLanguage(lng);
+    expect(formatTokensCompact(97_083_375)).toBe(million);
+    expect(formatTokensCompact(23_456)).toBe(thousand);
+  });
 });
