@@ -76,9 +76,10 @@ describe('прайс токенов', () => {
 });
 
 describe('оценка «≈ N сообщений»', () => {
-  // Замер прода 11–16.08.2026: $0.798 за ход при курсе 4 500 токенов за доллар
-  // (spirits_back, common/billing-rates.ts) — это ~3 591 токен на сообщение.
-  const FACT_PER_MESSAGE = 3591;
+  // Сверка 20.10.2026: средний ход живого пользователя с 15.10 — 2 259 токенов
+  // при курсе 4 500; при курсе 7 200 (spirits_back, common/billing-rates.ts) —
+  // 2 259 × 7 200 / 4 500 ≈ 3 614 токенов на сообщение.
+  const FACT_PER_MESSAGE = 3614;
 
   it('обещание заведомо выполнимо: оценка не ниже фактического расхода', () => {
     expect(TOKENS_PER_MESSAGE_ESTIMATE).toBeGreaterThanOrEqual(FACT_PER_MESSAGE);
