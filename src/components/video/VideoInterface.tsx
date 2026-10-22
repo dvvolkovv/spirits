@@ -4,11 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useVideoJobs, VideoJob } from './useVideoJobs';
-import VideoCreateForm, { FormState } from './VideoCreateForm';
+import VideoCreateForm, { FormState, VEO_LENGTHS } from './VideoCreateForm';
 import VideoGallery from './VideoGallery';
 import { formatNumber } from '../../utils/formatters';
 
 type Tab = 'create' | 'gallery';
+
+// Галерея картинок отдаёт относительные пути, а бэкенд скачивает референс по
+// полному адресу — как и выбор картинки внутри формы.
+const toAbsoluteUrl = (url: string): string =>
+  /^https?:\/\//.test(url) ? url : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
 
 export default function VideoInterface() {
   const { t } = useTranslation();
@@ -16,16 +21,16 @@ export default function VideoInterface() {
   const { jobs, loading, deleteJob, refetch } = useVideoJobs();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Принять prefill из ?mode=...&sourceImageUrl=... (приход с /image-gen «Сделать видео»).
+  // Принять prefill из ?mode=image2video&sourceImageUrl=... (приход с /image-gen «Сделать видео»):
+  // картинка становится первым референс-фото Veo.
   // ВАЖНО: инициализируем СИНХРОННО (через ленивый initializer useState), потому что
   // VideoCreateForm читает defaults один раз в своём useState — если выставлять prefill
   // через useEffect ПОСЛЕ монтирования, форма уже инициализировалась с дефолтами и
   // sourceImageUrl/mode не подхватит.
   const initialPrefill = (): Partial<FormState> => {
     const sourceImageUrl = searchParams.get('sourceImageUrl');
-    const mode = searchParams.get('mode') as FormState['mode'] | null;
-    if (sourceImageUrl && mode === 'image2video') {
-      return { mode, sourceImageUrl };
+    if (sourceImageUrl && searchParams.get('mode') === 'image2video') {
+      return { sourceImageUrls: [toAbsoluteUrl(sourceImageUrl)] };
     }
     return {};
   };
@@ -41,27 +46,17 @@ export default function VideoInterface() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function onExtend(j: VideoJob) {
-    setPrefill({ mode: 'extend', sourceVideoId: j.id, model: j.model as FormState['model'], quality: j.quality as FormState['quality'] });
-    setTab('create');
-  }
-
-  function onLipsync(j: VideoJob) {
-    setPrefill({ mode: 'lipsync', sourceVideoId: j.id, model: 'kling-v1-6', quality: j.quality as FormState['quality'] });
-    setTab('create');
-  }
-
   function onRepeat(j: VideoJob) {
     // «Сделать заново» — копируем prompt + параметры в форму, юзер нажимает «Создать»
-    // (не auto-submit чтобы можно было что-то подкорректировать). Длительность
-    // должна быть 5 или 10 — приводим к ближайшему допустимому значению.
-    const duration: 5 | 10 = j.duration_sec >= 10 ? 10 : 5;
+    // (не auto-submit чтобы можно было что-то подкорректировать). Длину приводим
+    // к ближайшему шагу Veo — у старых роликов Kling она была 5 или 10 с.
+    const sec = j.target_duration_sec ?? j.duration_sec;
+    const veoLengthSec = VEO_LENGTHS.reduce((best, len) =>
+      Math.abs(len - sec) < Math.abs(best - sec) ? len : best, VEO_LENGTHS[0] as number);
     setPrefill({
-      mode: (j.mode as FormState['mode']) ?? 'text2video',
-      model: j.model as FormState['model'],
-      quality: j.quality as FormState['quality'],
-      duration,
       prompt: j.prompt ?? '',
+      veoTier: j.model === 'veo-3.1' ? 'standard' : 'fast',
+      veoLengthSec,
     });
     setTab('create');
   }
@@ -112,7 +107,7 @@ export default function VideoInterface() {
           />
         )}
         {tab === 'gallery' && (
-          <VideoGallery jobs={jobs} loading={loading} onDelete={deleteJob} onExtend={onExtend} onLipsync={onLipsync} onRepeat={onRepeat} />
+          <VideoGallery jobs={jobs} loading={loading} onDelete={deleteJob} onRepeat={onRepeat} />
         )}
       </div>
     </div>

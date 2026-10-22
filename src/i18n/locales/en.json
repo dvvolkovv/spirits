@@ -1145,82 +1145,20 @@
       "create": "Create",
       "gallery": "My videos"
     },
-    "mode": {
-      "label": "Mode",
-      "text2video": "Text → Video",
-      "image2video": "Image → Video",
-      "extend": "Extend",
-      "lipsync": "Lip-sync",
-      "hint": "Choose a generation mode. Text→Video is the simplest way to start.",
-      "hint_text2video": "Describe the scene in text — the AI will first create a starting frame (Nano Banana, +5000 tokens), then animate it. This keeps the composition more stable than plain text→video.",
-      "hint_image2video": "Upload a starting frame, and the AI will animate it into a video.",
-      "hint_extend": "Extends your finished video by another 5 seconds.",
-      "hint_lipsync": "Syncs the lip movement of a finished video with an audio track."
-    },
-    "model": {
-      "label": "Model",
-      "standard": "Standard (v1.6)",
-      "premium": "Premium (v2 Master)",
-      "hint": "Standard (v1.6) — faster and cheaper. Premium (v2 Master) — maximum quality, 6× the price."
-    },
     "quality": {
-      "label": "Quality",
-      "std": "Standard",
-      "pro": "Pro",
-      "hint": "Standard (std) — standard resolution. Pro (pro) — high resolution and detail, twice the price."
+      "label": "Quality"
     },
     "duration": {
       "label": "Duration",
       "5s": "5 seconds",
       "10s": "10 seconds",
       "suffix": "s",
-      "hint": "Length of the final video. Over 10 seconds is automatically stitched from segments and costs more (base 10s + 5s for each additional segment).",
       "seconds_short": "{{count}}s"
     },
     "prompt": {
       "label": "Prompt",
       "placeholder": "E.g.: an expert talks to camera about a product launch, warm light, vertical 9:16",
       "hint": "The more detail in the scene — action, lighting, format — the more accurate the result."
-    },
-    "negativePrompt": {
-      "label": "Negative prompt",
-      "hint": "Specify what should NOT appear in the video. For example: \"blur, artifacts, on-screen text\".",
-      "placeholder": "blur, artifacts, poor quality..."
-    },
-    "cfgScale": {
-      "label": "CFG scale",
-      "hint": "How closely the AI follows the prompt. 0.5 balances freedom and precision. Closer to 1 sticks more strictly to the text.",
-      "loose": "Looser",
-      "precise": "More precise"
-    },
-    "cameraType": {
-      "label": "Camera",
-      "hint": "Type of camera movement in the video. Leave empty and the AI will choose for you.",
-      "auto_option": "— Automatic —",
-      "option_simple": "Static (simple)",
-      "option_down_back": "Backward-down (down_back)",
-      "option_forward_up": "Forward-up (forward_up)",
-      "option_right_turn": "Turn right (right_turn_forward)",
-      "option_left_turn": "Turn left (left_turn_forward)"
-    },
-    "sourceImage": {
-      "label": "Source image",
-      "upload": "Upload",
-      "fromGallery": "From image gallery",
-      "hint": "Upload the first frame of your future video, or pick one from your generated images. Formats: JPG, PNG, WebP.",
-      "upload_file": "Upload file"
-    },
-    "sourceVideo": {
-      "label": "Source video",
-      "hint": "ID of a finished video from the \"My Videos\" gallery. Open the gallery, hover over the video you need — the ID appears in a tooltip when you click \"Continue\" or \"Lip-sync\".",
-      "placeholder": "Filled automatically from the gallery when you click \"Continue\"",
-      "tip": "Tip: go to \"My Videos\" and click \"Continue\" or \"Lip-sync\" — the ID will fill in automatically."
-    },
-    "audio": {
-      "label": "Audio for lip-sync",
-      "hint": "Audio file with speech that the video's lips will sync to. Formats: MP3, WAV, M4A. Duration must match the video.",
-      "select_file": "Select audio file",
-      "uploaded": "Audio uploaded"
     },
     "submit": {
       "create": "Create",
@@ -1239,24 +1177,18 @@
       "processingHint": "usually 3–5 minutes",
       "modes": {
         "text2video": "Text→Video",
-        "image2video": "Image→Video",
-        "extend": "Extend",
-        "lipsync": "Lip-sync"
+        "image2video": "Image→Video"
       },
       "confirmDelete": "Delete",
       "actions": {
         "play": "Play",
         "download": "Download",
         "sendToChat": "Send to chat",
-        "extend": "Extend",
-        "lipsync": "Lip-sync",
         "delete": "Delete"
       },
       "titles": {
         "delete": "Delete",
         "download": "Download",
-        "extend": "Extend video (+5s)",
-        "lipsync": "Sync lips with audio",
         "share": "Share with referral link",
         "repeat": "Redo — same settings, same prompt"
       },
@@ -1265,8 +1197,6 @@
     },
     "create": {
       "examples_hint": "Examples — click to insert",
-      "settings_toggle": "Settings",
-      "segments_hint": "We'll assemble {{count}} segments and stitch them into one video automatically.",
       "picker_error_status": "Error {{status}}",
       "picker_load_error": "Failed to load images",
       "submitting": "Creating video…",
@@ -1350,11 +1280,6 @@
       },
       "prompt_heading": "Describe what should happen in the video"
     },
-    "engine": {
-      "label": "Engine",
-      "hint": "Kling — general-purpose generation. Veo 3.1 — long \"talking head\" videos with native voice and a portrait.",
-      "veo_option": "Veo 3.1 · talking head"
-    },
     "imagePicker": {
       "from_gallery_button": "From my images",
       "title": "Choose from my images",
@@ -1406,10 +1331,6 @@
         "veo_coffee": {
           "label": "Coffee by the window",
           "prompt": "A steaming cup of coffee on a wooden table by a rain-streaked window in a cozy café, warm soft light, shallow depth of field, rising steam, calm atmosphere, photorealistic."
-        },
-        "kling_horse": {
-          "label": "Horse on the beach",
-          "prompt": "A white horse gallops along the beach at sunset, water splashing in slow motion, dramatic golden light, cinematic, dynamic camera."
         }
       }
     },
@@ -1475,7 +1396,7 @@
       },
       {
         "title": "Video generation",
-        "desc": "Video section. Text→video, image→video, continue a clip, lip-sync voice with image. 5 or 10 seconds."
+        "desc": "Video section. Veo 3.1 clips with sound: from a description or from photos of a person, vertical or horizontal, 8 to 60 seconds."
       },
       {
         "title": "Studio",
@@ -1537,7 +1458,7 @@
       },
       {
         "q": "How do I create a video?",
-        "a": "Video section. Four modes are available:\n\n• Text → Video — generate a clip from a description. The system first auto-generates a starting still frame via Nano Banana (+5,000 tokens) and then animates it — composition is more stable this way than with «bare» text → video.\n• Image → Video — animate an uploaded image.\n• Extend — add another 5 seconds to your existing video.\n• Lip-sync — overlay voice/audio on a video, syncing to the face (Kling v1.6 model only).\n\nDuration 5 or 10 seconds, Standard or Pro quality. The token cost is shown on the «Create» button — it depends on mode, model, quality and duration (for Text → Video it already includes the +5,000 tokens for the still frame). Finished clips appear in the «My videos» tab — you can download them, extend them, or apply lip-sync."
+        "a": "Video section. Clips are made by Veo 3.1 — with sound and synced speech out of the box.\n\n• Describe the scene in the prompt field. If someone speaks in the clip, write their line right there: Veo will say it itself, with matching lip movement.\n• Want a video of a specific person? Add up to 3 photos of them from different angles (you can pick from your own images). Without photos the clip is built from the description alone.\n• Format — vertical 9:16 for social media or horizontal 16:9, resolution 1080p or 720p, length from 8 to 60 seconds.\n• «Voice it with my voice» — the clip will speak in your own voice (you'll need a voice sample).\n\nQuality Fast or Standard (more detailed and more expensive). The token cost is shown on the «Create» button — it depends on quality, length and format. Finished clips appear in the «My videos» tab — you can download them, share them or make them again with the same settings."
       },
       {
         "q": "How do I top up tokens?",

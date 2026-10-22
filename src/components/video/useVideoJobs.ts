@@ -8,6 +8,7 @@ export interface VideoJob {
   model: string;
   quality: string;
   duration_sec: number;
+  target_duration_sec?: number | null;   // длина ролика, если он длиннее одного сегмента
   prompt: string | null;
   status: 'pending' | 'processing' | 'ready' | 'failed';
   video_url: string | null;

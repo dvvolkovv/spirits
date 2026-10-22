@@ -508,7 +508,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentRu = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Политика конфиденциальности</h2>
-      <p className="text-sm text-gray-500">Редакция от 5 августа 2026 г.</p>
+      <p className="text-sm text-gray-500">Редакция от 22 октября 2026 г.</p>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
         <h3 className="text-lg font-semibold text-gray-900">Оператор персональных данных</h3>
@@ -594,7 +594,6 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
             Veo (генерация видео)</li>
           <li><strong>DeepSeek</strong> — формирование приветственных сообщений и части
             ответов в чате</li>
-          <li><strong>Kling (Kuaishou)</strong> — генерация видео</li>
           <li><strong>ElevenLabs</strong> — создание голосовой модели по загруженному
             пользователем образцу голоса и озвучивание видео этим голосом</li>
           <li><strong>Яндекс SpeechKit</strong> — распознавание речи при голосовом вводе</li>
@@ -644,14 +643,14 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <p className="text-gray-700 leading-relaxed">
           <strong>Передача данных в Китайскую Народную Республику.</strong> Данные
           передаются в том числе на территорию <strong>КНР</strong>: в сервис
-          <strong> DeepSeek</strong> (приветственные сообщения и часть ответов в чате)
-          и в сервис <strong>Kling (Kuaishou)</strong> (генерация видео). КНР не является
+          <strong> DeepSeek</strong> (приветственные сообщения и часть ответов в чате).
+          КНР не является
           участником Конвенции Совета Европы о защите физических лиц при автоматизированной
           обработке персональных данных и не относится к государствам, обеспечивающим
           адекватную защиту прав субъектов персональных данных. Такая передача
           осуществляется на основании согласия пользователя в соответствии с частью 4
-          статьи 12 указанного закона. Пользователь вправе не использовать функции чата
-          и генерации видео, если не согласен с передачей своих данных в КНР.
+          статьи 12 указанного закона. Пользователь вправе не использовать функции чата,
+          если не согласен с передачей своих данных в КНР.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>ВАЖНО:</strong> После передачи данных AI-провайдерам Оператор не контролирует
@@ -792,7 +791,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentEn = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
-      <p className="text-sm text-gray-500">Last updated: 5 August 2026</p>
+      <p className="text-sm text-gray-500">Last updated: 22 October 2026</p>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
         This English version is a courtesy translation. In case of any discrepancy, the Russian-language version is governing and legally binding under the laws of the Russian Federation.
@@ -881,7 +880,6 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
             Veo (video generation)</li>
           <li><strong>DeepSeek</strong> — generation of welcome messages and part of the
             chat responses</li>
-          <li><strong>Kling (Kuaishou)</strong> — video generation</li>
           <li><strong>ElevenLabs</strong> — creation of a voice model from the voice sample
             uploaded by the user, and voicing of videos with that voice</li>
           <li><strong>Yandex SpeechKit</strong> — speech recognition for voice input</li>
@@ -929,14 +927,13 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Transfer of data to the People's Republic of China.</strong> Data is
           transferred, among other destinations, to the territory of the
           <strong> PRC</strong>: to <strong>DeepSeek</strong> (welcome messages and part of
-          the chat responses) and to <strong>Kling (Kuaishou)</strong> (video generation).
+          the chat responses).
           The PRC is not a party to the Council of Europe Convention for the Protection of
           Individuals with regard to Automatic Processing of Personal Data and is not among
           the states providing adequate protection of the rights of personal data subjects.
           Such transfer is carried out on the basis of the user's consent pursuant to
           Part 4 of Article 12 of that law. A user who does not agree to the transfer of
-          their data to the PRC may refrain from using the chat and video generation
-          features.
+          their data to the PRC may refrain from using the chat features.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>IMPORTANT:</strong> After data is transmitted to AI vendors, the Operator
