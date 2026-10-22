@@ -92,7 +92,7 @@ export const ImageGenProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setError(null);
 
     try {
-      // Map size to aspect_ratio for Kling API
+      // Map size to aspect_ratio for the image API
       const sizeToAspect: Record<string, string> = { '1024x1024': '1:1', '1792x1024': '16:9', '1024x1792': '9:16' };
       const response = await apiClient.post('/webhook/imagegen', {
         prompt: prompt.trim(),

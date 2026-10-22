@@ -789,82 +789,20 @@
       "create": "Créer",
       "gallery": "Mes vidéos"
     },
-    "mode": {
-      "label": "Mode",
-      "text2video": "Texte → Vidéo",
-      "image2video": "Image → Vidéo",
-      "extend": "Prolongation",
-      "lipsync": "Lipsync",
-      "hint": "Choisis le mode de génération. Texte→Vidéo — le point de départ le plus simple.",
-      "hint_text2video": "Décris la scène avec du texte — l'IA crée d'abord une image de départ (Nano Banana, +5000 jetons), puis l'anime. La composition est ainsi plus stable qu'un text→video « brut ».",
-      "hint_image2video": "Charge une image de départ, l'IA l'anime en vidéo.",
-      "hint_extend": "Prolonge ta vidéo déjà terminée de 5 secondes supplémentaires.",
-      "hint_lipsync": "Synchronise les lèvres d'une vidéo terminée avec une piste audio."
-    },
-    "model": {
-      "label": "Modèle",
-      "standard": "Standard (v1.6)",
-      "premium": "Premium (v2 Master)",
-      "hint": "Standard (v1.6) — plus rapide et moins cher. Premium (v2 Master) — qualité maximale, 6× plus cher."
-    },
     "quality": {
-      "label": "Qualité",
-      "std": "Standard",
-      "pro": "Pro",
-      "hint": "Standard (std) — résolution standard. Pro (pro) — haute résolution et détails, deux fois plus cher."
+      "label": "Qualité"
     },
     "duration": {
       "label": "Durée",
       "5s": "5 secondes",
       "10s": "10 secondes",
       "suffix": "s",
-      "hint": "Durée de la vidéo finale. Au-delà de 10 secondes, des segments sont assemblés automatiquement, ce qui coûte plus cher (base 10 s + 5 s par segment supplémentaire).",
       "seconds_short": "{{count}} s"
     },
     "prompt": {
       "label": "Prompt",
       "placeholder": "Ex. : un expert parle à la caméra du lancement d'un produit, lumière chaude, vertical 9:16",
       "hint": "Plus la scène est détaillée — action, lumière, format — plus le résultat est précis."
-    },
-    "negativePrompt": {
-      "label": "Prompt négatif",
-      "hint": "Indique ce qui ne doit PAS apparaître dans la vidéo. Par exemple : « flou, artefacts, texte à l'écran ».",
-      "placeholder": "flou, artefacts, mauvaise qualité..."
-    },
-    "cfgScale": {
-      "label": "CFG Scale",
-      "hint": "À quel point l'IA suit le prompt. 0.5 — équilibre entre liberté et précision. Plus proche de 1 — suit le texte plus strictement.",
-      "loose": "Plus libre",
-      "precise": "Plus précis"
-    },
-    "cameraType": {
-      "label": "Caméra",
-      "hint": "Type de mouvement de caméra dans la vidéo. Laisse vide — l'IA choisira elle-même.",
-      "auto_option": "— Automatique —",
-      "option_simple": "Statique (simple)",
-      "option_down_back": "Arrière-bas (down_back)",
-      "option_forward_up": "Avant-haut (forward_up)",
-      "option_right_turn": "Rotation à droite (right_turn_forward)",
-      "option_left_turn": "Rotation à gauche (left_turn_forward)"
-    },
-    "sourceImage": {
-      "label": "Image source",
-      "upload": "Charger",
-      "fromGallery": "Depuis la galerie d'images",
-      "hint": "Charge la première image de ta future vidéo ou choisis-en une parmi tes images générées. Formats : JPG, PNG, WebP.",
-      "upload_file": "Charger un fichier"
-    },
-    "sourceVideo": {
-      "label": "Vidéo source",
-      "hint": "ID d'une vidéo terminée dans la galerie « Mes vidéos ». Ouvre la galerie, survole la vidéo voulue — l'ID s'affiche dans l'infobulle en cliquant sur « Continuer » ou « Lipsync ».",
-      "placeholder": "Rempli automatiquement depuis la galerie en cliquant sur « Continuer »",
-      "tip": "Astuce : va dans « Mes vidéos » et clique sur « Continuer » ou « Lipsync » — l'ID se remplira automatiquement."
-    },
-    "audio": {
-      "label": "Audio pour le lipsync",
-      "hint": "Fichier audio avec la voix sur laquelle les lèvres de la vidéo se synchronisent. Formats : MP3, WAV, M4A. La durée doit correspondre à celle de la vidéo.",
-      "select_file": "Choisir un fichier audio",
-      "uploaded": "Audio chargé"
     },
     "submit": {
       "create": "Créer",
@@ -883,24 +821,18 @@
       "processingHint": "généralement 3-5 min",
       "modes": {
         "text2video": "Texte→Vidéo",
-        "image2video": "Photo→Vidéo",
-        "extend": "Prolongation",
-        "lipsync": "Lipsync"
+        "image2video": "Photo→Vidéo"
       },
       "confirmDelete": "Supprimer",
       "actions": {
         "play": "Regarder",
         "download": "Télécharger",
         "sendToChat": "Vers le chat",
-        "extend": "Prolonger",
-        "lipsync": "Lipsync",
         "delete": "Supprimer"
       },
       "titles": {
         "delete": "Supprimer",
         "download": "Télécharger",
-        "extend": "Prolonger la vidéo (+5s)",
-        "lipsync": "Synchroniser les lèvres avec l'audio",
         "share": "Partager avec le lien de parrainage",
         "repeat": "Refaire — mêmes paramètres, même prompt"
       },
@@ -909,8 +841,6 @@
     },
     "create": {
       "examples_hint": "Exemples — clique pour insérer",
-      "settings_toggle": "Réglages",
-      "segments_hint": "On assemblera {{count}} segments en une seule vidéo automatiquement.",
       "picker_error_status": "Erreur {{status}}",
       "picker_load_error": "Impossible de charger les images",
       "submitting": "Création de la vidéo…",
@@ -994,11 +924,6 @@
       },
       "prompt_heading": "Décris ce qui doit se passer dans la vidéo"
     },
-    "engine": {
-      "label": "Moteur",
-      "hint": "Kling — génération universelle. Veo 3.1 — vidéos longues « tête parlante » avec voix native et portrait.",
-      "veo_option": "Veo 3.1 · tête parlante"
-    },
     "imagePicker": {
       "from_gallery_button": "Depuis mes images",
       "title": "Choisir parmi mes images",
@@ -1050,10 +975,6 @@
         "veo_coffee": {
           "label": "Café près de la fenêtre",
           "prompt": "Une tasse de café fumant sur une table en bois près d'une fenêtre où il pleut, dans un café cosy, lumière douce et chaude, faible profondeur de champ, la vapeur s'élève, atmosphère paisible, photoréaliste"
-        },
-        "kling_horse": {
-          "label": "Cheval sur la plage",
-          "prompt": "Un cheval blanc galope sur la plage au coucher du soleil, éclaboussures d'eau au ralenti, lumière dorée dramatique, cinématographique, caméra dynamique"
         }
       }
     },
@@ -1119,7 +1040,7 @@
       },
       {
         "title": "Génération de vidéo",
-        "desc": "Section Vidéo. Texte→vidéo, image→vidéo, prolongation, lipsync voix/image. 5 ou 10 secondes."
+        "desc": "Section Vidéo. Des clips Veo 3.1 avec le son : à partir d'une description ou de photos d'une personne, en vertical ou en horizontal, de 8 à 60 secondes."
       },
       {
         "title": "Studio",
@@ -1181,7 +1102,7 @@
       },
       {
         "q": "Comment créer une vidéo ?",
-        "a": "Section Vidéo. Quatre modes disponibles :\n\n• Texte → Vidéo — génère un clip à partir d'une description. Le système crée d'abord automatiquement une image de départ via Nano Banana (+5000 jetons), puis l'anime — la composition est ainsi plus stable qu'un text → video « brut ».\n• Image → Vidéo — anime une image chargée.\n• Prolongation — ajoute 5 secondes à une vidéo déjà créée.\n• Lipsync — superpose une voix/un audio sur une vidéo, synchronisé avec le visage (modèle Kling v1.6 uniquement).\n\nDurée de 5 ou 10 secondes, qualité Standard ou Pro. Le coût en jetons s'affiche sur le bouton « Créer » — il dépend du mode, du modèle, de la qualité et de la durée (pour Texte → Vidéo, les +5000 jetons de l'image de départ sont déjà inclus). Les vidéos prêtes apparaissent dans l'onglet « Mes vidéos » — tu peux les télécharger, les prolonger ou leur appliquer un lipsync."
+        "a": "Section Vidéo. Les clips sont créés par Veo 3.1, directement avec le son et une voix synchronisée.\n\n• Décris la scène dans le champ de texte. Si quelqu'un parle dans le clip, écris sa réplique au même endroit : Veo la prononcera lui-même, avec le mouvement des lèvres.\n• Tu veux une vidéo avec une personne précise ? Ajoute jusqu'à 3 photos d'elle sous différents angles (tu peux les choisir parmi tes propres images). Sans photo, le clip est créé uniquement à partir de la description.\n• Format — vertical 9:16 pour les réseaux sociaux ou horizontal 16:9, résolution 1080p ou 720p, durée de 8 à 60 secondes.\n• « Doubler avec ma voix » — le clip parlera avec ta propre voix (il te faudra un échantillon de voix).\n\nQualité Fast ou Standard (plus détaillée et plus chère). Le coût en jetons s'affiche sur le bouton « Créer » — il dépend de la qualité, de la durée et du format. Les vidéos prêtes apparaissent dans l'onglet « Mes vidéos » — tu peux les télécharger, les partager ou les recréer avec les mêmes réglages."
       },
       {
         "q": "Comment recharger mes jetons ?",

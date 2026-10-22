@@ -1142,82 +1142,20 @@
       "create": "Criar",
       "gallery": "Os meus vídeos"
     },
-    "mode": {
-      "label": "Modo",
-      "text2video": "Texto → Vídeo",
-      "image2video": "Imagem → Vídeo",
-      "extend": "Continuação",
-      "lipsync": "Sincronização labial",
-      "hint": "Escolha o modo de geração. Texto→Vídeo é a forma mais simples de começar.",
-      "hint_text2video": "Descreva a cena por texto — a IA cria primeiro o fotograma inicial (Nano Banana, +5000 tokens) e depois anima-o. Assim a composição fica mais estável do que num text→video «puro».",
-      "hint_image2video": "Carregue o fotograma inicial e a IA anima-o em vídeo.",
-      "hint_extend": "Continua o seu vídeo já pronto por mais 5 segundos.",
-      "hint_lipsync": "Sincroniza o movimento dos lábios de um vídeo pronto com uma faixa de áudio."
-    },
-    "model": {
-      "label": "Modelo",
-      "standard": "Padrão (v1.6)",
-      "premium": "Premium (v2 Master)",
-      "hint": "Padrão (v1.6) — mais rápido e mais barato. Premium (v2 Master) — qualidade máxima, 6× mais caro."
-    },
     "quality": {
-      "label": "Qualidade",
-      "std": "Normal",
-      "pro": "Pro",
-      "hint": "Normal (std) — resolução padrão. Pro — resolução e detalhe elevados, o dobro do preço."
+      "label": "Qualidade"
     },
     "duration": {
       "label": "Duração",
       "5s": "5 segundos",
       "10s": "10 segundos",
       "suffix": "s",
-      "hint": "Duração do vídeo final. Acima de 10 segundos são segmentos unidos automaticamente e o custo é maior (base de 10 s + 5 s por cada pedaço adicional).",
       "seconds_short": "{{count}} s"
     },
     "prompt": {
       "label": "Prompt",
       "placeholder": "Por ex.: um especialista fala para a câmara sobre o lançamento de um produto, luz quente, vertical 9:16",
       "hint": "Quanto mais detalhada for a cena — ação, luz, formato — mais preciso é o resultado."
-    },
-    "negativePrompt": {
-      "label": "Prompt negativo",
-      "hint": "Indique o que NÃO deve aparecer no vídeo. Por exemplo: «desfocagem, artefactos, texto no ecrã».",
-      "placeholder": "desfocagem, artefactos, má qualidade..."
-    },
-    "cfgScale": {
-      "label": "CFG Scale",
-      "hint": "Até que ponto a IA segue o prompt. 0.5 — equilíbrio entre liberdade e precisão. Mais perto de 1 — segue o texto com mais rigor.",
-      "loose": "Mais livre",
-      "precise": "Mais preciso"
-    },
-    "cameraType": {
-      "label": "Câmara",
-      "hint": "Tipo de movimento de câmara no vídeo. Deixe vazio e a IA escolhe sozinha.",
-      "auto_option": "— Automático —",
-      "option_simple": "Estática (simple)",
-      "option_down_back": "Para trás e para baixo (down_back)",
-      "option_forward_up": "Para a frente e para cima (forward_up)",
-      "option_right_turn": "Rotação para a direita (right_turn_forward)",
-      "option_left_turn": "Rotação para a esquerda (left_turn_forward)"
-    },
-    "sourceImage": {
-      "label": "Imagem de origem",
-      "upload": "Carregar",
-      "fromGallery": "Da galeria de imagens",
-      "hint": "Carregue o primeiro fotograma do futuro vídeo ou escolha uma das suas imagens já geradas. Formatos: JPG, PNG, WebP.",
-      "upload_file": "Carregar ficheiro"
-    },
-    "sourceVideo": {
-      "label": "Vídeo de origem",
-      "hint": "ID de um vídeo pronto da galeria «Os meus vídeos». Abra a galeria e passe o rato sobre o vídeo pretendido — o ID aparece na dica ao clicar em «Continuar» ou «Sincronização labial».",
-      "placeholder": "Preenchido automaticamente a partir da galeria ao clicar em «Continuar»",
-      "tip": "Dica: vá a «Os meus vídeos» e clique no botão «Continuar» ou «Sincronização labial» — o ID é preenchido automaticamente."
-    },
-    "audio": {
-      "label": "Áudio para a sincronização labial",
-      "hint": "Ficheiro de áudio com fala, com a qual os lábios do vídeo são sincronizados. Formatos: MP3, WAV, M4A. A duração deve coincidir com a do vídeo.",
-      "select_file": "Escolher ficheiro de áudio",
-      "uploaded": "Áudio carregado"
     },
     "submit": {
       "create": "Criar",
@@ -1236,24 +1174,18 @@
       "processingHint": "normalmente 3–5 minutos",
       "modes": {
         "text2video": "Texto→Vídeo",
-        "image2video": "Foto→Vídeo",
-        "extend": "Continuação",
-        "lipsync": "Sincronização labial"
+        "image2video": "Foto→Vídeo"
       },
       "confirmDelete": "Eliminar",
       "actions": {
         "play": "Ver",
         "download": "Descarregar",
         "sendToChat": "Para o chat",
-        "extend": "Continuar",
-        "lipsync": "Sincronização labial",
         "delete": "Eliminar"
       },
       "titles": {
         "delete": "Eliminar",
         "download": "Descarregar",
-        "extend": "Continuar o vídeo (+5 s)",
-        "lipsync": "Sincronizar os lábios com o áudio",
         "share": "Partilhar com link de referência",
         "repeat": "Fazer de novo — os mesmos parâmetros, o mesmo prompt"
       },
@@ -1262,8 +1194,6 @@
     },
     "create": {
       "examples_hint": "Exemplos — clique para preencher",
-      "settings_toggle": "Definições",
-      "segments_hint": "Vamos montar a partir de {{count}} segmentos e uni-los num único clipe automaticamente.",
       "picker_error_status": "Erro {{status}}",
       "picker_load_error": "Não foi possível carregar as imagens",
       "submitting": "A criar o vídeo…",
@@ -1347,11 +1277,6 @@
       },
       "prompt_heading": "Descreva o que deve aparecer no vídeo"
     },
-    "engine": {
-      "label": "Motor",
-      "hint": "Kling — geração universal. Veo 3.1 — clipes longos de «cabeça falante» com voz nativa e retrato.",
-      "veo_option": "Veo 3.1 · cabeça falante"
-    },
     "imagePicker": {
       "from_gallery_button": "Das minhas imagens",
       "title": "Escolher das minhas imagens",
@@ -1403,10 +1328,6 @@
         "veo_coffee": {
           "label": "Café à janela",
           "prompt": "Uma chávena de café a fumegar numa mesa de madeira junto a uma janela com chuva, num café acolhedor, luz quente e suave, pouca profundidade de campo, o vapor sobe, atmosfera tranquila, fotorrealista"
-        },
-        "kling_horse": {
-          "label": "Cavalo na praia",
-          "prompt": "Um cavalo branco galopa pela praia ao pôr do sol, salpicos de água em câmara lenta, luz dourada dramática, cinematográfico, câmara dinâmica"
         }
       }
     },
@@ -1472,7 +1393,7 @@
       },
       {
         "title": "Geração de vídeo",
-        "desc": "Secção Vídeo. Texto→vídeo, imagem→vídeo, continuação do clipe, sincronização labial de voz com imagem. 5 ou 10 segundos."
+        "desc": "Secção Vídeo. Clipes do Veo 3.1 com som: a partir de uma descrição ou de fotografias de uma pessoa, na vertical ou na horizontal, de 8 a 60 segundos."
       },
       {
         "title": "Estúdio",
@@ -1534,7 +1455,7 @@
       },
       {
         "q": "Como criar um vídeo?",
-        "a": "Secção Vídeo. Há quatro modos:\n\n• Texto → Vídeo — gerar um clipe a partir de uma descrição. O sistema cria primeiro, de forma automática, o fotograma inicial com o Nano Banana (+5000 tokens) e só depois o anima — assim a composição fica mais estável do que num text → video «puro».\n• Imagem → Vídeo — dar vida a uma imagem carregada.\n• Continuação — acrescentar mais 5 segundos a um vídeo seu já pronto.\n• Sincronização labial — sobrepor voz ou áudio ao vídeo, sincronizando com o rosto (apenas no modelo Kling v1.6).\n\nDuração de 5 ou 10 segundos, qualidade Standard ou Pro. O custo em tokens aparece no botão «Criar» — depende do modo, do modelo, da qualidade e da duração (no Texto → Vídeo já inclui os +5000 do fotograma inicial). Os clipes prontos aparecem no separador «Os meus vídeos» — pode descarregá-los, continuá-los ou aplicar-lhes sincronização labial."
+        "a": "Secção Vídeo. Os clipes são criados pelo Veo 3.1, já com som e fala sincronizada.\n\n• Descreva a cena no campo de texto. Se alguém fala no clipe, escreva a fala aí mesmo: o Veo pronuncia-a sozinho, com o movimento dos lábios.\n• Quer um vídeo com uma pessoa concreta? Acrescente até 3 fotografias dela de ângulos diferentes (pode escolhê-las entre as suas imagens). Sem fotografias, o clipe é criado só a partir da descrição.\n• Formato — vertical 9:16 para as redes sociais ou horizontal 16:9, resolução 1080p ou 720p, duração de 8 a 60 segundos.\n• «Narrar com a minha voz» — o clipe fala com a sua própria voz (é preciso uma amostra de voz).\n\nQualidade Fast ou Standard (mais detalhada e mais cara). O custo em tokens aparece no botão «Criar» — depende da qualidade, da duração e do formato. Os clipes prontos aparecem no separador «Os meus vídeos» — pode descarregá-los, partilhá-los ou criá-los de novo com as mesmas definições."
       },
       {
         "q": "Como carregar tokens?",

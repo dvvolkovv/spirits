@@ -4,14 +4,13 @@ import { Sparkles, Wand2 } from 'lucide-react';
 import type { TFunction } from 'i18next';
 
 // Готовые примеры видео — показываем РЕЗУЛЬТАТ генерации (а не только текст
-// промпта), чтобы вдохновить пользователя и показать качество Veo/Kling.
+// промпта), чтобы вдохновить пользователя и показать качество Veo.
 // Видео отрисованы заранее и лежат в /static/videos. Кнопка «Взять промпт»
-// подставляет промпт и движок в форму. (бэклог aa630688)
+// подставляет промпт и формат в форму. (бэклог aa630688)
 
 export interface VideoExample {
   key: string;
   label: string;
-  engine: 'veo' | 'kling';
   aspect: '9:16' | '16:9';
   videoUrl: string;
   prompt: string;
@@ -22,7 +21,6 @@ function getVideoExamples(t: TFunction): VideoExample[] {
     {
       key: 'veo_talkinghead',
       label: t('video.examples.items.veo_talkinghead.label'),
-      engine: 'veo',
       aspect: '9:16',
       videoUrl: 'https://my.linkeon.io/static/videos/ca424799-ad2b-4eb0-8927-98962df1073a.mp4',
       prompt: t('video.examples.items.veo_talkinghead.prompt'),
@@ -30,7 +28,6 @@ function getVideoExamples(t: TFunction): VideoExample[] {
     {
       key: 'veo_nature',
       label: t('video.examples.items.veo_nature.label'),
-      engine: 'veo',
       aspect: '9:16',
       videoUrl: 'https://my.linkeon.io/static/videos/d7a37660-4fc9-4dcb-91ec-9cd85037d87c.mp4',
       prompt: t('video.examples.items.veo_nature.prompt'),
@@ -38,18 +35,9 @@ function getVideoExamples(t: TFunction): VideoExample[] {
     {
       key: 'veo_coffee',
       label: t('video.examples.items.veo_coffee.label'),
-      engine: 'veo',
       aspect: '16:9',
       videoUrl: 'https://my.linkeon.io/static/videos/f9008e01-a565-4684-9f55-7144c24fd8d0.mp4',
       prompt: t('video.examples.items.veo_coffee.prompt'),
-    },
-    {
-      key: 'kling_horse',
-      label: t('video.examples.items.kling_horse.label'),
-      engine: 'kling',
-      aspect: '16:9',
-      videoUrl: 'https://my.linkeon.io/smm-media/linkeon-smm-videos/videos/3eff4ad6-5d6d-42ff-8d8d-e07424309d7b.mp4',
-      prompt: t('video.examples.items.kling_horse.prompt'),
     },
   ];
 }
@@ -95,9 +83,6 @@ export default function VideoExamples({ onUse }: Props) {
                 onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); }}
                 onClick={() => setActive(ex.key)}
               />
-              <span className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-black/55 text-white backdrop-blur-sm">
-                {ex.engine}
-              </span>
             </div>
             <div className="p-2 flex flex-col gap-1">
               <span className="text-xs font-medium text-gray-800 truncate">{ex.label}</span>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Download, Film, Mic, Trash2, AlertCircle, Loader2, X, Check, RotateCcw, Share2 } from 'lucide-react';
+import { Play, Download, Trash2, AlertCircle, Loader2, X, Check, RotateCcw, Share2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { VideoJob } from './useVideoJobs';
 import { shareWithReferral } from '../../services/shareReferral';
@@ -8,8 +8,6 @@ import { shareWithReferral } from '../../services/shareReferral';
 interface Props {
   job: VideoJob;
   onDelete?: (id: string) => void;
-  onExtend?: (job: VideoJob) => void;
-  onLipsync?: (job: VideoJob) => void;
   onRepeat?: (job: VideoJob) => void;
   onSendToChat?: (job: VideoJob) => void;
   compact?: boolean;
@@ -22,7 +20,7 @@ function formatElapsed(startIso: string) {
   return `${m}:${s}`;
 }
 
-export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onRepeat, onSendToChat, compact }: Props) {
+export default function VideoJobCard({ job, onDelete, onRepeat, onSendToChat, compact }: Props) {
   const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(() => formatElapsed(job.created_at));
   const [open, setOpen] = useState(false);
@@ -43,8 +41,6 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onRep
   const modeLabel: Record<string, string> = {
     text2video: t('video.job.modes.text2video'),
     image2video: t('video.job.modes.image2video'),
-    extend: t('video.job.modes.extend'),
-    lipsync: t('video.job.modes.lipsync'),
   };
 
   return (
@@ -147,7 +143,7 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onRep
             {!compact && (
               <div className="absolute bottom-0 inset-x-0 p-2.5 flex items-end justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                 <span className="text-[10px] text-white/70 bg-black/30 rounded px-1.5 py-0.5 backdrop-blur-sm">
-                  {modeLabel[job.mode] ?? job.mode} · {job.duration}{t('video.duration.suffix')}
+                  {modeLabel[job.mode] ?? job.mode} · {job.target_duration_sec ?? job.duration_sec}{t('video.duration.suffix')}
                 </span>
                 <div className="flex gap-1">
                   {job.video_url && (
@@ -169,26 +165,6 @@ export default function VideoJobCard({ job, onDelete, onExtend, onLipsync, onRep
                       title={t('video.job.titles.share')}
                     >
                       <Share2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  {onExtend && (
-                    <button
-                      type="button"
-                      onClick={e => { e.stopPropagation(); onExtend(job); }}
-                      className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
-                      title={t('video.job.titles.extend')}
-                    >
-                      <Film className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  {onLipsync && job.model === 'kling-v1-6' && (
-                    <button
-                      type="button"
-                      onClick={e => { e.stopPropagation(); onLipsync(job); }}
-                      className="p-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm"
-                      title={t('video.job.titles.lipsync')}
-                    >
-                      <Mic className="w-3.5 h-3.5" />
                     </button>
                   )}
                   {onRepeat && (

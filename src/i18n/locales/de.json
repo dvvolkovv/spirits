@@ -786,82 +786,20 @@
       "create": "Erstellen",
       "gallery": "Meine Videos"
     },
-    "mode": {
-      "label": "Modus",
-      "text2video": "Text → Video",
-      "image2video": "Bild → Video",
-      "extend": "Verlängerung",
-      "lipsync": "Lippensync",
-      "hint": "Wähle den Generierungsmodus. Text→Video ist der einfachste Einstieg.",
-      "hint_text2video": "Beschreibe die Szene als Text – die KI erstellt zuerst ein Startbild (Nano Banana, +5000 Tokens) und animiert es dann. So bleibt die Komposition stabiler als bei „nacktem“ text→video.",
-      "hint_image2video": "Lade ein Startbild hoch, die KI animiert es zu einem Video.",
-      "hint_extend": "Verlängert dein fertiges Video um weitere 5 Sekunden.",
-      "hint_lipsync": "Synchronisiert die Lippenbewegung eines fertigen Videos mit einer Audiospur."
-    },
-    "model": {
-      "label": "Modell",
-      "standard": "Standard (v1.6)",
-      "premium": "Premium (v2 Master)",
-      "hint": "Standard (v1.6) – schneller und günstiger. Premium (v2 Master) – maximale Qualität, 6× teurer."
-    },
     "quality": {
-      "label": "Qualität",
-      "std": "Standard",
-      "pro": "Pro",
-      "hint": "Normal (std) – Standardauflösung. Pro (pro) – hohe Auflösung und Detailschärfe, doppelt so teuer."
+      "label": "Qualität"
     },
     "duration": {
       "label": "Länge",
       "5s": "5 Sekunden",
       "10s": "10 Sekunden",
       "suffix": "s",
-      "hint": "Länge des fertigen Videos. Über 10 Sekunden werden automatisch Segmente zusammengefügt, das kostet mehr (Basis 10 s + 5 s pro zusätzlichem Abschnitt).",
       "seconds_short": "{{count}} s"
     },
     "prompt": {
       "label": "Prompt",
       "placeholder": "Z. B.: Experte spricht in die Kamera über einen Produktlaunch, warmes Licht, vertikal 9:16",
       "hint": "Je detaillierter die Szene – Handlung, Licht, Format – desto präziser das Ergebnis."
-    },
-    "negativePrompt": {
-      "label": "Negativer Prompt",
-      "hint": "Gib an, was NICHT im Video erscheinen soll. Zum Beispiel: „Unschärfe, Artefakte, Text im Bild“.",
-      "placeholder": "Unschärfe, Artefakte, schlechte Qualität..."
-    },
-    "cfgScale": {
-      "label": "CFG Scale",
-      "hint": "Wie genau die KI dem Prompt folgt. 0.5 – Balance zwischen Freiheit und Präzision. Näher an 1 – folgt dem Text strenger.",
-      "loose": "Freier",
-      "precise": "Präziser"
-    },
-    "cameraType": {
-      "label": "Kamera",
-      "hint": "Art der Kamerabewegung im Video. Leer lassen – die KI wählt selbst.",
-      "auto_option": "— Automatisch —",
-      "option_simple": "Statisch (simple)",
-      "option_down_back": "Rückwärts-abwärts (down_back)",
-      "option_forward_up": "Vorwärts-aufwärts (forward_up)",
-      "option_right_turn": "Rechtsdrehung (right_turn_forward)",
-      "option_left_turn": "Linksdrehung (left_turn_forward)"
-    },
-    "sourceImage": {
-      "label": "Ausgangsbild",
-      "upload": "Hochladen",
-      "fromGallery": "Aus der Bildergalerie",
-      "hint": "Lade das erste Bild des zukünftigen Videos hoch oder wähle eins aus deinen generierten Bildern. Formate: JPG, PNG, WebP.",
-      "upload_file": "Datei hochladen"
-    },
-    "sourceVideo": {
-      "label": "Ausgangsvideo",
-      "hint": "ID des fertigen Videos aus der Galerie „Meine Videos“. Öffne die Galerie, fahre über das gewünschte Video – die ID erscheint im Tooltip beim Klick auf „Fortsetzen“ oder „Lippensync“.",
-      "placeholder": "Automatisch aus der Galerie beim Klick auf „Fortsetzen“",
-      "tip": "Tipp: Gehe zu „Meine Videos“ und klicke auf „Fortsetzen“ oder „Lippensync“ – die ID wird automatisch eingetragen."
-    },
-    "audio": {
-      "label": "Audio für Lippensync",
-      "hint": "Audiodatei mit Sprache, zu der die Lippen im Video synchronisiert werden. Formate: MP3, WAV, M4A. Die Länge muss mit dem Video übereinstimmen.",
-      "select_file": "Audiodatei auswählen",
-      "uploaded": "Audio hochgeladen"
     },
     "submit": {
       "create": "Erstellen",
@@ -880,24 +818,18 @@
       "processingHint": "meist 3–5 Minuten",
       "modes": {
         "text2video": "Text→Video",
-        "image2video": "Foto→Video",
-        "extend": "Verlängerung",
-        "lipsync": "Lippensync"
+        "image2video": "Foto→Video"
       },
       "confirmDelete": "Löschen",
       "actions": {
         "play": "Ansehen",
         "download": "Herunterladen",
         "sendToChat": "In den Chat",
-        "extend": "Verlängern",
-        "lipsync": "Lippensync",
         "delete": "Löschen"
       },
       "titles": {
         "delete": "Löschen",
         "download": "Herunterladen",
-        "extend": "Video verlängern (+5s)",
-        "lipsync": "Lippen mit Audio synchronisieren",
         "share": "Mit Empfehlungslink teilen",
         "repeat": "Erneut erstellen – gleiche Parameter, gleicher Prompt"
       },
@@ -906,8 +838,6 @@
     },
     "create": {
       "examples_hint": "Beispiele – anklicken zum Übernehmen",
-      "settings_toggle": "Einstellungen",
-      "segments_hint": "Wird aus {{count}} Segmenten automatisch zu einem Clip zusammengefügt.",
       "picker_error_status": "Fehler {{status}}",
       "picker_load_error": "Bilder konnten nicht geladen werden",
       "submitting": "Video wird erstellt…",
@@ -991,11 +921,6 @@
       },
       "prompt_heading": "Beschreibe, was im Video passieren soll"
     },
-    "engine": {
-      "label": "Engine",
-      "hint": "Kling – universelle Generierung. Veo 3.1 – lange „Talking Head“-Clips mit nativer Vertonung und Porträt.",
-      "veo_option": "Veo 3.1 · Talking Head"
-    },
     "imagePicker": {
       "from_gallery_button": "Aus meinen Bildern",
       "title": "Aus meinen Bildern wählen",
@@ -1047,10 +972,6 @@
         "veo_coffee": {
           "label": "Kaffee am Fenster",
           "prompt": "Eine dampfende Tasse Kaffee auf einem Holztisch am Fenster mit Regen in einem gemütlichen Café, warmes weiches Licht, geringe Schärfentiefe, aufsteigender Dampf, ruhige Atmosphäre, fotorealistisch"
-        },
-        "kling_horse": {
-          "label": "Pferd am Strand",
-          "prompt": "Ein weißes Pferd galoppiert bei Sonnenuntergang am Strand entlang, Wasserspritzer in Zeitlupe, dramatisches goldenes Licht, kinematografisch, dynamische Kamera"
         }
       }
     },
@@ -1116,7 +1037,7 @@
       },
       {
         "title": "Videogenerierung",
-        "desc": "Bereich Video. Text→Video, Bild→Video, Verlängerung, Lippensync von Stimme und Bild. 5 oder 10 Sekunden."
+        "desc": "Bereich Video. Clips von Veo 3.1 mit Ton: nach Beschreibung oder nach Fotos einer Person, im Hoch- oder Querformat, 8 bis 60 Sekunden."
       },
       {
         "title": "Studio",
@@ -1178,7 +1099,7 @@
       },
       {
         "q": "Wie erstelle ich ein Video?",
-        "a": "Bereich Video. Vier Modi stehen zur Verfügung:\n\n• Text → Video — ein Video nach Beschreibung generieren. Das System erstellt zuerst automatisch ein Startbild über Nano Banana (+5000 Tokens) und animiert es dann — so wird die Komposition stabiler als bei reinem Text → Video.\n• Bild → Video — ein hochgeladenes Bild zum Leben erwecken.\n• Verlängerung — deinem fertigen Video weitere 5 Sekunden hinzufügen.\n• Lippensync — Stimme/Audio auf ein Video legen, synchron zum Gesicht (nur mit Modell Kling v1.6).\n\nDauer 5 oder 10 Sekunden, Qualität Standard oder Pro. Die Token-Kosten stehen auf dem Button „Erstellen“ — sie hängen von Modus, Modell, Qualität und Dauer ab (bei Text → Video sind +5000 für das Startbild bereits enthalten). Fertige Videos erscheinen im Tab „Meine Videos“ — du kannst sie herunterladen, verlängern oder mit Lippensync versehen."
+        "a": "Bereich Video. Die Clips erstellt Veo 3.1 — direkt mit Ton und synchroner Sprache.\n\n• Beschreibe die Szene im Eingabefeld. Wenn im Clip jemand spricht, schreib den Text direkt dazu: Veo spricht ihn selbst, mit passenden Lippenbewegungen.\n• Du willst ein Video mit einer bestimmten Person? Füge bis zu 3 Fotos von ihr aus verschiedenen Blickwinkeln hinzu (auch aus deinen eigenen Bildern). Ohne Fotos entsteht der Clip nur aus der Beschreibung.\n• Format — Hochformat 9:16 für Social Media oder Querformat 16:9, Auflösung 1080p oder 720p, Länge von 8 bis 60 Sekunden.\n• „Mit meiner Stimme vertonen“ — der Clip spricht mit deiner eigenen Stimme (dafür brauchst du eine Stimmprobe).\n\nQualität Fast oder Standard (detaillierter und teurer). Die Token-Kosten stehen auf dem Button „Erstellen“ — sie hängen von Qualität, Länge und Format ab. Fertige Videos erscheinen im Tab „Meine Videos“ — du kannst sie herunterladen, teilen oder mit denselben Einstellungen neu erstellen."
       },
       {
         "q": "Wie lade ich Tokens auf?",
