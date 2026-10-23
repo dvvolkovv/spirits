@@ -8,10 +8,15 @@ import { categoryLabelKey, monthLabel, type SpendingMonth } from '../spending';
  * Месяцы сводки расхода: строка месяца с итогом, по нажатию — категории.
  * Самый новый месяц раскрыт сразу: чаще всего спрашивают про текущий.
  * Общий для веба и кошелька мини-аппа — заголовок и запрос у каждого свои.
+ *
+ * Монтировать уже с загруженными данными: раскрытый месяц выбирается один
+ * раз при монтировании (`months[0]`), догрузка после не переоткроет его.
  */
 export function SpendingMonths({ months }: { months: SpendingMonth[] }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState<Set<string>>(() => new Set(months[0] ? [months[0].month] : []));
+
+  if (months.length === 0) return null;
 
   const toggle = (month: string) =>
     setOpen((prev) => {
@@ -35,9 +40,9 @@ export function SpendingMonths({ months }: { months: SpendingMonth[] }) {
             >
               <span className="flex items-center gap-1 text-gray-900">
                 {isOpen ? (
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                  <ChevronDown aria-hidden="true" className="h-4 w-4 text-gray-400" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                  <ChevronRight aria-hidden="true" className="h-4 w-4 text-gray-400" />
                 )}
                 {monthLabel(m.month)}
               </span>
@@ -49,7 +54,7 @@ export function SpendingMonths({ months }: { months: SpendingMonth[] }) {
                   <li key={c.key} className="flex items-center justify-between py-1 pl-8 pr-3 text-sm">
                     <span className="text-gray-700">
                       {t(categoryLabelKey(c.key))}
-                      <span className="ml-2 text-xs text-gray-400">{formatNumber(c.count)}</span>
+                      <span className="ml-2 text-xs text-gray-500">×{formatNumber(c.count)}</span>
                     </span>
                     <span className="tabular-nums text-gray-700">{formatNumber(c.tokens)}</span>
                   </li>

@@ -5,7 +5,8 @@ import { formatDate } from '../utils/formatters';
  * веба (окно оплаты, /tokens) и кошелька мини-аппа.
  *
  * Ключ категории приходит строкой: бэк может добавить новую раньше, чем
- * обновится фронт, — тогда она подписывается как «Прочее».
+ * обновится фронт, — тогда она подписывается как «Прочее», а при разборе
+ * сразу сливается с существующей «other» того же месяца.
  */
 export interface SpendingCategory {
   key: string;
@@ -31,27 +32,68 @@ const LABEL_KEYS: Record<string, string> = {
   other: 'payment.spending.cat.other',
 };
 
-export function categoryLabelKey(key: string): string {
-  return LABEL_KEYS[key] ?? LABEL_KEYS.other;
+/**
+ * `LABEL_KEYS[key]` и `key in LABEL_KEYS` оба попадаются на ключах
+ * Object.prototype («toString», «constructor» и т. п.) — hasOwnProperty
+ * единственный надёжный способ отличить настоящую категорию от свойства
+ * прототипа.
+ */
+function isKnownCategoryKey(key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(LABEL_KEYS, key);
 }
 
-const MONTH_RE = /^(\d{4})-(\d{2})$/;
+export function categoryLabelKey(key: string): string {
+  return isKnownCategoryKey(key) ? LABEL_KEYS[key] : LABEL_KEYS.other;
+}
+
+const MONTH_RE = /^(\d{4})-(0[1-9]|1[0-2])$/;
+
+function toCategory(raw: unknown): SpendingCategory {
+  const c = (raw ?? {}) as Record<string, unknown>;
+  const rawKey = String(c.key ?? 'other');
+  return {
+    key: isKnownCategoryKey(rawKey) ? rawKey : 'other',
+    tokens: Number(c.tokens) || 0,
+    count: Number(c.count) || 0,
+  };
+}
+
+/**
+ * Категории с нулевым расходом выбрасываются. Незнакомый ключ (бэк завёл
+ * категорию раньше фронта) сливается с «other» того же месяца — tokens и
+ * count складываются, а не теряются. Итог — по убыванию tokens, при
+ * равенстве — по алфавиту ключа.
+ */
+function mergeCategories(rawCategories: unknown[]): SpendingCategory[] {
+  const merged = new Map<string, SpendingCategory>();
+  for (const raw of rawCategories) {
+    const c = toCategory(raw);
+    if (c.tokens <= 0) continue;
+    const existing = merged.get(c.key);
+    if (existing) {
+      existing.tokens += c.tokens;
+      existing.count += c.count;
+    } else {
+      merged.set(c.key, { ...c });
+    }
+  }
+  return Array.from(merged.values()).sort(
+    (a, b) => b.tokens - a.tokens || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0),
+  );
+}
 
 export function parseSpending(raw: unknown): SpendingMonth[] {
   const months = (raw as { months?: unknown } | null)?.months;
   if (!Array.isArray(months)) return [];
   return months
-    .filter((m: any) => typeof m?.month === 'string' && MONTH_RE.test(m.month))
-    .map((m: any) => ({
+    .filter((m): m is Record<string, unknown> => {
+      const month = (m as Record<string, unknown> | null)?.month;
+      return typeof month === 'string' && MONTH_RE.test(month);
+    })
+    .map((m) => ({
       month: m.month as string,
       total: Number(m.total) || 0,
-      categories: (Array.isArray(m.categories) ? m.categories : [])
-        .map((c: any) => ({
-          key: String(c?.key ?? 'other'),
-          tokens: Number(c?.tokens) || 0,
-          count: Number(c?.count) || 0,
-        }))
-        .filter((c: SpendingCategory) => c.tokens > 0),
+      categories: mergeCategories(Array.isArray(m.categories) ? m.categories : []),
     }))
     .filter((m) => m.total > 0);
 }
