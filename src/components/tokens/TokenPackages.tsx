@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../services/apiClient';
 import CouponInput from './CouponInput';
 import { TopUpHistory } from './TopUpHistory';
+import { SpendingSummary } from './SpendingSummary';
 import { formatNumber } from '../../utils/formatters';
 import { RUB_PACKAGES, CRYPTO_NAME_KEY, CRYPTO_NAME_KEY_FALLBACK, approxMessages } from '../../config/tokenPackages';
 
@@ -463,9 +464,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
             ))}
           </div>
 
-          {/* История — под кнопками оплаты: сначала то, ради чего пришли,
-              потом справка о прошлых пополнениях. */}
+          {/* Под кнопками оплаты: сначала то, ради чего пришли, потом справка —
+              куда ушли токены и откуда пришли. */}
           <div className="mt-8">
+            <SpendingSummary />
             <TopUpHistory />
           </div>
 

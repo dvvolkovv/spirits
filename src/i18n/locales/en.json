@@ -1666,6 +1666,19 @@
     "history_type_adjustment": "Adjustment",
     "history_via_crypto": "via crypto",
     "history_incl_bonus": "including {{formatted}} bonus",
+    "spending": {
+      "title": "Spending by month",
+      "cat": {
+        "replies": "Assistant replies",
+        "calls": "Calls",
+        "images": "Images",
+        "video": "Videos",
+        "voice": "Voice-overs",
+        "tg_bots": "Telegram bots",
+        "products": "Products",
+        "other": "Other"
+      }
+    },
     "included_item_secure_payment_crypto": "Card or crypto payment via Priem",
     "how_it_works_step2_crypto": "Pay by bank card or with crypto",
     "pay_by_card": "By card",

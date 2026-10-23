@@ -31,6 +31,7 @@ describe('loadWallet — независимая деградация', () => {
     const deps = {
       getTokens: vi.fn(async () => ({ tokens: 100 })),
       getHistory: vi.fn(async () => { throw new Error('500'); }),
+      getSpending: vi.fn(async () => ({ months: [] })),
     };
     const r = await loadWallet(deps);
     expect(r.balance).toBe(100);
@@ -41,10 +42,55 @@ describe('loadWallet — независимая деградация', () => {
     const deps = {
       getTokens: vi.fn(async () => { throw new Error('500'); }),
       getHistory: vi.fn(async () => ({ items: [] })),
+      getSpending: vi.fn(async () => ({ months: [] })),
     };
     const r = await loadWallet(deps);
     expect(r.balance).toBe('failed');
     expect(r.history).toEqual([]);
+  });
+
+  it('падение сводки расхода не гасит баланс и историю', async () => {
+    const deps = {
+      getTokens: vi.fn(async () => ({ tokens: 100 })),
+      getHistory: vi.fn(async () => ({ items: [] })),
+      getSpending: vi.fn(async () => { throw new Error('500'); }),
+    };
+    const r = await loadWallet(deps);
+    expect(r.balance).toBe(100);
+    expect(r.history).toEqual([]);
+    expect(r.spending).toBe('failed');
+  });
+
+  it('сводка расхода разбирается общим разбором — незнакомая категория слита, нулевой и битый месяц выброшены', async () => {
+    const raw = {
+      months: [
+        {
+          month: '2026-10',
+          total: 6193,
+          categories: [
+            { key: 'replies', tokens: 6193, count: 12 },
+            { key: 'music', tokens: 5, count: 1 },
+          ],
+        },
+        { month: '2026-09', total: 0, categories: [] },
+        { month: '2026-13', total: 100, categories: [{ key: 'replies', tokens: 100, count: 1 }] },
+      ],
+    };
+    const deps = {
+      getTokens: vi.fn(async () => ({ tokens: 1 })),
+      getHistory: vi.fn(async () => ({ items: [] })),
+      getSpending: vi.fn(async () => raw),
+    };
+    expect((await loadWallet(deps)).spending).toEqual([
+      {
+        month: '2026-10',
+        total: 6193,
+        categories: [
+          { key: 'replies', tokens: 6193, count: 12 },
+          { key: 'other', tokens: 5, count: 1 },
+        ],
+      },
+    ]);
   });
 });
 

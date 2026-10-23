@@ -1307,6 +1307,19 @@
     "history_type_adjustment": "Korrektur",
     "history_via_crypto": "per Krypto",
     "history_incl_bonus": "inklusive {{formatted}} Bonus",
+    "spending": {
+      "title": "Verbrauch nach Monaten",
+      "cat": {
+        "replies": "Antworten der Assistenten",
+        "calls": "Anrufe",
+        "images": "Bilder",
+        "video": "Videos",
+        "voice": "Vertonung",
+        "tg_bots": "Telegram-Bots",
+        "products": "Produkte",
+        "other": "Sonstiges"
+      }
+    },
     "included_item_secure_payment_crypto": "Zahlung per Karte oder Krypto über Priem",
     "how_it_works_step2_crypto": "Zahle per Bankkarte oder mit Krypto",
     "pay_by_card": "Mit Karte",

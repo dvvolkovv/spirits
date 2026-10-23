@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { getJson } from '../api';
 import { openLink } from '../telegram';
 import { loadWallet, tokensLabel, type Field, type HistoryRow } from './walletData';
+import { spendingUrl, type SpendingMonth } from '../../shared/spending';
+import { SpendingMonths } from '../../shared/ui/SpendingMonths';
 import { Card } from '../../shared/ui/Card';
 import { BalanceBadge } from '../../shared/ui/BalanceBadge';
 
@@ -17,6 +19,7 @@ export function WalletScreen() {
   const { t, i18n } = useTranslation();
   const [balance, setBalance] = useState<Field<number>>(null);
   const [history, setHistory] = useState<Field<HistoryRow[]>>(null);
+  const [spending, setSpending] = useState<Field<SpendingMonth[]>>(null);
 
   // Опрос по открытию и возврату фокуса, без таймера: сессии Mini App
   // короткие, а фон Telegram замораживает вкладку — пятисекундный поллинг
@@ -26,9 +29,11 @@ export function WalletScreen() {
       loadWallet({
         getTokens: () => getJson('/webhook/user/tokens/'),
         getHistory: () => getJson('/webhook/tokens/history'),
+        getSpending: () => getJson(spendingUrl()),
       }).then((r) => {
         setBalance(r.balance);
         setHistory(r.history);
+        setSpending(r.spending);
       });
     };
     load();
@@ -62,6 +67,17 @@ export function WalletScreen() {
       >
         {t('tma.wallet.topUp')}
       </button>
+
+      {/* Сначала куда ушли токены, потом откуда пришли — история пополнений
+          может доходить до 50 карточек и похоронит сводку расхода внизу. */}
+      {Array.isArray(spending) && spending.length > 0 && (
+        <>
+          <h2 className="mt-6 font-medium">{t('payment.spending.title')}</h2>
+          <div className="mt-2">
+            <SpendingMonths months={spending} />
+          </div>
+        </>
+      )}
 
       <h2 className="mt-6 font-medium">{t('tma.wallet.history')}</h2>
       {history === null && <p className="mt-2 text-gray-400">…</p>}
