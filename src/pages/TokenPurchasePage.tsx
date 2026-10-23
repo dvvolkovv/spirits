@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/apiClient';
 import { formatNumber } from '../utils/formatters';
 import { TopUpHistory } from '../components/tokens/TopUpHistory';
+import { SpendingSummary } from '../components/tokens/SpendingSummary';
 import { RUB_PACKAGES, CRYPTO_NAME_KEY, CRYPTO_NAME_KEY_FALLBACK, approxMessages } from '../config/tokenPackages';
 
 /** Ответ /webhook/payments/methods — какой способ оплаты доступен юзеру. */
@@ -444,8 +445,9 @@ const TokenPurchasePage: React.FC = () => {
               ))}
             </div>
 
-            {/* История — под кнопками оплаты, а не перед ними. */}
+            {/* Справка — под кнопками оплаты, а не перед ними: куда ушли токены и откуда пришли. */}
             <div className="mb-8">
+              <SpendingSummary />
               <TopUpHistory />
             </div>
 
