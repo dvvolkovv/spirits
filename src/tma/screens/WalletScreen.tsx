@@ -68,6 +68,17 @@ export function WalletScreen() {
         {t('tma.wallet.topUp')}
       </button>
 
+      {/* Сначала куда ушли токены, потом откуда пришли — история пополнений
+          может доходить до 50 карточек и похоронит сводку расхода внизу. */}
+      {Array.isArray(spending) && spending.length > 0 && (
+        <>
+          <h2 className="mt-6 font-medium">{t('payment.spending.title')}</h2>
+          <div className="mt-2">
+            <SpendingMonths months={spending} />
+          </div>
+        </>
+      )}
+
       <h2 className="mt-6 font-medium">{t('tma.wallet.history')}</h2>
       {history === null && <p className="mt-2 text-gray-400">…</p>}
       {history === 'failed' && <p className="mt-2 text-red-600">{t('tma.wallet.failed')}</p>}
@@ -91,15 +102,6 @@ export function WalletScreen() {
             </li>
           ))}
       </ul>
-
-      {Array.isArray(spending) && spending.length > 0 && (
-        <>
-          <h2 className="mt-6 font-medium">{t('payment.spending.title')}</h2>
-          <div className="mt-2">
-            <SpendingMonths months={spending} />
-          </div>
-        </>
-      )}
     </div>
   );
 }

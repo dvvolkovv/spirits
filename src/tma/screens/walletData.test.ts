@@ -61,14 +61,36 @@ describe('loadWallet — независимая деградация', () => {
     expect(r.spending).toBe('failed');
   });
 
-  it('сводка расхода разбирается общим разбором', async () => {
-    const months = [{ month: '2026-10', total: 6193, categories: [{ key: 'replies', tokens: 6193, count: 12 }] }];
+  it('сводка расхода разбирается общим разбором — незнакомая категория слита, нулевой и битый месяц выброшены', async () => {
+    const raw = {
+      months: [
+        {
+          month: '2026-10',
+          total: 6193,
+          categories: [
+            { key: 'replies', tokens: 6193, count: 12 },
+            { key: 'music', tokens: 5, count: 1 },
+          ],
+        },
+        { month: '2026-09', total: 0, categories: [] },
+        { month: '2026-13', total: 100, categories: [{ key: 'replies', tokens: 100, count: 1 }] },
+      ],
+    };
     const deps = {
       getTokens: vi.fn(async () => ({ tokens: 1 })),
       getHistory: vi.fn(async () => ({ items: [] })),
-      getSpending: vi.fn(async () => ({ months })),
+      getSpending: vi.fn(async () => raw),
     };
-    expect((await loadWallet(deps)).spending).toEqual(months);
+    expect((await loadWallet(deps)).spending).toEqual([
+      {
+        month: '2026-10',
+        total: 6193,
+        categories: [
+          { key: 'replies', tokens: 6193, count: 12 },
+          { key: 'other', tokens: 5, count: 1 },
+        ],
+      },
+    ]);
   });
 });
 
