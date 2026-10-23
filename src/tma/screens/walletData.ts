@@ -1,3 +1,5 @@
+import { parseSpending, type SpendingMonth } from '../../shared/spending';
+
 /**
  * Логика экрана «Кошелёк» (Task 11), вынесенная из JSX ради тестов без
  * рендера React-дерева.
@@ -16,6 +18,10 @@
  *    здесь это история пополнений, а не расходов. Форма строки тоже другая:
  *    `{ at, type, tokens, balanceAfter, description, provider, money,
  *    bonusTokens }`, не `{ id, created_at, amount, agent_name, reason }`.
+ *
+ * 3. Расход — отдельная ручка GET /webhook/tokens/spending (сводка по
+ *    месяцам и категориям, только списания); разбор общий с вебом —
+ *    src/shared/spending.ts.
  */
 export interface HistoryRow {
   at: string;
@@ -30,6 +36,7 @@ export type Field<T> = T | null | 'failed';
 export interface WalletDeps {
   getTokens: () => Promise<unknown>;
   getHistory: () => Promise<unknown>;
+  getSpending: () => Promise<unknown>;
 }
 
 export function parseBalance(raw: unknown): number {
@@ -49,15 +56,20 @@ export function parseHistory(raw: unknown): HistoryRow[] {
 }
 
 /**
- * Баланс и история грузятся и падают независимо: разрыв в истории не должен
- * прятать уже полученный баланс, и наоборот.
+ * Баланс, история и расход грузятся и падают независимо: разрыв в одном не
+ * должен прятать уже полученное другое.
  */
-export async function loadWallet(deps: WalletDeps): Promise<{ balance: Field<number>; history: Field<HistoryRow[]> }> {
-  const [balance, history] = await Promise.all([
+export async function loadWallet(deps: WalletDeps): Promise<{
+  balance: Field<number>;
+  history: Field<HistoryRow[]>;
+  spending: Field<SpendingMonth[]>;
+}> {
+  const [balance, history, spending] = await Promise.all([
     deps.getTokens().then(parseBalance).catch(() => 'failed' as const),
     deps.getHistory().then(parseHistory).catch(() => 'failed' as const),
+    deps.getSpending().then(parseSpending).catch(() => 'failed' as const),
   ]);
-  return { balance, history };
+  return { balance, history, spending };
 }
 
 /**
