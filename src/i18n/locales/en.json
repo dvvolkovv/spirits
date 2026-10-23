@@ -1672,8 +1672,8 @@
         "replies": "Assistant replies",
         "calls": "Calls",
         "images": "Images",
-        "video": "Video",
-        "voice": "Listening to replies",
+        "video": "Videos",
+        "voice": "Voice-overs",
         "tg_bots": "Telegram bots",
         "products": "Products",
         "other": "Other"

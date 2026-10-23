@@ -1315,13 +1315,13 @@
     "history_via_crypto": "con cripto",
     "history_incl_bonus": "incluye {{formatted}} de bonificación",
     "spending": {
-      "title": "Gasto por meses",
+      "title": "Gastos por mes",
       "cat": {
         "replies": "Respuestas de los asistentes",
         "calls": "Llamadas",
         "images": "Imágenes",
         "video": "Vídeo",
-        "voice": "Escuchar respuestas",
+        "voice": "Locución",
         "tg_bots": "Bots de Telegram",
         "products": "Productos",
         "other": "Otros"

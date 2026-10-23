@@ -1671,10 +1671,10 @@
       "title": "Gastos por mês",
       "cat": {
         "replies": "Respostas dos assistentes",
-        "calls": "Ligações",
+        "calls": "Chamadas",
         "images": "Imagens",
         "video": "Vídeo",
-        "voice": "Ouvir respostas",
+        "voice": "Locução",
         "tg_bots": "Bots do Telegram",
         "products": "Produtos",
         "other": "Outros"
