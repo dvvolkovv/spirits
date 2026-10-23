@@ -41,7 +41,7 @@ export const SpendingSummary: React.FC = () => {
   return (
     <div className="mb-6">
       <div className="mb-3 flex items-center space-x-2">
-        <PieChart className="h-4 w-4 text-gray-600" />
+        <PieChart aria-hidden="true" className="h-4 w-4 text-gray-600" />
         <h4 className="text-sm font-medium text-gray-700">{t('payment.spending.title')}</h4>
       </div>
       <SpendingMonths months={months} />

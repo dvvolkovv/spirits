@@ -15,9 +15,10 @@ import { SpendingSummary } from './SpendingSummary';
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 
 let m: Mounted | null = null;
+let consoleError: ReturnType<typeof vi.spyOn>;
 beforeEach(() => {
   get.mockReset();
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 afterEach(() => {
   m?.unmount();
@@ -38,21 +39,44 @@ describe('SpendingSummary', () => {
     const r = await render();
     expect(visibleText(r.container)).toContain('Расход по месяцам');
     expect(visibleText(r.container)).toContain('Ответы ассистентов');
-    expect(String(get.mock.calls[0][0])).toMatch(/^\/webhook\/tokens\/spending(\?tz=.+)?$/);
+    expect(String(get.mock.calls[0][0])).toMatch(/^\/webhook\/tokens\/spending\?tz=.+$/);
   });
 
   it('ручка ответила ошибкой — блока нет', async () => {
     get.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
-    expect((await render()).container.textContent).toBe('');
+    expect((await render()).container.innerHTML).toBe('');
   });
 
   it('трат нет — блока нет', async () => {
     get.mockResolvedValue(ok({ months: [] }));
-    expect((await render()).container.textContent).toBe('');
+    expect((await render()).container.innerHTML).toBe('');
+  });
+
+  it('в ответе нет months — блока нет', async () => {
+    get.mockResolvedValue(ok({}));
+    expect((await render()).container.innerHTML).toBe('');
   });
 
   it('запрос упал — блока нет', async () => {
     get.mockRejectedValue(new Error('network'));
-    expect((await render()).container.textContent).toBe('');
+    expect((await render()).container.innerHTML).toBe('');
+  });
+
+  it('пока грузится — блока нет', async () => {
+    get.mockReturnValue(new Promise(() => {}));
+    const r = await render();
+    expect(r.container.innerHTML).toBe('');
+  });
+
+  it('ошибка ручки — залогирована с понятной меткой', async () => {
+    get.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+    await render();
+    expect(consoleError).toHaveBeenCalledWith('расход по месяцам:', expect.anything());
+  });
+
+  it('упавший запрос — залогирован с понятной меткой', async () => {
+    get.mockRejectedValue(new Error('network'));
+    await render();
+    expect(consoleError).toHaveBeenCalledWith('расход по месяцам:', expect.anything());
   });
 });
