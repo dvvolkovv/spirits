@@ -67,6 +67,6 @@ describe('SpendingMonths', () => {
 
   it('без месяцев — ничего не рисует', () => {
     m = mount(<SpendingMonths months={[]} />);
-    expect(m.container.textContent).toBe('');
+    expect(m.container.innerHTML).toBe('');
   });
 });
