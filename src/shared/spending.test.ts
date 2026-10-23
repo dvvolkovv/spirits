@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { tRu } from '../test/dom';
 
 const state = vi.hoisted(() => ({ lang: 'ru' }));
 // formatDate берёт язык у экземпляра i18next — подставляем свой.
@@ -11,6 +12,11 @@ vi.mock('../i18n', () => ({
 }));
 
 import { parseSpending, categoryLabelKey, monthLabel, spendingUrl } from './spending';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  state.lang = 'ru';
+});
 
 describe('parseSpending', () => {
   it('читает форму /webhook/tokens/spending', () => {
@@ -44,6 +50,56 @@ describe('parseSpending', () => {
       { month: '2026-08', total: 10, categories: [{ key: 'images', tokens: 10, count: 1 }] },
     ]);
   });
+
+  it('месяц с недопустимым номером (13-й) выбрасывается', () => {
+    const raw = {
+      months: [{ month: '2026-13', total: 5, categories: [{ key: 'replies', tokens: 5, count: 1 }] }],
+    };
+    expect(parseSpending(raw)).toEqual([]);
+  });
+
+  it('незнакомая категория сливается с «other» того же месяца, счётчики складываются', () => {
+    const raw = {
+      months: [
+        {
+          month: '2026-08',
+          total: 8,
+          categories: [
+            { key: 'music', tokens: 5, count: 1 },
+            { key: 'other', tokens: 3, count: 1 },
+          ],
+        },
+      ],
+    };
+    expect(parseSpending(raw)).toEqual([
+      { month: '2026-08', total: 8, categories: [{ key: 'other', tokens: 8, count: 2 }] },
+    ]);
+  });
+
+  it('категории месяца отданы по убыванию токенов', () => {
+    const raw = {
+      months: [
+        {
+          month: '2026-08',
+          total: 15,
+          categories: [
+            { key: 'images', tokens: 5, count: 1 },
+            { key: 'replies', tokens: 10, count: 2 },
+          ],
+        },
+      ],
+    };
+    expect(parseSpending(raw)).toEqual([
+      {
+        month: '2026-08',
+        total: 15,
+        categories: [
+          { key: 'replies', tokens: 10, count: 2 },
+          { key: 'images', tokens: 5, count: 1 },
+        ],
+      },
+    ]);
+  });
 });
 
 describe('categoryLabelKey', () => {
@@ -52,6 +108,16 @@ describe('categoryLabelKey', () => {
   });
   it('незнакомый ключ — «Прочее»', () => {
     expect(categoryLabelKey('music')).toBe('payment.spending.cat.other');
+  });
+  it('ключ прототипа Object ("toString") — «Прочее», не его метод', () => {
+    expect(categoryLabelKey('toString')).toBe('payment.spending.cat.other');
+  });
+  it('все восемь ключей бэка подписаны настоящим текстом, а не ключом', () => {
+    const keys = ['replies', 'calls', 'images', 'video', 'voice', 'tg_bots', 'products', 'other'];
+    for (const key of keys) {
+      const labelKey = categoryLabelKey(key);
+      expect(tRu(labelKey)).not.toBe(labelKey);
+    }
   });
 });
 

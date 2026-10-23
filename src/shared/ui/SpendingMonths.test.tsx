@@ -35,10 +35,12 @@ afterEach(() => {
 describe('SpendingMonths', () => {
   it('новый месяц раскрыт, прошлые свёрнуты; итог виден у каждого', () => {
     m = mount(<SpendingMonths months={months} />);
+    const oct = m.container.querySelector('[data-testid="spending-month-2026-10"] button');
+    if (!oct) throw new Error('нет кнопки октября');
+    expect(oct.textContent!.replace(/\s/g, ' ')).toContain('Октябрь 2026');
+    expect(oct.textContent!.replace(/\s/g, ' ')).toContain('6 193');
     const t = text(m);
-    expect(t).toContain('Октябрь 2026');
     expect(t).toContain('Июнь 2026');
-    expect(t).toContain('6 193');
     expect(t).toContain('360 050');
     expect(t).toContain('Ответы ассистентов');
     expect(t).not.toContain('Картинки');
@@ -51,13 +53,20 @@ describe('SpendingMonths', () => {
     click(june);
     expect(text(m)).toContain('Картинки');
     expect(text(m)).toContain('110 000');
+    expect(text(m)).toContain('×11');
     expect(june.getAttribute('aria-expanded')).toBe('true');
     click(june);
     expect(text(m)).not.toContain('Картинки');
+    expect(june.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('незнакомая категория подписана «Прочее»', () => {
     m = mount(<SpendingMonths months={[{ month: '2026-10', total: 5, categories: [{ key: 'music', tokens: 5, count: 1 }] }]} />);
     expect(text(m)).toContain('Прочее');
+  });
+
+  it('без месяцев — ничего не рисует', () => {
+    m = mount(<SpendingMonths months={[]} />);
+    expect(m.container.textContent).toBe('');
   });
 });
