@@ -629,8 +629,8 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Цели AI-обработки:</strong> формирование ответов AI-ассистентов, генерация
           изображений и видео по заданию пользователя, распознавание речи, определение
           ценностей и личностных характеристик, расчет совместимости, персонализация опыта,
-          а также анализ обезличенных текстов диалогов и обращений для выявления затруднений
-          пользователей и улучшения сервиса. Для такого анализа из текстов заранее удаляются
+          а также анализ обезличенных текстов диалогов (в том числе расшифровок голосовых
+          разговоров) и обращений для выявления затруднений пользователей и улучшения сервиса. Для такого анализа из текстов заранее удаляются
           номера телефонов, адреса электронной почты, имена и иные идентификаторы; результаты
           хранятся только в обобщённом виде, без цитат и без связи с учетной записью.
         </p>
@@ -916,8 +916,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Purposes of AI processing:</strong> generating AI assistants' responses,
           generating images and video at the user's request, speech recognition, determining
           values and personality traits, calculating compatibility, personalizing the
-          experience, and analyzing de-identified texts of conversations and support requests
-          to identify where users run into difficulties and to improve the service. Before such
+          experience, and analyzing de-identified texts of conversations (including transcripts
+          of voice conversations) and support requests to identify where users run into
+          difficulties and to improve the service. Before such
           analysis, phone numbers, email addresses, names and other identifiers are removed
           from the texts; the results are stored only in aggregated form, without quotes and
           without any link to the user account.

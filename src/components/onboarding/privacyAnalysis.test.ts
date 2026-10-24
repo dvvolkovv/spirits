@@ -11,13 +11,13 @@ const src = readFileSync('src/components/onboarding/LegalModal.tsx', 'utf8').rep
 
 describe('политика: анализ обезличенных текстов', () => {
   it('русская редакция называет цель и что удаляется заранее', () => {
-    expect(src).toContain('анализ обезличенных текстов диалогов и обращений для выявления затруднений пользователей и улучшения сервиса');
+    expect(src).toContain('анализ обезличенных текстов диалогов (в том числе расшифровок голосовых разговоров) и обращений для выявления затруднений пользователей и улучшения сервиса');
     expect(src).toContain('удаляются номера телефонов, адреса электронной почты, имена и иные идентификаторы');
     expect(src).toContain('без цитат и без связи с учетной записью');
   });
 
   it('английская редакция — то же самое', () => {
-    expect(src).toContain('analyzing de-identified texts of conversations and support requests');
+    expect(src).toContain('analyzing de-identified texts of conversations (including transcripts of voice conversations) and support requests');
     expect(src).toContain('phone numbers, email addresses, names and other identifiers are removed');
     expect(src).toContain('without quotes and without any link to the user account');
   });
