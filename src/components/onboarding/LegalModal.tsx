@@ -508,7 +508,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentRu = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Политика конфиденциальности</h2>
-      <p className="text-sm text-gray-500">Редакция от 22 октября 2026 г.</p>
+      <p className="text-sm text-gray-500">Редакция от 24 октября 2026 г.</p>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
         <h3 className="text-lg font-semibold text-gray-900">Оператор персональных данных</h3>
@@ -628,7 +628,11 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
         <p className="text-gray-700 leading-relaxed">
           <strong>Цели AI-обработки:</strong> формирование ответов AI-ассистентов, генерация
           изображений и видео по заданию пользователя, распознавание речи, определение
-          ценностей и личностных характеристик, расчет совместимости, персонализация опыта.
+          ценностей и личностных характеристик, расчет совместимости, персонализация опыта,
+          а также анализ обезличенных текстов диалогов (в том числе расшифровок голосовых
+          разговоров) и обращений для выявления затруднений пользователей и улучшения сервиса. Для такого анализа из текстов заранее удаляются
+          номера телефонов, адреса электронной почты, имена и иные идентификаторы; результаты
+          хранятся только в обобщённом виде, без цитат и без связи с учетной записью.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Трансграничная передача данных.</strong> Все перечисленные выше
@@ -791,7 +795,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentEn = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
-      <p className="text-sm text-gray-500">Last updated: 22 October 2026</p>
+      <p className="text-sm text-gray-500">Last updated: 24 October 2026</p>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
         This English version is a courtesy translation. In case of any discrepancy, the Russian-language version is governing and legally binding under the laws of the Russian Federation.
@@ -912,7 +916,12 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Purposes of AI processing:</strong> generating AI assistants' responses,
           generating images and video at the user's request, speech recognition, determining
           values and personality traits, calculating compatibility, personalizing the
-          experience.
+          experience, and analyzing de-identified texts of conversations (including transcripts
+          of voice conversations) and support requests to identify where users run into
+          difficulties and to improve the service. Before such
+          analysis, phone numbers, email addresses, names and other identifiers are removed
+          from the texts; the results are stored only in aggregated form, without quotes and
+          without any link to the user account.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Cross-border data transfer.</strong> All the AI vendors listed above,
