@@ -932,7 +932,7 @@
       "no_description": "Sans description"
     },
     "veo": {
-      "prompt_hint": "Écris la réplique/le texte directement dans le prompt — Veo la prononcera lui-même (lipsync natif). Le portrait ci-dessous est optionnel, pour la « tête parlante ».",
+      "prompt_hint": "Écris la réplique/le texte directement dans le prompt — Gemini Omni la prononcera lui-même (lipsync natif). Le portrait ci-dessous est optionnel, pour la « tête parlante ».",
       "talking_head_title": "Qu'est-ce qu'une « tête parlante » ?",
       "talking_head_desc": "Une vidéo où la personne de ta photo regarde la caméra et prononce le texte du prompt — avec synchronisation labiale et voix naturelle. Idéal pour des messages d'accueil, vidéos de présentation, Reels et Stories.",
       "step_photos_top": "1 à 3 photos",
@@ -944,7 +944,7 @@
       "preset_talking_head_button": "Préréglage « Tête parlante »",
       "preset_talking_head_prompt": "Une jeune femme regarde la caméra avec un sourire chaleureux et dit : « Salut ! Ravie de te voir sur Linkeon — ici, tu trouveras des personnes qui te ressemblent. » Lumière douce du jour, tons chauds, gestes naturels.",
       "own_voice_label": "Doubler avec ma voix",
-      "own_voice_hint": "Veo génère la vidéo, puis la double avec ta voix (clonée à partir de ton échantillon). La qualité de l'image ne change pas, les lèvres restent synchronisées.",
+      "own_voice_hint": "Gemini Omni génère la vidéo, puis la double avec ta voix (clonée à partir de ton échantillon). La qualité de l'image ne change pas, les lèvres restent synchronisées.",
       "own_voice_surcharge": "Supplément d'environ {{amount}} jetons sur le coût de la vidéo.",
       "tier_hint": "Fast — plus rapide et moins cher. Standard — plus de détails, plus cher (~2,7×).",
       "aspect_label": "Format",
@@ -952,11 +952,11 @@
       "aspect_vertical": "9:16 · vertical",
       "aspect_horizontal": "16:9 · horizontal",
       "resolution_label": "Résolution",
-      "resolution_hint": "1080p — plus de détails (peau, pores). 720p — plus rapide. En horizontal (16:9), au-delà de 8 s les segments d'extension Veo restent en 720p, donc le 1080p se voit surtout sur les vidéos courtes. Le vertical (9:16) est assemblé à partir de clips indépendants — le 1080p fonctionne quelle que soit la durée.",
-      "length_hint": "16:9 (horizontal) : une vidéo continue — base 8 s + extensions de 7 s. 9:16 (vertical) : Veo ne peut pas allonger le format vertical sans coupure, donc au-delà de 8 s on assemble automatiquement plusieurs clips de 8 s (de légères coupures sont possibles aux jonctions) — la réplique est répartie sur les clips.",
-      "vertical_segments_hint": "Vertical {{sec}} s — on assemblera {{count}} clips de 8 s en une seule vidéo automatiquement.",
+      "resolution_hint": "1080p — plus de détails (peau, pores). 720p — plus rapide. En horizontal (16:9) de 9 à 36 s, les extensions restent en 720p, donc le 1080p se voit surtout sur les vidéos courtes. Le vertical (9:16) et l'horizontal au-delà de 36 s sont assemblés à partir de clips indépendants — le 1080p fonctionne quelle que soit la durée.",
+      "length_hint": "16:9 (horizontal) : jusqu'à 36 s, une vidéo continue — base 8 s + extensions de 7 s ; au-delà, on l'assemble à partir de clips de 8 s. 9:16 (vertical) : au-delà de 8 s, on assemble automatiquement plusieurs clips de 8 s. De légères coupures sont possibles aux jonctions — la réplique est répartie sur les clips.",
+      "vertical_segments_hint": "Vidéo de {{sec}} s — on assemblera {{count}} clips de 8 s en une seule vidéo automatiquement.",
       "portrait_photos_label": "Photos pour le portrait (jusqu'à 3)",
-      "portrait_photos_hint": "Pour une « tête parlante » à partir du visage d'une personne. Idéalement 3 photos de face sous des angles/éclairages différents : Veo obtient une ressemblance nettement plus précise qu'avec une seule photo. Sans photo, la scène est générée à partir de la description.",
+      "portrait_photos_hint": "Pour une « tête parlante » à partir du visage d'une personne. Idéalement 3 photos de face sous des angles/éclairages différents : Gemini Omni obtient une ressemblance nettement plus précise qu'avec une seule photo. Sans photo, la scène est générée à partir de la description.",
       "portrait_photos_recommend": "💡 On te recommande de charger <1>3 photos</1> (angles différents) — la ressemblance du visage est nettement meilleure.",
       "add_photo_button": "Ajouter une photo ({{count}}/3)"
     },
@@ -1040,7 +1040,7 @@
       },
       {
         "title": "Génération de vidéo",
-        "desc": "Section Vidéo. Des clips Veo 3.1 avec le son : à partir d'une description ou de photos d'une personne, en vertical ou en horizontal, de 8 à 60 secondes."
+        "desc": "Section Vidéo. Des clips Gemini Omni avec le son : à partir d'une description ou de photos d'une personne, en vertical ou en horizontal, de 8 à 60 secondes."
       },
       {
         "title": "Studio",
@@ -1102,7 +1102,7 @@
       },
       {
         "q": "Comment créer une vidéo ?",
-        "a": "Section Vidéo. Les clips sont créés par Veo 3.1, directement avec le son et une voix synchronisée.\n\n• Décris la scène dans le champ de texte. Si quelqu'un parle dans le clip, écris sa réplique au même endroit : Veo la prononcera lui-même, avec le mouvement des lèvres.\n• Tu veux une vidéo avec une personne précise ? Ajoute jusqu'à 3 photos d'elle sous différents angles (tu peux les choisir parmi tes propres images). Sans photo, le clip est créé uniquement à partir de la description.\n• Format — vertical 9:16 pour les réseaux sociaux ou horizontal 16:9, résolution 1080p ou 720p, durée de 8 à 60 secondes.\n• « Doubler avec ma voix » — le clip parlera avec ta propre voix (il te faudra un échantillon de voix).\n\nQualité Fast ou Standard (plus détaillée et plus chère). Le coût en jetons s'affiche sur le bouton « Créer » — il dépend de la qualité, de la durée et du format. Les vidéos prêtes apparaissent dans l'onglet « Mes vidéos » — tu peux les télécharger, les partager ou les recréer avec les mêmes réglages."
+        "a": "Section Vidéo. Les clips sont créés par Gemini Omni, directement avec le son et une voix synchronisée.\n\n• Décris la scène dans le champ de texte. Si quelqu'un parle dans le clip, écris sa réplique au même endroit : Gemini Omni la prononcera lui-même, avec le mouvement des lèvres.\n• Tu veux une vidéo avec une personne précise ? Ajoute jusqu'à 3 photos d'elle sous différents angles (tu peux les choisir parmi tes propres images). Sans photo, le clip est créé uniquement à partir de la description.\n• Format — vertical 9:16 pour les réseaux sociaux ou horizontal 16:9, résolution 1080p ou 720p, durée de 8 à 60 secondes.\n• « Doubler avec ma voix » — le clip parlera avec ta propre voix (il te faudra un échantillon de voix).\n\nLe coût en jetons s'affiche sur le bouton « Créer » — il dépend de la durée et du format. Les vidéos prêtes apparaissent dans l'onglet « Mes vidéos » — tu peux les télécharger, les partager ou les recréer avec les mêmes réglages."
       },
       {
         "q": "Comment recharger mes jetons ?",

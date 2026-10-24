@@ -9,44 +9,27 @@ import VideoExamples from './VideoExamples';
 import { useVoiceProfile } from './useVoiceProfile';
 import VoiceSamplePanel from './VoiceSamplePanel';
 import { formatNumber } from '../../utils/formatters';
+import { needsVeoConcat, veoCostFor } from './videoPricing';
 
 interface Props {
   onCreated: (jobId: string) => void;
   defaults?: Partial<FormState>;
 }
 
-export type VeoTier = 'fast' | 'standard';
-
-// Veo length steps (base 8s + 7s native extends). Trimmed to the exact value.
+// Length steps (base 8s + 7s extends or 8s clips). Trimmed to the exact value.
 export const VEO_LENGTHS = [8, 12, 16, 24, 32, 48, 60] as const;
 
-// Движок один — Veo 3.1. Kling снят 22.10.2026: его модель kling-v1-6
-// провайдер вывел из эксплуатации, пакет сгорел, а живого спроса не было.
+// Движок один — Google: до 22.10.2026 Veo 3.1, теперь Gemini Omni с одной
+// моделью, поэтому выбора качества Fast/Standard больше нет (тарифы слиты
+// 24.10.2026). Kling снят 22.10.2026: его модель kling-v1-6 провайдер вывел
+// из эксплуатации, пакет сгорел, а живого спроса не было.
 export interface FormState {
   prompt: string;
-  veoTier?: VeoTier;
   veoLengthSec?: number;
   veoAspectRatio?: '16:9' | '9:16';   // формат: 9:16 для соцсетей (фидбэк katya)
   veoResolution?: '720p' | '1080p';   // 1080p — детализация кожи/пор
   sourceImageUrls?: string[];   // до 3 референс-фото (Ingredients) для сходства
   useOwnVoice?: boolean;   // озвучить голосом пользователя (96cba3f7)
-}
-
-// Veo token pricing — mirrors backend video.dto.ts (owner-approved ~2x cost).
-const VEO_PRICES: Record<VeoTier, { base: number; ext: number }> = {
-  fast: { base: 90000, ext: 63000 },
-  standard: { base: 240000, ext: 170000 },
-};
-function veoCostFor(tier: VeoTier, lengthSec: number, aspect: '16:9' | '9:16' = '9:16'): number {
-  const p = VEO_PRICES[tier];
-  // 9:16 длиннее 8с: Veo extend умеет только 16:9, поэтому вертикаль собирается
-  // как concat N независимых 8с-клипов — каждый клип это полная база (N×base).
-  // 16:9 и короткая вертикаль (≤8с) — база + native extend по 7с.
-  if (aspect === '9:16' && lengthSec > 8) {
-    return Math.ceil(lengthSec / 8) * p.base;
-  }
-  const extendCount = Math.ceil(Math.max(0, lengthSec - 8) / 7);
-  return p.base + extendCount * p.ext;
 }
 
 // Надбавка за «голосом оригинала» — зеркало backend computeOwnVoiceSurcharge:
@@ -57,7 +40,7 @@ function ownVoiceSurcharge(sec: number): number {
 }
 
 function costFor(s: FormState): number {
-  let c = veoCostFor(s.veoTier ?? 'fast', s.veoLengthSec ?? 24, s.veoAspectRatio ?? '9:16');
+  let c = veoCostFor(s.veoLengthSec ?? 24, s.veoAspectRatio ?? '9:16');
   if (s.useOwnVoice) c += ownVoiceSurcharge(s.veoLengthSec ?? 24);
   return c;
 }
@@ -163,7 +146,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
     try {
       const veoImgs = (s.sourceImageUrls ?? []).slice(0, 3);
       const body: any = {
-        model: (s.veoTier ?? 'fast') === 'standard' ? 'veo-3.1' : 'veo-3.1-fast',
+        model: 'veo-3.1-fast',
         mode: veoImgs.length ? 'image2video' : 'text2video',
         prompt: s.prompt,
         sourceImageUrls: veoImgs.length ? veoImgs : undefined,
@@ -233,7 +216,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
         </div>
       </div>
 
-      {/* Veo 3.1 panel */}
+      {/* Video settings panel */}
       <div className="bg-gray-50 rounded-xl p-4 space-y-4">
         <p className="text-[11px] text-gray-500 -mb-1">
           {t('video.veo.prompt_hint')}
@@ -277,7 +260,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
           type="button"
           onClick={() => setS(x => ({
             ...x,
-            veoTier: 'fast', veoLengthSec: 24,
+            veoLengthSec: 24,
             prompt: x.prompt || t('video.veo.preset_talking_head_prompt'),
           }))}
           className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border border-forest-300 bg-forest-50 text-forest-700 hover:bg-forest-100 transition-colors"
@@ -313,31 +296,6 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
               </p>
             </div>
           )}
-        </div>
-
-        {/* Tier */}
-        <div>
-          <p className="text-xs font-medium text-gray-500 mb-2 flex items-center">
-            {t('video.quality.label')}
-            <Hint text={t('video.veo.tier_hint') as string} />
-          </p>
-          <div className="flex gap-2">
-            {(['fast', 'standard'] as const).map(tier => (
-              <button
-                key={tier}
-                type="button"
-                onClick={() => setS({ ...s, veoTier: tier })}
-                className={clsx(
-                  'flex-1 py-2 rounded-lg border text-xs font-medium transition-colors',
-                  (s.veoTier ?? 'fast') === tier
-                    ? 'border-forest-400 bg-forest-50 text-forest-700'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
-                )}
-              >
-                {tier === 'fast' ? 'Fast' : 'Standard'}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Format (aspect ratio) */}
@@ -413,7 +371,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
               </button>
             ))}
           </div>
-          {(s.veoAspectRatio ?? '9:16') === '9:16' && (s.veoLengthSec ?? 24) > 8 && (
+          {needsVeoConcat(s.veoAspectRatio ?? '9:16', s.veoLengthSec ?? 24) && (
             <p className="mt-2 text-xs text-gray-500">
               {t('video.veo.vertical_segments_hint', { sec: s.veoLengthSec ?? 24, count: Math.ceil((s.veoLengthSec ?? 24) / 8) })}
             </p>

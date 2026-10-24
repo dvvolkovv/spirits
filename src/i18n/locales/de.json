@@ -929,7 +929,7 @@
       "no_description": "Keine Beschreibung"
     },
     "veo": {
-      "prompt_hint": "Schreibe den Text/die Rede direkt in den Prompt – Veo vertont ihn selbst (natives Lipsync). Das Porträt unten ist optional, für den „Talking Head“.",
+      "prompt_hint": "Schreibe den Text/die Rede direkt in den Prompt – Gemini Omni vertont ihn selbst (natives Lipsync). Das Porträt unten ist optional, für den „Talking Head“.",
       "talking_head_title": "Was ist ein „Talking Head“?",
       "talking_head_desc": "Ein Video, in dem die Person von deinem Foto in die Kamera schaut und den Text aus dem Prompt spricht – mit Lippensynchronisation und lebendiger Stimme. Geeignet für Grüße, Video-Visitenkarten, Reels und Stories.",
       "step_photos_top": "1–3 Fotos",
@@ -941,7 +941,7 @@
       "preset_talking_head_button": "Preset „Talking Head“",
       "preset_talking_head_prompt": "Eine junge Frau schaut freundlich in die Kamera und sagt: „Hallo! Schön, dich bei Linkeon zu sehen – hier findest du Gleichgesinnte.“ Weiches Tageslicht, warmer Ton, natürliche Gesten.",
       "own_voice_label": "Mit meiner Stimme vertonen",
-      "own_voice_hint": "Veo generiert das Video und vertont es dann mit deiner Stimme (Klon aus deiner Sprachprobe). Die Bildqualität bleibt gleich, die Lippen bleiben synchron.",
+      "own_voice_hint": "Gemini Omni generiert das Video und vertont es dann mit deiner Stimme (Klon aus deiner Sprachprobe). Die Bildqualität bleibt gleich, die Lippen bleiben synchron.",
       "own_voice_surcharge": "Aufpreis ~{{amount}} Tokens auf den Videopreis.",
       "tier_hint": "Fast – schneller und günstiger. Standard – höhere Detailschärfe, teurer (~2.7×).",
       "aspect_label": "Format",
@@ -949,11 +949,11 @@
       "aspect_vertical": "9:16 · Hochformat",
       "aspect_horizontal": "16:9 · Querformat",
       "resolution_label": "Auflösung",
-      "resolution_hint": "1080p – mehr Details (Haut, Poren). 720p – schneller. Im Querformat (16:9) sind Veo-Extend-Segmente über 8 s immer 720p, deshalb wirkt 1080p bei kurzen Clips deutlicher. Das Hochformat (9:16) wird aus unabhängigen Clips zusammengesetzt – dort funktioniert 1080p bei jeder Länge.",
-      "length_hint": "16:9 (Querformat): ein durchgehendes Video – Basis 8s + Erweiterungen à 7s. 9:16 (Hochformat): Veo kann Hochformat-Videos nicht nahtlos verlängern, deshalb setzen wir Clips über 8s automatisch aus mehreren 8s-Clips zusammen (an den Übergängen können leichte Schnitte sichtbar sein) – die Sprache wird auf die Clips verteilt.",
-      "vertical_segments_hint": "Hochformat {{sec}}s – wird aus {{count}} Clips à 8s automatisch zu einem Video zusammengefügt.",
+      "resolution_hint": "1080p – mehr Details (Haut, Poren). 720p – schneller. Im Querformat (16:9) von 9 bis 36 s sind die Erweiterungen immer 720p, deshalb wirkt 1080p bei kurzen Clips deutlicher. Hochformat (9:16) und Querformat über 36 s werden aus unabhängigen Clips zusammengesetzt – dort funktioniert 1080p bei jeder Länge.",
+      "length_hint": "16:9 (Querformat): bis 36s ein durchgehendes Video – Basis 8s + Erweiterungen à 7s; längere setzen wir aus 8s-Clips zusammen. 9:16 (Hochformat): über 8s setzen wir das Video automatisch aus mehreren 8s-Clips zusammen. An den Übergängen können leichte Schnitte sichtbar sein – die Sprache wird auf die Clips verteilt.",
+      "vertical_segments_hint": "{{sec}}s-Video – wird aus {{count}} Clips à 8s automatisch zu einem Video zusammengefügt.",
       "portrait_photos_label": "Fotos für das Porträt (bis zu 3)",
-      "portrait_photos_hint": "Für den „Talking Head“ aus dem Gesicht einer Person. Am besten 3 Frontalfotos in unterschiedlichen Winkeln/Lichtverhältnissen: Veo erzielt damit eine deutlich genauere Ähnlichkeit als mit nur einem Foto. Ohne Foto wird die Szene nach Beschreibung erstellt.",
+      "portrait_photos_hint": "Für den „Talking Head“ aus dem Gesicht einer Person. Am besten 3 Frontalfotos in unterschiedlichen Winkeln/Lichtverhältnissen: Gemini Omni erzielt damit eine deutlich genauere Ähnlichkeit als mit nur einem Foto. Ohne Foto wird die Szene nach Beschreibung erstellt.",
       "portrait_photos_recommend": "💡 Wir empfehlen, <1>3 Fotos</1> hochzuladen (unterschiedliche Winkel) – so wird die Gesichtsähnlichkeit deutlich besser.",
       "add_photo_button": "Foto hinzufügen ({{count}}/3)"
     },
@@ -1037,7 +1037,7 @@
       },
       {
         "title": "Videogenerierung",
-        "desc": "Bereich Video. Clips von Veo 3.1 mit Ton: nach Beschreibung oder nach Fotos einer Person, im Hoch- oder Querformat, 8 bis 60 Sekunden."
+        "desc": "Bereich Video. Clips von Gemini Omni mit Ton: nach Beschreibung oder nach Fotos einer Person, im Hoch- oder Querformat, 8 bis 60 Sekunden."
       },
       {
         "title": "Studio",
@@ -1099,7 +1099,7 @@
       },
       {
         "q": "Wie erstelle ich ein Video?",
-        "a": "Bereich Video. Die Clips erstellt Veo 3.1 — direkt mit Ton und synchroner Sprache.\n\n• Beschreibe die Szene im Eingabefeld. Wenn im Clip jemand spricht, schreib den Text direkt dazu: Veo spricht ihn selbst, mit passenden Lippenbewegungen.\n• Du willst ein Video mit einer bestimmten Person? Füge bis zu 3 Fotos von ihr aus verschiedenen Blickwinkeln hinzu (auch aus deinen eigenen Bildern). Ohne Fotos entsteht der Clip nur aus der Beschreibung.\n• Format — Hochformat 9:16 für Social Media oder Querformat 16:9, Auflösung 1080p oder 720p, Länge von 8 bis 60 Sekunden.\n• „Mit meiner Stimme vertonen“ — der Clip spricht mit deiner eigenen Stimme (dafür brauchst du eine Stimmprobe).\n\nQualität Fast oder Standard (detaillierter und teurer). Die Token-Kosten stehen auf dem Button „Erstellen“ — sie hängen von Qualität, Länge und Format ab. Fertige Videos erscheinen im Tab „Meine Videos“ — du kannst sie herunterladen, teilen oder mit denselben Einstellungen neu erstellen."
+        "a": "Bereich Video. Die Clips erstellt Gemini Omni — direkt mit Ton und synchroner Sprache.\n\n• Beschreibe die Szene im Eingabefeld. Wenn im Clip jemand spricht, schreib den Text direkt dazu: Gemini Omni spricht ihn selbst, mit passenden Lippenbewegungen.\n• Du willst ein Video mit einer bestimmten Person? Füge bis zu 3 Fotos von ihr aus verschiedenen Blickwinkeln hinzu (auch aus deinen eigenen Bildern). Ohne Fotos entsteht der Clip nur aus der Beschreibung.\n• Format — Hochformat 9:16 für Social Media oder Querformat 16:9, Auflösung 1080p oder 720p, Länge von 8 bis 60 Sekunden.\n• „Mit meiner Stimme vertonen“ — der Clip spricht mit deiner eigenen Stimme (dafür brauchst du eine Stimmprobe).\n\nDie Token-Kosten stehen auf dem Button „Erstellen“ — sie hängen von Länge und Format ab. Fertige Videos erscheinen im Tab „Meine Videos“ — du kannst sie herunterladen, teilen oder mit denselben Einstellungen neu erstellen."
       },
       {
         "q": "Wie lade ich Tokens auf?",
