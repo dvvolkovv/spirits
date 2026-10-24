@@ -55,7 +55,6 @@ export default function VideoInterface() {
       Math.abs(len - sec) < Math.abs(best - sec) ? len : best, VEO_LENGTHS[0] as number);
     setPrefill({
       prompt: j.prompt ?? '',
-      veoTier: j.model === 'veo-3.1' ? 'standard' : 'fast',
       veoLengthSec,
     });
     setTab('create');
