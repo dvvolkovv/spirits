@@ -6,27 +6,40 @@ import {
   validateExtraSecrets,
 } from './secretNames';
 
-// Списки — те же, что в тестах сервера (provisioning.create.spec.ts) и агента
-// хоста (provision.spec.ts). Копия проверки обязана совпадать с оригиналом в
-// обе стороны: строже — отбивает законный ключ без причины, мягче — отказ
-// приходит только после «Создать», русским текстом сервера.
+// Копия проверки обязана совпадать с оригиналом в обе стороны: строже —
+// отбивает законный ключ без причины, мягче — отказ приходит только после
+// «Создать», русским текстом сервера.
+//
+// ОДНА ТАБЛИЦА НА ТРИ КОПИИ ПРОВЕРКИ: дословно та же стоит в
+// spirits_back/product-runner/src/host/provision.spec.ts (агент хоста) и в
+// spirits_back/src/products/provisioning.create.spec.ts (сервер). Она
+// перечисляет КАЖДОЕ точное имя и по примеру на каждое семейство — имя,
+// выпавшее из одной копии, не пройдёт незамеченным.
+const RESERVED_TABLE = [
+  // точные
+  'LINKEON_URL', 'RUNNER_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'PRODUCT_START_SCRIPT', 'CHECKOUT_PATH',
+  'CLAUDE_BIN', 'PORT', 'HOME', 'PATH', 'NODE_OPTIONS', 'SHELL', 'USER', 'BASH_ENV', 'ENV',
+  'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+  'POLL_INTERVAL_MS', 'TURN_TIMEOUT_MS', 'POLL_TIMEOUT_MS', 'REQUEST_TIMEOUT_MS',
+  // семейства
+  'ANTHROPIC_BASE_URL', 'CLAUDE_CONFIG_DIR', 'NODE_TLS_REJECT_UNAUTHORIZED', 'NPM_CONFIG_REGISTRY',
+  'LD_PRELOAD', 'GIT_SSH_COMMAND', 'PM2_HOME', 'SSL_CERT_FILE', 'DOTENV_CONFIG_PATH',
+  // регистр не спасает
+  'https_proxy', 'port', 'npm_config_registry', 'dotenv_key',
+];
+const ALLOWED_TABLE = [
+  'NODE_ENV', 'node_env', 'TZ', 'OZON_API_KEY', 'MY_ANTHROPIC_KEY', 'GITHUB_TOKEN', 'NODEJS_VERSION',
+  'POLL_INTERVAL', 'SSH_KEY', 'BOT_TOKEN',
+];
+
 describe('isReservedSecretName — та же проверка, что у сервера и агента хоста', () => {
-  it.each([
-    'LINKEON_URL', 'RUNNER_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'PRODUCT_START_SCRIPT', 'CHECKOUT_PATH',
-    'CLAUDE_BIN', 'PORT', 'HOME', 'PATH', 'NODE_OPTIONS', 'SHELL', 'USER', 'BASH_ENV', 'ENV',
-    'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'https_proxy', 'ANTHROPIC_BASE_URL',
-    'CLAUDE_CONFIG_DIR', 'NODE_TLS_REJECT_UNAUTHORIZED', 'npm_config_registry', 'LD_PRELOAD',
-    'GIT_SSH_COMMAND', 'PM2_HOME', 'SSL_CERT_FILE', 'port',
-  ])('%s занято', (name) => {
+  it.each(RESERVED_TABLE)('%s занято', (name) => {
     expect(isReservedSecretName(name)).toBe(true);
   });
 
-  it.each(['NODE_ENV', 'node_env', 'TZ', 'OZON_API_KEY', 'MY_ANTHROPIC_KEY', 'GITHUB_TOKEN', 'SSH_KEY', 'BOT_TOKEN'])(
-    '%s свободно',
-    (name) => {
-      expect(isReservedSecretName(name)).toBe(false);
-    },
-  );
+  it.each(ALLOWED_TABLE)('%s свободно', (name) => {
+    expect(isReservedSecretName(name)).toBe(false);
+  });
 });
 
 describe('validateExtraSecrets', () => {
@@ -77,6 +90,16 @@ describe('extraSecretsPayload', () => {
         { name: '', value: '' },
       ]),
     ).toEqual({ A_KEY: 'a' });
+  });
+
+  it('имя __proto__ доезжает своим ключом, а не теряется в прототипе', () => {
+    // Форму переменной оно проходит, а присваивание out['__proto__'] = '…'
+    // в обычный объект ключа не создаёт — ключ молча пропал бы из запроса.
+    const payload = extraSecretsPayload([{ name: '__proto__', value: 'p' }]);
+    expect(Object.keys(payload)).toEqual(['__proto__']);
+    expect(JSON.parse(JSON.stringify({ ...payload, BOT_TOKEN: 't' }))).toEqual(
+      JSON.parse('{"__proto__":"p","BOT_TOKEN":"t"}'),
+    );
   });
 });
 

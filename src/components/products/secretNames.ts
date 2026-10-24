@@ -24,8 +24,9 @@ const RESERVED = [
   'LINKEON_URL', 'RUNNER_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'PRODUCT_START_SCRIPT',
   'CHECKOUT_PATH', 'CLAUDE_BIN', 'PORT', 'HOME', 'PATH', 'NODE_OPTIONS',
   'SHELL', 'USER', 'BASH_ENV', 'ENV', 'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+  'POLL_INTERVAL_MS', 'TURN_TIMEOUT_MS', 'POLL_TIMEOUT_MS', 'REQUEST_TIMEOUT_MS',
 ];
-const RESERVED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_', 'NODE_', 'NPM_CONFIG_', 'LD_', 'GIT_', 'PM2_', 'SSL_'];
+const RESERVED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_', 'NODE_', 'NPM_CONFIG_', 'LD_', 'GIT_', 'PM2_', 'SSL_', 'DOTENV_'];
 const RESERVED_EXCEPTIONS = ['NODE_ENV'];
 
 /** Без учёта регистра: `https_proxy` читают так же, как `HTTPS_PROXY`. */
@@ -76,13 +77,17 @@ export function validateExtraSecrets(rows: readonly ExtraSecretRow[]): ExtraSecr
   });
 }
 
-/** Заполненные строки → часть `secrets`. Звать только после проверки без ошибок. */
+/**
+ * Заполненные строки → часть `secrets`. Звать только после проверки без ошибок.
+ *
+ * Object.fromEntries, а не присваивание: `out['__proto__'] = '…'` своего ключа
+ * не создаёт, а имя `__proto__` форму переменной проходит — ключ молча пропал
+ * бы из запроса.
+ */
 export function extraSecretsPayload(rows: readonly ExtraSecretRow[]): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const row of rows) {
-    const name = row.name.trim();
-    const value = row.value.trim();
-    if (name && value) out[name] = value;
-  }
-  return out;
+  return Object.fromEntries(
+    rows
+      .map((row) => [row.name.trim(), row.value.trim()] as const)
+      .filter(([name, value]) => name && value),
+  );
 }

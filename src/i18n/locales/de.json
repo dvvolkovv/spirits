@@ -1918,7 +1918,7 @@
       "tokenHint": "Den Token gibt @BotFather aus. Wir speichern ihn verschlüsselt und zeigen ihn nie wieder an.",
       "extraSecrets": {
         "title": "Zusätzliche Schlüssel",
-        "hint": "Braucht der Bot Schlüssel für andere Dienste – etwa die API eines Marktplatzes oder CRM –, trag sie hier ein. Der Bot erhält jeden Schlüssel als Umgebungsvariable mit diesem Namen. Wir speichern die Schlüssel verschlüsselt. Schick sie nicht in den Chat: Änderungswünsche bleiben im Verlauf gespeichert. Nach dem Anlegen des Bots lassen sich die Schlüssel vorerst nicht ändern.",
+        "hint": "Braucht der Bot Schlüssel für andere Dienste – etwa die API eines Marktplatzes oder eines CRM –, trag sie hier ein. Der Bot erhält jeden Schlüssel als Umgebungsvariable mit diesem Namen. Wir speichern die Schlüssel verschlüsselt. Schick sie nicht in den Chat: Änderungswünsche bleiben im Verlauf gespeichert. Nach dem Anlegen des Bots lassen sich die Schlüssel vorerst nicht ändern.",
         "name": "Name des Schlüssels",
         "namePlaceholder": "API_KEY",
         "value": "Wert",
