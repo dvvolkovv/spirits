@@ -2,6 +2,15 @@ import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Plus } from 'lucide-react';
 import type { NewProductInput, ProductKind } from '../../services/productsApi';
+import {
+  EXTRA_SECRETS_MAX,
+  SECRET_NAME_MAX,
+  SECRET_VALUE_MAX,
+  extraSecretsPayload,
+  validateExtraSecrets,
+  type ExtraSecretError,
+  type ExtraSecretRow,
+} from './secretNames';
 
 /**
  * ФОРМА СЛАГА — ТРЕТЬЯ КОПИЯ ОДНОЙ И ТОЙ ЖЕ ПРОВЕРКИ.
@@ -20,10 +29,9 @@ import type { NewProductInput, ProductKind } from '../../services/productsApi';
  */
 export const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
-/** Потолки — из CreateProductDto и create() на бэкенде. */
+/** Потолки — из CreateProductDto и create() на бэкенде. Потолки секретов — в secretNames.ts. */
 const SLUG_MAX = 40;
 const NAME_MAX = 80;
-const SECRET_VALUE_MAX = 8192;
 
 /**
  * Публичная зона продуктов — `PUBLIC_ZONE` в provisioning.service.ts.
@@ -178,6 +186,28 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
   const [suffix, setSuffix] = useState(randomSuffix);
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Строки блока «Дополнительные ключи». id — только ради ключа React: при
+  // удалении строки из середины индекс сдвинулся бы, и фокус с набранным
+  // текстом уехал бы в соседнее поле.
+  const [extraSecrets, setExtraSecrets] = useState<Array<ExtraSecretRow & { id: number }>>([]);
+  const [secretErrors, setSecretErrors] = useState<ExtraSecretError[]>([]);
+  const nextSecretId = useRef(0);
+
+  const addSecretRow = () => {
+    const id = nextSecretId.current;
+    nextSecretId.current += 1;
+    setExtraSecrets((rows) => [...rows, { id, name: '', value: '' }]);
+  };
+  const updateSecretRow = (id: number, patch: Partial<ExtraSecretRow>) => {
+    setExtraSecrets((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  };
+  const removeSecretRow = (id: number) => {
+    setExtraSecrets((rows) => rows.filter((r) => r.id !== id));
+    // Ошибки привязаны к позиции строки: после удаления сообщение от снятой
+    // строки повисло бы на соседней. Следующее нажатие «Создать» посчитает их
+    // заново.
+    setSecretErrors([]);
+  };
 
   // Замок отдельно от состояния: setSubmitting(true) применяется только к
   // следующему рендеру, а два клика подряд успевают пройти в одном тике —
@@ -188,12 +218,14 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
     if (busy.current) return;
 
     const found = validateDraft({ kind, name, slug, token });
+    const foundSecrets = kind === 'bot' ? validateExtraSecrets(extraSecrets) : [];
     setErrors(found);
+    setSecretErrors(foundSecrets);
     setServerError(null);
     // Тихого return здесь нет: сообщения уже на экране, и нажатие всегда
     // чем-то отвечает. Молчаливый отказ выглядит как зависание — это главная
     // повторяющаяся форма дефекта в этой работе.
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0 || foundSecrets.some((e) => e.name || e.value)) return;
 
     const finalSlug = kind === 'site' ? slug.trim() : deriveBotSlug(name, suffix);
 
@@ -214,7 +246,10 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
         kind,
         // Пустой объект, а не { BOT_TOKEN: '' }: у сайта секретов нет, и
         // лишнее имя уехало бы переменной окружения в контейнер.
-        secrets: kind === 'bot' ? { BOT_TOKEN: token.trim() } : {},
+        //
+        // BOT_TOKEN — последним: строку блока с этим именем проверка не
+        // пропускает, но и при её сбое токен из своего поля не перебивается.
+        secrets: kind === 'bot' ? { ...extraSecretsPayload(extraSecrets), BOT_TOKEN: token.trim() } : {},
       });
       if (!result.ok) {
         setServerError(result.message);
@@ -225,8 +260,9 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
         return;
       }
       // Секрет не живёт в состоянии дольше нужного: форму после удачи
-      // закрывают, но пока она на экране, токен из неё стирается.
+      // закрывают, но пока она на экране, токен и ключи из неё стираются.
       setToken('');
+      setExtraSecrets([]);
     } finally {
       busy.current = false;
       setSubmitting(false);
@@ -240,10 +276,12 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
     }
   };
 
-  const fieldClass = (field: Field) =>
+  const inputClass = (invalid: boolean) =>
     `w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-forest-500 disabled:bg-gray-50 disabled:text-gray-400 ${
-      errors[field] ? 'border-red-300 bg-red-50' : 'border-gray-200'
+      invalid ? 'border-red-300 bg-red-50' : 'border-gray-200'
     }`;
+
+  const fieldClass = (field: Field) => inputClass(Boolean(errors[field]));
 
   const fieldError = (field: Field) =>
     errors[field] ? (
@@ -332,6 +370,92 @@ export const NewProductForm: React.FC<Props> = ({ kind, onSubmit }) => {
           />
           <p className="mt-1 text-xs text-gray-500">{t('products.new.tokenHint')}</p>
           {fieldError('token')}
+        </div>
+      )}
+
+      {kind === 'bot' && (
+        // Ключи сторонних сервисов (API маркетплейса, CRM). Окружение
+        // контейнера задаётся один раз, при заведении, — поэтому поле здесь, а
+        // не в чате правок: текст правки хранится в истории и уезжает в git.
+        <div role="group" aria-labelledby="np-secrets-title" className="flex flex-col gap-2">
+          <p id="np-secrets-title" className="text-sm font-medium text-gray-700">
+            {t('products.new.extraSecrets.title')}
+          </p>
+          <p className="text-xs text-gray-500">{t('products.new.extraSecrets.hint')}</p>
+          {extraSecrets.map((row, i) => {
+            const err = secretErrors[i] ?? {};
+            return (
+              <div key={row.id} className="flex flex-col md:flex-row gap-2 md:items-start">
+                <div className="flex-1 min-w-0">
+                  <label htmlFor={`np-secret-name-${row.id}`} className="block text-xs text-gray-600 mb-1">
+                    {t('products.new.extraSecrets.name')}
+                  </label>
+                  <input
+                    id={`np-secret-name-${row.id}`}
+                    type="text"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={row.name}
+                    onChange={(e) => updateSecretRow(row.id, { name: e.target.value })}
+                    onKeyDown={onEnter}
+                    disabled={submitting}
+                    maxLength={SECRET_NAME_MAX}
+                    aria-invalid={Boolean(err.name)}
+                    placeholder={t('products.new.extraSecrets.namePlaceholder')}
+                    className={inputClass(Boolean(err.name))}
+                  />
+                  {err.name && (
+                    <p role="alert" className="mt-1 text-xs text-red-600">
+                      {t(err.name)}
+                    </p>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label htmlFor={`np-secret-value-${row.id}`} className="block text-xs text-gray-600 mb-1">
+                    {t('products.new.extraSecrets.value')}
+                  </label>
+                  <input
+                    id={`np-secret-value-${row.id}`}
+                    // Секрет — по той же причине, что и токен выше: открытое
+                    // поле уезжает в менеджер паролей и историю автозаполнения.
+                    type="password"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={row.value}
+                    onChange={(e) => updateSecretRow(row.id, { value: e.target.value })}
+                    onKeyDown={onEnter}
+                    disabled={submitting}
+                    aria-invalid={Boolean(err.value)}
+                    className={inputClass(Boolean(err.value))}
+                  />
+                  {err.value && (
+                    <p role="alert" className="mt-1 text-xs text-red-600">
+                      {t(err.value)}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeSecretRow(row.id)}
+                  disabled={submitting}
+                  className="self-start md:mt-5 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 disabled:text-gray-300 disabled:hover:bg-transparent transition-colors"
+                >
+                  {t('products.new.extraSecrets.remove')}
+                </button>
+              </div>
+            );
+          })}
+          {extraSecrets.length < EXTRA_SECRETS_MAX && (
+            <button
+              type="button"
+              onClick={addSecretRow}
+              disabled={submitting}
+              className="flex items-center gap-1.5 self-start px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 disabled:text-gray-300 transition-colors"
+            >
+              <Plus size={14} />
+              {t('products.new.extraSecrets.add')}
+            </button>
+          )}
         </div>
       )}
 

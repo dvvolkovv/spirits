@@ -551,3 +551,146 @@ describe('NewProductForm — отправка', () => {
     expect(s.calls[1].slug).toBe('my-shop-2');
   });
 });
+
+describe('NewProductForm — дополнительные ключи бота', () => {
+  const ADD_KEY = /Добавить ключ/;
+  const KEY_NAME = /Имя ключа/;
+  const KEY_VALUE = /^Значение$/;
+  const valueInputs = (c: HTMLElement) =>
+    Array.from(c.querySelectorAll<HTMLInputElement>('input[id^="np-secret-value-"]'));
+  const nameInputs = (c: HTMLElement) =>
+    Array.from(c.querySelectorAll<HTMLInputElement>('input[id^="np-secret-name-"]'));
+
+  function fillBot(container: HTMLElement) {
+    type(byLabel(container, NAME)!, 'Аналитик');
+    type(byLabel(container, TOKEN)!, '123:AAA');
+  }
+
+  it('блок есть только у бота', () => {
+    const { container, rerender } = mount(<NewProductForm kind="site" onSubmit={async () => ({ ok: true })} />);
+    expect(byButton(container, ADD_KEY)).toBeNull();
+
+    rerender(<NewProductForm kind="bot" onSubmit={async () => ({ ok: true })} />);
+    expect(byButton(container, ADD_KEY)).not.toBeNull();
+    expect(visibleText(container)).toContain(tRu('products.new.extraSecrets.title'));
+  });
+
+  it('ключ уезжает в secrets рядом с токеном, края обрезаны', async () => {
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+    fillBot(container);
+    click(byButton(container, ADD_KEY)!);
+    type(byLabel(container, KEY_NAME)!, 'OZON_API_KEY');
+    type(byLabel(container, KEY_VALUE)!, '  ключ-озона  ');
+
+    await clickAsync(byButton(container, CREATE)!);
+
+    expect(s.calls).toHaveLength(1);
+    expect(s.calls[0].secrets).toEqual({ BOT_TOKEN: '123:AAA', OZON_API_KEY: 'ключ-озона' });
+  });
+
+  it('значение ключа — скрытое поле без автозаполнения', () => {
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={async () => ({ ok: true })} />);
+    click(byButton(container, ADD_KEY)!);
+
+    const value = byLabel(container, KEY_VALUE)!;
+    expect(value.type).toBe('password');
+    expect(value.getAttribute('autocomplete')).toBe('off');
+  });
+
+  it('добавленная и не заполненная строка не отправляется и ошибкой не считается', async () => {
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+    fillBot(container);
+    click(byButton(container, ADD_KEY)!);
+
+    await clickAsync(byButton(container, CREATE)!);
+
+    expect(s.calls).toHaveLength(1);
+    expect(s.calls[0].secrets).toEqual({ BOT_TOKEN: '123:AAA' });
+  });
+
+  it('имя без значения объясняется на месте, и ничего не уезжает', () => {
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+    fillBot(container);
+    click(byButton(container, ADD_KEY)!);
+    type(byLabel(container, KEY_NAME)!, 'OZON_API_KEY');
+
+    click(byButton(container, CREATE)!);
+
+    expect(s.fn).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain(tRu('products.new.errors.secretValueRequired'));
+  });
+
+  it.each([
+    ['ANTHROPIC_BASE_URL', 'products.new.errors.secretNameReserved'],
+    ['https_proxy', 'products.new.errors.secretNameReserved'],
+    ['PORT', 'products.new.errors.secretNameReserved'],
+    ['BOT_TOKEN', 'products.new.errors.secretNameBotToken'],
+    ['1KEY', 'products.new.errors.secretNameInvalid'],
+  ])('имя %s не уезжает, и видно почему', (keyName, message) => {
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+    fillBot(container);
+    click(byButton(container, ADD_KEY)!);
+    type(byLabel(container, KEY_NAME)!, keyName);
+    type(byLabel(container, KEY_VALUE)!, 'v');
+
+    click(byButton(container, CREATE)!);
+
+    expect(s.fn).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain(tRu(message));
+  });
+
+  it('два ключа с одним именем — отказ, а не молча перебитый первый', () => {
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+    fillBot(container);
+    click(byButton(container, ADD_KEY)!);
+    click(byButton(container, ADD_KEY)!);
+    const [n1, n2] = nameInputs(container);
+    const [v1, v2] = valueInputs(container);
+    type(n1, 'A_KEY');
+    type(v1, 'a');
+    type(n2, 'A_KEY');
+    type(v2, 'b');
+
+    click(byButton(container, CREATE)!);
+
+    expect(s.fn).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain(tRu('products.new.errors.secretNameDuplicate'));
+  });
+
+  it('«Убрать» снимает строку, и её ключ не уезжает', async () => {
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+    fillBot(container);
+    click(byButton(container, ADD_KEY)!);
+    click(byButton(container, ADD_KEY)!);
+    const [n1, n2] = nameInputs(container);
+    const [v1, v2] = valueInputs(container);
+    type(n1, 'A_KEY');
+    type(v1, 'a');
+    type(n2, 'B_KEY');
+    type(v2, 'b');
+
+    click(byButton(container, /Убрать/)!);
+    await clickAsync(byButton(container, CREATE)!);
+
+    expect(s.calls[0].secrets).toEqual({ BOT_TOKEN: '123:AAA', B_KEY: 'b' });
+  });
+
+  it('после удачного создания ключи стираются с формы', async () => {
+    const s = submitter();
+    const { container } = mount(<NewProductForm kind="bot" onSubmit={s.fn} />);
+    fillBot(container);
+    click(byButton(container, ADD_KEY)!);
+    type(byLabel(container, KEY_NAME)!, 'A_KEY');
+    type(byLabel(container, KEY_VALUE)!, 'a');
+
+    await clickAsync(byButton(container, CREATE)!);
+
+    expect(valueInputs(container)).toHaveLength(0);
+  });
+});
