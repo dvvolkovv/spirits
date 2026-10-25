@@ -26,7 +26,7 @@ describe('политика: анализ обезличенных текстов
     // «октября» — только у политики: оферта датирована августом.
     const ruDays = [...src.matchAll(/Редакция от (\d+) октября 2026 г\./g)].map((m) => m[1]);
     const enDays = [...src.matchAll(/Last updated: (\d+) October 2026/g)].map((m) => m[1]);
-    expect(ruDays).toEqual(['24']);
+    expect(ruDays).toEqual(['25']);
     expect(enDays).toEqual(ruDays);
   });
 });

@@ -508,7 +508,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentRu = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Политика конфиденциальности</h2>
-      <p className="text-sm text-gray-500">Редакция от 24 октября 2026 г.</p>
+      <p className="text-sm text-gray-500">Редакция от 25 октября 2026 г.</p>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
         <h3 className="text-lg font-semibold text-gray-900">Оператор персональных данных</h3>
@@ -795,7 +795,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
   const privacyContentEn = (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
-      <p className="text-sm text-gray-500">Last updated: 24 October 2026</p>
+      <p className="text-sm text-gray-500">Last updated: 25 October 2026</p>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
         This English version is a courtesy translation. In case of any discrepancy, the Russian-language version is governing and legally binding under the laws of the Russian Federation.
