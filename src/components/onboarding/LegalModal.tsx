@@ -620,8 +620,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           пользователем), интересы, ценности, убеждения, желания, намерения и навыки
           из профиля пользователя, содержание переписки и история диалога
           с AI-ассистентом, файлы, которые пользователь прикрепляет к сообщениям
-          (документы, изображения, аудио), а также аудиопоток при использовании
-          голосового ввода.
+          (документы, изображения, аудио), аудиопоток при использовании
+          голосового ввода, аудио голосовых звонков и встреч с AI-ассистентами,
+          а также голосовые сообщения в Telegram-ботах Linkeon.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Не передаются:</strong> номер телефона пользователя и идентификатор
@@ -646,8 +647,10 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           Распознавание речи при голосовом вводе и озвучивание текста на русском языке
           (Яндекс SpeechKit) выполняются на территории Российской Федерации. Аудиообразец
           голоса при использовании функции озвучивания видео собственным голосом передаётся
-          за пределы Российской Федерации (Google, ElevenLabs). Трансграничная передача
-          осуществляется на основании согласия пользователя.
+          за пределы Российской Федерации (Google, ElevenLabs). Аудио голосовых звонков
+          и встреч и голосовые сообщения в Telegram обрабатываются за пределами Российской
+          Федерации (OpenAI). Трансграничная передача осуществляется на основании согласия
+          пользователя.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>ВАЖНО:</strong> После передачи данных AI-провайдерам Оператор не контролирует
@@ -901,8 +904,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Data transmitted:</strong> first and last name (if provided by the user),
           interests, values, beliefs, desires, intentions and skills from the user's profile,
           the content of the correspondence and the dialogue history with the AI assistant,
-          files the user attaches to messages (documents, images, audio), and the audio
-          stream when voice input is used.
+          files the user attaches to messages (documents, images, audio), the audio
+          stream when voice input is used, the audio of voice calls and meetings with AI
+          assistants, and voice messages in Linkeon's Telegram bots.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>Not transmitted:</strong> the user's phone number and account identifier —
@@ -928,8 +932,9 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           recognition for voice input and text-to-speech in Russian (Yandex SpeechKit) are
           performed within the Russian Federation. The voice sample used for voicing videos
           with the user's own voice is transferred outside the Russian Federation (Google,
-          ElevenLabs). The cross-border transfer is carried out on the basis of the user's
-          consent.
+          ElevenLabs). Audio of voice calls and meetings and voice messages in Telegram are
+          processed outside the Russian Federation (OpenAI). The cross-border transfer is
+          carried out on the basis of the user's consent.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>IMPORTANT:</strong> After data is transmitted to AI vendors, the Operator
