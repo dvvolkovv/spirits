@@ -587,16 +587,20 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Используемые сервисы:</strong>
         </p>
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
-          <li><strong>OpenAI</strong> (ChatGPT, GPT-4) — обработка текстовых запросов</li>
-          <li><strong>Anthropic</strong> (Claude) — обработка текстовых запросов</li>
+          <li><strong>Anthropic</strong> (Claude) — формирование ответов AI-ассистентов
+            и AI-поддержки, поиск людей и анализ совместимости</li>
+          <li><strong>OpenAI</strong> — голосовые звонки и встречи с AI-ассистентами
+            (голосовая модель реального времени), озвучивание текста на языках, кроме
+            русского, распознавание и озвучивание голосовых сообщений в Telegram, смысловой
+            поиск, а также вспомогательная обработка текстов (улучшение надиктованного текста,
+            разбор событий календаря, подсказки виджета)</li>
           <li><strong>Google</strong> — Gemini (обработка текста и мультимодальных данных),
-            Imagen 4.0 Ultra и Nano Banana (генерация и редактирование изображений),
-            Veo (генерация видео)</li>
-          <li><strong>DeepSeek</strong> — формирование приветственных сообщений и части
-            ответов в чате</li>
+            Nano Banana (генерация и редактирование изображений),
+            Gemini Omni (генерация видео)</li>
           <li><strong>ElevenLabs</strong> — создание голосовой модели по загруженному
             пользователем образцу голоса и озвучивание видео этим голосом</li>
-          <li><strong>Яндекс SpeechKit</strong> — распознавание речи при голосовом вводе</li>
+          <li><strong>Яндекс SpeechKit</strong> — распознавание речи при голосовом вводе
+            и озвучивание текста на русском языке</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
           <strong>Клонирование голоса.</strong> В разделе создания видео пользователь
@@ -639,22 +643,11 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           AI-провайдеры, кроме Яндекс SpeechKit, находятся за пределами Российской
           Федерации, поэтому передача им данных является трансграничной в значении
           статьи 12 Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных».
-          Распознавание речи при голосовом вводе (Яндекс SpeechKit) выполняется на
-          территории Российской Федерации. Аудиообразец голоса при использовании функции
-          озвучивания видео собственным голосом передаётся за пределы Российской
-          Федерации (Google, ElevenLabs).
-        </p>
-        <p className="text-gray-700 leading-relaxed">
-          <strong>Передача данных в Китайскую Народную Республику.</strong> Данные
-          передаются в том числе на территорию <strong>КНР</strong>: в сервис
-          <strong> DeepSeek</strong> (приветственные сообщения и часть ответов в чате).
-          КНР не является
-          участником Конвенции Совета Европы о защите физических лиц при автоматизированной
-          обработке персональных данных и не относится к государствам, обеспечивающим
-          адекватную защиту прав субъектов персональных данных. Такая передача
-          осуществляется на основании согласия пользователя в соответствии с частью 4
-          статьи 12 указанного закона. Пользователь вправе не использовать функции чата,
-          если не согласен с передачей своих данных в КНР.
+          Распознавание речи при голосовом вводе и озвучивание текста на русском языке
+          (Яндекс SpeechKit) выполняются на территории Российской Федерации. Аудиообразец
+          голоса при использовании функции озвучивания видео собственным голосом передаётся
+          за пределы Российской Федерации (Google, ElevenLabs). Трансграничная передача
+          осуществляется на основании согласия пользователя.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>ВАЖНО:</strong> После передачи данных AI-провайдерам Оператор не контролирует
@@ -877,16 +870,20 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <strong>Services used:</strong>
         </p>
         <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
-          <li><strong>OpenAI</strong> (ChatGPT, GPT-4) — processing of text requests</li>
-          <li><strong>Anthropic</strong> (Claude) — processing of text requests</li>
+          <li><strong>Anthropic</strong> (Claude) — generation of responses by AI assistants
+            and AI support, people search and compatibility analysis</li>
+          <li><strong>OpenAI</strong> — voice calls and meetings with AI assistants (a
+            real-time voice model), text-to-speech in languages other than Russian,
+            recognition and voicing of voice messages in Telegram, semantic search, and
+            auxiliary text processing (refining dictated text, parsing calendar events,
+            widget suggestions)</li>
           <li><strong>Google</strong> — Gemini (processing of text and multimodal data),
-            Imagen 4.0 Ultra and Nano Banana (image generation and editing),
-            Veo (video generation)</li>
-          <li><strong>DeepSeek</strong> — generation of welcome messages and part of the
-            chat responses</li>
+            Nano Banana (image generation and editing),
+            Gemini Omni (video generation)</li>
           <li><strong>ElevenLabs</strong> — creation of a voice model from the voice sample
             uploaded by the user, and voicing of videos with that voice</li>
-          <li><strong>Yandex SpeechKit</strong> — speech recognition for voice input</li>
+          <li><strong>Yandex SpeechKit</strong> — speech recognition for voice input and
+            text-to-speech in Russian</li>
         </ul>
         <p className="text-gray-700 leading-relaxed">
           <strong>Voice cloning.</strong> In the video creation section the user may enable
@@ -928,21 +925,11 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           except Yandex SpeechKit, are located outside the Russian Federation, and therefore
           the transfer of data to them constitutes a cross-border transfer within the meaning
           of Article 12 of Federal Law No. 152-FZ of 27 July 2006 "On Personal Data". Speech
-          recognition for voice input (Yandex SpeechKit) is performed within the Russian
-          Federation. The voice sample used for voicing videos with the user's own voice is
-          transferred outside the Russian Federation (Google, ElevenLabs).
-        </p>
-        <p className="text-gray-700 leading-relaxed">
-          <strong>Transfer of data to the People's Republic of China.</strong> Data is
-          transferred, among other destinations, to the territory of the
-          <strong> PRC</strong>: to <strong>DeepSeek</strong> (welcome messages and part of
-          the chat responses).
-          The PRC is not a party to the Council of Europe Convention for the Protection of
-          Individuals with regard to Automatic Processing of Personal Data and is not among
-          the states providing adequate protection of the rights of personal data subjects.
-          Such transfer is carried out on the basis of the user's consent pursuant to
-          Part 4 of Article 12 of that law. A user who does not agree to the transfer of
-          their data to the PRC may refrain from using the chat features.
+          recognition for voice input and text-to-speech in Russian (Yandex SpeechKit) are
+          performed within the Russian Federation. The voice sample used for voicing videos
+          with the user's own voice is transferred outside the Russian Federation (Google,
+          ElevenLabs). The cross-border transfer is carried out on the basis of the user's
+          consent.
         </p>
         <p className="text-gray-700 leading-relaxed">
           <strong>IMPORTANT:</strong> After data is transmitted to AI vendors, the Operator
