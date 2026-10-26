@@ -1478,7 +1478,7 @@
       },
       {
         "q": "What is «Studio»?",
-        "a": "«Studio» has three tabs:\n\n• «Assistants» — your own assistants with their own role and instructions.\n• «Telegram bots» — a bot with an assistant for your Telegram group; you'll need to link your Telegram in your profile.\n• «Products» — your website or Telegram bot: domain, server and updates are on Linkeon, and you ask for changes in plain words. The first month is free, then rent is paid in tokens; up to two products per account."
+        "a": "«Studio» has three tabs:\n\n• «Assistants» — your own assistants with their own role and instructions.\n• «Telegram bots» — a bot with an assistant for your Telegram group; you'll need to link your Telegram in your profile.\n• «Products» — your website or Telegram bot: domain, server and updates are on Linkeon, and you ask for changes in plain words. The first two products get the first month free (deleted ones count too), then rent is paid in tokens; up to two products per account at a time."
       },
       {
         "q": "How do I connect a calendar and notifications?",
@@ -2209,7 +2209,7 @@
     "subtitle": "Sites and bots that Linkeon hosts and maintains",
     "empty": "No products yet",
     "emptyWhat": "A product is your own website or Telegram bot: the domain, the server and the updates are on us. You describe the change in plain words — the assistant makes it and ships it right away.",
-    "emptyPrice": "The first month is free, nothing to pay up front. After that — {{amount}} tokens per month per product.",
+    "emptyPrice": "The first two products get the first month free, nothing to pay up front (deleted ones count too). After that — {{amount}} tokens per month per product.",
     "status": {
       "running": "Running",
       "degraded": "No connection to server",

@@ -1475,7 +1475,7 @@
       },
       {
         "q": "O que é o «Estúdio»?",
-        "a": "O «Estúdio» tem três separadores:\n\n• «Assistentes» — assistentes próprios, com o seu papel e as suas instruções.\n• «Bots do Telegram» — um bot com assistente para o seu grupo do Telegram; terá de associar o seu Telegram no perfil.\n• «Produtos» — o seu site ou bot do Telegram: o domínio, o servidor e as atualizações ficam a cargo do Linkeon, e as alterações pede-as por palavras suas. O primeiro mês é gratuito; depois, o aluguer paga-se em tokens. Até dois produtos por conta."
+        "a": "O «Estúdio» tem três separadores:\n\n• «Assistentes» — assistentes próprios, com o seu papel e as suas instruções.\n• «Bots do Telegram» — um bot com assistente para o seu grupo do Telegram; terá de associar o seu Telegram no perfil.\n• «Produtos» — o seu site ou bot do Telegram: o domínio, o servidor e as atualizações ficam a cargo do Linkeon, e as alterações pede-as por palavras suas. Os dois primeiros produtos têm o primeiro mês gratuito (os eliminados também contam); depois, o aluguer paga-se em tokens. Até dois produtos por conta ao mesmo tempo."
       },
       {
         "q": "Como ligo um calendário e as notificações?",
@@ -2212,7 +2212,7 @@
     "subtitle": "Sites e bots que a Linkeon hospeda e mantém",
     "empty": "Ainda não há produtos",
     "emptyWhat": "Um produto é o seu site ou o seu bot do Telegram: o domínio, o servidor e as atualizações ficam por nossa conta. Basta descrever a alteração por palavras simples — o assistente faz a mudança e publica-a de imediato.",
-    "emptyPrice": "O primeiro mês é grátis, não é preciso pagar nada agora. Depois, {{amount}} tokens por mês por produto.",
+    "emptyPrice": "Os dois primeiros produtos têm o primeiro mês grátis, não é preciso pagar nada agora (os eliminados também contam). Depois, {{amount}} tokens por mês por produto.",
     "status": {
       "running": "Em funcionamento",
       "degraded": "Sem ligação ao servidor",

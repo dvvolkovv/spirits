@@ -1119,7 +1119,7 @@
       },
       {
         "q": "Was ist „Studio“?",
-        "a": "„Studio“ hat drei Tabs:\n\n• „Assistenten“ – eigene Assistenten mit eigener Rolle und eigenen Anweisungen.\n• „Telegram-Bots“ – ein Bot mit Assistent für deine Telegram-Gruppe; dafür verknüpfst du dein Telegram im Profil.\n• „Produkte“ – deine Website oder dein Telegram-Bot: Domain, Server und Updates übernimmt Linkeon, Änderungen wünschst du dir in eigenen Worten. Der erste Monat ist kostenlos, danach wird die Miete in Tokens bezahlt; bis zu zwei Produkte pro Konto."
+        "a": "„Studio“ hat drei Tabs:\n\n• „Assistenten“ – eigene Assistenten mit eigener Rolle und eigenen Anweisungen.\n• „Telegram-Bots“ – ein Bot mit Assistent für deine Telegram-Gruppe; dafür verknüpfst du dein Telegram im Profil.\n• „Produkte“ – deine Website oder dein Telegram-Bot: Domain, Server und Updates übernimmt Linkeon, Änderungen wünschst du dir in eigenen Worten. Für die ersten zwei Produkte ist der erste Monat kostenlos (gelöschte zählen mit), danach wird die Miete in Tokens bezahlt; bis zu zwei Produkte gleichzeitig pro Konto."
       },
       {
         "q": "Wie verbinde ich einen Kalender und Benachrichtigungen?",
@@ -1850,7 +1850,7 @@
     "subtitle": "Websites und Bots, die Linkeon hostet und weiterentwickelt",
     "empty": "Noch keine Produkte",
     "emptyWhat": "Ein Produkt ist deine eigene Website oder dein Telegram-Bot: Domain, Server und Updates übernehmen wir. Du beschreibst die Änderung in normalen Worten — der Assistent setzt sie um und veröffentlicht sie sofort.",
-    "emptyPrice": "Der erste Monat ist kostenlos, im Voraus zahlst du nichts. Danach {{amount}} Token pro Monat und Produkt.",
+    "emptyPrice": "Für die ersten zwei Produkte ist der erste Monat kostenlos, im Voraus zahlst du nichts (gelöschte zählen mit). Danach {{amount}} Token pro Monat und Produkt.",
     "status": {
       "running": "Läuft",
       "degraded": "Keine Verbindung zum Server",
