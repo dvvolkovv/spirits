@@ -3142,7 +3142,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {message.type === 'assistant' && !message.isStreaming && message.content && (
                   <button
                     type="button"
-                    onClick={() => handleCopyMessage(parseCustomMarkdown(askBlocksToPlainText(stripCalendarProposalMarkers(stripVideoJobMarkers(stripProductActionBlocks(message.content))))).content || message.content, message.id)}
+                    onClick={() => {
+                      // Запасной вариант, когда разобранный текст пуст (сообщение —
+                      // только карточка продукта), — тоже БЕЗ блока ```product-action```:
+                      // откат к исходному message.content копировал бы сырой JSON
+                      // блока, который человек никогда не видел на экране (находка
+                      // ревью, F4).
+                      const stripped = askBlocksToPlainText(stripCalendarProposalMarkers(stripVideoJobMarkers(stripProductActionBlocks(message.content))));
+                      handleCopyMessage(parseCustomMarkdown(stripped).content || stripped, message.id);
+                    }}
                     className="inline-flex items-center gap-1 text-gray-400 hover:text-forest-600 transition-colors"
                     title={t('chat.copy_message', 'Скопировать ответ')}
                   >

@@ -283,3 +283,36 @@ describe('parseCustomMarkdown: блоки уточняющих вопросов'
     expect(asks.get('0')).toEqual({ kind: 'pending' });
   });
 });
+
+/**
+ * Карточка продукта разбирается раньше всего остального (extractProductActions
+ * вызывается первой в parseCustomMarkdown) — сам разбор блока покрыт отдельно
+ * в productActionBlock.test.ts, здесь проверяется ровно СВЯЗКА: что
+ * parseCustomMarkdown отдаёт наружу маркер и карту id ровно так, как их читает
+ * ChatInterface (`__PACTION_n__` + productActions.get(n)). Полноценно
+ * смонтировать ChatInterface в тесте нельзя (см. interactivityWiring.test.ts —
+ * тот же компонент проверяется по тексту исходника, а не рендером), поэтому
+ * это и есть тот «render-level»-тест для карточек продукта, который возможен:
+ * последний шаг (сам маркер → <ProductActionCard>) — switch внутри JSX
+ * ChatInterface, не отдельная функция.
+ */
+describe('parseCustomMarkdown: карточка действия продукта', () => {
+  const ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const block = (id = ID) => '```product-action\n{"id":"' + id + '"}\n```';
+
+  it('блок → маркер __PACTION_0__, id — в карте productActions', () => {
+    const { content, productActions } = parseCustomMarkdown(`Готово.\n\n${block()}`);
+    expect(content).toBe('Готово.\n\n__PACTION_0__');
+    expect(productActions.get('0')).toBe(ID);
+  });
+
+  it('разбирается раньше ссылок и картинок — JSON внутри блока не трогают другие регулярки', () => {
+    const png = 'https://r.linkeon.io/files/s/card.png';
+    const { content, productActions, images } = parseCustomMarkdown(
+      `Вот карточка:\n\n${block()}\n\nИ картинка: ${png}`,
+    );
+    expect(content).toContain('__PACTION_0__');
+    expect(productActions.get('0')).toBe(ID);
+    expect(images.size).toBe(1);
+  });
+});
