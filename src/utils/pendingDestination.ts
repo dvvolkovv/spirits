@@ -12,13 +12,13 @@
  * открытым редиректом. Хранилище и срок — как у pendingAssistant:
  * localStorage (ссылку из письма часто открывают в новой вкладке), час.
  */
+import { isUuid } from './uuid';
+
 const KEY = 'pending_destination';
 const TTL_MS = 60 * 60 * 1000;
 
 /** Разрешённые разделы: путь и обязательная вкладка. */
 const ALLOWED: { path: string; tab: string }[] = [{ path: '/studio', tab: 'products' }];
-
-const ACTION_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Stored {
   value: string;
@@ -34,7 +34,7 @@ export function allowedDestination(pathname: string, search: string): string | n
   // Карточка действия продукта: ссылка из клиента без карточек ведёт сюда, и
   // вход не должен её терять. Только uuid — остальное по-прежнему отбрасывается.
   const action = q.get('action');
-  return `${hit.path}?tab=${hit.tab}` + (action && ACTION_RE.test(action) ? `&action=${action}` : '');
+  return `${hit.path}?tab=${hit.tab}` + (isUuid(action) ? `&action=${action}` : '');
 }
 
 /** Стереть запомненное: у человека появилось более новое намерение (utils/loginIntent.ts). */

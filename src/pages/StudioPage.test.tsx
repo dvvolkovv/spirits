@@ -40,8 +40,16 @@ vi.mock('../components/tg-bot/TgBotsListView', () => ({
     </div>
   ),
 }));
+// Счётчик рендеров заменяет счётчик монтирований: в сценариях этого файла
+// ProductsSection либо не трогают вовсе, либо трогают ровно через remount по
+// key (F1) — лишних ре-рендеров той же самой карточки между ними нет, так что
+// считать можно прямо в теле, не заводя эффект ради «один раз на монтирование».
+let productsRenders = 0;
 vi.mock('../components/products/ProductsSection', () => ({
-  ProductsSection: () => <div>РАЗДЕЛ-ПРОДУКТОВ</div>,
+  ProductsSection: () => {
+    productsRenders += 1;
+    return <div>РАЗДЕЛ-ПРОДУКТОВ</div>;
+  },
 }));
 // Как и ProductsSection выше: без заглушки реальный компонент тянет
 // productActionsApi → apiClient → authService → настоящий i18n/index.ts,
@@ -50,7 +58,13 @@ vi.mock('../components/products/ProductsSection', () => ({
 // файла (кто видит вкладку и что под ней нарисовано) карточки ожидания
 // отношения не имеют.
 vi.mock('../components/products/PendingProductActions', () => ({
-  PendingProductActions: () => <div>ОЖИДАЮЩИЕ-ПОДТВЕРЖДЕНИЯ</div>,
+  PendingProductActions: ({ focusId, onResolved }: any) => (
+    <div>
+      ОЖИДАЮЩИЕ-ПОДТВЕРЖДЕНИЯ
+      <span data-testid="focus-id">{focusId ?? 'null'}</span>
+      <button onClick={() => onResolved?.({ id: 'a1' })}>resolve-action</button>
+    </div>
+  ),
 }));
 
 /**
@@ -78,6 +92,7 @@ afterEach(() => {
   isAdmin = false;
   search = '';
   setParams.mockReset();
+  productsRenders = 0;
 });
 
 describe('вкладка «Продукты» в Студии', () => {
@@ -156,5 +171,38 @@ describe('переход из вкладки ботов в «Продукты»'
     expect(next.get('utm_content')).toBe('sites');
     expect(next.get('lang')).toBe('ru');
     expect(opts).toEqual({ replace: true });
+  });
+});
+
+// Находка ревью (F2): один общий разбор uuid вместо своей копии регулярки —
+// поведение не должно поменяться, значит нужен и отрицательный, и
+// положительный случай одним и тем же способом.
+describe('параметр ?action= на вкладке «Продукты»', () => {
+  const focusId = (container: HTMLElement) => container.querySelector('[data-testid="focus-id"]')?.textContent;
+
+  it('мусор вместо uuid — focusId пуст', () => {
+    search = 'tab=products&action=не-uuid';
+    const { container } = mount(<StudioPage />);
+    expect(focusId(container)).toBe('null');
+  });
+
+  it('настоящий uuid — доходит до PendingProductActions как есть', () => {
+    search = 'tab=products&action=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+    const { container } = mount(<StudioPage />);
+    expect(focusId(container)).toBe('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
+  });
+});
+
+// Находка ревью (F1): карточка под списком решила ожидающее действие —
+// список продуктов должен перечитаться сам, без обновления страницы.
+describe('карточка ожидания решила действие на вкладке «Продукты»', () => {
+  it('ProductsSection перемонтируется (key) по onResolved из PendingProductActions', () => {
+    search = 'tab=products';
+    const { container } = mount(<StudioPage />);
+    expect(productsRenders).toBe(1);
+
+    click(byButton(container, /resolve-action/)!);
+
+    expect(productsRenders).toBe(2);
   });
 });

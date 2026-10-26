@@ -1,4 +1,4 @@
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isUuid } from '../utils/uuid';
 
 /**
  * Кнопка бота открывает мини-приложение адресом `/tma/?pa=<id>` (строка
@@ -11,7 +11,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 function extract(raw: string): string | null {
   const params = new URLSearchParams(String(raw ?? '').replace(/^[?#]/, ''));
   const id = params.get('pa');
-  return id && UUID_RE.test(id) ? id : null;
+  return isUuid(id) ? id : null;
 }
 
 /** Тонкая обёртка над extract — оставлена отдельно для прямых проверок фрагмента. */

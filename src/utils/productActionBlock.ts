@@ -1,4 +1,5 @@
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isUuid } from './uuid';
+
 // Блок, который сервер дописывает к ответу ассистента (product-action-tail.ts):
 // ```product-action\n{"id":"…"}\n```
 //
@@ -33,7 +34,7 @@ export function extractProductActions(content: string): { content: string; actio
     } catch {
       id = null;
     }
-    if (typeof id !== 'string' || !UUID_RE.test(id)) return lead;
+    if (!isUuid(id)) return lead;
     if (seen.has(id)) return lead;
     seen.add(id);
     const key = String(n++);
