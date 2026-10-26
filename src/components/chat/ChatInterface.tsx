@@ -56,6 +56,7 @@ import {
 import { balanceLevel } from '../../config/balanceThresholds';
 import { startActivity, addStep, markTextStarted, finishActivity, type TurnActivity, type ActivitySummary } from './turnActivity';
 import { LiveActivity, ActivitySummaryView } from './ActivitySteps';
+import { ProductActionCard } from '../products/ProductActionCard';
 import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
 import { stripProductActionBlocks } from '../../utils/productActionBlock';
@@ -166,7 +167,7 @@ const StreamingMessage = React.memo(({
   /** Шаги работы идущего хода. null — показываем прежние три точки. */
   activity?: TurnActivity | null;
 }) => {
-  const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks } = parseCustomMarkdown(content, { streaming: true });
+  const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks, productActions } = parseCustomMarkdown(content, { streaming: true });
 
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
@@ -179,8 +180,9 @@ const StreamingMessage = React.memo(({
     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
     const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
     const askMatches = [...parsedContent.matchAll(/__ASK_(\d+)__/g)];
+    const paMatches = [...parsedContent.matchAll(/__PACTION_(\d+)__/g)];
 
-    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...askMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...askMatches, ...paMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
     allMatches.forEach((match, idx) => {
       const matchIndex = match.index || 0;
@@ -265,6 +267,11 @@ const StreamingMessage = React.memo(({
               onJoined={onJoinMeeting}
             />,
           );
+        }
+      } else if (match[0].startsWith('__PACTION_')) {
+        const paId = productActions.get(match[1]);
+        if (paId) {
+          parts.push(<ProductActionCard key={`pa-${paId}`} actionId={paId} via="chat" />);
         }
       } else if (match[0].startsWith('__ASK_')) {
         const block = asks.get(match[1]);
@@ -1412,7 +1419,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         tz: clientTimeZone(),
         // Клиент рисует шаги работы и карточки вопросов — бэк включает их
         // только по этому полю, мобилка его не шлёт.
-        ui: { activity: true, ask: true },
+        ui: { activity: true, ask: true, cards: true },
         ...(freshTs ? { fresh: true, freshTs } : {})
       }, {
         signal: controller.signal
@@ -2368,7 +2375,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
       // Шаги работы и карточки — как у текстового хода. multipart везёт
       // объект строкой, бэк это учитывает (client-ui.ts).
-      formData.append('ui', JSON.stringify({ activity: true, ask: true }));
+      formData.append('ui', JSON.stringify({ activity: true, ask: true, cards: true }));
 
       const response = await apiClient.post('/webhook/agent/upload-and-chat', formData);
 
@@ -2960,7 +2967,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   {message.activity && <ActivitySummaryView summary={message.activity} />}
                   {(() => {
                     const contentForRender = stripCalendarProposalMarkers(stripVideoJobMarkers(message.content));
-                    const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks } = parseCustomMarkdown(contentForRender);
+                    const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks, productActions } = parseCustomMarkdown(contentForRender);
                     // Состояние карточки вопроса: ответили ли уже (следующее
                     // сообщение — пользователя) и можно ли отвечать сейчас.
                     const nextMsg = messages[mi + 1];
@@ -2978,8 +2985,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
                     const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
                     const askMatches = [...parsedContent.matchAll(/__ASK_(\d+)__/g)];
+                    const paMatches = [...parsedContent.matchAll(/__PACTION_(\d+)__/g)];
 
-                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...askMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
+                    const allMatches = [...buttonMatches, ...linkMatches, ...videoMatches, ...imageMatches, ...audioClipMatches, ...voiceCallMatches, ...meetingMatches, ...askMatches, ...paMatches].sort((a, b) => (a.index || 0) - (b.index || 0));
 
                     allMatches.forEach((match, idx) => {
                       const matchIndex = match.index || 0;
@@ -3064,6 +3072,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                               onJoined={setMeetingCallId}
                             />,
                           );
+                        }
+                      } else if (match[0].startsWith('__PACTION_')) {
+                        const paId = productActions.get(match[1]);
+                        if (paId) {
+                          parts.push(<ProductActionCard key={`pa-${paId}`} actionId={paId} via="chat" />);
                         }
                       } else if (match[0].startsWith('__ASK_')) {
                         const block = asks.get(match[1]);
