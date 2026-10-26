@@ -5,6 +5,7 @@ import { Bot, Send, Server } from 'lucide-react';
 import { CustomAgentsListView } from '../components/custom-agents/CustomAgentsListView';
 import { TgBotsListView } from '../components/tg-bot/TgBotsListView';
 import { ProductsSection } from '../components/products/ProductsSection';
+import { PendingProductActions } from '../components/products/PendingProductActions';
 
 type Tab = 'agents' | 'bots' | 'products';
 
@@ -24,6 +25,15 @@ const StudioPage: React.FC = () => {
   // раз тем, кто предел уже выбрал.
   const raw = params.get('tab');
   const tab: Tab = raw === 'bots' ? 'bots' : raw === 'products' ? 'products' : 'agents';
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const rawAction = params.get('action');
+  const actionId = rawAction && UUID_RE.test(rawAction) ? rawAction : null;
+  const closeAction = () => {
+    const p = new URLSearchParams(params);
+    p.delete('action');
+    setParams(p, { replace: true });
+  };
 
   const setTab = (next: Tab) => {
     const p = new URLSearchParams(params);
@@ -85,6 +95,7 @@ const StudioPage: React.FC = () => {
 
       {tab === 'agents' && <CustomAgentsListView embedded />}
       {tab === 'bots' && <TgBotsListView embedded onOpenProducts={() => setTab('products')} />}
+      {tab === 'products' && <PendingProductActions focusId={actionId} onCloseFocus={closeAction} />}
       {tab === 'products' && <ProductsSection embedded />}
     </div>
   );

@@ -18,6 +18,8 @@ const TTL_MS = 60 * 60 * 1000;
 /** Разрешённые разделы: путь и обязательная вкладка. */
 const ALLOWED: { path: string; tab: string }[] = [{ path: '/studio', tab: 'products' }];
 
+const ACTION_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface Stored {
   value: string;
   expires: number;
@@ -25,9 +27,14 @@ interface Stored {
 
 /** Канонический адрес из белого списка или null. Лишние параметры отбрасываются. */
 export function allowedDestination(pathname: string, search: string): string | null {
-  const tab = new URLSearchParams(search).get('tab');
+  const q = new URLSearchParams(search);
+  const tab = q.get('tab');
   const hit = ALLOWED.find((a) => a.path === pathname && a.tab === tab);
-  return hit ? `${hit.path}?tab=${hit.tab}` : null;
+  if (!hit) return null;
+  // Карточка действия продукта: ссылка из клиента без карточек ведёт сюда, и
+  // вход не должен её терять. Только uuid — остальное по-прежнему отбрасывается.
+  const action = q.get('action');
+  return `${hit.path}?tab=${hit.tab}` + (action && ACTION_RE.test(action) ? `&action=${action}` : '');
 }
 
 /** Стереть запомненное: у человека появилось более новое намерение (utils/loginIntent.ts). */
