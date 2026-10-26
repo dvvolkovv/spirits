@@ -32,7 +32,15 @@ async function call(fn: () => Promise<Response>): Promise<ProductActionView | Pr
     return { ok: false, status: 0, message: '' };
   }
   if (!res.ok) return problem(res);
-  return (await res.json()) as ProductActionView;
+  // 2xx без годного JSON-тела (SPA-фолбэк этого хостинга отдаёт 200 с HTML на
+  // любой путь — см. такой же разбор в domainCall/productsApi.ts) не должен
+  // уронить вызывающего необработанным исключением из res.json(): без этой
+  // защиты карточка осталась бы в вечном "загрузка" вместо текста отказа.
+  const body = (await res.json().catch(() => null)) as ProductActionView | null;
+  if (!body || typeof body !== 'object' || typeof body.id !== 'string') {
+    return { ok: false, status: res.status, message: '' };
+  }
+  return body;
 }
 
 export const productActionsApi = {
