@@ -2005,6 +2005,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // При авто-старте (шорткат «Голосом») не пугаем алертом — на Android без
         // жеста-активации mic может не стартовать; юзер просто тапнет микрофон.
         if (msg === 'mic_denied') { if (!auto) alert(t('chat.mic_access_denied')); }
+        // Сервер слушает на языке профиля; для языка без распознавания (китайский —
+        // у SpeechKit его нет) стрим не открывается, и молча гасший микрофон
+        // выглядел бы поломкой.
+        else if (msg === 'lang_unsupported') { if (!auto) alert(t('chat.voice_lang_unsupported')); }
         else if (msg !== 'ws_error' && msg !== 'no_auth') console.warn('voice:', msg);
       },
       onClose: () => { setIsRecording(false); },
