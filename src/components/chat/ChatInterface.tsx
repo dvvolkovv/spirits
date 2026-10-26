@@ -3129,7 +3129,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {message.type === 'assistant' && !message.isStreaming && message.content && (
                   <button
                     type="button"
-                    onClick={() => handleCopyMessage(parseCustomMarkdown(askBlocksToPlainText(stripProductActionBlocks(stripCalendarProposalMarkers(stripVideoJobMarkers(message.content))))).content || message.content, message.id)}
+                    onClick={() => handleCopyMessage(parseCustomMarkdown(askBlocksToPlainText(stripCalendarProposalMarkers(stripVideoJobMarkers(stripProductActionBlocks(message.content))))).content || message.content, message.id)}
                     className="inline-flex items-center gap-1 text-gray-400 hover:text-forest-600 transition-colors"
                     title={t('chat.copy_message', 'Скопировать ответ')}
                   >
