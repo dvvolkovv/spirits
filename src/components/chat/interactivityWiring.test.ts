@@ -24,7 +24,7 @@ describe('связка шагов работы', () => {
   const upload = () => between('const handleFileUpload = async', 'const handleSelectAssistant = async');
 
   it('текстовый ход просит у бэка шаги и карточки', () => {
-    expect(send()).toContain('ui: { activity: true, ask: true }');
+    expect(send()).toContain('ui: { activity: true, ask: true, cards: true }');
   });
 
   it('цикл стрима принимает шаги и отмечает начало текста', () => {
@@ -38,13 +38,18 @@ describe('связка шагов работы', () => {
   });
 
   it('загрузка файла тоже просит шаги и принимает их', () => {
-    expect(upload()).toContain("formData.append('ui', JSON.stringify({ activity: true, ask: true }))");
+    expect(upload()).toContain("formData.append('ui', JSON.stringify({ activity: true, ask: true, cards: true }))");
     expect(upload()).toContain("event.type === 'activity'");
     expect(upload()).toContain('activity: finishActivity(');
   });
 
   it('идущий ход передаёт шаги в StreamingMessage', () => {
     expect(SRC).toContain('activity={streamActivity}');
+  });
+
+  it('карточки продуктов рисуются в обоих отрисовщиках, а копирование их вырезает', () => {
+    expect(SRC.match(/startsWith\('__PACTION_'\)/g)?.length).toBe(2);
+    expect(SRC).toContain('stripProductActionBlocks(message.content)');
   });
 });
 
