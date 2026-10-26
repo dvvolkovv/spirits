@@ -271,6 +271,7 @@
     "assistant_role_default": "Assistente",
     "voice_not_supported": "A introdução por voz não é suportada no seu navegador",
     "voice_not_supported_title": "Introdução por voz não suportada",
+    "voice_lang_unsupported": "A introdução por voz ainda não reconhece este idioma — escreva a mensagem.",
     "voice_start": "Iniciar a introdução por voz",
     "voice_stop": "Parar a gravação",
     "voice_error": "Erro no reconhecimento de voz: {{error}}",

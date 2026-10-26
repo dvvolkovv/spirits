@@ -269,6 +269,7 @@
     "assistant_role_default": "Assistent",
     "voice_not_supported": "Spracheingabe wird von deinem Browser nicht unterstützt",
     "voice_not_supported_title": "Spracheingabe nicht unterstützt",
+    "voice_lang_unsupported": "Die Spracheingabe versteht diese Sprache noch nicht – tippe deine Nachricht bitte ein.",
     "voice_start": "Spracheingabe starten",
     "voice_stop": "Aufnahme stoppen",
     "voice_error": "Fehler bei der Spracherkennung: {{error}}",

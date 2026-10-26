@@ -269,6 +269,7 @@
     "assistant_role_default": "Assistant",
     "voice_not_supported": "Voice input is not supported in your browser",
     "voice_not_supported_title": "Voice input not supported",
+    "voice_lang_unsupported": "Voice input doesn't understand this language yet — please type your message.",
     "voice_start": "Start voice input",
     "voice_stop": "Stop recording",
     "voice_error": "Speech recognition error: {{error}}",

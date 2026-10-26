@@ -25,6 +25,7 @@ import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { VoiceDictation } from '../../services/voiceDictation';
+import { isDictationLanguageSupported } from '../../services/dictationLanguages';
 import AudioClip from './AudioClip';
 import ChatFilesPanel from './files/ChatFilesPanel';
 import type { ChatFileKind } from './files/chatFiles';
@@ -1981,6 +1982,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return;
     }
 
+    // Китайский интерфейс — отказ до getUserMedia (он в vd.start): сервер для
+    // такого языка распознавание не откроет, а спрашивать микрофон зря незачем.
+    if (!isDictationLanguageSupported(i18n.language)) {
+      if (!auto) alert(t('chat.voice_lang_unsupported'));
+      return;
+    }
+
     // База — то, что уже набрано; диктовка дописывает к ней.
     voiceCommittedRef.current = input ? input.trimEnd() : '';
     const vd = new VoiceDictation();
@@ -2005,6 +2013,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // При авто-старте (шорткат «Голосом») не пугаем алертом — на Android без
         // жеста-активации mic может не стартовать; юзер просто тапнет микрофон.
         if (msg === 'mic_denied') { if (!auto) alert(t('chat.mic_access_denied')); }
+        // Сервер слушает на языке профиля; для языка без распознавания (китайский —
+        // у SpeechKit его нет) стрим не открывается, и молча гасший микрофон
+        // выглядел бы поломкой.
+        else if (msg === 'lang_unsupported') { if (!auto) alert(t('chat.voice_lang_unsupported')); }
         else if (msg !== 'ws_error' && msg !== 'no_auth') console.warn('voice:', msg);
       },
       onClose: () => { setIsRecording(false); },
