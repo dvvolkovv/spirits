@@ -37,6 +37,7 @@ const RoutinesManager = readFileSync(join(__dirname, 'settings', 'RoutinesManage
 const LinkedAccountsView = readFileSync(join(__dirname, 'settings', 'LinkedAccountsView.tsx'), 'utf8');
 const CalendarSourcesCard = readFileSync(join(__dirname, 'settings', 'CalendarSourcesCard.tsx'), 'utf8');
 const ReferralDashboard = readFileSync(join(__dirname, 'profile', 'ReferralDashboard.tsx'), 'utf8');
+const ProductActionCardSrc = readFileSync(join(__dirname, 'products', 'ProductActionCard.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -250,5 +251,16 @@ describe('поля ввода сообщений скрыты от записи 
 
   it('реферальная выплата — номер карты или телефона', () => {
     expect(classesOf(ReferralDashboard, 'referral-withdraw-input', 'input')).toContain('ym-disable-keys');
+  });
+});
+
+describe('карточка действия продукта скрыта от Вебвизора', () => {
+  it('карточка целиком — ym-hide-content', () => {
+    expect(classesOf(ProductActionCardSrc, 'product-action-card', 'div')).toContain('ym-hide-content');
+  });
+
+  it('токен бота и значения ключей — ym-disable-keys', () => {
+    expect(classesOf(ProductActionCardSrc, 'product-action-token', 'input')).toContain('ym-disable-keys');
+    expect(classesOf(ProductActionCardSrc, 'product-action-secret-value', 'input')).toContain('ym-disable-keys');
   });
 });

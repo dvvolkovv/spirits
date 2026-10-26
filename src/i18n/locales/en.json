@@ -1479,7 +1479,7 @@
       },
       {
         "q": "What is «Studio»?",
-        "a": "«Studio» has three tabs:\n\n• «Assistants» — your own assistants with their own role and instructions.\n• «Telegram bots» — a bot with an assistant for your Telegram group; you'll need to link your Telegram in your profile.\n• «Products» — your website or Telegram bot: domain, server and updates are on Linkeon, and you ask for changes in plain words. The first month is free, then rent is paid in tokens; up to two products per account."
+        "a": "«Studio» has three tabs:\n\n• «Assistants» — your own assistants with their own role and instructions.\n• «Telegram bots» — a bot with an assistant for your Telegram group; you'll need to link your Telegram in your profile.\n• «Products» — your website or Telegram bot: domain, server and updates are on Linkeon, and you ask for changes in plain words. The first two products get the first month free (deleted ones count too), then rent is paid in tokens; up to two products per account at a time."
       },
       {
         "q": "How do I connect a calendar and notifications?",
@@ -2210,7 +2210,7 @@
     "subtitle": "Sites and bots that Linkeon hosts and maintains",
     "empty": "No products yet",
     "emptyWhat": "A product is your own website or Telegram bot: the domain, the server and the updates are on us. You describe the change in plain words — the assistant makes it and ships it right away.",
-    "emptyPrice": "The first month is free, nothing to pay up front. After that — {{amount}} tokens per month per product.",
+    "emptyPrice": "The first two products get the first month free, deleted ones count too. After that — {{amount}} tokens per month per product.",
     "status": {
       "running": "Running",
       "degraded": "No connection to server",
@@ -2389,6 +2389,48 @@
         "network": "No connection to the server — please try again.",
         "generic": "That didn't work — please try again."
       }
+    },
+    "action": {
+      "loading": "Loading…",
+      "notFound": "Card not found — you may be signed in to a different account.",
+      "working": "In progress…",
+      "expired": "The confirmation has expired — ask the assistant again.",
+      "cancelled": "Cancelled.",
+      "failed": "That didn't work: {{reason}}",
+      "cancel": "Cancel",
+      "close": "Close",
+      "pendingTitle": "Waiting for your confirmation",
+      "delete": {
+        "title": "Delete “{{name}}”?",
+        "body": "It will be switched off right away. You can restore it until {{date}} — just ask the assistant. The paid period is not refunded.",
+        "confirm": "Delete",
+        "done": "“{{name}}” has been deleted. You can restore it until {{date}}."
+      },
+      "createBot": {
+        "title": "Keys for the bot “{{name}}”",
+        "hint": "The values go straight to the server — neither the assistant nor the chat history can see them.",
+        "token": "Bot token from @BotFather",
+        "extraTitle": "Service keys (if needed)",
+        "keyName": "Key name",
+        "keyValue": "Value",
+        "addKey": "Add key",
+        "removeKey": "Remove",
+        "submit": "Create bot",
+        "submitting": "Creating…",
+        "tokenRequired": "Paste the bot token",
+        "done": "The bot “{{name}}” has been created. It is starting up and will reply in Telegram in a few minutes."
+      },
+      "keys": {
+        "unsupported": "Changing keys is coming later."
+      },
+      "loadFailed": "Couldn't load the card. Please try again.",
+      "retry": "Retry",
+      "tooOften": "Too many attempts in a row — wait a little and try again.",
+      "network": "Couldn't reach the server. Check your connection and try again.",
+      "doneGeneric": "Done.",
+      "notACard": "There is nothing to confirm here — this is a record of an action.",
+      "failedGeneric": "That didn't work — please try again later.",
+      "checkAgain": "Check again"
     }
   },
   "authLink": {

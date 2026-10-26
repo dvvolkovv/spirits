@@ -40,8 +40,41 @@ vi.mock('../components/tg-bot/TgBotsListView', () => ({
     </div>
   ),
 }));
-vi.mock('../components/products/ProductsSection', () => ({
-  ProductsSection: () => <div>РАЗДЕЛ-ПРОДУКТОВ</div>,
+// Счётчик МОНТИРОВАНИЙ, не рендеров. Счётчик рендеров здесь зеленел бы и без
+// key вовсе: onActionResolved меняет состояние СТРАНИЦЫ (productsReloadKey),
+// а любое изменение состояния родителя перерисовывает ProductsSection вторым
+// рендером независимо от того, остался ли key тем же — без key был бы тот же
+// счёт 1 → 2 при том же самом экземпляре компонента, то есть список НЕ
+// перечитался бы. Разницу между «перерисовался» и «пересоздан заново»
+// снаружи видно только по эффекту с пустыми зависимостями: он срабатывает
+// при монтировании нового экземпляра и не срабатывает при обычном ре-рендере
+// того же самого.
+let productsMounts = 0;
+vi.mock('../components/products/ProductsSection', async () => {
+  const { useEffect } = await import('react');
+  return {
+    ProductsSection: () => {
+      useEffect(() => {
+        productsMounts += 1;
+      }, []);
+      return <div>РАЗДЕЛ-ПРОДУКТОВ</div>;
+    },
+  };
+});
+// Как и ProductsSection выше: без заглушки реальный компонент тянет
+// productActionsApi → apiClient → authService → настоящий i18n/index.ts,
+// а там .use(initReactI18next) падает на обрезанном моке react-i18next
+// (в нём нет этого экспорта, только useTranslation). К проверкам этого
+// файла (кто видит вкладку и что под ней нарисовано) карточки ожидания
+// отношения не имеют.
+vi.mock('../components/products/PendingProductActions', () => ({
+  PendingProductActions: ({ focusId, onResolved }: any) => (
+    <div>
+      ОЖИДАЮЩИЕ-ПОДТВЕРЖДЕНИЯ
+      <span data-testid="focus-id">{focusId ?? 'null'}</span>
+      <button onClick={() => onResolved?.({ id: 'a1' })}>resolve-action</button>
+    </div>
+  ),
 }));
 
 /**
@@ -69,6 +102,7 @@ afterEach(() => {
   isAdmin = false;
   search = '';
   setParams.mockReset();
+  productsMounts = 0;
 });
 
 describe('вкладка «Продукты» в Студии', () => {
@@ -147,5 +181,41 @@ describe('переход из вкладки ботов в «Продукты»'
     expect(next.get('utm_content')).toBe('sites');
     expect(next.get('lang')).toBe('ru');
     expect(opts).toEqual({ replace: true });
+  });
+});
+
+// Находка ревью (F2): один общий разбор uuid вместо своей копии регулярки —
+// поведение не должно поменяться, значит нужен и отрицательный, и
+// положительный случай одним и тем же способом.
+describe('параметр ?action= на вкладке «Продукты»', () => {
+  const focusId = (container: HTMLElement) => container.querySelector('[data-testid="focus-id"]')?.textContent;
+
+  it('мусор вместо uuid — focusId пуст', () => {
+    search = 'tab=products&action=не-uuid';
+    const { container } = mount(<StudioPage />);
+    expect(focusId(container)).toBe('null');
+  });
+
+  it('настоящий uuid — доходит до PendingProductActions как есть', () => {
+    search = 'tab=products&action=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+    const { container } = mount(<StudioPage />);
+    expect(focusId(container)).toBe('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee');
+  });
+});
+
+// Находка ревью (F1): карточка под списком решила ожидающее действие —
+// список продуктов должен перечитаться сам, без обновления страницы.
+describe('карточка ожидания решила действие на вкладке «Продукты»', () => {
+  it('ProductsSection перемонтируется (key) по onResolved из PendingProductActions', () => {
+    search = 'tab=products';
+    const { container } = mount(<StudioPage />);
+    expect(productsMounts).toBe(1);
+
+    click(byButton(container, /resolve-action/)!);
+
+    // Именно НОВОЕ монтирование, а не второй рендер того же экземпляра:
+    // мутационная проверка (удалить key в StudioPage.tsx) ловится только
+    // этим счётчиком — счётчик рендеров остался бы 1 → 2 и без key.
+    expect(productsMounts).toBe(2);
   });
 });

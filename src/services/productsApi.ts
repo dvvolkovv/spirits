@@ -271,7 +271,7 @@ export type StreamStart = { ok: true; reader: ReadableStreamDefaultReader<Uint8A
  * `res.json()` на ней бросает. Тогда причина остаётся пустой, а код —
  * настоящий: компонент подставит свою формулировку.
  */
-async function problem(res: Response): Promise<Problem> {
+export async function problem(res: Response): Promise<Problem> {
   let message = '';
   let reason: string | undefined;
   try {

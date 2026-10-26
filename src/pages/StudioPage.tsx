@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Bot, Send, Server } from 'lucide-react';
 import { CustomAgentsListView } from '../components/custom-agents/CustomAgentsListView';
 import { TgBotsListView } from '../components/tg-bot/TgBotsListView';
 import { ProductsSection } from '../components/products/ProductsSection';
+import { PendingProductActions } from '../components/products/PendingProductActions';
+import { isUuid } from '../utils/uuid';
 
 type Tab = 'agents' | 'bots' | 'products';
 
@@ -24,6 +26,23 @@ const StudioPage: React.FC = () => {
   // раз тем, кто предел уже выбрал.
   const raw = params.get('tab');
   const tab: Tab = raw === 'bots' ? 'bots' : raw === 'products' ? 'products' : 'agents';
+
+  const rawAction = params.get('action');
+  const actionId = isUuid(rawAction) ? rawAction : null;
+  const closeAction = () => {
+    const p = new URLSearchParams(params);
+    p.delete('action');
+    setParams(p, { replace: true });
+  };
+
+  // Карточка под списком ниже решила ожидающее действие (удаление доехало до
+  // «готово», новый бот создан) — список продуктов этого не знает сам: у
+  // ProductsSection нет способа перечитать себя снаружи (своего reload оно не
+  // отдаёт — проверено), так что перечитывание — через remount по key.
+  // Полный remount, а не точечный reloadList(): он же откатывает открытый
+  // продукт обратно к списку, если решённое действие было про него.
+  const [productsReloadKey, setProductsReloadKey] = useState(0);
+  const onActionResolved = () => setProductsReloadKey((n) => n + 1);
 
   const setTab = (next: Tab) => {
     const p = new URLSearchParams(params);
@@ -85,7 +104,10 @@ const StudioPage: React.FC = () => {
 
       {tab === 'agents' && <CustomAgentsListView embedded />}
       {tab === 'bots' && <TgBotsListView embedded onOpenProducts={() => setTab('products')} />}
-      {tab === 'products' && <ProductsSection embedded />}
+      {tab === 'products' && (
+        <PendingProductActions focusId={actionId} onCloseFocus={closeAction} onResolved={onActionResolved} />
+      )}
+      {tab === 'products' && <ProductsSection key={productsReloadKey} embedded />}
     </div>
   );
 };

@@ -1120,7 +1120,7 @@
       },
       {
         "q": "Was ist „Studio“?",
-        "a": "„Studio“ hat drei Tabs:\n\n• „Assistenten“ – eigene Assistenten mit eigener Rolle und eigenen Anweisungen.\n• „Telegram-Bots“ – ein Bot mit Assistent für deine Telegram-Gruppe; dafür verknüpfst du dein Telegram im Profil.\n• „Produkte“ – deine Website oder dein Telegram-Bot: Domain, Server und Updates übernimmt Linkeon, Änderungen wünschst du dir in eigenen Worten. Der erste Monat ist kostenlos, danach wird die Miete in Tokens bezahlt; bis zu zwei Produkte pro Konto."
+        "a": "„Studio“ hat drei Tabs:\n\n• „Assistenten“ – eigene Assistenten mit eigener Rolle und eigenen Anweisungen.\n• „Telegram-Bots“ – ein Bot mit Assistent für deine Telegram-Gruppe; dafür verknüpfst du dein Telegram im Profil.\n• „Produkte“ – deine Website oder dein Telegram-Bot: Domain, Server und Updates übernimmt Linkeon, Änderungen wünschst du dir in eigenen Worten. Für die ersten zwei Produkte ist der erste Monat kostenlos (gelöschte zählen mit), danach wird die Miete in Tokens bezahlt; bis zu zwei Produkte gleichzeitig pro Konto."
       },
       {
         "q": "Wie verbinde ich einen Kalender und Benachrichtigungen?",
@@ -1851,7 +1851,7 @@
     "subtitle": "Websites und Bots, die Linkeon hostet und weiterentwickelt",
     "empty": "Noch keine Produkte",
     "emptyWhat": "Ein Produkt ist deine eigene Website oder dein Telegram-Bot: Domain, Server und Updates übernehmen wir. Du beschreibst die Änderung in normalen Worten — der Assistent setzt sie um und veröffentlicht sie sofort.",
-    "emptyPrice": "Der erste Monat ist kostenlos, im Voraus zahlst du nichts. Danach {{amount}} Token pro Monat und Produkt.",
+    "emptyPrice": "Für die ersten zwei Produkte ist der erste Monat kostenlos, gelöschte zählen mit. Danach {{amount}} Token pro Monat und Produkt.",
     "status": {
       "running": "Läuft",
       "degraded": "Keine Verbindung zum Server",
@@ -2030,6 +2030,48 @@
         "network": "Keine Verbindung zum Server — versuch es noch einmal.",
         "generic": "Hat nicht geklappt — versuch es noch einmal."
       }
+    },
+    "action": {
+      "loading": "Wird geladen…",
+      "notFound": "Karte nicht gefunden — vielleicht bist du mit einem anderen Konto angemeldet.",
+      "working": "Läuft…",
+      "expired": "Die Bestätigung ist abgelaufen — frag den Assistenten noch einmal.",
+      "cancelled": "Abgebrochen.",
+      "failed": "Das hat nicht geklappt: {{reason}}",
+      "cancel": "Abbrechen",
+      "close": "Schließen",
+      "pendingTitle": "Wartet auf deine Bestätigung",
+      "delete": {
+        "title": "„{{name}}“ löschen?",
+        "body": "Das Produkt wird sofort abgeschaltet. Du kannst es bis zum {{date}} zurückholen — frag einfach den Assistenten. Der bezahlte Zeitraum wird nicht erstattet.",
+        "confirm": "Löschen",
+        "done": "„{{name}}“ ist gelöscht. Zurückholen kannst du es bis zum {{date}}."
+      },
+      "createBot": {
+        "title": "Schlüssel für den Bot „{{name}}“",
+        "hint": "Die Werte gehen direkt an den Server — weder der Assistent noch der Chatverlauf sieht sie.",
+        "token": "Bot-Token von @BotFather",
+        "extraTitle": "Schlüssel deiner Dienste (falls nötig)",
+        "keyName": "Name des Schlüssels",
+        "keyValue": "Wert",
+        "addKey": "Schlüssel hinzufügen",
+        "removeKey": "Entfernen",
+        "submit": "Bot anlegen",
+        "submitting": "Wird angelegt…",
+        "tokenRequired": "Füge das Bot-Token ein",
+        "done": "Der Bot „{{name}}“ ist angelegt. Er startet gerade und antwortet in ein paar Minuten in Telegram."
+      },
+      "keys": {
+        "unsupported": "Schlüssel ändern kommt später."
+      },
+      "loadFailed": "Die Karte konnte nicht geladen werden. Versuch es noch einmal.",
+      "retry": "Erneut versuchen",
+      "tooOften": "Zu viele Versuche hintereinander — warte kurz und versuch es dann noch einmal.",
+      "network": "Der Server ist nicht erreichbar. Prüf deine Verbindung und versuch es noch einmal.",
+      "doneGeneric": "Erledigt.",
+      "notACard": "Hier gibt es nichts zu bestätigen — das ist ein Eintrag über eine Aktion.",
+      "failedGeneric": "Das hat nicht geklappt — versuch es später noch einmal.",
+      "checkAgain": "Erneut prüfen"
     }
   },
   "authLink": {

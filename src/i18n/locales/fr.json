@@ -1123,7 +1123,7 @@
       },
       {
         "q": "Qu'est-ce que « Studio » ?",
-        "a": "« Studio » a trois onglets :\n\n• « Assistants » : tes propres assistants, avec leur rôle et leurs instructions.\n• « Bots Telegram » : un bot avec assistant pour ton groupe Telegram ; il faudra lier ton Telegram dans ton profil.\n• « Produits » : ton site ou ton bot Telegram. Le domaine, le serveur et les mises à jour sont gérés par Linkeon, et tu demandes les modifications avec tes propres mots. Le premier mois est gratuit, ensuite la location se paie en jetons ; jusqu'à deux produits par compte."
+        "a": "« Studio » a trois onglets :\n\n• « Assistants » : tes propres assistants, avec leur rôle et leurs instructions.\n• « Bots Telegram » : un bot avec assistant pour ton groupe Telegram ; il faudra lier ton Telegram dans ton profil.\n• « Produits » : ton site ou ton bot Telegram. Le domaine, le serveur et les mises à jour sont gérés par Linkeon, et tu demandes les modifications avec tes propres mots. Les deux premiers produits ont le premier mois gratuit (les produits supprimés comptent aussi), ensuite la location se paie en jetons ; jusqu'à deux produits par compte à la fois."
       },
       {
         "q": "Comment connecter un calendrier et les notifications ?",
@@ -1860,7 +1860,7 @@
     "subtitle": "Sites et bots que Linkeon héberge et fait évoluer",
     "empty": "Aucun produit pour l'instant",
     "emptyWhat": "Un produit, c'est votre site ou votre bot Telegram : le domaine, le serveur et les mises à jour sont pour nous. Vous décrivez la modification avec des mots ordinaires — l'assistant la réalise et la met en ligne aussitôt.",
-    "emptyPrice": "Le premier mois est gratuit, rien à payer tout de suite. Ensuite, {{amount}} jetons par mois et par produit.",
+    "emptyPrice": "Les deux premiers produits ont le premier mois gratuit, les produits supprimés comptent aussi. Ensuite, {{amount}} jetons par mois et par produit.",
     "status": {
       "running": "En service",
       "degraded": "Pas de connexion au serveur",
@@ -2039,6 +2039,48 @@
         "network": "Pas de connexion au serveur — réessayez.",
         "generic": "Cela n'a pas fonctionné — réessayez."
       }
+    },
+    "action": {
+      "loading": "Chargement…",
+      "notFound": "Carte introuvable — vous êtes peut-être connecté à un autre compte.",
+      "working": "En cours…",
+      "expired": "La confirmation a expiré — redemandez à l’assistant.",
+      "cancelled": "Annulé.",
+      "failed": "Cela n’a pas fonctionné : {{reason}}",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "pendingTitle": "En attente de votre confirmation",
+      "delete": {
+        "title": "Supprimer « {{name}} » ?",
+        "body": "Le produit sera désactivé tout de suite. Vous pourrez le restaurer jusqu’au {{date}} — il suffit de le demander à l’assistant. La période déjà payée n’est pas remboursée.",
+        "confirm": "Supprimer",
+        "done": "« {{name}} » a été supprimé. Vous pouvez le restaurer jusqu’au {{date}}."
+      },
+      "createBot": {
+        "title": "Clés du bot « {{name}} »",
+        "hint": "Les valeurs vont directement au serveur — ni l’assistant ni l’historique de la discussion ne les voient.",
+        "token": "Jeton du bot fourni par @BotFather",
+        "extraTitle": "Clés de vos services (si besoin)",
+        "keyName": "Nom de la clé",
+        "keyValue": "Valeur",
+        "addKey": "Ajouter une clé",
+        "removeKey": "Retirer",
+        "submit": "Créer le bot",
+        "submitting": "Création…",
+        "tokenRequired": "Collez le jeton du bot",
+        "done": "Le bot « {{name}} » a été créé. Il démarre et répondra sur Telegram d’ici quelques minutes."
+      },
+      "keys": {
+        "unsupported": "Le changement de clés arrivera plus tard."
+      },
+      "loadFailed": "Impossible de charger la carte. Réessayez.",
+      "retry": "Réessayer",
+      "tooOften": "Trop de tentatives d’affilée — patientez un peu, puis réessayez.",
+      "network": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.",
+      "doneGeneric": "C’est fait.",
+      "notACard": "Il n’y a rien à confirmer ici — c’est une entrée du journal des actions.",
+      "failedGeneric": "Cela n’a pas fonctionné — réessayez plus tard.",
+      "checkAgain": "Vérifier à nouveau"
     }
   },
   "authLink": {
