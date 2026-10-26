@@ -267,7 +267,7 @@
     "assistant_role_default": "助手",
     "voice_not_supported": "你的浏览器不支持语音输入",
     "voice_not_supported_title": "不支持语音输入",
-    "voice_lang_unsupported": "语音输入暂时无法识别这种语言，请直接输入文字。",
+    "voice_lang_unsupported": "暂不支持中文语音输入，请直接输入文字。",
     "voice_start": "开始语音输入",
     "voice_stop": "停止录音",
     "voice_error": "语音识别出错：{{error}}",

@@ -39,6 +39,21 @@ describe('диктовка: ошибки от сервера', () => {
     expect(h).not.toMatch(/lang_unsupported'\) \{ alert/);
   });
 
+  // Китайский интерфейс — отказ ДО getUserMedia (он внутри vd.start): иначе
+  // браузер спрашивает доступ к микрофону ради сокета, который сервер тут же
+  // закроет с lang_unsupported.
+  it('язык без диктовки — отказ до захвата микрофона, после ветки «стоп»', () => {
+    const fn = SRC.slice(SRC.indexOf('const handleVoiceInput = async'), SRC.indexOf('const vd = new VoiceDictation();'));
+    const guard = fn.indexOf('if (!isDictationLanguageSupported(i18n.language)) {');
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeGreaterThan(fn.indexOf('voiceRef.current?.stop();'));
+    expect(fn.slice(guard, guard + 160)).toMatch(/if \(!auto\) alert\(t\('chat\.voice_lang_unsupported'\)\);\s*return;/);
+  });
+
+  it('китайский текст отказа — про китайский прямо', () => {
+    expect((zh as any).chat.voice_lang_unsupported).toBe('暂不支持中文语音输入，请直接输入文字。');
+  });
+
   it('сообщение переведено на все языки и не копирует русское', () => {
     const locales = { en, es, de, fr, zh, pt } as Record<string, any>;
     const ruText = (ru as any).chat.voice_lang_unsupported;

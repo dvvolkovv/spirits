@@ -25,6 +25,7 @@ import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
 import { VoiceDictation } from '../../services/voiceDictation';
+import { isDictationLanguageSupported } from '../../services/dictationLanguages';
 import AudioClip from './AudioClip';
 import ChatFilesPanel from './files/ChatFilesPanel';
 import type { ChatFileKind } from './files/chatFiles';
@@ -1978,6 +1979,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // [d0fbc717 fix: owner видел «2-й тап по микрофону → выключается»].
       if (auto) return;
       voiceRef.current?.stop();
+      return;
+    }
+
+    // Китайский интерфейс — отказ до getUserMedia (он в vd.start): сервер для
+    // такого языка распознавание не откроет, а спрашивать микрофон зря незачем.
+    if (!isDictationLanguageSupported(i18n.language)) {
+      if (!auto) alert(t('chat.voice_lang_unsupported'));
       return;
     }
 
