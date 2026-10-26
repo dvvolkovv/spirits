@@ -89,4 +89,10 @@ describe('раздел, куда человек шёл до входа', () => {
     expect(allowedDestination('/studio', '?tab=products')).toBe('/studio?tab=products');
     expect(allowedDestination('/studio', '?tab=agents')).toBeNull();
   });
+
+  it('ссылка на карточку переживает вход: action с uuid сохраняется, мусор — нет', () => {
+    const id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+    expect(allowedDestination('/studio', `?tab=products&action=${id}`)).toBe(`/studio?tab=products&action=${id}`);
+    expect(allowedDestination('/studio', '?tab=products&action=<script>')).toBe('/studio?tab=products');
+  });
 });
