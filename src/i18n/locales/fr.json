@@ -2038,6 +2038,48 @@
         "network": "Pas de connexion au serveur — réessayez.",
         "generic": "Cela n'a pas fonctionné — réessayez."
       }
+    },
+    "action": {
+      "loading": "Chargement…",
+      "notFound": "Carte introuvable — elle a peut-être été ouverte depuis un autre compte.",
+      "working": "En cours…",
+      "expired": "La confirmation a expiré — redemandez à l’assistant.",
+      "cancelled": "Annulé.",
+      "failed": "Cela n’a pas marché : {{reason}}",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "pendingTitle": "En attente de votre confirmation",
+      "delete": {
+        "title": "Supprimer « {{name}} » ?",
+        "body": "Le produit sera désactivé tout de suite. Vous pourrez le restaurer jusqu’au {{date}} — il suffit de le demander à l’assistant. La période déjà payée n’est pas remboursée.",
+        "confirm": "Supprimer",
+        "done": "« {{name}} » a été supprimé. Vous pouvez le restaurer jusqu’au {{date}}."
+      },
+      "createBot": {
+        "title": "Clés du bot « {{name}} »",
+        "hint": "Les valeurs vont directement au serveur — ni l’assistant ni l’historique de la discussion ne les voient.",
+        "token": "Jeton du bot fourni par @BotFather",
+        "extraTitle": "Clés de vos services (si besoin)",
+        "keyName": "Nom de la clé",
+        "keyValue": "Valeur",
+        "addKey": "Ajouter une clé",
+        "removeKey": "Retirer",
+        "submit": "Créer le bot",
+        "submitting": "Création…",
+        "tokenRequired": "Collez le jeton du bot",
+        "done": "Le bot « {{name}} » a été créé. Il démarre et répondra sur Telegram d’ici une à deux minutes."
+      },
+      "keys": {
+        "unsupported": "Le changement de clés arrivera plus tard."
+      },
+      "loadFailed": "Impossible de charger la carte. Réessayez.",
+      "retry": "Réessayer",
+      "tooOften": "Trop de tentatives d’affilée — patientez un peu, puis réessayez.",
+      "network": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.",
+      "doneGeneric": "C’est fait.",
+      "notACard": "Il n’y a rien à confirmer ici — c’est l’historique d’une action.",
+      "failedGeneric": "Cela n’a pas marché — réessayez plus tard.",
+      "checkAgain": "Vérifier à nouveau"
     }
   },
   "authLink": {

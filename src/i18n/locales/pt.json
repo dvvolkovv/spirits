@@ -2391,6 +2391,48 @@
         "network": "Sem ligação ao servidor — tente novamente.",
         "generic": "Não resultou — tente novamente."
       }
+    },
+    "action": {
+      "loading": "A carregar…",
+      "notFound": "Cartão não encontrado — talvez tenha sido aberto noutra conta.",
+      "working": "Em curso…",
+      "expired": "A confirmação expirou — pede de novo ao assistente.",
+      "cancelled": "Cancelado.",
+      "failed": "Não resultou: {{reason}}",
+      "cancel": "Cancelar",
+      "close": "Fechar",
+      "pendingTitle": "À espera da tua confirmação",
+      "delete": {
+        "title": "Eliminar «{{name}}»?",
+        "body": "O produto é desligado de imediato. Podes recuperá-lo até {{date}} — basta pedires ao assistente. O período já pago não é reembolsado.",
+        "confirm": "Eliminar",
+        "done": "«{{name}}» foi eliminado. Podes recuperá-lo até {{date}}."
+      },
+      "createBot": {
+        "title": "Chaves do bot «{{name}}»",
+        "hint": "Os valores vão diretamente para o servidor — nem o assistente nem o histórico da conversa os veem.",
+        "token": "Token do bot do @BotFather",
+        "extraTitle": "Chaves dos serviços (se forem precisas)",
+        "keyName": "Nome da chave",
+        "keyValue": "Valor",
+        "addKey": "Adicionar chave",
+        "removeKey": "Remover",
+        "submit": "Criar bot",
+        "submitting": "A criar…",
+        "tokenRequired": "Cola o token do bot",
+        "done": "O bot «{{name}}» foi criado. Está a arrancar e responde no Telegram dentro de um ou dois minutos."
+      },
+      "keys": {
+        "unsupported": "A alteração de chaves chega mais tarde."
+      },
+      "loadFailed": "Não foi possível carregar o cartão. Tenta de novo.",
+      "retry": "Tentar de novo",
+      "tooOften": "Demasiadas tentativas seguidas — espera um pouco e tenta de novo.",
+      "network": "Não foi possível contactar o servidor. Verifica a ligação e tenta de novo.",
+      "doneGeneric": "Feito.",
+      "notACard": "Aqui não há nada para confirmar — é o registo de uma ação.",
+      "failedGeneric": "Não resultou — tenta de novo mais tarde.",
+      "checkAgain": "Verificar de novo"
     }
   },
   "authLink": {

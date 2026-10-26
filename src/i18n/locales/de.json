@@ -2029,6 +2029,48 @@
         "network": "Keine Verbindung zum Server — versuch es noch einmal.",
         "generic": "Hat nicht geklappt — versuch es noch einmal."
       }
+    },
+    "action": {
+      "loading": "Wird geladen…",
+      "notFound": "Karte nicht gefunden – vielleicht wurde sie von einem anderen Konto geöffnet.",
+      "working": "Läuft…",
+      "expired": "Die Bestätigung ist abgelaufen – frag den Assistenten noch einmal.",
+      "cancelled": "Abgebrochen.",
+      "failed": "Das hat nicht geklappt: {{reason}}",
+      "cancel": "Abbrechen",
+      "close": "Schließen",
+      "pendingTitle": "Wartet auf deine Bestätigung",
+      "delete": {
+        "title": "„{{name}}“ löschen?",
+        "body": "Das Produkt wird sofort abgeschaltet. Du kannst es bis zum {{date}} zurückholen – frag einfach den Assistenten. Der bezahlte Zeitraum wird nicht erstattet.",
+        "confirm": "Löschen",
+        "done": "„{{name}}“ ist gelöscht. Zurückholen kannst du es bis zum {{date}}."
+      },
+      "createBot": {
+        "title": "Schlüssel für den Bot „{{name}}“",
+        "hint": "Die Werte gehen direkt an den Server – weder der Assistent noch der Chatverlauf sieht sie.",
+        "token": "Bot-Token von @BotFather",
+        "extraTitle": "Schlüssel deiner Dienste (falls nötig)",
+        "keyName": "Name des Schlüssels",
+        "keyValue": "Wert",
+        "addKey": "Schlüssel hinzufügen",
+        "removeKey": "Entfernen",
+        "submit": "Bot anlegen",
+        "submitting": "Wird angelegt…",
+        "tokenRequired": "Füge das Bot-Token ein",
+        "done": "Der Bot „{{name}}“ ist angelegt. Er startet gerade und antwortet in ein, zwei Minuten in Telegram."
+      },
+      "keys": {
+        "unsupported": "Schlüssel ändern kommt später."
+      },
+      "loadFailed": "Die Karte konnte nicht geladen werden. Versuch es noch einmal.",
+      "retry": "Erneut versuchen",
+      "tooOften": "Zu viele Versuche hintereinander – warte kurz und versuch es dann noch einmal.",
+      "network": "Der Server ist nicht erreichbar. Prüf deine Verbindung und versuch es noch einmal.",
+      "doneGeneric": "Erledigt.",
+      "notACard": "Hier gibt es nichts zu bestätigen – das ist ein Eintrag über eine Aktion.",
+      "failedGeneric": "Das hat nicht geklappt – versuch es später noch einmal.",
+      "checkAgain": "Erneut prüfen"
     }
   },
   "authLink": {

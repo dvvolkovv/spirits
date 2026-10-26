@@ -2038,6 +2038,48 @@
         "network": "Sin conexión con el servidor; inténtalo de nuevo.",
         "generic": "No se pudo; inténtalo de nuevo."
       }
+    },
+    "action": {
+      "loading": "Cargando…",
+      "notFound": "No se encontró la tarjeta: quizá se abrió desde otra cuenta.",
+      "working": "En curso…",
+      "expired": "La confirmación ha caducado: pídeselo de nuevo al asistente.",
+      "cancelled": "Cancelado.",
+      "failed": "No ha funcionado: {{reason}}",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "pendingTitle": "Pendiente de tu confirmación",
+      "delete": {
+        "title": "¿Eliminar «{{name}}»?",
+        "body": "Se apagará de inmediato. Puedes recuperarlo hasta el {{date}}: solo pídeselo al asistente. El periodo ya pagado no se reembolsa.",
+        "confirm": "Eliminar",
+        "done": "«{{name}}» se ha eliminado. Puedes recuperarlo hasta el {{date}}."
+      },
+      "createBot": {
+        "title": "Claves para el bot «{{name}}»",
+        "hint": "Los valores van directamente al servidor: ni el asistente ni el historial del chat los ven.",
+        "token": "Token del bot de @BotFather",
+        "extraTitle": "Claves de servicios (si hacen falta)",
+        "keyName": "Nombre de la clave",
+        "keyValue": "Valor",
+        "addKey": "Añadir clave",
+        "removeKey": "Quitar",
+        "submit": "Crear bot",
+        "submitting": "Creando…",
+        "tokenRequired": "Pega el token del bot",
+        "done": "El bot «{{name}}» se ha creado. Se está poniendo en marcha y responderá en Telegram en un par de minutos."
+      },
+      "keys": {
+        "unsupported": "El cambio de claves llegará más adelante."
+      },
+      "loadFailed": "No se pudo cargar la tarjeta. Inténtalo de nuevo.",
+      "retry": "Reintentar",
+      "tooOften": "Demasiados intentos seguidos: espera un poco y vuelve a intentarlo.",
+      "network": "No se pudo conectar con el servidor. Comprueba la conexión e inténtalo de nuevo.",
+      "doneGeneric": "Hecho.",
+      "notACard": "Aquí no hay nada que confirmar: es el registro de una acción.",
+      "failedGeneric": "No ha funcionado: inténtalo más tarde.",
+      "checkAgain": "Comprobar de nuevo"
     }
   },
   "authLink": {

@@ -2020,6 +2020,48 @@
         "network": "无法连接服务器，请重试。",
         "generic": "未成功，请重试。"
       }
+    },
+    "action": {
+      "loading": "加载中…",
+      "notFound": "未找到该卡片——可能是在其他账号中打开的。",
+      "working": "正在处理…",
+      "expired": "确认已过期——请再告诉助手一次。",
+      "cancelled": "已取消。",
+      "failed": "未能完成：{{reason}}",
+      "cancel": "取消",
+      "close": "关闭",
+      "pendingTitle": "等待您的确认",
+      "delete": {
+        "title": "删除「{{name}}」？",
+        "body": "产品会立即停用。在{{date}}之前可以恢复——告诉助手即可。已支付的期限不予退还。",
+        "confirm": "删除",
+        "done": "「{{name}}」已删除。在{{date}}之前可以恢复。"
+      },
+      "createBot": {
+        "title": "机器人「{{name}}」的密钥",
+        "hint": "这些值直接发送到服务器——助手和聊天记录都看不到。",
+        "token": "@BotFather 提供的机器人令牌",
+        "extraTitle": "服务密钥（如需要）",
+        "keyName": "密钥名称",
+        "keyValue": "值",
+        "addKey": "添加密钥",
+        "removeKey": "移除",
+        "submit": "创建机器人",
+        "submitting": "正在创建…",
+        "tokenRequired": "请粘贴机器人令牌",
+        "done": "机器人「{{name}}」已创建，正在启动，一两分钟后会在 Telegram 中回复。"
+      },
+      "keys": {
+        "unsupported": "更改密钥的功能稍后推出。"
+      },
+      "loadFailed": "无法加载卡片，请重试。",
+      "retry": "重试",
+      "tooOften": "尝试次数过多——请稍等片刻再试。",
+      "network": "无法连接服务器，请检查网络后重试。",
+      "doneGeneric": "已完成。",
+      "notACard": "这里没有需要确认的内容——这是一条操作记录。",
+      "failedGeneric": "未能完成——请稍后再试。",
+      "checkAgain": "再次检查"
     }
   },
   "authLink": {
