@@ -2041,7 +2041,7 @@
     },
     "action": {
       "loading": "Cargando…",
-      "notFound": "No se encontró la tarjeta: quizá se abrió desde otra cuenta.",
+      "notFound": "No se encontró la tarjeta: quizá has iniciado sesión con otra cuenta.",
       "working": "En curso…",
       "expired": "La confirmación ha caducado: pídeselo de nuevo al asistente.",
       "cancelled": "Cancelado.",
@@ -2067,7 +2067,7 @@
         "submit": "Crear bot",
         "submitting": "Creando…",
         "tokenRequired": "Pega el token del bot",
-        "done": "El bot «{{name}}» se ha creado. Se está poniendo en marcha y responderá en Telegram en un par de minutos."
+        "done": "El bot «{{name}}» se ha creado. Se está poniendo en marcha y responderá en Telegram en unos minutos."
       },
       "keys": {
         "unsupported": "El cambio de claves llegará más adelante."

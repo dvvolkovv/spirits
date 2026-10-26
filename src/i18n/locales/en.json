@@ -2391,7 +2391,7 @@
     },
     "action": {
       "loading": "Loading…",
-      "notFound": "Card not found — it may have been opened from another account.",
+      "notFound": "Card not found — you may be signed in to a different account.",
       "working": "In progress…",
       "expired": "The confirmation has expired — ask the assistant again.",
       "cancelled": "Cancelled.",
@@ -2417,7 +2417,7 @@
         "submit": "Create bot",
         "submitting": "Creating…",
         "tokenRequired": "Paste the bot token",
-        "done": "The bot “{{name}}” has been created. It is starting up and will reply in Telegram in a minute or two."
+        "done": "The bot “{{name}}” has been created. It is starting up and will reply in Telegram in a few minutes."
       },
       "keys": {
         "unsupported": "Changing keys is coming later."

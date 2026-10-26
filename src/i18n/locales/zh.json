@@ -2023,14 +2023,14 @@
     },
     "action": {
       "loading": "加载中…",
-      "notFound": "未找到该卡片——可能是在其他账号中打开的。",
+      "notFound": "未找到该卡片——你可能登录了其他账号。",
       "working": "正在处理…",
       "expired": "确认已过期——请再告诉助手一次。",
       "cancelled": "已取消。",
       "failed": "未能完成：{{reason}}",
       "cancel": "取消",
       "close": "关闭",
-      "pendingTitle": "等待您的确认",
+      "pendingTitle": "等待你的确认",
       "delete": {
         "title": "删除「{{name}}」？",
         "body": "产品会立即停用。在{{date}}之前可以恢复——告诉助手即可。已支付的期限不予退还。",
@@ -2049,7 +2049,7 @@
         "submit": "创建机器人",
         "submitting": "正在创建…",
         "tokenRequired": "请粘贴机器人令牌",
-        "done": "机器人「{{name}}」已创建，正在启动，一两分钟后会在 Telegram 中回复。"
+        "done": "机器人「{{name}}」已创建，正在启动，几分钟后会在 Telegram 中回复。"
       },
       "keys": {
         "unsupported": "更改密钥的功能稍后推出。"

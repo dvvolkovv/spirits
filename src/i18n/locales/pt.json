@@ -2394,7 +2394,7 @@
     },
     "action": {
       "loading": "A carregar…",
-      "notFound": "Cartão não encontrado — talvez tenha sido aberto noutra conta.",
+      "notFound": "Cartão não encontrado — talvez tenhas iniciado sessão noutra conta.",
       "working": "Em curso…",
       "expired": "A confirmação expirou — pede de novo ao assistente.",
       "cancelled": "Cancelado.",
@@ -2420,7 +2420,7 @@
         "submit": "Criar bot",
         "submitting": "A criar…",
         "tokenRequired": "Cola o token do bot",
-        "done": "O bot «{{name}}» foi criado. Está a arrancar e responde no Telegram dentro de um ou dois minutos."
+        "done": "O bot «{{name}}» foi criado. Está a arrancar e responde no Telegram dentro de alguns minutos."
       },
       "keys": {
         "unsupported": "A alteração de chaves chega mais tarde."

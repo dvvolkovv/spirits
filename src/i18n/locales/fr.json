@@ -2041,11 +2041,11 @@
     },
     "action": {
       "loading": "Chargement…",
-      "notFound": "Carte introuvable — elle a peut-être été ouverte depuis un autre compte.",
+      "notFound": "Carte introuvable — vous êtes peut-être connecté à un autre compte.",
       "working": "En cours…",
       "expired": "La confirmation a expiré — redemandez à l’assistant.",
       "cancelled": "Annulé.",
-      "failed": "Cela n’a pas marché : {{reason}}",
+      "failed": "Cela n’a pas fonctionné : {{reason}}",
       "cancel": "Annuler",
       "close": "Fermer",
       "pendingTitle": "En attente de votre confirmation",
@@ -2067,7 +2067,7 @@
         "submit": "Créer le bot",
         "submitting": "Création…",
         "tokenRequired": "Collez le jeton du bot",
-        "done": "Le bot « {{name}} » a été créé. Il démarre et répondra sur Telegram d’ici une à deux minutes."
+        "done": "Le bot « {{name}} » a été créé. Il démarre et répondra sur Telegram d’ici quelques minutes."
       },
       "keys": {
         "unsupported": "Le changement de clés arrivera plus tard."
@@ -2077,8 +2077,8 @@
       "tooOften": "Trop de tentatives d’affilée — patientez un peu, puis réessayez.",
       "network": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.",
       "doneGeneric": "C’est fait.",
-      "notACard": "Il n’y a rien à confirmer ici — c’est l’historique d’une action.",
-      "failedGeneric": "Cela n’a pas marché — réessayez plus tard.",
+      "notACard": "Il n’y a rien à confirmer ici — c’est une entrée du journal des actions.",
+      "failedGeneric": "Cela n’a pas fonctionné — réessayez plus tard.",
       "checkAgain": "Vérifier à nouveau"
     }
   },
