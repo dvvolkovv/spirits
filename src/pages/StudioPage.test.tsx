@@ -43,6 +43,15 @@ vi.mock('../components/tg-bot/TgBotsListView', () => ({
 vi.mock('../components/products/ProductsSection', () => ({
   ProductsSection: () => <div>РАЗДЕЛ-ПРОДУКТОВ</div>,
 }));
+// Как и ProductsSection выше: без заглушки реальный компонент тянет
+// productActionsApi → apiClient → authService → настоящий i18n/index.ts,
+// а там .use(initReactI18next) падает на обрезанном моке react-i18next
+// (в нём нет этого экспорта, только useTranslation). К проверкам этого
+// файла (кто видит вкладку и что под ней нарисовано) карточки ожидания
+// отношения не имеют.
+vi.mock('../components/products/PendingProductActions', () => ({
+  PendingProductActions: () => <div>ОЖИДАЮЩИЕ-ПОДТВЕРЖДЕНИЯ</div>,
+}));
 
 /**
  * Права ОСТАЮТСЯ в заглушке, хотя страница их больше не спрашивает.
