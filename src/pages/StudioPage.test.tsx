@@ -40,17 +40,27 @@ vi.mock('../components/tg-bot/TgBotsListView', () => ({
     </div>
   ),
 }));
-// Счётчик рендеров заменяет счётчик монтирований: в сценариях этого файла
-// ProductsSection либо не трогают вовсе, либо трогают ровно через remount по
-// key (F1) — лишних ре-рендеров той же самой карточки между ними нет, так что
-// считать можно прямо в теле, не заводя эффект ради «один раз на монтирование».
-let productsRenders = 0;
-vi.mock('../components/products/ProductsSection', () => ({
-  ProductsSection: () => {
-    productsRenders += 1;
-    return <div>РАЗДЕЛ-ПРОДУКТОВ</div>;
-  },
-}));
+// Счётчик МОНТИРОВАНИЙ, не рендеров. Счётчик рендеров здесь зеленел бы и без
+// key вовсе: onActionResolved меняет состояние СТРАНИЦЫ (productsReloadKey),
+// а любое изменение состояния родителя перерисовывает ProductsSection вторым
+// рендером независимо от того, остался ли key тем же — без key был бы тот же
+// счёт 1 → 2 при том же самом экземпляре компонента, то есть список НЕ
+// перечитался бы. Разницу между «перерисовался» и «пересоздан заново»
+// снаружи видно только по эффекту с пустыми зависимостями: он срабатывает
+// при монтировании нового экземпляра и не срабатывает при обычном ре-рендере
+// того же самого.
+let productsMounts = 0;
+vi.mock('../components/products/ProductsSection', async () => {
+  const { useEffect } = await import('react');
+  return {
+    ProductsSection: () => {
+      useEffect(() => {
+        productsMounts += 1;
+      }, []);
+      return <div>РАЗДЕЛ-ПРОДУКТОВ</div>;
+    },
+  };
+});
 // Как и ProductsSection выше: без заглушки реальный компонент тянет
 // productActionsApi → apiClient → authService → настоящий i18n/index.ts,
 // а там .use(initReactI18next) падает на обрезанном моке react-i18next
@@ -92,7 +102,7 @@ afterEach(() => {
   isAdmin = false;
   search = '';
   setParams.mockReset();
-  productsRenders = 0;
+  productsMounts = 0;
 });
 
 describe('вкладка «Продукты» в Студии', () => {
@@ -199,10 +209,13 @@ describe('карточка ожидания решила действие на �
   it('ProductsSection перемонтируется (key) по onResolved из PendingProductActions', () => {
     search = 'tab=products';
     const { container } = mount(<StudioPage />);
-    expect(productsRenders).toBe(1);
+    expect(productsMounts).toBe(1);
 
     click(byButton(container, /resolve-action/)!);
 
-    expect(productsRenders).toBe(2);
+    // Именно НОВОЕ монтирование, а не второй рендер того же экземпляра:
+    // мутационная проверка (удалить key в StudioPage.tsx) ловится только
+    // этим счётчиком — счётчик рендеров остался бы 1 → 2 и без key.
+    expect(productsMounts).toBe(2);
   });
 });
