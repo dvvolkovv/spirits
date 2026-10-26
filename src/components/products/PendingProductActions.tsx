@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { productActionsApi } from '../../services/productActionsApi';
+import { productActionsApi, type ProductActionView } from '../../services/productActionsApi';
 import { ProductActionCard } from './ProductActionCard';
 
 /**
@@ -8,7 +8,16 @@ import { ProductActionCard } from './ProductActionCard';
  * если карточка не прикрепилась к ответу, и цель ссылки из клиентов без
  * карточек. Карточка из ссылки (?action=) — первой и с кнопкой «Закрыть».
  */
-export function PendingProductActions({ focusId, onCloseFocus }: { focusId: string | null; onCloseFocus: () => void }) {
+export function PendingProductActions({
+  focusId,
+  onCloseFocus,
+  onResolved,
+}: {
+  focusId: string | null;
+  onCloseFocus: () => void;
+  /** Пробрасывается в каждую карточку как есть — см. ProductActionCard. */
+  onResolved?: (view: ProductActionView) => void;
+}) {
   const { t } = useTranslation();
   const [ids, setIds] = useState<string[]>([]);
 
@@ -28,7 +37,13 @@ export function PendingProductActions({ focusId, onCloseFocus }: { focusId: stri
     <section className="mb-4">
       <h2 className="text-sm font-medium text-gray-700 mb-1">{t('products.action.pendingTitle')}</h2>
       {all.map((id) => (
-        <ProductActionCard key={id} actionId={id} via="cabinet" onClose={id === focusId ? onCloseFocus : undefined} />
+        <ProductActionCard
+          key={id}
+          actionId={id}
+          via="cabinet"
+          onClose={id === focusId ? onCloseFocus : undefined}
+          onResolved={onResolved}
+        />
       ))}
     </section>
   );

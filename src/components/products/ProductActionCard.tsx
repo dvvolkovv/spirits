@@ -46,7 +46,25 @@ const WORKING_POLL_MAX_ATTEMPTS = 20;
  * ограничение уровня плана — текст у сервера русский на всех языках
  * кабинета, своего перевода у произвольного текста стороннего сервиса нет.
  */
-export function ProductActionCard({ actionId, via, onClose }: { actionId: string; via: ActionSource; onClose?: () => void }) {
+export function ProductActionCard({
+  actionId,
+  via,
+  onClose,
+  onResolved,
+}: {
+  actionId: string;
+  via: ActionSource;
+  onClose?: () => void;
+  /**
+   * Действие покинуло очередь ожидания: вызывается РОВНО ОДИН РАЗ в момент
+   * перехода из pending/working в финальный статус по ответу отправки,
+   * отмены или тика опроса — не на первой загрузке карточки (там это не
+   * переход, а просто показ уже решённого действия). Раздел «Продукты» на
+   * StudioPage слушает этот колбэк, чтобы перечитать список: удалённый
+   * продукт должен пропасть, а новый бот — появиться без обновления страницы.
+   */
+  onResolved?: (view: ProductActionView) => void;
+}) {
   const { t, i18n } = useTranslation();
   const [view, setView] = useState<ProductActionView | null>(null);
   // null — загрузка идёт или успешна; иначе различаем «нет такого действия»
@@ -92,6 +110,16 @@ export function ProductActionCard({ actionId, via, onClose }: { actionId: string
   // данные первой, а то и получила бы её токен обратно в поле.
   const genRef = useRef(0);
 
+  // Статус карточки, обновляется СИНХРОННО в момент каждого setView — рядом,
+  // а не из рендера. Опросу «в работе» это нужно, чтобы решить «статус на
+  // экране ещё working?» прямо в момент ответа тика, не полагаясь на то, что
+  // замыкание эффекта увидит свежий `view` (оно не увидит: эффект не
+  // пересоздаётся внутри одного «working», см. ниже). React мог бы вызвать
+  // функцию-обновитель setView дважды в StrictMode — вызывать onResolved
+  // прямо в ней было бы небезопасно, поэтому решение «применять или нет»
+  // принимается здесь, а setView(r) дальше — обычный, без функции.
+  const statusRef = useRef<ProductActionView['status'] | null>(null);
+
   const load = async (id: string, gen: number) => {
     const r = await productActionsApi.get(id);
     if (!aliveRef.current || gen !== genRef.current) return;
@@ -100,6 +128,7 @@ export function ProductActionCard({ actionId, via, onClose }: { actionId: string
       return;
     }
     setLoadError(null);
+    statusRef.current = r.status;
     setView(r);
     setError(r.status === 'pending' && typeof r.result?.error === 'string' ? r.result.error : null);
   };
@@ -111,6 +140,7 @@ export function ProductActionCard({ actionId, via, onClose }: { actionId: string
     // новой карточки на экране не должно оставаться ни вида, ни токена, ни
     // строк ключей от предыдущей.
     setView(null);
+    statusRef.current = null;
     setLoadError(null);
     setError(null);
     setToken('');
@@ -136,6 +166,11 @@ export function ProductActionCard({ actionId, via, onClose }: { actionId: string
     const gen = genRef.current;
     let attempts = 0;
     let inFlight = false;
+    // onResolved зовётся не больше одного раза за этот прогон эффекта: как
+    // только тик довёл статус до исхода, следующие тики того же прогона (их
+    // не бывает — эффект пересоздастся на смену статуса, но запрос, ушедший
+    // до этого, мог вернуться позже) видят resolved и не зовут колбэк снова.
+    let resolved = false;
     const timer = setInterval(() => {
       if (inFlight) return;
       if (attempts >= WORKING_POLL_MAX_ATTEMPTS) {
@@ -153,16 +188,22 @@ export function ProductActionCard({ actionId, via, onClose }: { actionId: string
         // был бы ложный диагноз по единичному сбою сети, а не по действию.
         // Человек дождётся следующего тика или истечения отведённых попыток.
         if (isProblem(r)) return;
-        // Применяем ответ ТОЛЬКО если статус на экране ещё 'working': этот
-        // тик мог уйти, пока статус был working, и вернуться ПОСЛЕ того, как
-        // более свежий ответ (например, от «Отмены» в этой же карточке) уже
-        // сменил его на другой — устаревший «ещё работает» не должен
-        // закатать более новый исход.
-        setView((prev) => (prev && prev.status === 'working' ? r : prev));
-        setError((prevErr) => {
-          if (r.status !== 'pending') return r.status === 'working' ? prevErr : null;
-          return typeof r.result?.error === 'string' ? r.result.error : null;
-        });
+        // Применяем ответ ТОЛЬКО если статус на экране ещё 'working' (по
+        // statusRef, а не по замыканию на `view` — см. комментарий у ref):
+        // этот тик мог уйти, пока статус был working, и вернуться ПОСЛЕ
+        // того, как более свежий ответ (например, от «Отмены» в этой же
+        // карточке) уже сменил его на другой — устаревший «ещё работает» не
+        // должен закатать более новый исход.
+        if (statusRef.current !== 'working') return;
+        statusRef.current = r.status;
+        setView(r);
+        setError(r.status === 'pending' && typeof r.result?.error === 'string' ? r.result.error : null);
+        // Действие дотянулось опросом до исхода — ровно один раз за этот
+        // прогон эффекта (resolved в замыкании тика, не статус-состояние).
+        if (!resolved && r.status !== 'working') {
+          resolved = true;
+          onResolved?.(r);
+        }
       })();
     }, WORKING_POLL_MS);
     return () => clearInterval(timer);
@@ -190,12 +231,18 @@ export function ProductActionCard({ actionId, via, onClose }: { actionId: string
       else setError(r.message || t('products.action.failedGeneric'));
       return;
     }
+    // Статус ДО обновления — из statusRef, не из состояния: отправка
+    // (submit/cancel) всегда уходит из pending-карточки (кнопки есть только
+    // там), но ref надёжнее замыкания на случай гонки с тиком опроса.
+    const wasPending = statusRef.current === 'pending' || statusRef.current === 'working';
+    statusRef.current = r.status;
     setView(r);
     setError(r.status === 'pending' && typeof r.result?.error === 'string' ? r.result.error : null);
     if (r.status !== 'pending') {
       setToken('');
       setRows([]);
     }
+    if (wasPending && r.status !== 'pending' && r.status !== 'working') onResolved?.(r);
   };
 
   const run = async (fn: () => Promise<ProductActionView | Problem>) => {

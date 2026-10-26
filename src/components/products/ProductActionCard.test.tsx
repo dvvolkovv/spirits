@@ -470,4 +470,65 @@ describe('карточка действия продукта', () => {
       expect(after!.value).toBe('123:abc');
     });
   });
+
+  // Находка ревью (F1): StudioPage слушает этот колбэк, чтобы перечитать
+  // список продуктов, когда карточка под ним решила ожидающее действие.
+  describe('onResolved', () => {
+    it('зовётся один раз, когда «Удалить» доходит до done', async () => {
+      api.get.mockResolvedValue(view());
+      api.submit.mockResolvedValue(view({ status: 'done', result: { restoreUntil: '2026-11-24T10:00:00.000Z' } }));
+      const onResolved = vi.fn();
+      const { container } = mount(<ProductActionCard actionId="a1" via="chat" onResolved={onResolved} />);
+      await flush();
+      expect(onResolved).not.toHaveBeenCalled();
+      await clickAsync(byButton(container, new RegExp(tRu('products.action.delete.confirm')))!);
+      expect(onResolved).toHaveBeenCalledTimes(1);
+      expect(onResolved).toHaveBeenCalledWith(expect.objectContaining({ status: 'done' }));
+    });
+
+    it('не зовётся на первой загрузке уже решённого действия', async () => {
+      // Открыли ссылку на карточку, действие уже done — это не переход,
+      // просто показ прежнего исхода: список продуктов его уже не пропустит.
+      api.get.mockResolvedValue(view({ status: 'done', result: { restoreUntil: '2026-11-24T10:00:00.000Z' } }));
+      const onResolved = vi.fn();
+      mount(<ProductActionCard actionId="a1" via="chat" onResolved={onResolved} />);
+      await flush();
+      expect(onResolved).not.toHaveBeenCalled();
+    });
+
+    it('не зовётся, когда отправка вернула pending с поправимой ошибкой', async () => {
+      api.get.mockResolvedValue(view({ kind: 'create_bot', productId: null, productName: 'Бот' }));
+      api.submit.mockResolvedValue(view({ kind: 'create_bot', status: 'pending', productName: 'Бот', result: { error: 'Telegram не принял токен' } }));
+      const onResolved = vi.fn();
+      const { container } = mount(<ProductActionCard actionId="a1" via="chat" onResolved={onResolved} />);
+      await flush();
+      const token = container.querySelector('[data-testid="product-action-token"]') as HTMLInputElement;
+      type(token, '123:abc');
+      await clickAsync(byButton(container, new RegExp(tRu('products.action.createBot.submit')))!);
+      expect(onResolved).not.toHaveBeenCalled();
+    });
+
+    it('зовётся один раз, когда опрос «в работе» дотягивает до исхода', async () => {
+      vi.useFakeTimers();
+      api.get
+        .mockResolvedValueOnce(view({ status: 'working' }))
+        .mockResolvedValue(view({ status: 'done', result: { restoreUntil: '2026-11-24T10:00:00.000Z' } }));
+      const onResolved = vi.fn();
+      mount(<ProductActionCard actionId="a1" via="chat" onResolved={onResolved} />);
+      await flush();
+      expect(onResolved).not.toHaveBeenCalled();
+      await actAsync(async () => {
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      expect(onResolved).toHaveBeenCalledTimes(1);
+      expect(onResolved).toHaveBeenCalledWith(expect.objectContaining({ status: 'done' }));
+
+      // Следующий тик не нашёл бы новой причины звать колбэк снова — статус
+      // уже не working, опрос эффекта больше не идёт.
+      await actAsync(async () => {
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      expect(onResolved).toHaveBeenCalledTimes(1);
+    });
+  });
 });
