@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { productsApi, siteAddress, siteHref } from './productsApi';
+import { productsApi, siteAddress, siteHref, problem } from './productsApi';
 import { apiClient } from './apiClient';
 
 vi.mock('./apiClient', () => ({
@@ -474,6 +474,22 @@ describe('свой домен', () => {
 
     vi.mocked(apiClient.delete).mockRejectedValueOnce(new Error('network'));
     await expect(productsApi.detachDomain('p-1')).resolves.toEqual({ ok: false, status: 0, message: '' });
+  });
+});
+
+// `problem()` переиспользуется ручками карточки действий
+// (productActionsApi.ts), поэтому экспорт и разбор тела фиксируем отдельно:
+// лимит хода (429) отвечает телом `{error, retryAfter}`, а не `{message}`, и
+// код статуса не должен потеряться только из-за незнакомой формы тела.
+describe('problem()', () => {
+  it('тело {error} вместо {message} (429 — лимит хода) — код статуса сохраняется, причина пустая', async () => {
+    const r = await problem(res({ ok: false, status: 429, json: async () => ({ error: 'rate_limited', retryAfter: 5 }) }));
+    expect(r).toEqual({ ok: false, status: 429, message: '' });
+  });
+
+  it('тело {message} — причина читается как прежде', async () => {
+    const r = await problem(res({ ok: false, status: 404, json: async () => ({ message: 'Action not found' }) }));
+    expect(r).toEqual({ ok: false, status: 404, message: 'Action not found' });
   });
 });
 
