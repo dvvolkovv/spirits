@@ -270,6 +270,7 @@
     "assistant_role_default": "Asistente",
     "voice_not_supported": "La entrada de voz no es compatible con tu navegador",
     "voice_not_supported_title": "Entrada de voz no compatible",
+    "voice_lang_unsupported": "La entrada de voz todavía no entiende este idioma: escribe tu mensaje.",
     "voice_start": "Iniciar entrada de voz",
     "voice_stop": "Detener grabación",
     "voice_error": "Error de reconocimiento de voz: {{error}}",
