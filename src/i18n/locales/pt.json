@@ -2212,7 +2212,7 @@
     "subtitle": "Sites e bots que a Linkeon hospeda e mantém",
     "empty": "Ainda não há produtos",
     "emptyWhat": "Um produto é o seu site ou o seu bot do Telegram: o domínio, o servidor e as atualizações ficam por nossa conta. Basta descrever a alteração por palavras simples — o assistente faz a mudança e publica-a de imediato.",
-    "emptyPrice": "Os dois primeiros produtos têm o primeiro mês grátis, não é preciso pagar nada agora (os eliminados também contam). Depois, {{amount}} tokens por mês por produto.",
+    "emptyPrice": "Os dois primeiros produtos têm o primeiro mês grátis, os eliminados também contam. Depois, {{amount}} tokens por mês por produto.",
     "status": {
       "running": "Em funcionamento",
       "degraded": "Sem ligação ao servidor",

@@ -1850,7 +1850,7 @@
     "subtitle": "Websites und Bots, die Linkeon hostet und weiterentwickelt",
     "empty": "Noch keine Produkte",
     "emptyWhat": "Ein Produkt ist deine eigene Website oder dein Telegram-Bot: Domain, Server und Updates übernehmen wir. Du beschreibst die Änderung in normalen Worten — der Assistent setzt sie um und veröffentlicht sie sofort.",
-    "emptyPrice": "Für die ersten zwei Produkte ist der erste Monat kostenlos, im Voraus zahlst du nichts (gelöschte zählen mit). Danach {{amount}} Token pro Monat und Produkt.",
+    "emptyPrice": "Für die ersten zwei Produkte ist der erste Monat kostenlos, gelöschte zählen mit. Danach {{amount}} Token pro Monat und Produkt.",
     "status": {
       "running": "Läuft",
       "degraded": "Keine Verbindung zum Server",
