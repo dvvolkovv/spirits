@@ -1,6 +1,7 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
 import { extractAskBlocks, type AskBlock } from './askBlock';
+import { extractProductActions } from './productActionBlock';
 
 export interface ButtonConfig {
   text: string;
@@ -80,6 +81,7 @@ export const parseCustomMarkdown = (content: string, opts: { streaming?: boolean
   voiceCalls: Map<string, string>;
   meetings: Map<string, MeetingCard>;
   asks: Map<string, AskBlock>;
+  productActions: Map<string, string>;
 } => {
   const buttons = new Map<string, ButtonConfig>();
   const links = new Map<string, LinkConfig>();
@@ -89,9 +91,11 @@ export const parseCustomMarkdown = (content: string, opts: { streaming?: boolean
   const voiceCalls = new Map<string, string>();
   const meetings = new Map<string, MeetingCard>();
 
-  // Первым делом — блоки уточняющих вопросов: внутри них JSON, и регулярки
+  // Карточки продуктов — до всего остального: внутри блока JSON.
+  const { content: withoutActions, actions: productActions } = extractProductActions(content);
+  // Дальше — блоки уточняющих вопросов: внутри них JSON, и регулярки
   // ссылок и картинок ниже разобрали бы варианты ответа как разметку.
-  const { content: withoutAsks, asks } = extractAskBlocks(content, opts);
+  const { content: withoutAsks, asks } = extractAskBlocks(withoutActions, opts);
   let parsedContent = withoutAsks;
 
   parsedContent = parsedContent.replace(BUTTON_REGEX, (match, text, action, variant, icon) => {
@@ -158,7 +162,7 @@ export const parseCustomMarkdown = (content: string, opts: { streaming?: boolean
     return `__MEETING_${key}__`;
   });
 
-  return { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks };
+  return { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks, productActions };
 };
 
 export const createVideoComponent = (src: string, key?: string): React.ReactNode => {

@@ -58,6 +58,7 @@ import { startActivity, addStep, markTextStarted, finishActivity, type TurnActiv
 import { LiveActivity, ActivitySummaryView } from './ActivitySteps';
 import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
+import { stripProductActionBlocks } from '../../utils/productActionBlock';
 import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';
 
 interface Assistant {
@@ -3128,7 +3129,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {message.type === 'assistant' && !message.isStreaming && message.content && (
                   <button
                     type="button"
-                    onClick={() => handleCopyMessage(parseCustomMarkdown(askBlocksToPlainText(stripCalendarProposalMarkers(stripVideoJobMarkers(message.content)))).content || message.content, message.id)}
+                    onClick={() => handleCopyMessage(parseCustomMarkdown(askBlocksToPlainText(stripProductActionBlocks(stripCalendarProposalMarkers(stripVideoJobMarkers(message.content))))).content || message.content, message.id)}
                     className="inline-flex items-center gap-1 text-gray-400 hover:text-forest-600 transition-colors"
                     title={t('chat.copy_message', 'Скопировать ответ')}
                   >
