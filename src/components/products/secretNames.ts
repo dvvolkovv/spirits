@@ -17,8 +17,10 @@ export const SECRET_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 /** Потолки — SECRET_NAME_MAX/SECRET_VALUE_MAX в spirits_back/src/products/secret-rules.ts. */
 export const SECRET_NAME_MAX = 64;
 export const SECRET_VALUE_MAX = 8192;
-/** 64 секрета на продукт — потолок сервера, и один из них BOT_TOKEN. */
-export const EXTRA_SECRETS_MAX = 63;
+/** Ключей на продукт — SECRET_COUNT_MAX в spirits_back/src/products/secret-rules.ts. */
+export const SECRET_COUNT_MAX = 64;
+/** Строк формы бота: потолок сервера, и один из ключей — BOT_TOKEN. */
+export const EXTRA_SECRETS_MAX = SECRET_COUNT_MAX - 1;
 
 const RESERVED = [
   'LINKEON_URL', 'RUNNER_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'PRODUCT_START_SCRIPT',

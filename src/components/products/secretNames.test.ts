@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   EXTRA_SECRETS_MAX,
+  SECRET_COUNT_MAX,
   extraSecretsPayload,
   isReservedSecretName,
   validateExtraSecrets,
@@ -106,4 +107,5 @@ describe('extraSecretsPayload', () => {
 
 it('потолок формы — 63: вместе с BOT_TOKEN ровно потолок сервера', () => {
   expect(EXTRA_SECRETS_MAX).toBe(63);
+  expect(SECRET_COUNT_MAX).toBe(64);
 });

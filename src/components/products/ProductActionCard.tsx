@@ -4,6 +4,7 @@ import { productActionsApi, isProblem, type ActionSource, type ProductActionView
 import type { Problem } from '../../services/productsApi';
 import {
   EXTRA_SECRETS_MAX,
+  SECRET_COUNT_MAX,
   SECRET_NAME_MAX,
   extraSecretsPayload,
   validateExtraSecrets,
@@ -89,7 +90,11 @@ export function ProductActionCard({
   const [rowErrors, setRowErrors] = useState<ExtraSecretError[]>([]);
   // Ключи: новые значения существующих (пустое — «оставить как есть») и
   // помеченные к удалению. Значения живут только здесь и в теле отправки.
-  const [replace, setReplace] = useState<Record<string, string>>({});
+  // Map, а не объект: имя ключа — любое годное имя переменной, в том числе
+  // constructor, toString и __proto__ (сервер их принимает), а у объекта они
+  // читались бы унаследованными из Object.prototype — в поле «function
+  // Object()…», при отправке падение на .trim.
+  const [replace, setReplace] = useState<ReadonlyMap<string, string>>(() => new Map());
   const [removed, setRemoved] = useState<string[]>([]);
   // Опрос «в работе» остановился, не дождавшись исхода (20 попыток, минута;
   // у смены ключей — 60, три минуты).
@@ -184,7 +189,7 @@ export function ProductActionCard({
     setToken('');
     setRows([]);
     setRowErrors([]);
-    setReplace({});
+    setReplace(new Map());
     setRemoved([]);
     setPollStalled(false);
     void load(actionId, gen);
@@ -282,7 +287,7 @@ export function ProductActionCard({
     if (r.status !== 'pending') {
       setToken('');
       setRows([]);
-      setReplace({});
+      setReplace(new Map());
       setRemoved([]);
     }
     if (wasPending && r.status !== 'pending' && r.status !== 'working') onResolved?.(r);
@@ -334,6 +339,9 @@ export function ProductActionCard({
 
   const submitKeys = () => {
     if (!view) return;
+    // Прежнее сообщение («ничего не изменено», прошлый отказ сервера) — про
+    // прошлую отправку; рядом с новыми ошибками строк оно сбивало бы с толку.
+    setError(null);
     const existing = new Set(view.keyNames);
     // Проверка новых строк — та же, что у формы бота; плюс повтор имени,
     // которое уже есть выше: его меняют полем замены, а не новой строкой.
@@ -356,7 +364,7 @@ export function ProductActionCard({
     const set = Object.fromEntries([
       ...view.keyNames
         .filter((n) => !removed.includes(n))
-        .map((n) => [n, (replace[n] ?? '').trim()] as const)
+        .map((n) => [n, (replace.get(n) ?? '').trim()] as const)
         .filter(([, v]) => v !== ''),
       ...Object.entries(extraSecretsPayload(rows)),
     ]);
@@ -383,7 +391,10 @@ export function ProductActionCard({
     (serverField.endsWith('…') ? n.startsWith(serverField.slice(0, -1)) : n === serverField);
 
   // Новые строки «имя — значение»: одни и те же у формы бота и у формы ключей.
-  const extraRows = (titleId: string, title: string) => (
+  // maxRows — сколько строк ещё помещается под потолок ключей продукта: у
+  // формы бота это свой потолок рядом с BOT_TOKEN, у формы ключей — остаток
+  // от текущего набора.
+  const extraRows = (titleId: string, title: string, maxRows: number) => (
     <div role="group" aria-labelledby={titleId} className="space-y-2">
       <p id={titleId} className="text-xs font-medium">{title}</p>
       {rows.map((row, i) => (
@@ -406,7 +417,7 @@ export function ProductActionCard({
           )}
         </div>
       ))}
-      {rows.length < EXTRA_SECRETS_MAX && (
+      {rows.length < maxRows && (
         <button type="button" disabled={busy} onClick={() => setRows([...rows, { id: nextId.current++, name: '', value: '' }])}
           className="text-xs text-forest-700">
           {t('products.action.createBot.addKey')}
@@ -491,7 +502,7 @@ export function ProductActionCard({
             value={token} onChange={(e) => setToken(e.target.value)} disabled={busy}
             className="ym-disable-keys mt-1 w-full rounded-lg border border-gray-300 px-2 py-1.5" />
         </label>
-        {extraRows('product-action-extra-title', t('products.action.createBot.extraTitle'))}
+        {extraRows('product-action-extra-title', t('products.action.createBot.extraTitle'), EXTRA_SECRETS_MAX)}
         <div className="flex gap-2">
           <button type="button" disabled={busy} onClick={submitBot}
             className="px-4 py-1.5 rounded-lg bg-forest-600 text-white text-xs font-medium disabled:opacity-50">
@@ -507,6 +518,9 @@ export function ProductActionCard({
   } else if (view.kind === 'keys') {
     // BOT_TOKEN бота убрать нельзя — только заменить (сервер отбьёт тоже).
     const canRemove = (n: string) => !(view.productKind === 'bot' && n === 'BOT_TOKEN');
+    // Потолок сервера — на итоговый набор: новые строки помещаются в то, что
+    // не заняли остающиеся ключи (убранный ключ освобождает место).
+    const kept = view.keyNames.filter((n) => !removed.includes(n)).length;
     body = (
       <>
         <p className="font-medium">{t('products.action.keys.title', { name })}</p>
@@ -522,9 +536,9 @@ export function ProductActionCard({
               ) : (
                 <input data-testid="product-action-key-replace" type="password" autoComplete="off" spellCheck={false}
                   aria-label={t('products.action.keys.newValue', { name: n })} placeholder={t('products.action.keys.keepPlaceholder')}
-                  value={replace[n] ?? ''} disabled={busy}
+                  value={replace.get(n) ?? ''} disabled={busy}
                   aria-invalid={isServerField(n)}
-                  onChange={(e) => setReplace((r) => ({ ...r, [n]: e.target.value }))}
+                  onChange={(e) => setReplace((r) => new Map(r).set(n, e.target.value))}
                   className="ym-disable-keys flex-1 rounded-lg border border-gray-300 aria-[invalid=true]:border-red-500 px-2 py-1.5 text-xs" />
               )}
               {canRemove(n) && (
@@ -535,7 +549,7 @@ export function ProductActionCard({
             </div>
           ))}
         </div>
-        {extraRows('product-action-keys-add', t('products.action.keys.addTitle'))}
+        {extraRows('product-action-keys-add', t('products.action.keys.addTitle'), SECRET_COUNT_MAX - kept)}
         <div className="flex gap-2">
           <button type="button" disabled={busy} onClick={submitKeys}
             className="px-4 py-1.5 rounded-lg bg-forest-600 text-white text-xs font-medium disabled:opacity-50">
