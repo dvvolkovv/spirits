@@ -2281,7 +2281,7 @@
       "tokenHint": "O token é emitido pelo @BotFather. Guardamo-lo encriptado e não o voltamos a mostrar.",
       "extraSecrets": {
         "title": "Chaves adicionais",
-        "hint": "Se o bot precisar de chaves de outros serviços — por exemplo, a API de um marketplace ou de um CRM —, escreva-as aqui. O bot recebe cada chave como variável de ambiente com esse nome. Guardamos as chaves encriptadas. Não as envie pelo chat: os pedidos de alteração ficam guardados no histórico. Mais tarde podes alterar, remover ou acrescentar chaves pedindo ao assistente.",
+        "hint": "Se o bot precisar de chaves de outros serviços — por exemplo, a API de um marketplace ou de um CRM —, escreva-as aqui. O bot recebe cada chave como variável de ambiente com esse nome. Guardamos as chaves encriptadas. Não as envie pelo chat: os pedidos de alteração ficam guardados no histórico. Mais tarde, é possível alterar, remover ou acrescentar chaves pedindo ao assistente.",
         "name": "Nome da chave",
         "namePlaceholder": "API_KEY",
         "value": "Valor",
@@ -2444,9 +2444,9 @@
         "errors": {
           "nothing": "Nada foi alterado: escreve um valor novo, remove ou acrescenta uma chave.",
           "bad_shape": "Este cartão está desatualizado — recarrega-o e introduz as chaves de novo.",
-          "bad_input": "A chave {{field}} não foi aceite: verifica o nome (letras latinas, algarismos, «_», não reservado pela plataforma) e o valor (não vazio, até 8192 caracteres).",
+          "bad_input": "A chave {{field}} não foi aceite: o nome usa letras latinas, algarismos e «_», não começa por um algarismo, tem no máximo 64 caracteres e não está reservado pela plataforma; o valor não está vazio e tem no máximo 8192 caracteres.",
           "too_many": "Chaves a mais — no máximo 64 por produto.",
-          "bot_token": "O token do bot não pode ser removido — só substituído.",
+          "bot_token": "O bot tem de ter um BOT_TOKEN — não pode ser removido, só substituído.",
           "busy_turn": "Está a decorrer uma alteração ao produto — envia o cartão quando terminar.",
           "busy": "A máquina do produto está ocupada — envia o cartão daqui a um minuto.",
           "bad_token": "O Telegram não aceitou o token do bot — copia-o inteiro do @BotFather.",
@@ -2454,12 +2454,12 @@
           "bot_in_use": "Este bot já funciona noutro produto — cria um bot novo no @BotFather.",
           "gone": "O produto foi eliminado — as chaves não foram alteradas.",
           "blocked": "O produto foi parado por um administrador — as chaves não foram alteradas; contacta o suporte.",
-          "sleeping": "O produto está em repouso: os tokens não chegaram para o aluguer. Carrega o saldo — ele acorda e podes alterar as chaves.",
+          "sleeping": "O produto está a dormir: os tokens não chegaram para a renda. Carrega o saldo — ele acorda e podes alterar as chaves.",
           "provisioning": "O produto ainda está a ser criado — podes alterar as chaves daqui a um minuto.",
           "failed_product": "O produto não arrancou — primeiro é preciso criá-lo de novo.",
           "unavailable": "O produto não está disponível neste momento — as chaves não foram alteradas.",
           "state_changed": "O estado do produto mudou — as chaves não foram alteradas. Pede de novo ao assistente.",
-          "rekey_failed": "As chaves não foram aplicadas — o produto funciona com as chaves antigas. Tenta de novo daqui a alguns minutos.",
+          "rekey_failed": "As chaves não foram aplicadas — o produto funciona com as chaves antigas. Tenta de novo daqui a alguns minutos; se não resultar, contacta o suporte.",
           "rekey_unknown": "A alteração das chaves foi interrompida e o produto pode não responder. Se continuar calado mais do que alguns minutos, contacta o suporte.",
           "failed": "Não foi possível alterar as chaves: tenta mais tarde ou contacta o suporte se isto se repetir."
         }

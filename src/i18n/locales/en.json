@@ -2441,9 +2441,9 @@
         "errors": {
           "nothing": "Nothing changed: enter a new value, remove a key or add one.",
           "bad_shape": "This card is out of date — reload it and enter the keys again.",
-          "bad_input": "Key {{field}} was not accepted: check the name (Latin letters, digits, “_”, not reserved by the platform) and the value (not empty, up to 8192 characters).",
+          "bad_input": "Key {{field}} was not accepted: the name uses Latin letters, digits and “_”, doesn’t start with a digit, is up to 64 characters and isn’t reserved by the platform; the value is not empty and up to 8192 characters.",
           "too_many": "Too many keys — no more than 64 per product.",
-          "bot_token": "The bot token can’t be removed — only replaced.",
+          "bot_token": "The bot must have a BOT_TOKEN — it can’t be removed, only replaced.",
           "busy_turn": "The product is being edited right now — send the card when the edit finishes.",
           "busy": "The product’s machine is busy — send the card in a minute.",
           "bad_token": "Telegram didn’t accept the bot token — copy it in full from @BotFather.",
@@ -2456,7 +2456,7 @@
           "failed_product": "The product failed to start — it needs to be set up again first.",
           "unavailable": "The product is unavailable right now — the keys were not changed.",
           "state_changed": "The product’s state changed — the keys were not changed. Ask the assistant again.",
-          "rekey_failed": "The keys were not applied — the product runs with the old keys. Try again in a few minutes.",
+          "rekey_failed": "The keys were not applied — the product runs with the old keys. Try again in a few minutes; if it still fails, contact support.",
           "rekey_unknown": "The key change was interrupted, and the product may not respond. If it stays silent for more than a few minutes, contact support.",
           "failed": "Couldn’t change the keys — try again later, or contact support if this keeps happening."
         }

@@ -2076,15 +2076,15 @@
         "duplicate": "Diesen Schlüssel gibt es schon — ersetze ihn oben",
         "nothing": "Nichts geändert: Gib einen neuen Wert ein, entferne einen Schlüssel oder füge einen hinzu.",
         "submit": "Schlüssel speichern",
-        "submitting": "Speichere…",
+        "submitting": "Wird gespeichert…",
         "working": "Die Schlüssel werden geändert und das Produkt neu gestartet — das dauert bis zu ein paar Minuten.",
         "done": "Die Schlüssel für „{{name}}“ sind aktualisiert, das Produkt wurde neu gestartet.",
         "errors": {
           "nothing": "Nichts geändert: Gib einen neuen Wert ein, entferne einen Schlüssel oder füge einen hinzu.",
           "bad_shape": "Diese Karte ist veraltet — lade sie neu und gib die Schlüssel noch einmal ein.",
-          "bad_input": "Schlüssel {{field}} wurde nicht angenommen: Prüfe den Namen (lateinische Buchstaben, Ziffern, „_“, nicht von der Plattform belegt) und den Wert (nicht leer, bis 8192 Zeichen).",
+          "bad_input": "Schlüssel {{field}} wurde nicht angenommen: der Name besteht aus lateinischen Buchstaben, Ziffern und „_“, beginnt nicht mit einer Ziffer, ist höchstens 64 Zeichen lang und ist nicht von der Plattform belegt; der Wert ist nicht leer und höchstens 8192 Zeichen lang.",
           "too_many": "Zu viele Schlüssel — höchstens 64 pro Produkt.",
-          "bot_token": "Das Bot-Token lässt sich nicht entfernen — nur ersetzen.",
+          "bot_token": "Der Bot braucht ein BOT_TOKEN — es lässt sich nicht entfernen, nur ersetzen.",
           "busy_turn": "Gerade läuft eine Änderung am Produkt — schick die Karte, wenn sie fertig ist.",
           "busy": "Die Maschine des Produkts ist gerade beschäftigt — schick die Karte in einer Minute.",
           "bad_token": "Telegram hat das Bot-Token nicht angenommen — kopiere es vollständig aus @BotFather.",
@@ -2097,7 +2097,7 @@
           "failed_product": "Das Produkt ist nicht gestartet — es muss zuerst neu eingerichtet werden.",
           "unavailable": "Das Produkt ist gerade nicht verfügbar — die Schlüssel wurden nicht geändert.",
           "state_changed": "Der Zustand des Produkts hat sich geändert — die Schlüssel wurden nicht geändert. Frag den Assistenten noch einmal.",
-          "rekey_failed": "Die Schlüssel wurden nicht übernommen — das Produkt läuft mit den alten Schlüsseln. Versuch es in ein paar Minuten noch einmal.",
+          "rekey_failed": "Die Schlüssel wurden nicht übernommen — das Produkt läuft mit den alten Schlüsseln. Versuch es in ein paar Minuten noch einmal; klappt es nicht, wende dich an den Support.",
           "rekey_unknown": "Der Schlüsselwechsel wurde unterbrochen, und das Produkt antwortet vielleicht nicht. Wenn es länger als ein paar Minuten still bleibt, wende dich an den Support.",
           "failed": "Die Schlüssel ließen sich nicht ändern — versuch es später noch einmal; wenn es wiederkehrt, wende dich an den Support."
         }

@@ -14,7 +14,7 @@
 
 /** Форма имени переменной окружения — `SECRET_NAME_RE` сервера, символ в символ. */
 export const SECRET_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-/** Потолки — из create() на бэкенде. */
+/** Потолки — SECRET_NAME_MAX/SECRET_VALUE_MAX в spirits_back/src/products/secret-rules.ts. */
 export const SECRET_NAME_MAX = 64;
 export const SECRET_VALUE_MAX = 8192;
 /** 64 секрета на продукт — потолок сервера, и один из них BOT_TOKEN. */
