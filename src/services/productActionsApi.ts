@@ -10,10 +10,12 @@ export interface ProductActionView {
   status: ProductActionStatus;
   productId: string | null;
   productName: string | null;
+  /** Форма продукта (с очереди 2). Необязательное: сервер старше фронта поля не шлёт. */
+  productKind?: 'site' | 'bot' | null;
   keyNames: string[];
   expiresAt: string | null;
   restoreUntil: string | null;
-  result: { error?: string; reason?: string; productId?: string; botUsername?: string; restoreUntil?: string } | null;
+  result: { error?: string; reason?: string; productId?: string; botUsername?: string; restoreUntil?: string; keyNames?: string[] } | null;
 }
 
 export type ActionSource = 'chat' | 'cabinet' | 'tma';
@@ -45,7 +47,7 @@ async function call(fn: () => Promise<Response>): Promise<ProductActionView | Pr
 
 export const productActionsApi = {
   get: (id: string) => call(() => apiClient.get(`/webhook/product-actions/${enc(id)}`)),
-  submit: (id: string, body: { confirm?: true; set?: Record<string, string>; via: ActionSource }) =>
+  submit: (id: string, body: { confirm?: true; set?: Record<string, string>; remove?: string[]; via: ActionSource }) =>
     call(() => apiClient.post(`/webhook/product-actions/${enc(id)}`, body)),
   cancel: (id: string) => call(() => apiClient.post(`/webhook/product-actions/${enc(id)}/cancel`)),
   async pending(): Promise<ProductActionView[]> {

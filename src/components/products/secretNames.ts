@@ -4,7 +4,7 @@
  * ТРЕТЬЯ КОПИЯ ОДНОЙ ПРОВЕРКИ. Оригинал — `isReservedEnvName` в агенте хоста
  * (`spirits_back/product-runner/src/host/provision.ts`), там же объяснение
  * каждого имени: это последний рубеж перед `docker run -e`. Вторая —
- * `isReservedSecretName` на сервере (`spirits_back/src/products/provisioning.service.ts`),
+ * `isReservedSecretName` на сервере (`spirits_back/src/products/secret-rules.ts`),
  * она отвечает 400 до записи продукта. Эта — ради объяснения на месте и на
  * языке кабинета: отказ сервера приходит русским текстом на всех семи локалях.
  *
@@ -25,6 +25,9 @@ const RESERVED = [
   'CHECKOUT_PATH', 'CLAUDE_BIN', 'PORT', 'HOME', 'PATH', 'NODE_OPTIONS',
   'SHELL', 'USER', 'BASH_ENV', 'ENV', 'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
   'POLL_INTERVAL_MS', 'TURN_TIMEOUT_MS', 'POLL_TIMEOUT_MS', 'REQUEST_TIMEOUT_MS',
+  // Telegram владельца бота — кладёт платформа (очередь 2). Ключ с этим именем
+  // подменил бы, кому бот отвечает данными владельца.
+  'OWNER_TG_ID',
 ];
 const RESERVED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_', 'NODE_', 'NPM_CONFIG_', 'LD_', 'GIT_', 'PM2_', 'SSL_', 'DOTENV_'];
 const RESERVED_EXCEPTIONS = ['NODE_ENV'];
