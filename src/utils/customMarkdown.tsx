@@ -2,6 +2,7 @@ import React from 'react';
 import * as LucideIcons from 'lucide-react';
 import { extractAskBlocks, type AskBlock } from './askBlock';
 import { extractProductActions } from './productActionBlock';
+import { isWebLink } from './cabinetSections';
 
 export interface ButtonConfig {
   text: string;
@@ -176,9 +177,11 @@ export const createVideoComponent = (src: string, key?: string): React.ReactNode
   );
 };
 
+// ym-disable-tracklink у ссылок ниже — мимо «Внешних переходов» Метрики:
+// адреса из переписки личные (сторож — components/webvisorPrivacy.test.ts).
 export const createImageComponent = (src: string, key?: string): React.ReactNode => {
   return (
-    <a key={key} href={src} target="_blank" rel="noopener noreferrer" className="block my-2">
+    <a key={key} href={src} target="_blank" rel="noopener noreferrer" className="ym-disable-tracklink block my-2">
       <img src={src} alt="" loading="lazy" className="max-w-full sm:max-w-sm rounded-lg border border-gray-100" />
     </a>
   );
@@ -309,16 +312,20 @@ export const createLinkComponent = (
   config: LinkConfig,
   onNavigate?: (url: string) => void
 ): React.ReactNode => {
+  // Адрес из тега приходит как есть, react-markdown его не чистит. Не
+  // веб-адрес (javascript:, data:, file: …) не попадает и в href: иначе его
+  // открыли бы средняя кнопка или «Открыть в новой вкладке» мимо обработчика
+  // (utils/cabinetSections.ts, isWebLink).
   return (
     <a
-      href={config.url}
+      href={isWebLink(config.url) ? config.url : undefined}
       onClick={(e) => {
         if (onNavigate) {
           e.preventDefault();
           onNavigate(config.url);
         }
       }}
-      className="text-forest-600 hover:text-forest-700 underline"
+      className="ym-disable-tracklink text-forest-600 hover:text-forest-700 underline"
     >
       {config.text}
     </a>

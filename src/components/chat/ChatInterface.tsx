@@ -24,7 +24,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
-import { chatLinkPath } from '../../utils/cabinetSections';
+import { chatLinkPath, isWebLink } from '../../utils/cabinetSections';
 import { VoiceDictation } from '../../services/voiceDictation';
 import { isDictationLanguageSupported } from '../../services/dictationLanguages';
 import AudioClip from './AudioClip';
@@ -409,14 +409,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Свой кабинет (https://my.linkeon.io/profile?open=zoom из ответа
     // ассистента) и путь внутри него — в той же вкладке, переходом роутера:
     // новая вкладка загружала бы кабинет заново, а в приложении открылся бы
-    // внешний браузер без входа. Остальное — чужие сайты, файлы, «//host» —
-    // в новой вкладке без доступа к нашей (utils/cabinetSections.ts, chatLinkPath).
+    // внешний браузер без входа. Остальные веб-адреса — чужие сайты, файлы,
+    // «//host» — в новой вкладке без доступа к нашей; javascript:, data: и
+    // прочие не веб-схемы — никуда (utils/cabinetSections.ts: chatLinkPath, isWebLink).
     const inside = chatLinkPath(url);
     if (inside) {
       navigate(inside);
       return;
     }
-    window.open(url, '_blank', 'noopener,noreferrer');
+    if (isWebLink(url)) window.open(url, '_blank', 'noopener,noreferrer');
   }, [navigate]);
 
   const markdownComponents = useMemo(() => ({
@@ -457,15 +458,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     tr: ({ children }: any) => <tr>{children}</tr>,
     th: ({ children }: any) => <th className="px-2 py-1.5 text-left font-semibold text-gray-700 border-b border-gray-200">{children}</th>,
     td: ({ children }: any) => <td className="px-2 py-1.5 align-top">{children}</td>,
+    // Не веб-адрес (mailto: и прочее, что пропускает react-markdown) — без
+    // href: чат его не открывает, и средняя кнопка не должна. ym-disable-tracklink —
+    // мимо «Внешних переходов» Метрики: адреса из переписки личные
+    // (webvisorPrivacy.test.ts).
     a: ({ href, children }: any) => {
       return (
         <a
-          href={href}
+          href={href && isWebLink(href) ? href : undefined}
           onClick={(e) => {
             e.preventDefault();
             if (href) handleLinkNavigation(href);
           }}
-          className="text-forest-600 hover:text-forest-700 underline cursor-pointer"
+          className="ym-disable-tracklink text-forest-600 hover:text-forest-700 underline cursor-pointer"
         >
           {children}
         </a>
@@ -484,7 +489,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           download
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-1 flex items-center gap-1 text-xs text-forest-600 hover:text-forest-700"
+          className="ym-disable-tracklink mt-1 flex items-center gap-1 text-xs text-forest-600 hover:text-forest-700"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>

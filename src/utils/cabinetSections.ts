@@ -249,3 +249,23 @@ export function chatLinkPath(url: string, here: string = currentHost()): string 
   if (u.origin !== PATH_BASE || u.pathname.startsWith('//') || u.pathname.startsWith('/static/')) return null;
   return `${u.pathname}${u.search}${u.hash}`;
 }
+
+/**
+ * Веб-адрес ли это — http(s), в том числе относительный путь. Только такие
+ * ссылки чат и открывает (новой вкладкой, если chatLinkPath не дал пути
+ * кабинета), и только их кладёт в href. javascript:, data:, vbscript:,
+ * file:, blob:, mailto: и прочие схемы не открываются вовсе: адрес в ответ
+ * ассистента может попасть из чужого текста (страница из поиска, файл), а
+ * {{link}} передаёт его как есть. Схему определяет тот же разбор URL, что у
+ * браузера: регистр, пробелы и управляющие знаки в начале, табуляция и
+ * перевод строки внутри («java\tscript:») ему не помеха.
+ */
+export function isWebLink(url: string): boolean {
+  if (url.trim() === '') return false;
+  try {
+    const { protocol } = new URL(url, PATH_BASE);
+    return protocol === 'https:' || protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
