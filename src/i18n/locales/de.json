@@ -1883,7 +1883,7 @@
       "failed": "Die Änderung konnte nicht gesendet werden",
       "secretsMasked": {
         "title": "Schlüssel aus der Änderung entfernt",
-        "body": "Der Text enthielt Werte, die wie Schlüssel aussehen. Sie sind weder im Produkt noch im Änderungsverlauf gelandet — an ihrer Stelle steht ein Platzhalter. Damit das Produkt einen Schlüssel bekommt, bitte einen Assistenten im Chat, die Schlüssel des Produkts zu ändern: Er öffnet eine sichere Karte.",
+        "body": "Der Text enthielt Werte, die wie Schlüssel aussehen. Diese Werte sind weder im Produkt noch im Änderungsverlauf gelandet — an ihrer Stelle steht ein Platzhalter. Damit das Produkt einen Schlüssel bekommt, bitte einen Assistenten im Chat, die Schlüssel des Produkts zu ändern: Er öffnet eine sichere Karte.",
         "names": "Ausgeblendet: {{names}}"
       }
     },
