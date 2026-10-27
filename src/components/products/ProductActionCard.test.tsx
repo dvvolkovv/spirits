@@ -306,11 +306,6 @@ describe('карточка действия продукта', () => {
     const b = mount(<ProductActionCard actionId="a2" via="chat" />);
     await flush();
     expect(visibleText(b.container)).toContain(tRu('products.action.notACard'));
-
-    api.get.mockResolvedValueOnce(view({ kind: 'keys', status: 'pending' }));
-    const c = mount(<ProductActionCard actionId="a3" via="chat" />);
-    await flush();
-    expect(visibleText(c.container)).toContain(tRu('products.action.keys.unsupported'));
   });
 
   // Находка ревью: fmt() падал бы на NaN-дате без проверки — заведённого
@@ -530,5 +525,228 @@ describe('карточка действия продукта', () => {
       });
       expect(onResolved).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('карточка ключей', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useRealTimers();
+  });
+  const keysView = (over: Partial<ProductActionView> = {}) =>
+    view({ kind: 'keys', productKind: 'site', productName: 'Сайт', keyNames: ['API_KEY', 'OLD_KEY'], ...over });
+  const buttonsByText = (c: HTMLElement, text: string) => [...c.querySelectorAll('button')].filter((b) => b.textContent === text);
+  const replaceInputs = (c: HTMLElement) => [...c.querySelectorAll('[data-testid="product-action-key-replace"]')] as HTMLInputElement[];
+  const nameInputs = (c: HTMLElement) => [...c.querySelectorAll('input[placeholder="API_KEY"]')] as HTMLInputElement[];
+  const valueInputs = (c: HTMLElement) => [...c.querySelectorAll('[data-testid="product-action-secret-value"]')] as HTMLInputElement[];
+
+  it('имена ключей видны, значений нет; замена, удаление и новый ключ уходят в set и remove', async () => {
+    api.get.mockResolvedValue(keysView());
+    api.submit.mockResolvedValue(keysView({ status: 'working' }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    expect(visibleText(container)).toContain(tRu('products.action.keys.title', { name: 'Сайт' }));
+    expect(visibleText(container)).toContain('API_KEY');
+    const replaces = container.querySelectorAll('[data-testid="product-action-key-replace"]');
+    expect(replaces).toHaveLength(2);
+    expect((replaces[0] as HTMLInputElement).value).toBe('');
+    type(replaces[0], 'новое-значение');
+    click(buttonsByText(container, tRu('products.action.keys.remove'))[1]);
+    expect(visibleText(container)).toContain(tRu('products.action.keys.willRemove'));
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.createBot.addKey')))!);
+    type(container.querySelector('input[placeholder="API_KEY"]')!, 'NEW_KEY');
+    type(container.querySelector('[data-testid="product-action-secret-value"]')!, 'n');
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.keys.submit')))!);
+    expect(api.submit).toHaveBeenCalledWith('a1', { set: { API_KEY: 'новое-значение', NEW_KEY: 'n' }, remove: ['OLD_KEY'], via: 'chat' });
+  });
+
+  it('ничего не изменено — отказ на месте, на сервер не уходит', async () => {
+    api.get.mockResolvedValue(keysView());
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.keys.submit')))!);
+    expect(api.submit).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain(tRu('products.action.keys.nothing'));
+  });
+
+  it('у бота токен убрать нельзя — кнопки «Убрать» у BOT_TOKEN нет', async () => {
+    api.get.mockResolvedValue(keysView({ productKind: 'bot', keyNames: ['BOT_TOKEN', 'API_KEY'] }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="tma" />);
+    await flush();
+    expect(buttonsByText(container, tRu('products.action.keys.remove'))).toHaveLength(1);
+  });
+
+  it('новый ключ с именем существующего — ошибка строки, на сервер не уходит', async () => {
+    api.get.mockResolvedValue(keysView());
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.createBot.addKey')))!);
+    type(container.querySelector('input[placeholder="API_KEY"]')!, 'API_KEY');
+    type(container.querySelector('[data-testid="product-action-secret-value"]')!, 'x');
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.keys.submit')))!);
+    expect(api.submit).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain(tRu('products.action.keys.duplicate'));
+  });
+
+  // У формы бота строка BOT_TOKEN — ошибка «впишите в поле токена выше». В
+  // карточке ключей такого поля нет: у бота токен — в списке текущих (новая
+  // строка с ним — повтор), у сайта BOT_TOKEN — обычный ключ (сервер так и
+  // считает, product-keys.service).
+  it('у бота BOT_TOKEN новой строкой — повтор: токен меняют в списке выше', async () => {
+    api.get.mockResolvedValue(keysView({ productKind: 'bot', keyNames: ['BOT_TOKEN', 'API_KEY'] }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="tma" />);
+    await flush();
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.createBot.addKey')))!);
+    type(nameInputs(container)[0], 'BOT_TOKEN');
+    type(valueInputs(container)[0], '123456:TEST');
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.keys.submit')))!);
+    expect(api.submit).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain(tRu('products.action.keys.duplicate'));
+    expect(visibleText(container)).not.toContain(tRu('products.new.errors.secretNameBotToken'));
+  });
+
+  it('у сайта BOT_TOKEN — обычный ключ: новой строкой уходит в set', async () => {
+    api.get.mockResolvedValue(keysView());
+    api.submit.mockResolvedValue(keysView({ status: 'working' }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.createBot.addKey')))!);
+    type(nameInputs(container)[0], 'BOT_TOKEN');
+    type(valueInputs(container)[0], 't');
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.keys.submit')))!);
+    expect(api.submit).toHaveBeenCalledWith('a1', { set: { BOT_TOKEN: 't' }, remove: [], via: 'chat' });
+  });
+
+  it('смена actionId сбрасывает замены и пометки «убрать» прежней карточки', async () => {
+    api.get.mockResolvedValueOnce(keysView());
+    const { container, rerender } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    type(replaceInputs(container)[0], 'v');
+    click(buttonsByText(container, tRu('products.action.keys.remove'))[1]);
+    expect(visibleText(container)).toContain(tRu('products.action.keys.willRemove'));
+
+    api.get.mockResolvedValueOnce(keysView({ id: 'a2' }));
+    rerender(<ProductActionCard actionId="a2" via="chat" />);
+    await flush();
+    expect(replaceInputs(container)).toHaveLength(2);
+    expect(replaceInputs(container)[0].value).toBe('');
+    expect(visibleText(container)).not.toContain(tRu('products.action.keys.willRemove'));
+  });
+
+  it('готово и «в работе» — свои тексты ключей', async () => {
+    api.get.mockResolvedValueOnce(keysView({ status: 'done' }));
+    const a = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    expect(visibleText(a.container)).toContain(tRu('products.action.keys.done', { name: 'Сайт' }));
+    api.get.mockResolvedValueOnce(keysView({ status: 'working' }));
+    const b = mount(<ProductActionCard actionId="a2" via="chat" />);
+    await flush();
+    expect(visibleText(b.container)).toContain(tRu('products.action.keys.working'));
+    // Карточка «в работе» опрашивает на настоящих таймерах — снять, чтобы её
+    // тики не стучались в заглушку api следующих тестов.
+    b.unmount();
+    a.unmount();
+  });
+
+  it('«в работе» у ключей опрашивается дольше минуты: пересоздание контейнера бывает небыстрым', async () => {
+    vi.useFakeTimers();
+    api.get.mockResolvedValue(keysView({ status: 'working' }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    await actAsync(async () => { await vi.advanceTimersByTimeAsync(3000 * 25); });
+    expect(api.get.mock.calls.length).toBeGreaterThan(21);
+    expect(byButton(container, new RegExp(tRu('products.action.checkAgain')))).toBeNull();
+  });
+
+  // Сервер кладёт в result причину (reason) любого исхода — по ней текст
+  // показывается на языке человека; русский error — только запасной.
+  it('поправимый отказ — текстом причины, а не русским error сервера', async () => {
+    api.get.mockResolvedValue(keysView({ result: { error: 'Telegram не принял токен бота (сырой текст)', reason: 'bad_token', field: 'BOT_TOKEN' } as any }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    expect(visibleText(container)).toContain(tRu('products.action.keys.errors.bad_token'));
+    expect(visibleText(container)).not.toContain('(сырой текст)');
+  });
+
+  it('bad_input называет ключ', async () => {
+    api.get.mockResolvedValue(keysView({ result: { error: 'имя секрета PORT занято платформой', reason: 'bad_input', field: 'PORT' } as any }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    expect(visibleText(container)).toContain(tRu('products.action.keys.errors.bad_input', { field: 'PORT' }));
+  });
+
+  it('исход смены неизвестен — свой текст в failed', async () => {
+    api.get.mockResolvedValue(keysView({ status: 'failed', result: { error: 'сырой', reason: 'rekey_unknown' } as any }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    expect(visibleText(container)).toContain(tRu('products.action.failed', { reason: tRu('products.action.keys.errors.rekey_unknown') }));
+  });
+
+  it('причина без перевода — показывается error сервера как есть', async () => {
+    api.get.mockResolvedValue(keysView({ result: { error: 'Особая причина сервера', reason: 'zzz_new' } as any }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    expect(visibleText(container)).toContain('Особая причина сервера');
+  });
+
+  // У причины failed свой текст в словаре (он же — нечитаемые ключи, где
+  // повтор не поможет): общий failedGeneric — только запасной для причины,
+  // которой в словаре нет.
+  it('причина failed — свой текст словаря, а не общее «не получилось»', async () => {
+    api.get.mockResolvedValue(keysView({ status: 'failed', result: { error: 'сырой', reason: 'failed' } }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    expect(visibleText(container)).toContain(tRu('products.action.failed', { reason: tRu('products.action.keys.errors.failed') }));
+    expect(visibleText(container)).not.toContain(tRu('products.action.failedGeneric'));
+  });
+
+  it('отправка вернула pending с причиной failed — текст словаря, введённое остаётся', async () => {
+    api.get.mockResolvedValue(keysView());
+    api.submit.mockResolvedValue(keysView({ result: { error: 'Не получилось — попробуйте ещё раз позже', reason: 'failed' } }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    type(replaceInputs(container)[0], 'v');
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.keys.submit')))!);
+    expect(api.submit).toHaveBeenCalledTimes(1);
+    expect(visibleText(container)).toContain(tRu('products.action.keys.errors.failed'));
+    expect(replaceInputs(container)[0].value).toBe('v');
+  });
+
+  it('причина без перевода и без текста сервера — общее «не получилось»', async () => {
+    api.get.mockResolvedValue(keysView({ status: 'failed', result: { reason: 'zzz_new' } }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    expect(visibleText(container)).toContain(tRu('products.action.failedGeneric'));
+  });
+
+  // field сервера: годное имя (в том числе занятое) — целиком, и сравнение
+  // точное; негодное — обрезком shownSecretName (первые 8 знаков и «…»), и
+  // строка ищется по началу имени.
+  it('отказ с field подсвечивает поле этого ключа — точным именем, а не по началу', async () => {
+    api.get.mockResolvedValue(keysView({ keyNames: ['API_KEY', 'API_KEY_2'], result: { error: 'x', reason: 'bad_input', field: 'API_KEY' } }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    const replaces = replaceInputs(container);
+    expect(replaces[0].getAttribute('aria-invalid')).toBe('true');
+    expect(replaces[1].getAttribute('aria-invalid')).toBe('false');
+  });
+
+  it('обрезанный field («…») находит новую строку по началу имени', async () => {
+    api.get.mockResolvedValue(keysView());
+    api.submit.mockResolvedValue(keysView({ result: { error: 'имя секрета не переменная окружения', reason: 'bad_input', field: 'ABCDEFGH…' } }));
+    const { container } = mount(<ProductActionCard actionId="a1" via="chat" />);
+    await flush();
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.createBot.addKey')))!);
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.createBot.addKey')))!);
+    type(nameInputs(container)[0], 'ABCDEFGHIJKL');
+    type(valueInputs(container)[0], 'v');
+    type(nameInputs(container)[1], 'ABCDEFGX');
+    type(valueInputs(container)[1], 'w');
+    await clickAsync(byButton(container, new RegExp(tRu('products.action.keys.submit')))!);
+    expect(api.submit).toHaveBeenCalledTimes(1);
+    expect(visibleText(container)).toContain(tRu('products.action.keys.errors.bad_input', { field: 'ABCDEFGH…' }));
+    expect(nameInputs(container)[0].getAttribute('aria-invalid')).toBe('true');
+    expect(nameInputs(container)[1].getAttribute('aria-invalid')).toBe('false');
+    expect(replaceInputs(container).map((i) => i.getAttribute('aria-invalid'))).toEqual(['false', 'false']);
   });
 });
