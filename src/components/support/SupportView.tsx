@@ -5,6 +5,8 @@ import { ArrowLeft, Send, Loader2, Headphones, Bot, UserCircle2, AlertTriangle, 
 import { clsx } from 'clsx';
 import { useSupport, SupportMessage, SupportTicket } from './useSupport';
 import { toIntlLocale } from '../../utils/formatters';
+import { linkifyText } from '../../utils/linkify';
+import { cabinetPath } from '../../utils/cabinetSections';
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
@@ -40,6 +42,45 @@ function SenderBadge({ type, t }: { type: SupportMessage['senderType']; t: (k: s
   return null;
 }
 
+/**
+ * Текст сообщения: адреса — ссылками (utils/linkify.ts). Ответы поддержки
+ * приходят простым текстом, и адрес раздела из ответа не нажимался — его
+ * переписывали руками. Свой кабинет (cabinetPath) открывается в той же
+ * вкладке переходом роутера, как в чате с ассистентом; чужой сайт — в новой
+ * вкладке без доступа к нашей (noopener noreferrer).
+ */
+function MessageText({ text }: { text: string }) {
+  const navigate = useNavigate();
+  return (
+    <>
+      {linkifyText(text).map((part, i) => {
+        if (part.kind === 'text') return <React.Fragment key={i}>{part.text}</React.Fragment>;
+        const inside = cabinetPath(part.href);
+        if (inside) {
+          return (
+            <a
+              key={i}
+              href={part.href}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(inside);
+              }}
+              className="underline break-all"
+            >
+              {part.text}
+            </a>
+          );
+        }
+        return (
+          <a key={i} href={part.href} target="_blank" rel="noopener noreferrer" className="underline break-all">
+            {part.text}
+          </a>
+        );
+      })}
+    </>
+  );
+}
+
 function MessageBubble({ m, t }: { m: SupportMessage; t: (k: string) => string }) {
   const isMine = m.senderType === 'user';
   const bubbleStyle = isMine
@@ -53,7 +94,7 @@ function MessageBubble({ m, t }: { m: SupportMessage; t: (k: string) => string }
     <div className={clsx('flex flex-col', isMine ? 'items-end' : 'items-start')}>
       {!isMine && <div className="mb-1 px-1"><SenderBadge type={m.senderType} t={t} /></div>}
       <div className={clsx('max-w-[85%] md:max-w-[75%] px-3 py-2 rounded-2xl shadow-sm', bubbleStyle)}>
-        <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+        <p className="text-sm whitespace-pre-wrap break-words"><MessageText text={m.content} /></p>
         <div className={clsx('text-[10px] mt-0.5 text-right', isMine ? 'text-white/70' : 'text-gray-400')}>
           {formatTime(m.createdAt)}
         </div>
