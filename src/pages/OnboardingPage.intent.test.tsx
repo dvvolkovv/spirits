@@ -42,4 +42,9 @@ describe('экран входа запоминает намерение', () => 
     await open('/chat?assistant=14');
     expect(JSON.parse(localStorage.getItem('pending_assistant') ?? 'null')?.value).toBe('14');
   });
+
+  it('ссылка ассистента на карточку профиля — раздел', async () => {
+    await open('/profile?open=zoom&utm_source=kb');
+    expect(JSON.parse(localStorage.getItem('pending_destination') ?? 'null')?.value).toBe('/profile?open=zoom');
+  });
 });
