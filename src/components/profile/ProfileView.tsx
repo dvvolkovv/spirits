@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { CreditCard, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, X, Coins, Settings2, ChevronDown, ChevronUp, Send, Handshake } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -13,6 +13,7 @@ import BusinessCard from './BusinessCard';
 import InviteFriendBlock from './InviteFriendBlock';
 import { tgBotApi, type IdentityStatus } from '../../services/tgBotApi';
 import { LanguageSelect } from '../settings/LanguageSelect';
+import { profileCardAnchor, profileTarget } from '../../utils/cabinetSections';
 
 interface ProfileData {
   profile?: string[];
@@ -53,25 +54,27 @@ const ProfileView: React.FC = () => {
   });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  // Deep-link из виджета лаунчера: /profile?open=calendars (или ?settings=1) — сразу
-  // разворачиваем аккордеон настроек, чтобы карточка «Календари» была видна без кликов.
-  const [showSettings, setShowSettings] = useState(() => {
-    try {
-      const p = new URLSearchParams(window.location.search);
-      return p.has('settings') || p.get('open') === 'calendars';
-    } catch { return false; }
-  });
-  const [showReferral, setShowReferral] = useState(false);
-  // ?open=calendars → доскроллить к карточке «Календари» после раскрытия настроек.
+  // Адрес раздела — из ссылки ассистента или виджета лаунчера (utils/cabinetSections.ts):
+  // /profile?open=<карточка> раскрывает её блок и прокручивает к ней,
+  // ?settings=1 раскрывает «Настройки». Те же адреса дают ассистенты — у бэка
+  // своя копия таблицы, их сверяет общая таблица в cabinetSections.test.ts.
+  // search — из роутера, а не из window.location: так видна и смена адреса
+  // переходом внутри кабинета (ссылка из чата), и адрес в тестах (MemoryRouter).
+  const { search } = useLocation();
+  const [showSettings, setShowSettings] = useState(() => profileTarget(search).expand === 'settings');
+  const [showReferral, setShowReferral] = useState(() => profileTarget(search).expand === 'referral');
   useEffect(() => {
-    try {
-      if (new URLSearchParams(window.location.search).get('open') !== 'calendars') return;
-    } catch { return; }
+    const { expand, anchor } = profileTarget(search);
+    if (expand === 'settings') setShowSettings(true);
+    if (expand === 'referral') setShowReferral(true);
+    if (!anchor) return;
+    // Пауза — как была у «Календарей»: раскрытый блок и ленивый чанк профиля
+    // успевают нарисоваться, прежде чем к карточке прокрутят.
     const id = window.setTimeout(() => {
-      document.getElementById('calendar-sources')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 350);
     return () => window.clearTimeout(id);
-  }, []);
+  }, [search]);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [editedData, setEditedData] = useState<ProfileData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -509,8 +512,9 @@ const ProfileView: React.FC = () => {
         {/* Invite a friend (referral entry point) */}
         <InviteFriendBlock />
 
-        {/* Telegram identity — для привязки своего TG к Студии (создание ботов) */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        {/* Telegram identity — для привязки своего TG к Студии (создание ботов).
+            id — якорь ссылки /profile?open=telegram (utils/cabinetSections.ts). */}
+        <div id={profileCardAnchor('telegram')} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 scroll-mt-4">
           <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Send className="w-5 h-5 text-blue-500" />
             Telegram
@@ -643,8 +647,9 @@ const ProfileView: React.FC = () => {
           )}
         </div>
 
-        {/* Referral — collapsible аккордеон по тому же паттерну что и Settings. */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {/* Referral — collapsible аккордеон по тому же паттерну что и Settings.
+            id — якорь ссылки /profile?open=partners (utils/cabinetSections.ts). */}
+        <div id={profileCardAnchor('partners')} className="bg-white rounded-lg shadow-sm overflow-hidden scroll-mt-4">
           <button
             type="button"
             onClick={() => setShowReferral((v) => !v)}
