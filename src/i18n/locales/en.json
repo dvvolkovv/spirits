@@ -2421,7 +2421,6 @@
         "done": "The bot “{{name}}” has been created. It is starting up and will reply in Telegram in a few minutes."
       },
       "keys": {
-        "unsupported": "Changing keys is coming later.",
         "title": "Keys for “{{name}}”",
         "hint": "The values go straight to the server — neither the assistant nor the chat history sees them. Leave a field empty to keep that key.",
         "current": "Current keys",

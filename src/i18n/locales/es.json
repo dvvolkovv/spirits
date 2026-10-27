@@ -2071,7 +2071,6 @@
         "done": "El bot «{{name}}» se ha creado. Se está poniendo en marcha y responderá en Telegram en unos minutos."
       },
       "keys": {
-        "unsupported": "El cambio de claves llegará más adelante.",
         "title": "Claves de «{{name}}»",
         "hint": "Los valores van directamente al servidor: ni el asistente ni el historial del chat los ven. Si dejas un campo vacío, la clave se queda como está.",
         "current": "Claves actuales",

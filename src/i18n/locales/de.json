@@ -2062,7 +2062,6 @@
         "done": "Der Bot „{{name}}“ ist angelegt. Er startet gerade und antwortet in ein paar Minuten in Telegram."
       },
       "keys": {
-        "unsupported": "Schlüssel ändern kommt später.",
         "title": "Schlüssel für „{{name}}“",
         "hint": "Die Werte gehen direkt an den Server — weder der Assistent noch der Chatverlauf sieht sie. Leeres Feld — der Schlüssel bleibt, wie er ist.",
         "current": "Aktuelle Schlüssel",

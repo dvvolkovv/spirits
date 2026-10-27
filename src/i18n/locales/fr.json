@@ -2071,7 +2071,6 @@
         "done": "Le bot « {{name}} » a été créé. Il démarre et répondra sur Telegram d’ici quelques minutes."
       },
       "keys": {
-        "unsupported": "Le changement de clés arrivera plus tard.",
         "title": "Clés de « {{name}} »",
         "hint": "Les valeurs vont directement au serveur — ni l’assistant ni l’historique de la discussion ne les voient. Champ vide — la clé reste inchangée.",
         "current": "Clés actuelles",

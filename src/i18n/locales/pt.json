@@ -2424,7 +2424,6 @@
         "done": "O bot «{{name}}» foi criado. Está a arrancar e responde no Telegram dentro de alguns minutos."
       },
       "keys": {
-        "unsupported": "A alteração de chaves chega mais tarde.",
         "title": "Chaves de «{{name}}»",
         "hint": "Os valores vão diretamente para o servidor — nem o assistente nem o histórico da conversa os veem. Campo vazio — a chave fica como está.",
         "current": "Chaves atuais",

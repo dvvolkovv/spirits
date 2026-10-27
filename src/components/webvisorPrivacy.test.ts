@@ -262,5 +262,6 @@ describe('карточка действия продукта скрыта от �
   it('токен бота и значения ключей — ym-disable-keys', () => {
     expect(classesOf(ProductActionCardSrc, 'product-action-token', 'input')).toContain('ym-disable-keys');
     expect(classesOf(ProductActionCardSrc, 'product-action-secret-value', 'input')).toContain('ym-disable-keys');
+    expect(classesOf(ProductActionCardSrc, 'product-action-key-replace', 'input')).toContain('ym-disable-keys');
   });
 });
