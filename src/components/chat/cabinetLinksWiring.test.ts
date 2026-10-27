@@ -27,7 +27,9 @@ describe('ссылки чата на свой кабинет', () => {
   // своя ссылка открылась бы и в этой вкладке, и в новой. Поэтому обработчик
   // сверяется целиком, без комментариев и с точностью до пробелов. Куда вести
   // ссылку, решает chatLinkPath (свои тесты в utils/cabinetSections.test.ts).
-  it('путь кабинета — переходом роутера и только им, остальное — новая вкладка без доступа к нашей', () => {
+  // Не веб-схемы (javascript:, data:, file: …) не открываются вовсе — ни
+  // переходом, ни новой вкладкой: решает isWebLink (тесты там же).
+  it('путь кабинета — переходом роутера и только им, веб-адрес — новая вкладка без доступа к нашей, прочее — никуда', () => {
     const code = between('const handleLinkNavigation = useCallback', '}, [navigate]);')
       .replace(/\/\/.*$/gm, '')
       .replace(/\s+/g, ' ')
@@ -36,8 +38,13 @@ describe('ссылки чата на свой кабинет', () => {
       'const handleLinkNavigation = useCallback((url: string) => {' +
         ' const inside = chatLinkPath(url);' +
         ' if (inside) { navigate(inside); return; }' +
-        " window.open(url, '_blank', 'noopener,noreferrer');",
+        " if (isWebLink(url)) window.open(url, '_blank', 'noopener,noreferrer');",
     );
+  });
+
+  it('markdown-ссылка с не веб-адресом — без href: средняя кнопка её тоже не откроет', () => {
+    const body = between('a: ({ href, children }: any) => {', 'img: ({ src, alt }: any) => (');
+    expect(body).toContain('href={href && isWebLink(href) ? href : undefined}');
   });
 
   it('кнопка «Настройки» ведёт в раскрытые настройки профиля', () => {

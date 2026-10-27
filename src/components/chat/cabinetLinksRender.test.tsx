@@ -11,11 +11,12 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { parseCustomMarkdown } from '../../utils/customMarkdown';
+import { createImageComponent, createLinkComponent, parseCustomMarkdown } from '../../utils/customMarkdown';
 import {
   SECTION_LINKS,
   chatLinkPath,
   deepSectionLink,
+  isWebLink,
   profileCardAnchor,
   profileTarget,
 } from '../../utils/cabinetSections';
@@ -99,5 +100,53 @@ describe('ссылка в ответе с адресом чужого сайта
     expect(found).toHaveLength(1);
     const path = chatLinkPath(found[0], HOST);
     if (path !== null) expect(path).toMatch(/^\/(?![/\\])/);
+  });
+});
+
+// {{link}} кладёт адрес в обработчик и в href как есть — react-markdown его не
+// чистит. Чат открывает только веб-адреса (isWebLink): остальное не
+// открывается ни кликом, ни средней кнопкой, ни «Открыть в новой вкладке».
+describe('{{link}} с не веб-схемой', () => {
+  const tag = (html: string) => html.match(/<a\b[^>]*>/)?.[0] ?? '';
+
+  it.each([
+    'javascript:alert(1)',
+    'JAVASCRIPT:alert(document.cookie)',
+    'data:text/html,<b>x</b>',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    'blob:https://my.linkeon.io/x',
+  ])('{{link: x | url: %s}} — не открывается и не попадает в href', (url) => {
+    const [config] = [...parseCustomMarkdown(`Смотри {{link: x | url: ${url}}}`).links.values()];
+    expect(config.url).toBe(url);
+    expect(chatLinkPath(config.url, HOST)).toBeNull();
+    expect(isWebLink(config.url)).toBe(false);
+    expect(tag(renderToStaticMarkup(<>{createLinkComponent(config, () => {})}</>))).not.toContain('href=');
+  });
+
+  it('веб-адрес в {{link}} — с href, как был', () => {
+    const html = renderToStaticMarkup(<>{createLinkComponent({ text: 'x', url: 'https://example.org/a' }, () => {})}</>);
+    expect(tag(html)).toContain('href="https://example.org/a"');
+  });
+
+  it('markdown-ссылку с javascript: react-markdown гасит сам — обработчик её не получит', () => {
+    expect(hrefs('[x](javascript:alert(1))')).toEqual(['']);
+  });
+});
+
+// Метрика (trackLinks в index.html) пишет внешние переходы полным адресом, а
+// адреса из переписки личные. Сторож исходника ChatInterface — в
+// webvisorPrivacy.test.ts; здесь — ссылки, которые рисуют помощники разметки.
+describe('ссылки разметки чата мимо «Внешних переходов» Метрики', () => {
+  const classes = (html: string) => (html.match(/<a\b[^>]*class="([^"]*)"/)?.[1] ?? '').split(/\s+/);
+
+  it('{{link}} — с ym-disable-tracklink', () => {
+    const html = renderToStaticMarkup(<>{createLinkComponent({ text: 'x', url: 'https://example.org/a' }, () => {})}</>);
+    expect(classes(html)).toContain('ym-disable-tracklink');
+  });
+
+  it('картинка по голой ссылке — с ym-disable-tracklink', () => {
+    const html = renderToStaticMarkup(<>{createImageComponent('https://example.org/a.png')}</>);
+    expect(classes(html)).toContain('ym-disable-tracklink');
   });
 });

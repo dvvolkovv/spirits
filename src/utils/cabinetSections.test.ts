@@ -5,6 +5,7 @@ import {
   cabinetPath,
   chatLinkPath,
   deepSectionLink,
+  isWebLink,
   legacyProfilePath,
   paramWord,
   profileCardAnchor,
@@ -319,5 +320,58 @@ describe('chatLinkPath — куда вести ссылку из ответа в
       const path = chatLinkPath(url, HERE);
       if (path !== null) expect(path, url).toMatch(/^\/(?![/\\])/);
     }
+  });
+});
+
+// Ссылку в ответе ассистента может подсунуть чужой текст (страница из
+// поиска, файл), а {{link}} кладёт адрес в обработчик как есть. Чат
+// открывает только веб-адреса: http(s) и относительные пути кабинета.
+describe('isWebLink — чат открывает только веб-адреса', () => {
+  it.each([
+    'https://example.org/a',
+    'http://example.org/a',
+    'HTTPS://EXAMPLE.ORG/a',
+    '  https://example.org/a',
+    // Протокольно-относительный — тоже веб: откроется в новой вкладке (chatLinkPath его не пускает в роутер).
+    '//evil.example',
+    '/static/generated/a.png',
+    '/profile?open=zoom',
+    'profile?open=zoom',
+    '#top',
+  ])('%s — открывается', (url) => {
+    expect(isWebLink(url)).toBe(true);
+  });
+
+  const SOH = String.fromCharCode(1);
+  const NUL = String.fromCharCode(0);
+  it.each([
+    'javascript:alert(1)',
+    'JavaScript:alert(1)',
+    'JAVASCRIPT:alert(1)',
+    ' javascript:alert(1)',
+    '\tjavascript:alert(1)',
+    '\njavascript:alert(1)',
+    `${SOH}javascript:alert(1)`,
+    `${NUL} javascript:alert(1)`,
+    'java\tscript:alert(1)',
+    'java\nscript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'DATA:text/html;base64,PHNjcmlwdD4=',
+    ' data:text/html,x',
+    'vbscript:msgbox(1)',
+    'VBScript:msgbox(1)',
+    'file:///etc/passwd',
+    'FILE://host/share',
+    'blob:https://my.linkeon.io/0b9e1c2a-0000-4000-8000-000000000000',
+    'mailto:help@example.org',
+    'tel:000',
+    'ftp://example.org/f',
+    'about:blank',
+    'intent://x#Intent;end',
+    '',
+    '   ',
+  ])('%j — не открывается вовсе: ни переходом роутера, ни новой вкладкой', (url) => {
+    expect(isWebLink(url)).toBe(false);
+    expect(chatLinkPath(url, 'my.linkeon.io')).toBeNull();
   });
 });
