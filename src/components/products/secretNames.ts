@@ -4,7 +4,7 @@
  * ТРЕТЬЯ КОПИЯ ОДНОЙ ПРОВЕРКИ. Оригинал — `isReservedEnvName` в агенте хоста
  * (`spirits_back/product-runner/src/host/provision.ts`), там же объяснение
  * каждого имени: это последний рубеж перед `docker run -e`. Вторая —
- * `isReservedSecretName` на сервере (`spirits_back/src/products/provisioning.service.ts`),
+ * `isReservedSecretName` на сервере (`spirits_back/src/products/secret-rules.ts`),
  * она отвечает 400 до записи продукта. Эта — ради объяснения на месте и на
  * языке кабинета: отказ сервера приходит русским текстом на всех семи локалях.
  *
@@ -14,17 +14,22 @@
 
 /** Форма имени переменной окружения — `SECRET_NAME_RE` сервера, символ в символ. */
 export const SECRET_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-/** Потолки — из create() на бэкенде. */
+/** Потолки — SECRET_NAME_MAX/SECRET_VALUE_MAX в spirits_back/src/products/secret-rules.ts. */
 export const SECRET_NAME_MAX = 64;
 export const SECRET_VALUE_MAX = 8192;
-/** 64 секрета на продукт — потолок сервера, и один из них BOT_TOKEN. */
-export const EXTRA_SECRETS_MAX = 63;
+/** Ключей на продукт — SECRET_COUNT_MAX в spirits_back/src/products/secret-rules.ts. */
+export const SECRET_COUNT_MAX = 64;
+/** Строк формы бота: потолок сервера, и один из ключей — BOT_TOKEN. */
+export const EXTRA_SECRETS_MAX = SECRET_COUNT_MAX - 1;
 
 const RESERVED = [
   'LINKEON_URL', 'RUNNER_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'PRODUCT_START_SCRIPT',
   'CHECKOUT_PATH', 'CLAUDE_BIN', 'PORT', 'HOME', 'PATH', 'NODE_OPTIONS',
   'SHELL', 'USER', 'BASH_ENV', 'ENV', 'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
   'POLL_INTERVAL_MS', 'TURN_TIMEOUT_MS', 'POLL_TIMEOUT_MS', 'REQUEST_TIMEOUT_MS',
+  // Telegram владельца бота — кладёт платформа (очередь 2). Ключ с этим именем
+  // подменил бы, кому бот отвечает данными владельца.
+  'OWNER_TG_ID',
 ];
 const RESERVED_PREFIXES = ['ANTHROPIC_', 'CLAUDE_', 'NODE_', 'NPM_CONFIG_', 'LD_', 'GIT_', 'PM2_', 'SSL_', 'DOTENV_'];
 const RESERVED_EXCEPTIONS = ['NODE_ENV'];

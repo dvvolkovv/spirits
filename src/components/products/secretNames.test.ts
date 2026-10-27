@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   EXTRA_SECRETS_MAX,
+  SECRET_COUNT_MAX,
   extraSecretsPayload,
   isReservedSecretName,
   validateExtraSecrets,
@@ -21,6 +22,7 @@ const RESERVED_TABLE = [
   'CLAUDE_BIN', 'PORT', 'HOME', 'PATH', 'NODE_OPTIONS', 'SHELL', 'USER', 'BASH_ENV', 'ENV',
   'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
   'POLL_INTERVAL_MS', 'TURN_TIMEOUT_MS', 'POLL_TIMEOUT_MS', 'REQUEST_TIMEOUT_MS',
+  'OWNER_TG_ID',
   // семейства
   'ANTHROPIC_BASE_URL', 'CLAUDE_CONFIG_DIR', 'NODE_TLS_REJECT_UNAUTHORIZED', 'NPM_CONFIG_REGISTRY',
   'LD_PRELOAD', 'GIT_SSH_COMMAND', 'PM2_HOME', 'SSL_CERT_FILE', 'DOTENV_CONFIG_PATH',
@@ -105,4 +107,5 @@ describe('extraSecretsPayload', () => {
 
 it('потолок формы — 63: вместе с BOT_TOKEN ровно потолок сервера', () => {
   expect(EXTRA_SECRETS_MAX).toBe(63);
+  expect(SECRET_COUNT_MAX).toBe(64);
 });
