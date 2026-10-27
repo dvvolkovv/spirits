@@ -3,6 +3,7 @@ import {
   PROFILE_CARDS,
   SECTION_LINKS,
   cabinetPath,
+  chatLinkPath,
   deepSectionLink,
   legacyProfilePath,
   paramWord,
@@ -260,5 +261,63 @@ describe('cabinetPath — своя ссылка открывается в каб
     'https://my.linkeon.io/profile/..//evil.example',
   ])('%s — не раздел кабинета: «//», «\\» и «/..//» не уводят на чужой хост', (href) => {
     expect(cabinetPath(href, HERE)).toBeNull();
+  });
+});
+
+describe('chatLinkPath — куда вести ссылку из ответа в чате', () => {
+  const HERE = 'my.linkeon.io';
+
+  // Так ссылку отдаёт GFM-автоссылка: знак, забранный вплотную за адресом,
+  // закодирован (поведение GFM закреплено в chat/cabinetLinksRender.test.tsx).
+  it.each([
+    ['https://my.linkeon.io/profile?open=zoom', '/profile?open=zoom'],
+    ['https://my.linkeon.io/profile?open=zoom%EF%BC%89', '/profile?open=zoom'],
+    ['https://my.linkeon.io/profile?open=zoom%E3%80%82', '/profile?open=zoom'],
+    ['https://my.linkeon.io/support%E3%80%8D%EF%BC%9F', '/support'],
+    ['https://my.linkeon.io/chat%C2%BB', '/chat'],
+    ['https://my.linkeon.io/chat%E2%80%A6', '/chat'],
+    ['https://my.linkeon.io/studio?tab=bots%E2%80%94', '/studio?tab=bots'],
+    ['/profile?open=zoom', '/profile?open=zoom'],
+    ['/chat', '/chat'],
+  ])('%s → %s, в той же вкладке', (url, path) => {
+    expect(chatLinkPath(url, HERE)).toBe(path);
+  });
+
+  // Находка ревью (I4): «//host» и «/\host» браузер читает как адрес чужого
+  // сайта. Переход роутера туда (pushState на чужой домен падает, и роутер
+  // уходит через location.assign) увёл бы вкладку кабинета.
+  it.each([
+    '//evil.example',
+    '//evil.example/profile?open=zoom',
+    '/\\evil.example',
+    '/\\/evil.example',
+    '/\t/evil.example',
+    'https://evil.example/profile?open=zoom',
+    'https://my.linkeon.io/static/generated/a.png',
+    '/static/generated/a.png',
+    'https://my.linkeon.io/room/ABC234',
+    'javascript:alert(1)',
+    'mailto:help@example.org',
+    'profile?open=zoom',
+  ])('%s — в новую вкладку', (url) => {
+    expect(chatLinkPath(url, HERE)).toBeNull();
+  });
+
+  it('хвост пунктуации срезается только при проверке своего адреса', () => {
+    // Чужой адрес открывается как дан: как он устроен, нам неизвестно.
+    expect(chatLinkPath('https://example.org/a%E3%80%82', HERE)).toBeNull();
+    // Знак внутри своего адреса — не хвост.
+    expect(chatLinkPath('https://my.linkeon.io/chat?q=%E3%80%82x', HERE)).toBe('/chat?q=%E3%80%82x');
+  });
+
+  it('битая %-последовательность не роняет разбор', () => {
+    expect(chatLinkPath('https://my.linkeon.io/chat?x=%E0%A4%A', HERE)).toBe('/chat?x=%E0%A4%A');
+  });
+
+  it('путь для роутера никогда не начинается с «//» или «/\\»', () => {
+    for (const url of ['/chat', '/\\chat', '//chat', '/./\\x', '/%2F%2Fevil.example', 'https://my.linkeon.io//x']) {
+      const path = chatLinkPath(url, HERE);
+      if (path !== null) expect(path, url).toMatch(/^\/(?![/\\])/);
+    }
   });
 });

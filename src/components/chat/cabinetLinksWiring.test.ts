@@ -22,11 +22,22 @@ const between = (from: string, to: string): string => {
 };
 
 describe('ссылки чата на свой кабинет', () => {
-  it('своя ссылка проверяется ДО открытия новой вкладки', () => {
-    const body = between('const handleLinkNavigation = useCallback', '}, [navigate]);');
-    const own = body.indexOf('cabinetPath(url)');
-    expect(own).toBeGreaterThan(-1);
-    expect(own).toBeLessThan(body.indexOf('window.open('));
+  // Находка ревью (M5): прежняя проверка «вызов стоит до window.open»
+  // зеленела и с navigate(url) вместо navigate(inside), и без return — а тогда
+  // своя ссылка открылась бы и в этой вкладке, и в новой. Поэтому обработчик
+  // сверяется целиком, без комментариев и с точностью до пробелов. Куда вести
+  // ссылку, решает chatLinkPath (свои тесты в utils/cabinetSections.test.ts).
+  it('путь кабинета — переходом роутера и только им, остальное — новая вкладка без доступа к нашей', () => {
+    const code = between('const handleLinkNavigation = useCallback', '}, [navigate]);')
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    expect(code).toBe(
+      'const handleLinkNavigation = useCallback((url: string) => {' +
+        ' const inside = chatLinkPath(url);' +
+        ' if (inside) { navigate(inside); return; }' +
+        " window.open(url, '_blank', 'noopener,noreferrer');",
+    );
   });
 
   it('кнопка «Настройки» ведёт в раскрытые настройки профиля', () => {
