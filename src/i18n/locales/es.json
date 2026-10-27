@@ -1889,7 +1889,12 @@
       "send": "Enviar",
       "busy": "El agente aún está trabajando en tu solicitud anterior",
       "sleeping": "El producto está dormido: no hubo tokens suficientes para el alquiler. Recarga tu saldo y despertará solo.",
-      "failed": "No se pudo enviar el cambio"
+      "failed": "No se pudo enviar el cambio",
+      "secretsMasked": {
+        "title": "Claves eliminadas del cambio",
+        "body": "El texto contenía valores que parecen claves. No han llegado al producto ni al historial de cambios: en su lugar hay un marcador. Para que el producto reciba una clave, pide a un asistente en el chat que cambie las claves del producto: abrirá una tarjeta segura.",
+        "names": "Ocultas: {{names}}"
+      }
     },
     "history": {
       "title": "Historial de cambios",

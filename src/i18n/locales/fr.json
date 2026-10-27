@@ -1889,7 +1889,12 @@
       "send": "Envoyer",
       "busy": "L'agent travaille encore sur votre demande précédente",
       "sleeping": "Le produit est en veille : les tokens n'ont pas suffi pour la location. Rechargez votre solde et il se réveillera tout seul.",
-      "failed": "Impossible d'envoyer la modification"
+      "failed": "Impossible d'envoyer la modification",
+      "secretsMasked": {
+        "title": "Clés retirées de la modification",
+        "body": "Le texte contenait des valeurs qui ressemblent à des clés. Elles n'ont atteint ni le produit ni l'historique des modifications : un espace réservé les remplace. Pour que le produit reçoive une clé, demandez à un assistant dans le chat de changer les clés du produit : il ouvrira une carte sécurisée.",
+        "names": "Masquées : {{names}}"
+      }
     },
     "history": {
       "title": "Historique des modifications",

@@ -2239,7 +2239,12 @@
       "send": "Send",
       "busy": "The agent is still working on your previous request",
       "sleeping": "The product is asleep: not enough tokens for the rent. Top up your balance and it will wake up on its own.",
-      "failed": "Could not send the change"
+      "failed": "Could not send the change",
+      "secretsMasked": {
+        "title": "Keys removed from the change",
+        "body": "The text contained values that look like keys. They did not reach the product or the change history — a placeholder stands in their place. To give the product a key, ask an assistant in the chat to change the product's keys: it will open a secure card.",
+        "names": "Hidden: {{names}}"
+      }
     },
     "history": {
       "title": "Change history",

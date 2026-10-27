@@ -1880,7 +1880,12 @@
       "send": "Senden",
       "busy": "Der Agent arbeitet noch an deiner vorherigen Anfrage",
       "sleeping": "Das Produkt schläft: Die Tokens für die Miete haben nicht gereicht. Lade dein Guthaben auf, dann wacht es von selbst auf.",
-      "failed": "Die Änderung konnte nicht gesendet werden"
+      "failed": "Die Änderung konnte nicht gesendet werden",
+      "secretsMasked": {
+        "title": "Schlüssel aus der Änderung entfernt",
+        "body": "Der Text enthielt Werte, die wie Schlüssel aussehen. Sie sind weder im Produkt noch im Änderungsverlauf gelandet — an ihrer Stelle steht ein Platzhalter. Damit das Produkt einen Schlüssel bekommt, bitte einen Assistenten im Chat, die Schlüssel des Produkts zu ändern: Er öffnet eine sichere Karte.",
+        "names": "Ausgeblendet: {{names}}"
+      }
     },
     "history": {
       "title": "Änderungsverlauf",

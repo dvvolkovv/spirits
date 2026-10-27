@@ -2242,7 +2242,12 @@
       "send": "Enviar",
       "busy": "O agente ainda está a trabalhar no seu pedido anterior",
       "sleeping": "O produto está a dormir: os tokens não chegaram para a renda. Carregue o saldo e ele acorda sozinho.",
-      "failed": "Não foi possível enviar a alteração"
+      "failed": "Não foi possível enviar a alteração",
+      "secretsMasked": {
+        "title": "Chaves retiradas da alteração",
+        "body": "O texto continha valores que parecem chaves. Não chegaram ao produto nem ao histórico de alterações — no seu lugar está um marcador. Para o produto receber uma chave, peça a um assistente no chat que altere as chaves do produto: ele abrirá um cartão seguro.",
+        "names": "Ocultadas: {{names}}"
+      }
     },
     "history": {
       "title": "Histórico de alterações",
