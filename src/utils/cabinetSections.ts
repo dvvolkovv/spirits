@@ -205,3 +205,47 @@ export function cabinetPath(href: string, here: string = currentHost()): string 
   if (!CABINET_ROUTES.has(u.pathname.split('/')[1] ?? '')) return null;
   return `${u.pathname}${u.search}${u.hash}`;
 }
+
+/**
+ * Хвост, который модель ставит вплотную за адресом: полноширинная и китайская
+ * пунктуация, ёлочки, кавычки, многоточие, тире. GFM-автоссылка (remark-gfm в
+ * чате) срезает за адресом только ASCII-знаки, а эти забирает в адрес:
+ * «…/profile?open=zoom）», «…/support」？» — поведение закреплено в
+ * components/chat/cabinetLinksRender.test.tsx.
+ */
+const OWN_LINK_TAIL = /[）」』】》。，、：；！？»”’…—–]+$/;
+
+/** Основа для разбора относительного пути: остался ли он на своём хосте, видно по ней. */
+const PATH_BASE = 'https://cabinet.invalid';
+
+/**
+ * Куда вести ссылку из ответа ассистента в чате: путь для перехода роутера в
+ * той же вкладке — или null, и тогда ссылка открывается в новой вкладке.
+ *
+ * Свой адрес (cabinetPath) проверяется без хвоста пунктуации — и только он:
+ * как устроен чужой адрес, неизвестно, его открываем как дан. Относительный
+ * путь — только тот, что остаётся на своём хосте. «//host» и «/\host» браузер
+ * читает как адрес чужого сайта: pushState туда падает, и роутер доводит
+ * переход через location.assign — вкладка кабинета ушла бы на чужой сайт.
+ * Поэтому путь разбирается от своей основы и сверяется с ней. Файлы (/static/)
+ * — в новой вкладке, как и раньше.
+ */
+export function chatLinkPath(url: string, here: string = currentHost()): string | null {
+  let probe = url;
+  try {
+    probe = decodeURI(url);
+  } catch {
+    /* битая %-последовательность — проверяем как есть */
+  }
+  const own = cabinetPath(probe.replace(OWN_LINK_TAIL, ''), here);
+  if (own) return own;
+  if (!url.startsWith('/')) return null;
+  let u: URL;
+  try {
+    u = new URL(url, PATH_BASE);
+  } catch {
+    return null;
+  }
+  if (u.origin !== PATH_BASE || u.pathname.startsWith('//') || u.pathname.startsWith('/static/')) return null;
+  return `${u.pathname}${u.search}${u.hash}`;
+}

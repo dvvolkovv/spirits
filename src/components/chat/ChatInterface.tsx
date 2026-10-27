@@ -24,7 +24,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
-import { cabinetPath } from '../../utils/cabinetSections';
+import { chatLinkPath } from '../../utils/cabinetSections';
 import { VoiceDictation } from '../../services/voiceDictation';
 import { isDictationLanguageSupported } from '../../services/dictationLanguages';
 import AudioClip from './AudioClip';
@@ -406,23 +406,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [navigate]);
 
   const handleLinkNavigation = useCallback((url: string) => {
-    // Ссылка на свой кабинет (https://my.linkeon.io/profile?open=zoom из ответа
-    // ассистента) — в той же вкладке, переходом роутера: новая вкладка
-    // загружала бы кабинет заново, а в приложении открылся бы внешний браузер
-    // без входа (utils/cabinetSections.ts).
-    const inside = cabinetPath(url);
+    // Свой кабинет (https://my.linkeon.io/profile?open=zoom из ответа
+    // ассистента) и путь внутри него — в той же вкладке, переходом роутера:
+    // новая вкладка загружала бы кабинет заново, а в приложении открылся бы
+    // внешний браузер без входа. Остальное — чужие сайты, файлы, «//host» —
+    // в новой вкладке без доступа к нашей (utils/cabinetSections.ts, chatLinkPath).
+    const inside = chatLinkPath(url);
     if (inside) {
       navigate(inside);
       return;
     }
-    // Static files and external URLs open in new tab
-    if (url.startsWith('/static/') || url.startsWith('http://') || url.startsWith('https://')) {
-      window.open(url, '_blank', 'noopener');
-    } else if (url.startsWith('/')) {
-      navigate(url);
-    } else {
-      window.open(url, '_blank', 'noopener');
-    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   }, [navigate]);
 
   const markdownComponents = useMemo(() => ({
