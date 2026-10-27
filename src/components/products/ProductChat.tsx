@@ -15,7 +15,15 @@ export type StreamEvent =
   | { type: 'error'; message: string }
   // Сервер скрыл в тексте правки значения, похожие на ключи (prompt-secrets.ts
   // в spirits_back), и говорит об этом первым событием хода.
-  | { type: 'notice'; code: string; count?: number; names?: unknown };
+  | { type: 'notice'; code: string; count?: number; names?: unknown; mask?: unknown };
+
+/**
+ * Запасной знак маски — если сервер его не прислал. Правда — на сервере
+ * (SECRET_MASK в spirits_back/src/products/prompt-secrets.ts): он присылает
+ * знак в самом событии, и в тексте плашки стоит ровно то, что человек увидит
+ * в истории правок.
+ */
+const FALLBACK_SECRET_MASK = '[ключ скрыт]';
 
 /**
  * Разбирает NDJSON-поток хода. Вынесено из компонента, чтобы поведение
@@ -88,6 +96,7 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
   // Имена ключей, значения которых сервер вырезал из текста правки. null —
   // ничего не вырезано; [] — вырезано, но имён в тексте не было.
   const [maskedNames, setMaskedNames] = useState<string[] | null>(null);
+  const [secretMask, setSecretMask] = useState(FALLBACK_SECRET_MASK);
 
   /**
    * Причина отказа для человека — по КОДУ, а не одна на все случаи.
@@ -154,6 +163,7 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
             ? event.names.filter((n): n is string => typeof n === 'string')
             : [];
           setMaskedNames(names);
+          if (typeof event.mask === 'string' && event.mask) setSecretMask(event.mask);
         }
       });
     } finally {
@@ -304,7 +314,7 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
             <KeyRound size={16} className="shrink-0" />
             {t('products.chat.secretsMasked.title')}
           </span>
-          <span>{t('products.chat.secretsMasked.body')}</span>
+          <span>{t('products.chat.secretsMasked.body', { mask: secretMask })}</span>
           {maskedNames.length > 0 && (
             <span className="break-words">
               {t('products.chat.secretsMasked.names', { names: maskedNames.join(', ') })}

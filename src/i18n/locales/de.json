@@ -1883,7 +1883,7 @@
       "failed": "Die Änderung konnte nicht gesendet werden",
       "secretsMasked": {
         "title": "Schlüssel aus der Änderung entfernt",
-        "body": "Der Text enthielt Werte, die wie Schlüssel aussehen. Diese Werte sind weder im Produkt noch im Änderungsverlauf gelandet – an ihrer Stelle steht „[ключ скрыт]“. Füge den Schlüssel unter demselben Namen über die sichere Karte hinzu: Schreib im Linkeon-Chat einem beliebigen Assistenten, dass er die Schlüssel des Produkts ändern soll. Wurde etwas anderes ausgeblendet (ein Link, eine Nummer), gib es ebenfalls über die Karte weiter, unter einem verständlichen Namen. Die Erkennung ist nicht vollständig – füge Schlüssel also besser nicht in den Änderungstext ein.",
+        "body": "Der Text enthielt Werte, die wie Schlüssel aussehen. Diese Werte sind weder im Produkt noch im Änderungsverlauf gelandet – an ihrer Stelle steht „{{mask}}“. Füge den Schlüssel unter demselben Namen über die sichere Karte hinzu: Schreib im Linkeon-Chat einem beliebigen Assistenten, dass er die Schlüssel des Produkts ändern soll. Wurde etwas anderes ausgeblendet (ein Link, eine Nummer), gib es ebenfalls über die Karte weiter, unter einem verständlichen Namen. Die Erkennung ist nicht vollständig – füge Schlüssel also besser nicht in den Änderungstext ein.",
         "names": "Ausgeblendete Werte: {{names}}"
       }
     },

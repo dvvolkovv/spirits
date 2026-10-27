@@ -224,7 +224,7 @@ describe('ProductChat — поток не сломан', () => {
  * бы, что ключ доехал до продукта.
  */
 describe('ProductChat — ключи из текста правки скрыты', () => {
-  const NOTICE = '{"type":"notice","code":"secrets_masked","count":2,"names":["WEATHER_API_KEY","BOT_TOKEN"]}\n';
+  const NOTICE = '{"type":"notice","code":"secrets_masked","count":2,"names":["WEATHER_API_KEY","BOT_TOKEN"],"mask":"[ключ скрыт]"}\n';
 
   it('плашка с объяснением и именами, ответ агента при этом доезжает', async () => {
     api.chatStream.mockResolvedValue({
@@ -237,7 +237,8 @@ describe('ProductChat — ключи из текста правки скрыты
 
     const text = visibleText(container);
     expect(text).toContain(tRu('products.chat.secretsMasked.title'));
-    expect(text).toContain(tRu('products.chat.secretsMasked.body'));
+    // Знак маски — из события, тот же, что в истории правок.
+    expect(text).toContain(tRu('products.chat.secretsMasked.body', { mask: '[ключ скрыт]' }));
     expect(text).toContain(tRu('products.chat.secretsMasked.names', { names: 'WEATHER_API_KEY, BOT_TOKEN' }));
     expect(text).toContain('Подключил погоду');
     // Это объяснение, а не отказ: красного блока нет.
