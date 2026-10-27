@@ -61,12 +61,12 @@ const ProfileView: React.FC = () => {
   // search — из роутера, а не из window.location: так видна и смена адреса
   // переходом внутри кабинета (ссылка из чата), и адрес в тестах (MemoryRouter).
   const { search } = useLocation();
-  const [showSettings, setShowSettings] = useState(() => profileTarget(search).expand === 'settings');
-  const [showReferral, setShowReferral] = useState(() => profileTarget(search).expand === 'referral');
+  const [showSettings, setShowSettings] = useState(() => profileTarget(search).settings);
+  const [showReferral, setShowReferral] = useState(() => profileTarget(search).referral);
   useEffect(() => {
-    const { expand, anchor } = profileTarget(search);
-    if (expand === 'settings') setShowSettings(true);
-    if (expand === 'referral') setShowReferral(true);
+    const { settings, referral, anchor } = profileTarget(search);
+    if (settings) setShowSettings(true);
+    if (referral) setShowReferral(true);
     if (!anchor) return;
     // Пауза — как была у «Календарей»: раскрытый блок и ленивый чанк профиля
     // успевают нарисоваться, прежде чем к карточке прокрутят.

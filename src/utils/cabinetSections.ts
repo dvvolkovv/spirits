@@ -46,14 +46,27 @@ export function isProfileCard(v: string | null | undefined): v is ProfileCard {
   return typeof v === 'string' && (PROFILE_CARDS as readonly string[]).includes(v);
 }
 
+/**
+ * Значение параметра раздела (?open=, ?tab=) — его ведущие латинские буквы.
+ * Знак вплотную за адресом автоссылка (remark-gfm в чате, Telegram) забирает
+ * в адрес: «…?open=zoom）», «…?tab=bots。», а китайский текст без пробела —
+ * целиком («zoom。然后»). Без этого кабинет не узнавал свою карточку. Результат
+ * всё равно сверяется со списком карточек и вкладок.
+ */
+export function paramWord(value: string | null): string | null {
+  return (value ?? '').match(/^[a-z]+/)?.[0] ?? null;
+}
+
 /** id элемента, к которому прокручивает /profile?open=<card>. */
 export function profileCardAnchor(card: ProfileCard): string {
   return `profile-card-${card}`;
 }
 
 export interface ProfileTarget {
-  /** Какой свёрнутый блок профиля раскрыть. */
-  expand: 'settings' | 'referral' | null;
+  /** Раскрыть свёрнутые «Настройки». */
+  settings: boolean;
+  /** Раскрыть свёрнутый блок «Партнёры». */
+  referral: boolean;
   /** id элемента, к которому прокрутить; null — не прокручивать. */
   anchor: string | null;
 }
@@ -62,16 +75,18 @@ export interface ProfileTarget {
  * Что сделать «Моему профилю» по параметрам адреса. ?open= с незнакомым
  * значением — как без него: старая или битая ссылка открывает профиль, а не
  * ломает его. ?settings= с любым значением раскрывает «Настройки», как и
- * раньше: так шлёт виджет лаунчера.
+ * раньше (так шлёт виджет лаунчера), — в том числе рядом с карточкой вне них:
+ * /profile?settings=1&open=telegram.
  */
 export function profileTarget(search: string): ProfileTarget {
   const q = new URLSearchParams(search);
-  const card = q.get('open');
-  if (isProfileCard(card)) {
-    const expand = SETTINGS_CARDS.includes(card) ? 'settings' : card === 'partners' ? 'referral' : null;
-    return { expand, anchor: profileCardAnchor(card) };
-  }
-  return { expand: q.has('settings') ? 'settings' : null, anchor: null };
+  const word = paramWord(q.get('open'));
+  const card = isProfileCard(word) ? word : null;
+  return {
+    settings: q.has('settings') || (card !== null && SETTINGS_CARDS.includes(card)),
+    referral: card === 'partners',
+    anchor: card === null ? null : profileCardAnchor(card),
+  };
 }
 
 /**
@@ -107,10 +122,10 @@ export function deepSectionLink(pathname: string, search: string): string | null
   if (q.getAll('tab').length > 1 || q.getAll('open').length > 1) return null;
   let link: string | null = null;
   if (pathname === '/studio') {
-    const tab = q.get('tab');
+    const tab = paramWord(q.get('tab'));
     if (tab === 'bots' || tab === 'products') link = `/studio?tab=${tab}`;
   } else if (pathname === '/profile') {
-    const card = q.get('open');
+    const card = paramWord(q.get('open'));
     if (isProfileCard(card)) link = `/profile?open=${card}`;
     else if (q.has('settings')) link = '/profile?settings=1';
   }
@@ -122,11 +137,13 @@ export function deepSectionLink(pathname: string, search: string): string | null
  * параметрами. Прежний <Navigate to="/profile"> терял всё после «?»: и
  * /settings?open=zoom, и возврат после привязки входа (/settings?linked=1)
  * открывали профиль со свёрнутыми настройками. /settings без своей карточки
- * раскрывает «Настройки», /referral — блок «Партнёры».
+ * раскрывает «Настройки», /referral — блок «Партнёры». Незнакомое ?open=
+ * (старая или битая ссылка) — как без него: иначе /referral?open=integrations
+ * открывал бы профиль, где не раскрыто ничего.
  */
 export function legacyProfilePath(from: 'settings' | 'referral', search: string): string {
   const q = new URLSearchParams(search);
-  if (!q.has('open')) {
+  if (!isProfileCard(paramWord(q.get('open')))) {
     if (from === 'referral') q.set('open', 'partners');
     else if (!q.has('settings')) q.set('settings', '1');
   }
