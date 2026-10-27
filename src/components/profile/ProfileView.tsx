@@ -37,6 +37,20 @@ interface ProfileData {
   user_id?: string;
 }
 
+/**
+ * Когда прокручивать к карточке из ссылки (/profile?open=<карточка>): как
+ * раскрытый блок нарисуется, и дважды доводкой — до 2 с, пока над карточкой
+ * дорастают блоки со своими данными.
+ */
+const SCROLL_TO_CARD_MS = [350, 1200, 2000];
+
+/**
+ * Человек взялся за страницу сам — доводку прокрутки отменяем, чтобы не
+ * дёргать её из-под него. pointerdown — ещё и полоса прокрутки и нажатие на
+ * кнопку карточки: ни колеса, ни касания там нет.
+ */
+const USER_SCROLL_EVENTS = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
+
 const toRich = (plain?: string[], rich?: EntityRich[]): EntityRich[] => {
   if (Array.isArray(rich) && rich.length) return rich;
   if (Array.isArray(plain)) return plain.map((name) => ({ name }));
@@ -58,9 +72,12 @@ const ProfileView: React.FC = () => {
   // /profile?open=<карточка> раскрывает её блок и прокручивает к ней,
   // ?settings=1 раскрывает «Настройки». Те же адреса дают ассистенты — у бэка
   // своя копия таблицы, их сверяет общая таблица в cabinetSections.test.ts.
-  // search — из роутера, а не из window.location: так видна и смена адреса
+  // Адрес — из роутера, а не из window.location: так видна и смена адреса
   // переходом внутри кабинета (ссылка из чата), и адрес в тестах (MemoryRouter).
-  const { search } = useLocation();
+  // Эффект ждёт и key, а не только search: та же ссылка ещё раз (из поддержки,
+  // из чата поверх профиля) снова раскрывает свёрнутый человеком блок и
+  // прокручивает к карточке.
+  const { search, key: locationKey } = useLocation();
   const [showSettings, setShowSettings] = useState(() => profileTarget(search).settings);
   const [showReferral, setShowReferral] = useState(() => profileTarget(search).referral);
   useEffect(() => {
@@ -68,13 +85,19 @@ const ProfileView: React.FC = () => {
     if (settings) setShowSettings(true);
     if (referral) setShowReferral(true);
     if (!anchor) return;
-    // Пауза — как была у «Календарей»: раскрытый блок и ленивый чанк профиля
-    // успевают нарисоваться, прежде чем к карточке прокрутят.
-    const id = window.setTimeout(() => {
-      document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 350);
-    return () => window.clearTimeout(id);
-  }, [search]);
+    // Первая прокрутка — когда раскрытый блок нарисовался. Дальше — доводка:
+    // блоки над карточкой ещё дорастают (анкета с сервера, карточки настроек
+    // со своими запросами), и карточка уезжает вниз. Доводим, пока человек сам
+    // не взялся за страницу. block: 'start' — у якорей scroll-mt-4.
+    const scroll = () => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const timers = SCROLL_TO_CARD_MS.map((ms) => window.setTimeout(scroll, ms));
+    const stop = () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      USER_SCROLL_EVENTS.forEach((type) => window.removeEventListener(type, stop, true));
+    };
+    USER_SCROLL_EVENTS.forEach((type) => window.addEventListener(type, stop, { capture: true, passive: true }));
+    return stop;
+  }, [search, locationKey]);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [editedData, setEditedData] = useState<ProfileData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -318,6 +341,11 @@ const ProfileView: React.FC = () => {
 
   const handleLogout = () => {
     if (window.confirm(t('profile.logout_confirm'))) {
+      // Сначала — с адреса раздела в чат. Экран входа встаёт на текущий адрес
+      // и запоминает его как намерение (OnboardingPage → loginIntent): выход с
+      // /profile?settings=1 открыл бы настройки следующему входу на этом
+      // устройстве — возможно, уже другого человека.
+      navigate('/chat', { replace: true });
       logout();
     }
   };
@@ -328,6 +356,10 @@ const ProfileView: React.FC = () => {
 
   const confirmDeleteAccount = () => {
     setShowDeleteConfirm(false);
+    // Как при выходе (handleLogout): уйти с адреса раздела до того, как вход
+    // погаснет и встанет экран входа. Не удалось удалить — сообщение покажется
+    // уже в чате.
+    navigate('/chat', { replace: true });
     deleteProfile().catch((error: Error) => {
       alert(t('profile.delete_account_error_alert', { message: error.message }));
     });
