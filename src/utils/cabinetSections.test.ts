@@ -5,10 +5,10 @@ import {
   cabinetPath,
   deepSectionLink,
   legacyProfilePath,
+  paramWord,
   profileCardAnchor,
   profileTarget,
   type ProfileCard,
-  type ProfileTarget,
 } from './cabinetSections';
 
 /**
@@ -77,21 +77,39 @@ describe('таблица адресов разделов', () => {
   });
 });
 
+describe('paramWord — значение параметра раздела', () => {
+  // Знак вплотную за адресом автоссылка забирает в значение: «…?open=zoom）».
+  it.each([
+    ['zoom', 'zoom'],
+    ['zoom）', 'zoom'],
+    ['zoom。', 'zoom'],
+    ['zoom。然后', 'zoom'],
+    ['bots;', 'bots'],
+    ['products»', 'products'],
+    ['）zoom', null],
+    ['', null],
+    [null, null],
+  ])('%s → %s', (value, word) => {
+    expect(paramWord(value)).toBe(word);
+  });
+});
+
 describe('profileTarget — что сделать «Моему профилю»', () => {
-  const CARDS: [ProfileCard, ProfileTarget['expand']][] = [
-    ['calendars', 'settings'],
-    ['zoom', 'settings'],
-    ['talerid', 'settings'],
-    ['logins', 'settings'],
-    ['reminders', 'settings'],
-    ['voices', 'settings'],
-    ['notifications', 'settings'],
-    ['partners', 'referral'],
-    ['telegram', null],
+  // [карточка, раскрыть «Настройки», раскрыть «Партнёры»]
+  const CARDS: [ProfileCard, boolean, boolean][] = [
+    ['calendars', true, false],
+    ['zoom', true, false],
+    ['talerid', true, false],
+    ['logins', true, false],
+    ['reminders', true, false],
+    ['voices', true, false],
+    ['notifications', true, false],
+    ['partners', false, true],
+    ['telegram', false, false],
   ];
 
-  it.each(CARDS)('?open=%s — блок %s и якорь своей карточки', (card, expand) => {
-    expect(profileTarget(`?open=${card}`)).toEqual({ expand, anchor: profileCardAnchor(card) });
+  it.each(CARDS)('?open=%s — settings: %s, referral: %s, якорь своей карточки', (card, settings, referral) => {
+    expect(profileTarget(`?open=${card}`)).toEqual({ settings, referral, anchor: profileCardAnchor(card) });
   });
 
   it('перечень карточек — ровно эти девять', () => {
@@ -99,16 +117,50 @@ describe('profileTarget — что сделать «Моему профилю»'
   });
 
   it('?settings=1 — раскрыть «Настройки» без прокрутки (так шлёт виджет лаунчера)', () => {
-    expect(profileTarget('?settings=1')).toEqual({ expand: 'settings', anchor: null });
+    expect(profileTarget('?settings=1')).toEqual({ settings: true, referral: false, anchor: null });
   });
 
   it('незнакомая карточка и пустой адрес — ничего не раскрывать', () => {
-    expect(profileTarget('?open=integrations')).toEqual({ expand: null, anchor: null });
-    expect(profileTarget('')).toEqual({ expand: null, anchor: null });
+    expect(profileTarget('?open=integrations')).toEqual({ settings: false, referral: false, anchor: null });
+    expect(profileTarget('')).toEqual({ settings: false, referral: false, anchor: null });
   });
 
   it('карточка важнее ?settings: прокрутка нужна к ней', () => {
-    expect(profileTarget('?settings=1&open=zoom')).toEqual({ expand: 'settings', anchor: profileCardAnchor('zoom') });
+    expect(profileTarget('?settings=1&open=zoom')).toEqual({
+      settings: true,
+      referral: false,
+      anchor: profileCardAnchor('zoom'),
+    });
+  });
+
+  // Находка ревью (M1): до ссылок на карточки ?settings раскрывал «Настройки»
+  // при любом ?open, и виджет лаунчера на это полагался.
+  it('?settings рядом с карточкой вне «Настроек» раскрывает и их', () => {
+    expect(profileTarget('?settings=1&open=telegram')).toEqual({
+      settings: true,
+      referral: false,
+      anchor: profileCardAnchor('telegram'),
+    });
+    expect(profileTarget('?settings=1&open=partners')).toEqual({
+      settings: true,
+      referral: true,
+      anchor: profileCardAnchor('partners'),
+    });
+  });
+
+  // Находка ревью (I3): GFM-автоссылка забирает в адрес знак вплотную за ним.
+  it.each([
+    '?open=zoom%EF%BC%89',
+    '?open=zoom%E3%80%82',
+    '?open=zoom）',
+    '?open=zoom;',
+    '?open=zoom%E3%80%82%E7%84%B6%E5%90%8E',
+  ])('%s — всё равно карточка Zoom', (search) => {
+    expect(profileTarget(search)).toEqual({ settings: true, referral: false, anchor: profileCardAnchor('zoom') });
+  });
+
+  it('буквы сверх названия карточки — уже не карточка', () => {
+    expect(profileTarget('?open=zoomx').anchor).toBeNull();
   });
 
   it('якоря у карточек разные', () => {
@@ -128,6 +180,12 @@ describe('deepSectionLink — канонический адрес для вхо�
     expect(deepSectionLink('/profile', '?open=zoom&open=talerid')).toBeNull();
   });
 
+  it('знак вплотную за адресом — тот же канонический адрес', () => {
+    expect(deepSectionLink('/profile', '?open=zoom%EF%BC%89')).toBe('/profile?open=zoom');
+    expect(deepSectionLink('/studio', '?tab=bots%E3%80%82')).toBe('/studio?tab=bots');
+    expect(deepSectionLink('/studio', '?tab=productsx')).toBeNull();
+  });
+
   it('чужие разделы и вкладки — null', () => {
     expect(deepSectionLink('/studio', '?tab=agents')).toBeNull();
     expect(deepSectionLink('/admin', '?tab=products')).toBeNull();
@@ -144,6 +202,10 @@ describe('legacyProfilePath — старые /settings и /referral', () => {
     ['settings', '?settings=1', '/profile?settings=1'],
     ['referral', '', '/profile?open=partners'],
     ['referral', '?ref=abc', '/profile?ref=abc&open=partners'],
+    // Находка ревью (M1): незнакомое ?open — как без него, а не «своя карточка».
+    ['settings', '?open=integrations', '/profile?open=integrations&settings=1'],
+    ['referral', '?open=integrations', '/profile?open=partners'],
+    ['settings', '?settings=1&open=telegram', '/profile?settings=1&open=telegram'],
   ];
 
   it.each(CASES)('/%s%s → %s', (from, search, to) => {
@@ -184,6 +246,19 @@ describe('cabinetPath — своя ссылка открывается в каб
     '/profile?open=zoom',
     'не адрес',
   ])('%s — не раздел кабинета', (href) => {
+    expect(cabinetPath(href, HERE)).toBeNull();
+  });
+
+  // Путь, который вернул cabinetPath, идёт прямо в navigate(). Начнись он с
+  // «//» или «/\», браузер прочёл бы его как адрес чужого сайта.
+  it.each([
+    '//evil.example/profile?open=zoom',
+    '/\\evil.example/profile',
+    'https://my.linkeon.io//evil.example/profile',
+    'https://my.linkeon.io/\\evil.example/profile',
+    'https:\\\\evil.example\\profile',
+    'https://my.linkeon.io/profile/..//evil.example',
+  ])('%s — не раздел кабинета: «//», «\\» и «/..//» не уводят на чужой хост', (href) => {
     expect(cabinetPath(href, HERE)).toBeNull();
   });
 });

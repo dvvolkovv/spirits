@@ -134,6 +134,28 @@ describe('ссылка на карточку «Моего профиля»', () 
     expect(scrolledTo).toEqual([]);
   });
 
+  // Находка ревью (M1): ?settings раскрывает «Настройки» и рядом с карточкой
+  // вне их — как до ссылок на карточки.
+  it('?settings=1&open=telegram — «Настройки» раскрыты, прокрутка к Telegram', async () => {
+    const screen = await open('/profile?settings=1&open=telegram');
+    expect(screen).toContain('КАРТОЧКА-ZOOM');
+    expect(scrolledTo).toEqual([profileCardAnchor('telegram')]);
+  });
+
+  it('?settings=1&open=partners — раскрыты и «Настройки», и «Партнёры»', async () => {
+    const screen = await open('/profile?settings=1&open=partners');
+    expect(screen).toContain('КАРТОЧКА-ZOOM');
+    expect(screen).toContain('ПАНЕЛЬ-ПАРТНЁРОВ');
+    expect(scrolledTo).toEqual([profileCardAnchor('partners')]);
+  });
+
+  // Находка ревью (I3): знак вплотную за адресом автоссылка забрала в параметр.
+  it.each(['/profile?open=zoom）', '/profile?open=zoom%E3%80%82'])('%s — всё равно карточка Zoom', async (url) => {
+    const screen = await open(url);
+    expect(screen).toContain('КАРТОЧКА-ZOOM');
+    expect(scrolledTo).toEqual([profileCardAnchor('zoom')]);
+  });
+
   it.each(['/profile', '/profile?open=integrations'])('%s — всё свёрнуто, без прокрутки', async (url) => {
     const screen = await open(url);
     expect(screen).not.toContain('КАРТОЧКА-ZOOM');
