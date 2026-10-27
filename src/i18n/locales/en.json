@@ -2242,8 +2242,8 @@
       "failed": "Could not send the change",
       "secretsMasked": {
         "title": "Keys removed from the change",
-        "body": "The text contained values that look like keys. They did not reach the product or the change history — a placeholder stands in their place. To give the product a key, ask an assistant in the chat to change the product's keys: it will open a secure card.",
-        "names": "Hidden: {{names}}"
+        "body": "The text contained values that look like keys. They did not reach the product or the change history: they were replaced with “[ключ скрыт]”. Add the key under the same name through the secure card — ask any assistant in the Linkeon chat to change the product's keys. If something else was hidden (a link, a number), pass it through the card too, under a clear name. Detection isn't complete, so it's best not to paste keys into the change text.",
+        "names": "Hidden values: {{names}}"
       }
     },
     "history": {

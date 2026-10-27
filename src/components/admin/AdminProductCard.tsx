@@ -278,7 +278,11 @@ const AdminProductCard: React.FC<Props> = ({ productId, periodDays, initial = nu
                 {turns.length === 0 ? (
                   <p className="text-sm text-gray-400">Правок нет</p>
                 ) : (
-                  <ul className="space-y-2">
+                  // ym-hide-content: тексты правок пишет владелец продукта, и в
+                  // старых (до маски ключей на сервере, задача бэклога
+                  // 642c5198) бывают ключи открытым текстом. Сторож —
+                  // webvisorPrivacy.test.ts.
+                  <ul data-testid="admin-product-turns" className="ym-hide-content space-y-2">
                     {turns.map((t) => (
                       <TurnItem
                         key={t.id}

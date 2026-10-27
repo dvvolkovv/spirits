@@ -1892,8 +1892,8 @@
       "failed": "No se pudo enviar el cambio",
       "secretsMasked": {
         "title": "Claves eliminadas del cambio",
-        "body": "El texto contenía valores que parecen claves. No han llegado al producto ni al historial de cambios: en su lugar hay un marcador. Para que el producto reciba una clave, pide a un asistente en el chat que cambie las claves del producto: abrirá una tarjeta segura.",
-        "names": "Ocultas: {{names}}"
+        "body": "El texto contenía valores que parecen claves. No han llegado al producto ni al historial de cambios: se han sustituido por «[ключ скрыт]». Añade la clave con el mismo nombre en la tarjeta segura: pide a cualquier asistente en el chat de Linkeon que cambie las claves del producto. Si se ha ocultado algo más (un enlace, un número), pásalo también por la tarjeta, con un nombre claro. La detección no es completa, así que mejor no pegues claves en el texto del cambio.",
+        "names": "Valores ocultos: {{names}}"
       }
     },
     "history": {

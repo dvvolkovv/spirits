@@ -40,6 +40,7 @@ const ReferralDashboard = readFileSync(join(__dirname, 'profile', 'ReferralDashb
 const ProductActionCardSrc = readFileSync(join(__dirname, 'products', 'ProductActionCard.tsx'), 'utf8');
 const ProductChatSrc = readFileSync(join(__dirname, 'products', 'ProductChat.tsx'), 'utf8');
 const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx'), 'utf8');
+const AdminProductCardSrc = readFileSync(join(__dirname, 'admin', 'AdminProductCard.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -278,5 +279,9 @@ describe('правки продукта скрыты от Вебвизора', (
 
   it('история правок — ym-hide-content', () => {
     expect(classesOf(TurnHistorySrc, 'product-turn-history', 'div')).toContain('ym-hide-content');
+  });
+
+  it('правки продукта в админке — ym-hide-content', () => {
+    expect(classesOf(AdminProductCardSrc, 'admin-product-turns', 'ul')).toContain('ym-hide-content');
   });
 });
