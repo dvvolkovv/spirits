@@ -2,7 +2,7 @@ import React from 'react';
 import * as LucideIcons from 'lucide-react';
 import { extractAskBlocks, type AskBlock } from './askBlock';
 import { extractProductActions } from './productActionBlock';
-import { isWebLink } from './cabinetSections';
+import { isContactLink, isWebLink } from './cabinetSections';
 
 export interface ButtonConfig {
   text: string;
@@ -315,7 +315,15 @@ export const createLinkComponent = (
   // Адрес из тега приходит как есть, react-markdown его не чистит. Не
   // веб-адрес (javascript:, data:, file: …) не попадает и в href: иначе его
   // открыли бы средняя кнопка или «Открыть в новой вкладке» мимо обработчика
-  // (utils/cabinetSections.ts, isWebLink).
+  // (utils/cabinetSections.ts, isWebLink). Почта и телефон — родная ссылка
+  // браузера, без обработчика (isContactLink).
+  if (isContactLink(config.url)) {
+    return (
+      <a href={config.url} className="ym-disable-tracklink text-forest-600 hover:text-forest-700 underline">
+        {config.text}
+      </a>
+    );
+  }
   return (
     <a
       href={isWebLink(config.url) ? config.url : undefined}

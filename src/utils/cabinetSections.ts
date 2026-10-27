@@ -269,3 +269,20 @@ export function isWebLink(url: string): boolean {
     return false;
   }
 }
+
+/**
+ * Почта и телефон — mailto: и tel:. Скриптов они не исполняют, а ссылку на
+ * почту GFM делает сам из голого адреса в ответе («напишите на help@…»): без
+ * неё ассистент, назвавший почту поддержки, дал бы мёртвую ссылку. Открывает
+ * их браузер сам (почтовая программа, звонок) — мимо обработчика чата:
+ * window.open с такой схемой оставлял бы в части браузеров пустую вкладку.
+ */
+export function isContactLink(url: string): boolean {
+  if (url.trim() === '') return false;
+  try {
+    const { protocol } = new URL(url, PATH_BASE);
+    return protocol === 'mailto:' || protocol === 'tel:';
+  } catch {
+    return false;
+  }
+}

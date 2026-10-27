@@ -24,7 +24,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
-import { chatLinkPath, isWebLink } from '../../utils/cabinetSections';
+import { chatLinkPath, isContactLink, isWebLink } from '../../utils/cabinetSections';
 import { VoiceDictation } from '../../services/voiceDictation';
 import { isDictationLanguageSupported } from '../../services/dictationLanguages';
 import AudioClip from './AudioClip';
@@ -463,6 +463,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // мимо «Внешних переходов» Метрики: адреса из переписки личные
     // (webvisorPrivacy.test.ts).
     a: ({ href, children }: any) => {
+      // Почта и телефон — родная ссылка браузера, без обработчика: он открывает
+      // только веб-адреса и mailto: бы погасил (isContactLink).
+      if (href && isContactLink(href)) {
+        return (
+          <a href={href} className="ym-disable-tracklink text-forest-600 hover:text-forest-700 underline">
+            {children}
+          </a>
+        );
+      }
       return (
         <a
           href={href && isWebLink(href) ? href : undefined}
