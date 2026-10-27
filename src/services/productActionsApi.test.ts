@@ -49,6 +49,13 @@ describe('ручки карточки', () => {
     expect(await productActionsApi.pending()).toEqual([]);
   });
 
+  it('submit ключей — set, remove и источник, ничего сверх', async () => {
+    api.post.mockResolvedValue(json(200, { ...VIEW, kind: 'keys', status: 'working', productKind: 'bot' }));
+    const r = await productActionsApi.submit('a1', { set: { API_KEY: 'k' }, remove: ['OLD'], via: 'tma' });
+    expect(api.post).toHaveBeenCalledWith('/webhook/product-actions/a1', { set: { API_KEY: 'k' }, remove: ['OLD'], via: 'tma' });
+    expect(!isProblem(r) && r.productKind).toBe('bot');
+  });
+
   it('cancel — свой URL', async () => {
     api.post.mockResolvedValue(json(200, { ...VIEW, status: 'cancelled' }));
     await productActionsApi.cancel('a1');
