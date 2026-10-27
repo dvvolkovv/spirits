@@ -5,6 +5,7 @@
 // ведёт и как открывается — свой кабинет в той же вкладке, чужой сайт в
 // новой, без доступа к нашей.
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { act } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { byLink, click, flush, mount, visibleText, type Mounted } from '../../test/dom';
 import type { SupportMessage, SupportTicket } from './useSupport';
@@ -66,8 +67,12 @@ afterEach(() => {
   view = null;
 });
 
-async function open(content: string): Promise<HTMLElement> {
-  state.messages = [{ id: 'm-1', senderType: 'ai', content, createdAt: '2026-10-27T10:00:00.000Z' }];
+/** Лента из одного ответа ассистента — или из нескольких сообщений. */
+async function open(content: string | SupportMessage[]): Promise<HTMLElement> {
+  state.messages =
+    typeof content === 'string'
+      ? [{ id: 'm-1', senderType: 'ai', content, createdAt: '2026-10-27T10:00:00.000Z' }]
+      : content;
   view = mount(
     <MemoryRouter initialEntries={['/support']}>
       <SupportView />
@@ -111,5 +116,55 @@ describe('ссылки в ответах поддержки', () => {
     const c = await open('Обычный ответ без ссылок.');
     expect(c.querySelectorAll('a')).toHaveLength(0);
     expect(visibleText(c)).toContain('Обычный ответ без ссылок.');
+  });
+
+  // Находка ревью (M3): у своей ссылки href вёл на боевой адрес из ответа.
+  // Средняя кнопка и ctrl/cmd-клик открывали по нему новую вкладку — со
+  // стенда уводили на прод, а ctrl/cmd-клик перехватывался и вёл в той же.
+  it('своя ссылка — путь этого же кабинета: ctrl/cmd-клик отдаётся браузеру', async () => {
+    const c = await open('Карточка Zoom тут: https://my.linkeon.io/profile?open=zoom');
+    const a = byLink(c, /open=zoom$/)!;
+    expect(a.getAttribute('href')).toBe('/profile?open=zoom');
+    for (const mod of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }]) {
+      let prevented: boolean | null = null;
+      // После обработчиков React: видно, перехватил ли клик роутер. Затем —
+      // отмена, чтобы jsdom не пытался открыть адрес сам.
+      const seen = (e: Event) => {
+        prevented = e.defaultPrevented;
+        e.preventDefault();
+      };
+      document.addEventListener('click', seen);
+      act(() => {
+        a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...mod }));
+      });
+      document.removeEventListener('click', seen);
+      expect(prevented, JSON.stringify(mod)).toBe(false);
+    }
+    await flush();
+    expect(where(c)).toBe('/support');
+  });
+
+  // Находка ревью (M4): Метрика (trackLinks в index.html) пишет внешние
+  // переходы полным адресом, а адреса в переписке с поддержкой личные — в
+  // пузыре самого человека бывает ссылка на встречу с паролем. Класс
+  // ym-disable-tracklink по документации Метрики снимает с ссылки признак
+  // внешней (yandex.ru/support/metrica/ru/code/html-markup).
+  it('ни одну ссылку поддержки Метрика не пишет как внешний переход — и в пузыре человека тоже', async () => {
+    const c = await open([
+      { id: 'm-1', senderType: 'user', content: 'Встреча: https://zoom.example/j/1?pwd=x1', createdAt: '2026-10-27T10:00:00.000Z' },
+      {
+        id: 'm-2',
+        senderType: 'ai',
+        content: 'Карточка: https://my.linkeon.io/profile?open=zoom, источник: https://example.org/docs',
+        createdAt: '2026-10-27T10:01:00.000Z',
+      },
+    ]);
+    const links = Array.from(c.querySelectorAll('a'));
+    expect(links.map((a) => a.textContent)).toEqual([
+      'https://zoom.example/j/1?pwd=x1',
+      'https://my.linkeon.io/profile?open=zoom',
+      'https://example.org/docs',
+    ]);
+    for (const a of links) expect(a.classList.contains('ym-disable-tracklink'), a.textContent ?? '').toBe(true);
   });
 });

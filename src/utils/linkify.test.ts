@@ -49,4 +49,53 @@ describe('linkifyText', () => {
     const links = linkifyText('https://a.example/1 и https://b.example/2').filter((p) => p.kind === 'link');
     expect(links.map((p) => p.text)).toEqual(['https://a.example/1', 'https://b.example/2']);
   });
+
+  // Находка ревью (I3): ответ на китайском или японском ставит за адресом свою
+  // пунктуацию, и часто без пробела. Адрес должен на ней кончаться.
+  const linkText = (s: string) => linkifyText(s).find((p) => p.kind === 'link')?.text;
+
+  it.each([
+    ['打开 https://my.linkeon.io/profile?open=zoom。', 'https://my.linkeon.io/profile?open=zoom'],
+    ['打开https://my.linkeon.io/profile?open=zoom。然后点击连接', 'https://my.linkeon.io/profile?open=zoom'],
+    ['（https://my.linkeon.io/profile?open=zoom）', 'https://my.linkeon.io/profile?open=zoom'],
+    ['「https://my.linkeon.io/support」で', 'https://my.linkeon.io/support'],
+    ['https://my.linkeon.io/chat，然后', 'https://my.linkeon.io/chat'],
+    ['https://my.linkeon.io/chat、https://my.linkeon.io/help', 'https://my.linkeon.io/chat'],
+    ['https://my.linkeon.io/studio?tab=bots！', 'https://my.linkeon.io/studio?tab=bots'],
+    [`https://my.linkeon.io/chat${String.fromCharCode(0x3000)}дальше`, 'https://my.linkeon.io/chat'],
+  ])('%s — адрес кончается перед пунктуацией CJK', (text, link) => {
+    expect(linkText(text)).toBe(link);
+  });
+
+  it('текст вокруг адреса на экране остаётся целиком', () => {
+    const text = '打开https://my.linkeon.io/profile?open=zoom。然后点击连接';
+    const parts = linkifyText(text);
+    expect(parts.map((p) => p.text).join('')).toBe(text);
+    expect(parts[parts.length - 1]).toEqual({ kind: 'text', text: '。然后点击连接' });
+  });
+
+  it('иероглифы и полуширинная катакана — часть адреса', () => {
+    expect(linkifyText('https://zh.wikipedia.org/wiki/北京 — столица')[0]).toEqual({
+      kind: 'link',
+      text: 'https://zh.wikipedia.org/wiki/北京',
+      href: 'https://zh.wikipedia.org/wiki/%E5%8C%97%E4%BA%AC',
+    });
+    expect(linkText('https://example.org/ｶﾀｶﾅ')).toBe('https://example.org/ｶﾀｶﾅ');
+  });
+
+  // Находка ревью (I3): ответ поддержки бывает с markdown-разметкой, а за
+  // адресом в ней — «**», «_», «~» или «]». GFM-автоссылка в чате их срезает.
+  it.each([
+    ['**https://my.linkeon.io/profile?open=zoom**', 'https://my.linkeon.io/profile?open=zoom'],
+    ['_https://example.org/a_', 'https://example.org/a'],
+    ['~~https://example.org/a~~', 'https://example.org/a'],
+    ['[https://example.org/a]', 'https://example.org/a'],
+  ])('%s — разметка вокруг адреса не часть адреса', (text, link) => {
+    expect(linkText(text)).toBe(link);
+  });
+
+  it('парная квадратная скобка внутри адреса — часть адреса', () => {
+    expect(linkText('https://example.org/?a[0]=1 и https://example.org/b[1]')).toBe('https://example.org/?a[0]=1');
+    expect(linkifyText('https://example.org/b[1]')[0]).toMatchObject({ text: 'https://example.org/b[1]' });
+  });
 });
