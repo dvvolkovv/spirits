@@ -55,7 +55,12 @@ export const TurnHistory: React.FC<Props> = ({ productId, turns, onReverted }) =
   return (
     <div>
       <h2 className="text-sm font-semibold text-gray-700 mb-2">{t('products.history.title')}</h2>
-      <div className="space-y-2">
+      {/*
+        ym-hide-content: тексты правок пишет владелец, и в старых (до маски
+        ключей на сервере, задача бэклога 642c5198) бывают ключи открытым
+        текстом. Сторож — webvisorPrivacy.test.ts.
+      */}
+      <div data-testid="product-turn-history" className="ym-hide-content space-y-2">
         {turns.map((turn) => (
           <div
             key={turn.id}

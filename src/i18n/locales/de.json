@@ -1880,7 +1880,12 @@
       "send": "Senden",
       "busy": "Der Agent arbeitet noch an deiner vorherigen Anfrage",
       "sleeping": "Das Produkt schläft: Die Tokens für die Miete haben nicht gereicht. Lade dein Guthaben auf, dann wacht es von selbst auf.",
-      "failed": "Die Änderung konnte nicht gesendet werden"
+      "failed": "Die Änderung konnte nicht gesendet werden",
+      "secretsMasked": {
+        "title": "Schlüssel aus der Änderung entfernt",
+        "body": "Der Text enthielt Werte, die wie Schlüssel aussehen. Diese Werte sind weder im Produkt noch im Änderungsverlauf gelandet – an ihrer Stelle steht „{{mask}}“. Füge den Schlüssel unter demselben Namen über die sichere Karte hinzu: Schreib im Linkeon-Chat einem beliebigen Assistenten, dass er die Schlüssel des Produkts ändern soll. Wurde etwas anderes ausgeblendet (ein Link, eine Nummer), gib es ebenfalls über die Karte weiter, unter einem verständlichen Namen. Die Erkennung ist nicht vollständig – füge Schlüssel also besser nicht in den Änderungstext ein.",
+        "names": "Ausgeblendete Werte: {{names}}"
+      }
     },
     "history": {
       "title": "Änderungsverlauf",

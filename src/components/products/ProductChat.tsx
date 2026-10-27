@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Send, ShieldAlert } from 'lucide-react';
+import { KeyRound, Send, ShieldAlert } from 'lucide-react';
 import { productsApi, Product } from '../../services/productsApi';
 import type { Problem } from '../../services/productsApi';
 import { SUPPORT_HREF, TOPUP_HREF, formatRentAmount, wakeExpected } from './rent';
@@ -12,7 +12,18 @@ export type StreamEvent =
   | { type: 'tool_start'; tool: string; input?: unknown }
   | { type: 'tool_result'; tool: string; result?: unknown }
   | { type: 'end'; usage?: { total?: number } }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  // Сервер скрыл в тексте правки значения, похожие на ключи (prompt-secrets.ts
+  // в spirits_back), и говорит об этом первым событием хода.
+  | { type: 'notice'; code: string; count?: number; names?: unknown; mask?: unknown };
+
+/**
+ * Запасной знак маски — если сервер его не прислал. Правда — на сервере
+ * (SECRET_MASK в spirits_back/src/products/prompt-secrets.ts): он присылает
+ * знак в самом событии, и в тексте плашки стоит ровно то, что человек увидит
+ * в истории правок.
+ */
+const FALLBACK_SECRET_MASK = '[ключ скрыт]';
 
 /**
  * Разбирает NDJSON-поток хода. Вынесено из компонента, чтобы поведение
@@ -82,6 +93,10 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
   // Отказ про деньги показывается вместе со ссылкой на пополнение: текста
   // «пополните баланс» без места, куда нажать, владельцу недостаточно.
   const [needsTopUp, setNeedsTopUp] = useState(false);
+  // Имена ключей, значения которых сервер вырезал из текста правки. null —
+  // ничего не вырезано; [] — вырезано, но имён в тексте не было.
+  const [maskedNames, setMaskedNames] = useState<string[] | null>(null);
+  const [secretMask, setSecretMask] = useState(FALLBACK_SECRET_MASK);
 
   /**
    * Причина отказа для человека — по КОДУ, а не одна на все случаи.
@@ -117,6 +132,7 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
     setOutput('');
     setError(null);
     setNeedsTopUp(false);
+    setMaskedNames(null);
 
     const started = await productsApi.chatStream(product.id, prompt);
     setPrompt('');
@@ -140,6 +156,14 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
           setOutput(accumulated);
         } else if (event.type === 'error') {
           setError(event.message);
+        } else if (event.type === 'notice' && event.code === 'secrets_masked') {
+          // Имена — из текста самого владельца, но приходят по сети: берём
+          // только строки, и React выведет их текстом, не разметкой.
+          const names = Array.isArray(event.names)
+            ? event.names.filter((n): n is string => typeof n === 'string')
+            : [];
+          setMaskedNames(names);
+          if (typeof event.mask === 'string' && event.mask) setSecretMask(event.mask);
         }
       });
     } finally {
@@ -228,7 +252,13 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
       )}
 
       <div className="flex items-center gap-2">
+        {/*
+          ym-disable-keys: сюда вставляют ключи, хотя не должны (задача
+          бэклога 642c5198), — Вебвизор Метрики не должен записать их
+          раньше, чем сервер успеет скрыть. Сторож — webvisorPrivacy.test.ts.
+        */}
         <input
+          data-testid="product-chat-input"
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -240,7 +270,7 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
           }}
           placeholder={t('products.chat.placeholder')}
           disabled={streaming}
-          className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-forest-500 disabled:bg-gray-50 disabled:text-gray-400"
+          className="ym-disable-keys flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-forest-500 disabled:bg-gray-50 disabled:text-gray-400"
         />
         <button
           onClick={send}
@@ -266,6 +296,29 @@ export const ProductChat: React.FC<Props> = ({ product, onTurnFinished }) => {
             >
               {t('products.rent.topUp')}
             </a>
+          )}
+        </div>
+      )}
+
+      {/*
+        КЛЮЧИ ИЗ ТЕКСТА ПРАВКИ СКРЫТЫ. Правка поставлена и идёт как обычно —
+        это объяснение, а не отказ, поэтому жёлтое, а не красное. Без него
+        владелец ждал бы, что ключ доехал до продукта.
+      */}
+      {maskedNames && (
+        <div
+          role="status"
+          className="flex flex-col gap-1.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm"
+        >
+          <span className="flex items-center gap-1.5 font-medium">
+            <KeyRound size={16} className="shrink-0" />
+            {t('products.chat.secretsMasked.title')}
+          </span>
+          <span>{t('products.chat.secretsMasked.body', { mask: secretMask })}</span>
+          {maskedNames.length > 0 && (
+            <span className="break-words">
+              {t('products.chat.secretsMasked.names', { names: maskedNames.join(', ') })}
+            </span>
           )}
         </div>
       )}

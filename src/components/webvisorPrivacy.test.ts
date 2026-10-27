@@ -38,6 +38,9 @@ const LinkedAccountsView = readFileSync(join(__dirname, 'settings', 'LinkedAccou
 const CalendarSourcesCard = readFileSync(join(__dirname, 'settings', 'CalendarSourcesCard.tsx'), 'utf8');
 const ReferralDashboard = readFileSync(join(__dirname, 'profile', 'ReferralDashboard.tsx'), 'utf8');
 const ProductActionCardSrc = readFileSync(join(__dirname, 'products', 'ProductActionCard.tsx'), 'utf8');
+const ProductChatSrc = readFileSync(join(__dirname, 'products', 'ProductChat.tsx'), 'utf8');
+const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx'), 'utf8');
+const AdminProductCardSrc = readFileSync(join(__dirname, 'admin', 'AdminProductCard.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -263,5 +266,22 @@ describe('карточка действия продукта скрыта от �
     expect(classesOf(ProductActionCardSrc, 'product-action-token', 'input')).toContain('ym-disable-keys');
     expect(classesOf(ProductActionCardSrc, 'product-action-secret-value', 'input')).toContain('ym-disable-keys');
     expect(classesOf(ProductActionCardSrc, 'product-action-key-replace', 'input')).toContain('ym-disable-keys');
+  });
+});
+
+// Задача бэклога 642c5198: в поле правки продукта вставляют ключи, хотя не
+// должны, — Вебвизор не должен записать их раньше, чем сервер скроет; в
+// истории правок старые тексты бывают с ключами открытым текстом.
+describe('правки продукта скрыты от Вебвизора', () => {
+  it('поле правки — ym-disable-keys', () => {
+    expect(classesOf(ProductChatSrc, 'product-chat-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('история правок — ym-hide-content', () => {
+    expect(classesOf(TurnHistorySrc, 'product-turn-history', 'div')).toContain('ym-hide-content');
+  });
+
+  it('правки продукта в админке — ym-hide-content', () => {
+    expect(classesOf(AdminProductCardSrc, 'admin-product-turns', 'ul')).toContain('ym-hide-content');
   });
 });

@@ -2239,7 +2239,12 @@
       "send": "Send",
       "busy": "The agent is still working on your previous request",
       "sleeping": "The product is asleep: not enough tokens for the rent. Top up your balance and it will wake up on its own.",
-      "failed": "Could not send the change"
+      "failed": "Could not send the change",
+      "secretsMasked": {
+        "title": "Keys removed from the change",
+        "body": "The text contained values that look like keys. They did not reach the product or the change history: they were replaced with “{{mask}}”. Add the key under the same name through the secure card — ask any assistant in the Linkeon chat to change the product's keys. If something else was hidden (a link, a number), pass it through the card too, under a clear name. Detection isn't complete, so it's best not to paste keys into the change text.",
+        "names": "Hidden values: {{names}}"
+      }
     },
     "history": {
       "title": "Change history",
