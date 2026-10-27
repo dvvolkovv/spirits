@@ -15,7 +15,19 @@ export interface ProductActionView {
   keyNames: string[];
   expiresAt: string | null;
   restoreUntil: string | null;
-  result: { error?: string; reason?: string; productId?: string; botUsername?: string; restoreUntil?: string; keyNames?: string[] } | null;
+  result: {
+    error?: string;
+    reason?: string;
+    /**
+     * Имя ключа, к которому относится поправимый отказ карточки ключей. Годное
+     * имя — целиком, негодное — обрезком сервера (первые 8 знаков и «…»).
+     */
+    field?: string;
+    productId?: string;
+    botUsername?: string;
+    restoreUntil?: string;
+    keyNames?: string[];
+  } | null;
 }
 
 export type ActionSource = 'chat' | 'cabinet' | 'tma';
