@@ -58,3 +58,12 @@ describe('ссылки чата на свой кабинет', () => {
     expect(SRC).toContain('createLinkComponent(linkConfig, handleLinkNavigation)');
   });
 });
+
+// Почта и телефон в markdown-ссылке чата — родная ссылка браузера (href, без
+// обработчика): обработчик открывает только веб-адреса и mailto: бы погасил.
+describe('ссылка чата: почта и телефон — браузером', () => {
+  it('компонент ссылки отдаёт почту и телефон браузеру', () => {
+    expect(SRC).toMatch(/if \(href && isContactLink\(href\)\)/);
+  });
+});
+

@@ -16,6 +16,7 @@ import {
   SECTION_LINKS,
   chatLinkPath,
   deepSectionLink,
+  isContactLink,
   isWebLink,
   profileCardAnchor,
   profileTarget,
@@ -150,3 +151,22 @@ describe('ссылки разметки чата мимо «Внешних пе�
     expect(classes(html)).toContain('ym-disable-tracklink');
   });
 });
+
+// Почта и телефон — обычная ссылка браузера: GFM сам делает mailto: из голого
+// адреса, и ассистент, назвавший почту поддержки, не должен дать мёртвую ссылку.
+describe('почта и телефон в чате — ссылка браузера', () => {
+  const tag = (html: string) => html.match(/<a\b[^>]*>/)?.[0] ?? '';
+
+  it('голый адрес почты в ответе — mailto:, его открывает браузер', () => {
+    const found = hrefs('Напишите на help@example.org — ответим.');
+    expect(found).toEqual(['mailto:help@example.org']);
+    expect(isContactLink(found[0])).toBe(true);
+  });
+
+  it.each(['mailto:help@example.org', 'tel:+70000000000'])('{{link}} с %s — с href и мимо Метрики', (url) => {
+    const html = renderToStaticMarkup(<>{createLinkComponent({ text: 'x', url }, () => {})}</>);
+    expect(tag(html)).toContain(`href="${url}"`);
+    expect(tag(html)).toContain('ym-disable-tracklink');
+  });
+});
+

@@ -5,6 +5,7 @@ import {
   cabinetPath,
   chatLinkPath,
   deepSectionLink,
+  isContactLink,
   isWebLink,
   legacyProfilePath,
   paramWord,
@@ -363,8 +364,6 @@ describe('isWebLink — чат открывает только веб-адрес
     'file:///etc/passwd',
     'FILE://host/share',
     'blob:https://my.linkeon.io/0b9e1c2a-0000-4000-8000-000000000000',
-    'mailto:help@example.org',
-    'tel:000',
     'ftp://example.org/f',
     'about:blank',
     'intent://x#Intent;end',
@@ -375,3 +374,26 @@ describe('isWebLink — чат открывает только веб-адрес
     expect(chatLinkPath(url, 'my.linkeon.io')).toBeNull();
   });
 });
+
+// Почта и телефон: скриптов не исполняют, а ссылку на почту GFM делает сам из
+// голого адреса в ответе («напишите на help@…») — без неё ассистент, назвавший
+// почту поддержки, дал бы мёртвую ссылку. Открывает их браузер сам, мимо
+// обработчика чата: не переход роутера и не новая вкладка.
+describe('isContactLink — почта и телефон открывает браузер', () => {
+  it.each(['mailto:help@example.org', 'MAILTO:help@example.org', ' mailto:help@example.org', 'tel:+70000000000', 'TEL:000'])(
+    '%j — ссылка браузера, не веб-адрес и не путь кабинета',
+    (url) => {
+      expect(isContactLink(url)).toBe(true);
+      expect(isWebLink(url)).toBe(false);
+      expect(chatLinkPath(url, 'my.linkeon.io')).toBeNull();
+    },
+  );
+
+  it.each(['https://example.org/a', '/profile?open=zoom', 'javascript:alert(1)', 'data:text/html,x', 'sms:000', ''])(
+    '%j — не почта и не телефон',
+    (url) => {
+      expect(isContactLink(url)).toBe(false);
+    },
+  );
+});
+
