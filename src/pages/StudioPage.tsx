@@ -7,6 +7,7 @@ import { TgBotsListView } from '../components/tg-bot/TgBotsListView';
 import { ProductsSection } from '../components/products/ProductsSection';
 import { PendingProductActions } from '../components/products/PendingProductActions';
 import { isUuid } from '../utils/uuid';
+import { paramWord } from '../utils/cabinetSections';
 
 type Tab = 'agents' | 'bots' | 'products';
 
@@ -24,7 +25,10 @@ const StudioPage: React.FC = () => {
   // он на сервере (LimitsService, 422 при заведении третьего). Прятать вкладку
   // ради того же незачем: список своих продуктов и кабинет аренды нужны как
   // раз тем, кто предел уже выбрал.
-  const raw = params.get('tab');
+  // Ведущие буквы значения (utils/cabinetSections.ts, paramWord): знак
+  // вплотную за адресом из ответа ассистента («…?tab=bots）») автоссылка
+  // забирает в параметр, а вкладка всё равно сверяется со своими тремя.
+  const raw = paramWord(params.get('tab'));
   const tab: Tab = raw === 'bots' ? 'bots' : raw === 'products' ? 'products' : 'agents';
 
   const rawAction = params.get('action');

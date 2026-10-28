@@ -23,6 +23,7 @@ import ZoomConnectCard from './ZoomConnectCard';
 import CalendarSourcesCard from './CalendarSourcesCard';
 import VoiceSettings from './VoiceSettings';
 import { LanguageSelect } from './LanguageSelect';
+import { profileCardAnchor } from '../../utils/cabinetSections';
 import {
   pushSupported,
   isPushSubscribed,
@@ -143,8 +144,10 @@ const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-        {/* Push на это устройство — реальный опт-ин (PWA / браузер) */}
-        <div className="bg-white rounded-lg shadow-sm">
+        {/* Push на это устройство — реальный опт-ин (PWA / браузер).
+            id у карточек ниже — якоря ссылок /profile?open=<карточка>
+            (utils/cabinetSections.ts): к ним прокручивает «Мой профиль». */}
+        <div id={profileCardAnchor('notifications')} className="bg-white rounded-lg shadow-sm scroll-mt-4">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <Bell className="w-5 h-5 mr-2 text-forest-600" />
@@ -180,18 +183,29 @@ const SettingsView: React.FC = () => {
         </div>
 
         {/* Мои напоминания — проактивные рутинные пуши от ассистентов (Слой 3, обобщённые) */}
-        <RoutinesManager />
+        <div id={profileCardAnchor('reminders')} className="scroll-mt-4">
+          <RoutinesManager />
+        </div>
 
         {/* Экосистема TalerID — согласие на подключение (референс-коннектор над-экосистемного слоя) */}
-        <TalerIdEcosystemCard />
+        <div id={profileCardAnchor('talerid')} className="scroll-mt-4">
+          <TalerIdEcosystemCard />
+        </div>
 
-        <ZoomConnectCard />
+        <div id={profileCardAnchor('zoom')} className="scroll-mt-4">
+          <ZoomConnectCard />
+        </div>
 
         {/* Календари — заметное место, чтобы добавить свой календарь (Яндекс по логину+паролю; Outlook/Google готовим) */}
-        <CalendarSourcesCard />
+        <div id={profileCardAnchor('calendars')} className="scroll-mt-4">
+          <CalendarSourcesCard />
+        </div>
 
-        {/* Голоса ассистентов — каким голосом озвучивать ответы каждого ассистента */}
-        <VoiceSettings />
+        {/* Голоса ассистентов — каким голосом озвучивать ответы каждого ассистента.
+            Карточка бывает пустой (нет голосов для языка), якорь при этом остаётся. */}
+        <div id={profileCardAnchor('voices')} className="scroll-mt-4">
+          <VoiceSettings />
+        </div>
 
         {/* Contact Visibility — кто может получить твой контакт (phone) через поиск */}
         <div className="bg-white rounded-lg shadow-sm">
@@ -233,7 +247,9 @@ const SettingsView: React.FC = () => {
         </div>
 
         {/* Linked Accounts */}
-        <LinkedAccountsView />
+        <div id={profileCardAnchor('logins')} className="scroll-mt-4">
+          <LinkedAccountsView />
+        </div>
 
         {/* Privacy Settings */}
         <div className="bg-white rounded-lg shadow-sm">

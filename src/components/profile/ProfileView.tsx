@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { CreditCard, Calendar, TrendingUp, User, Camera, Upload, LogOut, Trash2, X, Coins, Settings2, ChevronDown, ChevronUp, Send, Handshake } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -13,6 +13,7 @@ import BusinessCard from './BusinessCard';
 import InviteFriendBlock from './InviteFriendBlock';
 import { tgBotApi, type IdentityStatus } from '../../services/tgBotApi';
 import { LanguageSelect } from '../settings/LanguageSelect';
+import { profileCardAnchor, profileTarget } from '../../utils/cabinetSections';
 
 interface ProfileData {
   profile?: string[];
@@ -36,6 +37,20 @@ interface ProfileData {
   user_id?: string;
 }
 
+/**
+ * Когда прокручивать к карточке из ссылки (/profile?open=<карточка>): как
+ * раскрытый блок нарисуется, и дважды доводкой — до 2 с, пока над карточкой
+ * дорастают блоки со своими данными.
+ */
+const SCROLL_TO_CARD_MS = [350, 1200, 2000];
+
+/**
+ * Человек взялся за страницу сам — доводку прокрутки отменяем, чтобы не
+ * дёргать её из-под него. pointerdown — ещё и полоса прокрутки и нажатие на
+ * кнопку карточки: ни колеса, ни касания там нет.
+ */
+const USER_SCROLL_EVENTS = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
+
 const toRich = (plain?: string[], rich?: EntityRich[]): EntityRich[] => {
   if (Array.isArray(rich) && rich.length) return rich;
   if (Array.isArray(plain)) return plain.map((name) => ({ name }));
@@ -53,25 +68,36 @@ const ProfileView: React.FC = () => {
   });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  // Deep-link из виджета лаунчера: /profile?open=calendars (или ?settings=1) — сразу
-  // разворачиваем аккордеон настроек, чтобы карточка «Календари» была видна без кликов.
-  const [showSettings, setShowSettings] = useState(() => {
-    try {
-      const p = new URLSearchParams(window.location.search);
-      return p.has('settings') || p.get('open') === 'calendars';
-    } catch { return false; }
-  });
-  const [showReferral, setShowReferral] = useState(false);
-  // ?open=calendars → доскроллить к карточке «Календари» после раскрытия настроек.
+  // Адрес раздела — из ссылки ассистента или виджета лаунчера (utils/cabinetSections.ts):
+  // /profile?open=<карточка> раскрывает её блок и прокручивает к ней,
+  // ?settings=1 раскрывает «Настройки». Те же адреса дают ассистенты — у бэка
+  // своя копия таблицы, их сверяет общая таблица в cabinetSections.test.ts.
+  // Адрес — из роутера, а не из window.location: так видна и смена адреса
+  // переходом внутри кабинета (ссылка из чата), и адрес в тестах (MemoryRouter).
+  // Эффект ждёт и key, а не только search: та же ссылка ещё раз (из поддержки,
+  // из чата поверх профиля) снова раскрывает свёрнутый человеком блок и
+  // прокручивает к карточке.
+  const { search, key: locationKey } = useLocation();
+  const [showSettings, setShowSettings] = useState(() => profileTarget(search).settings);
+  const [showReferral, setShowReferral] = useState(() => profileTarget(search).referral);
   useEffect(() => {
-    try {
-      if (new URLSearchParams(window.location.search).get('open') !== 'calendars') return;
-    } catch { return; }
-    const id = window.setTimeout(() => {
-      document.getElementById('calendar-sources')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 350);
-    return () => window.clearTimeout(id);
-  }, []);
+    const { settings, referral, anchor } = profileTarget(search);
+    if (settings) setShowSettings(true);
+    if (referral) setShowReferral(true);
+    if (!anchor) return;
+    // Первая прокрутка — когда раскрытый блок нарисовался. Дальше — доводка:
+    // блоки над карточкой ещё дорастают (анкета с сервера, карточки настроек
+    // со своими запросами), и карточка уезжает вниз. Доводим, пока человек сам
+    // не взялся за страницу. block: 'start' — у якорей scroll-mt-4.
+    const scroll = () => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const timers = SCROLL_TO_CARD_MS.map((ms) => window.setTimeout(scroll, ms));
+    const stop = () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      USER_SCROLL_EVENTS.forEach((type) => window.removeEventListener(type, stop, true));
+    };
+    USER_SCROLL_EVENTS.forEach((type) => window.addEventListener(type, stop, { capture: true, passive: true }));
+    return stop;
+  }, [search, locationKey]);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [editedData, setEditedData] = useState<ProfileData | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -315,6 +341,11 @@ const ProfileView: React.FC = () => {
 
   const handleLogout = () => {
     if (window.confirm(t('profile.logout_confirm'))) {
+      // Сначала — с адреса раздела в чат. Экран входа встаёт на текущий адрес
+      // и запоминает его как намерение (OnboardingPage → loginIntent): выход с
+      // /profile?settings=1 открыл бы настройки следующему входу на этом
+      // устройстве — возможно, уже другого человека.
+      navigate('/chat', { replace: true });
       logout();
     }
   };
@@ -325,6 +356,10 @@ const ProfileView: React.FC = () => {
 
   const confirmDeleteAccount = () => {
     setShowDeleteConfirm(false);
+    // Как при выходе (handleLogout): уйти с адреса раздела до того, как вход
+    // погаснет и встанет экран входа. Не удалось удалить — сообщение покажется
+    // уже в чате.
+    navigate('/chat', { replace: true });
     deleteProfile().catch((error: Error) => {
       alert(t('profile.delete_account_error_alert', { message: error.message }));
     });
@@ -509,8 +544,9 @@ const ProfileView: React.FC = () => {
         {/* Invite a friend (referral entry point) */}
         <InviteFriendBlock />
 
-        {/* Telegram identity — для привязки своего TG к Студии (создание ботов) */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        {/* Telegram identity — для привязки своего TG к Студии (создание ботов).
+            id — якорь ссылки /profile?open=telegram (utils/cabinetSections.ts). */}
+        <div id={profileCardAnchor('telegram')} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 scroll-mt-4">
           <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Send className="w-5 h-5 text-blue-500" />
             Telegram
@@ -643,8 +679,9 @@ const ProfileView: React.FC = () => {
           )}
         </div>
 
-        {/* Referral — collapsible аккордеон по тому же паттерну что и Settings. */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {/* Referral — collapsible аккордеон по тому же паттерну что и Settings.
+            id — якорь ссылки /profile?open=partners (utils/cabinetSections.ts). */}
+        <div id={profileCardAnchor('partners')} className="bg-white rounded-lg shadow-sm overflow-hidden scroll-mt-4">
           <button
             type="button"
             onClick={() => setShowReferral((v) => !v)}

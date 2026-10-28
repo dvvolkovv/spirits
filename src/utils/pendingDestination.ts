@@ -1,24 +1,25 @@
 /**
  * Раздел кабинета, в который человек шёл до входа.
  *
- * Кнопка «Сделать сайт или бота» на linkeon.io ведёт на /studio?tab=products.
- * Новый человек сначала видит экран входа, а все пути входа кончаются голым
- * /chat: SMS и OAuth — navigate('/chat'), экран привязки —
- * window.location.replace('/chat'), ссылка из письма — страница бэкенда с
- * location.replace('/chat'). Поэтому адрес запоминается здесь до входа, а
- * после входа его забирает PendingDestinationRedirect, стоящий на /chat.
+ * Кнопка «Сделать сайт или бота» на linkeon.io ведёт на /studio?tab=products,
+ * ассистенты дают ссылки на разделы (/profile?open=zoom и другие из
+ * cabinetSections.ts). Новый человек сначала видит экран входа, а все пути
+ * входа кончаются голым /chat: SMS и OAuth — navigate('/chat'), экран
+ * привязки — window.location.replace('/chat'), ссылка из письма — страница
+ * бэкенда с location.replace('/chat'). Поэтому адрес запоминается здесь до
+ * входа, а после входа его забирает PendingDestinationRedirect, стоящий на /chat.
  *
- * Только из белого списка: произвольный адрес из ссылки сделал бы кабинет
- * открытым редиректом. Хранилище и срок — как у pendingAssistant:
+ * Только канонические адреса разделов С ПАРАМЕТРОМ (deepSectionLink).
+ * Произвольный адрес из ссылки сделал бы кабинет открытым редиректом, а голый
+ * раздел — «обычная страница», которая не должна перебивать запомненное
+ * намерение (loginIntent.ts). Хранилище и срок — как у pendingAssistant:
  * localStorage (ссылку из письма часто открывают в новой вкладке), час.
  */
+import { deepSectionLink } from './cabinetSections';
 import { isUuid } from './uuid';
 
 const KEY = 'pending_destination';
 const TTL_MS = 60 * 60 * 1000;
-
-/** Разрешённые разделы: путь и обязательная вкладка. */
-const ALLOWED: { path: string; tab: string }[] = [{ path: '/studio', tab: 'products' }];
 
 interface Stored {
   value: string;
@@ -27,14 +28,12 @@ interface Stored {
 
 /** Канонический адрес из белого списка или null. Лишние параметры отбрасываются. */
 export function allowedDestination(pathname: string, search: string): string | null {
-  const q = new URLSearchParams(search);
-  const tab = q.get('tab');
-  const hit = ALLOWED.find((a) => a.path === pathname && a.tab === tab);
-  if (!hit) return null;
+  const link = deepSectionLink(pathname, search);
+  if (!link) return null;
   // Карточка действия продукта: ссылка из клиента без карточек ведёт сюда, и
   // вход не должен её терять. Только uuid — остальное по-прежнему отбрасывается.
-  const action = q.get('action');
-  return `${hit.path}?tab=${hit.tab}` + (isUuid(action) ? `&action=${action}` : '');
+  const action = new URLSearchParams(search).get('action');
+  return link === '/studio?tab=products' && isUuid(action) ? `${link}&action=${action}` : link;
 }
 
 /** Стереть запомненное: у человека появилось более новое намерение (utils/loginIntent.ts). */

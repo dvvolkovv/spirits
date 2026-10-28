@@ -61,4 +61,11 @@ describe('намерение до входа: побеждает последн�
     rememberLoginIntent('/studio', '?tab=products', NOW);
     expect(takePendingDestination(NOW + HOUR)).toBeNull();
   });
+
+  it('ссылка на карточку профиля после страницы ассистента — побеждает карточка', () => {
+    rememberLoginIntent('/chat', '?assistant=14', NOW);
+    rememberLoginIntent('/profile', '?open=zoom', NOW + 1000);
+    expect(takePendingDestination(NOW + 2000)).toBe('/profile?open=zoom');
+    expect(peekPendingAssistant(NOW + 2000)).toBeNull();
+  });
 });

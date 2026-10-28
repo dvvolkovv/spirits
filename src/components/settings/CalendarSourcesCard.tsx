@@ -143,7 +143,9 @@ const CalendarSourcesCard: React.FC = () => {
   };
 
   return (
-    <div id="calendar-sources" className="bg-white rounded-lg shadow-sm scroll-mt-4">
+    // Якорь ссылки /profile?open=calendars — на обёртке в SettingsView
+    // (utils/cabinetSections.ts): один на карточку, как у соседних.
+    <div className="bg-white rounded-lg shadow-sm">
       <div className="p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center">
           <Calendar className="w-5 h-5 mr-2 text-forest-600" />

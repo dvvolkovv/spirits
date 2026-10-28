@@ -10,6 +10,7 @@ import AuthLinkPage from './pages/AuthLinkPage';                // eager: сюд
 import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
 import RootRedirect from './components/RootRedirect';
 import PendingDestinationRedirect from './components/PendingDestinationRedirect';
+import LegacyProfileRedirect from './components/LegacyProfileRedirect'; // eager: две строки, отдельный чанк ради них незачем
 import { ErrorBoundary } from './components/ErrorBoundary';
 import MaintenancePage from './pages/MaintenancePage';          // eager: гейт режима обслуживания (крошечный)
 import { track, trackAuthed } from './services/eventsClient';
@@ -242,13 +243,13 @@ const AppContent: React.FC = () => {
             <Route path="/search" element={<NetworkingPage />} />
             <Route path="/compatibility" element={<Navigate to="/search" replace />} />
             <Route path="/admin" element={<AdminPage />} />
-            <Route path="/referral" element={<Navigate to="/profile" replace />} />
+            <Route path="/referral" element={<LegacyProfileRedirect from="referral" />} />
             <Route path="/image-gen" element={<ImageGenPage />} />
             <Route path="/video" element={<VideoPage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/support" element={<SupportPage />} />
             <Route path="/contact-requests" element={<ContactRequestsPage />} />
-            <Route path="/settings" element={<Navigate to="/profile" replace />} />
+            <Route path="/settings" element={<LegacyProfileRedirect from="settings" />} />
             <Route path="/payment/success" element={<PaymentSuccessPage />} />
             <Route path="/" element={<RootRedirect />} />
           </Routes>
