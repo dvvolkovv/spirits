@@ -118,7 +118,7 @@ src/
 
 **Публичные эндпоинты (без Bearer):**
 - `GET /webhook/898c938d-f094-455c-86af-969617e62f7a/sms/{phone}` — отправка SMS
-- `GET /webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/{phone}/{code}` — верификация OTP
+- `POST /webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code` — верификация OTP (тело: `{ phone, code }`; legacy GET с кодом в URL сохранён для старых клиентов)
 
 **Защищённые эндпоинты (Bearer access-token):**
 - `POST /webhook/auth/refresh` — обновление токенов (тело: refresh-token в Authorization)
@@ -165,6 +165,7 @@ src/
 - Web Speech API для голосового ввода
 - Сессии чата хранятся в `localStorage` по ключу `assistant_{id}_messages`
 - Синхронизация смены ассистента между вкладками через `localStorage` (polling 10s)
+- «План действий» по текущему разговору: `chat/action-plan/ActionPlanPanel.tsx` + `services/actionPlansApi.ts`; генерация и хранение через `/webhook/chat/action-plans`, редактируемый чек-лист и обсуждение плана с ассистентом
 
 ## Бэкенд (NestJS)
 
