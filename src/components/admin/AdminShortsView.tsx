@@ -50,32 +50,47 @@ const AdminShortsView: React.FC = () => {
   const lock = useRef(false);
   /** Ответ на раскрытие, пришедший после закрытия или раскрытия другого ролика, отбрасывается. */
   const detailTicket = useRef(0);
+  /** Текущий openId без замыкания: решение по ролику закрывает карточку по состоянию на момент ответа, не на момент клика. */
+  const openIdRef = useRef<string | null>(null);
+  /** Свой счёт у списка: ответ не по счёту (два «Обновить» подряд) отбрасывается, «занят» снимает только последний. */
+  const listTicket = useRef(0);
 
   /** `decision` — сбой решения: без внятного ответа результат неизвестен, и об этом надо сказать. */
-  const fail = (e: unknown, decision = false) => {
+  const fail = (e: unknown, decision = false, prefix = '') => {
     if (e instanceof ShortsApiError && e.status === 409) {
       setError({ text: e.message, conflict: true });
     } else if (e instanceof ShortsApiError && e.status < 500) {
-      setError({ text: e.message, conflict: false });
+      setError({ text: `${prefix}${e.message}`, conflict: false });
     } else {
       const why = e instanceof Error && e.message ? e.message : 'нет ответа';
       setError({
-        text: decision ? `Не подтверждено: ${why}. Нажмите «Обновить», прежде чем повторять.` : why,
+        // «Обновить» здесь перечитывает только список: открытая карточка
+        // остаётся со старым содержимым и кнопками, пока её не свернуть и
+        // раскрыть заново, — отсюда вторая часть подсказки.
+        text: decision
+          ? `Не подтверждено: ${why.replace(/[.\s]+$/, '')}. Нажмите «Обновить», затем сверните и раскройте ролик заново, прежде чем повторять.`
+          : `${prefix}${why}`,
         conflict: false,
       });
     }
   };
 
-  const load = async () => {
+  const load = async (prefix = '') => {
+    const ticket = ++listTicket.current;
     setBusy(true);
     try {
-      const list = await callShorts<ShortItem[]>({ action: 'list' });
-      setItems(Array.isArray(list) ? list : []);
-      setLoaded(true);
+      const list = await callShorts<unknown>({ action: 'list' });
+      // Не массив — это отказ сервера, а не пустая очередь: молчаливое [] увело
+      // бы владельца в пустой экран, будто роликов и правда нет.
+      if (!Array.isArray(list)) throw new Error('сервер прислал не список роликов');
+      if (ticket === listTicket.current) {
+        setItems(list as ShortItem[]);
+        setLoaded(true);
+      }
     } catch (e) {
-      fail(e);
+      if (ticket === listTicket.current) fail(e, false, prefix);
     } finally {
-      setBusy(false);
+      if (ticket === listTicket.current) setBusy(false);
     }
   };
 
@@ -95,6 +110,7 @@ const AdminShortsView: React.FC = () => {
 
   const closeCard = () => {
     detailTicket.current += 1;
+    openIdRef.current = null;
     setOpenId(null);
     setDetail(null);
     setDetailError(null);
@@ -112,6 +128,7 @@ const AdminShortsView: React.FC = () => {
       closeCard();
       return;
     }
+    openIdRef.current = id;
     setOpenId(id);
     setDetail(null);
     loadDetail(id);
@@ -119,7 +136,13 @@ const AdminShortsView: React.FC = () => {
 
   /** Решение по ролику. Версия — с раскрытой карточки; у «Запустить сейчас» идеи её нет и не нужно. */
   const act = async (kind: ShortAction, short: ShortItem, extra?: ActionExtra) => {
-    const target = detail && detail.id === short.id ? detail : short;
+    // Версия и содержимое — только с карточки ИМЕННО этого ролика, раскрытой
+    // сейчас; если раскрыта карточка другого ролика (или не раскрыта вовсе),
+    // решение ничем не подписано — лучше не отправить его совсем, чем молча
+    // взять версию строки списка, которую владелец не видел. «Запустить
+    // сейчас» — исключение: это кнопка идеи в строке, версии у идеи нет.
+    const target = detail?.id === short.id ? detail : kind === 'start_now' ? short : null;
+    if (!target) return;
     const request = actionRequest(kind, target, extra);
     if (request.lock && lock.current) return;
     if (request.confirm && !window.confirm(request.confirm)) return;
@@ -130,8 +153,13 @@ const AdminShortsView: React.FC = () => {
     try {
       const res = await callShorts(request.payload);
       setNotice(successText(kind, target, res, new Date()));
-      closeCard();
-      await load();
+      // openId — из рефа, не из замыкания: за время запроса владелец мог
+      // закрыть этот ролик и раскрыть другой, и закрывать тогда чужую
+      // карточку не надо.
+      if (openIdRef.current === short.id) closeCard();
+      // Внутри try: load() сам гасит свои ошибки через fail(), но с пояснением,
+      // что не обновился именно список, а не что решение не прошло — оно уже прошло.
+      await load('Список не обновился: ');
     } catch (e) {
       fail(e, true);
     } finally {
@@ -184,8 +212,12 @@ const AdminShortsView: React.FC = () => {
   /** После 409 — решение человека: и список, и открытая карточка с новой версией. */
   const reloadAll = async () => {
     setError(null);
-    await load();
-    if (openId) await loadDetail(openId);
+    // Оба запроса стартуют в один тик: `get` открытой карточки берёт свой
+    // билет СРАЗУ, и раскрытие другого ролика, случившееся пока list летит,
+    // получит билет позже и честно победит. Было: await list, потом get —
+    // окно между ними давало чужому раскрытию билет МЕНЬШЕ, и устаревший
+    // ответ занимал чужую, уже раскрытую карточку.
+    await Promise.all([load(), openId ? loadDetail(openId) : undefined]);
   };
 
   const refresh = () => {
@@ -213,7 +245,10 @@ const AdminShortsView: React.FC = () => {
       detail={openId === i.id ? detail : null}
       detailLoading={openId === i.id && detailLoading}
       detailError={openId === i.id ? detailError : null}
-      busy={busy}
+      // Открытая карточка гаснет и своим перечитыванием: кнопка, нажатая пока
+      // летит новая версия, подписала бы решение версией, которая уже не
+      // актуальна с точки зрения владельца, — дождаться ответа надёжнее.
+      busy={busy || (openId === i.id && detailLoading)}
       now={now}
       onToggle={() => toggle(i.id)}
       onAction={(kind, extra) => act(kind, i, extra)}
@@ -245,6 +280,8 @@ const AdminShortsView: React.FC = () => {
           data-testid="shorts-settings-toggle"
           onClick={() => setShowSettings((v) => !v)}
           aria-expanded={showSettings}
+          aria-label="Настройки роликов"
+          title="Настройки роликов"
           className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-sm font-medium rounded-md border border-gray-200 hover:border-forest-300 hover:text-forest-700 transition-colors"
         >
           <Settings className="w-4 h-4" />
@@ -280,7 +317,8 @@ const AdminShortsView: React.FC = () => {
                 type="button"
                 data-testid="shorts-conflict-reload"
                 onClick={reloadAll}
-                className="px-2 py-0.5 text-xs font-medium rounded border border-amber-400 bg-white hover:bg-amber-100"
+                disabled={busy}
+                className="px-2 py-0.5 text-xs font-medium rounded border border-amber-400 bg-white hover:bg-amber-100 disabled:opacity-50"
               >
                 Загрузить заново
               </button>
@@ -327,7 +365,16 @@ const AdminShortsView: React.FC = () => {
           </section>
         ))
       ) : (
-        <div className="space-y-2">{archive.map(card)}</div>
+        <>
+          <div className="space-y-2">{archive.map(card)}</div>
+          {/* Бэк отдаёт все активные плюс последние 100 каждого архивного
+              статуса — на 100 строках за экраном может остаться больше. */}
+          {archive.length >= 100 && (
+            <div data-testid="shorts-archive-hint" className="text-xs text-gray-500 text-center py-2">
+              Показаны последние 100.
+            </div>
+          )}
+        </>
       )}
     </div>
   );
