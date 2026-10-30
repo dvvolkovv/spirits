@@ -18,6 +18,11 @@ const EMPTY_TEXT: Record<ShortsScreen, string> = {
   rejected: 'Отклонённых роликов нет',
 };
 
+/** Бэк отдаёт весь активный хвост очереди, но только последние 100 каждого
+    архивного статуса (published/rejected) — точный счёт там неотличим от
+    «их не меньше 100», и число на переключателе превращается в «100+». */
+const countLabel = (screen: ShortsScreen, n: number): string => (screen !== 'queue' && n >= 100 ? '100+' : String(n));
+
 interface Banner {
   text: string;
   /** 409: на экране устаревшее — плашка жёлтая, с «Загрузить заново». */
@@ -272,7 +277,7 @@ const AdminShortsView: React.FC = () => {
               screen === s ? 'bg-forest-600 text-white border-forest-600' : 'bg-white text-gray-600 border-gray-200 hover:border-forest-300',
             )}
           >
-            {SCREEN_TITLES[s]} {counts[s]}
+            {SCREEN_TITLES[s]} {countLabel(s, counts[s])}
           </button>
         ))}
         <button

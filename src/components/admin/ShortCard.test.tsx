@@ -5,6 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { click, mount, type, Mounted } from '../../test/dom';
 import ShortCard from './ShortCard';
 import { NOW, detail as baseDetail, item } from './shortFixtures';
+import { MAX_NOTE_CHARS, ShortAction, ShortDetail, actionsFor } from './shortStatus';
 
 const detail = (over: Parameters<typeof baseDetail>[0] = {}) =>
   baseDetail({
@@ -23,11 +24,13 @@ const q = (id: string) => m.container.querySelector<HTMLElement>(`[data-testid="
 const render = (props: Partial<ComponentProps<typeof ShortCard>> = {}) => {
   const onAction = vi.fn();
   const onToggle = vi.fn();
-  m = mount(
-    <ShortCard item={item()} assistantName="Алексей — юрист" open={false} detail={null} detailLoading={false}
-      detailError={null} busy={false} now={NOW} onToggle={onToggle} onAction={onAction} {...props} />,
-  );
-  return { onAction, onToggle };
+  const base: ComponentProps<typeof ShortCard> = {
+    item: item(), assistantName: 'Алексей — юрист', open: false, detail: null, detailLoading: false,
+    detailError: null, busy: false, now: NOW, onToggle, onAction, ...props,
+  };
+  m = mount(<ShortCard {...base} />);
+  const rerender = (next: Partial<ComponentProps<typeof ShortCard>> = {}) => m.rerender(<ShortCard {...base} {...next} />);
+  return { onAction, onToggle, rerender };
 };
 
 describe('строка ролика', () => {
@@ -62,6 +65,45 @@ describe('строка ролика', () => {
     expect(q('short-pub-s1-youtube')!.textContent).toBe('YouTube: упал');
     expect(q('short-pub-s1-youtube')!.getAttribute('title')).toBe('quota');
   });
+
+  it('небезопасная ссылка на пост — без href, только плашка с причиной', () => {
+    render({
+      item: item({
+        status: 'failed',
+        publications: [{ platform: 'youtube', status: 'failed', url: 'javascript:alert(1)', lastError: 'quota' }],
+      }),
+    });
+    const chip = q('short-pub-s1-youtube')!;
+    expect(chip.tagName).toBe('SPAN');
+    expect(chip.querySelector('a')).toBeNull();
+    expect(chip.textContent).toBe('YouTube: упал');
+    expect(chip.getAttribute('title')).toBe('quota');
+  });
+
+  it('кнопка строки — aria-expanded следует open, aria-controls указывает на блок деталей, клик зовёт onToggle', () => {
+    const { onToggle, rerender } = render({ open: false });
+    const toggle = q('short-toggle-s1')!;
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('aria-controls')).toBe('short-details-s1');
+    click(toggle);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+
+    rerender({ open: true, detail: detail() });
+    expect(q('short-toggle-s1')!.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('ошибка в строке — одна строка без block, скрыта при раскрытой карточке', () => {
+    const longError = 'x'.repeat(50);
+    const { rerender } = render({ item: item({ status: 'failed', lastError: longError }) });
+    const line = m.container.querySelector('.line-clamp-1');
+    expect(line).toBeTruthy();
+    expect(line!.textContent).toBe(longError);
+    expect(line!.className).not.toContain('block');
+    expect(line!.className).not.toContain('line-clamp-2');
+
+    rerender({ open: true, detail: detail({ status: 'failed', failedFrom: 'rendering' }) });
+    expect(m.container.querySelector('.line-clamp-1')).toBeNull();
+  });
 });
 
 describe('раскрытая карточка', () => {
@@ -84,6 +126,35 @@ describe('раскрытая карточка', () => {
     expect(q('short-video-broken-s1')!.querySelector('a')!.getAttribute('href')).toBe(detail().videoUrl);
   });
 
+  it('видео недоступно (409) — после подмены ссылки плеер возвращается с новым src', () => {
+    const { rerender } = render({ open: true, detail: detail({ videoUrl: 'https://my.linkeon.io/v1.mp4' }) });
+    act(() => {
+      q('short-video-s1')!.dispatchEvent(new Event('error'));
+    });
+    expect(q('short-video-broken-s1')).toBeTruthy();
+    expect(q('short-video-s1')).toBeNull();
+
+    rerender({ detail: detail({ videoUrl: 'https://my.linkeon.io/v2.mp4' }) });
+    const video = q('short-video-s1') as HTMLVideoElement;
+    expect(video).toBeTruthy();
+    expect(video.getAttribute('src')).toBe('https://my.linkeon.io/v2.mp4');
+    expect(q('short-video-broken-s1')).toBeNull();
+  });
+
+  it('идёт загрузка карточки — индикатор с role=status', () => {
+    render({ open: true, detail: null, detailLoading: true });
+    const status = m.container.querySelector('[role="status"]');
+    expect(status).toBeTruthy();
+    expect(status!.textContent).toContain('Загружаю ролик');
+  });
+
+  it('ошибка загрузки карточки — текст с role=status', () => {
+    render({ open: true, detail: null, detailLoading: false, detailError: 'нет сети' });
+    const status = m.container.querySelector('[role="status"]');
+    expect(status).toBeTruthy();
+    expect(status!.textContent).toBe('Не загрузил ролик: нет сети');
+  });
+
   it('ждёт решения — кнопки решения; пустое замечание не отправить', () => {
     const { onAction } = render({ open: true, detail: detail({ status: 'pending_review' }) });
     expect(q('short-approve')).toBeTruthy();
@@ -96,12 +167,37 @@ describe('раскрытая карточка', () => {
     expect(onAction).toHaveBeenCalledWith('note', { text: 'короче' });
   });
 
+  it('замечание из пробелов и длиннее лимита не отправить; счётчик считает символы', () => {
+    const { onAction } = render({ open: true, detail: detail({ status: 'pending_review' }) });
+    const send = q('short-send-note') as HTMLButtonElement;
+    const counter = () => q('short-note-counter')!.textContent;
+
+    expect(counter()).toBe(`0 / ${MAX_NOTE_CHARS}`);
+    type(q('short-note')!, '   ');
+    expect(send.disabled).toBe(true);
+    expect(counter()).toBe(`0 / ${MAX_NOTE_CHARS}`);
+
+    const long = 'a'.repeat(MAX_NOTE_CHARS + 1);
+    type(q('short-note')!, long);
+    expect(send.disabled).toBe(true);
+    expect(counter()).toBe(`${MAX_NOTE_CHARS + 1} / ${MAX_NOTE_CHARS}`);
+    expect(q('short-note-counter')!.className).toContain('text-rose-600');
+    expect(m.container.textContent).toContain(`Замечание длиннее ${MAX_NOTE_CHARS} знаков.`);
+    click(send);
+    expect(onAction).not.toHaveBeenCalled();
+
+    type(q('short-note')!, 'короче');
+    expect(send.disabled).toBe(false);
+    expect(counter()).toBe(`6 / ${MAX_NOTE_CHARS}`);
+  });
+
   it('упала публикация — «Пост вышел» только со ссылкой на пост; замечания к повтору нет', () => {
     const { onAction } = render({
       open: true, item: item({ status: 'failed' }),
       detail: detail({ status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z' }),
     });
     const mark = q('short-mark-published') as HTMLButtonElement;
+    expect(q('short-post-url')!.getAttribute('inputmode')).toBe('url');
     type(q('short-post-url')!, 'https://t.me/ainomira');
     expect(mark.disabled).toBe(true);
     type(q('short-post-url')!, 'https://t.me/ainomira/90');
@@ -109,6 +205,21 @@ describe('раскрытая карточка', () => {
     click(mark);
     expect(onAction).toHaveBeenCalledWith('mark_published', { url: 'https://t.me/ainomira/90' });
     expect(q('short-retry-note')).toBeNull();
+  });
+
+  it('повтор упавшей публикации — старое замечание из прежнего состояния карточки не утекает', () => {
+    const { rerender, onAction } = render({
+      open: true, item: item({ status: 'failed' }),
+      detail: detail({ status: 'failed', failedFrom: 'rendering', capture: { answerText: 'x' } }),
+    });
+    type(q('short-retry-note')!, 'старое замечание');
+    rerender({
+      item: item({ status: 'failed' }),
+      detail: detail({ status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z' }),
+    });
+    expect(q('short-retry-note')).toBeNull();
+    click(q('short-retry')!);
+    expect(onAction).toHaveBeenCalledWith('retry', undefined);
   });
 
   it('упал до публикации — повтор с необязательным замечанием', () => {
@@ -119,5 +230,122 @@ describe('раскрытая карточка', () => {
     type(q('short-retry-note')!, 'другой вопрос');
     click(q('short-retry-directing')!);
     expect(onAction).toHaveBeenCalledWith('retry_directing', { note: 'другой вопрос' });
+  });
+
+  it('замечание к повтору длиннее лимита — кнопки повтора недоступны', () => {
+    render({
+      open: true, item: item({ status: 'failed' }),
+      detail: detail({ status: 'failed', failedFrom: 'rendering', capture: { answerText: 'x' } }),
+    });
+    const retry = q('short-retry') as HTMLButtonElement;
+    const directing = q('short-retry-directing') as HTMLButtonElement;
+    expect(retry.disabled).toBe(false);
+    type(q('short-retry-note')!, 'a'.repeat(MAX_NOTE_CHARS + 1));
+    expect(retry.disabled).toBe(true);
+    expect(directing.disabled).toBe(true);
+    expect(m.container.textContent).toContain(`Замечание длиннее ${MAX_NOTE_CHARS} знаков.`);
+  });
+
+  it('раскрытая идея — без пустой обёртки действий (кнопка только в строке)', () => {
+    render({ open: true, item: item({ status: 'idea' }), detail: detail({ status: 'idea' }) });
+    expect(q('short-actions-s1')).toBeNull();
+  });
+
+  it('версия строки и открытой карточки разошлись — подсказка свернуть и раскрыть заново', () => {
+    render({ open: true, item: item({ version: 'V_LIST_NEW' }), detail: detail({ version: 'V_CARD_OLD' }) });
+    expect(q('short-stale-s1')!.textContent).toBe(
+      'Ролик изменился, пока карточка была открыта — сверните и раскройте её заново.',
+    );
+  });
+
+  it('версии совпадают — подсказки нет', () => {
+    render({ open: true, detail: detail() });
+    expect(q('short-stale-s1')).toBeNull();
+  });
+
+  it('причина сбоя публикации видна текстом в раскрытой карточке (не только в title)', () => {
+    render({
+      open: true,
+      item: item({ status: 'failed' }),
+      detail: detail({
+        status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
+        publications: [{ platform: 'youtube', status: 'failed', url: null, lastError: 'quota exceeded' }],
+      }),
+    });
+    expect(m.container.textContent).toContain('YouTube: quota exceeded');
+  });
+});
+
+describe('кнопки раскрытой карточки — по actionsFor', () => {
+  const ACTION_TESTID: [ShortAction, string][] = [
+    ['approve', 'short-approve'], ['publish_now', 'short-publish-now'], ['retry', 'short-retry'],
+    ['retry_directing', 'short-retry-directing'], ['retry_writing', 'short-retry-writing'],
+    ['redo', 'short-redo'], ['reject', 'short-reject'], ['mark_published', 'short-mark-published'],
+  ];
+
+  const cases: [string, Partial<ShortDetail>][] = [
+    ['одобрен, не вышел нигде', { status: 'approved', approvedAt: '2030-01-01T11:00:00.000Z' }],
+    ['упал на публикации — пост ещё не вышел', {
+      status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
+    }],
+    ['упал до публикации — на сборке', { status: 'failed', failedFrom: 'rendering' }],
+    ['упал на публикации, но уже вышел в телеграм (released)', {
+      status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
+      publications: [
+        { platform: 'telegram', status: 'published', url: 'https://t.me/ainomira/90', lastError: null },
+        { platform: 'youtube', status: 'failed', url: null, lastError: 'quota' },
+      ],
+    }],
+  ];
+
+  it.each(cases)('%s', (_label, over) => {
+    const d = detail(over);
+    render({ open: true, item: item({ status: d.status, failedFrom: d.failedFrom }), detail: d });
+    const actions = new Set(actionsFor(d));
+    const result: Record<string, boolean> = {};
+    const want: Record<string, boolean> = {};
+    for (const [action, testid] of ACTION_TESTID) {
+      result[testid] = q(testid) !== null;
+      want[testid] = actions.has(action);
+    }
+    expect(result).toEqual(want);
+  });
+});
+
+describe('busy гасит кнопки решения', () => {
+  it('ждёт решения: занято гасит одобрить/переснять/отклонить/отправить замечание', () => {
+    render({ open: true, detail: detail({ status: 'pending_review' }), busy: true });
+    type(q('short-note')!, 'правка');
+    expect((q('short-approve') as HTMLButtonElement).disabled).toBe(true);
+    expect((q('short-redo') as HTMLButtonElement).disabled).toBe(true);
+    expect((q('short-reject') as HTMLButtonElement).disabled).toBe(true);
+    expect((q('short-send-note') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('запланирован: занято гасит «Опубликовать сейчас»', () => {
+    render({ open: true, detail: detail({ status: 'approved', approvedAt: '2030-01-01T11:00:00.000Z' }), busy: true });
+    expect((q('short-publish-now') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('упал на съёмке: занято гасит повтор/новую сцену/новый текст', () => {
+    render({
+      open: true,
+      detail: detail({ status: 'failed', failedFrom: 'capturing', capture: { answerText: 'x' } }),
+      busy: true,
+    });
+    type(q('short-retry-note')!, 'заметка');
+    expect((q('short-retry') as HTMLButtonElement).disabled).toBe(true);
+    expect((q('short-retry-directing') as HTMLButtonElement).disabled).toBe(true);
+    expect((q('short-retry-writing') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('упал на публикации: занято гасит «Пост вышел»', () => {
+    render({
+      open: true,
+      detail: detail({ status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z' }),
+      busy: true,
+    });
+    type(q('short-post-url')!, 'https://t.me/ainomira/90');
+    expect((q('short-mark-published') as HTMLButtonElement).disabled).toBe(true);
   });
 });

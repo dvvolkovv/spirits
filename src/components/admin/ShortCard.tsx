@@ -6,6 +6,7 @@ import {
   ANGLE_TITLES, ActionExtra, FORMAT_TITLES, PLATFORM_TITLES, RUBRIC_TITLES, STATUS_TITLES,
   ShortAction, ShortDetail, ShortItem, publicationLabel, shortTitle, statusLine, statusTone,
 } from './shortStatus';
+import { safeExternalUrl } from '../../utils/safeUrl';
 
 interface Props {
   item: ShortItem;
@@ -82,7 +83,7 @@ const ShortCard: React.FC<Props> = ({
     >
       <div className="flex items-start gap-2">
         <button type="button" data-testid={`short-toggle-${item.id}`} onClick={onToggle} aria-expanded={open}
-          className="flex-1 min-w-0 flex items-start gap-2 text-left">
+          aria-controls={`short-details-${item.id}`} className="flex-1 min-w-0 flex items-start gap-2 text-left">
           {open ? (
             <ChevronDown className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
           ) : (
@@ -98,8 +99,8 @@ const ShortCard: React.FC<Props> = ({
               className={clsx('block mt-0.5 text-xs', broken ? 'text-red-700 font-medium' : 'text-gray-600')}>
               {statusLine(item, now)}
             </span>
-            {broken && item.lastError && (
-              <span className="block mt-0.5 text-xs text-red-700 break-words line-clamp-2">{item.lastError}</span>
+            {broken && item.lastError && !open && (
+              <span className="mt-0.5 text-xs text-red-700 break-words line-clamp-1">{item.lastError}</span>
             )}
           </span>
         </button>
@@ -115,8 +116,9 @@ const ShortCard: React.FC<Props> = ({
         <div className="mt-2 flex flex-wrap gap-1.5">
           {item.publications.map((p) => {
             const label = `${PLATFORM_TITLES[p.platform]}: ${publicationLabel(p)}`;
-            return p.url ? (
-              <a key={p.platform} data-testid={`short-pub-${item.id}-${p.platform}`} href={p.url} target="_blank" rel="noreferrer"
+            const safeHref = p.url ? safeExternalUrl(p.url) : null;
+            return safeHref ? (
+              <a key={p.platform} data-testid={`short-pub-${item.id}-${p.platform}`} href={safeHref} target="_blank" rel="noreferrer"
                 className="px-2 py-0.5 text-xs rounded bg-green-50 text-green-800 underline">
                 {label} ↗
               </a>
@@ -131,18 +133,24 @@ const ShortCard: React.FC<Props> = ({
       )}
 
       {open && (
-        <div data-testid={`short-details-${item.id}`} className="mt-3 pt-3 border-t border-gray-100">
+        <div data-testid={`short-details-${item.id}`} id={`short-details-${item.id}`} className="mt-3 pt-3 border-t border-gray-100">
           {detailLoading && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <div role="status" className="flex items-center gap-1.5 text-xs text-gray-500">
               <Loader className="w-3.5 h-3.5 animate-spin" />
               Загружаю ролик…
             </div>
           )}
-          {detailError && <div className="text-xs text-rose-700">Не загрузил ролик: {detailError}</div>}
+          {detailError && <div role="status" className="text-xs text-rose-700">Не загрузил ролик: {detailError}</div>}
           {detail && (
             <>
+              {item.version !== detail.version && (
+                <div data-testid={`short-stale-${item.id}`}
+                  className="mb-2 px-2 py-1 text-xs rounded bg-amber-50 text-amber-800 border border-amber-200">
+                  Ролик изменился, пока карточка была открыта — сверните и раскройте её заново.
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)]">
-                <ShortVideo detail={detail} />
+                <ShortVideo key={detail.videoUrl ?? 'none'} detail={detail} />
                 <div className="min-w-0 space-y-2 text-sm text-gray-700">
                   {detail.captions?.telegram && <Field label="Подпись в канал">{detail.captions.telegram}</Field>}
                   {detail.captions?.youtube?.title && <Field label="Заголовок YouTube">{detail.captions.youtube.title}</Field>}
@@ -160,6 +168,11 @@ const ShortCard: React.FC<Props> = ({
                   )}
                   {detail.ownerNote && <Field label="Замечания">{detail.ownerNote}</Field>}
                   {detail.lastError && <div className="text-xs text-red-700 break-words">Последняя ошибка: {detail.lastError}</div>}
+                  {detail.publications.filter((p) => p.status === 'failed' && p.lastError).map((p) => (
+                    <div key={p.platform} data-testid={`short-pub-error-${item.id}-${p.platform}`} className="text-xs text-red-700 break-words">
+                      {PLATFORM_TITLES[p.platform]}: {p.lastError}
+                    </div>
+                  ))}
                   <div data-testid={`short-stats-${item.id}`} className="text-xs text-gray-500">{stats}</div>
                 </div>
               </div>

@@ -505,7 +505,7 @@ describe('экран «Ролики»', () => {
     expect(m.container.textContent).not.toContain('Очередь роликов пуста');
   });
 
-  it('архив подсказывает «Показаны последние 100.» на 100 строках, не раньше', async () => {
+  it('архив подсказывает «Показаны последние 100.» на 100 строках, не раньше; счётчик экрана — «100+» при 100 и больше', async () => {
     const published = (n: number) => Array.from({ length: n }, (_, i) => item({
       id: `p${i}`, topicKey: `catalog:2030-W01:${i}`, status: 'published',
       publishedAt: '2030-01-02T15:00:00.000Z', publications: [],
@@ -514,12 +514,14 @@ describe('экран «Ролики»', () => {
     await open();
     await clickAsync(q('shorts-screen-published')!);
     expect(m.container.textContent).not.toContain('Показаны последние 100.');
+    expect(q('shorts-screen-published')!.textContent).toBe('Вышли 99');
     m.unmount();
 
     serve({ list: () => res(200, published(100)) });
     await open();
     await clickAsync(q('shorts-screen-published')!);
     expect(m.container.textContent).toContain('Показаны последние 100.');
+    expect(q('shorts-screen-published')!.textContent).toBe('Вышли 100+');
   });
 
   it('кнопка настроек роликов имеет aria-label и title', async () => {

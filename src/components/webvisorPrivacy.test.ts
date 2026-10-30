@@ -45,6 +45,7 @@ const TokenPurchasePage = readFileSync(join(__dirname, '..', 'pages', 'TokenPurc
 const TokenPackages = readFileSync(join(__dirname, 'tokens', 'TokenPackages.tsx'), 'utf8');
 const ShortsOrderForm = readFileSync(join(__dirname, 'admin', 'ShortsOrderForm.tsx'), 'utf8');
 const AdminShortsView = readFileSync(join(__dirname, 'admin', 'AdminShortsView.tsx'), 'utf8');
+const ShortActionsSrc = readFileSync(join(__dirname, 'admin', 'ShortActions.tsx'), 'utf8');
 const IndexHtml = readFileSync(join(__dirname, '..', '..', 'index.html'), 'utf8');
 const ProductChatSrc = readFileSync(join(__dirname, 'products', 'ProductChat.tsx'), 'utf8');
 const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx'), 'utf8');
@@ -302,6 +303,18 @@ describe('поля ввода сообщений скрыты от записи 
 
   it('админка роликов — тема одной строкой в заказе', () => {
     expect(classesOf(ShortsOrderForm, 'shorts-order-topic', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('админка роликов — замечание к ролику на проверке', () => {
+    expect(classesOf(ShortActionsSrc, 'short-note', 'textarea')).toContain('ym-disable-keys');
+  });
+
+  it('админка роликов — замечание к повтору', () => {
+    expect(classesOf(ShortActionsSrc, 'short-retry-note', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('админка роликов — ссылка на вышедший пост', () => {
+    expect(classesOf(ShortActionsSrc, 'short-post-url', 'input')).toContain('ym-disable-keys');
   });
 });
 
