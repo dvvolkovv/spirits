@@ -906,6 +906,16 @@
         "pending": "Pendente",
         "failed": "Erro",
         "canceled": "Cancelado"
+      },
+      "llmProvider": {
+        "title": "Modelo de respostas",
+        "claude": "Claude (predefinido)",
+        "qwen": "Qwen",
+        "noKey": "A chave do Qwen não está configurada no servidor — as respostas irão pelo Claude.",
+        "hint": "Assistentes web, a Masha e os bots de Telegram desta pessoa. Sondas de monitorização e tarefas em segundo plano usam sempre o Claude.",
+        "error": "Não foi possível carregar ou guardar a escolha",
+        "loading": "A carregar…",
+        "notFound": "Utilizador não encontrado"
       }
     },
     "reports": {

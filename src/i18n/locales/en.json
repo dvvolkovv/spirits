@@ -909,7 +909,17 @@
       },
       "noTopups": "No top-ups yet",
       "balanceAfter": "balance",
-      "reconstructed": "backfilled later"
+      "reconstructed": "backfilled later",
+      "llmProvider": {
+        "title": "Answer model",
+        "claude": "Claude (default)",
+        "qwen": "Qwen",
+        "noKey": "Qwen key is not configured on the server — answers will go through Claude.",
+        "hint": "Web assistants, Masha and this person’s Telegram bots. Monitoring probes and background jobs always use Claude.",
+        "error": "Could not load or save the choice",
+        "loading": "Loading…",
+        "notFound": "User not found"
+      }
     },
     "reports": {
       "title": "Reports",
