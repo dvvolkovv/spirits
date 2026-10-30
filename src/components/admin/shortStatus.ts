@@ -315,17 +315,26 @@ export type ShortAction =
 /** С каких этапов «Повторить» возвращает упавший ролик (RESUME_FROM бэка). */
 const RESUMABLE: ShortStatus[] = ['directing', 'capturing', 'writing', 'animating', 'rendering'];
 
-/** Пост уже в канале: строка telegram вышла (у упавшего YouTube — всегда). */
-function telegramOut(d: Pick<ShortItem, 'publications'>): boolean {
-  return d.publications.some((p) => p.platform === 'telegram' && p.status === 'published');
+/**
+ * Telegram участвует в этом ролике, и туда ещё НЕ отправлено — копия условия
+ * бэка на `mark_published` (иначе 409 «В канал этот ролик не отправлялся»).
+ * Без строки telegram (например, площадки только YouTube) отмечать «Пост
+ * вышел» нечем, а повтор публикации не рискует задвоить пост, которого не
+ * было, — значит, ни кнопка, ни подтверждение/замок перед повтором не нужны.
+ */
+function telegramPending(d: Pick<ShortItem, 'publications'>): boolean {
+  const tg = d.publications.find((p) => p.platform === 'telegram');
+  return !!tg && tg.status !== 'published';
 }
 
 /**
  * Какие кнопки показать — по правилам бэка: «Переснять» и «Отклонить» не у
  * вышедшего хоть где-то; повтор публикации и «Пост вышел» — только у ролика,
- * который владелец одобрял, а «Пост вышел» — пока пост в канале не вышел
- * (у упавшего YouTube он уже вышел); «Новый текст» — только при съёмке.
- * Тот же набор называет бот в сообщении о сбое (failedHint бэка).
+ * который владелец одобрял, а «Пост вышел» — только если Telegram участвовал
+ * и пост туда ещё не вышел (у упавшего YouTube после вышедшего поста он уже
+ * вышел; без строки telegram вовсе — участия не было); «Новый текст» —
+ * только при съёмке. Тот же набор называет бот в сообщении о сбое
+ * (failedHint бэка).
  */
 export function actionsFor(
   d: Pick<ShortDetail, 'status' | 'failedFrom' | 'approvedAt' | 'publications' | 'capture'>,
@@ -343,9 +352,10 @@ export function actionsFor(
       const reject: ShortAction[] = released ? [] : ['reject'];
       if (d.failedFrom === 'publishing') {
         if (!d.approvedAt) return reject;
-        // Пост уже в канале (упал YouTube после него) — «Пост вышел» перезаписал бы ссылку на настоящий пост.
-        const postOut = telegramOut(d);
-        return postOut ? ['retry', ...reject] : ['retry', 'mark_published', ...reject];
+        // «Пост вышел» — только если Telegram участвовал и пост туда ещё не
+        // вышел: без строки telegram отмечать нечего, а уже вышедший пост
+        // «Пост вышел» перезаписал бы ссылкой на чужой/настоящий пост.
+        return telegramPending(d) ? ['retry', 'mark_published', ...reject] : ['retry', ...reject];
       }
       if (!d.failedFrom) return reject;
       const out: ShortAction[] = [];
@@ -419,8 +429,11 @@ export function actionRequest(kind: ShortAction, d: Target, extra: ActionExtra =
         lock: true,
       };
     case 'retry': {
-      // Повтор упавшей публикации, пока пост не в канале, — та же публикация: при неизвестном исходе отправки пост выйдет второй раз.
-      const republish = d.failedFrom === 'publishing' && !telegramOut(d);
+      // Проверка канала перед повтором — только если Telegram участвовал и
+      // пост туда ещё не вышел: тот же повтор ушёл бы в канал второй раз при
+      // неизвестном исходе первой отправки. Без строки telegram (например,
+      // площадки только YouTube) задваивать нечего — проверка не нужна.
+      const republish = d.failedFrom === 'publishing' && telegramPending(d);
       return {
         payload: { action: 'retry', id: d.id, ...note },
         confirm: republish

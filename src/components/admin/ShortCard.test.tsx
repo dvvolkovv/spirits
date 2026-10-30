@@ -194,7 +194,12 @@ describe('раскрытая карточка', () => {
   it('упала публикация — «Пост вышел» только со ссылкой на пост; замечания к повтору нет', () => {
     const { onAction } = render({
       open: true, item: item({ status: 'failed' }),
-      detail: detail({ status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z' }),
+      detail: detail({
+        status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
+        // Строка Telegram нужна, чтобы «Пост вышел» вообще показался — без
+        // неё (например, площадки только YouTube) кнопки нет.
+        publications: [{ platform: 'telegram', status: 'failed', url: null, lastError: null }],
+      }),
     });
     const mark = q('short-mark-published') as HTMLButtonElement;
     expect(q('short-post-url')!.getAttribute('inputmode')).toBe('url');
@@ -380,7 +385,10 @@ describe('busy гасит кнопки решения', () => {
   it('упал на публикации: занято гасит «Пост вышел»', () => {
     render({
       open: true,
-      detail: detail({ status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z' }),
+      detail: detail({
+        status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
+        publications: [{ platform: 'telegram', status: 'failed', url: null, lastError: null }],
+      }),
       busy: true,
     });
     type(q('short-post-url')!, 'https://t.me/ainomira/90');

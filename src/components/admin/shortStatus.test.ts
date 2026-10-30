@@ -131,12 +131,17 @@ describe('кнопки по статусу', () => {
     expect(actionsFor(detail({ status: 'failed', failedFrom: null }))).toEqual(['reject']);
   });
 
-  it('упала публикация — «Повторить» и «Пост вышел» только у одобрявшегося; пост уже в канале — только «Повторить»', () => {
+  it('упала публикация — «Повторить» всегда; «Пост вышел» только если Telegram участвовал и пост ещё не вышел', () => {
     const approvedAt = '2030-01-01T11:00:00.000Z';
-    expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt }))).toEqual(['retry', 'mark_published', 'reject']);
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt, publications: [tg('failed')] })))
+      .toEqual(['retry', 'mark_published', 'reject']);
     // Упал YouTube после вышедшего поста: «Пост вышел» перезаписал бы ссылку на настоящий пост, а отклонить вышедший нельзя.
     expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt, publications: [tg('published')] })))
       .toEqual(['retry']);
+    // Telegram вообще не участвовал (например, площадки только YouTube) —
+    // строки telegram нет вовсе, отмечать «Пост вышел» нечем.
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt, publications: [] })))
+      .toEqual(['retry', 'reject']);
     expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt: null }))).toEqual(['reject']);
   });
 
@@ -145,13 +150,16 @@ describe('кнопки по статусу', () => {
     for (const status of (Object.keys(STATUS_TITLES) as ShortStatus[]).filter((s) => !['pending_review', 'approved', 'idea', 'failed'].includes(s))) expect(actionsFor(detail({ status }))).toEqual([]);
   });
 
-  it('редкие ветки: этап без «Повторить», публикация без одобрения при «вышел», «вышел» без поста в канале', () => {
+  it('редкие ветки: этап без «Повторить», публикация без одобрения при «вышел», YouTube-набор без строки Telegram — без «Пост вышел»', () => {
     expect(actionsFor(detail({ status: 'failed', failedFrom: 'animate_queued' }))).toEqual(['retry_directing', 'reject']);
     expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt: null, publications: [tg('published')] }))).toEqual([]);
+    // Площадки только YouTube (набор отправлен владельцу) — Telegram в этом
+    // ролике не участвовал: без строки telegram «Пост вышел» создал бы
+    // published-запись для канала, в который на самом деле ничего не уходило.
     expect(actionsFor(detail({
       status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
       publications: [{ platform: 'youtube', status: 'manual_pending', url: null, lastError: null }],
-    }))).toEqual(['retry', 'mark_published']);
+    }))).toEqual(['retry']);
   });
 });
 
@@ -212,14 +220,27 @@ describe('запросы и итоги', () => {
     expect(isTelegramPostUrl('  https://t.me/ainomira/90  ')).toBe(true);
   });
 
-  it('повтор упавшей публикации — подтверждение «сначала проверьте канал» и замок; пост уже в канале — без них', () => {
-    const failedPub = item({ title: 'Залог при аренде', version: 'V1', status: 'failed', failedFrom: 'publishing' });
+  it('повтор упавшей публикации — подтверждение «сначала проверьте канал» и замок только если Telegram участвовал и пост ещё не вышел', () => {
+    const failedPub = item({
+      title: 'Залог при аренде', version: 'V1', status: 'failed', failedFrom: 'publishing', publications: [tg('failed')],
+    });
     const r = actionRequest('retry', failedPub);
     expect(r.confirm).toContain('Сначала проверьте канал');
     expect(r.lock).toBe(true);
+
+    // Пост уже вышел в канал — задваивать нечего.
     const out = actionRequest('retry', { ...failedPub, publications: [tg('published')] });
     expect(out.confirm).toBeNull();
     expect(out.lock).toBe(false);
+
+    // Telegram вообще не участвовал (например, площадки только YouTube) —
+    // проверка канала и подтверждение не нужны: нет строки telegram, нет и
+    // риска задвоить пост, которого не было.
+    const noTelegram = { ...failedPub, publications: [] };
+    const nt = actionRequest('retry', noTelegram);
+    expect(nt.confirm).toBeNull();
+    expect(nt.lock).toBe(false);
+
     expect(actionRequest('reject', failedPub).confirm).toContain('Если пост всё-таки вышел в канал');
     expect(actionRequest('mark_published', failedPub, { url: ' https://t.me/ainomira/90 ' }).confirm).toContain('Ссылка: https://t.me/ainomira/90');
   });
