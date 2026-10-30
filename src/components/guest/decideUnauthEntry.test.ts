@@ -24,4 +24,10 @@ describe('проба или экран входа', () => {
     expect(decideUnauthEntry({ ...guest, mode: 'off', preview: true })).toBe('login');
     expect(decideUnauthEntry({ ...guest, mode: null })).toBe('login');
   });
+  it('хвостовой слэш в пути не считается другим разделом', () => {
+    expect(decideUnauthEntry({ ...guest, pathname: '/chat/' })).toBe('guest');
+    expect(decideUnauthEntry({ ...guest, pathname: '//' })).toBe('guest');
+    expect(decideUnauthEntry({ ...guest, pathname: '/chatroom' })).toBe('login');
+    expect(decideUnauthEntry({ ...guest, pathname: '/studio/' })).toBe('login');
+  });
 });
