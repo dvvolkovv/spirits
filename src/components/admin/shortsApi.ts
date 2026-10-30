@@ -1,9 +1,12 @@
 import { apiClient } from '../../services/apiClient';
 
 /**
- * Ошибка `admin/shorts` с кодом ответа и машинным кодом из поля `error` тела:
- * `version_conflict` — ролик изменился, пока был открыт. Текст — всегда с
- * сервера: только он знает, что разошлось.
+ * Ошибка `admin/shorts` с кодом ответа и содержимым поля `error` тела.
+ * Машинный код (`version_conflict`, `slot_taken`) там только для структурных
+ * отказов; у обычных Nest-исключений в `error` лежит имя статуса
+ * («Conflict», «Bad Request», «Forbidden») — сравнивать `code` с машинными
+ * значениями нужно строго через `===`. Текст — всегда с сервера: только он
+ * знает, что разошлось.
  */
 export class ShortsApiError extends Error {
   readonly status: number;
@@ -54,7 +57,7 @@ export async function loadAgents(): Promise<AgentOption[]> {
     const rows: unknown = await r.json();
     if (!Array.isArray(rows)) return [];
     return rows
-      .filter((a) => a && Number.isInteger(Number(a.id)))
+      .filter((a) => a && /^\d+$/.test(String(a.id ?? '').trim()) && Number(a.id) > 0)
       .map((a) => ({ id: Number(a.id), name: String(a.name ?? ''), displayName: String(a.displayName ?? a.name ?? a.id) }));
   } catch {
     return [];
