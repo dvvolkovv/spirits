@@ -1,4 +1,5 @@
 import { forgetPendingDraft } from './pendingDraft';
+import { forgetTrial } from '../components/guest/guestStorage';
 
 /**
  * Список ключей localStorage, используемых приложением
@@ -41,4 +42,8 @@ export function clearAppStorage(): void {
 
   // черновик со страницы linkeon.io: в нём данные рождения — не оставлять следующему, кто войдёт с этого устройства
   forgetPendingDraft();
+
+  // ключ пробы без входа: не оставлять следующему, кто войдёт с этого устройства.
+  // Отметку linkeon_has_account не трогаем — устройство «входило».
+  forgetTrial();
 }
