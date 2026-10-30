@@ -16,6 +16,7 @@ import {
   realCaseChars,
 } from './blogStatus';
 import { formatSlotAt } from './blogSlotFormat';
+import AdminShortsView from './AdminShortsView';
 
 interface BlogPost {
   id: string;
@@ -49,11 +50,13 @@ const toNewTopicKind = (v: string): NewTopicKind => (v === 'news' || v === 'real
 /** Длиннее — уже не тема одной строкой, а, скорее всего, вставленная история. */
 const STORY_HINT_CHARS = 200;
 
-type Screen = 'queue' | 'archive' | 'settings';
+/** «Ролики» — свой экран (AdminShortsView): у роликов свои статусы, кнопки и «Обновить». */
+type Screen = 'queue' | 'archive' | 'shorts' | 'settings';
 
 const SCREEN_LABEL: Record<Screen, string> = {
   queue: 'Очередь',
   archive: 'Архив',
+  shorts: 'Ролики',
   settings: 'Настройки',
 };
 
@@ -288,6 +291,7 @@ const AdminBlogView: React.FC = () => {
    * которой начата, а расхождение с пришедшей версией видно у поста заранее.
    */
   const load = async (dropDrafts = false) => {
+    if (screen === 'shorts') return;
     setBusy(true);
     setError(null);
     try {
@@ -598,7 +602,7 @@ const AdminBlogView: React.FC = () => {
   return (
     <div data-testid="admin-blog" className="h-full overflow-y-auto bg-gray-50 p-4 sm:p-6">
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        {(['queue', 'archive', 'settings'] as Screen[]).map((s) => (
+        {(['queue', 'archive', 'shorts', 'settings'] as Screen[]).map((s) => (
           <button
             key={s}
             data-testid={`blog-screen-${s}`}
@@ -613,15 +617,17 @@ const AdminBlogView: React.FC = () => {
             {SCREEN_LABEL[s]}
           </button>
         ))}
-        <button
-          onClick={() => load()}
-          disabled={busy}
-          title="Обновить"
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-sm font-medium rounded-md border border-gray-200 hover:border-forest-300 hover:text-forest-700 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={clsx('w-4 h-4', busy && 'animate-spin')} />
-          <span className="hidden sm:inline">Обновить</span>
-        </button>
+        {screen !== 'shorts' && (
+          <button
+            onClick={() => load()}
+            disabled={busy}
+            title="Обновить"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-sm font-medium rounded-md border border-gray-200 hover:border-forest-300 hover:text-forest-700 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={clsx('w-4 h-4', busy && 'animate-spin')} />
+            <span className="hidden sm:inline">Обновить</span>
+          </button>
+        )}
       </div>
 
       {error && (
@@ -726,6 +732,8 @@ const AdminBlogView: React.FC = () => {
           Загрузка…
         </div>
       )}
+
+      {screen === 'shorts' && <AdminShortsView />}
 
       {screen === 'queue' && (
         <div className="mb-4 flex flex-wrap gap-2">
@@ -884,7 +892,7 @@ const AdminBlogView: React.FC = () => {
         </div>
       )}
 
-      {screen !== 'settings' && (
+      {screen !== 'settings' && screen !== 'shorts' && (
         <div className="space-y-3">
           {posts.length === 0 && !busy && (
             <div className="text-sm text-gray-500 text-center py-12">

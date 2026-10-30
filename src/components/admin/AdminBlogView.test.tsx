@@ -14,6 +14,7 @@ import { createRoot, Root } from 'react-dom/client';
 
 const { post } = vi.hoisted(() => ({ post: vi.fn() }));
 vi.mock('../../services/apiClient', () => ({ apiClient: { post } }));
+vi.mock('./AdminShortsView', () => ({ default: () => <div data-testid="admin-shorts-stub" /> }));
 
 import AdminBlogView from './AdminBlogView';
 
@@ -1417,5 +1418,21 @@ describe('реальный кейс', () => {
     await act(async () => { resolveAdd(res(200, { id: 'new' })); });
     await act(async () => {});   // перечитать очередь после успеха
     expect((q('blog-new-topic') as HTMLTextAreaElement).value).toBe(`${STORY}\nдописано`);
+  });
+});
+
+describe('экран «Ролики»', () => {
+  it('кнопка «Ролики» показывает ролики; посты при этом не грузятся, своего «Обновить» у вкладки нет', async () => {
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'list') return res(200, [basePost]);
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+    const before = post.mock.calls.length;
+    await click('blog-screen-shorts');
+    expect(q('admin-shorts-stub')).toBeTruthy();
+    expect(q('blog-post-p1')).toBeNull();
+    expect(post.mock.calls.length).toBe(before);
+    expect(container.textContent).not.toContain('Обновить');
   });
 });
