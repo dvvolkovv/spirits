@@ -251,11 +251,49 @@ describe('раскрытая карточка', () => {
     expect(q('short-actions-s1')).toBeNull();
   });
 
-  it('версия строки и открытой карточки разошлись — подсказка свернуть и раскрыть заново', () => {
-    render({ open: true, item: item({ version: 'V_LIST_NEW' }), detail: detail({ version: 'V_CARD_OLD' }) });
+  it('раскрытая идея без видео — полный текст заказа вместо «Видео ещё нет», с переносами строк', () => {
+    render({
+      open: true,
+      item: item({ status: 'idea' }),
+      detail: detail({ status: 'idea', videoUrl: null, topicHint: 'Строка первая\nСтрока вторая' }),
+    });
+    expect(m.container.textContent).not.toContain('Видео ещё нет');
+    const order = q('short-idea-order-s1')!;
+    expect(order.textContent).toBe('Строка первая\nСтрока вторая');
+    expect(order.className).toContain('whitespace-pre-wrap');
+    expect(order.className).toContain('break-words');
+  });
+
+  it('раскрытая идея без видео и без темы — старая фраза остаётся (нечего показать вместо неё)', () => {
+    render({
+      open: true,
+      item: item({ status: 'idea', topicHint: null }),
+      detail: detail({ status: 'idea', videoUrl: null, topicHint: null }),
+    });
+    expect(m.container.textContent).toContain('Видео ещё нет — ролик не собран.');
+    expect(q('short-idea-order-s1')).toBeNull();
+  });
+
+  it('строка новее открытой карточки — подсказка свернуть и раскрыть заново', () => {
+    render({
+      open: true,
+      item: item({ version: 'V_LIST_NEW', updatedAt: '2030-01-01T10:05:00.000Z' }),
+      detail: detail({ version: 'V_CARD_OLD', updatedAt: '2030-01-01T10:00:00.000Z' }),
+    });
     expect(q('short-stale-s1')!.textContent).toBe(
       'Ролик изменился, пока карточка была открыта — сверните и раскройте её заново.',
     );
+  });
+
+  it('открытая карточка новее строки (список просто не успел обновиться до раскрытия) — подсказки нет', () => {
+    // Раскрытие зовёт get и приносит уже свежие данные; список обновится
+    // позже или не обновится вовсе — это не «изменился, пока было открыто».
+    render({
+      open: true,
+      item: item({ version: 'V_LIST_OLD', updatedAt: '2030-01-01T10:00:00.000Z' }),
+      detail: detail({ version: 'V_CARD_NEW', updatedAt: '2030-01-01T10:05:00.000Z' }),
+    });
+    expect(q('short-stale-s1')).toBeNull();
   });
 
   it('версии совпадают — подсказки нет', () => {

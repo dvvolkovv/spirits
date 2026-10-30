@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { click, clickAsync, flush, mount, type, Mounted } from '../../test/dom';
 
@@ -153,5 +154,20 @@ describe('настройки роликов', () => {
 
     click(q('shorts-platform-telegram')!);
     expect(q('shorts-channel-warning')).toBeNull();
+  });
+});
+
+describe('под StrictMode', () => {
+  // src/main.tsx рендерит приложение внутри <React.StrictMode> — в dev-режиме
+  // React прогоняет эффекты монтирования дважды (эффект → снятие → эффект),
+  // чтобы поймать именно такие баги с несброшенным флагом.
+  it('форма загружается, а не зависает на «Загружаю настройки…»', async () => {
+    m = mount(<StrictMode><ShortsSettingsForm /></StrictMode>);
+    await settle();
+
+    expect(q('shorts-settings-error')).toBeNull();
+    expect(m.container.textContent).not.toContain('Загружаю настройки');
+    expect(q('shorts-hour')).toBeTruthy();
+    expect((q('shorts-hour') as HTMLInputElement).value).toBe('18');
   });
 });

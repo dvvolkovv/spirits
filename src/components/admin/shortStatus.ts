@@ -316,7 +316,7 @@ export type ShortAction =
 const RESUMABLE: ShortStatus[] = ['directing', 'capturing', 'writing', 'animating', 'rendering'];
 
 /** Пост уже в канале: строка telegram вышла (у упавшего YouTube — всегда). */
-export function telegramOut(d: Pick<ShortItem, 'publications'>): boolean {
+function telegramOut(d: Pick<ShortItem, 'publications'>): boolean {
   return d.publications.some((p) => p.platform === 'telegram' && p.status === 'published');
 }
 
@@ -383,7 +383,7 @@ export interface ActionRequest {
   lock: boolean;
 }
 
-type Target = Pick<ShortItem, 'id' | 'version' | 'title' | 'topicHint' | 'topicKey' | 'failedFrom' | 'publications'>;
+type Target = Pick<ShortItem, 'id' | 'version' | 'title' | 'topicHint' | 'topicKey' | 'failedFrom' | 'publications' | 'format'>;
 
 function named(d: Target): string {
   const chars = Array.from(shortTitle(d));
@@ -436,7 +436,17 @@ export function actionRequest(kind: ShortAction, d: Target, extra: ActionExtra =
         lock: false,
       };
     case 'retry_writing':
-      return { payload: { action: 'retry', id: d.id, from: 'writing', ...note }, confirm: null, lock: false };
+      return {
+        payload: { action: 'retry', id: d.id, from: 'writing', ...note },
+        // Только у сценок: дальше в пайплайне сцены пересоберутся заново по
+        // новому тексту — те же секунды Omni, что у «Новой сцены». У чата
+        // после текста ничего не пересобирается, подтверждение лишнее
+        // (правило: подтверждения — у необратимого и тратящего деньги).
+        confirm: d.format === 'skit'
+          ? `Переписать текст ${named(d)}?\n\nСценарист напишет текст заново, сцены по нему пересоберутся — это снова секунды Omni.`
+          : null,
+        lock: false,
+      };
     case 'mark_published': {
       const url = (extra.url ?? '').trim();
       return {

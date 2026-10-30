@@ -170,12 +170,21 @@ describe('запросы и итоги', () => {
   });
 
   it('необратимое и тратящее Omni — с подтверждением, остальное — без', () => {
-    for (const kind of ['redo', 'reject', 'publish_now', 'retry_directing', 'mark_published', 'start_now'] as const) {
+    // d — формата 'skit' (дефолт фикстуры): «Новый текст» у сценок тоже
+    // пересобирает ролик и тратит Omni — см. отдельный тест по формату ниже.
+    for (const kind of ['redo', 'reject', 'publish_now', 'retry_directing', 'mark_published', 'start_now', 'retry_writing'] as const) {
       expect(actionRequest(kind, d).confirm).toBeTruthy();
     }
-    for (const kind of ['approve', 'note', 'retry', 'retry_writing'] as const) {
+    for (const kind of ['approve', 'note', 'retry'] as const) {
       expect(actionRequest(kind, d).confirm).toBeNull();
     }
+  });
+
+  it('«Новый текст» — подтверждение у сценок (пересобирает сцены, тратит Omni), без него у чата', () => {
+    const skit = item({ title: 'Залог при аренде', version: 'V1', format: 'skit' });
+    const chat = item({ title: 'Залог при аренде', version: 'V1', format: 'chat' });
+    expect(actionRequest('retry_writing', skit).confirm).toContain('секунды Omni');
+    expect(actionRequest('retry_writing', chat).confirm).toBeNull();
   });
 
   it('повтор — этап и необязательное замечание; ссылка на пост — без пробелов', () => {

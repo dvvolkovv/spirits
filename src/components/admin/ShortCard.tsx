@@ -24,7 +24,18 @@ interface Props {
 /** Видео ролика: файл грузится только по нажатию (preload="none"); не загрузилось — ссылка на файл. */
 const ShortVideo: React.FC<{ detail: ShortDetail }> = ({ detail }) => {
   const [broken, setBroken] = useState(false);
-  if (!detail.videoUrl) return <div className="text-xs text-gray-500">Видео ещё нет — ролик не собран.</div>;
+  if (!detail.videoUrl) {
+    // У идеи видео не будет никогда: вместо пустой фразы — полный текст
+    // заказа (тема или история кейса), иначе владелец не видит его нигде.
+    if (detail.status === 'idea' && detail.topicHint) {
+      return (
+        <div data-testid={`short-idea-order-${detail.id}`} className="text-xs text-gray-700 whitespace-pre-wrap break-words">
+          {detail.topicHint}
+        </div>
+      );
+    }
+    return <div className="text-xs text-gray-500">Видео ещё нет — ролик не собран.</div>;
+  }
   if (broken) {
     return (
       <div data-testid={`short-video-broken-${detail.id}`} className="text-xs text-gray-600">
@@ -74,6 +85,15 @@ const ShortCard: React.FC<Props> = ({
         detail.attempts ? `попыток: ${detail.attempts}` : null,
       ].filter(Boolean).join(' · ')
     : '';
+  /**
+   * Плашка «изменился, пока было открыто» — только если СТРОКА (список)
+   * новее самой карточки. Сравнение одних версий (`item.version !==
+   * detail.version`) ловило и обратный случай: список устарел ДО раскрытия
+   * (фоновая задача уже изменила ролик), а `get` при раскрытии принёс уже
+   * свежие данные — плашка лгала, будто ролик изменился ПОСЛЕ открытия.
+   * Карточка новее строки или они совпадают — плашки нет.
+   */
+  const rowNewer = detail ? Date.parse(item.updatedAt ?? '') > Date.parse(detail.updatedAt ?? '') : false;
 
   return (
     <div
@@ -143,7 +163,7 @@ const ShortCard: React.FC<Props> = ({
           {detailError && <div role="status" className="text-xs text-rose-700">Не загрузил ролик: {detailError}</div>}
           {detail && (
             <>
-              {item.version !== detail.version && (
+              {rowNewer && (
                 <div data-testid={`short-stale-${item.id}`}
                   className="mb-2 px-2 py-1 text-xs rounded bg-amber-50 text-amber-800 border border-amber-200">
                   Ролик изменился, пока карточка была открыта — сверните и раскройте её заново.

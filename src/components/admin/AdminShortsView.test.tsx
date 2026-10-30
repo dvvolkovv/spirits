@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { actAsync, clickAsync, doubleClick, flush, mount, type, Mounted } from '../../test/dom';
 
@@ -194,6 +195,31 @@ describe('экран «Ролики»', () => {
     expect(sent().some((p) => p.action === 'publish_now')).toBe(false);
   });
 
+  it('отказ от подтверждения «Опубликовать сейчас» не держит замок — следующий клик снова спрашивает и, если принят, отправляет запрос', async () => {
+    const confirm = vi.spyOn(window, 'confirm');
+    confirm.mockReturnValueOnce(false);
+    const approved = { status: 'approved', approvedAt: '2030-01-01T11:00:00.000Z' };
+    serve({
+      list: () => res(200, [item(approved)]),
+      get: () => res(200, detailOf(approved)),
+      publish_now: () => res(200, item({ ...approved, status: 'publishing' })),
+    });
+    await open();
+    await openCard();
+
+    // Отказ: замок не берётся (он ставится только ПОСЛЕ подтверждения) —
+    // следующее нажатие должно снова спросить, а не молча ничего не сделать.
+    await clickAsync(q('short-publish-now')!);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(sent().some((p) => p.action === 'publish_now')).toBe(false);
+
+    confirm.mockReturnValueOnce(true);
+    await clickAsync(q('short-publish-now')!);
+    await settle();
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(sent()).toContainEqual({ action: 'publish_now', id: 's1' });
+  });
+
   it('«Запустить сейчас» у идеи — прямо в строке, после подтверждения (сборка тратит секунды Omni)', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     serve({ list: () => res(200, [item({ status: 'idea', slotAt: null })]), start_now: () => res(200, item({ status: 'directing' })) });
@@ -235,6 +261,37 @@ describe('экран «Ролики»', () => {
     await settle();
     expect(q('shorts-notice')!.textContent).toBe('Такой ролик уже заказан — он в «Идеях». Текст оставлен в поле.');
     expect((q('shorts-order-topic') as HTMLInputElement).value).toBe('Разнос плохого договора аренды');
+  });
+
+  it('заказ прошёл, но список не перечитался — поясняет, что не обновился список, а не что заказ не прошёл', async () => {
+    serve({ list: () => res(200, []) });
+    await open();
+    type(q('shorts-order-topic')!, 'Разнос плохого договора аренды');
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'order') return res(200, { id: 'new1' });
+      if (payload.action === 'list') return res(500, { statusCode: 500, message: 'Внутренняя ошибка' });
+      unexpectedActions.push(payload.action);
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await clickAsync(q('shorts-order-submit')!);
+    await settle();
+    expect(q('shorts-notice')!.textContent).toContain('Ролик заказан');
+    expect(q('shorts-error')!.textContent).toBe('Список не обновился: Внутренняя ошибка');
+  });
+
+  it('пополнение тем прошло, но список не перечитался — поясняет, что не обновился список, а не что пополнение не прошло', async () => {
+    serve({ list: () => res(200, []) });
+    await open();
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'refill_topics') return res(200, { added: 3 });
+      if (payload.action === 'list') return res(500, { statusCode: 500, message: 'Внутренняя ошибка' });
+      unexpectedActions.push(payload.action);
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await clickAsync(q('shorts-refill')!);
+    await settle();
+    expect(q('shorts-notice')!.textContent).toBe('Добавлено тем: 3');
+    expect(q('shorts-error')!.textContent).toBe('Список не обновился: Внутренняя ошибка');
   });
 
   it('набранная тема переживает переключение на «Вышли» и обратно', async () => {
@@ -546,5 +603,29 @@ describe('экран «Ролики»', () => {
     await clickAsync(q('shorts-conflict-reload')!);
     await settle();
     expect((q('short-note') as HTMLTextAreaElement).value).toBe('Поправь интонацию');
+  });
+
+  it('под StrictMode: список грузится, и настройки грузятся при открытии панели', async () => {
+    // src/main.tsx рендерит приложение внутри <React.StrictMode> — настройки
+    // монтируются только по клику (showSettings стартует false), так что их
+    // собственный эффект впервые проходит двойной прогон (эффект → снятие →
+    // эффект) именно в этот момент, а не при монтировании экрана.
+    serve({
+      list: () => res(200, [item()]),
+      get_settings: () => res(200, {
+        slotDays: [1, 2, 3, 4, 5, 6, 7], slotHourMsk: 18, prepareLeadHours: 24, minAnswerChars: 400,
+        tgChannelChatId: '-1003046204962', platforms: ['telegram', 'youtube'], narratorVoice: 'alena', format: 'skit',
+        maxOmniSeconds: 48, youtubeMode: 'unlisted',
+      }),
+    });
+    m = mount(<StrictMode><AdminShortsView /></StrictMode>);
+    await settle();
+    expect(q('short-s1')).toBeTruthy();
+
+    await clickAsync(q('shorts-settings-toggle')!);
+    await settle();
+    expect(q('shorts-settings-error')).toBeNull();
+    expect(m.container.textContent).not.toContain('Загружаю настройки');
+    expect(q('shorts-hour')).toBeTruthy();
   });
 });

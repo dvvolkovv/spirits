@@ -38,10 +38,18 @@ const ShortsSettingsForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   // Не отвечаем setState'ом размонтированному компоненту: загрузку можно
-  // перезапустить вручную («Повторить»), и её промис может дожить до ухода с экрана.
+  // перезапустить вручную («Повторить»), и её промис может дожить до ухода с
+  // экрана. Флаг поднимается явно при каждом монтировании эффекта — иначе
+  // StrictMode (эффект → снятие → эффект в dev) гасит его на снятии и никогда
+  // не возвращает на повторном монтировании: обе ответа get_settings тихо
+  // отбрасываются, и форма зависает на «Загружаю настройки…» (см. aliveRef в
+  // ProductActionCard.tsx).
   const alive = useRef(true);
-  useEffect(() => () => {
-    alive.current = false;
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
   }, []);
 
   const apply = (s: ShortSettings) => {
