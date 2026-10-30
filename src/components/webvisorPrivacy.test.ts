@@ -38,6 +38,12 @@ const LinkedAccountsView = readFileSync(join(__dirname, 'settings', 'LinkedAccou
 const CalendarSourcesCard = readFileSync(join(__dirname, 'settings', 'CalendarSourcesCard.tsx'), 'utf8');
 const ReferralDashboard = readFileSync(join(__dirname, 'profile', 'ReferralDashboard.tsx'), 'utf8');
 const ProductActionCardSrc = readFileSync(join(__dirname, 'products', 'ProductActionCard.tsx'), 'utf8');
+const PhoneInput = readFileSync(join(__dirname, 'onboarding', 'PhoneInput.tsx'), 'utf8');
+const EmailLoginPane = readFileSync(join(__dirname, 'onboarding', 'EmailLoginPane.tsx'), 'utf8');
+const OTPInput = readFileSync(join(__dirname, 'onboarding', 'OTPInput.tsx'), 'utf8');
+const TokenPurchasePage = readFileSync(join(__dirname, '..', 'pages', 'TokenPurchasePage.tsx'), 'utf8');
+const TokenPackages = readFileSync(join(__dirname, 'tokens', 'TokenPackages.tsx'), 'utf8');
+const IndexHtml = readFileSync(join(__dirname, '..', '..', 'index.html'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -163,6 +169,29 @@ describe('переписка скрыта от записи Вебвизора (
 });
 
 describe('поля ввода сообщений скрыты от записи Вебвизора (ym-disable-keys)', () => {
+  it('онбординг — телефон, email и шесть цифр SMS-кода', () => {
+    expect(classesOf(PhoneInput, 'phone-input', 'TextField')).toContain('ym-disable-keys');
+    expect(classesOf(EmailLoginPane, 'email-input', 'TextField')).toContain('ym-disable-keys');
+    expect(OTPInput).toContain('data-testid={`otp-input-${index}`}');
+    expect(OTPInput).toContain('className={`ym-disable-keys');
+  });
+
+  it('покупка токенов — email на публичной странице и в модале', () => {
+    expect(classesOf(TokenPurchasePage, 'token-email-input', 'input')).toContain('ym-disable-keys');
+    expect(classesOf(TokenPackages, 'token-package-email-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('email после отправки magic link скрыт из записи содержимого', () => {
+    expect(classesOf(EmailLoginPane, 'email-sent-value', 'span')).toContain('ym-hide-content');
+  });
+
+  it('Вебвизор отключён на страницах входа, оплаты и OAuth callback', () => {
+    expect(IndexHtml).toContain("location.pathname === '/' || location.pathname === '/tokens'");
+    expect(IndexHtml).toContain("location.pathname.indexOf('/auth/') === 0");
+    expect(IndexHtml).toContain("location.pathname.indexOf('/payment/') === 0");
+    expect(IndexHtml).toContain('webvisor:!sensitivePath');
+  });
+
   // Уже стоит — сторож см. src/components/chat/draftWiring.test.ts. Проверяем
   // здесь же, чтобы вся таблица задачи была видна одним файлом.
   it('чат с ассистентом — поле ввода', () => {

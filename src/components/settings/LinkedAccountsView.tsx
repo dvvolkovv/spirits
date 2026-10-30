@@ -4,6 +4,7 @@ import { Smartphone, Mail, Loader } from 'lucide-react';
 import { authService } from '../../services/authService';
 import type { Identity } from '../../types/auth';
 import type { TFunction } from 'i18next';
+import { safeExternalUrl } from '../../utils/safeUrl';
 
 const providerLabel = (t: TFunction, p: Identity['provider']): string => {
   if (p === 'phone')   return t('profile.phone');
@@ -67,7 +68,9 @@ const LinkedAccountsView: React.FC = () => {
   const handleLinkOAuth = async (provider: 'google' | 'yandex') => {
     try {
       const { authorizeUrl } = await authService.oauthInit(provider, 'link');
-      window.location.href = authorizeUrl;
+      const target = safeExternalUrl(authorizeUrl);
+      if (!target) throw new Error('unsafe oauth redirect');
+      window.location.href = target;
     } catch {
       setError(t('settings.linkedAccounts.oauthError', 'Не удалось начать привязку'));
     }

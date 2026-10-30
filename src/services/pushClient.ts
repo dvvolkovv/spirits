@@ -5,6 +5,7 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 import { tokenManager } from '../utils/tokenManager';
+import { safeInternalPath } from '../utils/safeUrl';
 
 const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
 
@@ -175,7 +176,7 @@ export const registerNativePush = async (): Promise<void> => {
       }).catch(() => {});
     });
     await PN.addListener('pushNotificationActionPerformed', (ev: any) => {
-      const url = ev?.notification?.data?.url;
+      const url = safeInternalPath(ev?.notification?.data?.url || '');
       if (url) { try { window.location.assign(url); } catch {} }
     });
     // Foreground: система НЕ рисует пуш, когда приложение открыто → показываем
@@ -183,7 +184,7 @@ export const registerNativePush = async (): Promise<void> => {
     await PN.addListener('pushNotificationReceived', (notif: any) => {
       const title = notif?.title || 'Linkeon';
       const body = notif?.body || '';
-      const url = notif?.data?.url;
+      const url = safeInternalPath(notif?.data?.url || '');
       toast(
         (tt) =>
           React.createElement(

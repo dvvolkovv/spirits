@@ -89,8 +89,14 @@ class AuthService {
   async verifyCode(phone: string, code: string): Promise<AuthResponse> {
     try {
       const cleanPhone = phone.replace(/\D/g, '');
-      const response = await fetch(`${BASE_URL}/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code/${cleanPhone}/${code}${attribQuery()}`, {
-        method: 'GET',
+      const response = await fetch(`${BASE_URL}/webhook/a376a8ed-3bf7-4f23-aaa5-236eea72871b/check-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: cleanPhone,
+          code,
+          ...Object.fromEntries(new URLSearchParams(attribQuery())),
+        }),
       });
 
       if (response.ok) {

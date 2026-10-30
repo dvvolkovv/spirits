@@ -17,7 +17,6 @@
     "check-locale-format": "node scripts/check-no-hardcoded-locale.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.6",
     "clsx": "^2.1.1",
     "esbuild": "^0.27.0",
     "html2canvas": "^1.4.1",
@@ -34,10 +33,8 @@
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^13.5.0",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^6.20.1",
-    "remark-gfm": "^4.0.1",
-    "rollup": "^4.53.3",
-    "xlsx": "^0.18.5"
+    "react-router-dom": "^6.30.6",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.68.0",

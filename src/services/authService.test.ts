@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest
 vi.mock('./apiClient', () => ({ apiClient: {} }));
 vi.mock('./vkPixel', () => ({ vkReachGoal: vi.fn() }));
 vi.mock('./eventsClient', () => ({ getSource: () => null }));
+vi.mock('../utils/tokenManager', () => ({ tokenManager: { saveTokens: vi.fn(() => true) } }));
 
 import i18n from '../i18n';
 import { authService } from './authService';
@@ -144,5 +145,23 @@ describe('authService.requestSMSCode: прочие ответы', () => {
 
     fetchMock.mockResolvedValueOnce(reply(403, 'User blocked'));
     expect(await authService.requestSMSCode('79991234567')).toEqual({ success: false, message: 'User blocked' });
+  });
+});
+
+describe('authService.verifyCode', () => {
+  it('отправляет OTP в JSON-теле POST, а не в URL', async () => {
+    fetchMock.mockResolvedValueOnce(reply(200, {
+      'access-token': 'access',
+      'refresh-token': 'refresh',
+    }));
+
+    const result = await authService.verifyCode('+7 999 123-45-67', '123456');
+    const [url, options] = fetchMock.mock.calls[0];
+
+    expect(result.success).toBe(true);
+    expect(String(url)).toMatch(/\/webhook\/a376a8ed-3bf7-4f23-aaa5-236eea72871b\/check-code$/);
+    expect(String(url)).not.toContain('123456');
+    expect(options.method).toBe('POST');
+    expect(JSON.parse(options.body)).toMatchObject({ phone: '79991234567', code: '123456' });
   });
 });

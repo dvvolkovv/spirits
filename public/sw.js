@@ -91,7 +91,18 @@ async function handleShareTarget(request) {
 // Тап по уведомлению: фокус на уже открытой вкладке или открытие нужного экрана.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = (event.notification.data && event.notification.data.url) || '/chat';
+  const rawTarget = (event.notification.data && event.notification.data.url) || '/chat';
+  let target = '/chat';
+  try {
+    const url = new URL(rawTarget, self.location.origin);
+    const internal = typeof rawTarget === 'string' && rawTarget.startsWith('/') &&
+      !rawTarget.startsWith('//') && !/[\\\u0000-\u001f\u007f]/.test(rawTarget);
+    const decodedPath = decodeURIComponent(url.pathname);
+    const decodedSafe = !decodedPath.startsWith('//') && !/[\\\u0000-\u001f\u007f]/.test(decodedPath);
+    if (internal && decodedSafe && url.origin === self.location.origin) {
+      target = `${url.pathname}${url.search}${url.hash}`;
+    }
+  } catch {}
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {

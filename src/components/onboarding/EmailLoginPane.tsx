@@ -45,7 +45,7 @@ const EmailLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
         <h3 className="text-base font-medium text-gray-900">{t('auth.email.sentTitle', 'Проверь почту')}</h3>
         <p className="text-sm text-gray-600 mt-1.5">
           {t('auth.email.sentBody', 'Мы отправили ссылку для входа на')}{' '}
-          <span className="font-medium text-gray-900">{email}</span>
+          <span className="ym-hide-content font-medium text-gray-900" data-testid="email-sent-value">{email}</span>
         </p>
         <button
           onClick={() => setStep('input')}
@@ -72,6 +72,7 @@ const EmailLoginPane: React.FC<Props> = ({ blocked, consent, footer }) => {
         autoComplete="email"
         placeholder="you@example.com"
         data-testid="email-input"
+        className="ym-disable-keys"
         error={error}
       />
       {consent}

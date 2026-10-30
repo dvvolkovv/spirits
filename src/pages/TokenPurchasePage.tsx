@@ -9,6 +9,7 @@ import { formatNumber } from '../utils/formatters';
 import { TopUpHistory } from '../components/tokens/TopUpHistory';
 import { SpendingSummary } from '../components/tokens/SpendingSummary';
 import { RUB_PACKAGES, CRYPTO_NAME_KEY, CRYPTO_NAME_KEY_FALLBACK, approxMessages } from '../config/tokenPackages';
+import { safeExternalUrl } from '../utils/safeUrl';
 
 /** Ответ /webhook/payments/methods — какой способ оплаты доступен юзеру. */
 interface PaymentMethod {
@@ -163,7 +164,9 @@ const TokenPurchasePage: React.FC = () => {
         if (!response.ok || !data?.payment_url) throw new Error(data?.error || 'no payment_url');
         // Обе ссылки — один платёж; card_url берём из свежего ответа и не
         // сохраняем: у закрытого платежа он null, а страница отвечает 409.
-        window.location.href = method === 'card' && data.card_url ? data.card_url : data.payment_url;
+        const target = safeExternalUrl(method === 'card' && data.card_url ? data.card_url : data.payment_url);
+        if (!target) throw new Error('unsafe payment redirect');
+        window.location.href = target;
       } catch (error) {
         console.error('Ошибка при создании крипто-платежа:', error);
         alert(t('payment.create_payment_error'));
@@ -209,7 +212,9 @@ const TokenPurchasePage: React.FC = () => {
         const data = await response.json();
 
         if (data && data.confirmation_url) {
-          window.location.href = data.confirmation_url;
+          const target = safeExternalUrl(data.confirmation_url);
+          if (!target) throw new Error('unsafe payment redirect');
+          window.location.href = target;
         } else {
           // i18n-ignore: текст ловится catch'ем ниже и уходит в console.error;
           // пользователю показывается переведённый alert payment.create_payment_error
@@ -278,7 +283,7 @@ const TokenPurchasePage: React.FC = () => {
                   setEmailError('');
                 }}
                 placeholder={isLoadingEmail ? t('common.loading') : 'example@mail.com'}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
+                className={`ym-disable-keys w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
                   emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
                 disabled={isProcessing || isLoadingEmail}

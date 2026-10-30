@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { authService } from '../../services/authService';
 import { Button } from '../ui/Button';
 import { providerMark } from './providerMarks';
+import { safeExternalUrl } from '../../utils/safeUrl';
 import type { OAuthProviderId } from '../../types/auth';
 
 interface Props {
@@ -30,7 +31,9 @@ const OAuthButton: React.FC<Props> = ({ provider, disabled }) => {
         provider === 'talerid'
           ? await authService.taleridLoginStart()
           : await authService.oauthInit(provider, 'login');
-      window.location.href = authorizeUrl;
+      const target = safeExternalUrl(authorizeUrl);
+      if (!target) throw new Error('unsafe oauth redirect');
+      window.location.href = target;
     } catch (e) {
       setLoading(false);
       const notConfigured = e instanceof Error && e.message === 'oauth provider not configured';

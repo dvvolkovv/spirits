@@ -7,6 +7,8 @@
  * иначе разработка превращается в отладку белого экрана.
  */
 
+import { safeExternalUrl } from '../utils/safeUrl';
+
 interface TelegramWebApp {
   initData: string;
   themeParams: Record<string, string>;
@@ -75,7 +77,9 @@ export function closeApp(): void {
  * ничего. Фолбэк на window.open — для дев-сервера и обычного браузера.
  */
 export function openLink(url: string): void {
+  const target = safeExternalUrl(url);
+  if (!target) return;
   const app = webApp();
-  if (app?.openLink) app.openLink(url);
-  else window.open(url, '_blank');
+  if (app?.openLink) app.openLink(target);
+  else window.open(target, '_blank', 'noopener');
 }

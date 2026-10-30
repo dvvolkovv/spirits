@@ -2,6 +2,7 @@ import React from 'react';
 import * as LucideIcons from 'lucide-react';
 import { extractAskBlocks, type AskBlock } from './askBlock';
 import { extractProductActions } from './productActionBlock';
+import { safeNavigationUrl } from './safeUrl';
 
 export interface ButtonConfig {
   text: string;
@@ -110,12 +111,13 @@ export const parseCustomMarkdown = (content: string, opts: { streaming?: boolean
   });
 
   parsedContent = parsedContent.replace(LINK_REGEX, (match, text, url) => {
+    const target = safeNavigationUrl(url);
+    if (!target) return match;
     const linkId = `link_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    const isExternal = url.trim().startsWith('http://') || url.trim().startsWith('https://');
     links.set(linkId, {
       text: text.trim(),
-      url: url.trim(),
-      external: isExternal
+      url: target,
+      external: target.startsWith('https://')
     });
     return `__LINK_${linkId}__`;
   });

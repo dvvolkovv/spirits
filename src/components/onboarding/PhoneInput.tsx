@@ -69,6 +69,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({ onSubmit, isLoading, blocked, c
         onChange={handleChange}
         onBlur={() => setTouched(true)}
         data-testid="phone-input"
+        className="ym-disable-keys"
         placeholder={new AsYouType(country).input('0'.repeat(9))}
         autoFocus
         error={touched && national && !isValidPhone ? t('onboarding.phone_invalid') : null}

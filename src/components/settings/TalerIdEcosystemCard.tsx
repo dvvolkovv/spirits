@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Check, Loader2, Link2, AlertCircle } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
+import { safeExternalUrl } from '../../utils/safeUrl';
 
 type Conn = 'loading' | 'not_connected' | 'connected' | 'ambiguous' | 'error';
 
@@ -48,7 +49,8 @@ const TalerIdEcosystemCard: React.FC = () => {
     try {
       const r = await apiClient.post('/webhook/ecosystem/talerid/oauth/start', {});
       const d = await r.json().catch(() => ({}));
-      if (d?.authorizeUrl) { window.location.href = d.authorizeUrl; return; }
+      const target = d?.authorizeUrl ? safeExternalUrl(d.authorizeUrl) : null;
+      if (target) { window.location.href = target; return; }
       setMsg(t('settings.talerid.link_error'));
     } catch {
       setMsg(t('settings.talerid.link_error'));

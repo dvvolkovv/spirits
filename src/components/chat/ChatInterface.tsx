@@ -24,6 +24,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import OfferBanner from '../tokens/OfferBanner';
 import SessionPaywallNudge from '../tokens/SessionPaywallNudge';
 import { parseCustomMarkdown, createButtonComponent, createLinkComponent, createVideoComponent, createImageComponent, ButtonConfig, LinkConfig } from '../../utils/customMarkdown';
+import { safeInternalPath, safeNavigationUrl } from '../../utils/safeUrl';
 import { VoiceDictation } from '../../services/voiceDictation';
 import { isDictationLanguageSupported } from '../../services/dictationLanguages';
 import AudioClip from './AudioClip';
@@ -404,13 +405,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [navigate]);
 
   const handleLinkNavigation = useCallback((url: string) => {
-    // Static files and external URLs open in new tab
-    if (url.startsWith('/static/') || url.startsWith('http://') || url.startsWith('https://')) {
-      window.open(url, '_blank', 'noopener');
-    } else if (url.startsWith('/')) {
-      navigate(url);
+    const target = safeNavigationUrl(url);
+    if (!target) return;
+    const internalPath = safeInternalPath(target);
+    if (internalPath && !internalPath.startsWith('/static/')) {
+      navigate(internalPath);
     } else {
-      window.open(url, '_blank', 'noopener');
+      window.open(target, '_blank', 'noopener');
     }
   }, [navigate]);
 

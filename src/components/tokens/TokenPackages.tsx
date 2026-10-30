@@ -8,6 +8,7 @@ import { TopUpHistory } from './TopUpHistory';
 import { SpendingSummary } from './SpendingSummary';
 import { formatNumber } from '../../utils/formatters';
 import { RUB_PACKAGES, CRYPTO_NAME_KEY, CRYPTO_NAME_KEY_FALLBACK, approxMessages } from '../../config/tokenPackages';
+import { safeExternalUrl } from '../../utils/safeUrl';
 
 interface TokenPackage {
   id: string;
@@ -169,7 +170,8 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
         // счёта, и коллбэк придёт с тем же payment_id. Ссылку берём из свежего
         // ответа и никуда не сохраняем: у зачисленного или истёкшего платежа
         // card_url становится null, а страница отвечает 409.
-        const target = method === 'card' && data.card_url ? data.card_url : data.payment_url;
+        const target = safeExternalUrl(method === 'card' && data.card_url ? data.card_url : data.payment_url);
+        if (!target) throw new Error('unsafe payment redirect');
         if (data.payment_id) localStorage.setItem('pending_payment_id', data.payment_id);
         window.location.href = target;
       } catch (error) {
@@ -211,8 +213,10 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
         const data = await response.json();
 
         if (data && data.confirmation_url) {
+          const target = safeExternalUrl(data.confirmation_url);
+          if (!target) throw new Error('unsafe payment redirect');
           if (data.payment_id) localStorage.setItem('pending_payment_id', data.payment_id);
-          window.location.href = data.confirmation_url;
+          window.location.href = target;
         } else {
           // i18n-ignore: текст ловится catch'ем ниже и уходит в console.error;
           // пользователю показывается переведённый alert payment.create_payment_error
@@ -306,7 +310,8 @@ export const TokenPackages: React.FC<TokenPackagesProps> = ({ onClose }) => {
                 setEmailError('');
               }}
               placeholder={isLoadingEmail ? t('common.loading') : 'example@mail.com'}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
+              data-testid="token-package-email-input"
+              className={`ym-disable-keys w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
                 emailError ? 'border-red-500' : 'border-gray-300'
               }`}
               disabled={isProcessing || isLoadingEmail}
