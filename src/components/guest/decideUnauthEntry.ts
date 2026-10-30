@@ -20,7 +20,8 @@ export interface EntryInput {
  */
 export function decideUnauthEntry(i: EntryInput): UnauthEntry {
   if (i.native || i.hasAccount) return 'login';
-  if (i.pathname !== '/' && i.pathname !== '/chat') return 'login';
+  const path = i.pathname.replace(/\/+$/, '') || '/';
+  if (path !== '/' && path !== '/chat') return 'login';
   if (i.mode === 'on') return 'guest';
   if (i.mode === 'preview' && i.preview) return 'guest';
   return 'login';
