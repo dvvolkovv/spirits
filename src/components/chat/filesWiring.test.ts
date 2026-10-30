@@ -49,7 +49,7 @@ describe('связка панели «Медиа и файлы»', () => {
     expect(SRC.slice(btn, regen)).toContain("onClick={() => openFilesPanel('header')}");
   });
 
-  it('смена ассистента закрывает панель', () => {
-    expect(SRC).toMatch(/useEffect\(\(\) => \{\s*setShowFilesPanel\(false\);\s*\}, \[selectedAssistant\?\.id\]\)/);
+  it('смена ассистента или «Чистого листа» закрывает обе панели', () => {
+    expect(SRC).toMatch(/useEffect\(\(\) => \{\s*setShowFilesPanel\(false\);\s*setShowActionPlan\(false\);\s*\}, \[selectedAssistant\?\.id, freshTs\]\)/);
   });
 });

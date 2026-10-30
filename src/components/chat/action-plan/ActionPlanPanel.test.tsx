@@ -41,7 +41,7 @@ async function openPanel(onDiscuss = vi.fn()) {
 describe('ActionPlanPanel', () => {
   it('shows a saved plan and its real progress', async () => {
     const { view } = await openPanel();
-    expect(visibleText(view.container)).toContain('Подготовка к переезду');
+    expect((view.container.querySelector('#action-plan-title') as HTMLInputElement).value).toBe('Подготовка к переезду');
     expect(visibleText(view.container)).toContain('Выполнено 1 из 2');
     expect(view.container.querySelector('[aria-valuenow]')).toBeNull();
     expect(view.container.querySelector('[role="checkbox"][aria-checked="true"]')).not.toBeNull();
@@ -65,7 +65,7 @@ describe('ActionPlanPanel', () => {
     expect(actionPlansApi.generate).not.toHaveBeenCalled();
     await clickAsync(byButton(view.container, /Сформировать план/)!);
     expect(actionPlansApi.generate).toHaveBeenCalledWith(12, undefined);
-    expect(visibleText(view.container)).toContain('Подготовка к переезду');
+    expect((view.container.querySelector('#action-plan-title') as HTMLInputElement).value).toBe('Подготовка к переезду');
     view.unmount();
   });
 
