@@ -44,6 +44,7 @@ const OTPInput = readFileSync(join(__dirname, 'onboarding', 'OTPInput.tsx'), 'ut
 const TokenPurchasePage = readFileSync(join(__dirname, '..', 'pages', 'TokenPurchasePage.tsx'), 'utf8');
 const TokenPackages = readFileSync(join(__dirname, 'tokens', 'TokenPackages.tsx'), 'utf8');
 const ShortsOrderForm = readFileSync(join(__dirname, 'admin', 'ShortsOrderForm.tsx'), 'utf8');
+const AdminShortsView = readFileSync(join(__dirname, 'admin', 'AdminShortsView.tsx'), 'utf8');
 const IndexHtml = readFileSync(join(__dirname, '..', '..', 'index.html'), 'utf8');
 const ProductChatSrc = readFileSync(join(__dirname, 'products', 'ProductChat.tsx'), 'utf8');
 const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx'), 'utf8');
@@ -175,6 +176,10 @@ describe('переписка скрыта от записи Вебвизора (
   it('рутины — список с названиями', () => {
     expect(classesOf(RoutinesManager, 'routines-list', 'div')).toContain('ym-hide-content');
   });
+
+  it('админка — экран «Ролики» целиком', () => {
+    expect(classesOf(AdminShortsView, 'admin-shorts', 'div')).toContain('ym-hide-content');
+  });
 });
 
 describe('поля ввода сообщений скрыты от записи Вебвизора (ym-disable-keys)', () => {
@@ -293,6 +298,10 @@ describe('поля ввода сообщений скрыты от записи 
 
   it('админка роликов — история реального кейса в заказе', () => {
     expect(classesOf(ShortsOrderForm, 'shorts-order-story', 'textarea')).toContain('ym-disable-keys');
+  });
+
+  it('админка роликов — тема одной строкой в заказе', () => {
+    expect(classesOf(ShortsOrderForm, 'shorts-order-topic', 'input')).toContain('ym-disable-keys');
   });
 });
 

@@ -146,8 +146,16 @@ const AdminShortsView: React.FC = () => {
     setNotice(null);
     try {
       const res = await callShorts(payload);
-      setNotice(res ? 'Ролик заказан — он в «Идеях». Запустить сразу — «Запустить сейчас» в его строке.' : 'Такой ролик уже заказан');
+      // Список перечитываем в любом исходе: дубль всё равно уже лежит идеей.
       await load();
+      if (!res) {
+        // Бэк сравнивает нормализованные первые 80 символов открытой ручной
+        // идеи — дубль нашёлся, новая запись не создана. Текст в форме не
+        // трогаем: это не отказ по содержимому, и стирать историю незачем.
+        setNotice('Такой ролик уже заказан — он в «Идеях». Текст оставлен в поле.');
+        return false;
+      }
+      setNotice('Ролик заказан — он в «Идеях». Запустить сразу — «Запустить сейчас» в его строке.');
       return true;
     } catch (e) {
       fail(e);
@@ -213,7 +221,10 @@ const AdminShortsView: React.FC = () => {
   );
 
   return (
-    <div data-testid="admin-shorts">
+    // ym-hide-content: заказ ручного ролика несёт историю владельца (её
+    // заголовок и собранная по ней сцена видны и в архиве) — Вебвизор не
+    // должен её записать. Сторож — webvisorPrivacy.test.ts.
+    <div data-testid="admin-shorts" className="ym-hide-content">
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         {SCREENS.map((s) => (
           <button
@@ -288,7 +299,14 @@ const AdminShortsView: React.FC = () => {
 
       {showSettings && <ShortsSettingsForm />}
 
-      {screen === 'queue' && <ShortsOrderForm agents={agents} busy={busy} onOrder={order} onRefill={refill} />}
+      {/*
+        Форма остаётся смонтированной на всех подэкранах и просто скрывается
+        вне «Очереди»: наполовину набранная история должна переживать взгляд
+        на «Вышли»/«Отклонены», а не слетать вместе с размонтированием.
+      */}
+      <div hidden={screen !== 'queue'}>
+        <ShortsOrderForm agents={agents} busy={busy} onOrder={order} onRefill={refill} />
+      </div>
 
       {busy && !loaded && (
         <div className="mb-3 flex items-center gap-2 text-sm text-gray-500">

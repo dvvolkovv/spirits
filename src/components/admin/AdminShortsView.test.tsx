@@ -190,4 +190,31 @@ describe('экран «Ролики»', () => {
     expect(q('shorts-error')!.textContent).toBe('Не подтверждено: сервер ответил 502. Нажмите «Обновить», прежде чем повторять.');
     expect(q('shorts-notice')).toBeNull();
   });
+
+  it('дубль заказа (order → null) — новое уведомление, тема остаётся в поле', async () => {
+    serve({ list: () => res(200, []), order: () => res(200, null) });
+    await open();
+    type(q('shorts-order-topic')!, 'Разнос плохого договора аренды');
+    await clickAsync(q('shorts-order-submit')!);
+    await settle();
+    expect(q('shorts-notice')!.textContent).toBe('Такой ролик уже заказан — он в «Идеях». Текст оставлен в поле.');
+    expect((q('shorts-order-topic') as HTMLInputElement).value).toBe('Разнос плохого договора аренды');
+  });
+
+  it('набранная тема переживает переключение на «Вышли» и обратно', async () => {
+    serve({
+      list: () => res(200, [item({
+        id: 'f', status: 'published', publishedAt: '2030-01-02T15:00:00.000Z',
+        publications: [{ platform: 'telegram', status: 'published', url: 'https://t.me/ainomira/90', lastError: null }],
+      })]),
+    });
+    await open();
+    type(q('shorts-order-topic')!, 'Начатая, но не отправленная тема');
+    expect(q('shorts-order')!.closest('[hidden]')).toBeNull();
+    await clickAsync(q('shorts-screen-published')!);
+    expect(q('shorts-order')!.closest('[hidden]')).not.toBeNull();
+    await clickAsync(q('shorts-screen-queue')!);
+    expect(q('shorts-order')!.closest('[hidden]')).toBeNull();
+    expect((q('shorts-order-topic') as HTMLInputElement).value).toBe('Начатая, но не отправленная тема');
+  });
 });
