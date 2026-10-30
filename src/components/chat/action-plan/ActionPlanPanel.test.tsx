@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
