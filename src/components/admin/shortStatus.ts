@@ -4,7 +4,8 @@ import { normalizeSlotDays } from './blogStatus';
 /**
  * Ролики — экран «Ролики» вкладки «Блог» (спека spirits_back
  * docs/superpowers/specs/2026-10-30-admin-shorts-in-blog-design.md): типы
- * ответа `admin/shorts`, подписи, группы и правила кнопок.
+ * ответа `admin/shorts`, подписи, группы и правила кнопок, запросы решений
+ * с подтверждениями, итоговые тексты и черновик формы настроек.
  *
  * Правила — копия бэка (`src/shorts/shorts.types.ts`, `short-review.ts`,
  * `shorts.controller.ts`), как `blogStatus.ts` у постов: источник правды —
@@ -314,6 +315,11 @@ export type ShortAction =
 /** С каких этапов «Повторить» возвращает упавший ролик (RESUME_FROM бэка). */
 const RESUMABLE: ShortStatus[] = ['directing', 'capturing', 'writing', 'animating', 'rendering'];
 
+/** Пост уже в канале: строка telegram вышла (у упавшего YouTube — всегда). */
+export function telegramOut(d: Pick<ShortItem, 'publications'>): boolean {
+  return d.publications.some((p) => p.platform === 'telegram' && p.status === 'published');
+}
+
 /**
  * Какие кнопки показать — по правилам бэка: «Переснять» и «Отклонить» не у
  * вышедшего хоть где-то; повтор публикации и «Пост вышел» — только у ролика,
@@ -338,7 +344,7 @@ export function actionsFor(
       if (d.failedFrom === 'publishing') {
         if (!d.approvedAt) return reject;
         // Пост уже в канале (упал YouTube после него) — «Пост вышел» перезаписал бы ссылку на настоящий пост.
-        const postOut = d.publications.some((p) => p.platform === 'telegram' && p.status === 'published');
+        const postOut = telegramOut(d);
         return postOut ? ['retry', ...reject] : ['retry', 'mark_published', ...reject];
       }
       if (!d.failedFrom) return reject;
@@ -377,7 +383,7 @@ export interface ActionRequest {
   lock: boolean;
 }
 
-type Target = Pick<ShortItem, 'id' | 'version' | 'title' | 'topicHint' | 'topicKey'>;
+type Target = Pick<ShortItem, 'id' | 'version' | 'title' | 'topicHint' | 'topicKey' | 'failedFrom' | 'publications'>;
 
 function named(d: Target): string {
   const chars = Array.from(shortTitle(d));
@@ -401,7 +407,9 @@ export function actionRequest(kind: ShortAction, d: Target, extra: ActionExtra =
     case 'reject':
       return {
         payload: { action: 'reject', id: d.id, version: d.version },
-        confirm: `Отклонить ${named(d)}?\n\nРолик не выйдет, вернуть его нельзя.`,
+        confirm: d.failedFrom === 'publishing'
+          ? `Отклонить ${named(d)}?\n\nПовторов публикации больше не будет. Если пост всё-таки вышел в канал — сначала отметьте «Пост вышел».`
+          : `Отклонить ${named(d)}?\n\nРолик не выйдет, вернуть его нельзя.`,
         lock: false,
       };
     case 'publish_now':
@@ -410,8 +418,17 @@ export function actionRequest(kind: ShortAction, d: Target, extra: ActionExtra =
         confirm: `Опубликовать ${named(d)} сейчас?\n\nРолик уйдёт на площадки в ближайшие 5 минут. Отменить публикацию нельзя.`,
         lock: true,
       };
-    case 'retry':
-      return { payload: { action: 'retry', id: d.id, ...note }, confirm: null, lock: false };
+    case 'retry': {
+      // Повтор упавшей публикации, пока пост не в канале, — та же публикация: при неизвестном исходе отправки пост выйдет второй раз.
+      const republish = d.failedFrom === 'publishing' && !telegramOut(d);
+      return {
+        payload: { action: 'retry', id: d.id, ...note },
+        confirm: republish
+          ? `Повторить публикацию: ${named(d)}?\n\nСначала проверьте канал: если пост уже вышел — нажмите «Пост вышел», иначе он выйдет второй раз.`
+          : null,
+        lock: republish,
+      };
+    }
     case 'retry_directing':
       return {
         payload: { action: 'retry', id: d.id, from: 'directing', ...note },
@@ -420,10 +437,20 @@ export function actionRequest(kind: ShortAction, d: Target, extra: ActionExtra =
       };
     case 'retry_writing':
       return { payload: { action: 'retry', id: d.id, from: 'writing', ...note }, confirm: null, lock: false };
-    case 'mark_published':
-      return { payload: { action: 'mark_published', id: d.id, url: (extra.url ?? '').trim() }, confirm: null, lock: false };
+    case 'mark_published': {
+      const url = (extra.url ?? '').trim();
+      return {
+        payload: { action: 'mark_published', id: d.id, url },
+        confirm: `Отметить пост вышедшим: ${named(d)}?\n\nСсылка: ${url}\nОтменить отметку нельзя: в канал ролик больше отправляться не будет.`,
+        lock: false,
+      };
+    }
     case 'start_now':
-      return { payload: { action: 'start_now', id: d.id }, confirm: null, lock: false };
+      return {
+        payload: { action: 'start_now', id: d.id },
+        confirm: `Запустить ${named(d)} сейчас?\n\nРолик соберётся минут за десять; сценки тратят секунды Omni.`,
+        lock: false,
+      };
   }
 }
 
@@ -437,7 +464,7 @@ export function successText(kind: ShortAction, d: Pick<ShortItem, 'failedFrom'>,
     case 'note':
       return 'Замечание принято: ролик ушёл на переписку, новая версия придёт сюда и в личку.';
     case 'redo':
-      return 'Пересниму: новая сцена на ту же тему. Новая версия придёт сюда и в личку.';
+      return 'Ролик переснимается: новая сцена на ту же тему. Новая версия придёт сюда и в личку.';
     case 'reject':
       return 'Ролик отклонён.';
     case 'publish_now':
@@ -449,7 +476,7 @@ export function successText(kind: ShortAction, d: Pick<ShortItem, 'failedFrom'>,
     case 'retry_writing':
       return 'Ролик снова в работе: сценарист напишет новый текст по той же съёмке.';
     case 'mark_published':
-      return 'Пост отмечен вышедшим — остальные площадки публикатор доделает сам.';
+      return 'Пост отмечен вышедшим — остальные площадки допубликуются сами.';
     case 'start_now':
       return 'Ролик запущен: появится в «Ждут решения», когда соберётся.';
   }
@@ -469,7 +496,7 @@ export interface SettingsDraft {
 }
 
 /** Площадки этого экрана в каноническом порядке: VK ещё не готов (SUPPORTED_PLATFORMS бэка). */
-export const SETTINGS_PLATFORMS: ShortPlatform[] = ['telegram', 'youtube'];
+export const SETTINGS_PLATFORMS: readonly ShortPlatform[] = ['telegram', 'youtube'];
 
 export function toDraft(s: ShortSettings): SettingsDraft {
   return {
@@ -492,9 +519,9 @@ const intIn = (raw: string, min: number, max: number): boolean =>
 /** Ошибки до отправки — те же пределы, что у validateSettingsPatch бэка. Пусто — можно сохранять. */
 export function draftErrors(d: SettingsDraft): Partial<Record<keyof SettingsDraft, string>> {
   const e: Partial<Record<keyof SettingsDraft, string>> = {};
-  if (!d.slotDays.length) e.slotDays = 'Нужен хотя бы один день.';
+  if (!normalizeSlotDays(d.slotDays).length) e.slotDays = 'Нужен хотя бы один день.';
   if (!intIn(d.slotHourMsk, 0, 23)) e.slotHourMsk = 'Целое число от 0 до 23.';
-  if (!d.platforms.length) e.platforms = 'Нужна хотя бы одна площадка.';
+  if (!SETTINGS_PLATFORMS.some((p) => d.platforms.includes(p))) e.platforms = 'Нужна хотя бы одна площадка.';
   if (!intIn(d.maxOmniSeconds, 8, 400)) e.maxOmniSeconds = 'Целое число от 8 до 400: клип Omni — 8 секунд.';
   if (!d.narratorVoice.trim()) e.narratorVoice = 'Голос SpeechKit, например alena.';
   if (!intIn(d.minAnswerChars, 100, 5000)) e.minAnswerChars = 'Целое число от 100 до 5000.';

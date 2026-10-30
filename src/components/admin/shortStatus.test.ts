@@ -112,9 +112,9 @@ describe('строка ролика', () => {
   });
 });
 
-describe('кнопки по статусу', () => {
-  const tg = (status: any) => ({ platform: 'telegram' as const, status, url: null, lastError: null });
+const tg = (status: PublicationStatus): ShortPublication => ({ platform: 'telegram', status, url: null, lastError: null });
 
+describe('кнопки по статусу', () => {
   it('ждёт решения — одобрить, замечание, переснять, отклонить', () => {
     expect(actionsFor(detail({ status: 'pending_review' }))).toEqual(['approve', 'note', 'redo', 'reject']);
   });
@@ -142,9 +142,16 @@ describe('кнопки по статусу', () => {
 
   it('идея — запустить; в работе, публикуется, вышел, отклонён — ничего', () => {
     expect(actionsFor(detail({ status: 'idea' }))).toEqual(['start_now']);
-    for (const status of ['writing', 'publishing', 'published', 'rejected'] as const) {
-      expect(actionsFor(detail({ status }))).toEqual([]);
-    }
+    for (const status of (Object.keys(STATUS_TITLES) as ShortStatus[]).filter((s) => !['pending_review', 'approved', 'idea', 'failed'].includes(s))) expect(actionsFor(detail({ status }))).toEqual([]);
+  });
+
+  it('редкие ветки: этап без «Повторить», публикация без одобрения при «вышел», «вышел» без поста в канале', () => {
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'animate_queued' }))).toEqual(['retry_directing', 'reject']);
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt: null, publications: [tg('published')] }))).toEqual([]);
+    expect(actionsFor(detail({
+      status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
+      publications: [{ platform: 'youtube', status: 'manual_pending', url: null, lastError: null }],
+    }))).toEqual(['retry', 'mark_published']);
   });
 });
 
@@ -163,8 +170,10 @@ describe('запросы и итоги', () => {
   });
 
   it('необратимое и тратящее Omni — с подтверждением, остальное — без', () => {
-    for (const kind of ['redo', 'reject', 'publish_now', 'retry_directing'] as const) expect(actionRequest(kind, d).confirm).toBeTruthy();
-    for (const kind of ['approve', 'note', 'retry', 'retry_writing', 'mark_published', 'start_now'] as const) {
+    for (const kind of ['redo', 'reject', 'publish_now', 'retry_directing', 'mark_published', 'start_now'] as const) {
+      expect(actionRequest(kind, d).confirm).toBeTruthy();
+    }
+    for (const kind of ['approve', 'note', 'retry', 'retry_writing'] as const) {
       expect(actionRequest(kind, d).confirm).toBeNull();
     }
   });
@@ -191,6 +200,19 @@ describe('запросы и итоги', () => {
     expect(isTelegramPostUrl('https://t.me/c/3046204962/90')).toBe(true);
     expect(isTelegramPostUrl('https://t.me/ainomira')).toBe(false);
     expect(isTelegramPostUrl('http://t.me/ainomira/90')).toBe(false);
+    expect(isTelegramPostUrl('  https://t.me/ainomira/90  ')).toBe(true);
+  });
+
+  it('повтор упавшей публикации — подтверждение «сначала проверьте канал» и замок; пост уже в канале — без них', () => {
+    const failedPub = item({ title: 'Залог при аренде', version: 'V1', status: 'failed', failedFrom: 'publishing' });
+    const r = actionRequest('retry', failedPub);
+    expect(r.confirm).toContain('Сначала проверьте канал');
+    expect(r.lock).toBe(true);
+    const out = actionRequest('retry', { ...failedPub, publications: [tg('published')] });
+    expect(out.confirm).toBeNull();
+    expect(out.lock).toBe(false);
+    expect(actionRequest('reject', failedPub).confirm).toContain('Если пост всё-таки вышел в канал');
+    expect(actionRequest('mark_published', failedPub, { url: ' https://t.me/ainomira/90 ' }).confirm).toContain('Ссылка: https://t.me/ainomira/90');
   });
 });
 
@@ -221,5 +243,7 @@ describe('настройки', () => {
     expect(draftErrors({ ...toDraft(s), slotHourMsk: '' }).slotHourMsk).toBeTruthy();
     expect(draftToPatch({ ...toDraft(s), tgChannelChatId: '  ' }).tgChannelChatId).toBeNull();
     expect(draftToPatch({ ...toDraft(s), platforms: ['youtube', 'telegram'] }).platforms).toEqual(['telegram', 'youtube']);
+    expect(draftErrors({ ...toDraft(s), slotDays: [9] }).slotDays).toBeTruthy();
+    expect(draftErrors({ ...toDraft(s), platforms: ['vk'] }).platforms).toBeTruthy();
   });
 });
