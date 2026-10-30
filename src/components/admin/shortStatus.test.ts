@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { NOW, item } from './shortFixtures';
+import { NOW, detail, item } from './shortFixtures';
 import {
-  GROUP_ORDER, PublicationStatus, STATUS_TITLES, ShortPlatform, ShortPublication, ShortStatus,
-  archiveOf, groupOf, isReleased, noteChars, orderChars, publicationLabel,
-  queueGroups, screenCounts, screenOf, shortTitle, statusLine,
+  GROUP_ORDER, PublicationStatus, STATUS_TITLES, ShortPlatform, ShortPublication, ShortSettings, ShortStatus,
+  actionRequest, actionsFor, archiveOf, draftErrors, draftToPatch, groupOf, isReleased, isTelegramPostUrl,
+  noteChars, orderChars, publicationLabel, queueGroups, screenCounts, screenOf, shortTitle, statusLine,
+  successText, toDraft,
 } from './shortStatus';
 
 describe('экраны и группы', () => {
@@ -108,5 +109,117 @@ describe('строка ролика', () => {
       status: 'failed', failedFrom: 'publishing',
       publications: [{ platform: 'telegram', status: 'published', url: null, lastError: null }],
     }), NOW)).toBe('вышел не на все площадки');
+  });
+});
+
+describe('кнопки по статусу', () => {
+  const tg = (status: any) => ({ platform: 'telegram' as const, status, url: null, lastError: null });
+
+  it('ждёт решения — одобрить, замечание, переснять, отклонить', () => {
+    expect(actionsFor(detail({ status: 'pending_review' }))).toEqual(['approve', 'note', 'redo', 'reject']);
+  });
+
+  it('запланирован — опубликовать, переснять, отклонить; вышел хоть где-то — только опубликовать', () => {
+    expect(actionsFor(detail({ status: 'approved' }))).toEqual(['publish_now', 'redo', 'reject']);
+    expect(actionsFor(detail({ status: 'approved', publications: [tg('published')] }))).toEqual(['publish_now']);
+  });
+
+  it('упал до публикации — повтор с этапа, новая сцена, новый текст при съёмке, отклонить', () => {
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'rendering', capture: { answerText: 'x' } })))
+      .toEqual(['retry', 'retry_directing', 'retry_writing', 'reject']);
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'capturing' }))).toEqual(['retry', 'retry_directing', 'reject']);
+    expect(actionsFor(detail({ status: 'failed', failedFrom: null }))).toEqual(['reject']);
+  });
+
+  it('упала публикация — «Повторить» и «Пост вышел» только у одобрявшегося; пост уже в канале — только «Повторить»', () => {
+    const approvedAt = '2030-01-01T11:00:00.000Z';
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt }))).toEqual(['retry', 'mark_published', 'reject']);
+    // Упал YouTube после вышедшего поста: «Пост вышел» перезаписал бы ссылку на настоящий пост, а отклонить вышедший нельзя.
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt, publications: [tg('published')] })))
+      .toEqual(['retry']);
+    expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt: null }))).toEqual(['reject']);
+  });
+
+  it('идея — запустить; в работе, публикуется, вышел, отклонён — ничего', () => {
+    expect(actionsFor(detail({ status: 'idea' }))).toEqual(['start_now']);
+    for (const status of ['writing', 'publishing', 'published', 'rejected'] as const) {
+      expect(actionsFor(detail({ status }))).toEqual([]);
+    }
+  });
+});
+
+describe('запросы и итоги', () => {
+  const d = item({ title: 'Залог при аренде', version: 'V1' });
+
+  it('решения по готовому ролику подписаны версией; одобрение и публикация — под замком', () => {
+    expect(actionRequest('approve', d)).toEqual({ payload: { action: 'approve', id: 's1', version: 'V1' }, confirm: null, lock: true });
+    expect(actionRequest('note', d, { text: '  короче  ' }).payload).toEqual({ action: 'note', id: 's1', version: 'V1', text: 'короче' });
+    expect(actionRequest('redo', d).payload).toEqual({ action: 'redo', id: 's1', version: 'V1' });
+    expect(actionRequest('reject', d).payload).toEqual({ action: 'reject', id: 's1', version: 'V1' });
+    const pub = actionRequest('publish_now', d);
+    expect(pub.payload).toEqual({ action: 'publish_now', id: 's1' });
+    expect(pub.lock).toBe(true);
+    expect(pub.confirm).toContain('Опубликовать ролик «Залог при аренде» сейчас?');
+  });
+
+  it('необратимое и тратящее Omni — с подтверждением, остальное — без', () => {
+    for (const kind of ['redo', 'reject', 'publish_now', 'retry_directing'] as const) expect(actionRequest(kind, d).confirm).toBeTruthy();
+    for (const kind of ['approve', 'note', 'retry', 'retry_writing', 'mark_published', 'start_now'] as const) {
+      expect(actionRequest(kind, d).confirm).toBeNull();
+    }
+  });
+
+  it('повтор — этап и необязательное замечание; ссылка на пост — без пробелов', () => {
+    expect(actionRequest('retry', d, { note: '  ' }).payload).toEqual({ action: 'retry', id: 's1' });
+    expect(actionRequest('retry_directing', d, { note: 'другой вопрос' }).payload)
+      .toEqual({ action: 'retry', id: 's1', from: 'directing', note: 'другой вопрос' });
+    expect(actionRequest('retry_writing', d).payload).toEqual({ action: 'retry', id: 's1', from: 'writing' });
+    expect(actionRequest('mark_published', d, { url: ' https://t.me/ainomira/90 ' }).payload)
+      .toEqual({ action: 'mark_published', id: 's1', url: 'https://t.me/ainomira/90' });
+    expect(actionRequest('start_now', d).payload).toEqual({ action: 'start_now', id: 's1' });
+  });
+
+  it('итог словами; одобрение — когда выйдет', () => {
+    expect(successText('approve', d, { slotAt: '2030-01-02T15:00:00.000Z' }, NOW)).toBe('Одобрено. Выйдет завтра в 18:00 МСК.');
+    expect(successText('approve', d, null, NOW)).toBe('Одобрено.');
+    expect(successText('retry', item({ failedFrom: 'publishing' }), null, NOW)).toBe('Публикация повторится в ближайшие 5 минут.');
+    expect(successText('retry', item({ failedFrom: 'rendering' }), null, NOW)).toBe('Ролик снова в работе.');
+  });
+
+  it('ссылка на пост канала — как на бэке', () => {
+    expect(isTelegramPostUrl('https://t.me/ainomira/90')).toBe(true);
+    expect(isTelegramPostUrl('https://t.me/c/3046204962/90')).toBe(true);
+    expect(isTelegramPostUrl('https://t.me/ainomira')).toBe(false);
+    expect(isTelegramPostUrl('http://t.me/ainomira/90')).toBe(false);
+  });
+});
+
+describe('настройки', () => {
+  const s: ShortSettings = {
+    slotDays: [1, 2, 3, 4, 5, 6, 7], slotHourMsk: 18, prepareLeadHours: 24, minAnswerChars: 400,
+    tgChannelChatId: '-1003046204962', platforms: ['telegram', 'youtube'], narratorVoice: 'alena', format: 'skit',
+    maxOmniSeconds: 48, youtubeMode: 'unlisted',
+  };
+
+  it('черновик туда и обратно — те же значения, без режима YouTube', () => {
+    expect(draftErrors(toDraft(s))).toEqual({});
+    expect(draftToPatch(toDraft(s))).toEqual({
+      slotDays: [1, 2, 3, 4, 5, 6, 7], slotHourMsk: 18, prepareLeadHours: 24, minAnswerChars: 400,
+      tgChannelChatId: '-1003046204962', platforms: ['telegram', 'youtube'], narratorVoice: 'alena', format: 'skit',
+      maxOmniSeconds: 48,
+    });
+  });
+
+  it('пределы — как у бэка; пустой канал — null; площадки — в порядке Telegram, YouTube', () => {
+    const bad = {
+      ...toDraft(s), slotDays: [], slotHourMsk: '24', platforms: [], maxOmniSeconds: '7', narratorVoice: ' ',
+      minAnswerChars: '99', prepareLeadHours: '0', tgChannelChatId: '@ainomira',
+    };
+    expect(Object.keys(draftErrors(bad)).sort()).toEqual([
+      'maxOmniSeconds', 'minAnswerChars', 'narratorVoice', 'platforms', 'prepareLeadHours', 'slotDays', 'slotHourMsk', 'tgChannelChatId',
+    ]);
+    expect(draftErrors({ ...toDraft(s), slotHourMsk: '' }).slotHourMsk).toBeTruthy();
+    expect(draftToPatch({ ...toDraft(s), tgChannelChatId: '  ' }).tgChannelChatId).toBeNull();
+    expect(draftToPatch({ ...toDraft(s), platforms: ['youtube', 'telegram'] }).platforms).toEqual(['telegram', 'youtube']);
   });
 });
