@@ -43,6 +43,7 @@ const EmailLoginPane = readFileSync(join(__dirname, 'onboarding', 'EmailLoginPan
 const OTPInput = readFileSync(join(__dirname, 'onboarding', 'OTPInput.tsx'), 'utf8');
 const TokenPurchasePage = readFileSync(join(__dirname, '..', 'pages', 'TokenPurchasePage.tsx'), 'utf8');
 const TokenPackages = readFileSync(join(__dirname, 'tokens', 'TokenPackages.tsx'), 'utf8');
+const ShortsOrderForm = readFileSync(join(__dirname, 'admin', 'ShortsOrderForm.tsx'), 'utf8');
 const IndexHtml = readFileSync(join(__dirname, '..', '..', 'index.html'), 'utf8');
 const ProductChatSrc = readFileSync(join(__dirname, 'products', 'ProductChat.tsx'), 'utf8');
 const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx'), 'utf8');
@@ -288,6 +289,10 @@ describe('поля ввода сообщений скрыты от записи 
 
   it('реферальная выплата — номер карты или телефона', () => {
     expect(classesOf(ReferralDashboard, 'referral-withdraw-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('админка роликов — история реального кейса в заказе', () => {
+    expect(classesOf(ShortsOrderForm, 'shorts-order-story', 'textarea')).toContain('ym-disable-keys');
   });
 });
 
