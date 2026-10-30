@@ -62,6 +62,30 @@ const formatPhone = (raw: string) => {
   }
   return raw;
 };
+/**
+ * Нормализует то, что ввели в поиск, до id телефонного аккаунта (11 цифр без
+ * `+`, в этом формате хранится `UserRow.phone`, например `79030169187`) — или
+ * null, если это не похоже на полный номер.
+ *
+ * Нужна отдельно от фильтра списка: бэкенд (`/webhook/admin/users/tokens`)
+ * нарочно исключает тестовые аккаунты из статистики, в их числе и
+ * 79030169187 владельца, — кликом по строке такую карточку не открыть, хотя
+ * сам эндпоинт карточки (`UserActivityDrawer`) тестовые не фильтрует.
+ *
+ * 11 цифр, которые начинаются не с 7 и не с 8, — не похожи ни на один из
+ * форматов российского номера, которые понимает formatPhone, поэтому тоже null.
+ */
+export function phoneIdFromSearch(raw: string): string | null {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (digits.length === 11) {
+    if (digits.startsWith('8')) return `7${digits.slice(1)}`;
+    if (digits.startsWith('7')) return digits;
+    return null;
+  }
+  if (digits.length === 10) return `7${digits}`;
+  return null;
+}
+
 const formatTokens = (n: number) => n.toLocaleString('ru-RU');
 const formatRub = (n: number) => `${n.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`;
 const niceCeil = (v: number) => {
@@ -161,6 +185,10 @@ const AdminUsersView: React.FC = () => {
     balance: cmp.num<UserRow>(u => u.balance),
     paid_count: cmp.num<UserRow>(u => u.paid_count),
   });
+
+  // Поиск похож на полный номер, но в списке (без тестовых аккаунтов) для
+  // него нет строки — даём открыть ту же карточку напрямую по id.
+  const openByPhoneId = sortedUsers.length === 0 ? phoneIdFromSearch(search) : null;
 
   return (
     <div className="h-full overflow-y-auto">
@@ -350,16 +378,30 @@ const AdminUsersView: React.FC = () => {
         )}
 
         {/* Search + sort */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск по телефону..."
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-forest-400 focus:ring-1 focus:ring-forest-200 outline-none"
-            />
+        <div className="flex flex-col sm:flex-row sm:items-start gap-3 flex-wrap">
+          <div className="flex-1 min-w-[200px] max-w-md space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Поиск по телефону..."
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-forest-400 focus:ring-1 focus:ring-forest-200 outline-none"
+              />
+            </div>
+            {openByPhoneId && (
+              // Бэкенд не отдаёт тестовые аккаунты в списке — без этой кнопки
+              // карточку владельца (79030169187) не открыть кликом по строке.
+              <button
+                type="button"
+                data-testid="admin-users-open-by-phone"
+                onClick={() => setSelectedPhone(openByPhoneId)}
+                className="w-fit flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-forest-300 bg-forest-50 text-forest-700 hover:bg-forest-100 transition-colors"
+              >
+                Открыть карточку {formatPhone(openByPhoneId)}
+              </button>
+            )}
           </div>
           <span className="text-xs text-gray-400 sm:ml-auto">
             {sortedUsers.length} из {users?.users.length ?? 0}

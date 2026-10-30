@@ -44,6 +44,10 @@ const OTPInput = readFileSync(join(__dirname, 'onboarding', 'OTPInput.tsx'), 'ut
 const TokenPurchasePage = readFileSync(join(__dirname, '..', 'pages', 'TokenPurchasePage.tsx'), 'utf8');
 const TokenPackages = readFileSync(join(__dirname, 'tokens', 'TokenPackages.tsx'), 'utf8');
 const IndexHtml = readFileSync(join(__dirname, '..', '..', 'index.html'), 'utf8');
+const ProductChatSrc = readFileSync(join(__dirname, 'products', 'ProductChat.tsx'), 'utf8');
+const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx'), 'utf8');
+const AdminProductCardSrc = readFileSync(join(__dirname, 'admin', 'AdminProductCard.tsx'), 'utf8');
+const CustomMarkdownSrc = readFileSync(join(__dirname, '..', 'utils', 'customMarkdown.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -81,8 +85,11 @@ function classesOf(src: string, testid: string, tagName: string): string[] {
   expect(tagStart).toBeGreaterThan(-1);
   const tagEnd = closingBracket(src, at);
   expect(tagEnd).toBeGreaterThan(-1);
-  const tag = src.slice(tagStart, tagEnd);
+  return tagClasses(src.slice(tagStart, tagEnd));
+}
 
+/** Классы из className одного открывающего тега — литералом или строками внутри className={…}. */
+function tagClasses(tag: string): string[] {
   const plain = tag.match(/className="([^"]*)"/);
   if (plain) return plain[1].split(/\s+/).filter(Boolean);
 
@@ -292,5 +299,49 @@ describe('карточка действия продукта скрыта от �
     expect(classesOf(ProductActionCardSrc, 'product-action-token', 'input')).toContain('ym-disable-keys');
     expect(classesOf(ProductActionCardSrc, 'product-action-secret-value', 'input')).toContain('ym-disable-keys');
     expect(classesOf(ProductActionCardSrc, 'product-action-key-replace', 'input')).toContain('ym-disable-keys');
+  });
+});
+
+// Задача бэклога 642c5198: в поле правки продукта вставляют ключи, хотя не
+// должны, — Вебвизор не должен записать их раньше, чем сервер скроет; в
+// истории правок старые тексты бывают с ключами открытым текстом.
+describe('правки продукта скрыты от Вебвизора', () => {
+  it('поле правки — ym-disable-keys', () => {
+    expect(classesOf(ProductChatSrc, 'product-chat-input', 'input')).toContain('ym-disable-keys');
+  });
+
+  it('история правок — ym-hide-content', () => {
+    expect(classesOf(TurnHistorySrc, 'product-turn-history', 'div')).toContain('ym-hide-content');
+  });
+
+  it('правки продукта в админке — ym-hide-content', () => {
+    expect(classesOf(AdminProductCardSrc, 'admin-product-turns', 'ul')).toContain('ym-hide-content');
+  });
+});
+
+// Отчёт «Внешние переходы» (trackLinks:true в index.html) Метрика пишет
+// полным адресом ссылки — мимо ym-hide-content: запись Вебвизора переписку
+// не видит, а этот отчёт увидел бы. Адреса из переписки личные (встреча с
+// паролем, сгенерированный файл). ym-disable-tracklink по справке Метрики —
+// «Установка признака того, что ссылка не является внешней»
+// (yandex.ru/support/metrica/ru/code/html-markup). Сторож — на КАЖДУЮ ссылку,
+// которую рисует чат: markdown-ссылки и автоссылки (ChatInterface), {{link}}
+// и картинки по голой ссылке (customMarkdown). Ссылки поддержки проверяет
+// SupportView.links.test.tsx по экрану.
+describe('ссылки переписки мимо «Внешних переходов» Метрики (ym-disable-tracklink)', () => {
+  /** Классы каждого открывающего <a …> исходника. */
+  const anchors = (src: string): string[][] =>
+    [...src.matchAll(/<a\b/g)].map((m) => {
+      const start = m.index ?? 0;
+      return tagClasses(src.slice(start, closingBracket(src, start + 2)));
+    });
+
+  it.each([
+    ['ChatInterface.tsx', ChatInterface],
+    ['customMarkdown.tsx', CustomMarkdownSrc],
+  ])('каждая ссылка в %s — с ym-disable-tracklink', (_name, src) => {
+    const found = anchors(src);
+    expect(found.length).toBeGreaterThan(0);
+    for (const classes of found) expect(classes).toContain('ym-disable-tracklink');
   });
 });

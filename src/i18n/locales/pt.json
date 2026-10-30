@@ -906,6 +906,16 @@
         "pending": "Pendente",
         "failed": "Erro",
         "canceled": "Cancelado"
+      },
+      "llmProvider": {
+        "title": "Modelo de respostas",
+        "claude": "Claude (predefinido)",
+        "qwen": "Qwen",
+        "noKey": "A chave do Qwen não está configurada no servidor — as respostas irão pelo Claude.",
+        "hint": "Assistentes web, a Masha e os bots de Telegram desta pessoa. Sondas de monitorização e tarefas em segundo plano usam sempre o Claude.",
+        "error": "Não foi possível carregar ou guardar a escolha",
+        "loading": "A carregar…",
+        "notFound": "Utilizador não encontrado"
       }
     },
     "reports": {
@@ -2242,7 +2252,12 @@
       "send": "Enviar",
       "busy": "O agente ainda está a trabalhar no seu pedido anterior",
       "sleeping": "O produto está a dormir: os tokens não chegaram para a renda. Carregue o saldo e ele acorda sozinho.",
-      "failed": "Não foi possível enviar a alteração"
+      "failed": "Não foi possível enviar a alteração",
+      "secretsMasked": {
+        "title": "Chaves retiradas da alteração",
+        "body": "O texto continha valores que parecem chaves. Não chegaram ao produto nem ao histórico de alterações: foram substituídos por «{{mask}}». Adicione a chave com o mesmo nome através do cartão seguro — peça a qualquer assistente no chat do Linkeon que altere as chaves do produto. Se foi ocultado algo mais (um link, um número), transmita-o também pelo cartão, com um nome claro. A deteção não é completa, por isso é melhor não colar chaves no texto da alteração.",
+        "names": "Valores ocultados: {{names}}"
+      }
     },
     "history": {
       "title": "Histórico de alterações",

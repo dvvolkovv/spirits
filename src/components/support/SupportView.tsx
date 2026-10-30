@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Send, Loader2, Headphones, Bot, UserCircle2, AlertTriangle, Plus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useSupport, SupportMessage, SupportTicket } from './useSupport';
 import { toIntlLocale } from '../../utils/formatters';
+import { linkifyText } from '../../utils/linkify';
+import { cabinetPath } from '../../utils/cabinetSections';
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
@@ -40,6 +42,47 @@ function SenderBadge({ type, t }: { type: SupportMessage['senderType']; t: (k: s
   return null;
 }
 
+/**
+ * ym-disable-tracklink: Метрика (trackLinks в index.html) пишет внешние
+ * переходы полным адресом, а адреса в переписке с поддержкой личные — в
+ * пузыре самого человека бывает ссылка на встречу с паролем. Класс снимает с
+ * ссылки признак внешней: «Установка признака того, что ссылка не является
+ * внешней» (yandex.ru/support/metrica/ru/code/html-markup).
+ */
+const MESSAGE_LINK_CLASS = 'ym-disable-tracklink underline break-all';
+
+/**
+ * Текст сообщения: адреса — ссылками (utils/linkify.ts). Ответы поддержки
+ * приходят простым текстом, и адрес раздела из ответа не нажимался — его
+ * переписывали руками. Свой кабинет (cabinetPath) — <Link> на путь внутри
+ * него: обычный клик — переход роутера в той же вкладке, как в чате с
+ * ассистентом, а ctrl/cmd и средняя кнопка открывают новую вкладку ЭТОГО ЖЕ
+ * кабинета — стенд не уводит на боевой адрес, который дают ассистенты.
+ * Чужой сайт — в новой вкладке без доступа к нашей (noopener noreferrer).
+ */
+function MessageText({ text }: { text: string }) {
+  return (
+    <>
+      {linkifyText(text).map((part, i) => {
+        if (part.kind === 'text') return <React.Fragment key={i}>{part.text}</React.Fragment>;
+        const inside = cabinetPath(part.href);
+        if (inside) {
+          return (
+            <Link key={i} to={inside} className={MESSAGE_LINK_CLASS}>
+              {part.text}
+            </Link>
+          );
+        }
+        return (
+          <a key={i} href={part.href} target="_blank" rel="noopener noreferrer" className={MESSAGE_LINK_CLASS}>
+            {part.text}
+          </a>
+        );
+      })}
+    </>
+  );
+}
+
 function MessageBubble({ m, t }: { m: SupportMessage; t: (k: string) => string }) {
   const isMine = m.senderType === 'user';
   const bubbleStyle = isMine
@@ -53,7 +96,7 @@ function MessageBubble({ m, t }: { m: SupportMessage; t: (k: string) => string }
     <div className={clsx('flex flex-col', isMine ? 'items-end' : 'items-start')}>
       {!isMine && <div className="mb-1 px-1"><SenderBadge type={m.senderType} t={t} /></div>}
       <div className={clsx('max-w-[85%] md:max-w-[75%] px-3 py-2 rounded-2xl shadow-sm', bubbleStyle)}>
-        <p className="text-sm whitespace-pre-wrap break-words">{m.content}</p>
+        <p className="text-sm whitespace-pre-wrap break-words"><MessageText text={m.content} /></p>
         <div className={clsx('text-[10px] mt-0.5 text-right', isMine ? 'text-white/70' : 'text-gray-400')}>
           {formatTime(m.createdAt)}
         </div>

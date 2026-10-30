@@ -6,6 +6,7 @@ import {
   rememberPendingDestination,
   takePendingDestination,
 } from './pendingDestination';
+import { SECTION_LINKS } from './cabinetSections';
 
 const NOW = 1_700_000_000_000;
 const HOUR = 60 * 60 * 1000;
@@ -27,13 +28,18 @@ describe('раздел, куда человек шёл до входа', () => {
   // Белый список: иначе адрес из ссылки превратил бы кабинет в открытый редирект.
   it('адреса не из списка не запоминаются', () => {
     const others: [string, string][] = [
-      ['/studio', '?tab=bots'],
       ['/studio', ''],
       ['/admin', '?tab=products'],
       ['//evil.example/studio', '?tab=products'],
       ['/chat', ''],
       ['/studio', '?tab=productsx'],
       ['/studio', '?tab=bots&tab=products'],
+      ['/studio', '?tab=agents'],
+      ['/profile', ''],
+      ['/profile', '?open=integrations'],
+      ['/profile', '?open=zoom&open=talerid'],
+      ['/search', ''],
+      ['/settings', '?open=zoom'],
     ];
     for (const [path, search] of others) {
       expect(rememberPendingDestination(path, search, NOW), `${path}${search}`).toBe(false);
@@ -94,5 +100,24 @@ describe('раздел, куда человек шёл до входа', () => {
     const id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
     expect(allowedDestination('/studio', `?tab=products&action=${id}`)).toBe(`/studio?tab=products&action=${id}`);
     expect(allowedDestination('/studio', '?tab=products&action=<script>')).toBe('/studio?tab=products');
+  });
+
+  it('вкладка Telegram-ботов тоже переживает вход', () => {
+    expect(rememberPendingDestination('/studio', '?tab=bots&utm_source=kb', NOW)).toBe(true);
+    expect(takePendingDestination(NOW)).toBe('/studio?tab=bots');
+  });
+
+  it('ссылка ассистента на карточку профиля переживает вход, лишнее отбрасывается', () => {
+    expect(rememberPendingDestination('/profile', '?open=zoom&zoom_connect=ok', NOW)).toBe(true);
+    expect(takePendingDestination(NOW)).toBe('/profile?open=zoom');
+    expect(allowedDestination('/profile', '?settings=1')).toBe('/profile?settings=1');
+  });
+
+  // Тот же перечень, что дают ассистенты (cabinetSections.ts, общая таблица с бэком).
+  it('каждый адрес раздела с параметром запоминается как есть, голый — нет', () => {
+    for (const link of SECTION_LINKS) {
+      const [path, query = ''] = link.split('?');
+      expect(allowedDestination(path, query ? `?${query}` : ''), link).toBe(query ? link : null);
+    }
   });
 });

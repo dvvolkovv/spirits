@@ -7,6 +7,7 @@
 // одно действие: подключить свой Zoom один раз.
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Video, Check, Loader2, AlertCircle } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { safeExternalUrl } from '../../utils/safeUrl';
@@ -15,6 +16,8 @@ type Conn = 'loading' | 'not_connected' | 'connected';
 
 const ZoomConnectCard: React.FC = () => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [state, setState] = useState<Conn>('loading');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -32,15 +35,22 @@ const ZoomConnectCard: React.FC = () => {
 
   useEffect(() => {
     // Возврат от Zoom приходит на бэкенд, а тот переводит браузер сюда с
-    // пометкой об исходе. Пометку из адреса убираем: перезагрузив страницу,
-    // человек не должен увидеть вчерашнее сообщение снова.
-    const params = new URLSearchParams(window.location.search);
+    // пометкой об исходе (/profile?open=zoom&zoom_connect=…). Пометку из
+    // адреса убираем: перезагрузив страницу, человек не должен увидеть
+    // вчерашнее сообщение снова. Переходом роутера с заменой, а не
+    // history.replaceState: тот затирал состояние истории роутера, а сам
+    // роутер продолжал видеть адрес с пометкой. Остальные параметры — в
+    // том числе карточка, к которой прокручивает профиль, — на месте.
+    const params = new URLSearchParams(location.search);
     const outcome = params.get('zoom_connect');
     if (outcome) {
       if (outcome !== 'ok') setMsg(t(`settings.zoom.${outcome}`));
       params.delete('zoom_connect');
       const qs = params.toString();
-      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+      navigate(
+        { pathname: location.pathname, search: qs ? `?${qs}` : '', hash: location.hash },
+        { replace: true, state: location.state },
+      );
     }
     void loadStatus();
   }, []);

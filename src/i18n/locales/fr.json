@@ -1889,7 +1889,12 @@
       "send": "Envoyer",
       "busy": "L'agent travaille encore sur votre demande précédente",
       "sleeping": "Le produit est en veille : les tokens n'ont pas suffi pour la location. Rechargez votre solde et il se réveillera tout seul.",
-      "failed": "Impossible d'envoyer la modification"
+      "failed": "Impossible d'envoyer la modification",
+      "secretsMasked": {
+        "title": "Clés retirées de la modification",
+        "body": "Le texte contenait des valeurs qui ressemblent à des clés. Elles n'ont atteint ni le produit ni l'historique des modifications : elles ont été remplacées par « {{mask}} ». Ajoutez la clé sous le même nom via la carte sécurisée : demandez à n'importe quel assistant dans le chat Linkeon de changer les clés du produit. Si autre chose a été masqué (un lien, un numéro), transmettez-le aussi par la carte, sous un nom clair. La détection n'est pas complète : mieux vaut ne pas coller de clés dans le texte de la modification.",
+        "names": "Valeurs masquées : {{names}}"
+      }
     },
     "history": {
       "title": "Historique des modifications",

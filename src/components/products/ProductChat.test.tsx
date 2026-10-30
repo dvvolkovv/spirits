@@ -218,6 +218,72 @@ describe('ProductChat — поток не сломан', () => {
   });
 });
 
+/**
+ * Задача бэклога 642c5198: сервер скрывает в тексте правки значения, похожие
+ * на ключи, и говорит об этом первым событием хода. Без плашки владелец ждал
+ * бы, что ключ доехал до продукта.
+ */
+describe('ProductChat — ключи из текста правки скрыты', () => {
+  const NOTICE = '{"type":"notice","code":"secrets_masked","count":2,"names":["WEATHER_API_KEY","BOT_TOKEN"],"mask":"[ключ скрыт]"}\n';
+
+  it('плашка с объяснением и именами, ответ агента при этом доезжает', async () => {
+    api.chatStream.mockResolvedValue({
+      ok: true,
+      reader: reader([NOTICE, '{"type":"item","content":"Подключил погоду"}\n{"type":"end"}']),
+    });
+    const { container } = mount(<ProductChat product={product()} onTurnFinished={() => {}} />);
+
+    await send(container);
+
+    const text = visibleText(container);
+    expect(text).toContain(tRu('products.chat.secretsMasked.title'));
+    // Знак маски — из события, тот же, что в истории правок.
+    expect(text).toContain(tRu('products.chat.secretsMasked.body', { mask: '[ключ скрыт]' }));
+    expect(text).toContain(tRu('products.chat.secretsMasked.names', { names: 'WEATHER_API_KEY, BOT_TOKEN' }));
+    expect(text).toContain('Подключил погоду');
+    // Это объяснение, а не отказ: красного блока нет.
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('без имён — плашка без строки имён', async () => {
+    api.chatStream.mockResolvedValue({
+      ok: true,
+      reader: reader(['{"type":"notice","code":"secrets_masked","count":1,"names":[]}\n{"type":"end"}']),
+    });
+    const { container } = mount(<ProductChat product={product()} onTurnFinished={() => {}} />);
+
+    await send(container);
+
+    expect(visibleText(container)).toContain(tRu('products.chat.secretsMasked.title'));
+    expect(visibleText(container)).not.toContain(tRu('products.chat.secretsMasked.names', { names: '' }).trim());
+  });
+
+  it('обычный ход — плашки нет; следующая отправка гасит прежнюю', async () => {
+    api.chatStream
+      .mockResolvedValueOnce({ ok: true, reader: reader([NOTICE, '{"type":"end"}']) })
+      .mockResolvedValueOnce({ ok: true, reader: reader(['{"type":"item","content":"Готово"}\n{"type":"end"}']) });
+    const { container } = mount(<ProductChat product={product()} onTurnFinished={() => {}} />);
+
+    await send(container);
+    expect(visibleText(container)).toContain(tRu('products.chat.secretsMasked.title'));
+
+    await send(container, 'поправь футер');
+    expect(visibleText(container)).not.toContain(tRu('products.chat.secretsMasked.title'));
+  });
+
+  it('неизвестное уведомление — ничего не показывает', async () => {
+    api.chatStream.mockResolvedValue({
+      ok: true,
+      reader: reader(['{"type":"notice","code":"something_else"}\n{"type":"end"}']),
+    });
+    const { container } = mount(<ProductChat product={product()} onTurnFinished={() => {}} />);
+
+    await send(container);
+
+    expect(visibleText(container)).not.toContain(tRu('products.chat.secretsMasked.title'));
+  });
+});
+
 describe('ProductChat — спящий продукт', () => {
   it('объясняет сон и зовёт пополнить ДО отправки', async () => {
     auth.tokens = 0;

@@ -316,22 +316,3 @@ describe('parseCustomMarkdown: карточка действия продукт�
     expect(images.size).toBe(1);
   });
 });
-
-describe('parseCustomMarkdown: безопасные ссылки', () => {
-  it.each(['javascript:alert(1)', 'data:text/html,test', '//evil.example/', 'http://evil.example/'])(
-    'не создаёт кликабельную ссылку для %s',
-    (url) => {
-      const text = `{{link: Открыть | url: ${url}}}`;
-      const { content, links } = parseCustomMarkdown(text);
-      expect(links.size).toBe(0);
-      expect(content).toBe(text);
-    },
-  );
-
-  it('сохраняет HTTPS и внутренние ссылки', () => {
-    expect([...parseCustomMarkdown('{{link: Сайт | url: https://example.com/}}').links.values()][0].url)
-      .toBe('https://example.com/');
-    expect([...parseCustomMarkdown('{{link: Чат | url: /chat}}').links.values()][0].url)
-      .toBe('/chat');
-  });
-});

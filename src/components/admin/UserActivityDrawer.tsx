@@ -11,6 +11,7 @@ import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable
 import type { TaskListItem, TaskDetails } from '../../types/tasks';
 import UserDevicesList from './devices/UserDevicesList';
 import { UserCallsList } from './UserCallsList';
+import { UserLlmProviderControl } from './UserLlmProviderControl';
 
 /**
  * Канал, в котором шёл диалог. Веб-чат и Telegram-бот — разные хранилища с
@@ -466,6 +467,9 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
               {/* Звонки — прочитать, как шёл разговор. phone здесь и есть
                   user_id: дровер получает его из списков админки как есть. */}
               <UserCallsList userId={phone} />
+
+              {/* Модель ответов ассистентов этому человеку — Claude или Qwen. */}
+              <UserLlmProviderControl userId={phone} />
 
               {/* Chart */}
               <div className="bg-white border border-gray-200 rounded-xl p-4">
