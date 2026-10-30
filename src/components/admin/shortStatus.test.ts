@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { NOW, item } from './shortFixtures';
 import {
-  GROUP_ORDER, ShortStatus, archiveOf, groupOf, isReleased, noteChars, orderChars, publicationLabel,
+  GROUP_ORDER, PublicationStatus, STATUS_TITLES, ShortPlatform, ShortPublication, ShortStatus,
+  archiveOf, groupOf, isReleased, noteChars, orderChars, publicationLabel,
   queueGroups, screenCounts, screenOf, shortTitle, statusLine,
 } from './shortStatus';
 
@@ -18,6 +19,7 @@ describe('экраны и группы', () => {
     for (const [status, screen, group] of table) {
       expect([status, screenOf(status), groupOf(status)]).toEqual([status, screen, group]);
     }
+    expect(table.map(([s]) => s).sort()).toEqual((Object.keys(STATUS_TITLES) as ShortStatus[]).sort());
   });
 
   it('очередь — группы по срочности, пустых нет; внутри по слоту, без слота — после, по созданию', () => {
@@ -25,8 +27,8 @@ describe('экраны и группы', () => {
       item({ id: 'idea', status: 'idea' }),
       item({ id: 'late', slotAt: '2030-01-04T15:00:00.000Z' }),
       item({ id: 'soon', slotAt: '2030-01-02T15:00:00.000Z' }),
-      item({ id: 'noslot-old', createdAt: '2029-12-30T10:00:00.000Z' }),
       item({ id: 'noslot-new', createdAt: '2029-12-31T10:00:00.000Z' }),
+      item({ id: 'noslot-old', createdAt: '2029-12-30T10:00:00.000Z' }),
       item({ id: 'pub', status: 'published' }),
     ]);
     expect(groups.map((g) => g.group)).toEqual(['review', 'ideas']);
@@ -60,12 +62,13 @@ describe('строка ролика', () => {
     expect(statusLine(item({ status: 'approved', slotAt: slot }), NOW)).toBe('выйдет завтра в 18:00 МСК');
     expect(statusLine(item({ status: 'failed', failedFrom: 'animating' }), NOW)).toBe('упал: оживление');
     expect(statusLine(item({ status: 'writing', slotAt: slot }), NOW)).toBe('сценарий · под слот завтра в 18:00 МСК');
-    expect(statusLine(item({ status: 'idea', source: 'manual' }), NOW)).toBe('идея · заказ');
+    expect(statusLine(item({ status: 'idea', source: 'manual' }), NOW)).toBe('заказ владельца');
     expect(statusLine(item({ status: 'rejected' }), NOW)).toBe('отклонён');
   });
 
   it('площадки словами; «уже вышел» — пост в канале или набор YouTube', () => {
-    const pub = (status: any, platform: any = 'telegram') => ({ platform, status, url: null, lastError: null });
+    const pub = (status: PublicationStatus, platform: ShortPlatform = 'telegram'): ShortPublication =>
+      ({ platform, status, url: null, lastError: null });
     expect(publicationLabel(pub('published'))).toBe('вышел');
     expect(publicationLabel(pub('manual_pending', 'youtube'))).toBe('набор отправлен');
     expect(publicationLabel(pub('manual_done', 'youtube'))).toBe('ссылка записана');
@@ -73,7 +76,7 @@ describe('строка ролика', () => {
     expect(publicationLabel(pub('failed'))).toBe('упал');
     expect(publicationLabel(pub('pending'))).toBe('ждёт');
     expect(isReleased(item())).toBe(false);
-    for (const status of ['published', 'manual_pending', 'manual_done']) {
+    for (const status of ['published', 'manual_pending', 'manual_done'] as const) {
       expect(isReleased(item({ publications: [pub(status, 'youtube')] }))).toBe(true);
     }
     expect(isReleased(item({ publications: [pub('failed')] }))).toBe(false);
@@ -83,5 +86,27 @@ describe('строка ролика', () => {
     expect(orderChars('  тема  ')).toBe(4);
     expect(orderChars('😀😀')).toBe(2);
     expect(noteChars(' коротко ')).toBe(7);
+  });
+
+  it('прошедший слот не выглядит будущим', () => {
+    const past = '2029-12-31T15:00:00.000Z';
+    expect(statusLine(item({ status: 'pending_review', slotAt: past }), NOW)).toMatch(/^слот .+ прошёл — одобрение займёт ближайший свободный$/);
+    expect(statusLine(item({ status: 'approved', slotAt: past }), NOW)).toBe('уходит на площадки в ближайшие минуты');
+    expect(statusLine(item({ status: 'writing', slotAt: past }), NOW)).toMatch(/^сценарий · слот .+ прошёл$/);
+  });
+
+  it('остальные ветки строки', () => {
+    expect(statusLine(item({ status: 'publishing' }), NOW)).toBe('отправляется на площадки');
+    expect(statusLine(item({ status: 'pending_review', slotAt: null }), NOW)).toBe('ждёт решения');
+    expect(statusLine(item({ status: 'approved', slotAt: null }), NOW)).toBe('одобрен, слот не назначен');
+    expect(statusLine(item({ status: 'failed', failedFrom: null }), NOW)).toBe('упал');
+    expect(statusLine(item({ status: 'writing', slotAt: null }), NOW)).toBe('сценарий');
+    expect(statusLine(item({ status: 'idea', source: 'catalog' }), NOW)).toBe('из каталога');
+    expect(statusLine(item({ status: 'published', publishedAt: null }), NOW)).toBe('вышел');
+    expect(statusLine(item({ status: 'published', publishedAt: '2029-12-31T15:00:00.000Z' }), NOW)).toMatch(/^вышел .+МСК$/);
+    expect(statusLine(item({
+      status: 'failed', failedFrom: 'publishing',
+      publications: [{ platform: 'telegram', status: 'published', url: null, lastError: null }],
+    }), NOW)).toBe('вышел не на все площадки');
   });
 });

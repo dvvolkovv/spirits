@@ -1,5 +1,4 @@
 import { formatSlotAt } from './blogSlotFormat';
-import { realCaseChars } from './blogStatus';
 
 /**
  * Ролики — экран «Ролики» вкладки «Блог» (спека spirits_back
@@ -84,14 +83,14 @@ export interface ShortSettings {
   youtubeMode: YoutubeMode;
 }
 
-export const RUBRICS: ShortRubric[] = ['assistant', 'feature', 'news', 'case'];
+export const RUBRICS: readonly ShortRubric[] = ['assistant', 'feature', 'news', 'case'];
 export const RUBRIC_TITLES: Record<ShortRubric, string> = {
   assistant: 'Ассистент за работой',
   feature: 'Возможность Linkeon',
   news: 'Новинка',
   case: 'Реальный кейс',
 };
-export const ANGLES: ShortAngle[] = ['uncomfortable', 'roast', 'myth', 'calm'];
+export const ANGLES: readonly ShortAngle[] = ['uncomfortable', 'roast', 'myth', 'calm'];
 export const ANGLE_TITLES: Record<ShortAngle, string> = {
   uncomfortable: 'Неудобный вопрос',
   roast: 'Разнос',
@@ -99,7 +98,11 @@ export const ANGLE_TITLES: Record<ShortAngle, string> = {
   calm: 'Как это работает',
 };
 export const FORMAT_TITLES: Record<ShortFormat, string> = { skit: 'сценки', chat: 'только чат' };
-export const SOURCE_TITLES: Record<ShortSource, string> = { catalog: 'каталог', git: 'новость', manual: 'заказ' };
+export const SOURCE_TITLES: Record<ShortSource, string> = {
+  catalog: 'из каталога',
+  git: 'новость из git',
+  manual: 'заказ владельца',
+};
 export const PLATFORM_TITLES: Record<ShortPlatform, string> = { telegram: 'Telegram', youtube: 'YouTube', vk: 'VK' };
 export const YOUTUBE_MODE_TITLES: Record<YoutubeMode, string> = {
   manual: 'набор владельцу',
@@ -165,7 +168,7 @@ export const STAGE_TITLES: Partial<Record<ShortStatus, string>> = {
 export type ShortsScreen = 'queue' | 'published' | 'rejected';
 export type ShortGroup = 'review' | 'failed' | 'scheduled' | 'working' | 'ideas';
 
-export const GROUP_ORDER: ShortGroup[] = ['review', 'failed', 'scheduled', 'working', 'ideas'];
+export const GROUP_ORDER: readonly ShortGroup[] = ['review', 'failed', 'scheduled', 'working', 'ideas'];
 export const GROUP_TITLES: Record<ShortGroup, string> = {
   review: 'Ждут решения',
   failed: 'Упали',
@@ -230,27 +233,36 @@ export function shortTitle(i: Pick<ShortItem, 'title' | 'topicHint' | 'topicKey'
 
 /** Что сказать о ролике в свёрнутой строке. Даты — той же фразой, что у постов и в Telegram. */
 export function statusLine(i: ShortItem, now: Date): string {
+  const at = i.slotAt ? Date.parse(i.slotAt) : NaN;
   const slot = i.slotAt ? formatSlotAt(i.slotAt, now) : null;
+  // Слот до одобрения не сдвигается: прошедший — не «под слот», а повод одобрить в ближайший свободный.
+  const past = !Number.isNaN(at) && at <= now.getTime();
   switch (i.status) {
     case 'pending_review':
-      return slot ? `под слот ${slot}` : 'ждёт решения';
+      if (!slot) return 'ждёт решения';
+      return past ? `слот ${slot} прошёл — одобрение займёт ближайший свободный` : `под слот ${slot}`;
     case 'approved':
-      return slot ? `выйдет ${slot}` : 'одобрен, слот не назначен';
+      if (!slot) return 'одобрен, слот не назначен';
+      // «Опубликовать сейчас» и повтор публикации ставят слот «сейчас»: публикатор берёт ролик на ближайшем тике.
+      return past ? 'уходит на площадки в ближайшие минуты' : `выйдет ${slot}`;
     case 'publishing':
       return 'отправляется на площадки';
     case 'failed': {
+      // Упал YouTube после вышедшего поста — как в сообщении бота.
+      if (i.failedFrom === 'publishing' && isReleased(i)) return 'вышел не на все площадки';
       const stage = i.failedFrom ? STAGE_TITLES[i.failedFrom] ?? i.failedFrom : null;
       return stage ? `упал: ${stage}` : 'упал';
     }
     case 'idea':
-      return `идея · ${SOURCE_TITLES[i.source] ?? i.source}`;
+      return SOURCE_TITLES[i.source] ?? i.source;
     case 'published':
       return i.publishedAt ? `вышел ${formatSlotAt(i.publishedAt, now)}` : 'вышел';
     case 'rejected':
       return 'отклонён';
     default: {
       const stage = STAGE_TITLES[i.status] ?? i.status;
-      return slot ? `${stage} · под слот ${slot}` : stage;
+      if (!slot) return stage;
+      return past ? `${stage} · слот ${slot} прошёл` : `${stage} · под слот ${slot}`;
     }
   }
 }
@@ -284,9 +296,10 @@ export const MIN_ORDER_CHARS = 10;
 export const MAX_ORDER_CHARS = 4000;
 export const MAX_NOTE_CHARS = 2000;
 
-/** Длина заказа так, как её меряет бэк: символы без пробелов по краям (тот же подсчёт, что у истории кейса блога). */
+/** Длина заказа так, как её меряет бэк: символы без пробелов по краям. Сверх двух пределов в UTF-16 текст заведомо длиннее и в символах — без Array.from на каждое нажатие. */
 export function orderChars(text: string): number {
-  return realCaseChars(text);
+  const s = text.trim();
+  return s.length > 2 * MAX_ORDER_CHARS ? s.length : Array.from(s).length;
 }
 
 export function noteChars(text: string): number {
