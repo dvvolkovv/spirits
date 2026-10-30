@@ -12,11 +12,13 @@ import { useTranslation } from 'react-i18next';
 import { resolveLanguage } from '../../i18n/languages';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X, Phone, MoreHorizontal, Images } from 'lucide-react';
+import { Send, Paperclip, Mic, RotateCcw, Copy, Check, Trash2, MessageSquare, Plus, ChevronDown, Coins, Eraser, X, Phone, MoreHorizontal, Images, ListChecks } from 'lucide-react';
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { AssistantSelection } from './AssistantSelection';
+import ActionPlanPanel from './action-plan/ActionPlanPanel';
+import type { ActionPlan } from '../../services/actionPlansApi';
 import { FloatingCallButton } from './FloatingCallButton';
 import { customAgentsApi, CustomAgent } from '../../services/customAgentsApi';
 import { TokenPackages } from '../tokens/TokenPackages';
@@ -691,6 +693,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const chatActionsRef = useRef<HTMLDivElement>(null);
   // Панель «Медиа и файлы» (files/ChatFilesPanel.tsx).
   const [showFilesPanel, setShowFilesPanel] = useState(false);
+  const [showActionPlan, setShowActionPlan] = useState(false);
 
   // Актуальный ассистент для async-колбэков (loadMoreHistory): state в замыкании
   // устаревает, пока fetch в полёте, а ref всегда свежий.
@@ -800,10 +803,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     stopListening();
   }, [selectedAssistant?.id, stopListening]);
 
-  // Панель показывает переписку открытого ассистента — при смене ассистента закрываем.
+  // Панели показывают переписку открытого ассистента — при смене закрываем.
   useEffect(() => {
     setShowFilesPanel(false);
-  }, [selectedAssistant?.id]);
+    setShowActionPlan(false);
+  }, [selectedAssistant?.id, freshTs]);
 
   // Открытие панели и скачивание из неё — в статистику админки (spirits_back:
   // monitoring/product/chat-files-stats.ts). Шлём так же, как file_pick.
@@ -1831,6 +1835,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
+  const handleDiscussActionPlan = (plan: ActionPlan) => {
+    const steps = plan.items.map((item, index) => `${index + 1}. ${item.text}`).join('\n');
+    void submitText(t('chat.action_plan.discuss_prompt', {
+      title: plan.title,
+      summary: plan.summary,
+      steps,
+    }));
+  };
+
   // Досылка очереди: ход договорил — отправляем накопленное одним сообщением.
   // Один ход вместо N: обвязка Claude Code грузится в контекст на каждый ход
   // (~47k токенов) независимо от длины реплики.
@@ -2640,6 +2653,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         />
       )}
 
+      {showActionPlan && selectedAssistant && (
+        <ActionPlanPanel
+          key={`${selectedAssistant.id}|${freshTs ?? ''}`}
+          assistantId={selectedAssistant.id}
+          freshTs={freshTs}
+          onClose={() => setShowActionPlan(false)}
+          onDiscuss={handleDiscussActionPlan}
+        />
+      )}
+
       {showVoiceCall && selectedAssistant && (
         <React.Suspense fallback={null}>
         <VoiceCallModal
@@ -2850,6 +2873,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 {/* Десктоп: кнопки в ряд. «Медиа и файлы» — как раздел медиа в
                     Telegram; на мобиле тот же пункт первым в «⋯». */}
                 <button
+                  data-testid="chat-action-plan-toggle"
+                  onClick={() => setShowActionPlan(true)}
+                  disabled={turnBusy}
+                  className="hidden sm:block p-2 text-gray-500 hover:text-forest-700 hover:bg-forest-50 rounded-lg transition-colors disabled:opacity-50"
+                  title={t('chat.action_plan.open')}
+                  aria-label={t('chat.action_plan.open')}
+                >
+                  <ListChecks className="w-4 h-4" />
+                </button>
+                <button
                   data-testid="chat-files-toggle"
                   onClick={() => openFilesPanel('header')}
                   className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -2892,6 +2925,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       role="menu"
                       className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg z-50"
                     >
+                      <button
+                        role="menuitem"
+                        data-testid="chat-action-plan-menuitem"
+                        onClick={() => { setShowChatActions(false); setShowActionPlan(true); }}
+                        disabled={turnBusy}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ListChecks className="w-4 h-4" />
+                        {t('chat.action_plan.open')}
+                      </button>
                       <button
                         role="menuitem"
                         data-testid="chat-files-menuitem"
