@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearAppStorage } from '../../utils/clearAppStorage';
 import {
   forgetTrial, hasAccount, markHasAccount, previewRequested, readTrial, rememberPreviewFromUrl, saveTrial,
@@ -10,6 +10,10 @@ const TOKEN = 'A'.repeat(43);
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('проба в браузере', () => {
@@ -40,5 +44,21 @@ describe('проба в браузере', () => {
     rememberPreviewFromUrl('?assistant=12&trial=1');
     expect(previewRequested()).toBe(true);
     expect(localStorage.getItem('guest_trial_preview')).toBeNull();
+  });
+
+  it('хранилище бросает (приватный режим, запрет сайта)', () => {
+    const denied = () => { throw new DOMException('denied', 'SecurityError'); };
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(denied);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(denied);
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(denied);
+
+    expect(readTrial()).toBeNull();
+    expect(hasAccount()).toBe(false);
+    expect(previewRequested()).toBe(false);
+
+    expect(() => saveTrial({ token: TOKEN, assistantId: '12' })).not.toThrow();
+    expect(() => forgetTrial()).not.toThrow();
+    expect(() => markHasAccount()).not.toThrow();
+    expect(() => rememberPreviewFromUrl('?trial=1')).not.toThrow();
   });
 });
