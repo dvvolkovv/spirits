@@ -1433,6 +1433,65 @@ describe('экран «Ролики»', () => {
     expect(q('admin-shorts-stub')).toBeTruthy();
     expect(q('blog-post-p1')).toBeNull();
     expect(post.mock.calls.length).toBe(before);
-    expect(container.textContent).not.toContain('Обновить');
+    // Раньше проверялось textContent — тест зеленел просто потому, что в
+    // заглушке AdminShortsView нет слова «Обновить», а не потому, что кнопка
+    // блога и форма добавления темы на самом деле скрыты.
+    expect(q('blog-refresh')).toBeNull();
+    expect(q('blog-new-topic')).toBeNull();
+  });
+
+  /**
+   * Плашки и загрузка блога — общие на весь компонент, а не привязаны к
+   * экрану: без сброса ошибка, оставшаяся от «Очереди», висела бы над
+   * заглушкой AdminShortsView с мёртвой «Загрузить заново» (она вызывает
+   * load(true), а load() при screen === 'shorts' сразу выходит).
+   */
+  it('ошибка блога не переезжает на «Ролики»', async () => {
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'list') return res(500, { message: 'база недоступна' });
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+    expect(q('blog-error')).toBeTruthy();
+
+    await click('blog-screen-shorts');
+    expect(q('blog-error')).toBeNull();
+  });
+
+  /**
+   * `error` сбрасывается эффектом только В МОМЕНТ переключения экрана. Запрос
+   * блога, ушедший ещё при «Очереди» и ответивший уже после переключения,
+   * мог бы молча поставить баннер и «Загрузку…» поверх «Роликов» — рендер
+   * плашек и крутилки должен сам зависеть от текущего экрана, а не только
+   * сброс при переключении.
+   */
+  it('запрос блога, не успевший завершиться к переключению, не красит «Ролики»', async () => {
+    let resolveList!: (v: any) => void;
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'list') return new Promise((r) => { resolveList = r; });
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount(); // list ушёл и висит
+    await click('blog-screen-shorts'); // переключились, не дождавшись ответа
+
+    await act(async () => { resolveList(res(500, { message: 'база недоступна' })); });
+    await act(async () => {});
+
+    expect(q('blog-error')).toBeNull();
+    expect(container.textContent).not.toContain('Загрузка…');
+  });
+
+  it('обратное переключение «Ролики» → «Очередь»: заглушка уходит, посты на месте, запросы — list, list', async () => {
+    post.mockImplementation(async (_url: string, payload: any) => {
+      if (payload.action === 'list') return res(200, [basePost]);
+      throw new Error(`неожиданное действие ${payload.action}`);
+    });
+    await mount();
+    await click('blog-screen-shorts');
+    await click('blog-screen-queue');
+
+    expect(q('admin-shorts-stub')).toBeNull();
+    expect(q('blog-post-p1')).toBeTruthy();
+    expect(sentActions().map((a) => a.action)).toEqual(['list', 'list']);
   });
 });

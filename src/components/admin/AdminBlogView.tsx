@@ -311,6 +311,10 @@ const AdminBlogView: React.FC = () => {
   };
 
   useEffect(() => {
+    // Сбрасываем и error: load() при screen === 'shorts' выходит ДО своего
+    // setError(null), так что без этого сбоя баннер с «Очереди» висел бы
+    // над «Роликами» с мёртвой «Загрузить заново».
+    setError(null);
     setNotice(null);
     setPublishResult(null);
     setPicker(null);
@@ -619,6 +623,7 @@ const AdminBlogView: React.FC = () => {
         ))}
         {screen !== 'shorts' && (
           <button
+            data-testid="blog-refresh"
             onClick={() => load()}
             disabled={busy}
             title="Обновить"
@@ -630,109 +635,126 @@ const AdminBlogView: React.FC = () => {
         )}
       </div>
 
-      {error && (
-        <div
-          data-testid="blog-error"
-          className={clsx(
-            'mb-3 px-3 py-2 rounded-md border text-sm',
-            error.conflict
-              ? 'bg-amber-50 border-amber-300 text-amber-900'
-              : 'bg-rose-50 border-rose-200 text-rose-700',
-          )}
-        >
-          {error.conflict ? (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              <span className="font-medium">Пост изменили в другом месте</span>
-              <span>
-                — {error.text}. {error.consequence ?? 'Ничего не перезаписано'}; на экране устаревшая версия.
-              </span>
-              <button
-                data-testid="blog-conflict-reload"
-                onClick={() => load(true)}
-                className="px-2 py-0.5 text-xs font-medium rounded border border-amber-400 bg-white hover:bg-amber-100"
-              >
-                Загрузить заново
-              </button>
+      {/*
+        Плашки и крутилка блога — не для «Роликов»: у них свой экран со
+        своими баннерами, и показывать здесь банку блога (да ещё с
+        «Загрузить заново», которая на этом экране ничего не делает) —
+        путать. Итог публикации, пришедший во время «Роликов», тоже прячется
+        и теряется при возврате — как и раньше при любой смене экрана.
+      */}
+      {screen !== 'shorts' && (
+        <>
+          {error && (
+            <div
+              data-testid="blog-error"
+              className={clsx(
+                'mb-3 px-3 py-2 rounded-md border text-sm',
+                error.conflict
+                  ? 'bg-amber-50 border-amber-300 text-amber-900'
+                  : 'bg-rose-50 border-rose-200 text-rose-700',
+              )}
+            >
+              {error.conflict ? (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span className="font-medium">Пост изменили в другом месте</span>
+                  <span>
+                    — {error.text}. {error.consequence ?? 'Ничего не перезаписано'}; на экране устаревшая версия.
+                  </span>
+                  <button
+                    data-testid="blog-conflict-reload"
+                    onClick={() => load(true)}
+                    className="px-2 py-0.5 text-xs font-medium rounded border border-amber-400 bg-white hover:bg-amber-100"
+                  >
+                    Загрузить заново
+                  </button>
+                </div>
+              ) : (
+                error.text
+              )}
             </div>
-          ) : (
-            error.text
           )}
-        </div>
-      )}
 
-      {notice && (
-        <div data-testid="blog-notice" className="mb-3 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm text-gray-600">
-          {notice}
-        </div>
-      )}
-
-      {publishResult && (
-        <div
-          data-testid="blog-publish-result"
-          data-outcome={publishResult.kind}
-          className={clsx(
-            'mb-3 px-3 py-2 rounded-md border text-sm',
-            publishResult.kind === 'published'
-              ? 'bg-green-50 border-green-200 text-green-900'
-              : 'bg-amber-50 border-amber-300 text-amber-900',
+          {notice && (
+            <div data-testid="blog-notice" className="mb-3 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm text-gray-600">
+              {notice}
+            </div>
           )}
-        >
-          <div className="flex items-start gap-1.5">
-            {publishResult.kind === 'published' ? (
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            )}
-            <div className="min-w-0 break-words">
-              {publishResult.kind === 'published' && (
-                <>
-                  {publishResult.name ? `Пост «${publishResult.name}» вышел в канал.` : 'Пост вышел в канал.'}
-                  {publishResult.tgUrl && (
+
+          {publishResult && (
+            <div
+              data-testid="blog-publish-result"
+              data-outcome={publishResult.kind}
+              className={clsx(
+                'mb-3 px-3 py-2 rounded-md border text-sm',
+                publishResult.kind === 'published'
+                  ? 'bg-green-50 border-green-200 text-green-900'
+                  : 'bg-amber-50 border-amber-300 text-amber-900',
+              )}
+            >
+              <div className="flex items-start gap-1.5">
+                {publishResult.kind === 'published' ? (
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                )}
+                <div className="min-w-0 break-words">
+                  {publishResult.kind === 'published' && (
                     <>
-                      {' '}
-                      <a
-                        href={publishResult.tgUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium underline"
-                      >
-                        Открыть пост в канале
-                      </a>
+                      {publishResult.name ? `Пост «${publishResult.name}» вышел в канал.` : 'Пост вышел в канал.'}
+                      {publishResult.tgUrl && (
+                        <>
+                          {' '}
+                          <a
+                            href={publishResult.tgUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium underline"
+                          >
+                            Открыть пост в канале
+                          </a>
+                        </>
+                      )}
                     </>
                   )}
-                </>
+                  {publishResult.kind === 'refused' &&
+                    `Telegram не принял пост: ${publishResult.reason}. Повторим автоматически в ближайшие 5 минут.`}
+                  {publishResult.kind === 'unconfirmed' &&
+                    (publishResult.status
+                      ? `Выход поста не подтверждён: сервер вернул статус «${statusLabel(publishResult.status as BlogStatus)}». Проверьте очередь через несколько минут.`
+                      : 'Выход поста не подтверждён. Проверьте очередь через несколько минут.')}
+                </div>
+              </div>
+              {publishResult.shifts.length > 0 && (
+                <div data-testid="blog-publish-shifts" className="mt-2 pl-5">
+                  <div className="text-xs opacity-80">Следующие посты сдвинулись на слот вперёд:</div>
+                  <ul className="mt-0.5 space-y-0.5 text-xs">
+                    {publishResult.shifts.map((s) => (
+                      <li key={s.id} data-testid="blog-publish-shift">
+                        {s.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
-              {publishResult.kind === 'refused' &&
-                `Telegram не принял пост: ${publishResult.reason}. Повторим автоматически в ближайшие 5 минут.`}
-              {publishResult.kind === 'unconfirmed' &&
-                (publishResult.status
-                  ? `Выход поста не подтверждён: сервер вернул статус «${statusLabel(publishResult.status as BlogStatus)}». Проверьте очередь через несколько минут.`
-                  : 'Выход поста не подтверждён. Проверьте очередь через несколько минут.')}
-            </div>
-          </div>
-          {publishResult.shifts.length > 0 && (
-            <div data-testid="blog-publish-shifts" className="mt-2 pl-5">
-              <div className="text-xs opacity-80">Следующие посты сдвинулись на слот вперёд:</div>
-              <ul className="mt-0.5 space-y-0.5 text-xs">
-                {publishResult.shifts.map((s) => (
-                  <li key={s.id} data-testid="blog-publish-shift">
-                    {s.text}
-                  </li>
-                ))}
-              </ul>
             </div>
           )}
-        </div>
+
+          {busy && (
+            <div className="mb-3 flex items-center gap-2 text-sm text-gray-500">
+              <Loader className="w-4 h-4 animate-spin" />
+              Загрузка…
+            </div>
+          )}
+        </>
       )}
 
-      {busy && (
-        <div className="mb-3 flex items-center gap-2 text-sm text-gray-500">
-          <Loader className="w-4 h-4 animate-spin" />
-          Загрузка…
-        </div>
-      )}
-
+      {/*
+        Размонтируется при выходе намеренно (не просто скрывается, как форма
+        заказа «Роликов» внутри себя): открытое видео иначе продолжало бы
+        играть скрытым, а несохранённый текст заказа и черновик настроек —
+        сбрасываются при уходе с экрана.
+      */}
       {screen === 'shorts' && <AdminShortsView />}
 
       {screen === 'queue' && (
