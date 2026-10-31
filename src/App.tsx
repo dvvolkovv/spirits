@@ -57,6 +57,11 @@ const AppContent: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const widgetInit = React.useRef(false);
+  // m5 (ревью качества B9-fix): true, пока идёт эффект входа по Taler ID
+  // ниже (обмен кода + login(), теперь ещё до 5 с переноса пробы) — без
+  // этого человек видит пробу/экран входа без всякого признака жизни на всё
+  // это время.
+  const [taleridLoginPending, setTaleridLoginPending] = React.useState(false);
 
   // Домашний виджет [Натив 4] (натив-приложение; на вебе — no-op): обновляем
   // контент виджета при входе и возврате на передний план; обрабатываем
@@ -151,6 +156,10 @@ const AppContent: React.FC = () => {
       return;
     }
 
+    // m5: true ДО старта обмена кода — спиннер вместо пробы/экрана входа на
+    // всё время эффекта (обмен кода + login(), теперь ещё до 5 с переноса
+    // пробы), не только на время самого запроса редемпшена.
+    setTaleridLoginPending(true);
     (async () => {
       try {
         const resp = await apiClient.post('/webhook/ecosystem/talerid/login/redeem', { handoff });
@@ -172,6 +181,9 @@ const AppContent: React.FC = () => {
       } catch {
         toast.error(t('pages.talerid_login_failed'));
         strip();
+      } finally {
+        // m5: гасится на ЛЮБОМ исходе — успех, отказ (expired/storage) и сбой.
+        setTaleridLoginPending(false);
       }
     })();
   }, [login, t]);
@@ -212,6 +224,16 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
+    // m5: вход по Taler ID идёт (обмен кода + login(), до 5 с переноса
+    // пробы) — спиннер вместо пробы/экрана входа, иначе всё это время на
+    // экране нет ни единого признака жизни.
+    if (taleridLoginPending) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
     return <UnauthenticatedEntry />;
   }
 
