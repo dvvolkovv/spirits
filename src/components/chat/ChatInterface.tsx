@@ -2449,9 +2449,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       let accumulatedContent = '';
       let buffer = '';
       let lastTokensUsed = 0;
-      // Один decoder на весь поток: было `new TextDecoder()` на каждый кусок —
-      // `{ stream: true }` на нём бесполезен, decoder новый и без памяти о
-      // предыдущих байтах (находка ревью пробы 31.10).
+      // Один decoder на весь поток: раньше TextDecoder создавался заново на
+      // каждый кусок — `{ stream: true }` на нём бесполезен, decoder новый и
+      // без памяти о предыдущих байтах (находка ревью пробы 31.10).
       const decoder = createChunkDecoder();
 
       while (true) {
