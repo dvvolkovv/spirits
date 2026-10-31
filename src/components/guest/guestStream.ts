@@ -20,7 +20,7 @@ export function parseGuestEvent(line: string): GuestEvent | null {
   }
   switch (raw?.type) {
     case 'guest':
-      return { type: 'guest', left: Number(raw.left) || 0, ...(typeof raw.token === 'string' ? { token: raw.token } : {}) };
+      return { type: 'guest', left: Math.max(0, Number(raw.left) || 0), ...(typeof raw.token === 'string' ? { token: raw.token } : {}) };
     case 'begin':
       return { type: 'begin' };
     case 'ping':
