@@ -145,6 +145,10 @@ describe('страница пробы', () => {
   it('пустой список ассистентов с начатой пробой — экран входа, ключ не трогается (m3)', async () => {
     localStorage.setItem('guest_trial', JSON.stringify({ token: TOKEN, assistantId: '14' }));
     agents.mockResolvedValue([]);
+    // vitest.config.ts не включает clearMocks — счётчик вызовов session
+    // копится по всем тестам файла; обнулить ЗДЕСЬ, иначе «не вызван»
+    // проверяет чужую историю, а не эту пробу.
+    session.mockClear();
     await open('/chat');
     expect(visibleText(view!.container)).toContain('экран входа');
     expect(localStorage.getItem('guest_trial')).toBe(JSON.stringify({ token: TOKEN, assistantId: '14' }));
