@@ -11,24 +11,26 @@ const CHOICES: readonly Choice[] = ['default', ...PROVIDERS];
 interface ProviderState {
   provider: Choice;
   global: AnswerProvider;
-  /** Чем человек фактически отвечает сейчас (с учётом ключа рубильника) — для подписи «Как у всех». */
-  effective: AnswerProvider;
   configured: Record<Alt, boolean>;
 }
 
-const toState = (j: any): ProviderState => {
-  const global = parseProvider(j?.global);
-  return {
-    provider: j?.provider === 'claude' || j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'default',
-    global,
-    // Старый бэкенд поля effective не шлёт — используем global (у него тоже
-    // нет поля, оно тогда падает на 'claude'): до рубильника там всё на Claude.
-    effective: j?.effective === 'claude' || j?.effective === 'qwen' || j?.effective === 'kimi' ? j.effective : global,
-    configured: j?.configured && typeof j.configured === 'object'
-      ? { qwen: j.configured.qwen === true, kimi: j.configured.kimi === true }
-      : { qwen: j?.qwenConfigured === true, kimi: false },
-  };
-};
+/**
+ * j.effective (от бэка) НЕ годится для подписи «Как у всех»: бэк считает
+ * его в route() от ТЕКУЩЕГО provider, и при явном личном выборе (например,
+ * явный Claude при рубильнике на Qwen) effective — это сам выбор, а не
+ * рубильник. Подпись «Как у всех (сейчас: …)» обязана показывать модель
+ * РУБИЛЬНИКА независимо от того, что выбрано у этого человека (ошибка
+ * повторного ревью 01.11.2026 — effective сюда не читаем и в toState не
+ * храним; нужное значение вычисляется ниже, в defaultNow, из global и
+ * configured).
+ */
+const toState = (j: any): ProviderState => ({
+  provider: j?.provider === 'claude' || j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'default',
+  global: parseProvider(j?.global),
+  configured: j?.configured && typeof j.configured === 'object'
+    ? { qwen: j.configured.qwen === true, kimi: j.configured.kimi === true }
+    : { qwen: j?.qwenConfigured === true, kimi: false },
+});
 
 /**
  * Модель ответов ассистентов этому человеку (spec spirits_back
@@ -98,8 +100,13 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
     }
   };
 
+  // Модель рубильника с учётом её ключа — для подписи «Как у всех» и для
+  // подсказки про обычный путь. Не state.effective, см. комментарий у toState.
+  const usable = (p: AnswerProvider) => p === 'claude' || !!state?.configured[p];
+  const defaultNow: AnswerProvider = state && usable(state.global) ? state.global : 'claude';
+
   const label = (c: Choice) => {
-    if (c === 'default') return t('admin.userActivity.llmProvider.default', 'Как у всех (сейчас: {{model}})', { model: PROVIDER_LABELS[state?.effective ?? 'claude'] });
+    if (c === 'default') return t('admin.userActivity.llmProvider.default', 'Как у всех (сейчас: {{model}})', { model: PROVIDER_LABELS[defaultNow] });
     if (c === 'claude') return t('admin.userActivity.llmProvider.claude', 'Claude');
     if (c === 'qwen') return t('admin.userActivity.llmProvider.qwen', 'Qwen');
     return t('admin.userActivity.llmProvider.kimi', 'Kimi');
@@ -111,11 +118,11 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
 
   // «Как у всех» предупреждает о цепочке на тех же условиях, что явный выбор
   // Qwen/Kimi: только когда модель, которая реально пробует отвечать первой,
-  // не Claude. Модель рубильника без ключа (effective уже свёлся к 'claude')
+  // не Claude. Модель рубильника без ключа (defaultNow уже свёлся к 'claude')
   // этому условию не удовлетворяет — там и предупреждать не о чём.
   const showFallbackHint = !!state && (
     state.provider === 'qwen' || state.provider === 'kimi'
-    || (state.provider === 'default' && state.effective !== 'claude')
+    || (state.provider === 'default' && defaultNow !== 'claude')
   );
 
   return (

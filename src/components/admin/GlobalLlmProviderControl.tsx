@@ -29,7 +29,16 @@ export const GlobalLlmProviderControl: React.FC = () => {
   // setSaving(true) — ref читается и пишется немедленно, без ожидания рендера.
   const savingRef = useRef(false);
   const cancelledRef = useRef(false);
-  useEffect(() => () => { cancelledRef.current = true; }, []);
+  useEffect(() => {
+    // Сброс на КАЖДЫЙ запуск эффекта, не только на инициализацию ref.
+    // React.StrictMode (dev, src/main.tsx) монтирует компонент дважды:
+    // mount → cleanup → mount. Без этой строки cleanup между двумя
+    // монтированиями ставит cancelledRef.current в true навсегда — второй
+    // (настоящий) эффект её не снимает, и даже успешный fetchGlobalLlm()
+    // из load() никогда не доходит до setState (повторное ревью 01.11.2026).
+    cancelledRef.current = false;
+    return () => { cancelledRef.current = true; };
+  }, []);
 
   const load = () => {
     setError(null);

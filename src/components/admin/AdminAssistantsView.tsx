@@ -121,13 +121,18 @@ const AdminAssistantsView: React.FC = () => {
     // У остальных десяти вкладок админки h-full, эта была единственным
     // исключением.
     //
-    // overflow-y-auto md:overflow-hidden (ревью качества 01.11.2026): после
-    // блока GlobalLlmProviderControl список+редактор внизу (у них своя
-    // внутренняя прокрутка, см. min-h-[70vh] ниже) на узких экранах ужимались
-    // почти до нуля — хедер, новый блок и фиксированная высота родителя не
-    // оставляли им места. На мобиле вкладка теперь скроллится целиком, на
-    // десктопе (md:) — как раньше, внутренней прокруткой списка и редактора.
-    <div className="h-full bg-gray-50 flex flex-col overflow-y-auto md:overflow-hidden">
+    // overflow-y-auto без md:overflow-hidden (ревью качества 01.11.2026,
+    // уточнено повторным замером): после блока GlobalLlmProviderControl
+    // список+редактор внизу (у них своя внутренняя прокрутка, см.
+    // min-h-[70vh] md:min-h-[320px] ниже) на узких экранах ужимались почти
+    // до нуля — хедер, новый блок и фиксированная высота родителя не
+    // оставляли им места. На мобиле вкладка скроллится целиком. md:overflow-
+    // hidden убрали и на десктопе: на широких, но низких окнах (915×412)
+    // внутренней min-h всё равно не хватало места — overflow-hidden просто
+    // срезал низ списка без возможности докрутить. Внешняя прокрутка внутри
+    // overflow-y-auto включается сама, только когда контента правда больше,
+    // чем высота вкладки (на обычных 1366×650 её не возникает — замерено).
+    <div className="h-full bg-gray-50 flex flex-col overflow-y-auto">
       <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900 flex items-center">
@@ -153,11 +158,16 @@ const AdminAssistantsView: React.FC = () => {
       )}
 
       {/* min-h-[70vh] — на мобиле (родитель скроллится целиком) список и
-          редактор не должны сжиматься до нуля в альбомной ориентации;
-          md:min-h-0 возвращает обычное поведение flex-1 на десктопе. */}
-      <div className="flex-1 flex overflow-hidden min-h-[70vh] md:min-h-0">
+          редактор не должны сжиматься до нуля в альбомной ориентации.
+          md:min-h-[320px] (не md:min-h-0, повторный замер 01.11.2026): на
+          широких, но низких окнах (915×412) нулевой min-h на десктопной
+          раскладке оставлял список высотой в несколько пикселей; 320px —
+          минимум, при котором список читаем, а внешняя прокрутка вкладки
+          (overflow-y-auto у корня) достаёт до низа. На обычных десктопных
+          окнах (1366×650 и выше) 320px — не ограничение: места и так больше. */}
+      <div className="flex-1 flex overflow-hidden min-h-[70vh] md:min-h-[320px]">
         <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
-          <div className="p-4">
+          <div className="p-4 pb-20 md:pb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Ассистенты</h2>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">

@@ -28,9 +28,13 @@ const GlobalLlmBanner: React.FC<{ onOpen: () => void; activeTab: string; hideOpe
     // после открытия вкладки) — опоздавший GET не должен затирать более
     // свежее состояние, уже пришедшее через событие.
     let heard = false;
-    setError(false);
+    // НЕ сбрасываем error в начале эффекта (повторное ревью 01.11.2026):
+    // смена вкладки в состоянии ошибки запускала этот эффект заново, и
+    // немедленный setError(false) гасил плашку на мгновение — до того, как
+    // новый GET успевал ответить (мигание). Состояние меняем только по
+    // РЕЗУЛЬТАТУ — успеху, отказу или событию, а не заранее.
     fetchGlobalLlm()
-      .then((s) => { if (!cancelled && !heard) setState(s); })
+      .then((s) => { if (!cancelled && !heard) { setState(s); setError(false); } })
       .catch(() => { if (!cancelled && !heard) setError(true); });
     const onChange = (e: Event) => {
       heard = true;
@@ -44,20 +48,25 @@ const GlobalLlmBanner: React.FC<{ onOpen: () => void; activeTab: string; hideOpe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const renderBanner = (text: string) => (
+  const renderBanner = (text: string, openLabel: string) => (
     <div data-testid="global-llm-banner" className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-sm text-amber-900 flex-shrink-0">
       <AlertTriangle className="w-4 h-4 flex-shrink-0" />
       <span id={textId} className="flex-1 min-w-0">{text}</span>
       {!hideOpen && (
         <button type="button" onClick={onOpen} aria-describedby={textId} className="underline flex-shrink-0">
-          {t('admin.globalLlm.bannerOpen', 'Изменить')}
+          {openLabel}
         </button>
       )}
     </div>
   );
 
   if (error) {
-    return renderBanner(t('admin.globalLlm.bannerError', 'Не удалось узнать модель ответов для всех'));
+    // «Открыть», не «Изменить»: модель неизвестна, менять нечего — только
+    // открыть блок и разобраться (повторное ревью 01.11.2026).
+    return renderBanner(
+      t('admin.globalLlm.bannerError', 'Не удалось узнать модель ответов для всех'),
+      t('admin.globalLlm.bannerOpenError', 'Открыть'),
+    );
   }
   if (!state || state.provider === 'claude') return null;
 
@@ -68,7 +77,7 @@ const GlobalLlmBanner: React.FC<{ onOpen: () => void; activeTab: string; hideOpe
     : state.since
       ? t('admin.globalLlm.banner', 'Все отвечают через {{model}} с {{since}}', { model, since: fmtSince(state.since) })
       : t('admin.globalLlm.bannerNoSince', 'Все отвечают через {{model}}', { model });
-  return renderBanner(text);
+  return renderBanner(text, t('admin.globalLlm.bannerOpen', 'Изменить'));
 };
 
 export default GlobalLlmBanner;
