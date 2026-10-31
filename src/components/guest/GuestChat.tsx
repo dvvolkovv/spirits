@@ -11,6 +11,14 @@ import { getCampaign, getSessionId, getSource, track } from '../../services/even
 import { sendGuestMessage, type GuestSendResult } from './guestApi';
 import type { GuestConfig, GuestEvent, GuestMessage } from './guestTypes';
 
+/**
+ * token, initialMessages, initialLeft и draft читаются ТОЛЬКО при
+ * монтировании (useState/useRef с ленивым начальным значением, draft — в
+ * эффекте с deps []) — обновлённое значение этих пропсов у уже
+ * смонтированного компонента не подхватится само (P4). Сменить ассистента
+ * или восстановленную пробу — новым React `key` у <GuestChat>, что страница
+ * и делает (GuestChatPage.tsx: key={`${assistantId}:${generation}`}).
+ */
 export interface GuestChatProps {
   assistantId: string;
   assistantName: string;
@@ -454,17 +462,17 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         )}
         {messages.map((m, i) =>
           m.role === 'user' ? (
-            <div key={i} className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-forest-700 px-4 py-3 text-white">
+            <div key={i} className="ml-auto w-fit max-w-[85%] break-words whitespace-pre-wrap rounded-2xl rounded-br-md bg-forest-700 px-4 py-3 text-white">
               {m.content}
             </div>
           ) : (
-            <div key={i} className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-100 bg-white px-4 py-3">
+            <div key={i} className="w-fit max-w-[85%] break-words rounded-2xl rounded-bl-md border border-gray-100 bg-white px-4 py-3">
               <GuestAnswer content={m.content} />
             </div>
           ),
         )}
         {partial !== null && (
-          <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-100 bg-white px-4 py-3">
+          <div className="w-fit max-w-[85%] break-words rounded-2xl rounded-bl-md border border-gray-100 bg-white px-4 py-3">
             {partial ? (
               <GuestAnswer content={partial} streaming />
             ) : (
@@ -474,7 +482,7 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         )}
         {wall && (
           <div ref={wallRef} data-testid="guest-wall" className="rounded-2xl border border-forest-100 bg-white p-5 shadow-sm">
-            <p className="font-semibold text-gray-900">{wall === 'limit' ? t('guest.wall.title') : t('guest.wall.closedTitle')}</p>
+            <h2 className="font-semibold text-gray-900">{wall === 'limit' ? t('guest.wall.title') : t('guest.wall.closedTitle')}</h2>
             <p className="mt-1 text-sm text-gray-600">
               {wall === 'limit' ? t('guest.wall.text') : t('guest.wall.closedText', { name: assistantName })}
             </p>
@@ -504,14 +512,25 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
           <div className="flex items-end gap-2">
             <textarea
               data-testid="guest-chat-input"
-              className="flex-1 resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-600 ym-disable-keys"
+              // text-base (16px), md:text-sm — иначе iOS Safari зумит страницу
+              // при фокусе на поле мельче 16px (I8, как в AskCard.tsx).
+              className="flex-1 resize-none rounded-xl border border-gray-200 px-3 py-2 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-forest-600 ym-disable-keys"
               rows={2}
               maxLength={config.maxChars}
               value={input}
-              disabled={locked}
+              // M2: поле не блокируется на время хода (locked включает sending)
+              // — блокировка снимает фокус, а на мобиле прячет клавиатуру.
+              // Блокируется только кнопка отправки, ниже. Пока проба не
+              // закрыта стеной, поле всегда доступно.
+              disabled={wall !== null}
               placeholder={t('guest.inputPlaceholder')}
+              enterKeyHint="send"
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
+                // IME (zh/ja/ko): Enter подтверждает кандидата набора, а не
+                // отправляет форму — keyCode 229 ловит браузеры, которые не
+                // выставляют isComposing на этом событии (I9).
+                if (e.nativeEvent.isComposing || e.keyCode === 229) return;
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   void send(input);
@@ -527,6 +546,11 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
               {t('guest.send')}
             </button>
           </div>
+          {/* M8: счётчик только числами и «/» — без перевода, чтобы не плодить
+              ключ локали ради цифр. Виден после 80% предела, как предупреждение. */}
+          {input.length > config.maxChars * 0.8 && (
+            <p className="text-right text-xs text-gray-400">{input.length}/{config.maxChars}</p>
+          )}
           <p className="text-xs text-gray-500">{t('guest.trialNote')}</p>
         </div>
       )}
