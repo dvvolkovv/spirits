@@ -19,6 +19,8 @@ interface Stored {
   text: string;
   assistant: string;
   expires: number;
+  /** Вопрос с поля лендинга (#ask=): проба без входа отправит его сама. */
+  auto?: boolean;
 }
 
 function forget(): void {
@@ -48,7 +50,7 @@ function read(now: number): Stored | null {
       typeof p.expires === 'number' &&
       p.expires > now
     ) {
-      return { text: p.text, assistant: p.assistant, expires: p.expires };
+      return { text: p.text, assistant: p.assistant, expires: p.expires, auto: p.auto === true };
     }
   } catch {
     /* не JSON — стираем ниже */
@@ -78,4 +80,34 @@ export function hasPendingDraftFor(assistantId: string | number, now = Date.now(
 /** Забыть черновик — при выходе из аккаунта и удалении профиля (clearAppStorage). */
 export function forgetPendingDraft(): void {
   forget();
+}
+
+export interface PendingDraftEntry {
+  text: string;
+  auto: boolean;
+}
+
+/**
+ * То же, что takePendingDraftFor, но с пометкой «отправить» — для пробы без
+ * входа. Чат после входа пользуется takePendingDraftFor и только подставляет.
+ */
+export function takePendingDraftEntry(assistantId: string | number, now = Date.now()): PendingDraftEntry | null {
+  const stored = read(now);
+  if (!stored || stored.assistant !== String(assistantId)) return null;
+  forget();
+  return { text: stored.text, auto: stored.auto === true };
+}
+
+/**
+ * Положить черновик самому: проба закрылась раньше, чем пришёл ответ, — текст
+ * дождётся входа и встанет в поле чата с тем же ассистентом.
+ */
+export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): void {
+  const t = text.trim();
+  if (!t || t.length > DRAFT_MAX_LENGTH) return;
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: t, assistant: String(assistantId), expires: now + DRAFT_TTL_MS }));
+  } catch {
+    /* хранилище недоступно — черновик не переживёт вход */
+  }
 }
