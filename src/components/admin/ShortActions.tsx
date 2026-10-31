@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { clsx } from 'clsx';
-import { ActionExtra, MAX_NOTE_CHARS, ShortAction, ShortDetail, actionsFor, isTelegramPostUrl, noteChars } from './shortStatus';
+import { ActionExtra, MAX_NOTE_CHARS, ROW_ACTIONS, ShortAction, ShortDetail, actionsFor, isTelegramPostUrl, noteChars } from './shortStatus';
+import { DANGER, PRIMARY, SECONDARY } from './shortButtons';
 
 interface Props {
   detail: ShortDetail;
@@ -8,10 +9,6 @@ interface Props {
   onAction: (kind: ShortAction, extra?: ActionExtra) => void;
 }
 
-const BTN = 'px-3 py-1 text-xs rounded disabled:opacity-50';
-const PRIMARY = `${BTN} bg-forest-600 text-white hover:bg-forest-700`;
-const SECONDARY = `${BTN} bg-gray-100 hover:bg-gray-200`;
-const DANGER = `${BTN} bg-rose-50 text-rose-700 hover:bg-rose-100`;
 const FIELD = 'flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-forest-500';
 
 /** Кнопки раскрытого ролика — по статусу (actionsFor), с полями замечания и ссылки на пост. */
@@ -19,10 +16,13 @@ const ShortActions: React.FC<Props> = ({ detail, busy, onAction }) => {
   const [note, setNote] = useState('');
   const [retryNote, setRetryNote] = useState('');
   const [postUrl, setPostUrl] = useState('');
-  const actions = actionsFor(detail);
-  // Кнопки идеи — «Запустить сейчас» и «Отклонить» — в её строке (ShortCard),
-  // а не в этом блоке: пустая обёртка с отступом никому не нужна.
-  if (!actions.length || detail.status === 'idea') return null;
+  // Действия статуса МИНУС действия его строки (ROW_ACTIONS) — те уже есть в
+  // ShortCard; пустая обёртка с отступом здесь им не нужна. Ключ по статусу,
+  // не общий набор: иначе одинокое «Отклонить» у упавшего без одобрения
+  // (тоже actionsFor === ['reject']) спряталось бы и из карточки.
+  const rowOnly = ROW_ACTIONS[detail.status] ?? [];
+  const actions = actionsFor(detail).filter((a) => !rowOnly.includes(a));
+  if (!actions.length) return null;
   const has = (a: ShortAction) => actions.includes(a);
   const noteLen = noteChars(note);
   const noteOverLimit = noteLen > MAX_NOTE_CHARS;

@@ -6,7 +6,7 @@ import ShortsOrderForm from './ShortsOrderForm';
 import ShortsSettingsForm from './ShortsSettingsForm';
 import { AgentOption, ShortsApiError, callShorts, loadAgents } from './shortsApi';
 import {
-  ActionExtra, GROUP_TITLES, ShortAction, ShortDetail, ShortItem, ShortsScreen,
+  ActionExtra, GROUP_TITLES, ROW_ACTIONS, ShortAction, ShortDetail, ShortItem, ShortsScreen,
   actionRequest, archiveOf, queueGroups, screenCounts, successText,
 } from './shortStatus';
 
@@ -139,16 +139,16 @@ const AdminShortsView: React.FC = () => {
     loadDetail(id);
   };
 
-  /** Решение по ролику. Версия — с раскрытой карточки; у «Запустить сейчас» идеи её нет и не нужно. */
+  /** Решение по ролику. Версия — с раскрытой карточки; у решений строки (ROW_ACTIONS) — со строки списка. */
   const act = async (kind: ShortAction, short: ShortItem, extra?: ActionExtra) => {
     // Версия и содержимое — только с карточки ИМЕННО этого ролика, раскрытой
     // сейчас; если раскрыта карточка другого ролика (или не раскрыта вовсе),
     // решение ничем не подписано — лучше не отправить его совсем, чем молча
-    // взять версию строки списка, которую владелец не видел. «Запустить
-    // сейчас» — исключение: это кнопка идеи в строке, версии у идеи нет.
-    // Решения строки — «Запустить сейчас» и «Отклонить» у идеи — подписываются
-    // строкой списка; остальные — только раскрытой карточкой этого ролика.
-    const rowAction = kind === 'start_now' || (kind === 'reject' && short.status === 'idea');
+    // взять версию строки списка, которую владелец не видел.
+    // Исключение — решения строки из ROW_ACTIONS (сейчас «Запустить сейчас»
+    // и «Отклонить» у идеи): версия у идеи есть, как у любого ролика, но её
+    // подтверждает строка списка, а не раскрытая карточка — у идеи такой нет.
+    const rowAction = ROW_ACTIONS[short.status]?.includes(kind) ?? false;
     const target = detail?.id === short.id ? detail : rowAction ? short : null;
     if (!target) return;
     const request = actionRequest(kind, target, extra);

@@ -3,9 +3,10 @@ import { clsx } from 'clsx';
 import { ChevronDown, ChevronRight, Loader } from 'lucide-react';
 import ShortActions from './ShortActions';
 import {
-  ANGLE_TITLES, ActionExtra, FORMAT_TITLES, PLATFORM_TITLES, RUBRIC_TITLES, STATUS_TITLES,
+  ANGLE_TITLES, ActionExtra, FORMAT_TITLES, PLATFORM_TITLES, ROW_ACTIONS, RUBRIC_TITLES, STATUS_TITLES,
   ShortAction, ShortDetail, ShortItem, publicationLabel, shortTitle, statusLine, statusTone,
 } from './shortStatus';
+import { DANGER, PRIMARY } from './shortButtons';
 import { safeExternalUrl } from '../../utils/safeUrl';
 
 interface Props {
@@ -35,6 +36,9 @@ const ShortVideo: React.FC<{ detail: ShortDetail }> = ({ detail }) => {
         </div>
       );
     }
+    // Отклонённый без темы (её нет и показать нечего) больше не соберётся
+    // никогда — «ещё нет» звучит как обещание, которого не будет.
+    if (detail.status === 'rejected') return <div className="text-xs text-gray-500">Видео нет.</div>;
     return <div className="text-xs text-gray-500">Видео ещё нет — ролик не собран.</div>;
   }
   if (broken) {
@@ -95,6 +99,18 @@ const ShortCard: React.FC<Props> = ({
    * Карточка новее строки или они совпадают — плашки нет.
    */
   const rowNewer = detail ? Date.parse(item.updatedAt ?? '') > Date.parse(detail.updatedAt ?? '') : false;
+  /**
+   * Кнопки строки — из ROW_ACTIONS по статусу СТРОКИ, не хардкодом (сейчас
+   * это «Запустить сейчас» и «Отклонить» у идеи). Раскрытая карточка могла
+   * обогнать строку — например, фоновый автозапуск сменил статус идеи, пока
+   * карточка была открыта на старом ответе `list`; тогда ShortActions уже
+   * рисует свои кнопки по detail.status, и кнопки строки, подписанные чужим
+   * (устаревшим) статусом, — не показываем, чтобы не дублировать и не слать
+   * действие идеи на то, что идеей уже не является.
+   */
+  const rowActions = ROW_ACTIONS[item.status] ?? [];
+  const rowActionsStale = open && detail != null && detail.status !== item.status;
+  const titleId = `short-title-${item.id}`;
 
   return (
     <div
@@ -102,9 +118,9 @@ const ShortCard: React.FC<Props> = ({
       data-status={item.status}
       className={clsx('border rounded-lg p-3', broken ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white')}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex flex-wrap items-start gap-2">
         <button type="button" data-testid={`short-toggle-${item.id}`} onClick={onToggle} aria-expanded={open}
-          aria-controls={`short-details-${item.id}`} className="flex-1 min-w-0 flex items-start gap-2 text-left">
+          aria-controls={`short-details-${item.id}`} className="flex-1 min-w-[12rem] flex items-start gap-2 text-left">
           {open ? (
             <ChevronDown className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
           ) : (
@@ -113,7 +129,7 @@ const ShortCard: React.FC<Props> = ({
           <span className="min-w-0">
             <span className="flex items-center gap-2 flex-wrap">
               <span className={clsx('px-2 py-0.5 text-xs rounded', statusTone(item.status))}>{STATUS_TITLES[item.status]}</span>
-              <span className="text-sm font-medium text-gray-900 break-words">{shortTitle(item)}</span>
+              <span id={titleId} className="text-sm font-medium text-gray-900 break-words">{shortTitle(item)}</span>
             </span>
             <span className="block mt-0.5 text-xs text-gray-500">{meta}</span>
             <span data-testid={`short-line-${item.id}`}
@@ -125,17 +141,21 @@ const ShortCard: React.FC<Props> = ({
             )}
           </span>
         </button>
-        {item.status === 'idea' && (
-          <>
-            <button type="button" data-testid={`short-start-${item.id}`} onClick={() => onAction('start_now')} disabled={busy}
-              className="flex-shrink-0 px-3 py-1 text-xs bg-forest-600 text-white rounded hover:bg-forest-700 disabled:opacity-50">
-              Запустить сейчас
-            </button>
-            <button type="button" data-testid={`short-idea-reject-${item.id}`} onClick={() => onAction('reject')} disabled={busy}
-              className="flex-shrink-0 px-3 py-1 text-xs bg-rose-50 text-rose-700 rounded hover:bg-rose-100 disabled:opacity-50">
-              Отклонить
-            </button>
-          </>
+        {rowActions.length > 0 && !rowActionsStale && (
+          <div className="flex gap-2 flex-shrink-0 ml-auto">
+            {rowActions.includes('start_now') && (
+              <button type="button" data-testid={`short-start-${item.id}`} onClick={() => onAction('start_now')} disabled={busy}
+                aria-describedby={titleId} className={PRIMARY}>
+                Запустить сейчас
+              </button>
+            )}
+            {rowActions.includes('reject') && (
+              <button type="button" data-testid={`short-idea-reject-${item.id}`} onClick={() => onAction('reject')} disabled={busy}
+                aria-describedby={titleId} className={DANGER}>
+                Отклонить
+              </button>
+            )}
+          </div>
         )}
       </div>
 

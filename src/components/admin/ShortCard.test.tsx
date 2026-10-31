@@ -5,7 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { click, mount, type, Mounted } from '../../test/dom';
 import ShortCard from './ShortCard';
 import { NOW, detail as baseDetail, item } from './shortFixtures';
-import { MAX_NOTE_CHARS, ShortAction, ShortDetail, actionsFor } from './shortStatus';
+import { MAX_NOTE_CHARS, ROW_ACTIONS, ShortAction, ShortDetail, actionsFor } from './shortStatus';
 
 const detail = (over: Parameters<typeof baseDetail>[0] = {}) =>
   baseDetail({
@@ -49,6 +49,43 @@ describe('строка ролика', () => {
     expect(m.container.textContent).toContain('подача по ритму недели');
     click(q('short-start-s1')!);
     expect(onAction).toHaveBeenCalledWith('start_now');
+  });
+
+  it('идея — «Отклонить» в строке рядом с «Запустить сейчас» зовёт onAction', () => {
+    const { onAction } = render({ item: item({ status: 'idea' }) });
+    click(q('short-idea-reject-s1')!);
+    expect(onAction).toHaveBeenCalledWith('reject');
+  });
+
+  it('идея занята — «Запустить сейчас» и «Отклонить» в строке недоступны', () => {
+    render({ item: item({ status: 'idea' }), busy: true });
+    expect((q('short-start-s1') as HTMLButtonElement).disabled).toBe(true);
+    expect((q('short-idea-reject-s1') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('строка идеи — перенос на мобильных: группа кнопок не растягивает колонку текста', () => {
+    // Измерено в Chromium на 360px: без flex-wrap и с min-w-0 на кнопке
+    // раскрытия колонка текста ужималась до ~47px, карточка идеи вдвое
+    // выше нужного, а «Запустить сейчас» наезжала на плашку «Идея».
+    render({ item: item({ status: 'idea' }) });
+    const row = q('short-toggle-s1')!.parentElement!;
+    expect(row.className).toContain('flex-wrap');
+    const toggle = q('short-toggle-s1')!;
+    expect(toggle.className).toContain('min-w-[12rem]');
+    expect(toggle.className).not.toContain('min-w-0');
+    const group = q('short-start-s1')!.parentElement!;
+    expect(group.className).toContain('flex-shrink-0');
+    expect(group.className).toContain('ml-auto');
+    expect(q('short-start-s1')!.className).not.toContain('flex-shrink-0');
+    expect(q('short-idea-reject-s1')!.className).not.toContain('flex-shrink-0');
+  });
+
+  it('кнопки строки идеи — aria-describedby на заголовок ролика', () => {
+    render({ item: item({ status: 'idea' }) });
+    const titleId = 'short-title-s1';
+    expect(m.container.querySelector(`#${titleId}`)).not.toBeNull();
+    expect(q('short-start-s1')!.getAttribute('aria-describedby')).toBe(titleId);
+    expect(q('short-idea-reject-s1')!.getAttribute('aria-describedby')).toBe(titleId);
   });
 
   it('площадки — ссылка на вышедшее, причина у упавшего', () => {
@@ -256,20 +293,21 @@ describe('раскрытая карточка', () => {
     expect(q('short-actions-s1')).toBeNull();
   });
 
-  it('строка идеи — «Отклонить» рядом с «Запустить сейчас»; занято гасит обе', () => {
-    const { onAction } = render({ item: item({ status: 'idea' }) });
-    click(q('short-idea-reject-s1')!);
-    expect(onAction).toHaveBeenCalledWith('reject');
-    m.unmount();
-    render({ item: item({ status: 'idea' }), busy: true });
-    expect((q('short-idea-reject-s1') as HTMLButtonElement).disabled).toBe(true);
-    expect((q('short-start-s1') as HTMLButtonElement).disabled).toBe(true);
-  });
-
   it('раскрытая идея — «Отклонить» не дублируется в карточке', () => {
     render({ open: true, item: item({ status: 'idea' }), detail: detail({ status: 'idea', videoUrl: null }) });
     expect(q('short-reject')).toBeNull();
     expect(q('short-idea-reject-s1')).not.toBeNull();
+  });
+
+  it('строка — идея, но открытая карточка уже обогнала (автозапуск сменил статус) — кнопок строки нет, карточка не дублируется своим «Отклонить»', () => {
+    render({
+      open: true,
+      item: item({ status: 'idea' }),
+      detail: detail({ status: 'pending_review', approvedAt: null }),
+    });
+    expect(q('short-start-s1')).toBeNull();
+    expect(q('short-idea-reject-s1')).toBeNull();
+    expect(q('short-reject')).not.toBeNull();
   });
 
   it('отклонённый без видео — текст заказа, а не «Видео ещё нет»', () => {
@@ -280,6 +318,25 @@ describe('раскрытая карточка', () => {
     });
     expect(q('short-idea-order-s1')!.textContent).toBe('Залог при аренде квартиры');
     expect(m.container.textContent).not.toContain('Видео ещё нет');
+  });
+
+  it('отклонённый без темы — «Видео нет.», не «Видео ещё нет» (он никогда не соберётся)', () => {
+    render({
+      open: true,
+      item: item({ status: 'rejected', topicHint: null }),
+      detail: detail({ status: 'rejected', videoUrl: null, topicHint: null }),
+    });
+    expect(m.container.textContent).toContain('Видео нет.');
+    expect(m.container.textContent).not.toContain('Видео ещё нет');
+    expect(q('short-idea-order-s1')).toBeNull();
+  });
+
+  it('отклонённый, но с видео — видео показано как обычно', () => {
+    render({ open: true, item: item({ status: 'rejected' }), detail: detail({ status: 'rejected' }) });
+    const video = q('short-video-s1') as HTMLVideoElement;
+    expect(video).toBeTruthy();
+    expect(video.getAttribute('src')).toBe(detail().videoUrl);
+    expect(q('short-idea-order-s1')).toBeNull();
   });
 
   it('раскрытая идея без видео — полный текст заказа вместо «Видео ещё нет», с переносами строк', () => {
@@ -353,6 +410,7 @@ describe('кнопки раскрытой карточки — по actionsFor',
   ];
 
   const cases: [string, Partial<ShortDetail>][] = [
+    ['идея', { status: 'idea' }],
     ['одобрен, не вышел нигде', { status: 'approved', approvedAt: '2030-01-01T11:00:00.000Z' }],
     ['упал на публикации — пост ещё не вышел', {
       status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
@@ -370,7 +428,11 @@ describe('кнопки раскрытой карточки — по actionsFor',
   it.each(cases)('%s', (_label, over) => {
     const d = detail(over);
     render({ open: true, item: item({ status: d.status, failedFrom: d.failedFrom }), detail: d });
-    const actions = new Set(actionsFor(d));
+    // Кнопки карточки — это actionsFor МИНУС действия строки (ROW_ACTIONS):
+    // у идеи обе её кнопки («Запустить сейчас», «Отклонить») — в строке
+    // (ShortCard), не здесь.
+    const rowOnly = ROW_ACTIONS[d.status] ?? [];
+    const actions = new Set(actionsFor(d).filter((a) => !rowOnly.includes(a)));
     const result: Record<string, boolean> = {};
     const want: Record<string, boolean> = {};
     for (const [action, testid] of ACTION_TESTID) {
@@ -378,6 +440,11 @@ describe('кнопки раскрытой карточки — по actionsFor',
       want[testid] = actions.has(action);
     }
     expect(result).toEqual(want);
+
+    // Кнопки строки («Запустить сейчас», «Отклонить» идеи) — только у идеи;
+    // у остальных статусов их нет вовсе (не только их действий в карточке).
+    expect(q('short-start-s1') !== null).toBe(d.status === 'idea');
+    expect(q('short-idea-reject-s1') !== null).toBe(d.status === 'idea');
   });
 });
 

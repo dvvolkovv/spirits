@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { NOW, detail, item } from './shortFixtures';
 import {
-  GROUP_ORDER, PublicationStatus, STATUS_TITLES, ShortPlatform, ShortPublication, ShortSettings, ShortStatus,
+  GROUP_ORDER, PublicationStatus, ROW_ACTIONS, STATUS_TITLES, ShortPlatform, ShortPublication, ShortSettings, ShortStatus,
   actionRequest, actionsFor, archiveOf, draftErrors, draftToPatch, groupOf, isReleased, isTelegramPostUrl,
   noteChars, orderChars, publicationLabel, queueGroups, screenCounts, screenOf, shortTitle, statusLine,
   successText, toDraft,
@@ -145,9 +145,15 @@ describe('кнопки по статусу', () => {
     expect(actionsFor(detail({ status: 'failed', failedFrom: 'publishing', approvedAt: null }))).toEqual(['reject']);
   });
 
-  it('идея — запустить; в работе, публикуется, вышел, отклонён — ничего', () => {
+  it('идея — запустить, отклонить; в работе, публикуется, вышел, отклонён — ничего', () => {
     expect(actionsFor(detail({ status: 'idea' }))).toEqual(['start_now', 'reject']);
     for (const status of (Object.keys(STATUS_TITLES) as ShortStatus[]).filter((s) => !['pending_review', 'approved', 'idea', 'failed'].includes(s))) expect(actionsFor(detail({ status }))).toEqual([]);
+  });
+
+  it('ROW_ACTIONS — единственный ключ «идея»: обе её кнопки показывает строка, не раскрытая карточка', () => {
+    expect(ROW_ACTIONS).toEqual({ idea: ['start_now', 'reject'] });
+    expect(ROW_ACTIONS.approved).toBeUndefined();
+    expect(ROW_ACTIONS.failed).toBeUndefined();
   });
 
   it('редкие ветки: этап без «Повторить», публикация без одобрения при «вышел», YouTube-набор без строки Telegram — без «Пост вышел»', () => {
@@ -232,6 +238,26 @@ describe('запросы и итоги', () => {
     expect(successText('reject', item({ status: 'pending_review' }), null, NOW)).toBe('Ролик отклонён.');
     expect(actionRequest('reject', item({ status: 'pending_review', title: 'Залог при аренде' })).confirm).toBe(
       'Отклонить ролик «Залог при аренде»?\n\nРолик не выйдет, вернуть его нельзя.',
+    );
+  });
+
+  it('«Отклонить» идеи из git-новости — как у заказа владельца: без фразы про замену (та — только у catalog)', () => {
+    const git = item({ status: 'idea', source: 'git', title: 'Залог при аренде', version: 'V1' });
+    expect(actionRequest('reject', git).confirm).toBe(
+      'Отклонить идею «Залог при аренде»?\n\nВ работу она не пойдёт, вернуть нельзя — только заказать заново.',
+    );
+    expect(successText('reject', git, null, NOW)).toBe('Идея отклонена — в работу не пойдёт.');
+  });
+
+  it('заголовок в подтверждении обрезается по символам — surrogate-пара (эмодзи) не калечится', () => {
+    // 78 + 1 (эмодзи как ОДИН символ через Array.from, хотя это 2 code unit
+    // UTF-16) + 10 = 89 символов — длиннее 80, обрезка сработает. Эмодзи
+    // стоит прямо на границе среза (индекс 78 из 0..78): обрезка по code
+    // unit расколола бы суррогатную пару и оставила половину.
+    const longTitle = `${'a'.repeat(78)}😀${'b'.repeat(10)}`;
+    const d = item({ status: 'pending_review', title: longTitle, version: 'V1' });
+    expect(actionRequest('reject', d).confirm).toBe(
+      `Отклонить ролик «${'a'.repeat(78)}😀…»?\n\nРолик не выйдет, вернуть его нельзя.`,
     );
   });
 

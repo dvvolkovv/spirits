@@ -312,6 +312,17 @@ export type ShortAction =
   | 'approve' | 'note' | 'redo' | 'reject' | 'publish_now'
   | 'retry' | 'retry_directing' | 'retry_writing' | 'mark_published' | 'start_now';
 
+/**
+ * Единый источник правды о том, какие действия статуса показывает СТРОКА
+ * (`ShortCard`), а не раскрытая карточка (`ShortActions`): сейчас это
+ * «Запустить сейчас» и «Отклонить» у идеи — у идеи нет раскрытой карточки с
+ * достаточной версией для прочих решений, обе кнопки подписываются версией
+ * её строки списка. Ключ по статусу, а не общим набором действий: иначе
+ * «Отклонить» одинокого упавшего без одобрения (оно тоже только `['reject']`)
+ * спряталось бы и из карточки, где его показывать можно и нужно.
+ */
+export const ROW_ACTIONS: Partial<Record<ShortStatus, readonly ShortAction[]>> = { idea: ['start_now', 'reject'] };
+
 /** С каких этапов «Повторить» возвращает упавший ролик (RESUME_FROM бэка). */
 const RESUMABLE: ShortStatus[] = ['directing', 'capturing', 'writing', 'animating', 'rendering'];
 
@@ -498,7 +509,7 @@ export function actionRequest(kind: ShortAction, d: Target, extra: ActionExtra =
 /** Итог удачного решения — плашкой над списком: карточка после него закрывается. */
 export function successText(
   kind: ShortAction,
-  d: Pick<ShortItem, 'failedFrom'> & Partial<Pick<ShortItem, 'status' | 'source'>>,
+  d: Pick<ShortItem, 'failedFrom' | 'status' | 'source'>,
   res: unknown,
   now: Date,
 ): string {
