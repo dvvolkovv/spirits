@@ -197,6 +197,14 @@ export type GuestClaimResult = { status: 'claimed'; assistantId: string } | { st
  * Перенос пробы в аккаунт, в который только что вошли (запрос — с токеном входа).
  * 'retry' не означает «без побочных эффектов»: если оба токена входа мёртвые,
  * apiClient сам очистит их и уведёт на экран входа.
+ *
+ * m12 (ревью качества B9-fix): «пробы нет» — ТОЛЬКО по телу ответа, не по
+ * одному статусу (тела сервера: guest-trial/guest-claim.service.ts бэка).
+ * 404 — 'gone' только при error === 'trial'; 409 — только при
+ * error === 'claimed'. Любой другой 404/409 (например, откат бэка без
+ * модуля пробы — generic 404 от маршрутизатора/прокси, или чужой конфликт)
+ * — 'retry': ключ пробы не стирается по причине, которая с самой пробой
+ * не связана.
  */
 export async function claimGuestTrial(token: string): Promise<GuestClaimResult> {
   try {
@@ -206,8 +214,13 @@ export async function claimGuestTrial(token: string): Promise<GuestClaimResult> 
       const id = String(j?.assistantId ?? '');
       return /^\d+$/.test(id) ? { status: 'claimed', assistantId: id } : { status: 'gone' };
     }
+    if (r.status === 404 || r.status === 409) {
+      const j = await r.json().catch(() => ({}));
+      const gone = r.status === 404 ? j?.error === 'trial' : j?.error === 'claimed';
+      return gone ? { status: 'gone' } : { status: 'retry' };
+    }
     drain(r);
-    return r.status === 404 || r.status === 409 ? { status: 'gone' } : { status: 'retry' };
+    return { status: 'retry' };
   } catch {
     return { status: 'retry' };
   }
