@@ -80,10 +80,17 @@ describe('UserLlmProviderControl', () => {
     expect(radio('Kimi').textContent).toContain('нет ключа');
   });
 
-  it('подсказка: при сбое выбранной ответит Claude', async () => {
-    get.mockResolvedValue(state('claude'));
+  it('подсказка про ответ Claude показана только если выбран не Claude', async () => {
+    get.mockResolvedValue(state('kimi'));
     await mount();
     expect(container.textContent).toContain('Если выбранная модель не ответит, ответит Claude.');
+
+    await act(async () => { root.unmount(); });
+    container.remove();
+
+    get.mockResolvedValue(state('claude'));
+    await mount();
+    expect(container.textContent).not.toContain('Если выбранная модель не ответит, ответит Claude.');
   });
 
   it('ошибка загрузки видна', async () => {
