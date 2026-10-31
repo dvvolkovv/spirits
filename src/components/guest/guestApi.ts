@@ -110,20 +110,34 @@ export async function sendGuestMessage(
   return 'ok';
 }
 
-export async function loadGuestSession(token: string): Promise<{ assistantId: string; messages: GuestMessage[]; left: number } | null> {
+export type GuestSessionResult =
+  | { status: 'ok'; assistantId: string; messages: GuestMessage[]; left: number }
+  | { status: 'gone' }
+  | { status: 'error' };
+
+/**
+ * Разговор пробы после перезагрузки страницы. Различает две разные причины
+ * неуспеха (ревью качества B9-fix, M3): 'gone' — сервер явно ответил «пробы
+ * нет» (404 { error: 'trial' }); 'error' — сбой (сеть, 5xx, таймаут
+ * GUEST_LOAD_TIMEOUT_MS). Раньше оба давали null, и страница на любой из них
+ * стирала ключ пробы — это расходилось с правилом «при сбое ключ остаётся»:
+ * временная недоступность сервера не должна хоронить начатую пробу.
+ */
+export async function loadGuestSession(token: string): Promise<GuestSessionResult> {
   const { signal, done } = withAbortTimeout(GUEST_LOAD_TIMEOUT_MS);
   try {
     const r = await apiClient.post('/webhook/guest/session', { token }, { skipAuth: true, signal });
-    if (!r.ok) { drain(r); return null; }
+    if (r.status === 404) { drain(r); return { status: 'gone' }; }
+    if (!r.ok) { drain(r); return { status: 'error' }; }
     const j = await r.json();
     const messages: GuestMessage[] = Array.isArray(j?.messages)
       ? j.messages
           .filter((m: any) => (m?.role === 'user' || m?.role === 'assistant') && typeof m?.content === 'string')
           .map((m: any) => ({ role: m.role, content: m.content }))
       : [];
-    return { assistantId: String(j?.assistantId ?? ''), messages, left: Math.max(0, Number(j?.left) || 0) };
+    return { status: 'ok', assistantId: String(j?.assistantId ?? ''), messages, left: Math.max(0, Number(j?.left) || 0) };
   } catch {
-    return null;
+    return { status: 'error' };
   } finally {
     done();
   }

@@ -56,13 +56,35 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
       const stored = readTrial();
       let chosen: string | null = null;
       let rest: Restored | null = null;
-      if (stored) {
+      // m3 (Critical, ревью качества B9-fix): список пуст — ниже и так
+      // покажется экран входа (agents.length === 0), а ключ пробы трогать
+      // незачем: список может быть пуст из-за сбоя сети fetchGuestAgents, а
+      // не потому что ассистентов и в самом деле нет.
+      if (stored && list.length > 0) {
         const s = await loadGuestSession(stored.token);
-        if (s && list.some((a) => a.id === s.assistantId)) {
-          chosen = s.assistantId;
-          rest = { token: stored.token, messages: s.messages, left: s.left };
-        } else {
+        if (s.status === 'ok') {
+          if (list.some((a) => a.id === s.assistantId)) {
+            chosen = s.assistantId;
+            rest = { token: stored.token, messages: s.messages, left: s.left };
+          } else {
+            // Ассистент, с которым шла проба, больше не в списке — продолжить
+            // с ним всё равно нельзя, ключ не жалко.
+            forgetTrial();
+          }
+        } else if (s.status === 'gone') {
           forgetTrial();
+        } else {
+          // 'error': сбой (сеть, 5xx, таймаут) — НЕ повод терять ключ («при
+          // сбое ключ остаётся», обещание «перезагрузка разговор не
+          // теряет»). Открываем пробу этим же ключом без ленты — она
+          // подгрузится, когда сервер ответит. Если сохранённый ассистент
+          // тем временем не в списке — просто не восстанавливаем сейчас
+          // (ключ всё равно остаётся для следующей попытки, на этот раз
+          // ничего не стираем: мы не ПОДТВЕРДИЛИ, что пробы нет).
+          if (list.some((a) => a.id === stored.assistantId)) {
+            chosen = stored.assistantId;
+            rest = { token: stored.token, messages: [], left: null };
+          }
         }
       }
       if (!chosen) {
@@ -87,6 +109,11 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
   }, []);
 
   useEffect(() => {
+    // m2: список ассистентов ещё не загружен (идёт первый запрос) или пуст —
+    // ниже всё равно покажется Spinner/экран входа, аватар на них не нужен,
+    // а дёргать сервер заранее для несуществующего или неподтверждённого
+    // ассистента смысла не имеет.
+    if (!agents || agents.length === 0) return;
     let alive = true;
     setAvatar(null);
     avatarService
@@ -94,22 +121,8 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
       .then((url) => { if (alive && url) setAvatar(url); })
       .catch(() => undefined);
     return () => { alive = false; };
-  }, [assistantId]);
+  }, [assistantId, agents]);
 
-  if (showLogin) {
-    return (
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setShowLogin(false)}
-          className="absolute left-4 top-4 z-20 text-sm font-medium text-forest-800 hover:underline"
-        >
-          {t('guest.backToChat')}
-        </button>
-        <OnboardingPage />
-      </div>
-    );
-  }
   if (agents === null) return <Spinner />;
   if (agents.length === 0) return <OnboardingPage />;
 
@@ -128,76 +141,103 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50">
-      <header className="flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3">
-        {avatar ? (
-          <img src={avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
-        ) : (
-          <div className="h-9 w-9 rounded-full bg-forest-100" />
-        )}
-        <div className="min-w-0 flex-1">
-          {started ? (
-            <>
-              <p className="truncate font-semibold text-gray-900">{name}</p>
-              <p className="truncate text-xs text-gray-500">{t('guest.pickLocked')}</p>
-            </>
+    <>
+      {/*
+        C1 (Critical, ревью качества B9-fix): раньше showLogin подменял ВЕСЬ
+        возврат компонента на экран входа — GuestChat размонтировался, и
+        после «Вернуться» рождался новый экземпляр с token=null и пустой
+        лентой: следующее сообщение открывало НОВУЮ пробу (старая
+        осиротевала, потолок трёх ответов обходился), а черновик с лендинга
+        уходил в чат повторно. Теперь контейнер с шапкой и чатом всегда в
+        дереве — на время экрана входа он просто скрыт классом hidden
+        (display:none), а не размонтирован: GuestChat не теряет состояние.
+      */}
+      <div className={showLogin ? 'hidden' : 'flex h-screen flex-col bg-gray-50'}>
+        <header className="flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3">
+          {avatar ? (
+            <img src={avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
           ) : (
-            <select
-              aria-label={t('guest.pickAssistant')}
-              value={assistantId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setAssistantId(id);
-                setDraft(null);
-                setGeneration((g) => g + 1);
-                // Доп. B6: тот же ассистент — в адресе, не только в состоянии
-                // страницы. useEntryParams (страницы пробы и экрана входа)
-                // перечитает ?assistant= и запомнит его как намерение входа —
-                // иначе после входа кабинет открыл бы прежнего ассистента.
-                setSearchParams(
-                  (p) => {
-                    const n = new URLSearchParams(p);
-                    n.set('assistant', id);
-                    return n;
-                  },
-                  { replace: true },
-                );
-              }}
-              className="max-w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-sm font-semibold text-gray-900"
-            >
-              {agents.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
+            <div className="h-9 w-9 rounded-full bg-forest-100" />
           )}
+          <div className="min-w-0 flex-1">
+            {started ? (
+              <>
+                <p className="truncate font-semibold text-gray-900">{name}</p>
+                <p className="truncate text-xs text-gray-500">{t('guest.pickLocked')}</p>
+              </>
+            ) : (
+              <select
+                aria-label={t('guest.pickAssistant')}
+                value={assistantId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setAssistantId(id);
+                  setDraft(null);
+                  setGeneration((g) => g + 1);
+                  // Доп. B6: тот же ассистент — в адресе, не только в состоянии
+                  // страницы. useEntryParams (страницы пробы и экрана входа)
+                  // перечитает ?assistant= и запомнит его как намерение входа —
+                  // иначе после входа кабинет открыл бы прежнего ассистента.
+                  setSearchParams(
+                    (p) => {
+                      const n = new URLSearchParams(p);
+                      n.set('assistant', id);
+                      return n;
+                    },
+                    { replace: true },
+                  );
+                }}
+                className="max-w-full rounded-lg border border-gray-200 bg-white px-2 py-1 text-sm font-semibold text-gray-900"
+              >
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            // m1: не просто disabled — подсказка ПОЧЕМУ (перенос пробы
+            // посреди ответа теряет пару, которая ещё пишется).
+            title={busy ? t('guest.loginDisabledHint') : undefined}
+            onClick={() => setShowLogin(true)}
+            className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {t('guest.login')}
+          </button>
+        </header>
+        <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+          <GuestChat
+            key={`${assistantId}:${generation}`}
+            assistantId={assistantId}
+            assistantName={name}
+            config={config}
+            token={restored?.token ?? null}
+            initialMessages={restored?.messages ?? []}
+            initialLeft={restored ? restored.left : null}
+            draft={draft}
+            preview={preview}
+            onToken={onToken}
+            onStarted={() => setStarted(true)}
+            onTrialGone={onTrialGone}
+            onBusyChange={setBusy}
+          />
+        </main>
+      </div>
+      {showLogin && (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowLogin(false)}
+            className="absolute left-4 top-4 z-20 text-sm font-medium text-forest-800 hover:underline"
+          >
+            {t('guest.backToChat')}
+          </button>
+          <OnboardingPage />
         </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => setShowLogin(true)}
-          className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-50"
-        >
-          {t('guest.login')}
-        </button>
-      </header>
-      <main className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
-        <GuestChat
-          key={`${assistantId}:${generation}`}
-          assistantId={assistantId}
-          assistantName={name}
-          config={config}
-          token={restored?.token ?? null}
-          initialMessages={restored?.messages ?? []}
-          initialLeft={restored ? restored.left : null}
-          draft={draft}
-          preview={preview}
-          onToken={onToken}
-          onStarted={() => setStarted(true)}
-          onTrialGone={onTrialGone}
-          onBusyChange={setBusy}
-        />
-      </main>
-    </div>
+      )}
+    </>
   );
 };
 
