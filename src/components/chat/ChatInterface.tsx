@@ -202,7 +202,7 @@ const StreamingMessage = React.memo(({
 
       if (match[0].startsWith('__BUTTON_')) {
         const buttonId = match[1];
-        const buttonConfig = buttons.get(`btn_${buttonId}`);
+        const buttonConfig = buttons.get(buttonId);
         if (buttonConfig) {
           parts.push(
             <span key={`button-${idx}`}>
@@ -212,7 +212,7 @@ const StreamingMessage = React.memo(({
         }
       } else if (match[0].startsWith('__LINK_')) {
         const linkId = match[1];
-        const linkConfig = links.get(`link_${linkId}`);
+        const linkConfig = links.get(linkId);
         if (linkConfig) {
           parts.push(
             <span key={`link-${idx}`}>
@@ -222,7 +222,7 @@ const StreamingMessage = React.memo(({
         }
       } else if (match[0].startsWith('__VIDEO_')) {
         const videoId = match[1];
-        const videoSrc = videos.get(`video_${videoId}`);
+        const videoSrc = videos.get(videoId);
         if (videoSrc) {
           parts.push(
             <span key={`video-${idx}`}>
@@ -3077,7 +3077,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                       if (match[0].startsWith('__BUTTON_')) {
                         const buttonId = match[1];
-                        const buttonConfig = buttons.get(`btn_${buttonId}`);
+                        const buttonConfig = buttons.get(buttonId);
                         if (buttonConfig) {
                           parts.push(
                             <span key={`button-${idx}`}>
@@ -3087,7 +3087,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         }
                       } else if (match[0].startsWith('__LINK_')) {
                         const linkId = match[1];
-                        const linkConfig = links.get(`link_${linkId}`);
+                        const linkConfig = links.get(linkId);
                         if (linkConfig) {
                           parts.push(
                             <span key={`link-${idx}`}>
@@ -3097,7 +3097,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         }
                       } else if (match[0].startsWith('__VIDEO_')) {
                         const videoId = match[1];
-                        const videoSrc = videos.get(`video_${videoId}`);
+                        const videoSrc = videos.get(videoId);
                         if (videoSrc) {
                           parts.push(
                             <span key={`video-${idx}`}>
