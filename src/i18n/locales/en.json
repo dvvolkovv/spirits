@@ -2537,6 +2537,8 @@
   "guest": {
     "login": "Sign in",
     "backToChat": "← Back to the conversation",
+    "claimNotice": "The trial conversation will be saved to the account you sign in to.",
+    "claimDiscard": "Don't save",
     "pickAssistant": "Choose an assistant",
     "pickLocked": "Sign in to talk to other assistants",
     "empty": "{{name}} will answer right away, no sign-up needed. Tell us what brought you here.",

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
@@ -6,10 +6,18 @@ import LoginTabs from '../components/onboarding/LoginTabs';
 import { LanguageSelect } from '../components/settings/LanguageSelect';
 import { ANDROID_APK_URL } from '../androidApp';
 import { useEntryParams } from '../components/onboarding/useEntryParams';
+import { forgetTrial, readTrial } from '../components/guest/guestStorage';
 
 const OnboardingPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+  // E1 (решение владельца 31.10.2026): общий компьютер — проба человека A не
+  // должна молча утечь в аккаунт человека B, который входит следом на том же
+  // устройстве. Пока на устройстве есть ключ пробы, экран входа (этот же
+  // компонент открывается и из шапки пробы, GuestChatPage.tsx) предупреждает
+  // об этом и даёт стереть ключ ДО входа. Ленивый initial — читаем один раз
+  // при открытии экрана; дальше строку прячет только явный клик «Не сохранять».
+  const [hasTrial, setHasTrial] = useState(() => !!readTrial());
 
   useEntryParams();
 
@@ -62,6 +70,22 @@ const OnboardingPage: React.FC = () => {
           </h1>
           <p className="mt-1.5 text-sm text-gray-600">{segSubtitle}</p>
         </div>
+
+        {hasTrial && (
+          <div
+            data-testid="guest-claim-notice"
+            className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl bg-forest-50 px-3.5 py-2.5 text-xs text-forest-800 animate-fade-in"
+          >
+            <span>{t('guest.claimNotice')}</span>
+            <button
+              type="button"
+              onClick={() => { forgetTrial(); setHasTrial(false); }}
+              className="shrink-0 font-semibold underline hover:text-forest-900"
+            >
+              {t('guest.claimDiscard')}
+            </button>
+          </div>
+        )}
 
         <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-[0_10px_30px_-14px_rgba(15,118,110,0.4)] animate-slide-up stagger-2">
           <LoginTabs />

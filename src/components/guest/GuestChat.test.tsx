@@ -116,6 +116,12 @@ describe('чат пробы', () => {
     expect(visibleText(view!.container)).toContain('Третий ответ');
     expect(visibleText(view!.container)).toContain('Чтобы продолжить и сохранить разговор, войдите');
     expect(visibleText(view!.container)).toContain('форма входа');
+    // E1 (решение владельца 31.10.2026): строка про перенос пробы в чужой
+    // аккаунт — только на экране входа (OnboardingPage), не на стене: сюда
+    // входит тот же человек, которому нечего скрывать от самого себя.
+    // GuestChat не импортирует OnboardingPage вовсе — это документирует
+    // инвариант, а не ловит регрессию именно в этом файле.
+    expect(visibleText(view!.container)).not.toContain('Разговор из пробы сохранится в аккаунте, в который вы войдёте.');
     expect(input()).toBeNull();
     expect(track).toHaveBeenCalledWith('guest_trial_wall', { reason: 'limit', assistant_id: '12' });
     // Событие стены — ровно один раз: обработчик не должен сработать

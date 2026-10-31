@@ -2177,6 +2177,8 @@
   "guest": {
     "login": "Se connecter",
     "backToChat": "← Revenir à la conversation",
+    "claimNotice": "La conversation d'essai sera enregistrée dans le compte auquel tu te connectes.",
+    "claimDiscard": "Ne pas enregistrer",
     "pickAssistant": "Choisir un assistant",
     "pickLocked": "Connecte-toi pour parler à d'autres assistants",
     "empty": "{{name}} répond tout de suite, sans inscription. Dis ce qui t'amène.",

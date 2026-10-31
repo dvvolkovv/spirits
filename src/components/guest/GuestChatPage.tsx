@@ -9,7 +9,7 @@ import { takePendingDraftEntry } from '../../utils/pendingDraft';
 import { useEntryParams } from '../onboarding/useEntryParams';
 import GuestChat from './GuestChat';
 import { fetchGuestAgents, loadGuestSession } from './guestApi';
-import { forgetTrial, readTrial, saveTrial } from './guestStorage';
+import { forgetTrial, readTrial, saveTrial, TRIAL_KEY } from './guestStorage';
 import type { GuestAgent, GuestConfig, GuestMessage } from './guestTypes';
 
 /** Роман — универсальный ассистент: к нему ведёт и поле в первом экране лендинга. */
@@ -51,6 +51,21 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
   /** Идёт ход у GuestChat (ревью A7) — пока true, «Войти» в шапке недоступна:
    * перенос пробы посреди ответа теряет пару, которая ещё пишется. */
   const [busy, setBusy] = useState(false);
+
+  /**
+   * Общий сброс пробы: и при возврате со своего экрана входа после «Не
+   * сохранять» (JSX ниже), и при том же «Не сохранять» из ДРУГОЙ вкладки
+   * (эффект сразу под этим объявлением). Определён здесь, а не только среди
+   * обработчиков под early return ниже, — на него ссылается хук, а хуки
+   * обязаны идти до любого раннего return.
+   */
+  const onTrialGone = (unsent: string) => {
+    forgetTrial();
+    setRestored(null);
+    setStarted(false);
+    setDraft({ text: unsent, auto: false });
+    setGeneration((g) => g + 1);
+  };
 
   useEffect(() => {
     let alive = true;
@@ -134,6 +149,34 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
     return () => { alive = false; };
   }, [assistantId, agents]);
 
+  /**
+   * E1 (хвост по ревью, 31.10.2026): общий компьютер — «Не сохранять»,
+   * нажатое в ДРУГОЙ вкладке, стирает guest_trial из localStorage, но ЭТА
+   * страница сама его не перечитывает (ключ читается только при открытии,
+   * первый эффект выше) — её GuestChat остаётся смонтированным со старым
+   * token в памяти, ровно как и в сценарии «вернуться со своего экрана
+   * входа» ниже. 'storage' — единственное штатное уведомление об изменении
+   * localStorage, которое браузер шлёт в ДРУГИЕ вкладки/окна того же
+   * origin (вкладка, которая сама и поменяла значение, его не получает).
+   * newValue === null — именно удаление ключа, а не перезапись (например,
+   * той же пробой снова, или другой — на устройстве могли открыть новую).
+   * started — тот же смысл, что и ниже у кнопки «Вернуться»: есть ли у
+   * ЭТОЙ вкладки живой token, который стоит обезвредить (см. комментарий
+   * там — started значит не «ключ существует», а «token в памяти»).
+   * onTrialGone не в deps намеренно, как и у первого эффекта выше: он
+   * замыкает только стабильные setState/forgetTrial, пересборка подписки на
+   * каждый его новый инстанс ничего не меняла бы по смыслу, а дешевле не
+   * дёргать addEventListener на каждой перерисовке.
+   */
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === TRIAL_KEY && e.newValue === null && started) onTrialGone('');
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started]);
+
   if (agents === null) return <Spinner />;
   if (agents.length === 0) return <OnboardingPage />;
 
@@ -142,13 +185,6 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
     saveTrial({ token, assistantId });
     // После входа кабинет откроет этого ассистента.
     rememberPendingAssistant(assistantId);
-  };
-  const onTrialGone = (unsent: string) => {
-    forgetTrial();
-    setRestored(null);
-    setStarted(false);
-    setDraft({ text: unsent, auto: false });
-    setGeneration((g) => g + 1);
   };
 
   return (
@@ -240,7 +276,41 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
         <div className="relative">
           <button
             type="button"
-            onClick={() => setShowLogin(false)}
+            onClick={() => {
+              // E1 (решение владельца 31.10.2026): «Не сохранять» на этом же
+              // экране входа стирает ключ пробы (guestStorage, см.
+              // OnboardingPage) — но страница узнаёт об этом не сама: она
+              // читает ключ ТОЛЬКО при открытии (первый эффект выше, deps
+              // []), а GuestChat всё это время остаётся смонтированным (C1)
+              // со старым token в памяти. Без сброса следующее сообщение
+              // продолжило бы именно ту пробу, которую попросили не
+              // сохранять.
+              //
+              // started — НЕ «ключ пробы существует», а «у смонтированного
+              // GuestChat уже есть (был) живой token в памяти»: сбрасывать
+              // стоит только тогда, когда есть что обезвредить. При
+              // started=false такого token нет ни в одном из двух случаев:
+              // либо проба в этой вкладке и не начиналась (ключа тогда
+              // действительно ещё не было — но без проверки started
+              // !readTrial() было бы истинно и просто от открытия экрана
+              // входа ДО первого сообщения, и сброс стирал бы черновик,
+              // который человек ещё печатает, без всякого «Не сохранять»),
+              // либо это ветка восстановления 'error' с ассистентом не из
+              // текущего списка (первый эффект выше) — там ключ в
+              // localStorage мог уцелеть (forgetTrial() там не зовётся), но
+              // rest/token для ЭТОЙ страницы всё равно null — переносить
+              // нечего, реального риска унести пробу нет.
+              //
+              // onTrialGone('') — тот же сброс, что и при пропаже пробы на
+              // сервере (и при том же «Не сохранять» из другой вкладки,
+              // эффект выше): пустой черновик, generation+1 пересоздаёт
+              // GuestChat с нуля (token=null) — проба начинается заново тем
+              // же ассистентом. Предпочтено перед window.location.reload():
+              // не теряет SPA (список ассистентов не перезапрашивается, нет
+              // мигания Spinner'ом) и проверяется без мока window.location.
+              if (started && !readTrial()) onTrialGone('');
+              setShowLogin(false);
+            }}
             className="absolute left-4 top-4 z-20 text-sm font-medium text-forest-800 hover:underline"
           >
             {t('guest.backToChat')}

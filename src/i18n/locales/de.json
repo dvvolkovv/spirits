@@ -2168,6 +2168,8 @@
   "guest": {
     "login": "Anmelden",
     "backToChat": "← Zurück zum Gespräch",
+    "claimNotice": "Das Probegespräch wird in dem Konto gespeichert, mit dem du dich anmeldest.",
+    "claimDiscard": "Nicht speichern",
     "pickAssistant": "Assistenten wählen",
     "pickLocked": "Melde dich an, um mit anderen Assistenten zu sprechen",
     "empty": "{{name}} antwortet sofort, ohne Registrierung. Erzähl, worum es geht.",
