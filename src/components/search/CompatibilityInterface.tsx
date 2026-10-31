@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { useAuth } from '../../contexts/AuthContext';
 import { Heart, X, Plus, Users, Info } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
+import { createChunkDecoder } from '../../utils/streamDecoder';
 
 const CompatibilityInterface: React.FC = () => {
   const { user } = useAuth();
@@ -212,11 +213,19 @@ const CompatibilityInterface: React.FC = () => {
 
       let accumulatedText = '';
       let buffer = '';
+      // Один decoder на весь поток: новый TextDecoder на каждый кусок не
+      // хранит байтовый хвост многобайтного знака (кириллица, эмодзи),
+      // разрезанного границей кусков, — находка ревью пробы 31.10.
+      const decoder = createChunkDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
+          // Хвост decoder'а (неполный многобайтный знак последнего куска) —
+          // забрать его перед разбором того, что осталось в buffer без
+          // завершающего \n (последнее событие хода чаще всего приходит так).
+          buffer += decoder.flush();
           // Process remaining buffer
           if (buffer.trim()) {
             try {
@@ -230,7 +239,7 @@ const CompatibilityInterface: React.FC = () => {
           break;
         }
 
-        buffer += new TextDecoder().decode(value);
+        buffer += decoder.decode(value);
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // Keep incomplete last line in buffer
 

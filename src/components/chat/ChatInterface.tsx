@@ -65,6 +65,7 @@ import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
 import { stripProductActionBlocks } from '../../utils/productActionBlock';
 import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';
+import { createChunkDecoder } from '../../utils/streamDecoder';
 
 interface Assistant {
   id: number;
@@ -1470,12 +1471,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const updateInterval = 50;
       let buffer = '';
       let lastUsage: { total?: number } | null = null;
+      // Один decoder на весь поток: новый TextDecoder на каждый кусок (как
+      // было здесь) не хранит байтовый хвост многобайтного знака (кириллица,
+      // эмодзи), разрезанного границей кусков, — находка ревью пробы 31.10.
+      const decoder = createChunkDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
 
         if (value) {
-          buffer += new TextDecoder().decode(value);
+          buffer += decoder.decode(value);
+        }
+        if (done) {
+          // Хвост decoder'а — забрать перед разбором остатка buffer ниже.
+          buffer += decoder.flush();
         }
 
         const lines = buffer.split('\n');
@@ -2440,12 +2449,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       let accumulatedContent = '';
       let buffer = '';
       let lastTokensUsed = 0;
+      // Один decoder на весь поток: раньше TextDecoder создавался заново на
+      // каждый кусок — `{ stream: true }` на нём бесполезен, decoder новый и
+      // без памяти о предыдущих байтах (находка ревью пробы 31.10).
+      const decoder = createChunkDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
+        // Без decoder.flush() здесь: в отличие от soulmate/chat выше и
+        // CompatibilityInterface.tsx, этот цикл рвётся на done БЕЗ разбора
+        // остатка buffer — последняя строка без завершающего \n терялась уже
+        // до фикса decoder'а (самостоятельный, более старый пробел этого
+        // места, не предмет E2a). flush() тут был бы мёртвым кодом: его
+        // результату некому достаться — buffer ниже не читается нигде после break.
         if (done) break;
 
-        buffer += new TextDecoder().decode(value, { stream: true });
+        buffer += decoder.decode(value);
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 

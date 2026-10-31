@@ -6,6 +6,7 @@ import UserProfileModal from './UserProfileModal';
 import { Search, Users, MessageCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import { createChunkDecoder } from '../../utils/streamDecoder';
 
 interface UserMatch {
   id: string;          // client-side key (stringified userId)
@@ -18,6 +19,57 @@ interface UserMatch {
   skills?: string[];
   corellation: number;
   matchReason?: string;
+}
+
+/**
+ * Разбирает NDJSON-поток поиска. Вынесено из компонента (по образцу
+ * products/ProductChat.tsx:consumeTurnStream — свой тест в searchStream.test.ts),
+ * чтобы поведение потока — в т.ч. последняя строка без завершающего \n,
+ * которой часто приходит закрывающее событие хода, — можно было проверить
+ * без рендера всего экрана поиска.
+ *
+ * Ревью E2 (31.10): до этой правки `done` рвал цикл сразу, не забирая ни
+ * хвост decoder'а, ни то, что осталось в lineBuffer без \n, — последняя
+ * строка молча терялась (скрытый регресс к поведению до фикса decoder'а).
+ */
+export async function consumeSearchStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onItem: (content: string) => void,
+): Promise<void> {
+  const decoder = createChunkDecoder();
+  let lineBuffer = '';
+
+  const processLine = (line: string) => {
+    try {
+      const data = JSON.parse(line);
+      if (data.type === 'item' && data.content) onItem(data.content);
+    } catch (e) {
+      // Skip invalid JSON lines
+      console.warn('Failed to parse streaming data:', line);
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      // Хвост decoder'а (неполный многобайтный знак последнего куска) и то,
+      // что осталось в lineBuffer без завершающего \n — последнее событие
+      // хода чаще всего приходит именно так.
+      lineBuffer += decoder.flush();
+      if (lineBuffer.trim()) processLine(lineBuffer);
+      break;
+    }
+
+    lineBuffer += decoder.decode(value);
+    const lines = lineBuffer.split('\n');
+    lineBuffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      processLine(line);
+    }
+  }
 }
 
 const SearchInterface: React.FC = () => {
@@ -106,48 +158,30 @@ const SearchInterface: React.FC = () => {
       let searchResultFound = false;
       let jsonBuffer = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
-        
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line);
-            
-            if (data.type === 'item' && data.content) {
-              accumulatedText += data.content;
-              
-              // Check if we've reached the search_result marker
-              if (accumulatedText.includes('search_result:')) {
-                searchResultFound = true;
-                // Extract everything after search_result:
-                const searchResultIndex = accumulatedText.indexOf('search_result:');
-                const beforeSearchResult = accumulatedText.substring(0, searchResultIndex);
-                const afterSearchResult = accumulatedText.substring(searchResultIndex + 'search_result:'.length);
-                
-                // Update comment with text before search_result
-                setSearchComment(beforeSearchResult.trim());
-                
-                // Start collecting JSON
-                jsonBuffer = afterSearchResult;
-              } else if (!searchResultFound) {
-                // Still collecting comment text
-                setSearchComment(accumulatedText);
-              } else {
-                // Collecting JSON data
-                jsonBuffer += data.content;
-              }
-            }
-          } catch (e) {
-            // Skip invalid JSON lines
-            console.warn('Failed to parse streaming data:', line);
-          }
+      await consumeSearchStream(reader, (content) => {
+        accumulatedText += content;
+
+        // Check if we've reached the search_result marker
+        if (accumulatedText.includes('search_result:')) {
+          searchResultFound = true;
+          // Extract everything after search_result:
+          const searchResultIndex = accumulatedText.indexOf('search_result:');
+          const beforeSearchResult = accumulatedText.substring(0, searchResultIndex);
+          const afterSearchResult = accumulatedText.substring(searchResultIndex + 'search_result:'.length);
+
+          // Update comment with text before search_result
+          setSearchComment(beforeSearchResult.trim());
+
+          // Start collecting JSON
+          jsonBuffer = afterSearchResult;
+        } else if (!searchResultFound) {
+          // Still collecting comment text
+          setSearchComment(accumulatedText);
+        } else {
+          // Collecting JSON data
+          jsonBuffer += content;
         }
-      }
+      });
       
       // Parse the final JSON results
       if (searchResultFound && jsonBuffer.trim()) {
