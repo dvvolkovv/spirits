@@ -1,7 +1,7 @@
 // src/components/guest/GuestChat.test.tsx
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { byButton, click, clickAsync, flush, mount, type, visibleText, type Mounted } from '../../test/dom';
+import { byButton, byLink, click, clickAsync, flush, mount, type, visibleText, type Mounted } from '../../test/dom';
 
 vi.mock('react-i18next', async () => {
   const { tRu: t } = await import('../../test/dom');

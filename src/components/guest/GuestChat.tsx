@@ -4,7 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import LoginTabs from '../onboarding/LoginTabs';
 import LoginConsentBlock from '../onboarding/LoginConsentBlock';
-import { parseCustomMarkdown } from '../../utils/customMarkdown';
+import { parseCustomMarkdown, type LinkConfig } from '../../utils/customMarkdown';
+import { isContactLink, isWebLink } from '../../utils/cabinetSections';
 import { savePendingDraft } from '../../utils/pendingDraft';
 import { getCampaign, getSessionId, getSource, track } from '../../services/eventsClient';
 import { sendGuestMessage, type GuestSendResult } from './guestApi';
@@ -68,15 +69,94 @@ function errorKindForResult(result: GuestSendResult): ErrorKind {
   }
 }
 
-/** Ответ без кнопок и медиа из разметки ассистента: в пробе их нечем исполнить. */
-const GuestAnswer: React.FC<{ content: string }> = ({ content }) => {
-  const { content: text } = parseCustomMarkdown(content, { streaming: true });
+/**
+ * Служебные метки customMarkdown.tsx (__BUTTON_…__/__LINK_…__/…), оставшиеся
+ * в тексте после parseCustomMarkdown: в пробе нет истории чата с состоянием и
+ * обработчиков кнопок/карточек, поэтому заменяются текстом (ссылка, адрес
+ * картинки/видео — он сам станет обычной <a> через remark-gfm autolink и
+ * components.a ниже) или пустой строкой (I1 ревью качества B8).
+ *
+ * Блок уточняющих вопросов (ASK) — тоже пустой строкой, а не
+ * askBlocksToPlainText: это интерактивная карточка с вариантами ответа,
+ * которую не отрисовать без кнопок, а голый текст вопроса без возможности
+ * выбрать вариант рискует запутать гостя больше, чем его отсутствие.
+ *
+ * ВНИМАНИЕ: id в метке уже содержит префикс (btn_…, link_…, video_…) — он
+ * попал туда при замене тега в customMarkdown.tsx. Ключ в карте — та же
+ * строка целиком, БЕЗ повторного префикса (ниже — links.get(id), не
+ * links.get(`link_${id}`)). В ChatInterface.tsx (StreamingMessage) префикс
+ * добавляется повторно (buttons.get(`btn_${buttonId}`) и т.п., строки
+ * ~205/215/225) — рабочий, но не копируемый сюда баг: двойной префикс не
+ * совпадает ни с одним ключом карты, и там эти метки просто не находят конфиг.
+ */
+function stripGuestLabels(
+  text: string,
+  links: Map<string, LinkConfig>,
+  images: Map<string, string>,
+  videos: Map<string, string>,
+): string {
+  return text
+    .replace(/__LINK_([\w-]+)__/g, (_m, id: string) => links.get(id)?.text ?? '')
+    .replace(/__IMAGE_([\w-]+)__/g, (_m, id: string) => images.get(id) ?? '')
+    .replace(/__VIDEO_([\w-]+)__/g, (_m, id: string) => videos.get(id) ?? '')
+    .replace(/__BUTTON_([\w-]+)__/g, '')
+    .replace(/__ASK_(\d+)__/g, '')
+    .replace(/__PACTION_(\d+)__/g, '')
+    .replace(/__AUDIO_CLIP_([\w-]+)__/g, '')
+    .replace(/__VOICECALL_([\w-]+)__/g, '')
+    .replace(/__MEETING_([\w-]+)__/g, '');
+}
+
+/**
+ * Ссылка ответа ассистента (I2): веб-адрес и почта/телефон — настоящая <a>,
+ * открывается новой вкладкой (в пробе нет роутера кабинета, куда вести
+ * внутренний переход). Остальное (javascript:, data:, пустая, битая) —
+ * текстом без href: иначе её открыли бы средняя кнопка или «Открыть в новой
+ * вкладке» мимо какой-либо проверки. ym-disable-tracklink — мимо «Внешних
+ * переходов» Метрики, как и в основном чате (webvisorPrivacy.test.ts).
+ */
+const GuestLink: React.FC<{ href?: string; children?: React.ReactNode }> = ({ href, children }) => {
+  const url = href ?? '';
+  if (isWebLink(url) || isContactLink(url)) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="ym-disable-tracklink text-forest-600 underline hover:text-forest-700"
+      >
+        {children}
+      </a>
+    );
+  }
+  return <span>{children}</span>;
+};
+
+/** Картинка ответа ассистента (I2) — без запроса в сеть: только подпись alt, если она есть. */
+const GuestImage: React.FC<{ alt?: string }> = ({ alt }) => (alt ? <span>{alt}</span> : null);
+
+const GUEST_MARKDOWN_COMPONENTS = { a: GuestLink, img: GuestImage };
+
+/**
+ * Ответ ассистента. streaming — только для текущего (ещё печатающегося)
+ * куска: у него возможен недописанный тег в хвосте (M4) — у готовых сообщений
+ * из истории его быть не может, а streaming:true там лишь рискует погасить
+ * настоящий недописанный `{{` в конце готового текста. React.memo (M12):
+ * одно и то же готовое сообщение из messages не нуждается в повторном
+ * разборе customMarkdown при каждом чужом обновлении состояния чата.
+ */
+const GuestAnswer: React.FC<{ content: string; streaming?: boolean }> = React.memo(({ content, streaming }) => {
+  const { content: parsed, links, images, videos } = parseCustomMarkdown(content, { streaming: !!streaming });
+  const text = stripGuestLabels(parsed, links, images, videos);
   return (
     <div className="prose prose-sm max-w-none text-gray-800">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={GUEST_MARKDOWN_COMPONENTS}>
+        {text}
+      </ReactMarkdown>
     </div>
   );
-};
+});
+GuestAnswer.displayName = 'GuestAnswer';
 
 /**
  * Чат пробы без входа (spec 2026-10-30-guest-trial). Лента и поле скрыты от
@@ -100,6 +180,32 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
   // Размонтирование посреди хода отменяет его: сигнал уходит в sendGuestMessage
   // третьим аргументом (см. send), страница уже не дождётся результата.
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  /** Лента (I3): прокрутка вниз и к стене. */
+  const listRef = useRef<HTMLDivElement>(null);
+  const wallRef = useRef<HTMLDivElement>(null);
+  /**
+   * Был ли человек у низа ленты ДО этого обновления (≤120px) — обновляется
+   * собственным скроллом человека, а не эффектом по messages/partial/wall:
+   * к моменту этого эффекта новое сообщение уже в DOM, и scrollHeight уже
+   * его учитывает. true по умолчанию — первые сообщения сами уезжают в низ.
+   */
+  const nearBottomRef = useRef(true);
+  const handleListScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 120;
+  };
+  useEffect(() => {
+    if (wall) {
+      // scrollIntoView может отсутствовать в jsdom — опциональный вызов.
+      wallRef.current?.scrollIntoView?.({ block: 'start' });
+      return;
+    }
+    if (nearBottomRef.current && listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [messages, partial, wall]);
 
   const changeConsent = (value: boolean) => {
     setConsent(value);
@@ -199,7 +305,12 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
   const locked = sending || wall !== null;
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div data-testid="guest-messages-list" className="flex-1 space-y-4 overflow-y-auto px-4 py-6 ym-hide-content">
+      <div
+        ref={listRef}
+        onScroll={handleListScroll}
+        data-testid="guest-messages-list"
+        className="flex-1 space-y-4 overflow-y-auto px-4 py-6 ym-hide-content"
+      >
         {messages.length === 0 && partial === null && !wall && (
           <p className="text-center text-sm text-gray-500">{t('guest.empty', { name: assistantName })}</p>
         )}
@@ -217,14 +328,14 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         {partial !== null && (
           <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-gray-100 bg-white px-4 py-3">
             {partial ? (
-              <GuestAnswer content={partial} />
+              <GuestAnswer content={partial} streaming />
             ) : (
               <span className="text-sm text-gray-500">{t('guest.typing', { name: assistantName })}</span>
             )}
           </div>
         )}
         {wall && (
-          <div data-testid="guest-wall" className="rounded-2xl border border-forest-100 bg-white p-5 shadow-sm">
+          <div ref={wallRef} data-testid="guest-wall" className="rounded-2xl border border-forest-100 bg-white p-5 shadow-sm">
             <p className="font-semibold text-gray-900">{wall === 'limit' ? t('guest.wall.title') : t('guest.wall.closedTitle')}</p>
             <p className="mt-1 text-sm text-gray-600">
               {wall === 'limit' ? t('guest.wall.text') : t('guest.wall.closedText', { name: assistantName })}
