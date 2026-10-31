@@ -79,7 +79,12 @@ const AuthLinkPage: React.FC = () => {
     } catch (e) {
       console.error('login() после привязки не удался', e);
     }
-    window.location.replace('/chat');
+    // navigate(), а не window.location.replace: жёсткая перезагрузка
+    // повторяет всю инициализацию SPA заново и теряет уже установленное
+    // в памяти состояние AuthContext, если по какой-то причине userData
+    // всё-таки не записался выше (хвост ревью пробы 31.10) — переходом
+    // роутера сессия остаётся в памяти независимо от этого.
+    navigate('/chat', { replace: true });
   };
 
   const createSeparate = async () => {
@@ -99,8 +104,20 @@ const AuthLinkPage: React.FC = () => {
       // требует ОБА легаси-ключа, и жёсткий переход ниже приводил не
       // вошедшего. Телефона здесь нет — как в AuthOAuthCallbackPage.tsx (OAuth/
       // email тоже входят через login('', accessToken)).
-      await login('', data['access-token']);
-      window.location.replace('/chat');
+      //
+      // Свой try/catch вокруг login() (как в verifyAndAttach), а не общий:
+      // к этому моменту аккаунт уже создан и билет уже погашен бэком
+      // (/auth/link/new выше отработал, токены сохранены) — «ссылка
+      // устарела» на сбое login() была бы ложью и некуда вести: начинать
+      // заново нечем, билет одноразовый. Вход и так уже состоялся токенами.
+      try {
+        await login('', data['access-token']);
+      } catch (e) {
+        console.error('login() после создания отдельного аккаунта не удался', e);
+      }
+      // navigate(), а не window.location.replace — см. комментарий в
+      // verifyAndAttach выше.
+      navigate('/chat', { replace: true });
     } catch {
       fail('authLink.ticketExpired');
     }
