@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
-/** Общий рубильник модели ответов (spec spirits_back 2026-10-31-global-llm-switch). */
+/**
+ * Общий рубильник модели ответов (spec spirits_back 2026-10-31-global-llm-switch).
+ * Правки по ревью качества 01.11.2026: подтверждение при любом переходе не на
+ * Claude, двойной клик, «Загрузка…»/«Повторить», перечитывание ключей после
+ * 409, доступность (role="alert", aria-busy), строка «переключил» скрыта от
+ * Вебвизора (см. src/components/webvisorPrivacy.test.ts).
+ */
 import { act } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot, Root } from 'react-dom/client';
+import { doubleClick } from '../../test/dom';
 
 const { get, post } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('../../services/apiClient', () => ({ apiClient: { get, post } }));
@@ -35,9 +42,26 @@ const mount = async () => {
 };
 const radio = (name: string) =>
   Array.from(container.querySelectorAll('[role="radio"]')).find((el) => el.textContent?.includes(name)) as HTMLButtonElement;
+const retryButton = () =>
+  Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('Повторить')) as HTMLButtonElement | undefined;
+
+// Слушатели на window переживают тест, если снимать их только в теле теста:
+// ранний throw до соответствующего removeEventListener оставляет висящий
+// обработчик, который может задеть следующий тест. afterEach снимает все.
+const addedListeners: EventListener[] = [];
+const onGlobalLlmEvent = (fn: EventListener) => {
+  addedListeners.push(fn);
+  window.addEventListener(GLOBAL_LLM_EVENT, fn);
+};
 
 beforeEach(() => { get.mockReset(); post.mockReset(); });
-afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); });
+afterEach(async () => {
+  await act(async () => root.unmount());
+  container.remove();
+  vi.restoreAllMocks();
+  addedListeners.forEach((fn) => window.removeEventListener(GLOBAL_LLM_EVENT, fn));
+  addedListeners.length = 0;
+});
 
 describe('GlobalLlmProviderControl', () => {
   it('три варианта, текущий выбран; GET общего рубильника', async () => {
@@ -46,6 +70,29 @@ describe('GlobalLlmProviderControl', () => {
     expect(get).toHaveBeenCalledWith('/webhook/admin/llm-provider');
     expect(container.querySelectorAll('[role="radio"]')).toHaveLength(3);
     expect(radio('Qwen').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('«Загрузка…» пока идёт GET', async () => {
+    let resolveGet: (v: unknown) => void = () => {};
+    get.mockReturnValue(new Promise((resolve) => { resolveGet = resolve; }));
+    await mount();
+    expect(container.textContent).toContain('Загрузка');
+    await act(async () => { resolveGet(state('claude')); });
+    await settle();
+    expect(container.textContent).not.toContain('Загрузка');
+  });
+
+  it('ошибка GET — кнопка «Повторить» перезапускает загрузку', async () => {
+    get.mockRejectedValueOnce(new Error('net')).mockResolvedValueOnce(state('qwen'));
+    await mount();
+    expect(container.textContent).toContain('Не удалось загрузить или сохранить');
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    const retry = retryButton();
+    expect(retry).toBeTruthy();
+    await act(async () => { retry!.click(); });
+    await settle();
+    expect(radio('Qwen').getAttribute('aria-checked')).toBe('true');
+    expect(retryButton()).toBeUndefined();
   });
 
   it('модель без ключа недоступна и помечена', async () => {
@@ -69,14 +116,13 @@ describe('GlobalLlmProviderControl', () => {
     post.mockResolvedValue(state('qwen'));
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     const seen = vi.fn();
-    window.addEventListener(GLOBAL_LLM_EVENT, seen);
+    onGlobalLlmEvent(seen);
     await mount();
     await act(async () => { radio('Qwen').click(); });
     await settle();
     expect(post).toHaveBeenCalledWith('/webhook/admin/llm-provider', { provider: 'qwen' });
     expect(radio('Qwen').getAttribute('aria-checked')).toBe('true');
     expect(seen).toHaveBeenCalledTimes(1);
-    window.removeEventListener(GLOBAL_LLM_EVENT, seen);
   });
 
   it('возврат на Claude — без подтверждения', async () => {
@@ -90,20 +136,65 @@ describe('GlobalLlmProviderControl', () => {
     expect(post).toHaveBeenCalledWith('/webhook/admin/llm-provider', { provider: 'claude' });
   });
 
-  it('строка «с …, переключил …»', async () => {
+  it('переход между не-Claude моделями — тоже требует подтверждения', async () => {
     get.mockResolvedValue(state('qwen'));
+    post.mockResolvedValue(state('kimi'));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     await mount();
-    expect(container.textContent).toContain(fmtSince('2026-10-31T13:40:00.000Z'));
-    expect(container.textContent).toContain('admin-1');
+    await act(async () => { radio('Kimi').click(); });
+    await settle();
+    expect(confirm).toHaveBeenCalled();
+    expect(post).toHaveBeenCalledWith('/webhook/admin/llm-provider', { provider: 'kimi' });
   });
 
-  it('409 no_key — понятная ошибка', async () => {
-    get.mockResolvedValue(state('claude', true));
+  it('два клика подряд — один confirm и один POST', async () => {
+    get.mockResolvedValue(state('claude'));
+    post.mockResolvedValue(state('qwen'));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await mount();
+    doubleClick(radio('Qwen'));
+    await settle();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it('во время сохранения radiogroup помечена aria-busy', async () => {
+    get.mockResolvedValue(state('claude'));
+    let resolvePost: (v: unknown) => void = () => {};
+    post.mockReturnValue(new Promise((resolve) => { resolvePost = resolve; }));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await mount();
+    await act(async () => { radio('Qwen').click(); });
+    expect(container.querySelector('[role="radiogroup"]')?.getAttribute('aria-busy')).toBe('true');
+    await act(async () => { resolvePost(state('qwen')); });
+    await settle();
+    expect(container.querySelector('[role="radiogroup"]')?.getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('строка «с …, переключил …» скрыта от Вебвизора', async () => {
+    get.mockResolvedValue(state('qwen'));
+    await mount();
+    const row = container.querySelector('[data-testid="global-llm-since"]');
+    expect(row).not.toBeNull();
+    expect(row!.className).toContain('ym-hide-content');
+    expect(row!.textContent).toContain(fmtSince('2026-10-31T13:40:00.000Z'));
+    expect(row!.textContent).toContain('admin-1');
+  });
+
+  it('409 no_key — понятная ошибка; выбор не меняется, событие не уходит, ключи перечитаны', async () => {
+    get.mockResolvedValueOnce(state('claude', true)).mockResolvedValueOnce(state('claude', false));
     post.mockResolvedValue(ok({ error: 'no_key', provider: 'kimi' }, 409));
     vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const seen = vi.fn();
+    onGlobalLlmEvent(seen);
     await mount();
     await act(async () => { radio('Kimi').click(); });
     await settle();
     expect(container.textContent).toContain('У этой модели нет ключа на сервере');
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    expect(radio('Claude').getAttribute('aria-checked')).toBe('true');
+    expect(seen).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(radio('Kimi').disabled).toBe(true);
   });
 });

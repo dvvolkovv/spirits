@@ -45,6 +45,7 @@ const TokenPurchasePage = readFileSync(join(__dirname, '..', 'pages', 'TokenPurc
 const TokenPackages = readFileSync(join(__dirname, 'tokens', 'TokenPackages.tsx'), 'utf8');
 const ShortsOrderForm = readFileSync(join(__dirname, 'admin', 'ShortsOrderForm.tsx'), 'utf8');
 const AdminShortsView = readFileSync(join(__dirname, 'admin', 'AdminShortsView.tsx'), 'utf8');
+const GlobalLlmProviderControl = readFileSync(join(__dirname, 'admin', 'GlobalLlmProviderControl.tsx'), 'utf8');
 const ShortActionsSrc = readFileSync(join(__dirname, 'admin', 'ShortActions.tsx'), 'utf8');
 const IndexHtml = readFileSync(join(__dirname, '..', '..', 'index.html'), 'utf8');
 const ProductChatSrc = readFileSync(join(__dirname, 'products', 'ProductChat.tsx'), 'utf8');
@@ -180,6 +181,12 @@ describe('переписка скрыта от записи Вебвизора (
 
   it('админка — экран «Ролики» целиком', () => {
     expect(classesOf(AdminShortsView, 'admin-shorts', 'div')).toContain('ym-hide-content');
+  });
+
+  // Строка называет человека, который переключил общий рубильник модели
+  // (admin.globalLlm.since: «С …, переключил <имя или id>») — личные данные.
+  it('админка — рубильник модели: строка «переключил кто»', () => {
+    expect(classesOf(GlobalLlmProviderControl, 'global-llm-since', 'p')).toContain('ym-hide-content');
   });
 });
 

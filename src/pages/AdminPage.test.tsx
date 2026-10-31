@@ -49,7 +49,14 @@ vi.mock('../components/admin/AdminMonitoringView', () => ({ default: () => 'РА
 vi.mock('../components/admin/AdminProductManagementView', () => ({ default: () => 'РАЗДЕЛ-УПРАВЛЕНИЕ-ПРОДУКТОМ' }));
 vi.mock('../components/admin/AdminIntegrationsView', () => ({ default: () => 'РАЗДЕЛ-ИНТЕГРАЦИИ' }));
 vi.mock('../components/admin/AdminBlogView', () => ({ default: () => 'РАЗДЕЛ-БЛОГ' }));
-vi.mock('../components/admin/GlobalLlmBanner', () => ({ default: () => null }));
+
+// Заглушка записывает пропы, а не просто рендерит null: ниже проверяем, что
+// AdminPage передаёт в плашку activeTab (для перечитывания при смене вкладки,
+// ревью качества 01.11.2026) и hideOpen именно на вкладке «Ассистенты».
+const { bannerProps } = vi.hoisted(() => ({ bannerProps: { current: null as Record<string, unknown> | null } }));
+vi.mock('../components/admin/GlobalLlmBanner', () => ({
+  default: (props: Record<string, unknown>) => { bannerProps.current = props; return null; },
+}));
 
 import AdminPage from './AdminPage';
 
@@ -71,6 +78,7 @@ afterEach(() => {
   mounted = null;
   search = '';
   setSearchParams.mockReset();
+  bannerProps.current = null;
 });
 
 describe('вкладка «Сайты и боты»', () => {
@@ -125,5 +133,21 @@ describe('вкладка «Сайты и боты»', () => {
     const container = render();
     expect(container.textContent).toContain('РАЗДЕЛ-ПОДДЕРЖКА');
     expect(container.textContent).not.toContain('РАЗДЕЛ-САЙТЫ-И-БОТЫ');
+  });
+});
+
+describe('плашка общего рубильника модели (GlobalLlmBanner)', () => {
+  it('на вкладке «Ассистенты» получает activeTab и hideOpen=true — кнопка «Изменить» здесь не нужна', () => {
+    search = 'tab=assistants';
+    render();
+    expect(bannerProps.current?.activeTab).toBe('assistants');
+    expect(bannerProps.current?.hideOpen).toBe(true);
+  });
+
+  it('на остальных вкладках hideOpen снят', () => {
+    search = 'tab=support';
+    render();
+    expect(bannerProps.current?.activeTab).toBe('support');
+    expect(bannerProps.current?.hideOpen).toBe(false);
   });
 });

@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 /**
  * Модель ответов человека в карточке (spec spirits_back 2026-10-30-llm-provider-switch,
- * 2026-10-31-kimi-provider-design, 2026-10-31-global-llm-switch).
+ * 2026-10-31-kimi-provider-design, 2026-10-31-global-llm-switch). Правки по
+ * ревью качества 01.11.2026: «Как у всех» показывает ту модель, которая
+ * ФАКТИЧЕСКИ отвечает (effective — с учётом ключа рубильника, не только
+ * global), подсказка про обычный путь — и для «Как у всех», когда рубильник
+ * не на Claude; двойной клик; role="alert"/aria-busy.
  */
 import { act } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot, Root } from 'react-dom/client';
+import { doubleClick } from '../../test/dom';
 
 const { get, post } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('../../services/apiClient', () => ({ apiClient: { get, post } }));
@@ -26,7 +31,11 @@ let container: HTMLDivElement;
 let root: Root;
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
-/** Ответ нового бэкенда: выбор, модель рубильника, чем отвечает сейчас, ключи по каждому запасному. */
+/**
+ * Ответ нового бэкенда: выбор, модель рубильника (global), чем фактически
+ * отвечает сейчас (effective — учитывает ключ global, не только личный выбор),
+ * ключи по каждому запасному.
+ */
 const state = (provider: string, qwen = true, kimi = true, userId = 'u-1', global = 'claude', effective?: string) =>
   ok({ userId, provider, effective: effective ?? (provider === 'default' ? global : provider), global, qwenConfigured: qwen, configured: { qwen, kimi } });
 const mount = async (userId = 'u-1') => {
@@ -48,7 +57,7 @@ const radio = (name: string) => {
 };
 
 beforeEach(() => { get.mockReset(); post.mockReset(); });
-afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
+afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); });
 
 describe('UserLlmProviderControl', () => {
   it('четыре варианта; показывает текущий выбор', async () => {
@@ -68,6 +77,12 @@ describe('UserLlmProviderControl', () => {
     const d = radio('Как у всех');
     expect(d.textContent).toContain('Qwen');
     expect(d.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('«Как у всех»: у модели рубильника нет ключа — показывает Claude (effective, а не global)', async () => {
+    get.mockResolvedValue(state('default', false, true, 'u-1', 'qwen', 'claude'));
+    await mount();
+    expect(radio('Как у всех').textContent).toContain('Claude');
   });
 
   it('выбор «Как у всех» отправляет default', async () => {
@@ -94,6 +109,27 @@ describe('UserLlmProviderControl', () => {
     await settle();
     expect(post).toHaveBeenCalledWith('/webhook/admin/users/u-1/llm-provider', { provider: 'kimi' });
     expect(radio('Kimi').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('два клика подряд — один POST', async () => {
+    get.mockResolvedValue(state('claude'));
+    post.mockResolvedValue(state('kimi'));
+    await mount();
+    doubleClick(radio('Kimi'));
+    await settle();
+    expect(post).toHaveBeenCalledTimes(1);
+  });
+
+  it('во время сохранения radiogroup помечена aria-busy', async () => {
+    get.mockResolvedValue(state('claude'));
+    let resolvePost: (v: unknown) => void = () => {};
+    post.mockReturnValue(new Promise((resolve) => { resolvePost = resolve; }));
+    await mount();
+    await act(async () => { radio('Kimi').click(); });
+    expect(container.querySelector('[role="radiogroup"]')?.getAttribute('aria-busy')).toBe('true');
+    await act(async () => { resolvePost(state('kimi')); });
+    await settle();
+    expect(container.querySelector('[role="radiogroup"]')?.getAttribute('aria-busy')).toBe('false');
   });
 
   it('вариант без ключа помечен «нет ключа»; предупреждения нет, пока он не выбран', async () => {
@@ -131,10 +167,23 @@ describe('UserLlmProviderControl', () => {
     expect(container.textContent).not.toContain('Если выбранная модель не ответит, ответит Claude.');
   });
 
-  it('ошибка загрузки видна', async () => {
+  it('подсказка про ответ Claude — и для «Как у всех», когда рубильник не на Claude', async () => {
+    get.mockResolvedValue(state('default', true, true, 'u-1', 'qwen'));
+    await mount();
+    expect(container.textContent).toContain('Если выбранная модель не ответит, ответит Claude.');
+  });
+
+  it('«Как у всех» на рубильнике-Claude — подсказки про ответ Claude нет', async () => {
+    get.mockResolvedValue(state('default'));
+    await mount();
+    expect(container.textContent).not.toContain('Если выбранная модель не ответит, ответит Claude.');
+  });
+
+  it('ошибка загрузки видна и объявлена как alert', async () => {
     get.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
     await mount();
     expect(container.textContent).toContain('Не удалось загрузить или сохранить выбор');
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
   });
 
   it('заголовок связан с radiogroup через aria-labelledby', async () => {
