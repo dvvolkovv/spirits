@@ -175,7 +175,16 @@ export async function loadGuestSession(token: string): Promise<GuestSessionResul
   const { signal, done } = withAbortTimeout(GUEST_LOAD_TIMEOUT_MS);
   try {
     const r = await apiClient.post('/webhook/guest/session', { token }, { skipAuth: true, signal });
-    if (r.status === 404) { drain(r); return { status: 'gone' }; }
+    if (r.status === 404) {
+      // T7 (хвост по перепроверкам B9-fix, 31.10): gone — ТОЛЬКО когда тело
+      // ответа прямо говорит «пробы нет» (error: 'trial'), как у
+      // claimGuestTrial/m12 ниже. Голый 404 без такого тела (например, откат
+      // бэка без модуля пробы — generic 404 от маршрутизатора/прокси) раньше
+      // тоже читался как gone и стирал ключ живой, просто временно
+      // недоступной пробы — расходилось с «при сбое ключ остаётся».
+      const j = await r.json().catch(() => ({}));
+      return j?.error === 'trial' ? { status: 'gone' } : { status: 'error' };
+    }
     if (!r.ok) { drain(r); return { status: 'error' }; }
     const j = await r.json();
     const messages: GuestMessage[] = Array.isArray(j?.messages)
@@ -204,7 +213,9 @@ export type GuestClaimResult = { status: 'claimed'; assistantId: string } | { st
  * error === 'claimed'. Любой другой 404/409 (например, откат бэка без
  * модуля пробы — generic 404 от маршрутизатора/прокси, или чужой конфликт)
  * — 'retry': ключ пробы не стирается по причине, которая с самой пробой
- * не связана.
+ * не связана. Та же логика и у 200 (T7, хвост по перепроверкам B9-fix):
+ * без числового assistantId в теле — 'retry', а не 'gone' — непонятный
+ * ответ сам по себе не подтверждает, что пробы нет.
  */
 export async function claimGuestTrial(token: string): Promise<GuestClaimResult> {
   try {
@@ -212,7 +223,13 @@ export async function claimGuestTrial(token: string): Promise<GuestClaimResult> 
     if (r.ok) {
       const j = await r.json().catch(() => ({}));
       const id = String(j?.assistantId ?? '');
-      return /^\d+$/.test(id) ? { status: 'claimed', assistantId: id } : { status: 'gone' };
+      // T7 (хвост по перепроверкам B9-fix, 31.10): 200 без числового
+      // assistantId — retry, НЕ gone. 200 без ожидаемого тела — это
+      // неожиданный/непонятный ответ (например, не распознанный прокси ответ
+      // с кодом 200), а не явное подтверждение сервера «проба перенесена
+      // либо её не было»; 'gone' здесь стирал бы ключ живой пробы по
+      // одному лишь статусу, без утверждения о самой пробе.
+      return /^\d+$/.test(id) ? { status: 'claimed', assistantId: id } : { status: 'retry' };
     }
     if (r.status === 404 || r.status === 409) {
       const j = await r.json().catch(() => ({}));
