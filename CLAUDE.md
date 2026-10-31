@@ -177,6 +177,7 @@ src/
 │   ├── admin/                  # AdminAssistantsView, AdminCouponsView
 │   ├── chat/                   # ChatInterface (главный), AssistantSelection
 │   ├── chats/                  # ChatsListView, ChatConversationView, ChatView
+│   ├── guest/                  # Проба без входа: UnauthenticatedEntry, GuestChat, guestApi, guestClaim
 │   ├── layout/                 # Navigation
 │   ├── onboarding/             # PhoneInput, OTPInput, LegalModal, PaymentInfoModal
 │   ├── profile/                # ProfileView
@@ -204,8 +205,17 @@ src/
 /tokens        → TokenPurchasePage (публичный, без auth)
 ```
 
-Если `!isAuthenticated` → показывает `OnboardingPage` (вместо роутов).
+Если `!isAuthenticated` → показывает `UnauthenticatedEntry` (вместо роутов): пробу с ассистентом без входа или `OnboardingPage`.
 Если `VITE_MAINTENANCE_MODE=true` → показывает `MaintenancePage`.
+
+### Проба без входа (`src/components/guest/`, на проде с 31.10.2026)
+
+Кому проба — `decideUnauthEntry.ts`: новое устройство (нет `jwt_access_token` и `linkeon_has_account`) на `/` или `/chat`, в вебе, при режиме `on` (или `preview` во вкладке с `?trial=1`). В Capacitor, на других адресах и на устройстве, где уже входили, — `OnboardingPage`, как раньше. Режим сервер отдаёт в `GET /webhook/guest/config`; `index.html` запрашивает его заранее (скрипт `data-guest-config-prefetch`), чтобы не держать новичка на спиннере.
+
+- Ключ пробы — в `localStorage` (`guestStorage.ts`), ходы — `POST /webhook/guest/chat` (`guestStream.ts`).
+- Перенос в аккаунт — внутри `AuthContext` (`login()` и `initAuth`) до `setUser` (`guestClaim.ts`): `POST /webhook/guest/claim`, после него ключ стирается. На экране входа при живом ключе — строка «Разговор из пробы сохранится…» и «Не сохранять».
+- Выключатель, лимиты и откат — на бэке, без выката фронта: таблица `guest_trial_settings` (см. `spirits_back/CLAUDE.md`, «Проба без входа»).
+- Поле вопроса на лендинге linkeon.io ведёт на `/chat?assistant=…` с вопросом во фрагменте `#ask=`: скрипт `data-draft-capture` в `index.html` стирает фрагмент до Метрики и кладёт вопрос в `pending_draft` с `auto: true` (`src/utils/pendingDraft.ts`); проба отправляет его сама, если согласие с условиями уже отмечено, иначе оставляет в поле.
 
 ### Аутентификация
 
