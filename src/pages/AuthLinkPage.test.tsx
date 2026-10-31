@@ -55,7 +55,7 @@ vi.mock('../utils/tokenManager', () => ({
 
 vi.mock('../components/onboarding/PhoneInput', () => ({
   default: (p: { onSubmit: (phone: string) => void }) => (
-    <button type="button" onClick={() => p.onSubmit('79991234567')}>phone-submit</button>
+    <button type="button" onClick={() => p.onSubmit('70000000000')}>phone-submit</button>
   ),
 }));
 vi.mock('../components/onboarding/OTPInput', () => ({
@@ -99,7 +99,7 @@ describe('AuthLinkPage: после привязки человек входит'
     await clickAsync(byButton(container, /phone-submit/)!);
     await clickAsync(byButton(container, /otp-submit/)!);
 
-    expect(auth.login).toHaveBeenCalledWith('79991234567', 'acc-1');
+    expect(auth.login).toHaveBeenCalledWith('70000000000', 'acc-1');
     expect(apiPost).toHaveBeenCalledWith('/webhook/auth/link/attach', { ticket: 'tkt-1' });
     expect(localStorage.getItem('userData')).not.toBeNull();
     expect(replace).toHaveBeenCalledWith('/chat');
@@ -136,7 +136,7 @@ describe('AuthLinkPage: после привязки человек входит'
     await clickAsync(byButton(container, /phone-submit/)!);
     await clickAsync(byButton(container, /otp-submit/)!);
 
-    expect(auth.login).toHaveBeenCalledWith('79991234567', 'acc-3');
+    expect(auth.login).toHaveBeenCalledWith('70000000000', 'acc-3');
     expect(replace).toHaveBeenCalledWith('/chat');
     consoleError.mockRestore();
   });
