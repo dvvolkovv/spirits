@@ -137,6 +137,11 @@ describe('страница пробы', () => {
     expect(localStorage.getItem('guest_trial')).toBe(JSON.stringify({ token: TOKEN, assistantId: '14' }));
     expect(visibleText(view!.container)).toContain('чат:14:Райя:0');
     expect(visibleText(view!.container)).not.toContain('экран входа');
+    // T9 (хвост по перепроверкам B9-fix, 31.10): ключ пробы есть (хоть лента
+    // и не загрузилась) — выбор ассистента должен быть СКРЫТ, как и при
+    // непустой ленте: token этой пробы привязан к ассистенту '14', и выбор
+    // другого дал бы лишний круг 409 (assistant_mismatch) → trial_gone.
+    expect(view!.container.querySelector('select')).toBeNull();
   });
 
   // m3: пустой список ассистентов (сбой fetchGuestAgents или и впрямь пусто)
