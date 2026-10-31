@@ -121,29 +121,52 @@ function stripGuestLabels(
   images: Map<string, string>,
   videos: Map<string, string>,
 ): string {
+  // T2 (хвост по перепроверке 31.10): ленивый квантификатор [\w-]+? вместо
+  // жадного [\w-]+. Жадный захватывал подчёркивания ЗА пределами собственного
+  // id метки: (1) две соседние метки одного вида («{{link}}{{link}}» без
+  // текста между ними) — жадный шёл через закрывающие `__` первой метки и
+  // доходил до `__` второй, id получался один слипшийся и не находился в
+  // карте — пропадали ОБЕ подписи; (2) голый адрес картинки/видео (I1/I2),
+  // за которым сразу (без пробела) следует `_` из остального текста — жадный
+  // прихватывал этот чужой `_` в id, не находил ключ в карте и терял саму
+  // ссылку. Ленивый останавливается на первом же `__` после id — ровно на
+  // границе метки.
   return text
-    .replace(/__LINK_([\w-]+)__/g, (_m, id: string) => links.get(id)?.text ?? '')
-    .replace(/__IMAGE_([\w-]+)__/g, (_m, id: string) => images.get(id) ?? '')
-    .replace(/__VIDEO_([\w-]+)__/g, (_m, id: string) => videos.get(id) ?? '')
-    .replace(/__BUTTON_([\w-]+)__/g, '')
+    .replace(/__LINK_([\w-]+?)__/g, (_m, id: string) => links.get(id)?.text ?? '')
+    .replace(/__IMAGE_([\w-]+?)__/g, (_m, id: string) => images.get(id) ?? '')
+    .replace(/__VIDEO_([\w-]+?)__/g, (_m, id: string) => videos.get(id) ?? '')
+    .replace(/__BUTTON_([\w-]+?)__/g, '')
     .replace(/__ASK_(\d+)__/g, '')
     .replace(/__PACTION_(\d+)__/g, '')
-    .replace(/__AUDIO_CLIP_([\w-]+)__/g, '')
-    .replace(/__VOICECALL_([\w-]+)__/g, '')
-    .replace(/__MEETING_([\w-]+)__/g, '');
+    .replace(/__AUDIO_CLIP_([\w-]+?)__/g, '')
+    .replace(/__VOICECALL_([\w-]+?)__/g, '')
+    .replace(/__MEETING_([\w-]+?)__/g, '');
 }
 
 /**
- * Ссылка ответа ассистента (I2): веб-адрес и почта/телефон — настоящая <a>,
- * открывается новой вкладкой (в пробе нет роутера кабинета, куда вести
- * внутренний переход). Остальное (javascript:, data:, пустая, битая) —
- * текстом без href: иначе её открыли бы средняя кнопка или «Открыть в новой
- * вкладке» мимо какой-либо проверки. ym-disable-tracklink — мимо «Внешних
- * переходов» Метрики, как и в основном чате (webvisorPrivacy.test.ts).
+ * Ссылка ответа ассистента (I2): веб-адрес и почта/телефон — настоящая <a>.
+ * Остальное (javascript:, data:, пустая, битая) — текстом без href: иначе её
+ * открыли бы средняя кнопка или «Открыть в новой вкладке» мимо какой-либо
+ * проверки. ym-disable-tracklink — мимо «Внешних переходов» Метрики, как и в
+ * основном чате (webvisorPrivacy.test.ts).
+ *
+ * T3 (хвост по перепроверке 31.10): target="_blank" — ТОЛЬКО веб-адресам (в
+ * пробе нет роутера кабинета, куда вести внутренний переход, поэтому вместо
+ * внутренней навигации, как в основном чате, — честная новая вкладка).
+ * mailto:/tel: не открывают вкладку вовсе — их подхватывает почтовая
+ * программа/звонок, а target="_blank" на такой ссылке в Firefox оставляет
+ * пустую вкладку висеть (как и в основном чате, createLinkComponent).
  */
 const GuestLink: React.FC<{ href?: string; children?: React.ReactNode }> = ({ href, children }) => {
   const url = href ?? '';
-  if (isWebLink(url) || isContactLink(url)) {
+  if (isContactLink(url)) {
+    return (
+      <a href={url} className="ym-disable-tracklink text-forest-600 underline hover:text-forest-700">
+        {children}
+      </a>
+    );
+  }
+  if (isWebLink(url)) {
     return (
       <a
         href={url}
@@ -193,7 +216,21 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
   const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<GuestMessage[]>(props.initialMessages);
   const [partial, setPartial] = useState<string | null>(null);
-  const [input, setInput] = useState('');
+  const [input, setInputState] = useState('');
+  /**
+   * Зеркало input (T1, хвост по перепроверке 31.10): к моменту отмены/сбоя
+   * хода обычный `input` в замыкании send() уже устарел — он читается один
+   * раз на старте хода (когда поле оптимистично очищается), а поле НЕ
+   * блокируется на время хода (M2): человек может успеть напечатать своё,
+   * пока ждёт ответ, и это нужно прочитать СЕЙЧАС, не то значение, что было
+   * на старте. setInput ниже — единственная точка записи, обновляет и state
+   * (что видно на экране), и это зеркало (что читает send()) вместе.
+   */
+  const inputRef = useRef('');
+  const setInput = (value: string): void => {
+    inputRef.current = value;
+    setInputState(value);
+  };
   const [sending, setSending] = useState(false);
   const [wall, setWall] = useState<Wall | null>(props.initialLeft === 0 ? 'limit' : null);
   const [error, setError] = useState<ErrorKind | null>(null);
@@ -251,7 +288,12 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
   useEffect(() => {
     if (wall) {
       // scrollIntoView может отсутствовать в jsdom — опциональный вызов.
-      wallRef.current?.scrollIntoView?.({ block: 'start' });
+      // T4 (хвост по перепроверке 31.10): 'nearest', а не 'start' — стена
+      // обычно приходит ВМЕСТЕ с третьим (последним) ответом, который уже в
+      // кадре; 'start' пригвождает верх стены к верху экрана и уводит из
+      // вида конец этого ответа, 'nearest' довернёт ленту ровно настолько,
+      // чтобы стена стала видна, не отдирая от ответа над ней.
+      wallRef.current?.scrollIntoView?.({ block: 'nearest' });
       return;
     }
     if (nearBottomRef.current && listRef.current) {
@@ -267,27 +309,72 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
   /** Сервер шлёт ping раз в 20с (M11) — таймер зависания переживает обычный ход. */
   const STALL_MS = 60_000;
 
+  /**
+   * При откате/сбое хода (и для черновика savePendingDraft на стене) не
+   * затирать то, что человек уже начал писать за время ожидания — приписать
+   * СВОЙ текст ВПЕРЁД этого, а не взамен (T1, хвост по перепроверке 31.10:
+   * поле не блокируется на время хода, M2, и человек успевает напечатать
+   * новое, пока старое ждёт ответа). Возвращает склеенный текст — вызывающий
+   * код использует его и для поля, и (на стене) для черновика: одна и та же
+   * строка в обоих местах.
+   */
+  const restoreInput = (text: string): string => {
+    const cur = inputRef.current;
+    const merged = cur.trim() ? `${text}\n\n${cur}` : text;
+    setInput(merged);
+    return merged;
+  };
+
   const send = async (raw: string) => {
     const message = raw.trim();
     // M1: sendingRef, а не sending — синхронный замок, видимый уже следующей
     // строкой, а не после перерисовки.
     if (!message || sendingRef.current || wall || !consent || message.length > config.maxChars) return;
-    sendingRef.current = true;
-    setSending(true);
-    props.onBusyChange?.(true);
-    setError(null);
 
     let bubbleAdded = false;
+    /**
+     * T5 (хвост по перепроверке 31.10): answered — ответ УЖЕ дописан в ленту;
+     * bubbleRemoved — пузырь человека УЖЕ убран одной из веток ниже. catch не
+     * должен слепо резать «последнее сообщение»: если ответ уже встал в
+     * ленту, последнее — это ОН (бросок track()/onTrialGone() ПОСЛЕ успешного
+     * ответа не должен его стирать); если пузырь уже убран своей веткой
+     * (например, trial_gone), повторное «убрать последнее» в catch срезало бы
+     * СЛЕДУЮЩЕЕ по счёту сообщение — чужое, из более ранней пары.
+     */
+    let answered = false;
+    let bubbleRemoved = false;
     let silentAbort = false;
     try {
-      // Входные данные — ДО оптимистичных шагов (I6): если что-то из них
-      // бросит, пузырь ещё не добавлен и откатывать нечего — catch ниже всё
-      // равно покажет сетевую ошибку с текстом в поле.
-      const source = getSource();
-      const campaign = getCampaign();
-      const sid = getSessionId();
+      // T5: замок (sendingRef, синхронный) и onBusyChange(true) — ВНУТРИ try,
+      // чтобы finally их снял, даже если что-то из этих строк бросит
+      // (например, чужой onBusyChange) — иначе sendingRef остаётся true
+      // навсегда, и кнопка отправки блокируется до перезагрузки страницы.
+      sendingRef.current = true;
+      setSending(true);
+      props.onBusyChange?.(true);
+      setError(null);
+
+      // Входные данные — ДО оптимистичных шагов (I6), но КАЖДОЕ в своём try
+      // (T5, хвост по перепроверке 31.10): source/campaign/sid — атрибуция,
+      // необязательная для сервера (сам ход эти поля не требует). Недоступное
+      // хранилище (Safari private mode бросает на sessionStorage/localStorage)
+      // не должно гасить отправку ошибкой «нет связи» — связь-то есть, просто
+      // одно из необязательных полей не прочиталось; раньше бросок любого из
+      // трёх уходил в общий catch ниже и показывал сетевую ошибку, хотя
+      // сообщение вполне могло уйти.
+      let source: string | null = null;
+      let campaign: string | null = null;
+      let sid: string | null = null;
+      try { source = getSource(); } catch { /* необязательно для сервера */ }
+      try { campaign = getCampaign(); } catch { /* необязательно для сервера */ }
+      try { sid = getSessionId(); } catch { /* необязательно для сервера */ }
 
       const first = messages.length === 0;
+      // T4 (хвост по перепроверке 31.10): собственная отправка ВСЕГДА
+      // подводит ленту к низу, даже если человек до этого прокрутил вверх
+      // читать историю — иначе свой же пузырь и «печатает…» могут остаться
+      // вне кадра, и неясно, ушло ли сообщение.
+      nearBottomRef.current = true;
       setPartial('');
       setInput('');
       setMessages((m) => [...m, { role: 'user', content: message }]);
@@ -359,7 +446,8 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         if (!mountedRef.current) { silentAbort = true; return; }
         setPartial(null);
         setMessages((m) => m.slice(0, -1));
-        setInput(message);
+        bubbleRemoved = true;
+        restoreInput(message);
         return;
       }
 
@@ -370,6 +458,7 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
 
       if (effectiveResult === 'trial_gone') {
         setMessages((m) => m.slice(0, -1));
+        bubbleRemoved = true;
         props.onTrialGone(message);
         return;
       }
@@ -378,19 +467,28 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         // её отдельной веткой нельзя, проверка ниже общая для обоих случаев.
         const text = answer;
         setMessages((m) => [...m, { role: 'assistant', content: text }]);
+        answered = true;
       } else {
         // Обрыв ПОСЛЕ begin (I4): сервер принял ход и запишет пару, даже
         // если клиент уйдёт, — пузырь остаётся, текст в поле не
         // возвращается (повтор продублировал бы уже уходящий ответ). Стена
-        // важнее обрыва и имеет приоритет — как и раньше.
-        const interrupted = !gotWall && effectiveResult === 'network' && began;
+        // важнее обрыва и имеет приоритет — как и раньше. T5 (хвост по
+        // перепроверке 31.10): явный код ошибки (gotError) — тоже НЕ
+        // interrupted, даже если итог хода вдобавок 'network' (поток мог
+        // оборваться сразу после события error, не дойдя до чистого конца) —
+        // сервер прямо назвал причину сбоя, и это не повод подменять её
+        // обобщённым «связь прервалась».
+        const interrupted = !gotWall && !gotError && effectiveResult === 'network' && began;
         if (!interrupted) {
           // Ответа нет — сообщение возвращается в поле: отправить ещё раз
           // или, если проба закрыта, дождаться входа черновиком с тем же
           // ассистентом.
           setMessages((m) => m.slice(0, -1));
-          setInput(message);
-          if (gotWall) savePendingDraft(message, assistantId);
+          bubbleRemoved = true;
+          // T1: черновик при стене — та же склейка с тем, что человек уже
+          // успел напечатать (restoreInput), а не голый исходный message.
+          const merged = restoreInput(message);
+          if (gotWall) savePendingDraft(merged, assistantId);
         }
         if (!gotWall) {
           setError(gotError ?? (interrupted ? 'interrupted' : errorKindForResult(effectiveResult)));
@@ -401,8 +499,14 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         track('guest_trial_wall', { reason: gotWall, assistant_id: assistantId });
       }
     } catch {
-      if (bubbleAdded) setMessages((m) => m.slice(0, -1));
-      setInput(message);
+      // T5: catch ПОСЛЕ того, как ответ уже встал в ленту (answered), не
+      // должен его стирать, если дальше бросит track()/onTrialGone() —
+      // «последнее сообщение» в этот момент — сам ответ, не пузырь человека.
+      // Если пузырь уже убран своей веткой (bubbleRemoved) — второй раз
+      // резать не нужно, иначе «последним» стало бы чужое, более раннее
+      // сообщение.
+      if (bubbleAdded && !answered && !bubbleRemoved) setMessages((m) => m.slice(0, -1));
+      restoreInput(message);
       setError('network');
     } finally {
       sendingRef.current = false;
@@ -539,7 +643,14 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
             />
             <button
               type="button"
-              disabled={locked || !consent || !input.trim()}
+              // T5 (хвост по перепроверке 31.10): черновик длиннее maxChars
+              // (подставленный, например, из savePendingDraft/draft — M8 не
+              // отправляет его сам, но и textarea.maxLength не ограничивает
+              // программную подстановку значения) — кнопка заблокирована, а
+              // не тихо игнорирует клик: send() и так отсекла бы такой текст
+              // по длине, но без disabled это выглядело бы как нерабочая
+              // кнопка. Счётчик длины ниже — уже видимая подсказка почему.
+              disabled={locked || !consent || !input.trim() || input.length > config.maxChars}
               onClick={() => void send(input)}
               className="rounded-xl bg-forest-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
