@@ -23,7 +23,10 @@ interface Props {
 interface Restored {
   token: string;
   messages: GuestMessage[];
-  left: number;
+  /** null — восстановлено на ветке 'error' (m3): сколько ответов осталось,
+   * не известно (сессия не загрузилась), GuestChat трактует это как «не
+   * известно, не блокировать» — так же, как у новой пробы. */
+  left: number | null;
 }
 
 const Spinner: React.FC = () => (
