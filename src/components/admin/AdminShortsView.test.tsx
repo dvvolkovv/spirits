@@ -231,6 +231,41 @@ describe('экран «Ролики»', () => {
     expect(q('shorts-notice')!.textContent).toContain('Ролик запущен');
   });
 
+  it('«Отклонить» у идеи — из строки, после подтверждения, с версией строки; отмена — ничего', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    serve({
+      list: () => res(200, [item({ status: 'idea', slotAt: null, source: 'manual' })]),
+      reject: () => res(200, item({ status: 'rejected' })),
+    });
+    await open();
+    await clickAsync(q('short-idea-reject-s1')!);
+    await settle();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(sent().some((p: any) => p.action === 'reject')).toBe(false);
+
+    confirm.mockReturnValue(true);
+    await clickAsync(q('short-idea-reject-s1')!);
+    await settle();
+    expect(sent()).toContainEqual({ action: 'reject', id: 's1', version: VERSION });
+    expect(q('shorts-notice')!.textContent).toContain('Идея отклонена');
+  });
+
+  it('«Отклонить» у идеи, которую успел взять автозапуск, — жёлтая плашка с текстом сервера', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    serve({
+      list: () => res(200, [item({ status: 'idea', slotAt: null })]),
+      reject: () => res(409, {
+        statusCode: 409, error: 'Conflict',
+        message: 'Идея уже в работе — отклонить можно будет готовый ролик. Обновите список.',
+      }),
+    });
+    await open();
+    await clickAsync(q('short-idea-reject-s1')!);
+    await settle();
+    expect(q('shorts-error')!.textContent).toContain('Идея уже в работе');
+    expect(q('shorts-error')!.getAttribute('data-conflict')).toBe('true');
+  });
+
   it('замечание уходит с версией и текстом', async () => {
     serve({ list: () => res(200, [item()]), get: () => res(200, detailOf()), note: () => res(200, item({ status: 'writing' })) });
     await open();

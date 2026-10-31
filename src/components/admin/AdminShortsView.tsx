@@ -146,7 +146,10 @@ const AdminShortsView: React.FC = () => {
     // решение ничем не подписано — лучше не отправить его совсем, чем молча
     // взять версию строки списка, которую владелец не видел. «Запустить
     // сейчас» — исключение: это кнопка идеи в строке, версии у идеи нет.
-    const target = detail?.id === short.id ? detail : kind === 'start_now' ? short : null;
+    // Решения строки — «Запустить сейчас» и «Отклонить» у идеи — подписываются
+    // строкой списка; остальные — только раскрытой карточкой этого ролика.
+    const rowAction = kind === 'start_now' || (kind === 'reject' && short.status === 'idea');
+    const target = detail?.id === short.id ? detail : rowAction ? short : null;
     if (!target) return;
     const request = actionRequest(kind, target, extra);
     if (request.lock && lock.current) return;
