@@ -6,6 +6,7 @@ import UserProfileModal from './UserProfileModal';
 import { Search, Users, MessageCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import { createChunkDecoder } from '../../utils/streamDecoder';
 
 interface UserMatch {
   id: string;          // client-side key (stringified userId)
@@ -105,16 +106,26 @@ const SearchInterface: React.FC = () => {
       let accumulatedText = '';
       let searchResultFound = false;
       let jsonBuffer = '';
+      // Один decoder на весь поток: кусок может разрезать многобайтный знак
+      // (кириллицу, эмодзи) посреди байт — новый decoder на каждый кусок убивал
+      // хвост и давал «�» (находка ревью пробы 31.10). lineBuffer — по той же
+      // причине: граница кусков почти никогда не совпадает с границей строки
+      // NDJSON, и без буфера разорванная строка падала в JSON.parse как мусор
+      // и терялась целиком (молча, через catch ниже) — один decoder её не чинит.
+      const decoder = createChunkDecoder();
+      let lineBuffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
-        
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
-        
+
+        lineBuffer += decoder.decode(value);
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop() ?? '';
+
         for (const line of lines) {
+          if (!line.trim()) continue;
           try {
             const data = JSON.parse(line);
             
