@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DRAFT_MAX_LENGTH, DRAFT_TTL_MS, savePendingDraft, takePendingDraftEntry } from './pendingDraft';
+import {
+  DRAFT_TTL_MS,
+  PENDING_DRAFT_STORE_MAX,
+  savePendingDraft,
+  takePendingDraftEntry,
+  takePendingDraftFor,
+} from './pendingDraft';
 
 beforeEach(() => localStorage.clear());
 
@@ -12,10 +18,19 @@ describe('черновик пробы', () => {
     expect(takePendingDraftEntry(12)).toBeNull();
   });
 
-  it('пустой и длиннее предела — не сохраняется', () => {
+  it('пустой и длиннее PENDING_DRAFT_STORE_MAX — не сохраняется', () => {
     savePendingDraft('   ', 12);
-    savePendingDraft('я'.repeat(DRAFT_MAX_LENGTH + 1), 12);
+    savePendingDraft('я'.repeat(PENDING_DRAFT_STORE_MAX + 1), 12);
     expect(localStorage.getItem('pending_draft')).toBeNull();
+  });
+
+  // I7 (ревью качества B8): поле пробы принимает до config.maxChars (в кабинете
+  // это может быть больше 600) — черновик длиннее DRAFT_MAX_LENGTH (600, предел
+  // ТОЛЬКО у захвата из #draft=/#ask=) должен сохраняться и доходить до входа.
+  it('черновик пробы длиннее 600 символов — сохраняется и отдаётся (I7)', () => {
+    const long = 'Вопрос про цены. '.repeat(100).slice(0, 1500);
+    savePendingDraft(long, 12);
+    expect(takePendingDraftFor(12)).toBe(long);
   });
 });
 
