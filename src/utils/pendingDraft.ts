@@ -13,7 +13,20 @@
  */
 export const DRAFT_KEY = 'pending_draft';
 export const DRAFT_TTL_MS = 60 * 60 * 1000;
+/**
+ * Предел ТОЛЬКО у захвата из адреса (#draft=/#ask=, index.html) — сторож
+ * синхронизации (draftCapture.test.ts, draftCaptureAsk.test.ts) сверяет
+ * именно это число с хардкодом в index.html, трогать нельзя.
+ */
 export const DRAFT_MAX_LENGTH = 600;
+/**
+ * Предел самого хранилища (read() и savePendingDraft) — столько принимает
+ * поле пробы (config.maxChars в кабинете может быть больше 600, ревью
+ * качества B8, I7). До этой правки read() отбрасывал любую запись длиннее
+ * DRAFT_MAX_LENGTH, и savePendingDraft из GuestChat (проба закрылась раньше
+ * ответа) молча не сохранял длинный вопрос вовсе — черновик терялся.
+ */
+export const PENDING_DRAFT_STORE_MAX = 2000;
 
 interface Stored {
   text: string;
@@ -45,7 +58,7 @@ function read(now: number): Stored | null {
     if (
       typeof p.text === 'string' &&
       p.text.trim() !== '' &&
-      p.text.length <= DRAFT_MAX_LENGTH &&
+      p.text.length <= PENDING_DRAFT_STORE_MAX &&
       typeof p.assistant === 'string' &&
       typeof p.expires === 'number' &&
       p.expires > now
@@ -106,7 +119,7 @@ export function takePendingDraftEntry(assistantId: string | number, now = Date.n
  */
 export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): void {
   const t = text.trim();
-  if (!t || t.length > DRAFT_MAX_LENGTH) return;
+  if (!t || t.length > PENDING_DRAFT_STORE_MAX) return;
   const existing = read(now);
   if (existing && existing.assistant !== String(assistantId)) return;
   try {
