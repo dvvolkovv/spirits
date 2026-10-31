@@ -157,17 +157,36 @@ describe('разговор после перезагрузки и перенос
     expect(await loadGuestSession('T')).toEqual({ status: 'error' });
   });
 
-  it('claim: 200 — перенесено; 404/409 — пробы нет; 500 и сеть — повторить позже', async () => {
+  it('claim: 200 — перенесено; 404 trial/409 claimed по телу — пробы нет; 500 и сеть — повторить позже', async () => {
     post.mockResolvedValueOnce(json(200, { assistantId: '12', moved: 4 }));
     expect(await claimGuestTrial('T')).toEqual({ status: 'claimed', assistantId: '12' });
     expect(post).toHaveBeenLastCalledWith('/webhook/guest/claim', { token: 'T' });
-    post.mockResolvedValueOnce(json(404, {}));
+    post.mockResolvedValueOnce(json(404, { error: 'trial' }));
     expect(await claimGuestTrial('T')).toEqual({ status: 'gone' });
-    post.mockResolvedValueOnce(json(409, {}));
+    post.mockResolvedValueOnce(json(409, { error: 'claimed' }));
     expect(await claimGuestTrial('T')).toEqual({ status: 'gone' });
     post.mockResolvedValueOnce(json(500, {}));
     expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
     post.mockRejectedValueOnce(new Error('сеть'));
+    expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
+  });
+
+  // m12 (ревью качества B9-fix): «пробы нет» — ТОЛЬКО по телу ответа, не по
+  // одному статусу. Откат бэка без модуля пробы отвечает generic-404 от
+  // маршрутизатора (без error:'trial') — раньше это тоже читалось как
+  // «пробы нет» и стирало ключ пробы, которая на самом деле жива и просто
+  // временно недоступна.
+  it('404/409 без ожидаемого тела (чужая причина, не пробы) — retry, ключ не стирать', async () => {
+    post.mockResolvedValueOnce(json(404, {}));
+    expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
+    post.mockResolvedValueOnce(json(404, { error: 'not_found' }));
+    expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
+    post.mockResolvedValueOnce(json(409, {}));
+    expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
+    post.mockResolvedValueOnce(json(409, { error: 'conflict' }));
+    expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
+    // Тело не JSON (например, HTML-страница 404 от прокси перед бэком).
+    post.mockResolvedValueOnce(new Response('<html>Not Found</html>', { status: 404 }));
     expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
   });
 });
