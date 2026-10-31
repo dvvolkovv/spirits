@@ -2184,7 +2184,12 @@
     "errors": {
       "model": "Das hat nicht geklappt. Schick die Nachricht bitte noch einmal.",
       "busy": "Gerade ist viel los. Versuch es in einer Minute noch einmal.",
-      "network": "Keine Verbindung zum Server. Prüf dein Internet und schick die Nachricht noch einmal."
-    }
+      "network": "Keine Verbindung zum Server. Prüf dein Internet und schick die Nachricht noch einmal.",
+      "interrupted": "Die Verbindung ist abgebrochen. Die Antwort wird in diesem Gespräch gespeichert — lade die Seite in einer Minute neu.",
+      "badRequest": "Diese Nachricht ließ sich nicht senden. Lade die Seite neu und versuch es noch einmal.",
+      "busyTrial": "Die vorherige Antwort wird noch geschrieben. Warte kurz und schick die Nachricht noch einmal."
+    },
+    "reload": "Neu laden",
+    "loginDisabledHint": "Warte, bis der Assistent geantwortet hat"
   }
 }

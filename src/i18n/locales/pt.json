@@ -2556,7 +2556,12 @@
     "errors": {
       "model": "Não foi possível responder. Envie a mensagem novamente.",
       "busy": "Há muita procura neste momento. Tente dentro de um minuto.",
-      "network": "Sem ligação ao servidor. Verifique a internet e envie novamente."
-    }
+      "network": "Sem ligação ao servidor. Verifique a internet e envie novamente.",
+      "interrupted": "A ligação foi interrompida. A resposta fica guardada nesta conversa — atualize a página dentro de um minuto.",
+      "badRequest": "Não foi possível enviar esta mensagem. Atualize a página e tente novamente.",
+      "busyTrial": "A resposta anterior ainda está a ser escrita. Aguarde um momento e envie novamente."
+    },
+    "reload": "Atualizar",
+    "loginDisabledHint": "Aguarde até o assistente responder"
   }
 }

@@ -2193,7 +2193,12 @@
     "errors": {
       "model": "No se pudo responder. Envía el mensaje de nuevo.",
       "busy": "Ahora mismo hay mucha gente. Inténtalo dentro de un minuto.",
-      "network": "Sin conexión con el servidor. Revisa tu internet y envía de nuevo."
-    }
+      "network": "Sin conexión con el servidor. Revisa tu internet y envía de nuevo.",
+      "interrupted": "Se ha cortado la conexión. La respuesta se guardará en esta conversación: actualiza la página dentro de un minuto.",
+      "badRequest": "No se ha podido enviar este mensaje. Actualiza la página e inténtalo de nuevo.",
+      "busyTrial": "La respuesta anterior todavía se está escribiendo. Espera un momento y vuelve a enviarlo."
+    },
+    "reload": "Actualizar",
+    "loginDisabledHint": "Espera a que el asistente responda"
   }
 }

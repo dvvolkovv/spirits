@@ -2193,7 +2193,12 @@
     "errors": {
       "model": "La réponse n'a pas pu être générée. Renvoie le message.",
       "busy": "Il y a beaucoup de monde en ce moment. Réessaie dans une minute.",
-      "network": "Pas de connexion au serveur. Vérifie ta connexion internet et renvoie le message."
-    }
+      "network": "Pas de connexion au serveur. Vérifie ta connexion internet et renvoie le message.",
+      "interrupted": "La connexion a été coupée. La réponse sera enregistrée dans cette conversation — actualise la page dans une minute.",
+      "badRequest": "Impossible d'envoyer ce message. Actualise la page et réessaie.",
+      "busyTrial": "La réponse précédente est encore en cours d'écriture. Attends un instant et renvoie le message."
+    },
+    "reload": "Actualiser",
+    "loginDisabledHint": "Attends que l'assistant ait répondu"
   }
 }

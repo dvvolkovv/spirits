@@ -2553,7 +2553,12 @@
     "errors": {
       "model": "Couldn't answer. Please send the message again.",
       "busy": "Lots of people right now. Please try again in a minute.",
-      "network": "No connection to the server. Check your internet and send again."
-    }
+      "network": "No connection to the server. Check your internet and send again.",
+      "interrupted": "The connection dropped. The answer will be saved in this conversation — refresh the page in a minute.",
+      "badRequest": "Couldn't send this message. Refresh the page and try again.",
+      "busyTrial": "The previous answer is still being written. Wait a moment and send again."
+    },
+    "reload": "Refresh",
+    "loginDisabledHint": "Wait until the assistant answers"
   }
 }
