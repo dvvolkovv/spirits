@@ -65,10 +65,7 @@ function read(now: number): Stored | null {
  * чата позже в пределах часа.
  */
 export function takePendingDraftFor(assistantId: string | number, now = Date.now()): string | null {
-  const stored = read(now);
-  if (!stored || stored.assistant !== String(assistantId)) return null;
-  forget();
-  return stored.text;
+  return takePendingDraftEntry(assistantId, now)?.text ?? null;
 }
 
 /** Ждёт ли черновик этого ассистента — без выдачи и без стирания (только битая или просроченная запись стирается, как при любом чтении). */
@@ -101,10 +98,17 @@ export function takePendingDraftEntry(assistantId: string | number, now = Date.n
 /**
  * Положить черновик самому: проба закрылась раньше, чем пришёл ответ, — текст
  * дождётся входа и встанет в поле чата с тем же ассистентом.
+ *
+ * Не трогает ЖИВОЙ черновик другого ассистента (например, #draft= с данными
+ * рождения для другого ассистента, пока гость ещё в пробе у этого): чужой
+ * непрочитанный черновик ценнее — это редкий случай. Свой черновик (тот же
+ * ассистент) и просроченный — перезаписываются.
  */
 export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): void {
   const t = text.trim();
   if (!t || t.length > DRAFT_MAX_LENGTH) return;
+  const existing = read(now);
+  if (existing && existing.assistant !== String(assistantId)) return;
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: t, assistant: String(assistantId), expires: now + DRAFT_TTL_MS }));
   } catch {
