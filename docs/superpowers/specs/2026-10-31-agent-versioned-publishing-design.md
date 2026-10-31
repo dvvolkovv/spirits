@@ -44,7 +44,8 @@
 - `base_version_id uuid` — версия, на основе которой создана запись;
 - `created_by text`;
 - `created_at timestamptz`;
-- `published_at timestamptz null`.
+- `published_at timestamptz null`;
+- `published_by text null` — администратор, выполнивший публикацию.
 
 Ограничения:
 
