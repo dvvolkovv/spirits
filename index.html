@@ -97,6 +97,11 @@
     <script data-guest-config-prefetch>
       (function () {
         try {
+          // T10 (хвост по перепроверкам B9-fix, 31.10): в нативной сборке
+          // (Capacitor) проба выключена правилом на бэке (decideUnauthEntry
+          // уводит native на экран входа) — запрос уйдёт, но его результат
+          // никто не прочитает: лишний сетевой вызов при каждом запуске.
+          if (window.Capacitor) return;
           if (localStorage.getItem('jwt_access_token') || localStorage.getItem('linkeon_has_account')) return;
           var path = location.pathname.replace(/\/+$/, '') || '/';
           if (path !== '/' && path !== '/chat') return;
