@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { takePendingDraftEntry, takePendingDraftFor } from './pendingDraft';
+import { DRAFT_KEY, DRAFT_MAX_LENGTH, takePendingDraftEntry, takePendingDraftFor } from './pendingDraft';
 
 /** Исполняется НАСТОЯЩИЙ скрипт из index.html — как в draftCapture.test.ts. */
 const HTML = readFileSync(join(__dirname, '..', '..', 'index.html'), 'utf8');
@@ -33,5 +33,15 @@ describe('вопрос с поля на linkeon.io (#ask=)', () => {
   it('для чата после входа вопрос — обычный черновик: только текст', () => {
     open(`/chat?assistant=12#ask=${encodeURIComponent('Вопрос')}`);
     expect(takePendingDraftFor(12)).toBe('Вопрос');
+  });
+
+  it('битый % и длиннее предела — не сохраняется, но из адреса стирается', () => {
+    open('/chat?assistant=12#ask=%E0%A4%A');
+    expect(window.location.hash).toBe('');
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+
+    open(`/chat?assistant=12#ask=${encodeURIComponent('я'.repeat(DRAFT_MAX_LENGTH + 1))}`);
+    expect(window.location.hash).toBe('');
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
 });
