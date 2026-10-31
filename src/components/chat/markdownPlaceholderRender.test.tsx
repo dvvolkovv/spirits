@@ -6,7 +6,7 @@
 // проводки — markdownPlaceholderWiring.test.ts). Здесь — поведенческое
 // доказательство по образцу cabinetLinksRender.test.tsx: то, что уходит в
 // разметку, действительно находится по id КАК ЕСТЬ (без повторного префикса —
-// так carries весь контракт между customMarkdown.tsx и любым потребителем
+// так работает весь контракт между customMarkdown.tsx и любым потребителем
 // метки) и рисуется настоящими <button>/<a href>/<video>.
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -64,5 +64,58 @@ describe('{{button}}, {{link}} и голая ссылка на ролик дох
     expect(buttons.get(buttonId)).toBeDefined();
     expect(links.get(linkId)).toBeDefined();
     expect(videos.get(videoId)).toBeDefined();
+  });
+});
+
+// T2 (ревью E2 31.10, тот же корень, что уже исправлен в components/guest/
+// GuestChat.tsx): две соседние метки одного вида без текста между ними —
+// обычный случай, когда ассистент даёт две ссылки подряд без разделителя.
+// Разбор и сторож самого ChatInterface.tsx — markdownPlaceholderWiring.test.ts
+// («регулярки меток — ленивый квантификатор»); здесь — контракт на стороне
+// customMarkdown.tsx: что именно нужно извлекать ленивым (\w+?), чтобы обе
+// подписи нашлись, и что жадный (\w+) их склеивает.
+describe('T2: две соседние метки одного вида без текста между ними', () => {
+  const TWO_LINKS = '{{link: Первая | url: https://a.example}}{{link: Вторая | url: https://b.example}}';
+
+  it('ленивый (\\w+?) — обе ссылки находят свой конфиг', () => {
+    const { content, links } = parseCustomMarkdown(TWO_LINKS);
+    const ids = [...content.matchAll(/__LINK_(\w+?)__/g)].map((m) => m[1]);
+    expect(ids).toHaveLength(2);
+    expect(links.get(ids[0])?.url).toBe('https://a.example');
+    expect(links.get(ids[1])?.url).toBe('https://b.example');
+  });
+
+  it('контроль старого бага: жадный (\\w+) склеивает обе метки в один несуществующий id', () => {
+    const { content, links } = parseCustomMarkdown(TWO_LINKS);
+    const greedyIds = [...content.matchAll(/__LINK_(\w+)__/g)].map((m) => m[1]);
+    expect(greedyIds).toHaveLength(1);
+    expect(links.get(greedyIds[0])).toBeUndefined();
+  });
+});
+
+// Встроенный плеер (createVideoComponent): 73 голых ссылки на .mp4/.webm уже
+// в истории чата (ревью E2 31.10, прочитано на проде) — часть старше 90 дней,
+// часть адресов протухла. preload="none" — не тянуть их только из-за того,
+// что плеер теперь рисуется; playsInline — не разворачивать на весь экран на
+// iOS Safari при первом воспроизведении.
+describe('createVideoComponent: не грузить старые ролики заранее', () => {
+  it('preload="none" и playsInline — на каждом видео в ленте', () => {
+    const html = renderToStaticMarkup(<>{createVideoComponent('https://cdn.example.org/clip.mp4')}</>);
+    expect(html).toContain('preload="none"');
+    expect(html).toContain('playsinline'); // React рендерит playsInline как playsinline
+  });
+});
+
+// Неизвестный variant (опечатка в ответе ассистента, или значение, которого
+// нет в списке: primary/secondary/success/danger) — раньше уходил в карту как
+// есть, и getButtonStyles собирал класс с буквальным словом "undefined".
+describe('{{button}} с неизвестным variant — откат на primary', () => {
+  it('variant: weird — в конфиге primary, класс не содержит undefined', () => {
+    const { content, buttons } = parseCustomMarkdown('{{button: X | action: y | variant: weird}}');
+    const id = idFrom(/__BUTTON_(\w+?)__/, content);
+    const config = buttons.get(id);
+    expect(config?.variant).toBe('primary');
+    const html = renderToStaticMarkup(<>{createButtonComponent(config!, () => {})}</>);
+    expect(html).not.toContain('undefined');
   });
 });

@@ -41,3 +41,32 @@ describe('разбор меток __BUTTON_/__LINK_/__VIDEO_ в обоих ре�
     expect(SRC.match(/images\.get\(imageId\)/g)?.length).toBe(2);
   });
 });
+
+// T2 (ревью E2 31.10, тот же корень, что в components/guest/GuestChat.tsx):
+// жадный (\w+) при двух соседних метках одного вида БЕЗ текста между ними
+// («{{link}}{{link}}» без разделителя) шёл сквозь закрывающие `__` первой
+// метки и доходил до `__` второй — id получался один слипшийся, не
+// находился в карте, и пропадали ОБЕ подписи. Ленивый (\w+?) останавливается
+// на первом же `__` после id — ровно на границе метки.
+const LAZY_LABEL_PATTERNS = [
+  '/__BUTTON_(\\w+?)__/g',
+  '/__LINK_(\\w+?)__/g',
+  '/__VIDEO_(\\w+?)__/g',
+  '/__IMAGE_(\\w+?)__/g',
+];
+const GREEDY_LABEL_PATTERNS = [
+  '/__BUTTON_(\\w+)__/g',
+  '/__LINK_(\\w+)__/g',
+  '/__VIDEO_(\\w+)__/g',
+  '/__IMAGE_(\\w+)__/g',
+];
+
+describe('T2: регулярки меток — ленивый квантификатор, а не жадный', () => {
+  it.each(LAZY_LABEL_PATTERNS)('%s — по разу в каждом из двух рендеров', (pattern) => {
+    expect(SRC.split(pattern).length - 1).toBe(2);
+  });
+
+  it.each(GREEDY_LABEL_PATTERNS)('%s — жадного квантификатора не осталось', (pattern) => {
+    expect(SRC).not.toContain(pattern);
+  });
+});
