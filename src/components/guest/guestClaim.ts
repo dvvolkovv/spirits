@@ -16,7 +16,6 @@ export async function claimPendingGuestTrial(timeoutMs = GUEST_CLAIM_TIMEOUT_MS)
   if (!trial) return;
   let timedOut = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const real = claimGuestTrial(trial.token);
   const timeout = new Promise<GuestClaimResult>((resolve) => {
     timer = setTimeout(() => {
       timedOut = true;
@@ -24,6 +23,17 @@ export async function claimPendingGuestTrial(timeoutMs = GUEST_CLAIM_TIMEOUT_MS)
     }, timeoutMs);
   });
   try {
+    // T6 (хвост по перепроверкам B9-fix, 31.10): вызов claimGuestTrial —
+    // ВНУТРИ try, не снаружи. «Не бросает» у этой функции раньше держалось
+    // только на том, что claimGuestTrial сама никогда не бросает СИНХРОННО
+    // (до своего первого await) — это гарантия ЧУЖОГО кода, а не этой
+    // функции. Снаружи try такой синхронный бросок (мок в тесте,
+    // будущая правка claimGuestTrial) ловит только обёртка async у самой
+    // claimPendingGuestTrial — и превращает её результат в ОТКАЗАННЫЙ
+    // промис, хотя контракт («не бросает») обещает всегда resolve. Внутри
+    // Promise.all в login() (AuthContext.tsx) отказ ОДНОГО элемента роняет
+    // ВСЕ — а значит и сам вход.
+    const real = claimGuestTrial(trial.token);
     const r = await Promise.race([real, timeout]);
     if (r.status === 'claimed') {
       rememberPendingAssistant(r.assistantId);
@@ -36,7 +46,7 @@ export async function claimPendingGuestTrial(timeoutMs = GUEST_CLAIM_TIMEOUT_MS)
       // 'retry' от самого claimGuestTrial.
       track('guest_trial_claim_failed', { reason: timedOut ? 'timeout' : 'retry' });
     }
-    // m10 (Critical): таймаут выиграл гонку, но настоящий запрос ещё летит —
+    // m10: таймаут выиграл гонку, но настоящий запрос ещё летит —
     // когда он всё же ответит, обработать это ЗАДНИМ числом: claimed/gone —
     // забыть ключ (сервер подтвердил исход), но без rememberPendingAssistant —
     // вход уже не ждёт этого ответа, запоминать ассистента сейчас поздно и
@@ -50,8 +60,9 @@ export async function claimPendingGuestTrial(timeoutMs = GUEST_CLAIM_TIMEOUT_MS)
         .catch(() => { /* сеть у позднего ответа — не повод действовать задним числом */ });
     }
   } catch {
-    // m11: сторонний сбой (claimGuestTrial отклонила промис) — как сетевая
-    // неудача: ключ остаётся, повтор — на следующем открытии кабинета.
+    // m11: сторонний сбой (claimGuestTrial отклонила промис, или бросила
+    // синхронно — T6) — как сетевая неудача: ключ остаётся, повтор — на
+    // следующем открытии кабинета.
     track('guest_trial_claim_failed', { reason: 'error' });
   } finally {
     if (timer) clearTimeout(timer);
