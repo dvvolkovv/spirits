@@ -240,7 +240,27 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
         <div className="relative">
           <button
             type="button"
-            onClick={() => setShowLogin(false)}
+            onClick={() => {
+              // E1 (решение владельца 31.10.2026): «Не сохранять» на этом же
+              // экране входа стирает ключ пробы (guestStorage, см.
+              // OnboardingPage) — но страница узнаёт об этом не сама: она
+              // читает ключ ТОЛЬКО при открытии (эффект выше с deps []), а
+              // GuestChat всё это время остаётся смонтированным (C1) со
+              // старым token в памяти. Без сброса следующее сообщение
+              // продолжило бы именно ту пробу, которую попросили не
+              // сохранять. started — признак того, что проба уже шла, когда
+              // открывали вход: без него открытие экрана ДО начала пробы
+              // (ключа и так нет) ошибочно стёрло бы ещё не отправленный
+              // черновик в поле ввода. onTrialGone('') — тот же сброс, что и
+              // при пропаже пробы на сервере: пустой черновик, generation+1
+              // пересоздаёт GuestChat с нуля (token=null) — проба начинается
+              // заново тем же ассистентом. Предпочтено перед
+              // window.location.reload(): не теряет SPA (список ассистентов
+              // не перезапрашивается, нет мигания Spinner'ом) и проверяется
+              // без мока window.location.
+              if (started && !readTrial()) onTrialGone('');
+              setShowLogin(false);
+            }}
             className="absolute left-4 top-4 z-20 text-sm font-medium text-forest-800 hover:underline"
           >
             {t('guest.backToChat')}

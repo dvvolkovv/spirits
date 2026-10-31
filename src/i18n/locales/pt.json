@@ -2540,6 +2540,8 @@
   "guest": {
     "login": "Iniciar sessão",
     "backToChat": "← Voltar à conversa",
+    "claimNotice": "A conversa de experiência fica guardada na conta em que iniciar sessão.",
+    "claimDiscard": "Não guardar",
     "pickAssistant": "Escolher assistente",
     "pickLocked": "Inicie sessão para falar com outros assistentes",
     "empty": "{{name}} responde de imediato, sem registo. Escreva o que precisa.",

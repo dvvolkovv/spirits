@@ -2177,6 +2177,8 @@
   "guest": {
     "login": "Iniciar sesión",
     "backToChat": "← Volver a la conversación",
+    "claimNotice": "La conversación de prueba se guardará en la cuenta con la que inicies sesión.",
+    "claimDiscard": "No guardar",
     "pickAssistant": "Elegir asistente",
     "pickLocked": "Inicia sesión para hablar con otros asistentes",
     "empty": "{{name}} responderá enseguida, sin registro. Cuenta qué te trae por aquí.",

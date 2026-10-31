@@ -2159,6 +2159,8 @@
   "guest": {
     "login": "登录",
     "backToChat": "← 返回对话",
+    "claimNotice": "试用对话将保存到你登录的账户中。",
+    "claimDiscard": "不保存",
     "pickAssistant": "选择助手",
     "pickLocked": "登录后即可与其他助手交谈",
     "empty": "{{name}}会立即回答，无需注册。说说你想聊什么吧。",
