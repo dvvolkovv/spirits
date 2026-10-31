@@ -855,10 +855,11 @@ describe('чат пробы', () => {
     });
 
     it('tel: — тоже без target', () => {
-      openWithAnswer('Звоните [нам](tel:+78121234567).');
+      // Номер — тот же плейсхолдер, что в cabinetSections.test.ts (не настоящий).
+      openWithAnswer('Звоните [нам](tel:+70000000000).');
       const tel = byLink(view!.container, /нам/);
       expect(tel).not.toBeNull();
-      expect(tel!.getAttribute('href')).toBe('tel:+78121234567');
+      expect(tel!.getAttribute('href')).toBe('tel:+70000000000');
       expect(tel!.getAttribute('target')).toBeNull();
     });
   });
