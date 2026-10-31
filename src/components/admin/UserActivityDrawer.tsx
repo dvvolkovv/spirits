@@ -468,7 +468,7 @@ const UserActivityDrawer: React.FC<Props> = ({ phone, onClose }) => {
                   user_id: дровер получает его из списков админки как есть. */}
               <UserCallsList userId={phone} />
 
-              {/* Модель ответов ассистентов этому человеку — Claude или Qwen. */}
+              {/* Модель ответов ассистентов этому человеку — Claude, Qwen или Kimi. */}
               <UserLlmProviderControl userId={phone} />
 
               {/* Chart */}
