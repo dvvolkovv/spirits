@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import LoginTabs from '../onboarding/LoginTabs';
 import LoginConsentBlock from '../onboarding/LoginConsentBlock';
 import { parseCustomMarkdown, type LinkConfig } from '../../utils/customMarkdown';
 import { isContactLink, isWebLink } from '../../utils/cabinetSections';
-import { savePendingDraft } from '../../utils/pendingDraft';
+import { savePendingDraft, PENDING_DRAFT_STORE_MAX } from '../../utils/pendingDraft';
 import { getCampaign, getSessionId, getSource, track } from '../../services/eventsClient';
 import { sendGuestMessage, type GuestSendResult } from './guestApi';
 import type { GuestConfig, GuestEvent, GuestMessage } from './guestTypes';
@@ -144,6 +144,18 @@ function stripGuestLabels(
 }
 
 /**
+ * T11 (по проверке d3c087a): tel: — единственная схема, которую нужно
+ * пронести мимо настоящего defaultUrlTransform react-markdown (он сам
+ * зачищает href до того, как тот доходит до GuestLink/GuestImage — см.
+ * комментарий у ReactMarkdown ниже); всё остальное идёт через него как есть.
+ * Так библиотечная проверка схем остаётся ВТОРЫМ, самостоятельным слоем, а не
+ * отключена целиком ради одной схемы.
+ */
+export function guestUrlTransform(url: string): string {
+  return /^tel:/i.test(url) ? url : defaultUrlTransform(url);
+}
+
+/**
  * Ссылка ответа ассистента (I2): веб-адрес и почта/телефон — настоящая <a>.
  * Остальное (javascript:, data:, пустая, битая) — текстом без href: иначе её
  * открыли бы средняя кнопка или «Открыть в новой вкладке» мимо какой-либо
@@ -156,10 +168,18 @@ function stripGuestLabels(
  * mailto:/tel: не открывают вкладку вовсе — их подхватывает почтовая
  * программа/звонок, а target="_blank" на такой ссылке в Firefox оставляет
  * пустую вкладку висеть (как и в основном чате, createLinkComponent).
+ *
+ * T13 (по проверке d3c087a): ссылка на якорь страницы (#…) — сноски
+ * remark-gfm ([^1]) и их обратные ссылки рендерятся именно так. isWebLink
+ * соглашается с такой ссылкой (протокол резолвится к https: базового
+ * PATH_BASE — см. cabinetSections.ts), но target="_blank" для неё неверен:
+ * это переход в пределах той же страницы, а не внешний адрес, — поэтому
+ * проверка на «#» встроена раньше isWebLink, в одну ветку с контактными
+ * ссылками (та же разметка: без target).
  */
 const GuestLink: React.FC<{ href?: string; children?: React.ReactNode }> = ({ href, children }) => {
   const url = href ?? '';
-  if (isContactLink(url)) {
+  if (isContactLink(url) || url.trim().startsWith('#')) {
     return (
       <a href={url} className="ym-disable-tracklink text-forest-600 underline hover:text-forest-700">
         {children}
@@ -200,18 +220,20 @@ const GuestAnswer: React.FC<{ content: string; streaming?: boolean }> = React.me
   return (
     <div className="prose prose-sm max-w-none text-gray-800">
       {/*
-        T3 (хвост по перепроверке 31.10, найдено при тесте на tel:):
+        T3/T11 (хвост по перепроверке 31.10 и по проверке d3c087a):
         react-markdown по умолчанию сам зачищает href/src через свой
-        defaultUrlTransform — пропускает только https?/ircs?/mailto/xmpp, а
-        tel: превращает в '' ДО того, как href доходит до GuestLink. Из-за
-        этого isContactLink('') всегда false, и обычная markdown-ссылка на
-        телефон не рендерилась вовсе (мы же отдаём ровно isWebLink/
-        isContactLink тексту — defaultUrlTransform здесь лишний, более
-        узкий и необъяснённый слой). identity-функция отключает его: GuestLink/
-        GuestImage ниже и так решают, какой href безопасен (javascript:/
-        data: — проверено тестами, остаются текстом).
+        defaultUrlTransform — пропускает только https?/ircs?/mailto/xmpp
+        (и «#…»/относительные — первый символ «#»/«/»), а tel: превращает в
+        '' ДО того, как href доходит до GuestLink. T3 решал это identity-
+        функцией — но она попутно снимала проверку схем и со ВСЕГО
+        остального, оставляя единственной линией защиты GuestLink/GuestImage
+        ниже (javascript:/data: они и сами фильтруют — проверено тестами,
+        остаются текстом). guestUrlTransform (T11, определён выше) возвращает
+        tel: как есть и пропускает всё остальное через настоящий
+        defaultUrlTransform — вторая, самостоятельная проверка тех же схем, а
+        не единственная.
       */}
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={GUEST_MARKDOWN_COMPONENTS} urlTransform={(url) => url}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={GUEST_MARKDOWN_COMPONENTS} urlTransform={guestUrlTransform}>
         {text}
       </ReactMarkdown>
     </div>
@@ -356,6 +378,16 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
     let answered = false;
     let bubbleRemoved = false;
     let silentAbort = false;
+    /**
+     * T12 (по проверке d3c087a): ставят ветки ниже, уже вызвавшие
+     * restoreInput — catch не должен восстанавливать текст повторно (дал бы
+     * «Привет\n\nПривет», restoreInput дублирует СВОЙ message поверх уже
+     * восстановленного). bubbleAdded в условии catch покрывает и другой
+     * случай с тем же симптомом: бросок ДО setInput('') (например,
+     * onBusyChange(true)) — поле тогда вообще не трогалось, и catch не
+     * должен лезть в него сам.
+     */
+    let restored = false;
     try {
       // T5: замок (sendingRef, синхронный) и onBusyChange(true) — ВНУТРИ try,
       // чтобы finally их снял, даже если что-то из этих строк бросит
@@ -460,6 +492,7 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         setMessages((m) => m.slice(0, -1));
         bubbleRemoved = true;
         restoreInput(message);
+        restored = true;
         return;
       }
 
@@ -500,7 +533,13 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
           // T1: черновик при стене — та же склейка с тем, что человек уже
           // успел напечатать (restoreInput), а не голый исходный message.
           const merged = restoreInput(message);
-          if (gotWall) savePendingDraft(merged, assistantId);
+          restored = true;
+          // T14 (по проверке d3c087a): склейка (message + то, что успели
+          // дописать) может выйти длиннее PENDING_DRAFT_STORE_MAX — тогда
+          // savePendingDraft молча откажется сохранить ВСЁ (свой же предел,
+          // I7) и черновик потеряется целиком, хотя сам message мог быть
+          // совсем коротким. Лучше сохранить хотя бы его.
+          if (gotWall) savePendingDraft(merged.length > PENDING_DRAFT_STORE_MAX ? message : merged, assistantId);
         }
         if (!gotWall) {
           setError(gotError ?? (interrupted ? 'interrupted' : errorKindForResult(effectiveResult)));
@@ -524,7 +563,10 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
       // резать не нужно, иначе «последним» стало бы чужое, более раннее
       // сообщение.
       if (bubbleAdded && !answered && !bubbleRemoved) setMessages((m) => m.slice(0, -1));
-      restoreInput(message);
+      // T12: без bubbleAdded поле вообще не трогалось (бросок до
+      // setInput('')) — восстанавливать нечего, а !restored не даёт
+      // продублировать текст поверх уже восстановленного веткой выше.
+      if (bubbleAdded && !answered && !restored) restoreInput(message);
       setError('network');
     } finally {
       sendingRef.current = false;
