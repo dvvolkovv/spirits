@@ -122,7 +122,9 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
               >
                 {label(p)}
                 {p !== 'claude' && !state.configured[p] && (
-                  <span className="ml-1 text-xs opacity-75">· {t('admin.userActivity.llmProvider.noKeyShort', 'нет ключа')}</span>
+                  <span className="ml-1 text-xs opacity-75">
+                    <span aria-hidden="true">·</span> {t('admin.userActivity.llmProvider.noKeyShort', 'нет ключа')}
+                  </span>
                 )}
               </button>
             ))}
@@ -132,9 +134,11 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
               {noKeyWarning(state.provider)}
             </p>
           )}
-          <p className="mt-2 text-xs text-gray-500">
-            {t('admin.userActivity.llmProvider.fallbackHint', 'Если выбранная модель не ответит, ответит Claude.')}
-          </p>
+          {state.provider !== 'claude' && (
+            <p className="mt-2 text-xs text-gray-500">
+              {t('admin.userActivity.llmProvider.fallbackHint', 'Если выбранная модель не ответит, ответит Claude.')}
+            </p>
+          )}
           <p className="mt-2 text-xs text-gray-500">
             {t('admin.userActivity.llmProvider.hint', 'Веб-ассистенты, Маша и TG-боты этого человека. Пробы мониторинга и фоновые задачи — всегда Claude.')}
           </p>
