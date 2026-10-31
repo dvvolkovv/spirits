@@ -17,7 +17,10 @@ import { tokenManager } from '../../utils/tokenManager';
  * guest_trial_preview — в sessionStorage: вкладка открыта с ?trial=1, и режим
  * «предпросмотр» показывает пробу только ей.
  */
-const TRIAL_KEY = 'guest_trial';
+// Экспортирован (E1, хвост по ревью): GuestChatPage слушает window 'storage'
+// для сброса пробы, стёртой в ДРУГОЙ вкладке, и сверяет e.key с тем же
+// именем — дублировать строку в двух файлах рискованнее, чем дать её отсюда.
+export const TRIAL_KEY = 'guest_trial';
 const HAS_ACCOUNT_KEY = 'linkeon_has_account';
 const PREVIEW_KEY = 'guest_trial_preview';
 
