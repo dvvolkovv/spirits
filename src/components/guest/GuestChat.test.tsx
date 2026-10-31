@@ -569,4 +569,115 @@ describe('чат пробы', () => {
     await flush();
     expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
   });
+
+  // --- B8-fix I9 + Enter/Shift+Enter/без согласия ---
+
+  describe('клавиша Enter', () => {
+    it('Enter во время набора через IME не отправляет (I9)', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      send.mockImplementation(answer('Ответ'));
+      open();
+      type(input(), 'Привет');
+      await actAsync(() => {
+        input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, isComposing: true }));
+      });
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    it('Enter отправляет сообщение', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      send.mockImplementation(answer('Ответ'));
+      open();
+      type(input(), 'Привет');
+      await actAsync(() => {
+        input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      });
+      await flush();
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    it('Shift+Enter не отправляет — перевод строки', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      send.mockImplementation(answer('Ответ'));
+      open();
+      type(input(), 'Привет');
+      await actAsync(() => {
+        input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, shiftKey: true }));
+      });
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    it('Enter без согласия не отправляет', async () => {
+      open();
+      type(input(), 'Привет');
+      await actAsync(() => {
+        input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      });
+      expect(send).not.toHaveBeenCalled();
+    });
+  });
+
+  // --- B8-fix M2: поле не блокируется на время хода, только кнопка ---
+
+  it('поле не блокируется на время хода, фокус не теряется; блокируется только кнопка (M2)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    let resolveFn: ((v: string) => void) | null = null;
+    send.mockImplementation(() => new Promise<string>((resolve) => { resolveFn = resolve; }));
+    open();
+    type(input(), 'Привет');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    expect(input().disabled).toBe(false);
+    expect(byButton(view!.container, /Отправить/)!.disabled).toBe(true);
+    await actAsync(() => {
+      resolveFn!('ok');
+    });
+  });
+
+  // --- B8-fix M3: заголовок стены <h2>, enterKeyHint="send" ---
+
+  describe('M3', () => {
+    it('заголовок стены — <h2>', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      send.mockImplementation(answer('Третий ответ', [{ type: 'wall', reason: 'limit' }]));
+      open();
+      type(input(), 'Вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await flush();
+      const h2 = view!.container.querySelector('h2');
+      expect(h2).not.toBeNull();
+      expect(h2!.textContent).toContain('Чтобы продолжить и сохранить разговор, войдите');
+    });
+
+    it('у поля enterKeyHint="send"', () => {
+      open();
+      expect(input().getAttribute('enterkeyhint')).toBe('send');
+    });
+  });
+
+  // --- B8-fix M8: счётчик длины поля ---
+
+  it('счётчик {длина}/{maxChars} виден только после 80% предела, без кириллицы (M8)', () => {
+    const p = open();
+    type(input(), 'a'.repeat(100));
+    expect(visibleText(view!.container)).not.toContain(`100/${p.config.maxChars}`);
+    type(input(), 'a'.repeat(1601));
+    expect(visibleText(view!.container)).toContain(`1601/${p.config.maxChars}`);
+  });
+
+  // --- B8-fix M9: пузыри — w-fit max-w-[85%] break-words ---
+
+  it('пузырь пользователя — w-fit max-w-[85%] break-words (M9)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    send.mockImplementation(answer('Ответ'));
+    open();
+    type(input(), 'Привет');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await flush();
+    const bubbles = Array.from(view!.container.querySelectorAll('[data-testid="guest-messages-list"] > div'));
+    const userBubble = bubbles.find((b) => b.textContent === 'Привет');
+    expect(userBubble).toBeTruthy();
+    expect(userBubble!.className).toContain('w-fit');
+    expect(userBubble!.className).toContain('max-w-[85%]');
+    expect(userBubble!.className).toContain('break-words');
+  });
 });
