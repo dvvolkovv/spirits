@@ -247,16 +247,22 @@ describe('чат пробы', () => {
       expect(visibleText(view!.container)).toContain('сюда');
     });
 
-    it('голый адрес видео — сам адрес текстом, метки нет', () => {
+    it('голый адрес видео — сам адрес становится обычной ссылкой (I2), метки нет', () => {
       openWithAnswer('Ролик: https://cdn.example.com/clip.mp4 смотрите.');
       expect(visibleText(view!.container)).not.toContain('__');
-      expect(visibleText(view!.container)).toContain('https://cdn.example.com/clip.mp4');
+      const a = byLink(view!.container, /clip\.mp4/);
+      expect(a).not.toBeNull();
+      expect(a!.getAttribute('href')).toBe('https://cdn.example.com/clip.mp4');
+      expect(a!.getAttribute('target')).toBe('_blank');
+      expect(a!.className).toContain('ym-disable-tracklink');
     });
 
-    it('голый адрес картинки — сам адрес текстом, метки нет', () => {
+    it('голый адрес картинки — сам адрес становится обычной ссылкой (I2), метки нет', () => {
       openWithAnswer('Картинка: https://cdn.example.com/pic.png смотрите.');
       expect(visibleText(view!.container)).not.toContain('__');
-      expect(visibleText(view!.container)).toContain('https://cdn.example.com/pic.png');
+      const a = byLink(view!.container, /pic\.png/);
+      expect(a).not.toBeNull();
+      expect(a!.getAttribute('href')).toBe('https://cdn.example.com/pic.png');
     });
 
     it('{{audio:id=…}} — пустая строка, id не просачивается', () => {
@@ -294,8 +300,12 @@ describe('чат пробы', () => {
   // --- B8-fix I2: ссылки и картинки ReactMarkdown ---
 
   describe('ссылки и картинки (I2)', () => {
-    it('ссылка {{link}} на веб-адрес — настоящая <a> с target=_blank и ym-disable-tracklink', () => {
-      openWithAnswer('Смотрите {{link: сюда | url: https://example.com/page}}.');
+    // {{link:…}} сам по себе отдаёт только текст (I1, без пометки «станет
+    // ссылкой» — в отличие от __IMAGE__/__VIDEO__): безопасность components.a
+    // проверяем на настоящей markdown-ссылке, как её мог написать ассистент
+    // напрямую, и на голом адресе видео/картинки (тесты I1 выше).
+    it('markdown-ссылка на веб-адрес — настоящая <a> с target=_blank и ym-disable-tracklink', () => {
+      openWithAnswer('Смотрите [сюда](https://example.com/page) за подробностями.');
       const a = byLink(view!.container, /сюда/);
       expect(a).not.toBeNull();
       expect(a!.getAttribute('href')).toBe('https://example.com/page');
@@ -304,8 +314,8 @@ describe('чат пробы', () => {
       expect(a!.className).toContain('ym-disable-tracklink');
     });
 
-    it('{{link}} на javascript: — текстом, без <a href>', () => {
-      openWithAnswer('Смотрите {{link: кликни | url: javascript:alert(1)}}.');
+    it('markdown-ссылка на javascript: — текстом, без <a href>', () => {
+      openWithAnswer('Смотрите [кликни](javascript:alert(1)) здесь.');
       expect(visibleText(view!.container)).toContain('кликни');
       const anchors = Array.from(view!.container.querySelectorAll('a'));
       expect(anchors.some((el) => (el.getAttribute('href') ?? '').startsWith('javascript:'))).toBe(false);
