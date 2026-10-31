@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Модель ответов человека в карточке (spec spirits_back 2026-10-30-llm-provider-switch,
- * 2026-10-31-kimi-provider-design).
+ * 2026-10-31-kimi-provider-design, 2026-10-31-global-llm-switch).
  */
 import { act } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -9,6 +9,14 @@ import { createRoot, Root } from 'react-dom/client';
 
 const { get, post } = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('../../services/apiClient', () => ({ apiClient: { get, post } }));
+// В тестах i18n не инициализирован: без подмены t() вернёт текст по умолчанию
+// без подстановки {{model}} — подпись «Как у всех» не покажет модель рубильника.
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (k: string, def?: string, opts?: Record<string, unknown>) =>
+      String(def ?? k).replace(/\{\{(\w+)\}\}/g, (_m: string, n: string) => String(opts?.[n] ?? '')),
+  }),
+}));
 
 import { UserLlmProviderControl } from './UserLlmProviderControl';
 
@@ -18,9 +26,9 @@ let container: HTMLDivElement;
 let root: Root;
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
-/** Ответ нового бэкенда: выбор и ключи по каждому запасному. */
-const state = (provider: string, qwen = true, kimi = true, userId = 'u-1') =>
-  ok({ userId, provider, qwenConfigured: qwen, configured: { qwen, kimi } });
+/** Ответ нового бэкенда: выбор, модель рубильника, чем отвечает сейчас, ключи по каждому запасному. */
+const state = (provider: string, qwen = true, kimi = true, userId = 'u-1', global = 'claude', effective?: string) =>
+  ok({ userId, provider, effective: effective ?? (provider === 'default' ? global : provider), global, qwenConfigured: qwen, configured: { qwen, kimi } });
 const mount = async (userId = 'u-1') => {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -32,21 +40,50 @@ const rerender = async (userId: string) => {
   await act(async () => { root.render(<UserLlmProviderControl userId={userId} />); });
   await settle();
 };
-const radio = (name: string) =>
-  Array.from(container.querySelectorAll('[role="radio"]')).find((el) => el.textContent?.includes(name)) as HTMLButtonElement;
+// «Claude» входит и в подпись «Как у всех (сейчас: Claude)» — ищем точное
+// совпадение начала, а не произвольное вхождение.
+const radio = (name: string) => {
+  const all = Array.from(container.querySelectorAll('[role="radio"]')) as HTMLButtonElement[];
+  return all.find((el) => el.textContent?.trim().startsWith(name)) as HTMLButtonElement;
+};
 
 beforeEach(() => { get.mockReset(); post.mockReset(); });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 
 describe('UserLlmProviderControl', () => {
-  it('три варианта; показывает текущий выбор', async () => {
+  it('четыре варианта; показывает текущий выбор', async () => {
     get.mockResolvedValue(state('kimi'));
     await mount();
     expect(get).toHaveBeenCalledWith('/webhook/admin/users/u-1/llm-provider');
-    expect(container.querySelectorAll('[role="radio"]')).toHaveLength(3);
+    expect(container.querySelectorAll('[role="radio"]')).toHaveLength(4);
     expect(radio('Kimi').getAttribute('aria-checked')).toBe('true');
     expect(radio('Qwen').getAttribute('aria-checked')).toBe('false');
     expect(radio('Claude').getAttribute('aria-checked')).toBe('false');
+    expect(radio('Как у всех').getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('«Как у всех» — подпись с моделью рубильника; выбран, если provider default', async () => {
+    get.mockResolvedValue(state('default', true, true, 'u-1', 'qwen'));
+    await mount();
+    const d = radio('Как у всех');
+    expect(d.textContent).toContain('Qwen');
+    expect(d.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('выбор «Как у всех» отправляет default', async () => {
+    get.mockResolvedValue(state('kimi'));
+    post.mockResolvedValue(state('default'));
+    await mount();
+    await act(async () => { radio('Как у всех').click(); });
+    await settle();
+    expect(post).toHaveBeenCalledWith('/webhook/admin/users/u-1/llm-provider', { provider: 'default' });
+  });
+
+  it('явный Claude — отдельный вариант', async () => {
+    get.mockResolvedValue(state('claude'));
+    await mount();
+    expect(radio('Claude').getAttribute('aria-checked')).toBe('true');
+    expect(radio('Как у всех').getAttribute('aria-checked')).toBe('false');
   });
 
   it('переключение на Kimi сохраняется сразу', async () => {
@@ -78,6 +115,7 @@ describe('UserLlmProviderControl', () => {
     await mount();
     expect(container.textContent).toContain('Ключ Qwen на сервере не настроен');
     expect(radio('Kimi').textContent).toContain('нет ключа');
+    expect(radio('Как у всех').textContent).toContain('Как у всех (сейчас: Claude)');
   });
 
   it('подсказка про ответ Claude показана только если выбран не Claude', async () => {
