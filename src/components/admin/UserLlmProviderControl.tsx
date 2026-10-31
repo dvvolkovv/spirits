@@ -5,13 +5,18 @@ import { Cpu, Loader } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
 type Provider = 'claude' | 'qwen' | 'kimi';
+type Choice = 'default' | Provider;
 type Alt = Exclude<Provider, 'claude'>;
-const PROVIDERS: Provider[] = ['claude', 'qwen', 'kimi'];
-interface ProviderState { provider: Provider; configured: Record<Alt, boolean> }
+const CHOICES: Choice[] = ['default', 'claude', 'qwen', 'kimi'];
+const LABELS: Record<Provider, string> = { claude: 'Claude', qwen: 'Qwen', kimi: 'Kimi' };
+interface ProviderState { provider: Choice; global: Provider; configured: Record<Alt, boolean> }
+
+const asProvider = (v: unknown): Provider => (v === 'qwen' || v === 'kimi' || v === 'claude' ? v : 'claude');
 
 const toState = (j: any): ProviderState => ({
-  provider: j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'claude',
-  // Старый бэкенд отдаёт только qwenConfigured — Kimi у него нет.
+  provider: j?.provider === 'claude' || j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'default',
+  // Старый бэкенд поля global не шлёт — рубильника там нет, все на Claude.
+  global: asProvider(j?.global),
   configured: j?.configured && typeof j.configured === 'object'
     ? { qwen: j.configured.qwen === true, kimi: j.configured.kimi === true }
     : { qwen: j?.qwenConfigured === true, kimi: false },
@@ -55,14 +60,14 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
     return () => { cancelled = true; };
   }, [url]);
 
-  const choose = async (provider: Provider) => {
+  const choose = async (choice: Choice) => {
     if (saving) return;
-    if (!state || provider === state.provider) return;
+    if (!state || choice === state.provider) return;
     const requestedFor = userId;
     setSaving(true);
     setError(null);
     try {
-      const r = await apiClient.post(url, { provider });
+      const r = await apiClient.post(url, { provider: choice });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const j = await r.json();
       if (userIdRef.current !== requestedFor) return;
@@ -75,9 +80,10 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
     }
   };
 
-  const label = (p: Provider) => {
-    if (p === 'claude') return t('admin.userActivity.llmProvider.claude', 'Claude (по умолчанию)');
-    if (p === 'qwen') return t('admin.userActivity.llmProvider.qwen', 'Qwen');
+  const label = (c: Choice) => {
+    if (c === 'default') return t('admin.userActivity.llmProvider.default', 'Как у всех (сейчас: {{model}})', { model: LABELS[state?.global ?? 'claude'] });
+    if (c === 'claude') return t('admin.userActivity.llmProvider.claude', 'Claude');
+    if (c === 'qwen') return t('admin.userActivity.llmProvider.qwen', 'Qwen');
     return t('admin.userActivity.llmProvider.kimi', 'Kimi');
   };
   // Ключи — литералами, без шаблона {{name}}: их видит check-keys.
@@ -105,23 +111,23 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
       {state && (
         <>
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={titleId}>
-            {PROVIDERS.map((p) => (
+            {CHOICES.map((c) => (
               <button
-                key={p}
+                key={c}
                 type="button"
                 role="radio"
-                aria-checked={state.provider === p}
+                aria-checked={state.provider === c}
                 aria-disabled={saving}
-                onClick={() => choose(p)}
+                onClick={() => choose(c)}
                 className={clsx(
                   'px-3 py-1.5 rounded-lg border text-sm',
-                  state.provider === p
+                  state.provider === c
                     ? 'bg-blue-600 border-blue-600 text-white'
                     : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50',
                 )}
               >
-                {label(p)}
-                {p !== 'claude' && !state.configured[p] && (
+                {label(c)}
+                {(c === 'qwen' || c === 'kimi') && !state.configured[c] && (
                   <span className="ml-1 text-xs opacity-75">
                     <span aria-hidden="true">·</span> {t('admin.userActivity.llmProvider.noKeyShort', 'нет ключа')}
                   </span>
@@ -129,18 +135,18 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
               </button>
             ))}
           </div>
-          {state.provider !== 'claude' && !state.configured[state.provider] && (
+          {(state.provider === 'qwen' || state.provider === 'kimi') && !state.configured[state.provider] && (
             <p className="mt-2 text-xs text-amber-700">
               {noKeyWarning(state.provider)}
             </p>
           )}
-          {state.provider !== 'claude' && (
+          {(state.provider === 'qwen' || state.provider === 'kimi') && (
             <p className="mt-2 text-xs text-gray-500">
               {t('admin.userActivity.llmProvider.fallbackHint', 'Если выбранная модель не ответит, ответит Claude.')}
             </p>
           )}
           <p className="mt-2 text-xs text-gray-500">
-            {t('admin.userActivity.llmProvider.hint', 'Веб-ассистенты, Маша и TG-боты этого человека. Пробы мониторинга и фоновые задачи — всегда Claude.')}
+            {t('admin.userActivity.llmProvider.hint', 'Веб-ассистенты, Маша и TG-боты этого человека. «Как у всех» — модель общего рубильника (вкладка «Ассистенты»).')}
           </p>
         </>
       )}
