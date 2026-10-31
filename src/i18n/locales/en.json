@@ -946,17 +946,18 @@
       "reconstructed": "backfilled later",
       "llmProvider": {
         "title": "Answer model",
-        "claude": "Claude (default)",
+        "claude": "Claude",
         "qwen": "Qwen",
         "noKey": "Qwen key is not configured on the server — answers will go through Claude.",
         "kimi": "Kimi",
         "noKeyKimi": "Kimi key is not configured on the server — answers will go through Claude.",
         "noKeyShort": "no key",
         "fallbackHint": "If the chosen model does not answer, Claude will.",
-        "hint": "Web assistants, Masha and this person’s Telegram bots. Monitoring probes and background jobs always use Claude.",
+        "hint": "This person’s web assistants, Masha and Telegram bots. “Same as everyone” is the global switch model (Assistants tab).",
         "error": "Could not load or save the choice",
         "loading": "Loading…",
-        "notFound": "User not found"
+        "notFound": "User not found",
+        "default": "Same as everyone (now: {{model}})"
       }
     },
     "reports": {
@@ -1001,6 +1002,18 @@
         "telemost": "Yandex Telemost"
       },
       "openUser": "Open profile and conversations"
+    },
+    "globalLlm": {
+      "title": "Answer model for everyone",
+      "hint": "Assistants, background tasks and the no-sign-in trial. A personal choice in the user card takes priority.",
+      "noKey": "no key on the server",
+      "since": "Since {{since}}, switched by {{by}}",
+      "confirm": "Assistants, background tasks and the no-sign-in trial will switch to {{model}}. You can switch back here.",
+      "errorNoKey": "This model has no key on the server.",
+      "error": "Could not load or save",
+      "banner": "Everyone is answered by {{model}} since {{since}}",
+      "bannerNoSince": "Everyone is answered by {{model}}",
+      "bannerOpen": "Change"
     }
   },
   "chats": {
