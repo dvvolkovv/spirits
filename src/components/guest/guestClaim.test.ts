@@ -75,6 +75,22 @@ describe('перенос пробы при входе', () => {
     expect(trackMock).toHaveBeenCalledWith('guest_trial_claim_failed', { reason: 'error' });
   });
 
+  // T6 (хвост по перепроверкам B9-fix, 31.10): claimGuestTrial бросает
+  // СИНХРОННО (не отклоняет промис, а кидает исключение прямо при вызове) —
+  // имитирует мок, который не возвращает Promise вовсе. До правки этот вызов
+  // стоял СНАРУЖИ try, и бросок ловила только обёртка async у самой
+  // claimPendingGuestTrial, превращая её результат в ОТКАЗАННЫЙ промис, хотя
+  // контракт функции («не бросает») обещает всегда resolve — внутри
+  // Promise.all в login() отказ одного элемента роняет вход.
+  it('T6: claimGuestTrial бросает синхронно — claimPendingGuestTrial всё равно resolve, не reject', async () => {
+    claim.mockImplementation(() => {
+      throw new Error('boom');
+    });
+    await expect(claimPendingGuestTrial()).resolves.toBeUndefined();
+    expect(readTrial()).not.toBeNull();
+    expect(trackMock).toHaveBeenCalledWith('guest_trial_claim_failed', { reason: 'error' });
+  });
+
   it('без пробы — ни одного запроса', async () => {
     localStorage.clear();
     await claimPendingGuestTrial();
