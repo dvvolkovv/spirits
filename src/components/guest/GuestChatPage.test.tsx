@@ -1,7 +1,7 @@
 // src/components/guest/GuestChatPage.test.tsx
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act } from 'react';
+import { act, useEffect } from 'react';
 import { MemoryRouter, useSearchParams } from 'react-router-dom';
 import { byButton, click, flush, mount, visibleText, type Mounted } from '../../test/dom';
 
@@ -12,23 +12,33 @@ vi.mock('react-i18next', async () => {
 vi.mock('../../pages/OnboardingPage', () => ({ default: () => <div>экран входа</div> }));
 vi.mock('../../services/avatarService', () => ({ avatarService: { getAvatarUrl: vi.fn(async () => '') } }));
 vi.mock('../../services/eventsClient', () => ({ track: vi.fn() }));
-// Доп. A7: кнопка-заглушка, которая зовёт onBusyChange(true) — проверить, что
-// страница гасит «Войти» в шапке, пока идёт (по мнению заглушки) ход.
+// Доп. A7 + C1 (ревью качества B9-fix): кнопка-заглушка зовёт onBusyChange(true)
+// — проверить, что страница гасит «Войти» в шапке, пока идёт (по мнению
+// заглушки) ход. useEffect с [] считает МОНТИРОВАНИЯ (не перерисовки) через
+// глобальный счётчик — C1 проверяет, что «Войти» → «Вернуться» не создаёт
+// новый экземпляр GuestChat (window.__guestChatMounts не растёт).
 vi.mock('./GuestChat', () => ({
-  default: (p: any) => (
-    <div>
-      <div>чат:{p.assistantId}:{p.assistantName}:{p.initialMessages.length}:{p.draft?.text ?? ''}</div>
-      <button type="button" onClick={() => p.onBusyChange?.(true)}>ход идёт (мок)</button>
-    </div>
-  ),
+  default: (p: any) => {
+    useEffect(() => {
+      (globalThis as any).__guestChatMounts = ((globalThis as any).__guestChatMounts ?? 0) + 1;
+    }, []);
+    return (
+      <div>
+        <div>чат:{p.assistantId}:{p.assistantName}:{p.initialMessages.length}:{p.draft?.text ?? ''}</div>
+        <button type="button" onClick={() => p.onBusyChange?.(true)}>ход идёт (мок)</button>
+      </div>
+    );
+  },
 }));
 vi.mock('./guestApi', () => ({ fetchGuestAgents: vi.fn(), loadGuestSession: vi.fn() }));
 
+import { avatarService } from '../../services/avatarService';
 import { fetchGuestAgents, loadGuestSession } from './guestApi';
 import GuestChatPage from './GuestChatPage';
 
 const agents = fetchGuestAgents as unknown as ReturnType<typeof vi.fn>;
 const session = loadGuestSession as unknown as ReturnType<typeof vi.fn>;
+const avatarSpy = avatarService.getAvatarUrl as unknown as ReturnType<typeof vi.fn>;
 const TOKEN = 'T'.repeat(43);
 const CONFIG = { mode: 'on' as const, answersPerTrial: 3, maxChars: 2000 };
 
@@ -69,7 +79,11 @@ async function selectAssistant(el: HTMLSelectElement, value: string) {
 beforeEach(() => {
   localStorage.clear();
   agents.mockResolvedValue([{ id: '12', name: 'Роман' }, { id: '14', name: 'Райя' }]);
-  session.mockResolvedValue(null);
+  // 'error' — нейтральный дефолт новой формы ответа (m3): большинство тестов
+  // не кладут guest_trial в localStorage, и loadGuestSession вовсе не зовётся.
+  session.mockResolvedValue({ status: 'error' });
+  avatarSpy.mockClear();
+  (globalThis as any).__guestChatMounts = 0;
 });
 afterEach(() => { view?.unmount(); view = null; });
 
@@ -86,18 +100,55 @@ describe('страница пробы', () => {
 
   it('начатая проба восстанавливается, выбор ассистента закрыт', async () => {
     localStorage.setItem('guest_trial', JSON.stringify({ token: TOKEN, assistantId: '14' }));
-    session.mockResolvedValue({ assistantId: '14', messages: [{ role: 'user', content: 'В' }, { role: 'assistant', content: 'О' }], left: 2 });
+    session.mockResolvedValue({ status: 'ok', assistantId: '14', messages: [{ role: 'user', content: 'В' }, { role: 'assistant', content: 'О' }], left: 2 });
     await open('/chat?assistant=12');
     expect(visibleText(view!.container)).toContain('чат:14:Райя:2');
     expect(view!.container.querySelector('select')).toBeNull();
     expect(visibleText(view!.container)).toContain('Чтобы поговорить с другими ассистентами, войдите');
   });
 
-  it('проба на сервере пропала — ключ забыт, новая проба', async () => {
+  it('проба на сервере пропала (gone) — ключ забыт, новая проба', async () => {
     localStorage.setItem('guest_trial', JSON.stringify({ token: TOKEN, assistantId: '14' }));
+    session.mockResolvedValue({ status: 'gone' });
     await open('/chat');
     expect(localStorage.getItem('guest_trial')).toBeNull();
     expect(visibleText(view!.container)).toContain('чат:12:Роман:0');
+  });
+
+  // m3: ассистент пробы на сервере НАЙДЕН (status: 'ok'), но его больше нет в
+  // списке агентов — ключ тоже забывается (с ним так и так нечем продолжить),
+  // но это ДРУГАЯ ветка, чем 'gone', и важно, чтобы обе вели к одному итогу.
+  it('ассистент пробы пропал из списка — ключ забыт, новая проба (m3)', async () => {
+    localStorage.setItem('guest_trial', JSON.stringify({ token: TOKEN, assistantId: '99' }));
+    session.mockResolvedValue({ status: 'ok', assistantId: '99', messages: [{ role: 'user', content: 'В' }], left: 2 });
+    await open('/chat');
+    expect(localStorage.getItem('guest_trial')).toBeNull();
+    expect(visibleText(view!.container)).toContain('чат:12:Роман:0');
+  });
+
+  // m3 (Critical, ревью качества B9-fix): сбой loadGuestSession (сеть, 5xx,
+  // таймаут) — НЕ 'gone', ключ обязан остаться («при сбое ключ остаётся»,
+  // обещание «перезагрузка разговор не теряет»). Проба открывается этим же
+  // ключом, но без ленты — она появится, когда сервер ответит.
+  it('сбой восстановления пробы — ключ остаётся, проба открывается без ленты (m3)', async () => {
+    localStorage.setItem('guest_trial', JSON.stringify({ token: TOKEN, assistantId: '14' }));
+    session.mockResolvedValue({ status: 'error' });
+    await open('/chat');
+    expect(localStorage.getItem('guest_trial')).toBe(JSON.stringify({ token: TOKEN, assistantId: '14' }));
+    expect(visibleText(view!.container)).toContain('чат:14:Райя:0');
+    expect(visibleText(view!.container)).not.toContain('экран входа');
+  });
+
+  // m3: пустой список ассистентов (сбой fetchGuestAgents или и впрямь пусто)
+  // — экран входа, но ключ НАЧАТОЙ пробы трогать нельзя: список может быть
+  // пуст из-за сбоя сети, а не потому что ассистентов нет вообще.
+  it('пустой список ассистентов с начатой пробой — экран входа, ключ не трогается (m3)', async () => {
+    localStorage.setItem('guest_trial', JSON.stringify({ token: TOKEN, assistantId: '14' }));
+    agents.mockResolvedValue([]);
+    await open('/chat');
+    expect(visibleText(view!.container)).toContain('экран входа');
+    expect(localStorage.getItem('guest_trial')).toBe(JSON.stringify({ token: TOKEN, assistantId: '14' }));
+    expect(session).not.toHaveBeenCalled();
   });
 
   it('вопрос с лендинга доходит до чата', async () => {
@@ -112,12 +163,20 @@ describe('страница пробы', () => {
     expect(visibleText(view!.container)).toContain('экран входа');
   });
 
-  it('«Войти» открывает экран входа, «Вернуться» — обратно в чат', async () => {
+  // C1 (Critical, ревью качества B9-fix): «Войти» больше не размонтирует
+  // GuestChat — он остаётся в дереве, просто скрытый, пока показан экран
+  // входа. Счётчик монтирований мока (useEffect с []) должен остаться 1 за
+  // весь сценарий: «Вернуться» не создаёт новый экземпляр (старый token/лента
+  // не теряются, черновик не передаётся заново).
+  it('«Войти» открывает экран входа, «Вернуться» — обратно в чат, тот же экземпляр чата (C1)', async () => {
     await open('/chat');
+    expect((globalThis as any).__guestChatMounts).toBe(1);
     click(byButton(view!.container, /^Войти$/)!);
     expect(visibleText(view!.container)).toContain('экран входа');
+    expect((globalThis as any).__guestChatMounts).toBe(1);
     click(byButton(view!.container, /Вернуться к разговору/)!);
     expect(visibleText(view!.container)).toContain('чат:12:Роман:0');
+    expect((globalThis as any).__guestChatMounts).toBe(1);
   });
 
   it('рефссылка запоминается и в пробе', async () => {
@@ -130,11 +189,30 @@ describe('страница пробы', () => {
   // Доп. по ревью A7: страница держит busy из onBusyChange и гасит «Войти» в
   // шапке, пока идёт ход (перенос пробы посреди ответа теряет пару, которая
   // ещё пишется). Мок GuestChat даёт кнопку-заглушку, зовущую onBusyChange(true).
-  it('во время хода «Войти» в шапке недоступна (доп. A7)', async () => {
+  it('во время хода «Войти» в шапке недоступна и подсказывает почему (доп. A7, m1)', async () => {
     await open('/chat');
-    expect(byButton(view!.container, /^Войти$/)!.disabled).toBe(false);
+    const loginBtn = byButton(view!.container, /^Войти$/)!;
+    expect(loginBtn.disabled).toBe(false);
+    expect(loginBtn.title).toBe('');
     click(byButton(view!.container, /ход идёт/)!);
     expect(byButton(view!.container, /^Войти$/)!.disabled).toBe(true);
+    expect(byButton(view!.container, /^Войти$/)!.title).toBe('Подождите, пока ассистент ответит');
+  });
+
+  // m2: аватар ассистента не запрашивается, пока список ассистентов не
+  // загружен (ещё идёт первый запрос) или пуст (экран входа всё равно
+  // покажется, дёргать сервер за картинкой незачем).
+  it('аватар не запрашивается при пустом списке, но запрашивается при обычной загрузке (m2)', async () => {
+    agents.mockResolvedValue([]);
+    await open('/chat');
+    expect(visibleText(view!.container)).toContain('экран входа');
+    expect(avatarSpy).not.toHaveBeenCalled();
+    view!.unmount();
+
+    avatarSpy.mockClear();
+    agents.mockResolvedValue([{ id: '12', name: 'Роман' }, { id: '14', name: 'Райя' }]);
+    await open('/chat');
+    expect(avatarSpy).toHaveBeenCalledWith(12);
   });
 
   // Доп. по ревью B6: смена ассистента в select до начала пробы обновляет

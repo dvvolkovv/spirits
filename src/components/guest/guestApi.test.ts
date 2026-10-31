@@ -133,22 +133,28 @@ describe('таймауты зависшего бэка (Critical, ревью B4)
     expect(get).toHaveBeenCalledWith('/webhook/agents?lang=ru', expect.objectContaining({ skipAuth: true, signal: expect.any(AbortSignal) }));
   });
 
-  it('session: завис — через 8 с null, signal доходит до apiClient.post', async () => {
+  it('session: завис — через 8 с error (не gone), signal доходит до apiClient.post', async () => {
     vi.useFakeTimers();
     post.mockImplementationOnce((_url: string, _body: unknown, opts: any) => hangsUntilAborted(opts));
     const pending = loadGuestSession('T');
     await vi.advanceTimersByTimeAsync(8000);
-    expect(await pending).toBeNull();
+    expect(await pending).toEqual({ status: 'error' });
     expect(post).toHaveBeenCalledWith('/webhook/guest/session', { token: 'T' }, expect.objectContaining({ skipAuth: true, signal: expect.any(AbortSignal) }));
   });
 });
 
 describe('разговор после перезагрузки и перенос', () => {
-  it('session — роли и остаток; 404 — null', async () => {
+  // m3 (ревью качества B9-fix): 'gone' (404) и 'error' (сбой) — РАЗНЫЕ исходы,
+  // страница решает по ним по-разному (gone стирает ключ пробы, error — нет).
+  it('session — роли и остаток; 404 — gone; 5xx и сеть — error', async () => {
     post.mockResolvedValueOnce(json(200, { assistantId: '14', messages: [{ role: 'user', content: 'В' }, { role: 'x', content: 'мусор' }], left: 2 }));
-    expect(await loadGuestSession('T')).toEqual({ assistantId: '14', messages: [{ role: 'user', content: 'В' }], left: 2 });
+    expect(await loadGuestSession('T')).toEqual({ status: 'ok', assistantId: '14', messages: [{ role: 'user', content: 'В' }], left: 2 });
     post.mockResolvedValueOnce(json(404, { error: 'trial' }));
-    expect(await loadGuestSession('T')).toBeNull();
+    expect(await loadGuestSession('T')).toEqual({ status: 'gone' });
+    post.mockResolvedValueOnce(json(500, {}));
+    expect(await loadGuestSession('T')).toEqual({ status: 'error' });
+    post.mockRejectedValueOnce(new Error('сеть'));
+    expect(await loadGuestSession('T')).toEqual({ status: 'error' });
   });
 
   it('claim: 200 — перенесено; 404/409 — пробы нет; 500 и сеть — повторить позже', async () => {
