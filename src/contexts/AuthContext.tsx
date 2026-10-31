@@ -5,6 +5,8 @@ import { apiClient } from '../services/apiClient';
 import { clearAppStorage } from '../utils/clearAppStorage';
 import { setItemResilient } from '../utils/persistentStorage';
 import { attributeSource } from '../services/eventsClient';
+import { markHasAccount } from '../components/guest/guestStorage';
+import { claimPendingGuestTrial } from '../components/guest/guestClaim';
 import i18n from '../i18n';
 import { resolveLanguage } from '../i18n/languages';
 
@@ -147,6 +149,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
 
           if (isMounted) {
+            // Проба без входа: устройство «входило» — дальше ему экран входа, а
+            // не проба; несостоявшийся при входе перенос добирается здесь.
+            markHasAccount();
+            void claimPendingGuestTrial();
             setUser(parsedUser);
             persistUser(parsedUser);
           }
@@ -289,6 +295,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // терялись). Идемпотентно: slug снимается после использования, бэк не
     // двоит уже зарегистрированных.
     authService.registerReferral();
+
+    // Проба без входа (spec 2026-10-30-guest-trial): устройство отныне «входило»,
+    // а разговор пробы переезжает в аккаунт ДО того, как откроется чат, — иначе
+    // чат загрузил бы историю без него. Не дольше 5 с; сбой входу не мешает.
+    markHasAccount();
+    await claimPendingGuestTrial();
 
     const tokens = await fetchUserTokens();
     if (tokens !== undefined) {
