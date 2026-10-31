@@ -2183,7 +2183,7 @@
     "inputPlaceholder": "Ton message…",
     "send": "Envoyer",
     "typing": "{{name}} écrit…",
-    "trialNote": "Les premières réponses arrivent sans connexion. Ensuite, on te demandera de te connecter pour enregistrer la conversation.",
+    "trialNote": "Les premières réponses arrivent sans te connecter. Ensuite, on te demandera de te connecter pour enregistrer la conversation.",
     "wall": {
       "title": "Connecte-toi pour continuer et enregistrer la conversation",
       "text": "C'est gratuit : 25 000 jetons offerts. La conversation sera enregistrée dans ton compte.",
