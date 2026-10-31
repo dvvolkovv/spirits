@@ -48,6 +48,7 @@ const ProductChatSrc = readFileSync(join(__dirname, 'products', 'ProductChat.tsx
 const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx'), 'utf8');
 const AdminProductCardSrc = readFileSync(join(__dirname, 'admin', 'AdminProductCard.tsx'), 'utf8');
 const CustomMarkdownSrc = readFileSync(join(__dirname, '..', 'utils', 'customMarkdown.tsx'), 'utf8');
+const GuestChatSrc = readFileSync(join(__dirname, 'guest', 'GuestChat.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -329,19 +330,38 @@ describe('правки продукта скрыты от Вебвизора', (
 // и картинки по голой ссылке (customMarkdown). Ссылки поддержки проверяет
 // SupportView.links.test.tsx по экрану.
 describe('ссылки переписки мимо «Внешних переходов» Метрики (ym-disable-tracklink)', () => {
-  /** Классы каждого открывающего <a …> исходника. */
-  const anchors = (src: string): string[][] =>
-    [...src.matchAll(/<a\b/g)].map((m) => {
+  /**
+   * Классы каждого открывающего <a …> исходника. Совпадения ищем в копии без
+   * блочных комментариев: GuestChat.tsx в соседнем JSDoc поясняет «настоящая
+   * <a>.» прозой — тот же `<a` литералом, под который заточен поиск. Гасим
+   * комментарии пробелами ТОЙ ЖЕ длины (не вырезаем), чтобы индексы совпадений
+   * остались верными для среза тега из оригинального src.
+   */
+  const anchors = (src: string): string[][] => {
+    const withoutComments = src.replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length));
+    return [...withoutComments.matchAll(/<a\b/g)].map((m) => {
       const start = m.index ?? 0;
       return tagClasses(src.slice(start, closingBracket(src, start + 2)));
     });
+  };
 
   it.each([
     ['ChatInterface.tsx', ChatInterface],
     ['customMarkdown.tsx', CustomMarkdownSrc],
+    ['GuestChat.tsx', GuestChatSrc],
   ])('каждая ссылка в %s — с ym-disable-tracklink', (_name, src) => {
     const found = anchors(src);
     expect(found.length).toBeGreaterThan(0);
     for (const classes of found) expect(classes).toContain('ym-disable-tracklink');
+  });
+});
+
+describe('проба без входа скрыта от Вебвизора', () => {
+  it('лента пробы — ym-hide-content', () => {
+    expect(classesOf(GuestChatSrc, 'guest-messages-list', 'div')).toContain('ym-hide-content');
+  });
+
+  it('поле пробы — ym-disable-keys', () => {
+    expect(classesOf(GuestChatSrc, 'guest-chat-input', 'textarea')).toContain('ym-disable-keys');
   });
 });

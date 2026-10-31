@@ -43,6 +43,7 @@ const MIGRATED = [
   'src/components/peer',
   'src/components/layout',
   'src/components/support',
+  'src/components/guest',
   'src/pages',
   'src/App.tsx',
   'src/services/widgetClient.ts',

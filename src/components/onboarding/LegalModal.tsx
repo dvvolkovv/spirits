@@ -534,6 +534,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li>Имя и фамилия (по желанию)</li>
           <li>Информация о ваших ценностях, убеждениях и интересах</li>
           <li>История сообщений и взаимодействий в Приложении</li>
+          <li>Сообщения пробного разговора с ассистентом до входа в Приложение</li>
           <li>Техническая информация об устройстве и использовании Приложения</li>
         </ul>
       </section>
@@ -713,6 +714,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li><strong>Удаленные аккаунты:</strong> 30 календарных дней, затем полное удаление</li>
           <li><strong>История платежей:</strong> 5 лет (требование налогового законодательства)</li>
           <li><strong>Логи безопасности:</strong> 6 месяцев</li>
+          <li><strong>Пробный разговор до входа:</strong> 7 дней после последнего сообщения, если его не перенесли в аккаунт; после переноса — как остальная переписка аккаунта</li>
           <li><strong>Данные переписки:</strong> удаляются вместе с аккаунтом</li>
           <li><strong>Резервные копии:</strong> перезаписываются каждые 30 дней</li>
         </ul>
@@ -820,6 +822,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li>First and last name (optional)</li>
           <li>Information about your values, beliefs and interests</li>
           <li>History of messages and interactions in the Application</li>
+          <li>Messages of a trial conversation with an assistant before signing in to the Application</li>
           <li>Technical information about your device and use of the Application</li>
         </ul>
       </section>
@@ -997,6 +1000,7 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, onClose, type }) => {
           <li><strong>Deleted accounts:</strong> 30 calendar days, then fully removed</li>
           <li><strong>Payment history:</strong> 5 years (tax-legislation requirement)</li>
           <li><strong>Security logs:</strong> 6 months</li>
+          <li><strong>Trial conversation before sign-in:</strong> 7 days after the last message unless it is moved to an account; once moved, like the rest of the account's conversations</li>
           <li><strong>Conversation data:</strong> removed together with the account</li>
           <li><strong>Backups:</strong> overwritten every 30 days</li>
         </ul>
