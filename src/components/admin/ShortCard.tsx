@@ -81,7 +81,15 @@ const ShortCard: React.FC<Props> = ({
   item, assistantName, open, detail, detailLoading, detailError, busy, now, onToggle, onAction,
 }) => {
   const broken = item.status === 'failed';
-  const angle = item.status === 'idea' && !item.angleLocked ? 'подача по ритму недели' : ANGLE_TITLES[item.angle];
+  /**
+   * Идеи заводятся с плейсхолдером `angle: 'calm'` — настоящую подачу ставит
+   * только `start` (он же выставляет `slotAt`). Отклонённый ролик без
+   * `slotAt` (и без явно заданной `angleLocked`) не прошёл `start` —
+   * значит, его angle — тот же нетронутый плейсхолдер, а не решение; показывать
+   * его как подачу («Как это работает» вместо настоящего) — врать подписью.
+   */
+  const angleUndecided = (item.status === 'idea' || (item.status === 'rejected' && !item.slotAt)) && !item.angleLocked;
+  const angle = angleUndecided ? 'подача по ритму недели' : ANGLE_TITLES[item.angle];
   const meta = [RUBRIC_TITLES[item.rubric], angle, assistantName, FORMAT_TITLES[item.format]].filter(Boolean).join(' · ');
   const stats = detail
     ? [
@@ -110,6 +118,14 @@ const ShortCard: React.FC<Props> = ({
    */
   const rowActions = ROW_ACTIONS[item.status] ?? [];
   const rowActionsStale = open && detail != null && detail.status !== item.status;
+  /**
+   * Кнопки строки пропали (rowActionsStale) — владельцу нужно знать, почему,
+   * а не молчать: короткая строка с актуальным статусом карточки вместо
+   * исчезнувших кнопок. Но не тогда, когда виновата СТРОКА (rowNewer,
+   * список обновился позже раскрытия) — про это уже говорит своя плашка
+   * внутри открытой карточки (`short-stale-...`), вторая здесь не нужна.
+   */
+  const rowActionsVanished = rowActions.length > 0 && rowActionsStale && !rowNewer;
   const titleId = `short-title-${item.id}`;
 
   return (
@@ -129,7 +145,7 @@ const ShortCard: React.FC<Props> = ({
           <span className="min-w-0">
             <span className="flex items-center gap-2 flex-wrap">
               <span className={clsx('px-2 py-0.5 text-xs rounded', statusTone(item.status))}>{STATUS_TITLES[item.status]}</span>
-              <span id={titleId} className="text-sm font-medium text-gray-900 break-words">{shortTitle(item)}</span>
+              <span id={titleId} className="text-sm font-medium text-gray-900 break-words min-w-0">{shortTitle(item)}</span>
             </span>
             <span className="block mt-0.5 text-xs text-gray-500">{meta}</span>
             <span data-testid={`short-line-${item.id}`}
@@ -156,6 +172,11 @@ const ShortCard: React.FC<Props> = ({
               </button>
             )}
           </div>
+        )}
+        {rowActionsVanished && detail && (
+          <span data-testid={`short-row-stale-${item.id}`} className="text-xs text-amber-700">
+            Сейчас — «{STATUS_TITLES[detail.status]}»: список устарел, нажмите «Обновить».
+          </span>
         )}
       </div>
 

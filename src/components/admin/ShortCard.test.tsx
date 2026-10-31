@@ -5,7 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { click, mount, type, Mounted } from '../../test/dom';
 import ShortCard from './ShortCard';
 import { NOW, detail as baseDetail, item } from './shortFixtures';
-import { MAX_NOTE_CHARS, ROW_ACTIONS, ShortAction, ShortDetail, actionsFor } from './shortStatus';
+import { MAX_NOTE_CHARS, ROW_ACTIONS, ShortAction, ShortDetail, ShortStatus, actionsFor } from './shortStatus';
 
 const detail = (over: Parameters<typeof baseDetail>[0] = {}) =>
   baseDetail({
@@ -86,6 +86,41 @@ describe('строка ролика', () => {
     expect(m.container.querySelector(`#${titleId}`)).not.toBeNull();
     expect(q('short-start-s1')!.getAttribute('aria-describedby')).toBe(titleId);
     expect(q('short-idea-reject-s1')!.getAttribute('aria-describedby')).toBe(titleId);
+  });
+
+  it('заголовок — min-w-0, чтобы длинная неразрывная ссылка не распирала строку', () => {
+    // Измерено в Chromium на 320px: без min-w-0 на заголовке вставленная
+    // ссылка без пробелов распирала строку на 244px поверх контейнера.
+    render({ item: item({ title: 'https://example.com/очень/длинная/неразрывная/ссылка/без/пробелов-1234567890' }) });
+    const title = m.container.querySelector('#short-title-s1')!;
+    expect(title.className).toContain('min-w-0');
+    expect(title.className).toContain('break-words');
+  });
+
+  it('подача идеи, заведённой с плейсхолдером «Как это работает» (calm), — всё равно «по ритму», пока не задана явно', () => {
+    // Идеи заводятся с angle:'calm' как плейсхолдером — это не «решение»,
+    // пока angleLocked не подтвердит, что подачу выбрали осознанно.
+    render({ item: item({ status: 'idea', angle: 'calm', angleLocked: false }) });
+    expect(m.container.textContent).toContain('подача по ритму недели');
+    expect(m.container.textContent).not.toContain('Как это работает');
+  });
+
+  it('отклонённая идея, которую не запускали (нет slotAt), — тоже «по ритму», не плейсхолдер «Как это работает»', () => {
+    render({ item: item({ status: 'rejected', angle: 'calm', angleLocked: false, slotAt: null }) });
+    expect(m.container.textContent).toContain('подача по ритму недели');
+    expect(m.container.textContent).not.toContain('Как это работает');
+  });
+
+  it('отклонённый ролик, который реально запускали (есть slotAt) до отказа, — показывает настоящую подачу', () => {
+    render({ item: item({ status: 'rejected', angle: 'roast', angleLocked: false, slotAt: '2030-01-02T15:00:00.000Z' }) });
+    expect(m.container.textContent).toContain('Разнос');
+    expect(m.container.textContent).not.toContain('подача по ритму недели');
+  });
+
+  it('отклонённая идея без slotAt, но с явно заданной подачей (angleLocked) — показывает её, не «по ритму»', () => {
+    render({ item: item({ status: 'rejected', angle: 'myth', angleLocked: true, slotAt: null }) });
+    expect(m.container.textContent).toContain('ИИ против мифа');
+    expect(m.container.textContent).not.toContain('подача по ритму недели');
   });
 
   it('площадки — ссылка на вышедшее, причина у упавшего', () => {
@@ -299,7 +334,7 @@ describe('раскрытая карточка', () => {
     expect(q('short-idea-reject-s1')).not.toBeNull();
   });
 
-  it('строка — идея, но открытая карточка уже обогнала (автозапуск сменил статус) — кнопок строки нет, карточка не дублируется своим «Отклонить»', () => {
+  it('строка — идея, но открытая карточка уже обогнала (автозапуск сменил статус) — кнопок строки нет, карточка не дублируется своим «Отклонить», а строка объясняет почему', () => {
     render({
       open: true,
       item: item({ status: 'idea' }),
@@ -308,6 +343,25 @@ describe('раскрытая карточка', () => {
     expect(q('short-start-s1')).toBeNull();
     expect(q('short-idea-reject-s1')).toBeNull();
     expect(q('short-reject')).not.toBeNull();
+    // Кнопки строки не пропадают молча — короткая строка называет текущий
+    // статус карточки и подсказывает обновить список.
+    expect(q('short-row-stale-s1')!.textContent).toBe('Сейчас — «Ждёт решения»: список устарел, нажмите «Обновить».');
+  });
+
+  it('то же устаревание, но список, наоборот, новее карточки — свою подсказку не дублируем (внутри карточки уже есть своя плашка)', () => {
+    render({
+      open: true,
+      item: item({ status: 'idea', updatedAt: '2030-01-01T10:05:00.000Z' }),
+      detail: detail({ status: 'pending_review', approvedAt: null, updatedAt: '2030-01-01T10:00:00.000Z' }),
+    });
+    expect(q('short-start-s1')).toBeNull();
+    expect(q('short-idea-reject-s1')).toBeNull();
+    // rowNewer виновата строка — про неё уже говорит short-stale внутри
+    // карточки; вторая, построчная подсказка здесь избыточна.
+    expect(q('short-row-stale-s1')).toBeNull();
+    expect(q('short-stale-s1')!.textContent).toBe(
+      'Ролик изменился, пока карточка была открыта — сверните и раскройте её заново.',
+    );
   });
 
   it('отклонённый без видео — текст заказа, а не «Видео ещё нет»', () => {
@@ -412,6 +466,8 @@ describe('кнопки раскрытой карточки — по actionsFor',
   const cases: [string, Partial<ShortDetail>][] = [
     ['идея', { status: 'idea' }],
     ['одобрен, не вышел нигде', { status: 'approved', approvedAt: '2030-01-01T11:00:00.000Z' }],
+    ['упал на публикации без одобрения — только «Отклонить»', { status: 'failed', failedFrom: 'publishing', approvedAt: null }],
+    ['упал без этапа — только «Отклонить»', { status: 'failed', failedFrom: null }],
     ['упал на публикации — пост ещё не вышел', {
       status: 'failed', failedFrom: 'publishing', approvedAt: '2030-01-01T11:00:00.000Z',
     }],
@@ -445,6 +501,28 @@ describe('кнопки раскрытой карточки — по actionsFor',
     // у остальных статусов их нет вовсе (не только их действий в карточке).
     expect(q('short-start-s1') !== null).toBe(d.status === 'idea');
     expect(q('short-idea-reject-s1') !== null).toBe(d.status === 'idea');
+  });
+
+  it('ROW_ACTIONS — каждое перечисленное действие и впрямь рисует кнопку в строке', () => {
+    // ShortCard умеет рисовать СТРОКОЙ только 'start_now' и 'reject' — этот
+    // список и проверяем. Если в ROW_ACTIONS добавят статус с действием, для
+    // которого строка кнопки не рисует (например, approved: ['publish_now']
+    // без кнопки в ShortCard), этот тест падает, а не молчит.
+    const ROW_ACTION_TESTID: Partial<Record<ShortAction, (id: string) => string>> = {
+      start_now: (id) => `short-start-${id}`,
+      reject: (id) => `short-idea-reject-${id}`,
+    };
+    const entries = Object.entries(ROW_ACTIONS) as [ShortStatus, readonly ShortAction[]][];
+    expect(entries.length).toBeGreaterThan(0);
+    entries.forEach(([status, actions], i) => {
+      render({ item: item({ status }) });
+      for (const action of actions) {
+        const testid = ROW_ACTION_TESTID[action];
+        expect(testid, `нет отображения действия строки «${action}» статуса «${status}» — добавьте кнопку в ShortCard и её testid в ROW_ACTION_TESTID этого теста`).toBeDefined();
+        expect(q(testid!('s1')), `кнопка строки для действия «${action}» статуса «${status}» не отрисована`).not.toBeNull();
+      }
+      if (i < entries.length - 1) m.unmount();
+    });
   });
 });
 

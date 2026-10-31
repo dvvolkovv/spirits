@@ -250,6 +250,23 @@ describe('экран «Ролики»', () => {
     expect(q('shorts-notice')!.textContent).toContain('Идея отклонена');
   });
 
+  it('«Отклонить» у идеи из СТРОКИ, когда её же карточка открыта, — версией карточки, а не строки', async () => {
+    // Карточка этого же ролика открыта (idea не устарела — кнопка всё ещё в
+    // строке), но решение должно подписаться версией КАРТОЧКИ (она может
+    // быть свежее строки), а не версией строки списка.
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    serve({
+      list: () => res(200, [item({ status: 'idea', slotAt: null, version: 'ROW' })]),
+      get: () => res(200, detailOf({ status: 'idea', version: 'CARD' })),
+      reject: () => res(200, item({ status: 'rejected' })),
+    });
+    await open();
+    await openCard();
+    await clickAsync(q('short-idea-reject-s1')!);
+    await settle();
+    expect(sent()).toContainEqual({ action: 'reject', id: 's1', version: 'CARD' });
+  });
+
   it('«Отклонить» у идеи, которую успел взять автозапуск, — жёлтая плашка с текстом сервера', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     serve({
