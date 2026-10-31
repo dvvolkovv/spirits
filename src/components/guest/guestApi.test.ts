@@ -1,5 +1,5 @@
 // src/components/guest/guestApi.test.ts
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../services/apiClient', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
 import { apiClient } from '../../services/apiClient';
@@ -19,11 +19,20 @@ describe('config', () => {
   it('режим с сервера; мусор — «выкл»; сбой — null; без авторизации', async () => {
     get.mockResolvedValueOnce(json(200, { mode: 'on', answersPerTrial: 3, maxChars: 2000 }));
     expect(await fetchGuestConfig()).toEqual({ mode: 'on', answersPerTrial: 3, maxChars: 2000 });
-    expect(get).toHaveBeenCalledWith('/webhook/guest/config', { skipAuth: true });
+    expect(get).toHaveBeenCalledWith('/webhook/guest/config', expect.objectContaining({ skipAuth: true }));
     get.mockResolvedValueOnce(json(200, { mode: 'всё' }));
     expect((await fetchGuestConfig())?.mode).toBe('off');
     get.mockRejectedValueOnce(new Error('сеть'));
     expect(await fetchGuestConfig()).toBeNull();
+  });
+
+  it('answersPerTrial и maxChars: 0, мусор, отрицательное — дефолты 3 и 2000', async () => {
+    get.mockResolvedValueOnce(json(200, { mode: 'on', answersPerTrial: 0, maxChars: 0 }));
+    expect(await fetchGuestConfig()).toEqual({ mode: 'on', answersPerTrial: 3, maxChars: 2000 });
+    get.mockResolvedValueOnce(json(200, { mode: 'on', answersPerTrial: 'abc', maxChars: 'abc' }));
+    expect(await fetchGuestConfig()).toEqual({ mode: 'on', answersPerTrial: 3, maxChars: 2000 });
+    get.mockResolvedValueOnce(json(200, { mode: 'on', answersPerTrial: -5, maxChars: -5 }));
+    expect(await fetchGuestConfig()).toEqual({ mode: 'on', answersPerTrial: 3, maxChars: 2000 });
   });
 });
 
@@ -31,7 +40,7 @@ describe('ассистенты', () => {
   it('имя — displayName, без числового id — отбрасывается', async () => {
     get.mockResolvedValueOnce(json(200, [{ id: 12, name: 'Роман', displayName: 'Roman' }, { id: 'custom:x', name: 'Мой' }]));
     expect(await fetchGuestAgents('en')).toEqual([{ id: '12', name: 'Roman' }]);
-    expect(get).toHaveBeenCalledWith('/webhook/agents?lang=en', { skipAuth: true });
+    expect(get).toHaveBeenCalledWith('/webhook/agents?lang=en', expect.objectContaining({ skipAuth: true }));
   });
 });
 
@@ -55,6 +64,13 @@ describe('ход', () => {
     expect(await sendGuestMessage(INPUT, () => {})).toBe('bad_request');
     post.mockRejectedValueOnce(new Error('сеть'));
     expect(await sendGuestMessage(INPUT, () => {})).toBe('network');
+  });
+
+  it('403 происхождение и 5xx — server, а не network', async () => {
+    post.mockResolvedValueOnce(json(403, { error: 'origin' }));
+    expect(await sendGuestMessage(INPUT, () => {})).toBe('server');
+    post.mockResolvedValueOnce(json(502, {}));
+    expect(await sendGuestMessage(INPUT, () => {})).toBe('server');
   });
 });
 
@@ -85,6 +101,45 @@ describe('отмена хода (по ревью B3)', () => {
     });
     post.mockResolvedValueOnce(new Response(stream, { status: 200 }));
     expect(await sendGuestMessage(INPUT, () => {})).toBe('network');
+  });
+});
+
+describe('таймауты зависшего бэка (Critical, ревью B4)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Эмулирует зависший fetch: не резолвится сама, но отклоняется при срабатывании signal,
+  // как это делает настоящий fetch при AbortController.abort().
+  const hangsUntilAborted = (opts: { signal?: AbortSignal }) => new Promise<Response>((_resolve, reject) => {
+    opts.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+  });
+
+  it('config: завис — через 4 с null, signal доходит до apiClient.get', async () => {
+    vi.useFakeTimers();
+    get.mockImplementationOnce((_url: string, opts: any) => hangsUntilAborted(opts));
+    const pending = fetchGuestConfig();
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(await pending).toBeNull();
+    expect(get).toHaveBeenCalledWith('/webhook/guest/config', expect.objectContaining({ skipAuth: true, signal: expect.any(AbortSignal) }));
+  });
+
+  it('агенты: завис — через 8 с [], signal доходит до apiClient.get', async () => {
+    vi.useFakeTimers();
+    get.mockImplementationOnce((_url: string, opts: any) => hangsUntilAborted(opts));
+    const pending = fetchGuestAgents('ru');
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(await pending).toEqual([]);
+    expect(get).toHaveBeenCalledWith('/webhook/agents?lang=ru', expect.objectContaining({ skipAuth: true, signal: expect.any(AbortSignal) }));
+  });
+
+  it('session: завис — через 8 с null, signal доходит до apiClient.post', async () => {
+    vi.useFakeTimers();
+    post.mockImplementationOnce((_url: string, _body: unknown, opts: any) => hangsUntilAborted(opts));
+    const pending = loadGuestSession('T');
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(await pending).toBeNull();
+    expect(post).toHaveBeenCalledWith('/webhook/guest/session', { token: 'T' }, expect.objectContaining({ skipAuth: true, signal: expect.any(AbortSignal) }));
   });
 });
 
