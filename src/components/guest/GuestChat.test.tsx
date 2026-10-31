@@ -1,7 +1,8 @@
 // src/components/guest/GuestChat.test.tsx
 // @vitest-environment jsdom
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { byButton, byLink, click, clickAsync, flush, mount, type, visibleText, type Mounted } from '../../test/dom';
+import { actAsync, byButton, byLink, click, clickAsync, doubleClick, flush, mount, type, visibleText, type Mounted } from '../../test/dom';
 
 vi.mock('react-i18next', async () => {
   const { tRu: t } = await import('../../test/dom');
@@ -13,10 +14,15 @@ vi.mock('../onboarding/LoginConsentBlock', () => ({
     <input type="checkbox" data-testid="consent-checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
   ),
 }));
-vi.mock('../../services/eventsClient', () => ({ track: vi.fn(), getSource: () => null, getCampaign: () => null, getSessionId: () => 's_test' }));
+vi.mock('../../services/eventsClient', () => ({
+  track: vi.fn(),
+  getSource: vi.fn(() => null),
+  getCampaign: vi.fn(() => null),
+  getSessionId: vi.fn(() => 's_test'),
+}));
 vi.mock('./guestApi', () => ({ sendGuestMessage: vi.fn() }));
 
-import { track } from '../../services/eventsClient';
+import { getSessionId, track } from '../../services/eventsClient';
 import { sendGuestMessage } from './guestApi';
 import GuestChat, { type GuestChatProps } from './GuestChat';
 
@@ -45,7 +51,7 @@ function open(over: Partial<GuestChatProps> = {}) {
 const input = () => view!.container.querySelector('[data-testid="guest-chat-input"]') as HTMLTextAreaElement;
 
 beforeEach(() => { localStorage.clear(); send.mockReset(); (track as any).mockClear(); });
-afterEach(() => { view?.unmount(); view = null; });
+afterEach(() => { view?.unmount(); view = null; vi.useRealTimers(); });
 
 describe('чат пробы', () => {
   it('без согласия отправить нельзя; галочка открывает кнопку', async () => {
@@ -199,7 +205,6 @@ describe('чат пробы', () => {
       });
     });
     const onBusyChange = vi.fn();
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     open({ onBusyChange });
     type(input(), 'Вопрос');
     await clickAsync(byButton(view!.container, /Отправить/)!);
@@ -208,9 +213,11 @@ describe('чат пробы', () => {
     await flush();
     await flush();
     expect(capturedSignal?.aborted).toBe(true);
+    // Опора — onBusyChange: второго вызова (false) не было, значит откат на
+    // размонтированном компоненте и правда не трогал состояние. Проверка
+    // console.error сюда ничего не добавляла (React 18 не предупреждает о
+    // setState после размонтирования) и была убрана по ревью качества B8.
     expect(onBusyChange.mock.calls).toEqual([[true]]);
-    expect(consoleError).not.toHaveBeenCalled();
-    consoleError.mockRestore();
   });
 
   // Доп. по ревью B4: результат 'server' (403/5xx — сервер ответил отказом)
@@ -224,6 +231,218 @@ describe('чат пробы', () => {
     await clickAsync(byButton(view!.container, /Отправить/)!);
     await flush();
     expect(visibleText(view!.container)).toContain('Не получилось ответить');
+  });
+
+  // --- B8-fix I4: обрыв после begin ---
+
+  it('обрыв связи ПОСЛЕ begin — пузырь остаётся, текст не возвращается, кнопка «Обновить» (I4)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    send.mockImplementation(async (_i: unknown, on: (e: any) => void) => {
+      on({ type: 'guest', token: TOKEN, left: 3 });
+      on({ type: 'begin' });
+      on({ type: 'item', content: 'Нач' });
+      return 'network';
+    });
+    open();
+    type(input(), 'Вопрос');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await flush();
+    expect(visibleText(view!.container)).toContain('Вопрос'); // пузырь остался в ленте
+    expect(visibleText(view!.container)).toContain('Связь прервалась');
+    expect(byButton(view!.container, /Обновить/)).not.toBeNull();
+    expect(input().value).toBe(''); // текст НЕ возвращён в поле — повтор продублировал бы ответ
+  });
+
+  it('обрыв связи ДО begin — обычная сетевая ошибка, текст возвращён в поле (I4)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    send.mockResolvedValue('network');
+    open();
+    type(input(), 'Вопрос');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await flush();
+    expect(visibleText(view!.container)).toContain('Нет связи с сервером');
+    expect(byButton(view!.container, /Обновить/)).toBeNull(); // кнопка — только у interrupted/badRequest
+    expect(input().value).toBe('Вопрос');
+  });
+
+  // --- B8-fix M5: новые виды ошибок ---
+
+  it("результат 'busy_trial' — «предыдущий ответ ещё пишется» (M5)", async () => {
+    localStorage.setItem('loginConsent', 'true');
+    send.mockResolvedValue('busy_trial');
+    open();
+    type(input(), 'Вопрос');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await flush();
+    expect(visibleText(view!.container)).toContain('Предыдущий ответ ещё пишется');
+  });
+
+  it("результат 'bad_request' — текст с кнопкой «Обновить» (M5)", async () => {
+    localStorage.setItem('loginConsent', 'true');
+    send.mockResolvedValue('bad_request');
+    open();
+    type(input(), 'Вопрос');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await flush();
+    expect(visibleText(view!.container)).toContain('Не получилось отправить это сообщение');
+    expect(byButton(view!.container, /Обновить/)).not.toBeNull();
+  });
+
+  // --- B8-fix M1: синхронный замок от двойной отправки ---
+
+  it('двойной клик по кнопке отправки шлёт сообщение только один раз (M1)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    send.mockImplementation(answer('Ответ'));
+    open();
+    type(input(), 'Привет');
+    doubleClick(byButton(view!.container, /Отправить/)!);
+    await flush();
+    await flush();
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  // --- B8-fix I6: try/catch/finally, входные данные до оптимистичных шагов ---
+
+  it('getSessionId бросает — видна сетевая ошибка, текст в поле, onBusyChange(false) (I6)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    (getSessionId as unknown as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+    const onBusyChange = vi.fn();
+    open({ onBusyChange });
+    type(input(), 'Вопрос');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await flush();
+    expect(send).not.toHaveBeenCalled();
+    expect(visibleText(view!.container)).toContain('Нет связи с сервером');
+    expect(input().value).toBe('Вопрос');
+    expect(onBusyChange.mock.calls.map((c) => c[0])).toEqual([true, false]);
+  });
+
+  // --- B8-fix M10: onStarted — по событию begin, не до отправки ---
+
+  it('onStarted зовётся по событию begin, не раньше отправки (M10)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    let onEventFn: ((e: any) => void) | null = null;
+    let resolveFn: ((v: string) => void) | null = null;
+    send.mockImplementation((_i: unknown, on: (e: any) => void) => {
+      onEventFn = on;
+      return new Promise<string>((resolve) => { resolveFn = resolve; });
+    });
+    const p = open();
+    type(input(), 'Привет');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    expect(p.onStarted).not.toHaveBeenCalled();
+    await actAsync(() => { onEventFn!({ type: 'begin' }); });
+    expect(p.onStarted).toHaveBeenCalledTimes(1);
+    await actAsync(() => {
+      onEventFn!({ type: 'end', content: 'Ответ' });
+      resolveFn!('ok');
+    });
+    expect(visibleText(view!.container)).toContain('Ответ');
+  });
+
+  // --- B8-fix M11: сторож зависшего потока ---
+
+  describe('сторож зависшего потока (M11)', () => {
+    it('60с без событий ПОСЛЕ begin — поток отменяется, видно «связь прервалась»', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      let onEventFn: ((e: any) => void) | null = null;
+      let capturedSignal: AbortSignal | undefined;
+      send.mockImplementation((_i: unknown, on: (e: any) => void, signal?: AbortSignal) => {
+        onEventFn = on;
+        capturedSignal = signal;
+        return new Promise<string>((resolve) => {
+          signal?.addEventListener('abort', () => resolve('aborted'));
+        });
+      });
+      vi.useFakeTimers();
+      open();
+      type(input(), 'Вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await actAsync(() => { onEventFn!({ type: 'begin' }); });
+      await actAsync(() => { vi.advanceTimersByTime(60_000); });
+      expect(capturedSignal?.aborted).toBe(true);
+      expect(visibleText(view!.container)).toContain('Связь прервалась');
+    });
+
+    it('60с без событий ДО begin — отменяется как обычная сетевая ошибка', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      let capturedSignal: AbortSignal | undefined;
+      send.mockImplementation((_i: unknown, _on: (e: any) => void, signal?: AbortSignal) => {
+        capturedSignal = signal;
+        return new Promise<string>((resolve) => {
+          signal?.addEventListener('abort', () => resolve('aborted'));
+        });
+      });
+      vi.useFakeTimers();
+      open();
+      type(input(), 'Вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await actAsync(() => { vi.advanceTimersByTime(60_000); });
+      expect(capturedSignal?.aborted).toBe(true);
+      expect(visibleText(view!.container)).toContain('Нет связи с сервером');
+    });
+
+    it('ping каждые 20с сбрасывает таймер — за 80с поток не отменяется', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      let onEventFn: ((e: any) => void) | null = null;
+      let resolveFn: ((v: string) => void) | null = null;
+      send.mockImplementation((_i: unknown, on: (e: any) => void) => {
+        onEventFn = on;
+        return new Promise<string>((resolve) => { resolveFn = resolve; });
+      });
+      vi.useFakeTimers();
+      open();
+      type(input(), 'Вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await actAsync(() => { onEventFn!({ type: 'begin' }); });
+      for (let i = 0; i < 4; i++) {
+        await actAsync(() => { vi.advanceTimersByTime(20_000); });
+        await actAsync(() => { onEventFn!({ type: 'ping' }); });
+      }
+      await actAsync(() => {
+        onEventFn!({ type: 'end', content: 'Ответ после пингов' });
+        resolveFn!('ok');
+      });
+      expect(visibleText(view!.container)).toContain('Ответ после пингов');
+    });
+  });
+
+  // --- B8-fix I5: StrictMode — автоотправка черновика setTimeout(0) + mountedRef ---
+
+  it('StrictMode: вопрос с лендинга уходит ровно один раз, ход завершается (I5)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    send.mockImplementation((_i: unknown, on: (e: any) => void, signal?: AbortSignal) =>
+      new Promise<string>((resolve) => {
+        signal?.addEventListener('abort', () => resolve('aborted'));
+        Promise.resolve().then(() => {
+          on({ type: 'guest', token: TOKEN, left: 3 });
+          on({ type: 'begin' });
+          on({ type: 'end', content: 'Ответ с лендинга' });
+          resolve('ok');
+        });
+      }),
+    );
+    vi.useFakeTimers();
+    const props: GuestChatProps = {
+      assistantId: '12', assistantName: 'Роман', config: { mode: 'on', answersPerTrial: 3, maxChars: 2000 },
+      token: null, initialMessages: [], initialLeft: null, draft: { text: 'Как поднять цены?', auto: true }, preview: false,
+      onToken: vi.fn(), onStarted: vi.fn(), onTrialGone: vi.fn(),
+    };
+    view = mount(
+      <StrictMode>
+        <GuestChat {...props} />
+      </StrictMode>,
+    );
+    // Эффекты StrictMode (mount→cleanup→mount) уже отыграли синхронно внутри
+    // mount(); единственный переживший их таймер — setTimeout(0) реального
+    // (второго) прохода. advanceTimersByTime(0) запускает его.
+    await actAsync(() => { vi.advanceTimersByTime(0); });
+    expect(send).toHaveBeenCalledTimes(1);
+    await flush();
+    await flush();
+    expect(visibleText(view!.container)).toContain('Ответ с лендинга');
   });
 
   // --- B8-fix I1: служебные метки customMarkdown — в DOM их не должно остаться ---
