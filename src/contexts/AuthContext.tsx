@@ -36,7 +36,11 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (phone: string, token: string) => void;
+  // m8 (ревью качества B9-fix): Promise<void>, не void — все вызывающие уже
+  // делают await login(...) (SmsLoginPane, AuthOAuthCallbackPage, эффект
+  // Taler ID в App.tsx); тип должен это отражать, а не молча скрывать, что
+  // вызов асинхронный и небезопасно «уронить» без ожидания.
+  login: (phone: string, token: string) => Promise<void>;
   logout: () => void;
   deleteProfile: () => Promise<void>;
   updateProfile: (profile: Partial<User['profile']>) => void;
@@ -112,6 +116,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (token && userData) {
         try {
+          // m6 (ревью качества B9-fix): отмечаем «устройство входило» сразу,
+          // как только это известно — по самому факту наличия authToken и
+          // userData, ДО сетевых вызовов ниже (баланс, аватар), а не после
+          // них. Раньше отметка стояла в самом конце — и при сбое одного из
+          // этих вызовов (или при размонтировании посреди них) рисковала не
+          // проставиться вовсе, хотя «устройство входило» уже было известно
+          // с этой самой строки.
+          markHasAccount();
           const parsedUser = JSON.parse(userData);
 
           if (tokenManager.hasTokens()) {
@@ -120,6 +132,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           }
 
+          // I2 (Critical, ревью качества B9-fix): перенос пробы без входа
+          // запускается ПАРАЛЛЕЛЬНО с балансом токенов (оба — сетевые
+          // вызовы, незачем ждать их по очереди), но результат дожидаемся
+          // (await claim) только ПОЗЖЕ, перед setUser — раньше перенос не
+          // ждали вовсе (void claimPendingGuestTrial()), и гонка с первой
+          // загрузкой истории чата иногда показывала пустую ленту и
+          // приветственный ход ассистента заново (токены, «знакомство»),
+          // а проба становилась видна только после перезагрузки страницы.
+          const claim = claimPendingGuestTrial();
           const tokens = await fetchUserTokens();
           if (tokens !== undefined && isMounted) {
             parsedUser.tokens = tokens;
@@ -148,11 +169,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           }
 
+          // I2: дождаться переноса ДО setUser — иначе чат откроет историю
+          // без только что перенесённой пробы.
+          await claim;
+
           if (isMounted) {
-            // Проба без входа: устройство «входило» — дальше ему экран входа, а
-            // не проба; несостоявшийся при входе перенос добирается здесь.
-            markHasAccount();
-            void claimPendingGuestTrial();
             setUser(parsedUser);
             persistUser(parsedUser);
           }
@@ -296,13 +317,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // двоит уже зарегистрированных.
     authService.registerReferral();
 
-    // Проба без входа (spec 2026-10-30-guest-trial): устройство отныне «входило»,
-    // а разговор пробы переезжает в аккаунт ДО того, как откроется чат, — иначе
-    // чат загрузил бы историю без него. Не дольше 5 с; сбой входу не мешает.
+    // Проба без входа (spec 2026-10-30-guest-trial): устройство отныне «входило».
     markHasAccount();
-    await claimPendingGuestTrial();
-
-    const tokens = await fetchUserTokens();
+    // m7 (ревью качества B9-fix): перенос пробы и баланс токенов — ОБА
+    // сетевые вызовы, незачем ждать их по очереди (раньше перенос ждали
+    // полностью, а уже ПОТОМ запрашивали баланс). Порядок «перенос до
+    // setUser» (чат не должен открыться без только что перенесённой пробы)
+    // сохраняется: Promise.all ждёт оба, и только потом ниже — setUser.
+    // Перенос не дольше 5 с (GUEST_CLAIM_TIMEOUT_MS); сбой входу не мешает.
+    const [, tokens] = await Promise.all([claimPendingGuestTrial(), fetchUserTokens()]);
     if (tokens !== undefined) {
       newUser.tokens = tokens;
     }
