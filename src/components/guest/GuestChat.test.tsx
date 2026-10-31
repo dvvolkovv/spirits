@@ -29,6 +29,9 @@ import GuestChat, { type GuestChatProps } from './GuestChat';
 const send = sendGuestMessage as unknown as ReturnType<typeof vi.fn>;
 const TOKEN = 'T'.repeat(43);
 
+/** Настоящий макротаск — автоотправка черновика идёт через setTimeout(0) (I5). */
+const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
 const answer = (text: string, extra: object[] = []) => async (_i: unknown, on: (e: any) => void) => {
   on({ type: 'guest', token: TOKEN, left: 3 });
   on({ type: 'begin' });
@@ -124,7 +127,8 @@ describe('чат пробы', () => {
     localStorage.setItem('loginConsent', 'true');
     send.mockImplementation(answer('Ответ'));
     open({ draft: { text: 'Как поднять цены?', auto: true } });
-    await flush();
+    // Автоотправка — через setTimeout(0) (I5): дождаться настоящего макротаска.
+    await actAsync(tick);
     await flush();
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][0]).toMatchObject({ message: 'Как поднять цены?', assistantId: '12', sid: 's_test' });

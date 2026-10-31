@@ -366,28 +366,31 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         return;
       }
       if (answer !== null) {
+        // Стена может прийти ВМЕСТЕ с ответом (последний в пробе) — гасить
+        // её отдельной веткой нельзя, проверка ниже общая для обоих случаев.
         const text = answer;
         setMessages((m) => [...m, { role: 'assistant', content: text }]);
-        return;
-      }
-
-      // Обрыв ПОСЛЕ begin (I4): сервер принял ход и запишет пару, даже если
-      // клиент уйдёт, — пузырь остаётся, текст в поле не возвращается (повтор
-      // продублировал бы уже уходящий ответ). Стена важнее обрыва и имеет
-      // приоритет — как и раньше, когда её вообще не было видно за обрывом.
-      const interrupted = !gotWall && effectiveResult === 'network' && began;
-      if (!interrupted) {
-        // Ответа нет — сообщение возвращается в поле: отправить ещё раз или,
-        // если проба закрыта, дождаться входа черновиком с тем же ассистентом.
-        setMessages((m) => m.slice(0, -1));
-        setInput(message);
-        if (gotWall) savePendingDraft(message, assistantId);
+      } else {
+        // Обрыв ПОСЛЕ begin (I4): сервер принял ход и запишет пару, даже
+        // если клиент уйдёт, — пузырь остаётся, текст в поле не
+        // возвращается (повтор продублировал бы уже уходящий ответ). Стена
+        // важнее обрыва и имеет приоритет — как и раньше.
+        const interrupted = !gotWall && effectiveResult === 'network' && began;
+        if (!interrupted) {
+          // Ответа нет — сообщение возвращается в поле: отправить ещё раз
+          // или, если проба закрыта, дождаться входа черновиком с тем же
+          // ассистентом.
+          setMessages((m) => m.slice(0, -1));
+          setInput(message);
+          if (gotWall) savePendingDraft(message, assistantId);
+        }
+        if (!gotWall) {
+          setError(gotError ?? (interrupted ? 'interrupted' : errorKindForResult(effectiveResult)));
+        }
       }
       if (gotWall) {
         setWall(gotWall);
         track('guest_trial_wall', { reason: gotWall, assistant_id: assistantId });
-      } else {
-        setError(gotError ?? (interrupted ? 'interrupted' : errorKindForResult(effectiveResult)));
       }
     } catch {
       if (bubbleAdded) setMessages((m) => m.slice(0, -1));
@@ -404,12 +407,12 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
 
   useEffect(() => {
     if (draftTaken.current || !props.draft) return;
-    draftTaken.current = true;
     const draft = props.draft;
     // M8: черновик длиннее предела поля — только подставить, не отправлять
     // самим (отправка всё равно отсеклась бы проверкой длины в send()).
     const tooLong = draft.text.length > config.maxChars;
     if (!draft.auto || tooLong || !consent || messages.length > 0 || wall) {
+      draftTaken.current = true;
       setInput(draft.text);
       return;
     }
@@ -419,7 +422,19 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
     // сигналом ход, который только начался в первом (черновом) проходе.
     // setTimeout — макрозадача, она ждёт, пока весь этот синхронный цикл
     // отыграет, и запускает send() уже у устоявшегося компонента.
-    const timer = setTimeout(() => { void send(draft.text); }, 0);
+    //
+    // draftTaken выставляется ТОЛЬКО когда таймер и впрямь выстрелил, а не
+    // при его планировании: синтетический cleanup StrictMode снимает ещё не
+    // выстрелившый таймер первого (чернового) прохода ДО того, как второй
+    // (настоящий) проход успевает поставить свой — пометь draftTaken здесь,
+    // и второй проход решил бы, что черновик уже обработан, и не поставил
+    // бы свой таймер вовсе. Проверка внутри — на случай, если оба таймера
+    // всё же переживут цикл: сработает только первый.
+    const timer = setTimeout(() => {
+      if (draftTaken.current) return;
+      draftTaken.current = true;
+      void send(draft.text);
+    }, 0);
     return () => clearTimeout(timer);
     // Только при первом показе: черновик подставляется/отправляется один раз.
     // eslint-disable-next-line react-hooks/exhaustive-deps
