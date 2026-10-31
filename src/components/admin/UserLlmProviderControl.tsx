@@ -3,28 +3,38 @@ import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import { Cpu, Loader } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
+import { AnswerProvider, PROVIDERS, PROVIDER_LABELS, parseProvider } from './globalLlm';
 
-type Provider = 'claude' | 'qwen' | 'kimi';
-type Choice = 'default' | Provider;
-type Alt = Exclude<Provider, 'claude'>;
-const CHOICES: Choice[] = ['default', 'claude', 'qwen', 'kimi'];
-const LABELS: Record<Provider, string> = { claude: 'Claude', qwen: 'Qwen', kimi: 'Kimi' };
-interface ProviderState { provider: Choice; global: Provider; configured: Record<Alt, boolean> }
+type Choice = 'default' | AnswerProvider;
+type Alt = Exclude<AnswerProvider, 'claude'>;
+const CHOICES: readonly Choice[] = ['default', ...PROVIDERS];
+interface ProviderState {
+  provider: Choice;
+  global: AnswerProvider;
+  /** Чем человек фактически отвечает сейчас (с учётом ключа рубильника) — для подписи «Как у всех». */
+  effective: AnswerProvider;
+  configured: Record<Alt, boolean>;
+}
 
-const asProvider = (v: unknown): Provider => (v === 'qwen' || v === 'kimi' || v === 'claude' ? v : 'claude');
-
-const toState = (j: any): ProviderState => ({
-  provider: j?.provider === 'claude' || j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'default',
-  // Старый бэкенд поля global не шлёт — рубильника там нет, все на Claude.
-  global: asProvider(j?.global),
-  configured: j?.configured && typeof j.configured === 'object'
-    ? { qwen: j.configured.qwen === true, kimi: j.configured.kimi === true }
-    : { qwen: j?.qwenConfigured === true, kimi: false },
-});
+const toState = (j: any): ProviderState => {
+  const global = parseProvider(j?.global);
+  return {
+    provider: j?.provider === 'claude' || j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'default',
+    global,
+    // Старый бэкенд поля effective не шлёт — используем global (у него тоже
+    // нет поля, оно тогда падает на 'claude'): до рубильника там всё на Claude.
+    effective: j?.effective === 'claude' || j?.effective === 'qwen' || j?.effective === 'kimi' ? j.effective : global,
+    configured: j?.configured && typeof j.configured === 'object'
+      ? { qwen: j.configured.qwen === true, kimi: j.configured.kimi === true }
+      : { qwen: j?.qwenConfigured === true, kimi: false },
+  };
+};
 
 /**
  * Модель ответов ассистентов этому человеку (spec spirits_back
- * 2026-10-30-llm-provider-switch, 2026-10-31-kimi-provider-design). Меняет
+ * 2026-10-30-llm-provider-switch, 2026-10-31-kimi-provider-design,
+ * 2026-10-31-global-llm-switch). «Как у всех» — модель общего рубильника
+ * (вкладка «Ассистенты»); явный выбор здесь важнее рубильника. Меняет
  * только админ; сохраняется сразу.
  * userId — тот же идентификатор, что получает карточка (телефон или UUID).
  */
@@ -41,12 +51,16 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
   // userId — ответ для чужого userId игнорируется, не переопределяя стейт.
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
+  // Синхронный замок на двойной клик — см. GlobalLlmProviderControl: два
+  // onClick в одном тике видят ещё не применённый React-рендер saving.
+  const savingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     setState(null);
     setError(null);
     setSaving(false);
+    savingRef.current = false;
     (async () => {
       try {
         const r = await apiClient.get(url);
@@ -58,12 +72,15 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
       }
     })();
     return () => { cancelled = true; };
+    // t из useTranslation стабилен между рендерами — реагировать на него эффекту ни к чему.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
   const choose = async (choice: Choice) => {
-    if (saving) return;
+    if (savingRef.current) return;
     if (!state || choice === state.provider) return;
     const requestedFor = userId;
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -76,12 +93,13 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
       if (userIdRef.current !== requestedFor) return;
       setError(httpErrorMessage(e, t));
     } finally {
+      savingRef.current = false;
       if (userIdRef.current === requestedFor) setSaving(false);
     }
   };
 
   const label = (c: Choice) => {
-    if (c === 'default') return t('admin.userActivity.llmProvider.default', 'Как у всех (сейчас: {{model}})', { model: LABELS[state?.global ?? 'claude'] });
+    if (c === 'default') return t('admin.userActivity.llmProvider.default', 'Как у всех (сейчас: {{model}})', { model: PROVIDER_LABELS[state?.effective ?? 'claude'] });
     if (c === 'claude') return t('admin.userActivity.llmProvider.claude', 'Claude');
     if (c === 'qwen') return t('admin.userActivity.llmProvider.qwen', 'Qwen');
     return t('admin.userActivity.llmProvider.kimi', 'Kimi');
@@ -91,6 +109,15 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
     ? t('admin.userActivity.llmProvider.noKey', 'Ключ Qwen на сервере не настроен — ответы пойдут через Claude.')
     : t('admin.userActivity.llmProvider.noKeyKimi', 'Ключ Kimi на сервере не настроен — ответы пойдут через Claude.'));
 
+  // «Как у всех» предупреждает о цепочке на тех же условиях, что явный выбор
+  // Qwen/Kimi: только когда модель, которая реально пробует отвечать первой,
+  // не Claude. Модель рубильника без ключа (effective уже свёлся к 'claude')
+  // этому условию не удовлетворяет — там и предупреждать не о чём.
+  const showFallbackHint = !!state && (
+    state.provider === 'qwen' || state.provider === 'kimi'
+    || (state.provider === 'default' && state.effective !== 'claude')
+  );
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
       <div id={titleId} className="flex items-center gap-2 mb-2 text-sm font-semibold text-gray-800">
@@ -99,7 +126,7 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
         {saving && <Loader className="w-3.5 h-3.5 animate-spin text-gray-400" />}
       </div>
       {error && (
-        <p className="text-sm text-red-600 mb-2">
+        <p role="alert" className="text-sm text-red-600 mb-2">
           {error}
         </p>
       )}
@@ -110,7 +137,7 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
       )}
       {state && (
         <>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={titleId}>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={titleId} aria-busy={saving}>
             {CHOICES.map((c) => (
               <button
                 key={c}
@@ -140,7 +167,7 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
               {noKeyWarning(state.provider)}
             </p>
           )}
-          {(state.provider === 'qwen' || state.provider === 'kimi') && (
+          {showFallbackHint && (
             <p className="mt-2 text-xs text-gray-500">
               {t('admin.userActivity.llmProvider.fallbackHint', 'Если выбранная модель не ответит, ответит Claude.')}
             </p>

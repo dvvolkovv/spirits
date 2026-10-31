@@ -128,7 +128,7 @@ const AdminPage: React.FC = () => {
           ))}
         </div>
       </div>
-      <GlobalLlmBanner onOpen={() => selectTab('assistants')} />
+      <GlobalLlmBanner activeTab={activeTab} hideOpen={activeTab === 'assistants'} onOpen={() => selectTab('assistants')} />
       <div className="flex-1 overflow-hidden">
         {activeTab === 'support' && <AdminSupportView />}
         {activeTab === 'users' && <AdminUsersView />}

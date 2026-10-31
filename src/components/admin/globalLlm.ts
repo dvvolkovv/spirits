@@ -1,11 +1,19 @@
 import { apiClient } from '../../services/apiClient';
 
-export type Provider = 'claude' | 'qwen' | 'kimi';
-export const PROVIDERS: Provider[] = ['claude', 'qwen', 'kimi'];
-export const PROVIDER_LABELS: Record<Provider, string> = { claude: 'Claude', qwen: 'Qwen', kimi: 'Kimi' };
+// Называется AnswerProvider, а не Provider: «Provider» в этой кодовой базе
+// легко спутать с другими «провайдерами» (OAuth, оплата) — ревью качества
+// 01.11.2026 к задачам 10-12.
+export type AnswerProvider = 'claude' | 'qwen' | 'kimi';
+export const PROVIDERS: readonly AnswerProvider[] = ['claude', 'qwen', 'kimi'];
+export const PROVIDER_LABELS: Record<AnswerProvider, string> = { claude: 'Claude', qwen: 'Qwen', kimi: 'Kimi' };
+
+/** Строка из бэка → известная модель; мусор/отсутствие — Claude, как и у рубильника без строки в БД. */
+export function parseProvider(v: unknown): AnswerProvider {
+  return v === 'qwen' || v === 'kimi' || v === 'claude' ? v : 'claude';
+}
 
 export interface GlobalLlmState {
-  provider: Provider;
+  provider: AnswerProvider;
   since: string | null;
   by: string | null;
   configured: { qwen: boolean; kimi: boolean };
@@ -17,7 +25,7 @@ export const GLOBAL_LLM_URL = '/webhook/admin/llm-provider';
 
 export function toGlobalState(j: any): GlobalLlmState {
   return {
-    provider: j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'claude',
+    provider: parseProvider(j?.provider),
     since: typeof j?.since === 'string' ? j.since : null,
     by: typeof j?.by === 'string' ? j.by : null,
     configured: { qwen: j?.configured?.qwen === true, kimi: j?.configured?.kimi === true },
@@ -30,12 +38,26 @@ export async function fetchGlobalLlm(): Promise<GlobalLlmState> {
   return toGlobalState(await r.json());
 }
 
-/** null в .error — успех. */
-export async function saveGlobalLlm(provider: Provider): Promise<{ state: GlobalLlmState | null; error: string | null }> {
+/**
+ * Размеченное объединение, а не { state, error } с обоими полями нулевыми в
+ * одном из случаев: раньше `.catch(() => ({}))` стоял на разборе json() и
+ * для успешного ответа — разбитый JSON при 200 тихо превращался в «успешно
+ * переключили на Claude» (ревью качества 01.11.2026). Теперь .catch — только
+ * на ветке !r.ok (там отсутствие тела — обычное дело, например у 409 без
+ * JSON), а бракованный ответ на успехе бросает исключение и доходит до
+ * вызывающего как настоящая ошибка.
+ */
+export type SaveGlobalLlmResult =
+  | { ok: true; state: GlobalLlmState }
+  | { ok: false; error: string };
+
+export async function saveGlobalLlm(provider: AnswerProvider): Promise<SaveGlobalLlmResult> {
   const r = await apiClient.post(GLOBAL_LLM_URL, { provider });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) return { state: null, error: j?.error === 'no_key' ? 'no_key' : `HTTP ${r.status}` };
-  return { state: toGlobalState(j), error: null };
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    return { ok: false, error: j?.error === 'no_key' ? 'no_key' : `HTTP ${r.status}` };
+  }
+  return { ok: true, state: toGlobalState(await r.json()) };
 }
 
 /** дд.мм чч:мм в местном времени браузера — без зависимости от локали. */

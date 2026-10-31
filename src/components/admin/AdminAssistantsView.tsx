@@ -120,7 +120,14 @@ const AdminAssistantsView: React.FC = () => {
     // когда появился девятнадцатый ассистент — до него нельзя было добраться.
     // У остальных десяти вкладок админки h-full, эта была единственным
     // исключением.
-    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+    //
+    // overflow-y-auto md:overflow-hidden (ревью качества 01.11.2026): после
+    // блока GlobalLlmProviderControl список+редактор внизу (у них своя
+    // внутренняя прокрутка, см. min-h-[70vh] ниже) на узких экранах ужимались
+    // почти до нуля — хедер, новый блок и фиксированная высота родителя не
+    // оставляли им места. На мобиле вкладка теперь скроллится целиком, на
+    // десктопе (md:) — как раньше, внутренней прокруткой списка и редактора.
+    <div className="h-full bg-gray-50 flex flex-col overflow-y-auto md:overflow-hidden">
       <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900 flex items-center">
@@ -145,7 +152,10 @@ const AdminAssistantsView: React.FC = () => {
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden">
+      {/* min-h-[70vh] — на мобиле (родитель скроллится целиком) список и
+          редактор не должны сжиматься до нуля в альбомной ориентации;
+          md:min-h-0 возвращает обычное поведение flex-1 на десктопе. */}
+      <div className="flex-1 flex overflow-hidden min-h-[70vh] md:min-h-0">
         <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
           <div className="p-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Ассистенты</h2>
