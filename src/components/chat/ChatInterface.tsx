@@ -2456,6 +2456,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       while (true) {
         const { done, value } = await reader.read();
+        // Без decoder.flush() здесь: в отличие от soulmate/chat выше и
+        // CompatibilityInterface.tsx, этот цикл рвётся на done БЕЗ разбора
+        // остатка buffer — последняя строка без завершающего \n терялась уже
+        // до фикса decoder'а (самостоятельный, более старый пробел этого
+        // места, не предмет E2a). flush() тут был бы мёртвым кодом: его
+        // результату некому достаться — buffer ниже не читается нигде после break.
         if (done) break;
 
         buffer += decoder.decode(value);
