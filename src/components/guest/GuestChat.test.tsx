@@ -66,6 +66,32 @@ describe('чат пробы', () => {
     expect(localStorage.getItem('loginConsent')).toBe('true');
   });
 
+  it('ответ печатается: частичный текст виден до финала, потом встаёт готовым', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    let onEventFn: ((e: any) => void) | null = null;
+    let resolveFn: ((v: string) => void) | null = null;
+    send.mockImplementation((_i: unknown, on: (e: any) => void) => {
+      onEventFn = on;
+      return new Promise<string>((resolve) => { resolveFn = resolve; });
+    });
+    open();
+    type(input(), 'Привет');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await actAsync(() => {
+      onEventFn!({ type: 'guest', token: TOKEN, left: 3 });
+      onEventFn!({ type: 'begin' });
+      onEventFn!({ type: 'item', content: 'Начало отве' });
+    });
+    // end ещё не пришёл — кусок уже виден на экране.
+    expect(visibleText(view!.container)).toContain('Начало отве');
+    await actAsync(() => {
+      onEventFn!({ type: 'item', content: 'та целиком.' });
+      onEventFn!({ type: 'end', content: 'Начало ответа целиком.' });
+      resolveFn!('ok');
+    });
+    expect(visibleText(view!.container)).toContain('Начало ответа целиком.');
+  });
+
   it('ответ печатается и встаёт в ленту; ключ уходит наверх', async () => {
     localStorage.setItem('loginConsent', 'true');
     send.mockImplementation(answer('Здравствуйте'));
@@ -91,6 +117,9 @@ describe('чат пробы', () => {
     expect(visibleText(view!.container)).toContain('форма входа');
     expect(input()).toBeNull();
     expect(track).toHaveBeenCalledWith('guest_trial_wall', { reason: 'limit', assistant_id: '12' });
+    // Событие стены — ровно один раз: обработчик не должен сработать
+    // дважды (например, если wall и ответ пришли в одном ходе).
+    expect(track).toHaveBeenCalledTimes(1);
   });
 
   it('проба закрыта до ответа: текст ждёт входа черновиком', async () => {
@@ -106,6 +135,25 @@ describe('чат пробы', () => {
     await flush();
     expect(visibleText(view!.container)).toContain('Пробный режим сейчас недоступен');
     expect(JSON.parse(localStorage.getItem('pending_draft') ?? 'null')).toMatchObject({ text: 'Мой вопрос', assistant: '12' });
+  });
+
+  // I7: до PENDING_DRAFT_STORE_MAX (2000) savePendingDraft отбрасывал всё
+  // длиннее DRAFT_MAX_LENGTH (600) — вопрос длиннее этого предела, но в
+  // пределах maxChars поля, терялся молча вместо того, чтобы дождаться входа.
+  it('длинный текст (>600) при стене closed — сохраняется черновиком целиком (I7)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    const long = 'Вопрос про цены на услуги. '.repeat(40).slice(0, 900);
+    send.mockImplementation(async (_i: unknown, on: (e: any) => void) => {
+      on({ type: 'guest', left: 0 });
+      on({ type: 'wall', reason: 'closed' });
+      return 'ok';
+    });
+    open();
+    type(input(), long);
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await flush();
+    expect(visibleText(view!.container)).toContain('Пробный режим сейчас недоступен');
+    expect(JSON.parse(localStorage.getItem('pending_draft') ?? 'null')).toMatchObject({ text: long, assistant: '12' });
   });
 
   it('сбой модели: ошибка, сообщение вернулось в поле', async () => {
