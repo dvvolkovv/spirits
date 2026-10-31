@@ -217,6 +217,57 @@ describe('страница пробы', () => {
     expect(visibleText(view!.container)).toContain('чат:14:Райя:0');
   });
 
+  // E1 (хвост по ревью, 31.10.2026): «Не сохранять» нажали в ДРУГОЙ вкладке —
+  // эта страница про это узнаёт не из своего эффекта (ключ читается только
+  // при открытии), а из события 'storage', которое браузер шлёт во все
+  // открытые вкладки того же origin, КРОМЕ той, что сама поменяла
+  // localStorage. Без подписки GuestChat этой вкладки остался бы
+  // смонтированным со старым token в памяти — ровно тот же риск, что и при
+  // возврате со своего экрана входа (тест выше), просто источник сброса
+  // ключа другой.
+  it('«Не сохранять» в другой вкладке — storage-событие сбрасывает пробу здесь же', async () => {
+    localStorage.setItem('guest_trial', JSON.stringify({ token: TOKEN, assistantId: '14' }));
+    session.mockResolvedValue({
+      status: 'ok',
+      assistantId: '14',
+      messages: [{ role: 'user', content: 'В' }, { role: 'assistant', content: 'О' }],
+      left: 2,
+    });
+    await open('/chat');
+    expect((globalThis as any).__guestChatMounts).toBe(1);
+    // Сама браузерная реализация стирает ключ раньше, чем доставляет
+    // событие другим вкладкам, — e.newValue здесь уже null, а не прежнее
+    // значение.
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'guest_trial', newValue: null }));
+    });
+    expect((globalThis as any).__guestChatMounts).toBe(2);
+    expect(visibleText(view!.container)).toContain('чат:14:Райя:0');
+  });
+
+  it('storage-событие про другой ключ или без удаления — пробу не трогает', async () => {
+    localStorage.setItem('guest_trial', JSON.stringify({ token: TOKEN, assistantId: '14' }));
+    session.mockResolvedValue({
+      status: 'ok',
+      assistantId: '14',
+      messages: [{ role: 'user', content: 'В' }, { role: 'assistant', content: 'О' }],
+      left: 2,
+    });
+    await open('/chat');
+    expect((globalThis as any).__guestChatMounts).toBe(1);
+    // Другой ключ localStorage (например, вход в другой вкладке).
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'linkeon_has_account', newValue: '1' }));
+    });
+    expect((globalThis as any).__guestChatMounts).toBe(1);
+    // Тот же ключ, но не удаление — перезапись новой пробой на устройстве.
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'guest_trial', newValue: JSON.stringify({ token: TOKEN, assistantId: '12' }) }));
+    });
+    expect((globalThis as any).__guestChatMounts).toBe(1);
+    expect(visibleText(view!.container)).toContain('чат:14:Райя:2');
+  });
+
   it('рефссылка запоминается и в пробе', async () => {
     await open('/chat?ref=abc');
     expect(localStorage.getItem('referral_slug')).toBe('abc');
