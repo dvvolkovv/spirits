@@ -353,21 +353,28 @@ describe('чат пробы', () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
-  // --- B8-fix I6: try/catch/finally, входные данные до оптимистичных шагов ---
+  // --- B8-fix I6 → хвост T5 (31.10): sid/source/campaign — каждое в своём
+  // try. Раньше бросок getSessionId уходил в общий catch и показывал «нет
+  // связи», хотя источник неудачи — недоступное хранилище у НЕОБЯЗАТЕЛЬНОГО
+  // поля атрибуции, а не сеть; сообщение вполне могло уйти. Этот тест
+  // ЗАМЕНЯЕТ прежний «getSessionId бросает — видна сетевая ошибка (I6)»:
+  // прежнее ожидание (ошибка, sendGuestMessage не вызван) описывало именно
+  // тот бага, который чинит T5.
 
-  it('getSessionId бросает — видна сетевая ошибка, текст в поле, onBusyChange(false) (I6)', async () => {
+  it('getSessionId бросает — сообщение всё равно уходит, sid — null, это не «нет связи» (T5)', async () => {
     localStorage.setItem('loginConsent', 'true');
     (getSessionId as unknown as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
       throw new Error('boom');
     });
+    send.mockImplementation(answer('Ответ'));
     const onBusyChange = vi.fn();
     open({ onBusyChange });
     type(input(), 'Вопрос');
     await clickAsync(byButton(view!.container, /Отправить/)!);
     await flush();
-    expect(send).not.toHaveBeenCalled();
-    expect(visibleText(view!.container)).toContain('Нет связи с сервером');
-    expect(input().value).toBe('Вопрос');
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][0]).toMatchObject({ sid: null });
+    expect(visibleText(view!.container)).toContain('Ответ');
     expect(onBusyChange.mock.calls.map((c) => c[0])).toEqual([true, false]);
   });
 
@@ -604,18 +611,28 @@ describe('чат пробы', () => {
     });
   });
 
-  // --- B8-fix I3: прокрутка к стене ---
+  // --- B8-fix I3 → хвост T4/T5 (31.10): прокрутка к стене 'nearest', не
+  // 'start' (стена обычно приходит ВМЕСТЕ с третьим ответом — 'start'
+  // пригвождает её верх к верху экрана и уводит из вида этот ответ); тест
+  // восстанавливает подменённый scrollIntoView (T5) — иначе глобальная
+  // подмена HTMLElement.prototype переживала бы этот тест и мешала остальным
+  // (в jsdom scrollIntoView по умолчанию не существует вовсе).
 
-  it('при появлении стены лента прокручивается к ней (I3)', async () => {
+  it('при появлении стены лента довёртывается к ней без увода третьего ответа (I3, T4)', async () => {
     localStorage.setItem('loginConsent', 'true');
+    const original = (HTMLElement.prototype as any).scrollIntoView;
     const scrollIntoView = vi.fn();
     (HTMLElement.prototype as any).scrollIntoView = scrollIntoView;
-    send.mockImplementation(answer('Третий ответ', [{ type: 'wall', reason: 'limit' }]));
-    open();
-    type(input(), 'Вопрос');
-    await clickAsync(byButton(view!.container, /Отправить/)!);
-    await flush();
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    try {
+      send.mockImplementation(answer('Третий ответ', [{ type: 'wall', reason: 'limit' }]));
+      open();
+      type(input(), 'Вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await flush();
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    } finally {
+      (HTMLElement.prototype as any).scrollIntoView = original;
+    }
   });
 
   // --- B8-fix I9 + Enter/Shift+Enter/без согласия ---
@@ -727,5 +744,204 @@ describe('чат пробы', () => {
     expect(userBubble!.className).toContain('w-fit');
     expect(userBubble!.className).toContain('max-w-[85%]');
     expect(userBubble!.className).toContain('break-words');
+  });
+
+  // --- Хвост по перепроверке (31.10) ---
+
+  // T1: поле не блокируется на время хода (M2) — человек может успеть
+  // напечатать своё, пока ждёт ответ. Откат/сбой не должен затирать это
+  // склеивать свой текст ВПЕРЕД набранного, не взамен.
+  describe('T1: откат/сбой хода не затирает напечатанное во время ожидания', () => {
+    it('ответ "network" ДО begin — оба текста в поле (как в задании)', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      let resolveFn: ((v: string) => void) | null = null;
+      send.mockImplementation(() => new Promise<string>((resolve) => { resolveFn = resolve; }));
+      open();
+      type(input(), 'Первый вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      // M2: поле не блокируется на время хода — человек пишет дальше.
+      type(input(), 'Второй вопрос');
+      await actAsync(() => { resolveFn!('network'); });
+      expect(input().value).toBe('Первый вопрос\n\nВторой вопрос');
+    });
+
+    it('результат "aborted" на смонтированном компоненте (не из-за зависания и не из-за ухода) — видимый откат склеивает текст', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      let resolveFn: ((v: string) => void) | null = null;
+      send.mockImplementation(() => new Promise<string>((resolve) => { resolveFn = resolve; }));
+      const onBusyChange = vi.fn();
+      open({ onBusyChange });
+      type(input(), 'Исходный вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      type(input(), 'Моя новая мысль');
+      await actAsync(() => { resolveFn!('aborted'); });
+      expect(input().value).toBe('Исходный вопрос\n\nМоя новая мысль');
+      expect(view!.container.querySelector('[role="alert"]')).toBeNull();
+      expect(onBusyChange.mock.calls.map((c) => c[0])).toEqual([true, false]);
+    });
+
+    it('исключение во время хода (catch) — тоже склеивает, а не затирает', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      let rejectFn: ((e: unknown) => void) | null = null;
+      send.mockImplementation(() => new Promise((_resolve, reject) => { rejectFn = reject; }));
+      open();
+      type(input(), 'Первый');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      type(input(), 'Второй');
+      await actAsync(() => { rejectFn!(new Error('boom')); });
+      expect(visibleText(view!.container)).not.toContain('Первый');
+      expect(input().value).toBe('Первый\n\nВторой');
+    });
+
+    it('черновик для savePendingDraft на стене — та же склейка, что и в поле', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      let onEventFn: ((e: any) => void) | null = null;
+      let resolveFn: ((v: string) => void) | null = null;
+      send.mockImplementation((_i: unknown, on: (e: any) => void) => {
+        onEventFn = on;
+        return new Promise<string>((resolve) => { resolveFn = resolve; });
+      });
+      open();
+      type(input(), 'Мой вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      type(input(), 'ещё дописал');
+      await actAsync(() => {
+        onEventFn!({ type: 'guest', left: 0 });
+        onEventFn!({ type: 'wall', reason: 'closed' });
+        resolveFn!('ok');
+      });
+      expect(JSON.parse(localStorage.getItem('pending_draft') ?? 'null')).toMatchObject({
+        text: 'Мой вопрос\n\nещё дописал',
+        assistant: '12',
+      });
+    });
+  });
+
+  // T2: ленивый квантификатор в stripGuestLabels — жадный [\w-]+ съедал
+  // подчёркивания за пределами собственного id метки.
+  describe('T2: stripGuestLabels — ленивый квантификатор [\\w-]+?', () => {
+    it('две соседние ссылки {{link}}{{link}} без текста между ними — обе подписи видны', () => {
+      openWithAnswer('{{link: Первая | url: https://a.example.com}}{{link: Вторая | url: https://b.example.com}}');
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).toContain('Первая');
+      expect(visibleText(view!.container)).toContain('Вторая');
+    });
+
+    it('голый адрес картинки, за которым сразу (без пробела) следует "_" из текста — ссылка не теряется', () => {
+      openWithAnswer('Вот: https://cdn.example.com/pic.png_hint пояснение.');
+      expect(visibleText(view!.container)).toContain('pic.png');
+    });
+  });
+
+  // T3: контактные ссылки (mailto:/tel:) — без target="_blank" (Firefox
+  // иначе оставляет пустую вкладку); только веб-адреса — target="_blank".
+  describe('T3: контактные ссылки — без target="_blank"', () => {
+    it('mailto: — ссылка без target, веб-адрес рядом — с target="_blank"', () => {
+      openWithAnswer('Пишите [нам](mailto:help@example.com) или смотрите [сайт](https://example.com/page).');
+      const mail = byLink(view!.container, /нам/);
+      expect(mail).not.toBeNull();
+      expect(mail!.getAttribute('href')).toBe('mailto:help@example.com');
+      expect(mail!.getAttribute('target')).toBeNull();
+      expect(mail!.className).toContain('ym-disable-tracklink');
+
+      const site = byLink(view!.container, /сайт/);
+      expect(site).not.toBeNull();
+      expect(site!.getAttribute('target')).toBe('_blank');
+    });
+
+    it('tel: — тоже без target', () => {
+      openWithAnswer('Звоните [нам](tel:+78121234567).');
+      const tel = byLink(view!.container, /нам/);
+      expect(tel).not.toBeNull();
+      expect(tel!.getAttribute('href')).toBe('tel:+78121234567');
+      expect(tel!.getAttribute('target')).toBeNull();
+    });
+  });
+
+  // T4: собственная отправка подводит ленту к низу, даже если до этого
+  // прокрутили вверх — иначе свой пузырь и «печатает…» могут остаться вне кадра.
+  it('T4: своя отправка подводит ленту к низу, даже если прокрутили вверх читать историю', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    send.mockImplementation(() => new Promise<string>(() => {})); // висит — достаточно увидеть сам скролл
+    open();
+    const list = view!.container.querySelector('[data-testid="guest-messages-list"]') as HTMLDivElement;
+    Object.defineProperty(list, 'scrollHeight', { value: 1000, configurable: true });
+    Object.defineProperty(list, 'clientHeight', { value: 300, configurable: true });
+    Object.defineProperty(list, 'scrollTop', { value: 0, writable: true, configurable: true });
+    // Человек прокрутил вверх — далеко от низа (1000 - 0 - 300 = 700 > 120).
+    await actAsync(() => { list.dispatchEvent(new Event('scroll')); });
+    type(input(), 'Вопрос');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    expect(list.scrollTop).toBe(1000);
+  });
+
+  // --- T5: разные мелочи ---
+  describe('T5: мелочи', () => {
+    it('явный код ошибки (error) ПОСЛЕ begin важнее generic «связь прервалась», даже если итог тоже network', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      send.mockImplementation(async (_i: unknown, on: (e: any) => void) => {
+        on({ type: 'begin' });
+        on({ type: 'error', code: 'busy' });
+        return 'network';
+      });
+      open();
+      type(input(), 'Вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await flush();
+      expect(visibleText(view!.container)).toContain('Сейчас много желающих');
+      expect(visibleText(view!.container)).not.toContain('Связь прервалась');
+      expect(input().value).toBe('Вопрос');
+    });
+
+    it('track() бросает на стене — уже показанный ответ не исчезает из ленты', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      (track as unknown as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
+        throw new Error('boom');
+      });
+      send.mockImplementation(answer('Третий ответ', [{ type: 'wall', reason: 'limit' }]));
+      open();
+      type(input(), 'Вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await flush();
+      expect(visibleText(view!.container)).toContain('Третий ответ');
+    });
+
+    it('onTrialGone бросает — не срезает лишнее сообщение из более ранней пары', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      send.mockResolvedValue('trial_gone');
+      const onTrialGone = vi.fn(() => { throw new Error('boom'); });
+      open({
+        token: TOKEN,
+        initialMessages: [{ role: 'user', content: 'Старый вопрос' }, { role: 'assistant', content: 'Старый ответ' }],
+        initialLeft: 2,
+        onTrialGone,
+      });
+      type(input(), 'Новый вопрос');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await flush();
+      expect(visibleText(view!.container)).toContain('Старый ответ');
+    });
+
+    it('замок и onBusyChange(true) — внутри try: бросок onBusyChange(true) не держит замок навечно', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      send.mockImplementation(answer('Ответ'));
+      const onBusyChange = vi.fn().mockImplementationOnce(() => { throw new Error('boom'); });
+      open({ onBusyChange });
+      type(input(), 'Привет');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await flush();
+      expect(send).not.toHaveBeenCalled(); // бросок — до вызова sendGuestMessage
+      type(input(), 'Снова');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      await flush();
+      expect(send).toHaveBeenCalledTimes(1); // замок снят — вторая попытка дошла до отправки
+    });
+
+    it('черновик длиннее maxChars (подставлен без автоотправки, M8) — кнопка «Отправить» заблокирована', () => {
+      localStorage.setItem('loginConsent', 'true');
+      open({ draft: { text: 'a'.repeat(2001), auto: false } });
+      expect(input().value.length).toBe(2001);
+      expect(byButton(view!.container, /Отправить/)!.disabled).toBe(true);
+    });
   });
 });
