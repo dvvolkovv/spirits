@@ -1,32 +1,17 @@
-import React, { useEffect } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
 import LoginTabs from '../components/onboarding/LoginTabs';
 import { LanguageSelect } from '../components/settings/LanguageSelect';
 import { ANDROID_APK_URL } from '../androidApp';
-import { rememberLoginIntent } from '../utils/loginIntent';
-
-const REFERRAL_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
+import { useEntryParams } from '../components/onboarding/useEntryParams';
 
 const OnboardingPage: React.FC = () => {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
-  const location = useLocation();
 
-  useEffect(() => {
-    const refSlug = searchParams.get('ref');
-    if (refSlug) {
-      localStorage.setItem('referral_slug', refSlug);
-      localStorage.setItem('referral_slug_expires', String(Date.now() + REFERRAL_TTL_MS));
-    }
-
-    // Пришёл со страницы ассистента (?assistant=) или с кнопки «Сделать сайт
-    // или бота» (/studio?tab=products): запоминаем — после входа кабинет
-    // откроет нужное, а не голый чат. Последнее намерение побеждает
-    // (utils/loginIntent.ts).
-    rememberLoginIntent(location.pathname, location.search);
-  }, [searchParams, location.pathname, location.search]);
+  useEntryParams();
 
   // Message-match: пришёл с рекламы под персону (?seg=biz/creator) — показываем
   // подзаголовок под ту же персону, что в объявлении/лендинге, чтобы обещание не
