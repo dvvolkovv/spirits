@@ -6,7 +6,7 @@
 
 const ENDPOINT = '/webhook/events/track';
 
-const getSessionId = (): string => {
+export const getSessionId = (): string => {
   const KEY = 'linkeon_session_id';
   let sid = sessionStorage.getItem(KEY);
   if (!sid) {
