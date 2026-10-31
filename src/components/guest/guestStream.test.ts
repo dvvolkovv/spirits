@@ -29,4 +29,25 @@ describe('поток хода гостя', () => {
     await readGuestStream(stream.getReader(), (e) => got.push(e));
     expect(got).toEqual([{ type: 'item', content: 'Привет' }, { type: 'end', content: 'Привет' }]);
   });
+
+  it('обрыв сети после первого события — исключение не глотается, событие уже пришло', async () => {
+    let pulls = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        if (pulls === 1) {
+          controller.enqueue(new TextEncoder().encode('{"type":"begin"}\n'));
+        } else {
+          controller.error(new Error('сеть'));
+        }
+      },
+    });
+    const got: GuestEvent[] = [];
+    await expect(readGuestStream(stream.getReader(), (e) => got.push(e))).rejects.toThrow('сеть');
+    expect(got).toEqual([{ type: 'begin' }]);
+  });
+
+  it('guest.left не уходит в минус', () => {
+    expect(parseGuestEvent('{"type":"guest","left":-1}')).toEqual({ type: 'guest', left: 0 });
+  });
 });
