@@ -1,3 +1,5 @@
+import { tokenManager } from '../../utils/tokenManager';
+
 /**
  * Что проба без входа держит в браузере (spec 2026-10-30-guest-trial).
  *
@@ -8,7 +10,9 @@
  *
  * linkeon_has_account — «с этого устройства уже входили». Такому устройству
  * кабинет показывает экран входа, а не пробу. clearAppStorage его НЕ стирает:
- * в этом его смысл.
+ * в этом его смысл. hasAccount() ниже считает «входили» и по оставшемуся
+ * jwt_access_token (G2, ревью B-final, 31.10) — тем же правилом, что и
+ * ранний скрипт index.html.
  *
  * guest_trial_preview — в sessionStorage: вкладка открыта с ?trial=1, и режим
  * «предпросмотр» показывает пробу только ей.
@@ -57,7 +61,17 @@ export function markHasAccount(): void {
 }
 
 export function hasAccount(): boolean {
-  try { return localStorage.getItem(HAS_ACCOUNT_KEY) === '1'; } catch { return false; }
+  // G2 (ревью B-final, 31.10): «входили» — не только по отметке
+  // linkeon_has_account, но и по оставшемуся jwt_access_token. Ранний
+  // скрипт index.html (data-guest-config-prefetch) уже решает так же, по
+  // любому из двух ключей — иначе кабинет предложит пробу тому, у кого
+  // живой access-токен просто не стёрт.
+  try {
+    if (localStorage.getItem(HAS_ACCOUNT_KEY) === '1') return true;
+    return !!tokenManager.getAccessToken();
+  } catch {
+    return false;
+  }
 }
 
 export function rememberPreviewFromUrl(search: string): void {

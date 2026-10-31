@@ -54,6 +54,14 @@ function takeGuestConfigPrefetch(): Promise<unknown> | null {
   }
 }
 
+/** Разрешается в null, когда signal сработал — вплетает общий дедлайн в Promise.race без второго таймера. */
+function abortedAsNull(signal: AbortSignal): Promise<null> {
+  return new Promise((resolve) => {
+    if (signal.aborted) { resolve(null); return; }
+    signal.addEventListener('abort', () => resolve(null), { once: true });
+  });
+}
+
 /**
  * Режим пробы с сервера. null — сервер не ответил, ответил ошибкой или не
  * уложился в GUEST_CONFIG_TIMEOUT_MS: кабинет покажет экран входа, как раньше.
@@ -65,23 +73,23 @@ function takeGuestConfigPrefetch(): Promise<unknown> | null {
  * зависимостей). Сам префетч уже привёл ответ к { mode, answersPerTrial,
  * maxChars } | null (r.ok ? r.json() : null) или к null при сетевой ошибке —
  * разбираем его тем же parseGuestConfigPayload, что и обычный ответ.
+ *
+ * G3 (ревью B-final, 31.10): если префетч САМ разрешился в null до дедлайна
+ * (ответ не ok или не JSON — например, в `pnpm dev` относительный адрес
+ * отдаёт HTML) — не сдаёмся, делаем обычный запрос через apiClient. Общий
+ * потолок не удваивается: обычный запрос идёт тем же signal/дедлайном, что
+ * ожидание префетча, — если дедлайн уже истёк (префетч завис дольше
+ * GUEST_CONFIG_TIMEOUT_MS), обычный запрос не запускаем, сразу null.
  */
 export async function fetchGuestConfig(): Promise<GuestConfig | null> {
   const prefetch = takeGuestConfigPrefetch();
-  if (prefetch) {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<null>((resolve) => {
-      timer = setTimeout(() => resolve(null), GUEST_CONFIG_TIMEOUT_MS);
-    });
-    try {
-      const j = await Promise.race([prefetch.catch(() => null), timeout]);
-      return j ? parseGuestConfigPayload(j) : null;
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-  }
   const { signal, done } = withAbortTimeout(GUEST_CONFIG_TIMEOUT_MS);
   try {
+    if (prefetch) {
+      const j = await Promise.race([prefetch.catch(() => null), abortedAsNull(signal)]);
+      if (j) return parseGuestConfigPayload(j);
+      if (signal.aborted) return null;
+    }
     const r = await apiClient.get('/webhook/guest/config', { skipAuth: true, signal });
     if (!r.ok) { drain(r); return null; }
     const j = await r.json();
@@ -142,7 +150,15 @@ export async function sendGuestMessage(
   } catch (e) {
     return isAbortError(e) ? 'aborted' : 'network';
   }
-  if (r.status === 404) { drain(r); return 'trial_gone'; }
+  if (r.status === 404) {
+    // G1 (ревью B-final, 31.10): «пробы нет» — ТОЛЬКО когда тело прямо
+    // говорит error: 'trial', как у loadGuestSession/claimGuestTrial ниже.
+    // Голый 404 без такого тела (например, откат бэка без модуля пробы —
+    // generic 404 от маршрутизатора/прокси) раньше читался как trial_gone и
+    // стирал ключ живой, просто временно недоступной пробы.
+    const j = await r.json().catch(() => ({}));
+    return j?.error === 'trial' ? 'trial_gone' : 'server';
+  }
   if (r.status === 409) {
     const j = await r.json().catch(() => ({}));
     return j?.error === 'assistant_mismatch' ? 'trial_gone' : 'busy_trial';
