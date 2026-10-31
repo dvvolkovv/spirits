@@ -83,13 +83,21 @@ const ShortCard: React.FC<Props> = ({
   const broken = item.status === 'failed';
   /**
    * Идеи заводятся с плейсхолдером `angle: 'calm'` — настоящую подачу ставит
-   * только `start` (он же выставляет `slotAt`). Отклонённый ролик без
-   * `slotAt` (и без явно заданной `angleLocked`) не прошёл `start` —
-   * значит, его angle — тот же нетронутый плейсхолдер, а не решение; показывать
-   * его как подачу («Как это работает» вместо настоящего) — врать подписью.
+   * только `start` (он же выставляет `slotAt`). У идеи плейсхолдер ещё
+   * СТАНЕТ решением — отсюда «подача по ритму недели» (ролик и впрямь
+   * пойдёт в работу по ритму). Отклонённый ролик без `slotAt` (и без явно
+   * заданной `angleLocked`) не прошёл `start` — его «подача» решением уже
+   * не станет никогда, и «по ритму недели» тут читалось бы так, будто ролик
+   * всё ещё выйдет по расписанию; вместо лжи — не показываем подачу вовсе
+   * (`meta` сама отбрасывает пустые части). Запущенный и потом отклонённый
+   * ролик (`slotAt` есть) или идея/отказ с `angleLocked` — показывают
+   * настоящую подачу (`ANGLE_TITLES`).
    */
-  const angleUndecided = (item.status === 'idea' || (item.status === 'rejected' && !item.slotAt)) && !item.angleLocked;
-  const angle = angleUndecided ? 'подача по ритму недели' : ANGLE_TITLES[item.angle];
+  const angle = item.status === 'idea' && !item.angleLocked
+    ? 'подача по ритму недели'
+    : item.status === 'rejected' && !item.slotAt && !item.angleLocked
+      ? null
+      : ANGLE_TITLES[item.angle];
   const meta = [RUBRIC_TITLES[item.rubric], angle, assistantName, FORMAT_TITLES[item.format]].filter(Boolean).join(' · ');
   const stats = detail
     ? [
