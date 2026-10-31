@@ -56,14 +56,25 @@ describe('AuthContext: проба без входа', () => {
     const init = SRC.slice(initStart, initEnd);
 
     const markAt = init.indexOf('markHasAccount();');
+    // T8 (хвост по перепроверкам B9-fix, 31.10): отметка — раньше ЛЮБОГО
+    // сетевого вызова и первого await в этой функции, не только раньше
+    // переноса пробы. Сравнение только с claimAssignAt (ниже) не поймало бы
+    // регресс, где отметку сдвинули НИЖЕ проверки токена (tokenManager.
+    // hasTokens()/обновление access-токена), но всё ещё ВЫШЕ переноса.
+    const hasTokensAt = init.indexOf('if (tokenManager.hasTokens())');
+    const firstAwaitAt = init.indexOf('await authService.refreshTokens();');
     const claimAssignAt = init.indexOf('const claim = claimPendingGuestTrial();');
     const claimAwaitAt = init.indexOf('await claim;');
     const setUserAt = init.indexOf('setUser(parsedUser);');
     expect(markAt).toBeGreaterThan(-1);
+    expect(hasTokensAt).toBeGreaterThan(-1);
+    expect(firstAwaitAt).toBeGreaterThan(-1);
     expect(claimAssignAt).toBeGreaterThan(-1);
     expect(claimAwaitAt).toBeGreaterThan(-1);
     expect(setUserAt).toBeGreaterThan(-1);
 
+    expect(markAt).toBeLessThan(hasTokensAt);
+    expect(markAt).toBeLessThan(firstAwaitAt);
     // m6: отметка — сразу, как прочитаны authToken/userData (т.е. раньше
     // запуска переноса, который и так не раньше этого места).
     expect(markAt).toBeLessThan(claimAssignAt);
