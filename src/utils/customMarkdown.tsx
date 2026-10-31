@@ -28,6 +28,13 @@ export interface LinkConfig {
 }
 
 const BUTTON_REGEX = /\{\{button:\s*([^|]+?)(?:\s*\|\s*action:\s*([^|]+?))?(?:\s*\|\s*variant:\s*([^|]+?))?(?:\s*\|\s*icon:\s*([^}]+?))?\}\}/g;
+// Ревью E2 (31.10): variant вне этого списка (опечатка ассистента, или
+// значение, которого никогда не было в контракте) раньше уходил в
+// ButtonConfig как есть — `as ButtonConfig['variant']` молча врал тайпчекеру,
+// а getButtonStyles собирал класс с буквальным словом "undefined"
+// (variantStyles['weird'] === undefined). Список — источник правды для
+// обеих сторон (ниже и в getButtonStyles).
+const VALID_BUTTON_VARIANTS = new Set<string>(['primary', 'secondary', 'success', 'danger']);
 const LINK_REGEX = /\{\{link:\s*([^|]+?)\s*\|\s*url:\s*([^}]+?)\}\}/g;
 // Голая ссылка на ролик разворачивается в инлайн-плеер.
 // (?<!\() — НЕ трогаем URL внутри markdown [text](url). Без этой защиты
@@ -101,10 +108,11 @@ export const parseCustomMarkdown = (content: string, opts: { streaming?: boolean
 
   parsedContent = parsedContent.replace(BUTTON_REGEX, (match, text, action, variant, icon) => {
     const buttonId = `btn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const trimmedVariant = variant?.trim();
     buttons.set(buttonId, {
       text: text.trim(),
       action: action?.trim() || '',
-      variant: (variant?.trim() as ButtonConfig['variant']) || 'primary',
+      variant: (trimmedVariant && VALID_BUTTON_VARIANTS.has(trimmedVariant) ? trimmedVariant : 'primary') as ButtonConfig['variant'],
       icon: icon?.trim()
     });
     return `__BUTTON_${buttonId}__`;
@@ -172,6 +180,13 @@ export const createVideoComponent = (src: string, key?: string): React.ReactNode
       key={key}
       src={src}
       controls
+      // preload="none" — ролик теперь рисуется просто из текста ответа (баг
+      // E2b прятал плеер почти год); в истории чата уже 73 такие ссылки,
+      // часть старше 90 дней и часть адресов протухла — не тянуть их только
+      // из-за рендера ленты. playsInline — не разворачивать на весь экран на
+      // iOS Safari при первом воспроизведении.
+      preload="none"
+      playsInline
       className="my-2 max-w-full rounded-lg"
     />
   );
