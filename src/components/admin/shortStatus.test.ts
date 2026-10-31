@@ -146,7 +146,7 @@ describe('кнопки по статусу', () => {
   });
 
   it('идея — запустить; в работе, публикуется, вышел, отклонён — ничего', () => {
-    expect(actionsFor(detail({ status: 'idea' }))).toEqual(['start_now']);
+    expect(actionsFor(detail({ status: 'idea' }))).toEqual(['start_now', 'reject']);
     for (const status of (Object.keys(STATUS_TITLES) as ShortStatus[]).filter((s) => !['pending_review', 'approved', 'idea', 'failed'].includes(s))) expect(actionsFor(detail({ status }))).toEqual([]);
   });
 
@@ -210,6 +210,29 @@ describe('запросы и итоги', () => {
     expect(successText('approve', d, null, NOW)).toBe('Одобрено.');
     expect(successText('retry', item({ failedFrom: 'publishing' }), null, NOW)).toBe('Публикация повторится в ближайшие 5 минут.');
     expect(successText('retry', item({ failedFrom: 'rendering' }), null, NOW)).toBe('Ролик снова в работе.');
+  });
+
+  it('«Отклонить» идеи — своё подтверждение и итог; у темы каталога — про замену', () => {
+    const order = item({ status: 'idea', source: 'manual', title: 'Залог при аренде', version: 'V1' });
+    const catalog = item({ status: 'idea', source: 'catalog', title: 'Залог при аренде', version: 'V1' });
+    const req = actionRequest('reject', order);
+    expect(req.payload).toEqual({ action: 'reject', id: 's1', version: 'V1' });
+    expect(req.lock).toBe(false);
+    expect(req.confirm).toBe(
+      'Отклонить идею «Залог при аренде»?\n\nВ работу она не пойдёт, вернуть нельзя — только заказать заново.',
+    );
+    expect(actionRequest('reject', catalog).confirm).toBe(
+      'Отклонить идею «Залог при аренде»?\n\nВ работу она не пойдёт, вернуть нельзя — только заказать заново.' +
+        ' На её место при пополнении недели встанет другая тема.',
+    );
+    expect(successText('reject', order, null, NOW)).toBe('Идея отклонена — в работу не пойдёт.');
+    expect(successText('reject', catalog, null, NOW)).toBe(
+      'Идея отклонена — в работу не пойдёт. Замену добавит «Пополнить темы недели» или воскресное пополнение.',
+    );
+    expect(successText('reject', item({ status: 'pending_review' }), null, NOW)).toBe('Ролик отклонён.');
+    expect(actionRequest('reject', item({ status: 'pending_review', title: 'Залог при аренде' })).confirm).toBe(
+      'Отклонить ролик «Залог при аренде»?\n\nРолик не выйдет, вернуть его нельзя.',
+    );
   });
 
   it('ссылка на пост канала — как на бэке', () => {

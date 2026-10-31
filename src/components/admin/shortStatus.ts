@@ -347,7 +347,8 @@ export function actionsFor(
     case 'approved':
       return ['publish_now', ...leave];
     case 'idea':
-      return ['start_now'];
+      // Обе кнопки идеи — в её строке (ShortCard), не в раскрытой карточке.
+      return ['start_now', 'reject'];
     case 'failed': {
       const reject: ShortAction[] = released ? [] : ['reject'];
       if (d.failedFrom === 'publishing') {
@@ -393,11 +394,19 @@ export interface ActionRequest {
   lock: boolean;
 }
 
-type Target = Pick<ShortItem, 'id' | 'version' | 'title' | 'topicHint' | 'topicKey' | 'failedFrom' | 'publications' | 'format'>;
+type Target = Pick<
+  ShortItem,
+  'id' | 'version' | 'title' | 'topicHint' | 'topicKey' | 'failedFrom' | 'publications' | 'format' | 'status' | 'source'
+>;
+
+/** Название в кавычках, не длиннее 80 знаков, — для подтверждений. */
+function quoted(d: Target): string {
+  const chars = Array.from(shortTitle(d));
+  return `«${chars.length > 80 ? `${chars.slice(0, 79).join('')}…` : chars.join('')}»`;
+}
 
 function named(d: Target): string {
-  const chars = Array.from(shortTitle(d));
-  return `ролик «${chars.length > 80 ? `${chars.slice(0, 79).join('')}…` : chars.join('')}»`;
+  return `ролик ${quoted(d)}`;
 }
 
 /** Запрос решения. Решения по готовому ролику подписаны версией той карточки, что видел владелец. */
@@ -415,6 +424,15 @@ export function actionRequest(kind: ShortAction, d: Target, extra: ActionExtra =
         lock: false,
       };
     case 'reject':
+      if (d.status === 'idea') {
+        return {
+          payload: { action: 'reject', id: d.id, version: d.version },
+          confirm:
+            `Отклонить идею ${quoted(d)}?\n\nВ работу она не пойдёт, вернуть нельзя — только заказать заново.` +
+            (d.source === 'catalog' ? ' На её место при пополнении недели встанет другая тема.' : ''),
+          lock: false,
+        };
+      }
       return {
         payload: { action: 'reject', id: d.id, version: d.version },
         confirm: d.failedFrom === 'publishing'
@@ -478,7 +496,12 @@ export function actionRequest(kind: ShortAction, d: Target, extra: ActionExtra =
 }
 
 /** Итог удачного решения — плашкой над списком: карточка после него закрывается. */
-export function successText(kind: ShortAction, d: Pick<ShortItem, 'failedFrom'>, res: unknown, now: Date): string {
+export function successText(
+  kind: ShortAction,
+  d: Pick<ShortItem, 'failedFrom'> & Partial<Pick<ShortItem, 'status' | 'source'>>,
+  res: unknown,
+  now: Date,
+): string {
   switch (kind) {
     case 'approve': {
       const slotAt = (res as { slotAt?: unknown } | null)?.slotAt;
@@ -489,6 +512,11 @@ export function successText(kind: ShortAction, d: Pick<ShortItem, 'failedFrom'>,
     case 'redo':
       return 'Ролик переснимается: новая сцена на ту же тему. Новая версия придёт сюда и в личку.';
     case 'reject':
+      if (d.status === 'idea') {
+        return d.source === 'catalog'
+          ? 'Идея отклонена — в работу не пойдёт. Замену добавит «Пополнить темы недели» или воскресное пополнение.'
+          : 'Идея отклонена — в работу не пойдёт.';
+      }
       return 'Ролик отклонён.';
     case 'publish_now':
       return 'Ролик уйдёт на площадки в ближайшие 5 минут.';
