@@ -19,6 +19,7 @@ import AdminRetentionView from '../components/admin/AdminRetentionView';
 import AdminActivationView from '../components/admin/AdminActivationView';
 import AdminIntegrationsView from '../components/admin/AdminIntegrationsView';
 import AdminBlogView from '../components/admin/AdminBlogView';
+import GlobalLlmBanner from '../components/admin/GlobalLlmBanner';
 
 type AdminTab = 'support' | 'users' | 'products' | 'payments' | 'tokens' | 'usage' | 'calls' | 'assistants' | 'coupons' | 'referrals' | 'retention' | 'activation' | 'monitoring' | 'product' | 'integrations' | 'blog';
 
@@ -127,6 +128,7 @@ const AdminPage: React.FC = () => {
           ))}
         </div>
       </div>
+      <GlobalLlmBanner onOpen={() => selectTab('assistants')} />
       <div className="flex-1 overflow-hidden">
         {activeTab === 'support' && <AdminSupportView />}
         {activeTab === 'users' && <AdminUsersView />}

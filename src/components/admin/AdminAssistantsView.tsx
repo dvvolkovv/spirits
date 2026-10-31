@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, X, CreditCard as Edit2, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import { GlobalLlmProviderControl } from './GlobalLlmProviderControl';
 
 interface Agent {
   id: number;
@@ -135,6 +136,8 @@ const AdminAssistantsView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <GlobalLlmProviderControl />
 
       {error && (
         <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
