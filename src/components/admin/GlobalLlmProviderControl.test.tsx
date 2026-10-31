@@ -137,7 +137,8 @@ describe('GlobalLlmProviderControl', () => {
   });
 
   it('переход между не-Claude моделями — тоже требует подтверждения', async () => {
-    get.mockResolvedValue(state('qwen'));
+    // kimi: true — иначе кнопка Kimi disabled (нет ключа) и клик не дойдёт до confirm.
+    get.mockResolvedValue(state('qwen', true));
     post.mockResolvedValue(state('kimi'));
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     await mount();
