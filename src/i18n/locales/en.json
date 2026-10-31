@@ -1011,9 +1011,13 @@
       "confirm": "Assistants, background tasks and the no-sign-in trial will switch to {{model}}. You can switch back here.",
       "errorNoKey": "This model has no key on the server.",
       "error": "Could not load or save",
-      "banner": "Everyone is answered by {{model}} since {{since}}",
-      "bannerNoSince": "Everyone is answered by {{model}}",
-      "bannerOpen": "Change"
+      "banner": "All answers have gone through {{model}} since {{since}}",
+      "bannerNoSince": "All answers have gone through {{model}}",
+      "bannerOpen": "Change",
+      "bannerNoKey": "All answers have gone through {{model}} since {{since}} — no key, so Claude is actually answering",
+      "bannerError": "Could not find out the answer model for everyone",
+      "loading": "Loading…",
+      "retry": "Retry"
     }
   },
   "chats": {

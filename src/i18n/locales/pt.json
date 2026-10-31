@@ -1010,7 +1010,11 @@
       "error": "Não foi possível carregar ou guardar",
       "banner": "Todos são respondidos por {{model}} desde {{since}}",
       "bannerNoSince": "Todos são respondidos por {{model}}",
-      "bannerOpen": "Alterar"
+      "bannerOpen": "Alterar",
+      "bannerNoKey": "Todos são respondidos por {{model}} desde {{since}} — sem chave, na prática é o Claude",
+      "bannerError": "Não foi possível saber o modelo de respostas para todos",
+      "loading": "A carregar…",
+      "retry": "Tentar novamente"
     }
   },
   "chats": {
