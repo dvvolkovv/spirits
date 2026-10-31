@@ -25,19 +25,67 @@ function positiveNumberOr(raw: unknown, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-/** Режим пробы с сервера. null — сервер не ответил, ответил ошибкой или не уложился в GUEST_CONFIG_TIMEOUT_MS: кабинет покажет экран входа, как раньше. */
+function parseGuestConfigPayload(j: any): GuestConfig {
+  const mode = j?.mode === 'on' || j?.mode === 'preview' ? j.mode : 'off';
+  return {
+    mode,
+    answersPerTrial: positiveNumberOr(j?.answersPerTrial, 3),
+    maxChars: positiveNumberOr(j?.maxChars, 2000),
+  };
+}
+
+/**
+ * Забирает и удаляет разовый ранний запрос из index.html (I1, скрипт
+ * data-guest-config-prefetch) — один раз: второй вызов fetchGuestConfig в
+ * этой же вкладке (смена языка, повторный заход на экран пробы) должен идти
+ * обычным запросом, а не чужим уже прочитанным промисом. typeof window —
+ * guestApi.ts подключают и тесты без jsdom (guestApi.test.ts, окружение
+ * node): там window нет вовсе, и это не префетч, а обычный путь.
+ */
+function takeGuestConfigPrefetch(): Promise<unknown> | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const w = window as unknown as { __guestConfigPrefetch?: Promise<unknown> };
+    const p = w.__guestConfigPrefetch;
+    if (p) delete w.__guestConfigPrefetch;
+    return p ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Режим пробы с сервера. null — сервер не ответил, ответил ошибкой или не
+ * уложился в GUEST_CONFIG_TIMEOUT_MS: кабинет покажет экран входа, как раньше.
+ *
+ * I1 (ревью качества B9-fix): если встроенный скрипт index.html уже запустил
+ * запрос (window.__guestConfigPrefetch) до загрузки бандла — используем его
+ * вместо нового запроса, под тем же потолком GUEST_CONFIG_TIMEOUT_MS (сам
+ * префетч не ограничен по времени — он просто fetch().catch(() => null) без
+ * зависимостей). Сам префетч уже привёл ответ к { mode, answersPerTrial,
+ * maxChars } | null (r.ok ? r.json() : null) или к null при сетевой ошибке —
+ * разбираем его тем же parseGuestConfigPayload, что и обычный ответ.
+ */
 export async function fetchGuestConfig(): Promise<GuestConfig | null> {
+  const prefetch = takeGuestConfigPrefetch();
+  if (prefetch) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), GUEST_CONFIG_TIMEOUT_MS);
+    });
+    try {
+      const j = await Promise.race([prefetch.catch(() => null), timeout]);
+      return j ? parseGuestConfigPayload(j) : null;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
   const { signal, done } = withAbortTimeout(GUEST_CONFIG_TIMEOUT_MS);
   try {
     const r = await apiClient.get('/webhook/guest/config', { skipAuth: true, signal });
     if (!r.ok) { drain(r); return null; }
     const j = await r.json();
-    const mode = j?.mode === 'on' || j?.mode === 'preview' ? j.mode : 'off';
-    return {
-      mode,
-      answersPerTrial: positiveNumberOr(j?.answersPerTrial, 3),
-      maxChars: positiveNumberOr(j?.maxChars, 2000),
-    };
+    return parseGuestConfigPayload(j);
   } catch {
     return null;
   } finally {

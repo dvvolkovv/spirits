@@ -82,6 +82,31 @@
       })();
     </script>
 
+    <!-- Ранний запрос конфигурации пробы без входа (I1, ревью качества
+         B9-fix, spec 2026-10-30-guest-trial): без него каждый новый
+         посетитель /chat в режиме «вкл» ждал бы сетевой круг (до 4 с при
+         сбое) перед экраном входа — спека «Выкат», шаг 1, обещает «для людей
+         ничего не меняется». Запрос уходит здесь, пока бандл ещё грузится;
+         fetchGuestConfig (src/components/guest/guestApi.ts) забирает
+         window.__guestConfigPrefetch один раз и удаляет его, разбирает так
+         же, как обычный ответ, с тем же потолком GUEST_CONFIG_TIMEOUT_MS —
+         нет префетча, обычный запрос. Условия — те же, что у decideUnauthEntry
+         (src/components/guest/decideUnauthEntry.ts), но проверены руками: тот
+         модуль вместе со всем бандлом ещё не загружен в момент разбора этого
+         script. Тест — guestConfigPrefetch.test.ts, как у data-draft-capture. -->
+    <script data-guest-config-prefetch>
+      (function () {
+        try {
+          if (localStorage.getItem('jwt_access_token') || localStorage.getItem('linkeon_has_account')) return;
+          var path = location.pathname.replace(/\/+$/, '') || '/';
+          if (path !== '/' && path !== '/chat') return;
+          window.__guestConfigPrefetch = fetch('/webhook/guest/config', { credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .catch(function () { return null; });
+        } catch (e) { /* без сети не ломаем загрузку страницы */ }
+      })();
+    </script>
+
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){
