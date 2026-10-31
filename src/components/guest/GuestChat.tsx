@@ -38,7 +38,15 @@ export interface GuestChatProps {
 }
 
 type Wall = 'limit' | 'closed';
-type ErrorKind = 'model' | 'busy' | 'network';
+/**
+ * 'busy' — остаётся за явным событием `error` с code:'busy' (сервер прислал
+ * его посреди потока, обычно — перегружена сама модель). 'busyTrial' и
+ * 'badRequest' — отдельные от него виды (M5): они приходят не событием
+ * потока, а результатом хода целиком (409 «этот же ход уже пишется» и 400
+ * соответственно), и означают разное — ревью качества B8 развело тексты.
+ * 'interrupted' — обрыв связи ПОСЛЕ begin (I4, M11): сервер уже принял ход.
+ */
+type ErrorKind = 'model' | 'busy' | 'network' | 'interrupted' | 'badRequest' | 'busyTrial';
 
 /** Та же отметка, что у галочки на экране входа: дал согласие здесь — там она уже стоит. */
 const CONSENT_KEY = 'loginConsent';
@@ -48,21 +56,28 @@ function readConsent(): boolean {
 }
 
 /**
- * Результат хода → вид ошибки на экране (ревью B4). 'server' (403 чужого
- * источника, 5xx — сервер ответил отказом) показывается как «ассистент
- * сейчас недоступен», а не как «нет сети» — это разные причины и разные
- * тексты для гостя. Switch по ВСЕМ значениям GuestSendResult и без default:
- * 'ok' (ответ есть, сюда не доходит — см. вызов ниже), 'trial_gone' и
- * 'aborted' уводят раньше отдельными ветками и этой функции не достигают, но
- * перечислены явно, чтобы новое значение в GuestSendResult завалило сборку
- * здесь, а не уехало молча в чужую ветку.
+ * Результат хода → вид ошибки на экране, когда явного события `error` не
+ * было (ревью B4, M5). 'server' (403 чужого источника, 5xx — сервер ответил
+ * отказом) показывается как «ассистент сейчас недоступен», а не как «нет
+ * сети» — это разные причины и разные тексты для гостя. 'busy_trial» (409 —
+ * у этой же пробы уже пишется ответ) и 'bad_request' (400) получили СВОИ
+ * виды ошибки (M5) — раньше оба тонули в общих 'busy'/'model'.
+ *
+ * 'ok' сюда доходит, если поток закрылся без end/error/wall вовсе (досрочно,
+ * но не исключением) — это тоже ошибка модели, текста разумнее не придумывать
+ * новый. 'trial_gone' и 'aborted' уводят раньше отдельными ветками в send() и
+ * этой функции не достигают, но перечислены явно (M6): switch — по ВСЕМ
+ * значениям GuestSendResult и без default, поэтому новое значение в
+ * GuestSendResult (добавленное без правки здесь) завалит `pnpm typecheck`
+ * («Function lacks ending return statement») — но НЕ `pnpm build`, который
+ * типы не проверяет.
  */
 function errorKindForResult(result: GuestSendResult): ErrorKind {
   switch (result) {
-    case 'busy_trial': return 'busy';
+    case 'busy_trial': return 'busyTrial';
     case 'network': return 'network';
     case 'server': return 'model';
-    case 'bad_request': return 'model';
+    case 'bad_request': return 'badRequest';
     case 'ok': return 'model';
     case 'trial_gone': return 'model';
     case 'aborted': return 'model';
@@ -179,6 +194,32 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
   const draftTaken = useRef(false);
   /** Текущий ход (ревью B3) — чтобы оборвать его, если страница ушла раньше ответа. */
   const abortRef = useRef<AbortController | null>(null);
+  /**
+   * Синхронный замок от двойной отправки (M1): sending — React state,
+   * обновляется асинхронно, и быстрый повторный клик/Enter в тот же тик (до
+   * перерисовки) всё ещё видел бы sending=false. Ref — обновляется немедленно.
+   */
+  const sendingRef = useRef(false);
+  /**
+   * Этот ход отменён ПОТОМУ, что завис (M11, см. send), а не потому, что
+   * страница ушла (B3) — обе причины дают одинаковый result 'aborted', и без
+   * этого признака их было бы не различить после await.
+   */
+  const stalledRef = useRef(false);
+  /**
+   * Компонент сейчас на экране. В StrictMode (I5) React синхронно монтирует
+   * эффекты, тут же чистит (как при размонтировании) и монтирует снова —
+   * cleanup-эффект B3 ниже успевает позвать abortRef.current?.abort() для
+   * хода, который только что стартовал (например, автоотправка черновика),
+   * хотя компонент никуда не делся. true изначально и на каждом (ре)монтировании,
+   * false — только в cleanup; используется в send(), чтобы отличить этот
+   * артефакт StrictMode от настоящего ухода со страницы.
+   */
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // Размонтирование посреди хода отменяет его: сигнал уходит в sendGuestMessage
   // третьим аргументом (см. send), страница уже не дождётся результата.
@@ -215,93 +256,172 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
     try { localStorage.setItem(CONSENT_KEY, value ? 'true' : 'false'); } catch { /* приватный режим */ }
   };
 
+  /** Сервер шлёт ping раз в 20с (M11) — таймер зависания переживает обычный ход. */
+  const STALL_MS = 60_000;
+
   const send = async (raw: string) => {
     const message = raw.trim();
-    if (!message || sending || wall || !consent || message.length > config.maxChars) return;
-    const first = messages.length === 0;
+    // M1: sendingRef, а не sending — синхронный замок, видимый уже следующей
+    // строкой, а не после перерисовки.
+    if (!message || sendingRef.current || wall || !consent || message.length > config.maxChars) return;
+    sendingRef.current = true;
     setSending(true);
     props.onBusyChange?.(true);
     setError(null);
-    setPartial('');
-    setInput('');
-    setMessages((m) => [...m, { role: 'user', content: message }]);
-    if (first) props.onStarted();
 
-    const controller = new AbortController();
-    abortRef.current = controller;
+    let bubbleAdded = false;
+    let silentAbort = false;
+    try {
+      // Входные данные — ДО оптимистичных шагов (I6): если что-то из них
+      // бросит, пузырь ещё не добавлен и откатывать нечего — catch ниже всё
+      // равно покажет сетевую ошибку с текстом в поле.
+      const source = getSource();
+      const campaign = getCampaign();
+      const sid = getSessionId();
 
-    let answer: string | null = null;
-    let gotWall: Wall | null = null;
-    let gotError: ErrorKind | null = null;
-    const result = await sendGuestMessage(
-      {
-        token: tokenRef.current,
-        assistantId,
-        message,
-        lang: i18n.language,
-        tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        preview,
-        source: getSource(),
-        campaign: getCampaign(),
-        sid: getSessionId(),
-      },
-      (ev: GuestEvent) => {
-        if (ev.type === 'guest' && ev.token) {
-          tokenRef.current = ev.token;
-          props.onToken(ev.token);
-        } else if (ev.type === 'item') {
-          setPartial((s) => (s ?? '') + ev.content);
-        } else if (ev.type === 'end') {
-          answer = ev.content;
-        } else if (ev.type === 'wall') {
-          gotWall = ev.reason;
-        } else if (ev.type === 'error') {
-          gotError = ev.code;
-        }
-      },
-      controller.signal,
-    );
-    abortRef.current = null;
+      const first = messages.length === 0;
+      setPartial('');
+      setInput('');
+      setMessages((m) => [...m, { role: 'user', content: message }]);
+      bubbleAdded = true;
 
-    // Молча (ревью B3): страницы уже нет, чтобы показать на ней ошибку или
-    // снять индикатор хода, — ни setState, ни onBusyChange.
-    if (result === 'aborted') return;
+      stalledRef.current = false;
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-    setPartial(null);
+      let began = false;
+      let stallTimer: ReturnType<typeof setTimeout> | undefined;
+      const resetStallTimer = () => {
+        if (stallTimer) clearTimeout(stallTimer);
+        stallTimer = setTimeout(() => {
+          stalledRef.current = true;
+          controller.abort();
+        }, STALL_MS);
+      };
+      resetStallTimer();
 
-    if (result === 'trial_gone') {
-      setMessages((m) => m.slice(0, -1));
-      setSending(false);
-      props.onBusyChange?.(false);
-      props.onTrialGone(message);
-      return;
-    }
-    if (answer !== null) {
-      const text = answer;
-      setMessages((m) => [...m, { role: 'assistant', content: text }]);
-    } else {
-      // Ответа нет — сообщение возвращается в поле: отправить ещё раз или, если
-      // проба закрыта, дождаться входа черновиком в чате с тем же ассистентом.
-      setMessages((m) => m.slice(0, -1));
+      let answer = null as string | null;
+      let gotWall: Wall | null = null;
+      let gotError: ErrorKind | null = null;
+      const result = await sendGuestMessage(
+        {
+          token: tokenRef.current,
+          assistantId,
+          message,
+          lang: i18n.language,
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          preview,
+          source,
+          campaign,
+          sid,
+        },
+        (ev: GuestEvent) => {
+          // M11: каждое событие (в т.ч. ping) отодвигает дедлайн зависания.
+          resetStallTimer();
+          if (ev.type === 'guest' && ev.token) {
+            tokenRef.current = ev.token;
+            props.onToken(ev.token);
+          } else if (ev.type === 'begin') {
+            // M10: страница узнаёт о начале хода, когда сервер его принял, —
+            // не раньше отправки, когда он мог и не дойти.
+            began = true;
+            if (first) props.onStarted();
+          } else if (ev.type === 'item') {
+            setPartial((s) => (s ?? '') + ev.content);
+          } else if (ev.type === 'end') {
+            answer = ev.content;
+          } else if (ev.type === 'wall') {
+            gotWall = ev.reason;
+          } else if (ev.type === 'error') {
+            gotError = ev.code;
+          }
+        },
+        controller.signal,
+      );
+      if (stallTimer) clearTimeout(stallTimer);
+      abortRef.current = null;
+
+      if (result === 'aborted' && !stalledRef.current) {
+        // Отмена не от защёлки зависания (M11) — страница ушла (B3) или это
+        // синтетический cleanup-проход StrictMode (I5), оборвавший ещё не
+        // начавшийся ход. Настоящий уход — молча: компонента уже нет, чтобы
+        // показать на ней откат. StrictMode-артефакт — компонент на месте,
+        // откатываем как обычный сбой, но без текста ошибки (ничего и не
+        // ломалось — просто начнём ход заново на следующий тик).
+        if (!mountedRef.current) { silentAbort = true; return; }
+        setPartial(null);
+        setMessages((m) => m.slice(0, -1));
+        setInput(message);
+        return;
+      }
+
+      // Зависший поток (M11) отображается так же, как обрыв сети.
+      const effectiveResult: GuestSendResult = result === 'aborted' ? 'network' : result;
+
+      setPartial(null);
+
+      if (effectiveResult === 'trial_gone') {
+        setMessages((m) => m.slice(0, -1));
+        props.onTrialGone(message);
+        return;
+      }
+      if (answer !== null) {
+        const text = answer;
+        setMessages((m) => [...m, { role: 'assistant', content: text }]);
+        return;
+      }
+
+      // Обрыв ПОСЛЕ begin (I4): сервер принял ход и запишет пару, даже если
+      // клиент уйдёт, — пузырь остаётся, текст в поле не возвращается (повтор
+      // продублировал бы уже уходящий ответ). Стена важнее обрыва и имеет
+      // приоритет — как и раньше, когда её вообще не было видно за обрывом.
+      const interrupted = !gotWall && effectiveResult === 'network' && began;
+      if (!interrupted) {
+        // Ответа нет — сообщение возвращается в поле: отправить ещё раз или,
+        // если проба закрыта, дождаться входа черновиком с тем же ассистентом.
+        setMessages((m) => m.slice(0, -1));
+        setInput(message);
+        if (gotWall) savePendingDraft(message, assistantId);
+      }
+      if (gotWall) {
+        setWall(gotWall);
+        track('guest_trial_wall', { reason: gotWall, assistant_id: assistantId });
+      } else {
+        setError(gotError ?? (interrupted ? 'interrupted' : errorKindForResult(effectiveResult)));
+      }
+    } catch {
+      if (bubbleAdded) setMessages((m) => m.slice(0, -1));
       setInput(message);
-      if (gotWall) savePendingDraft(message, assistantId);
+      setError('network');
+    } finally {
+      sendingRef.current = false;
+      if (!silentAbort) {
+        setSending(false);
+        props.onBusyChange?.(false);
+      }
     }
-    if (gotWall) {
-      setWall(gotWall);
-      track('guest_trial_wall', { reason: gotWall, assistant_id: assistantId });
-    } else if (answer === null) {
-      setError(gotError ?? errorKindForResult(result));
-    }
-    setSending(false);
-    props.onBusyChange?.(false);
   };
 
   useEffect(() => {
     if (draftTaken.current || !props.draft) return;
     draftTaken.current = true;
-    if (props.draft.auto && consent && messages.length === 0 && !wall) void send(props.draft.text);
-    else setInput(props.draft.text);
-    // Только при первом показе: черновик подставляется один раз.
+    const draft = props.draft;
+    // M8: черновик длиннее предела поля — только подставить, не отправлять
+    // самим (отправка всё равно отсеклась бы проверкой длины в send()).
+    const tooLong = draft.text.length > config.maxChars;
+    if (!draft.auto || tooLong || !consent || messages.length > 0 || wall) {
+      setInput(draft.text);
+      return;
+    }
+    // I5 (StrictMode): автоотправка — через setTimeout(0), а не прямо здесь.
+    // React в StrictMode синхронно монтирует эффекты, тут же чистит (как при
+    // размонтировании) и монтирует снова; без отсрочки это успевает оборвать
+    // сигналом ход, который только начался в первом (черновом) проходе.
+    // setTimeout — макрозадача, она ждёт, пока весь этот синхронный цикл
+    // отыграет, и запускает send() уже у устоявшегося компонента.
+    const timer = setTimeout(() => { void send(draft.text); }, 0);
+    return () => clearTimeout(timer);
+    // Только при первом показе: черновик подставляется/отправляется один раз.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -351,7 +471,20 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
       </div>
       {!wall && (
         <div className="space-y-2 border-t border-gray-100 bg-white px-4 py-3">
-          {error && <p role="alert" className="text-sm text-red-600">{t(`guest.errors.${error}`)}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-red-600">
+              {t(`guest.errors.${error}`)}
+              {(error === 'interrupted' || error === 'badRequest') && (
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="ml-2 font-semibold underline"
+                >
+                  {t('guest.reload')}
+                </button>
+              )}
+            </p>
+          )}
           {!consent && <LoginConsentBlock checked={consent} onChange={changeConsent} />}
           <div className="flex items-end gap-2">
             <textarea
