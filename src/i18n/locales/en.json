@@ -1017,7 +1017,8 @@
       "bannerNoKey": "All answers have gone through {{model}} since {{since}} — no key, so Claude is actually answering",
       "bannerError": "Could not find out the answer model for everyone",
       "loading": "Loading…",
-      "retry": "Retry"
+      "retry": "Retry",
+      "bannerOpenError": "Open"
     }
   },
   "chats": {

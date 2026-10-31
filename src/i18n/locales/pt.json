@@ -1014,7 +1014,8 @@
       "bannerNoKey": "Todos são respondidos por {{model}} desde {{since}} — sem chave, na prática é o Claude",
       "bannerError": "Não foi possível saber o modelo de respostas para todos",
       "loading": "A carregar…",
-      "retry": "Tentar novamente"
+      "retry": "Tentar novamente",
+      "bannerOpenError": "Abrir"
     }
   },
   "chats": {
