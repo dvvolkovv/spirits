@@ -2164,5 +2164,27 @@
     "ticketExpired": "Der Link ist abgelaufen — bitte erneut anmelden",
     "storageFull": "Sitzung konnte nicht gespeichert werden: Browser-Speicher nicht verfügbar",
     "backToLogin": "Zurück zur Anmeldung"
+  },
+  "guest": {
+    "login": "Anmelden",
+    "backToChat": "← Zurück zum Gespräch",
+    "pickAssistant": "Assistenten wählen",
+    "pickLocked": "Melde dich an, um mit anderen Assistenten zu sprechen",
+    "empty": "{{name}} antwortet sofort, ohne Registrierung. Erzähl, worum es geht.",
+    "inputPlaceholder": "Deine Nachricht…",
+    "send": "Senden",
+    "typing": "{{name}} schreibt…",
+    "trialNote": "Die ersten Antworten bekommst du ohne Anmeldung. Danach bitten wir dich, dich anzumelden, damit das Gespräch gespeichert wird.",
+    "wall": {
+      "title": "Melde dich an, um weiterzumachen und das Gespräch zu speichern",
+      "text": "Das ist kostenlos — 25.000 Tokens geschenkt. Das Gespräch wird in deinem Konto gespeichert.",
+      "closedTitle": "Der Probemodus ist gerade nicht verfügbar",
+      "closedText": "Melde dich an — kostenlos, mit 25.000 Tokens geschenkt — und {{name}} antwortet sofort."
+    },
+    "errors": {
+      "model": "Das hat nicht geklappt. Schick die Nachricht bitte noch einmal.",
+      "busy": "Gerade ist viel los. Versuch es in einer Minute noch einmal.",
+      "network": "Keine Verbindung zum Server. Prüf dein Internet und schick die Nachricht noch einmal."
+    }
   }
 }

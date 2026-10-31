@@ -2155,5 +2155,27 @@
     "ticketExpired": "链接已失效 —— 请重新登录",
     "storageFull": "无法保存会话：浏览器存储不可用",
     "backToLogin": "返回登录"
+  },
+  "guest": {
+    "login": "登录",
+    "backToChat": "← 返回对话",
+    "pickAssistant": "选择助手",
+    "pickLocked": "登录后即可与其他助手交谈",
+    "empty": "{{name}}会立即回答，无需注册。说说你遇到的问题吧。",
+    "inputPlaceholder": "输入你的消息…",
+    "send": "发送",
+    "typing": "{{name}}正在输入…",
+    "trialNote": "前几条回答无需登录。之后我们会请你登录，以保存对话。",
+    "wall": {
+      "title": "登录即可继续并保存对话",
+      "text": "完全免费——赠送25,000代币。对话将保存在你的账户中。",
+      "closedTitle": "试用模式暂时不可用",
+      "closedText": "登录即可——免费，赠送25,000代币——{{name}}会立即回答。"
+    },
+    "errors": {
+      "model": "未能生成回答。请重新发送消息。",
+      "busy": "当前人数较多，请一分钟后再试。",
+      "network": "无法连接服务器。请检查网络后重新发送。"
+    }
   }
 }

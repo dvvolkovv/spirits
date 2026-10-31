@@ -2536,5 +2536,27 @@
     "ticketExpired": "O link expirou — comece a entrar novamente",
     "storageFull": "Não foi possível salvar a sessão: o armazenamento do navegador está indisponível",
     "backToLogin": "Voltar para o login"
+  },
+  "guest": {
+    "login": "Iniciar sessão",
+    "backToChat": "← Voltar à conversa",
+    "pickAssistant": "Escolher assistente",
+    "pickLocked": "Inicie sessão para falar com outros assistentes",
+    "empty": "{{name}} responde de imediato, sem registo. Escreva o que precisa.",
+    "inputPlaceholder": "A sua mensagem…",
+    "send": "Enviar",
+    "typing": "{{name}} está a escrever…",
+    "trialNote": "As primeiras respostas chegam sem iniciar sessão. Depois pedimos que inicie sessão para guardar a conversa.",
+    "wall": {
+      "title": "Inicie sessão para continuar e guardar a conversa",
+      "text": "É gratuito: 25 000 tokens de oferta. A conversa fica guardada na sua conta.",
+      "closedTitle": "O modo de experiência não está disponível neste momento",
+      "closedText": "Inicie sessão — é gratuito, com 25 000 tokens de oferta — e {{name}} responde de imediato."
+    },
+    "errors": {
+      "model": "Não foi possível responder. Envie a mensagem novamente.",
+      "busy": "Há muita procura neste momento. Tente dentro de um minuto.",
+      "network": "Sem ligação ao servidor. Verifique a internet e envie novamente."
+    }
   }
 }

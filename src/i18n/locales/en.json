@@ -2533,5 +2533,27 @@
     "ticketExpired": "This link has expired — start signing in again",
     "storageFull": "Could not save the session: browser storage is unavailable",
     "backToLogin": "Back to sign in"
+  },
+  "guest": {
+    "login": "Sign in",
+    "backToChat": "← Back to the conversation",
+    "pickAssistant": "Choose an assistant",
+    "pickLocked": "Sign in to talk to other assistants",
+    "empty": "{{name}} will answer right away, no sign-up needed. Tell us what brought you here.",
+    "inputPlaceholder": "Your message…",
+    "send": "Send",
+    "typing": "{{name}} is typing…",
+    "trialNote": "Your first answers come without signing in. Then we will ask you to sign in to save the conversation.",
+    "wall": {
+      "title": "Sign in to continue and save the conversation",
+      "text": "It's free — 25,000 tokens as a gift. The conversation will be saved in your account.",
+      "closedTitle": "Trial mode is unavailable right now",
+      "closedText": "Sign in — it's free, with 25,000 tokens as a gift — and {{name}} will answer right away."
+    },
+    "errors": {
+      "model": "Couldn't answer. Please send the message again.",
+      "busy": "Lots of people right now. Please try again in a minute.",
+      "network": "No connection to the server. Check your internet and send again."
+    }
   }
 }

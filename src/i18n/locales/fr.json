@@ -2173,5 +2173,27 @@
     "ticketExpired": "Ce lien a expiré — recommencez la connexion",
     "storageFull": "Impossible d'enregistrer la session : le stockage du navigateur est indisponible",
     "backToLogin": "Retour à la connexion"
+  },
+  "guest": {
+    "login": "Se connecter",
+    "backToChat": "← Revenir à la conversation",
+    "pickAssistant": "Choisir un assistant",
+    "pickLocked": "Connecte-toi pour parler à d'autres assistants",
+    "empty": "{{name}} répond tout de suite, sans inscription. Dis ce qui t'amène.",
+    "inputPlaceholder": "Ton message…",
+    "send": "Envoyer",
+    "typing": "{{name}} écrit…",
+    "trialNote": "Les premières réponses arrivent sans connexion. Ensuite, on te demandera de te connecter pour enregistrer la conversation.",
+    "wall": {
+      "title": "Connecte-toi pour continuer et enregistrer la conversation",
+      "text": "C'est gratuit : 25 000 jetons offerts. La conversation sera enregistrée dans ton compte.",
+      "closedTitle": "Le mode d'essai n'est pas disponible pour le moment",
+      "closedText": "Connecte-toi — c'est gratuit, avec 25 000 jetons offerts — et {{name}} te répondra tout de suite."
+    },
+    "errors": {
+      "model": "La réponse n'a pas pu être générée. Renvoie le message.",
+      "busy": "Il y a beaucoup de monde en ce moment. Réessaie dans une minute.",
+      "network": "Pas de connexion au serveur. Vérifie ta connexion internet et renvoie le message."
+    }
   }
 }

@@ -2173,5 +2173,27 @@
     "ticketExpired": "El enlace caducó: vuelve a iniciar sesión",
     "storageFull": "No se pudo guardar la sesión: el almacenamiento del navegador no está disponible",
     "backToLogin": "Volver al inicio de sesión"
+  },
+  "guest": {
+    "login": "Iniciar sesión",
+    "backToChat": "← Volver a la conversación",
+    "pickAssistant": "Elegir asistente",
+    "pickLocked": "Inicia sesión para hablar con otros asistentes",
+    "empty": "{{name}} responderá enseguida, sin registro. Cuenta qué te trae por aquí.",
+    "inputPlaceholder": "Tu mensaje…",
+    "send": "Enviar",
+    "typing": "{{name}} está escribiendo…",
+    "trialNote": "Las primeras respuestas llegan sin iniciar sesión. Después te pediremos que inicies sesión para guardar la conversación.",
+    "wall": {
+      "title": "Inicia sesión para continuar y guardar la conversación",
+      "text": "Es gratis: 25.000 tokens de regalo. La conversación se guardará en tu cuenta.",
+      "closedTitle": "El modo de prueba no está disponible ahora mismo",
+      "closedText": "Inicia sesión (es gratis y te regalamos 25.000 tokens) y {{name}} te responderá enseguida."
+    },
+    "errors": {
+      "model": "No se pudo responder. Envía el mensaje de nuevo.",
+      "busy": "Ahora mismo hay mucha gente. Inténtalo dentro de un minuto.",
+      "network": "Sin conexión con el servidor. Revisa tu internet y envía de nuevo."
+    }
   }
 }
