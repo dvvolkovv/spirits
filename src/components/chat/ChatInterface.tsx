@@ -177,10 +177,10 @@ const StreamingMessage = React.memo(({
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
-    const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
-    const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
-    const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
-    const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+)__/g)];
+    const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+?)__/g)];
+    const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+?)__/g)];
+    const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+?)__/g)];
+    const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+?)__/g)];
     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
     const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
@@ -203,7 +203,7 @@ const StreamingMessage = React.memo(({
 
       if (match[0].startsWith('__BUTTON_')) {
         const buttonId = match[1];
-        const buttonConfig = buttons.get(`btn_${buttonId}`);
+        const buttonConfig = buttons.get(buttonId);
         if (buttonConfig) {
           parts.push(
             <span key={`button-${idx}`}>
@@ -213,7 +213,7 @@ const StreamingMessage = React.memo(({
         }
       } else if (match[0].startsWith('__LINK_')) {
         const linkId = match[1];
-        const linkConfig = links.get(`link_${linkId}`);
+        const linkConfig = links.get(linkId);
         if (linkConfig) {
           parts.push(
             <span key={`link-${idx}`}>
@@ -223,7 +223,7 @@ const StreamingMessage = React.memo(({
         }
       } else if (match[0].startsWith('__VIDEO_')) {
         const videoId = match[1];
-        const videoSrc = videos.get(`video_${videoId}`);
+        const videoSrc = videos.get(videoId);
         if (videoSrc) {
           parts.push(
             <span key={`video-${idx}`}>
@@ -3070,10 +3070,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       : mi === messages.length - 1 && askLive ? 'active' : 'disabled';
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
-                    const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+)__/g)];
-                    const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+)__/g)];
-                    const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+)__/g)];
-                    const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+)__/g)];
+                    const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+?)__/g)];
+                    const linkMatches = [...parsedContent.matchAll(/__LINK_(\w+?)__/g)];
+                    const videoMatches = [...parsedContent.matchAll(/__VIDEO_(\w+?)__/g)];
+                    const imageMatches = [...parsedContent.matchAll(/__IMAGE_(\w+?)__/g)];
                     const audioClipMatches = [...parsedContent.matchAll(/__AUDIO_CLIP_([\w-]+)__/g)];
                     const voiceCallMatches = [...parsedContent.matchAll(/__VOICECALL_([\w-]+)__/g)];
                     const meetingMatches = [...parsedContent.matchAll(/__MEETING_([\w-]+)__/g)];
@@ -3096,7 +3096,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
                       if (match[0].startsWith('__BUTTON_')) {
                         const buttonId = match[1];
-                        const buttonConfig = buttons.get(`btn_${buttonId}`);
+                        const buttonConfig = buttons.get(buttonId);
                         if (buttonConfig) {
                           parts.push(
                             <span key={`button-${idx}`}>
@@ -3106,7 +3106,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         }
                       } else if (match[0].startsWith('__LINK_')) {
                         const linkId = match[1];
-                        const linkConfig = links.get(`link_${linkId}`);
+                        const linkConfig = links.get(linkId);
                         if (linkConfig) {
                           parts.push(
                             <span key={`link-${idx}`}>
@@ -3116,7 +3116,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         }
                       } else if (match[0].startsWith('__VIDEO_')) {
                         const videoId = match[1];
-                        const videoSrc = videos.get(`video_${videoId}`);
+                        const videoSrc = videos.get(videoId);
                         if (videoSrc) {
                           parts.push(
                             <span key={`video-${idx}`}>
