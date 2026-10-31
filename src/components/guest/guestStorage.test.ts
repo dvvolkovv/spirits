@@ -38,6 +38,21 @@ describe('проба в браузере', () => {
     expect(hasAccount()).toBe(true);
   });
 
+  // G2 (ревью B-final, 31.10): «с этого устройства уже входили» — не только
+  // по linkeon_has_account, но и по оставшемуся jwt_access_token: ранний
+  // скрипт index.html (data-guest-config-prefetch) решает так же, по любому
+  // из двух ключей, иначе кабинет предложит пробу тому, у кого access-токен
+  // просто ещё не стёрт.
+  it('«входили» — и по linkeon_has_account, и по оставшемуся jwt_access_token', () => {
+    expect(hasAccount()).toBe(false);
+    localStorage.setItem('jwt_access_token', 'token');
+    expect(hasAccount()).toBe(true);
+    localStorage.clear();
+    expect(hasAccount()).toBe(false);
+    markHasAccount();
+    expect(hasAccount()).toBe(true);
+  });
+
   it('предпросмотр — только из ?trial=1 и только в этой вкладке', () => {
     rememberPreviewFromUrl('?assistant=12');
     expect(previewRequested()).toBe(false);

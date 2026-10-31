@@ -66,6 +66,21 @@ describe('ход', () => {
     expect(await sendGuestMessage(INPUT, () => {})).toBe('network');
   });
 
+  // G1 (ревью B-final, 31.10): тот же принцип m12/T7 (loadGuestSession,
+  // claimGuestTrial ниже) — «пробы нет» ТОЛЬКО когда тело прямо говорит
+  // error: 'trial'. Голый 404 без такого тела (откат бэка без модуля пробы —
+  // generic 404 от маршрутизатора/прокси) раньше читался как trial_gone и
+  // стирал ключ живой, просто временно недоступной пробы.
+  it('404 без тела error:"trial" (чужая причина) — server, ключ не стирать', async () => {
+    post.mockResolvedValueOnce(json(404, {}));
+    expect(await sendGuestMessage(INPUT, () => {})).toBe('server');
+    post.mockResolvedValueOnce(json(404, { error: 'not_found' }));
+    expect(await sendGuestMessage(INPUT, () => {})).toBe('server');
+    // Тело не JSON (например, HTML-страница 404 от прокси перед бэком).
+    post.mockResolvedValueOnce(new Response('<html>Not Found</html>', { status: 404 }));
+    expect(await sendGuestMessage(INPUT, () => {})).toBe('server');
+  });
+
   it('403 происхождение и 5xx — server, а не network', async () => {
     post.mockResolvedValueOnce(json(403, { error: 'origin' }));
     expect(await sendGuestMessage(INPUT, () => {})).toBe('server');

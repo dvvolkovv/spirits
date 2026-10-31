@@ -42,10 +42,30 @@ describe('fetchGuestConfig: префетч из index.html (I1)', () => {
     expect(get).toHaveBeenCalledTimes(1);
   });
 
-  it('префетч разрешился в null (сбой на стороне скрипта) — null, без обычного запроса', async () => {
+  // G3 (ревью B-final, 31.10): раньше null от префетча (сбой скрипта — ответ
+  // не ok или не JSON, например в `pnpm dev` относительный адрес отдаёт
+  // HTML) означал «сдаёмся» — страница сразу показывала экран входа, хотя
+  // обычный запрос мог бы пройти. Теперь это не повод сдаваться: обычный
+  // запрос через apiClient, тем же общим потолком времени.
+  it('префетч разрешился в null (сбой на стороне скрипта) — обычный запрос, не сдаёмся', async () => {
     (window as any).__guestConfigPrefetch = Promise.resolve(null);
-    expect(await fetchGuestConfig()).toBeNull();
-    expect(get).not.toHaveBeenCalled();
+    get.mockResolvedValueOnce(json(200, { mode: 'on', answersPerTrial: 3, maxChars: 2000 }));
+    expect(await fetchGuestConfig()).toEqual({ mode: 'on', answersPerTrial: 3, maxChars: 2000 });
+    expect(get).toHaveBeenCalledWith('/webhook/guest/config', expect.objectContaining({ skipAuth: true }));
+  });
+
+  // Потолок общий, а не «4 с на префетч + ещё 4 с на обычный запрос»:
+  // обычный запрос идёт тем же signal/дедлайном, что ожидание префетча.
+  it('префетч null, обычный запрос зависает — всё равно null через общие 4 с, не 8', async () => {
+    vi.useFakeTimers();
+    (window as any).__guestConfigPrefetch = Promise.resolve(null);
+    get.mockImplementationOnce((_url: string, opts: any) => new Promise<Response>((_resolve, reject) => {
+      opts.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+    }));
+    const pending = fetchGuestConfig();
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(await pending).toBeNull();
+    expect(get).toHaveBeenCalledWith('/webhook/guest/config', expect.objectContaining({ skipAuth: true, signal: expect.any(AbortSignal) }));
   });
 
   it('мусор в mode у ответа префетча — «выкл», как и у обычного ответа', async () => {
