@@ -256,6 +256,32 @@ describe('раскрытая карточка', () => {
     expect(q('short-actions-s1')).toBeNull();
   });
 
+  it('строка идеи — «Отклонить» рядом с «Запустить сейчас»; занято гасит обе', () => {
+    const { onAction } = render({ item: item({ status: 'idea' }) });
+    click(q('short-idea-reject-s1')!);
+    expect(onAction).toHaveBeenCalledWith('reject');
+    m.unmount();
+    render({ item: item({ status: 'idea' }), busy: true });
+    expect((q('short-idea-reject-s1') as HTMLButtonElement).disabled).toBe(true);
+    expect((q('short-start-s1') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('раскрытая идея — «Отклонить» не дублируется в карточке', () => {
+    render({ open: true, item: item({ status: 'idea' }), detail: detail({ status: 'idea', videoUrl: null }) });
+    expect(q('short-reject')).toBeNull();
+    expect(q('short-idea-reject-s1')).not.toBeNull();
+  });
+
+  it('отклонённый без видео — текст заказа, а не «Видео ещё нет»', () => {
+    render({
+      open: true,
+      item: item({ status: 'rejected' }),
+      detail: detail({ status: 'rejected', videoUrl: null, topicHint: 'Залог при аренде квартиры' }),
+    });
+    expect(q('short-idea-order-s1')!.textContent).toBe('Залог при аренде квартиры');
+    expect(m.container.textContent).not.toContain('Видео ещё нет');
+  });
+
   it('раскрытая идея без видео — полный текст заказа вместо «Видео ещё нет», с переносами строк', () => {
     render({
       open: true,

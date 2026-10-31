@@ -25,9 +25,10 @@ interface Props {
 const ShortVideo: React.FC<{ detail: ShortDetail }> = ({ detail }) => {
   const [broken, setBroken] = useState(false);
   if (!detail.videoUrl) {
-    // У идеи видео не будет никогда: вместо пустой фразы — полный текст
-    // заказа (тема или история кейса), иначе владелец не видит его нигде.
-    if (detail.status === 'idea' && detail.topicHint) {
+    // У идеи видео не будет никогда, у отклонённой без сборки — тоже: вместо
+    // пустой фразы — полный текст заказа (тема или история кейса), иначе
+    // владелец не видит его нигде.
+    if ((detail.status === 'idea' || detail.status === 'rejected') && detail.topicHint) {
       return (
         <div data-testid={`short-idea-order-${detail.id}`} className="text-xs text-gray-700 whitespace-pre-wrap break-words">
           {detail.topicHint}
@@ -125,10 +126,16 @@ const ShortCard: React.FC<Props> = ({
           </span>
         </button>
         {item.status === 'idea' && (
-          <button type="button" data-testid={`short-start-${item.id}`} onClick={() => onAction('start_now')} disabled={busy}
-            className="flex-shrink-0 px-3 py-1 text-xs bg-forest-600 text-white rounded hover:bg-forest-700 disabled:opacity-50">
-            Запустить сейчас
-          </button>
+          <>
+            <button type="button" data-testid={`short-start-${item.id}`} onClick={() => onAction('start_now')} disabled={busy}
+              className="flex-shrink-0 px-3 py-1 text-xs bg-forest-600 text-white rounded hover:bg-forest-700 disabled:opacity-50">
+              Запустить сейчас
+            </button>
+            <button type="button" data-testid={`short-idea-reject-${item.id}`} onClick={() => onAction('reject')} disabled={busy}
+              className="flex-shrink-0 px-3 py-1 text-xs bg-rose-50 text-rose-700 rounded hover:bg-rose-100 disabled:opacity-50">
+              Отклонить
+            </button>
+          </>
         )}
       </div>
 

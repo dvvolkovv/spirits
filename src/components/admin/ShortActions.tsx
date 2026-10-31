@@ -20,9 +20,9 @@ const ShortActions: React.FC<Props> = ({ detail, busy, onAction }) => {
   const [retryNote, setRetryNote] = useState('');
   const [postUrl, setPostUrl] = useState('');
   const actions = actionsFor(detail);
-  // «Запустить сейчас» — кнопка строки (ShortCard), а не этого блока: без
-  // других действий пустая обёртка с отступом никому не нужна.
-  if (!actions.length || actions.every((a) => a === 'start_now')) return null;
+  // Кнопки идеи — «Запустить сейчас» и «Отклонить» — в её строке (ShortCard),
+  // а не в этом блоке: пустая обёртка с отступом никому не нужна.
+  if (!actions.length || detail.status === 'idea') return null;
   const has = (a: ShortAction) => actions.includes(a);
   const noteLen = noteChars(note);
   const noteOverLimit = noteLen > MAX_NOTE_CHARS;
