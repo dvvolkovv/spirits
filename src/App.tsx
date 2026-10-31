@@ -7,7 +7,7 @@ import { ImageGenProvider } from './contexts/ImageGenContext';
 import Navigation from './components/layout/Navigation';
 import ReferralWelcomeBanner from './components/referral/ReferralWelcomeBanner';
 import AuthLinkPage from './pages/AuthLinkPage';                // eager: сюда уводит остановленный вход, аккаунта ещё нет
-import OnboardingPage from './pages/OnboardingPage';            // eager: первый экран нового юзера — критичный путь к регистрации, грузим мгновенно
+import UnauthenticatedEntry from './components/guest/UnauthenticatedEntry'; // eager: первый экран без входа — проба или экран входа (spec 2026-10-30-guest-trial)
 import RootRedirect from './components/RootRedirect';
 import PendingDestinationRedirect from './components/PendingDestinationRedirect';
 import LegacyProfileRedirect from './components/LegacyProfileRedirect'; // eager: две строки, отдельный чанк ради них незачем
@@ -212,7 +212,7 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <OnboardingPage />;
+    return <UnauthenticatedEntry />;
   }
 
   return (
