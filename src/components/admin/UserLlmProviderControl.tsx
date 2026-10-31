@@ -4,17 +4,23 @@ import { clsx } from 'clsx';
 import { Cpu, Loader } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 
-type Provider = 'claude' | 'qwen';
-interface ProviderState { provider: Provider; qwenConfigured: boolean }
+type Provider = 'claude' | 'qwen' | 'kimi';
+type Alt = Exclude<Provider, 'claude'>;
+const PROVIDERS: Provider[] = ['claude', 'qwen', 'kimi'];
+interface ProviderState { provider: Provider; configured: Record<Alt, boolean> }
 
 const toState = (j: any): ProviderState => ({
-  provider: j?.provider === 'qwen' ? 'qwen' : 'claude',
-  qwenConfigured: j?.qwenConfigured === true,
+  provider: j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'claude',
+  // Старый бэкенд отдаёт только qwenConfigured — Kimi у него нет.
+  configured: j?.configured && typeof j.configured === 'object'
+    ? { qwen: j.configured.qwen === true, kimi: j.configured.kimi === true }
+    : { qwen: j?.qwenConfigured === true, kimi: false },
 });
 
 /**
  * Модель ответов ассистентов этому человеку (spec spirits_back
- * 2026-10-30-llm-provider-switch). Меняет только админ; сохраняется сразу.
+ * 2026-10-30-llm-provider-switch, 2026-10-31-kimi-provider-design). Меняет
+ * только админ; сохраняется сразу.
  * userId — тот же идентификатор, что получает карточка (телефон или UUID).
  */
 export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId }) => {
@@ -69,9 +75,15 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
     }
   };
 
-  const label = (p: Provider) => (p === 'claude'
-    ? t('admin.userActivity.llmProvider.claude', 'Claude (по умолчанию)')
-    : t('admin.userActivity.llmProvider.qwen', 'Qwen'));
+  const label = (p: Provider) => {
+    if (p === 'claude') return t('admin.userActivity.llmProvider.claude', 'Claude (по умолчанию)');
+    if (p === 'qwen') return t('admin.userActivity.llmProvider.qwen', 'Qwen');
+    return t('admin.userActivity.llmProvider.kimi', 'Kimi');
+  };
+  // Ключи — литералами, без шаблона {{name}}: их видит check-keys.
+  const noKeyWarning = (p: Alt) => (p === 'qwen'
+    ? t('admin.userActivity.llmProvider.noKey', 'Ключ Qwen на сервере не настроен — ответы пойдут через Claude.')
+    : t('admin.userActivity.llmProvider.noKeyKimi', 'Ключ Kimi на сервере не настроен — ответы пойдут через Claude.'));
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -93,7 +105,7 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
       {state && (
         <>
           <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby={titleId}>
-            {(['claude', 'qwen'] as Provider[]).map((p) => (
+            {PROVIDERS.map((p) => (
               <button
                 key={p}
                 type="button"
@@ -109,14 +121,20 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
                 )}
               >
                 {label(p)}
+                {p !== 'claude' && !state.configured[p] && (
+                  <span className="ml-1 text-xs opacity-75">· {t('admin.userActivity.llmProvider.noKeyShort', 'нет ключа')}</span>
+                )}
               </button>
             ))}
           </div>
-          {!state.qwenConfigured && (
+          {state.provider !== 'claude' && !state.configured[state.provider] && (
             <p className="mt-2 text-xs text-amber-700">
-              {t('admin.userActivity.llmProvider.noKey', 'Ключ Qwen на сервере не настроен — ответы пойдут через Claude.')}
+              {noKeyWarning(state.provider)}
             </p>
           )}
+          <p className="mt-2 text-xs text-gray-500">
+            {t('admin.userActivity.llmProvider.fallbackHint', 'Если выбранная модель не ответит, ответит Claude.')}
+          </p>
           <p className="mt-2 text-xs text-gray-500">
             {t('admin.userActivity.llmProvider.hint', 'Веб-ассистенты, Маша и TG-боты этого человека. Пробы мониторинга и фоновые задачи — всегда Claude.')}
           </p>
