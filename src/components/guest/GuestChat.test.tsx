@@ -789,7 +789,12 @@ describe('чат пробы', () => {
       await clickAsync(byButton(view!.container, /Отправить/)!);
       type(input(), 'Второй');
       await actAsync(() => { rejectFn!(new Error('boom')); });
-      expect(visibleText(view!.container)).not.toContain('Первый');
+      // Проверка сужена до ЛЕНТЫ (не всего контейнера): значение <textarea>
+      // само попадает в container.textContent в этом jsdom — проверка на
+      // полном контейнере не отличила бы «пузырь не убран» от «текст
+      // склеился в поле», как и задумано строкой ниже.
+      const list = view!.container.querySelector('[data-testid="guest-messages-list"]') as HTMLElement;
+      expect(list.textContent).not.toContain('Первый');
       expect(input().value).toBe('Первый\n\nВторой');
     });
 
