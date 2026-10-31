@@ -199,7 +199,19 @@ const GuestAnswer: React.FC<{ content: string; streaming?: boolean }> = React.me
   const text = stripGuestLabels(parsed, links, images, videos);
   return (
     <div className="prose prose-sm max-w-none text-gray-800">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={GUEST_MARKDOWN_COMPONENTS}>
+      {/*
+        T3 (хвост по перепроверке 31.10, найдено при тесте на tel:):
+        react-markdown по умолчанию сам зачищает href/src через свой
+        defaultUrlTransform — пропускает только https?/ircs?/mailto/xmpp, а
+        tel: превращает в '' ДО того, как href доходит до GuestLink. Из-за
+        этого isContactLink('') всегда false, и обычная markdown-ссылка на
+        телефон не рендерилась вовсе (мы же отдаём ровно isWebLink/
+        isContactLink тексту — defaultUrlTransform здесь лишний, более
+        узкий и необъяснённый слой). identity-функция отключает его: GuestLink/
+        GuestImage ниже и так решают, какой href безопасен (javascript:/
+        data: — проверено тестами, остаются текстом).
+      */}
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={GUEST_MARKDOWN_COMPONENTS} urlTransform={(url) => url}>
         {text}
       </ReactMarkdown>
     </div>
@@ -499,6 +511,12 @@ const GuestChat: React.FC<GuestChatProps> = (props) => {
         track('guest_trial_wall', { reason: gotWall, assistant_id: assistantId });
       }
     } catch {
+      // T1/T5 (найдено тестом catch-веток): если исключение прилетело ИЗ
+      // самого sendGuestMessage (до строки setPartial(null) основного потока
+      // ниже по функции — та выполняется только после проверки на 'aborted'),
+      // partial остаётся '' (оптимистично выставлен в начале хода) — и
+      // «печатает…» висел бы на экране навечно, хотя ход уже упал в catch.
+      setPartial(null);
       // T5: catch ПОСЛЕ того, как ответ уже встал в ленту (answered), не
       // должен его стирать, если дальше бросит track()/onTrialGone() —
       // «последнее сообщение» в этот момент — сам ответ, не пузырь человека.
