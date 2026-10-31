@@ -100,7 +100,15 @@ const GuestChatPage: React.FC<Props> = ({ config, preview }) => {
       setAgents(list);
       setAssistantId(chosen);
       setRestored(rest);
-      setStarted(!!rest && rest.messages.length > 0);
+      // T9 (хвост по перепроверкам B9-fix, 31.10): !!rest — для ЛЮБОЙ
+      // восстановленной пробы, включая ветку 'error' выше (m3: ключ есть,
+      // ленты нет — messages: []). Раз ключ пробы есть, обмен уже был: token
+      // восстановленной пробы привязан к СТАРОМУ ассистенту, и показанный
+      // select позволил бы выбрать другого — отправка тогда уйдёт с новым
+      // assistantId, но со старым token, и даст лишний круг 409
+      // (assistant_mismatch) → trial_gone → новая проба вместо того, чтобы
+      // просто сразу скрыть выбор, как и при непустой ленте.
+      setStarted(!!rest);
       setDraft(rest ? null : takePendingDraftEntry(chosen));
       track('guest_trial_view', { assistant_id: chosen, restored: !!rest });
     })();
