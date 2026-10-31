@@ -6,7 +6,7 @@
  * 409, доступность (role="alert", aria-busy), строка «переключил» скрыта от
  * Вебвизора (см. src/components/webvisorPrivacy.test.ts).
  */
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createRoot, Root } from 'react-dom/client';
 import { doubleClick } from '../../test/dom';
@@ -69,6 +69,22 @@ describe('GlobalLlmProviderControl', () => {
     await mount();
     expect(get).toHaveBeenCalledWith('/webhook/admin/llm-provider');
     expect(container.querySelectorAll('[role="radio"]')).toHaveLength(3);
+    expect(radio('Qwen').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('React.StrictMode (двойной запуск эффектов в dev, src/main.tsx) — после ответа GET блок не виснет на «Загрузка…»', async () => {
+    // StrictMode монтирует дважды: mount → cleanup эффектов → mount. Без
+    // сброса cancelledRef на каждый запуск эффекта (не только на первый)
+    // cleanup между двумя монтированиями ставит его в true навсегда, и
+    // fetchGlobalLlm(), даже успешно разрешившись, никогда не доходит до
+    // setState (повторное ревью качества 01.11.2026).
+    get.mockResolvedValue(state('qwen'));
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => { root.render(<StrictMode><GlobalLlmProviderControl /></StrictMode>); });
+    await settle();
+    expect(container.textContent).not.toContain('Загрузка');
     expect(radio('Qwen').getAttribute('aria-checked')).toBe('true');
   });
 

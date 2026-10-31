@@ -123,11 +123,30 @@ describe('GlobalLlmBanner', () => {
     expect(banner()!.textContent).toContain('Qwen');
   });
 
-  it('ошибка загрузки — нейтральная плашка, не молчание', async () => {
+  it('ошибка загрузки — нейтральная плашка с кнопкой «Открыть» (не «Изменить» — неизвестно что менять), не молчание', async () => {
     get.mockRejectedValue(new Error('network'));
     await mount();
     const b = banner();
     expect(b).not.toBeNull();
     expect(b!.textContent).toContain('Не удалось узнать модель ответов для всех');
+    expect(b!.querySelector('button')?.textContent).toBe('Открыть');
+  });
+
+  it('повторное ревью 01.11.2026: смена вкладки в состоянии ошибки не мигает — ошибка не сбрасывается до результата нового GET', async () => {
+    get.mockRejectedValueOnce(new Error('net'));
+    await mount({ activeTab: 'support' });
+    expect(banner()!.textContent).toContain('Не удалось узнать модель ответов для всех');
+
+    let resolveGet: (v: unknown) => void = () => {};
+    get.mockReturnValue(new Promise((resolve) => { resolveGet = resolve; }));
+    await rerender({ activeTab: 'assistants' });
+    // До ответа нового GET плашка ошибки должна остаться как есть — не
+    // исчезать и не мигать (эффект больше не сбрасывает error в начале).
+    expect(banner()).not.toBeNull();
+    expect(banner()!.textContent).toContain('Не удалось узнать модель ответов для всех');
+
+    await act(async () => { resolveGet(ok({ provider: 'qwen', since: null, by: null, configured: { qwen: true, kimi: false } })); });
+    await settle();
+    expect(banner()!.textContent).toContain('Qwen');
   });
 });

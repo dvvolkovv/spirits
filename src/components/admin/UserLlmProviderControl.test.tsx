@@ -79,10 +79,20 @@ describe('UserLlmProviderControl', () => {
     expect(d.getAttribute('aria-checked')).toBe('true');
   });
 
-  it('«Как у всех»: у модели рубильника нет ключа — показывает Claude (effective, а не global)', async () => {
+  it('«Как у всех»: у модели рубильника нет ключа — показывает Claude', async () => {
     get.mockResolvedValue(state('default', false, true, 'u-1', 'qwen', 'claude'));
     await mount();
     expect(radio('Как у всех').textContent).toContain('Claude');
+  });
+
+  it('«Как у всех» — модель РУБИЛЬНИКА, а не effective текущего явного выбора (повторное ревью 01.11.2026)', async () => {
+    // Человек явно на Claude (provider='claude'), рубильник — на Qwen.
+    // effective от route() для явного выбора — сам выбор ('claude'), а
+    // подпись «Как у всех» должна показывать МОДЕЛЬ РУБИЛЬНИКА (Qwen), а не
+    // то, чем сейчас отвечает этот конкретный человек.
+    get.mockResolvedValue(state('claude', true, true, 'u-1', 'qwen'));
+    await mount();
+    expect(radio('Как у всех').textContent).toContain('Qwen');
   });
 
   it('выбор «Как у всех» отправляет default', async () => {
