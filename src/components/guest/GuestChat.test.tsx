@@ -225,4 +225,115 @@ describe('чат пробы', () => {
     await flush();
     expect(visibleText(view!.container)).toContain('Не получилось ответить');
   });
+
+  // --- B8-fix I1: служебные метки customMarkdown — в DOM их не должно остаться ---
+
+  const UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  /** Готовый (не частичный) ответ ассистента с меткой — через initialMessages. */
+  function openWithAnswer(content: string) {
+    return open({ initialMessages: [{ role: 'user', content: 'В' }, { role: 'assistant', content }], initialLeft: 2 });
+  }
+
+  describe('служебные метки разметки убраны из DOM (I1)', () => {
+    it('{{button}} — пустая строка, подпись кнопки не просачивается', () => {
+      openWithAnswer('До. {{button: Нажми меня | action: foo}} После.');
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).not.toContain('Нажми меня');
+    });
+
+    it('{{link}} — текст ссылки виден, метки нет', () => {
+      openWithAnswer('Смотрите {{link: сюда | url: https://example.com/page}} за подробностями.');
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).toContain('сюда');
+    });
+
+    it('голый адрес видео — сам адрес текстом, метки нет', () => {
+      openWithAnswer('Ролик: https://cdn.example.com/clip.mp4 смотрите.');
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).toContain('https://cdn.example.com/clip.mp4');
+    });
+
+    it('голый адрес картинки — сам адрес текстом, метки нет', () => {
+      openWithAnswer('Картинка: https://cdn.example.com/pic.png смотрите.');
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).toContain('https://cdn.example.com/pic.png');
+    });
+
+    it('{{audio:id=…}} — пустая строка, id не просачивается', () => {
+      openWithAnswer(`Запись: {{audio:id=${UUID}}}`);
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).not.toContain(UUID);
+    });
+
+    it('{{voice_call: id=…}} — пустая строка', () => {
+      openWithAnswer(`Звонок: {{voice_call: id=${UUID}}}`);
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).not.toContain(UUID);
+    });
+
+    it('{{meeting_join}} — пустая строка, заголовок встречи не просачивается', () => {
+      openWithAnswer('{{meeting_join: code=abc123 title=Планёрка}}');
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).not.toContain('Планёрка');
+    });
+
+    it('блок ```ask``` — пустая строка (карточку с вариантами в пробе не отрисовать)', () => {
+      const body = JSON.stringify({ questions: [{ question: 'Какой у вас бюджет?', multi: false, options: ['До 10к', 'Больше'] }] });
+      openWithAnswer(`Уточню:\n\`\`\`ask\n${body}\n\`\`\``);
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).not.toContain('бюджет');
+    });
+
+    it('блок ```product-action``` — пустая строка', () => {
+      openWithAnswer(`Готово:\n\`\`\`product-action\n${JSON.stringify({ id: UUID })}\n\`\`\``);
+      expect(visibleText(view!.container)).not.toContain('__');
+      expect(visibleText(view!.container)).not.toContain(UUID);
+    });
+  });
+
+  // --- B8-fix I2: ссылки и картинки ReactMarkdown ---
+
+  describe('ссылки и картинки (I2)', () => {
+    it('ссылка {{link}} на веб-адрес — настоящая <a> с target=_blank и ym-disable-tracklink', () => {
+      openWithAnswer('Смотрите {{link: сюда | url: https://example.com/page}}.');
+      const a = byLink(view!.container, /сюда/);
+      expect(a).not.toBeNull();
+      expect(a!.getAttribute('href')).toBe('https://example.com/page');
+      expect(a!.getAttribute('target')).toBe('_blank');
+      expect(a!.getAttribute('rel')).toContain('noopener');
+      expect(a!.className).toContain('ym-disable-tracklink');
+    });
+
+    it('{{link}} на javascript: — текстом, без <a href>', () => {
+      openWithAnswer('Смотрите {{link: кликни | url: javascript:alert(1)}}.');
+      expect(visibleText(view!.container)).toContain('кликни');
+      const anchors = Array.from(view!.container.querySelectorAll('a'));
+      expect(anchors.some((el) => (el.getAttribute('href') ?? '').startsWith('javascript:'))).toBe(false);
+    });
+
+    it('сырой HTML в ответе ассистента выводится текстом, а не исполняется', () => {
+      openWithAnswer('Текст с <a href="https://evil.example.com/">сырой ссылкой</a> внутри.');
+      expect(view!.container.querySelector('a[href="https://evil.example.com/"]')).toBeNull();
+    });
+
+    it('настоящая markdown-картинка — без <img>, подпись alt текстом', () => {
+      openWithAnswer('![подпись карты](https://cdn.example.com/card.png)');
+      expect(view!.container.querySelector('img')).toBeNull();
+      expect(visibleText(view!.container)).toContain('подпись карты');
+    });
+  });
+
+  // --- B8-fix I3: прокрутка к стене ---
+
+  it('при появлении стены лента прокручивается к ней (I3)', async () => {
+    localStorage.setItem('loginConsent', 'true');
+    const scrollIntoView = vi.fn();
+    (HTMLElement.prototype as any).scrollIntoView = scrollIntoView;
+    send.mockImplementation(answer('Третий ответ', [{ type: 'wall', reason: 'limit' }]));
+    open();
+    type(input(), 'Вопрос');
+    await clickAsync(byButton(view!.container, /Отправить/)!);
+    await flush();
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+  });
 });
