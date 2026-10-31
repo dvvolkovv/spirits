@@ -189,4 +189,32 @@ describe('разговор после перезагрузки и перенос
     post.mockResolvedValueOnce(new Response('<html>Not Found</html>', { status: 404 }));
     expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
   });
+
+  // T7 (хвост по перепроверкам B9-fix, 31.10): loadGuestSession — тот же
+  // принцип m12, что и у claimGuestTrial выше: gone — ТОЛЬКО при 404 с
+  // телом { error: 'trial' }. Голый 404 без этого тела (откат бэка без
+  // модуля пробы — generic 404 от маршрутизатора/прокси) — error, не gone:
+  // ключ живой, просто временно недоступной пробы раньше стирался зря.
+  it('session: 404 без тела error:"trial" (чужая причина) — error, не gone', async () => {
+    post.mockResolvedValueOnce(json(404, {}));
+    expect(await loadGuestSession('T')).toEqual({ status: 'error' });
+    post.mockResolvedValueOnce(json(404, { error: 'not_found' }));
+    expect(await loadGuestSession('T')).toEqual({ status: 'error' });
+    // Тело не JSON (например, HTML-страница 404 от прокси перед бэком).
+    post.mockResolvedValueOnce(new Response('<html>Not Found</html>', { status: 404 }));
+    expect(await loadGuestSession('T')).toEqual({ status: 'error' });
+  });
+
+  // T7: claimGuestTrial — 200 без числового assistantId в теле — retry, не
+  // gone. Непонятный ответ с кодом 200 (не распознанный прокси, битое тело)
+  // сам по себе не подтверждает «пробы нет» — раньше он стирал ключ живой
+  // пробы по одному лишь статусу.
+  it('claim: 200 без числового assistantId (непонятный ответ) — retry, не gone', async () => {
+    post.mockResolvedValueOnce(json(200, {}));
+    expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
+    post.mockResolvedValueOnce(json(200, { assistantId: 'abc' }));
+    expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
+    post.mockResolvedValueOnce(new Response('OK', { status: 200 }));
+    expect(await claimGuestTrial('T')).toEqual({ status: 'retry' });
+  });
 });
