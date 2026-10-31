@@ -7,6 +7,7 @@ import OTPInput from '../components/onboarding/OTPInput';
 import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
 import { tokenManager } from '../utils/tokenManager';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Вход остановлен: почта принадлежит аккаунту, где она указана в профиле, но
@@ -24,6 +25,7 @@ const AuthLinkPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const { login } = useAuth();
 
   const ticket = params.get('ticket') || '';
   const hint = params.get('hint') || '';
@@ -67,7 +69,22 @@ const AuthLinkPage: React.FC = () => {
       // заходит, привязку можно повторить в настройках.
       console.error('link/attach не удался — почта осталась непривязанной');
     }
-    window.location.replace('/chat');
+    // verifyCode() уже сохранил jwt-токены (tokenManager), но не authToken/
+    // userData и не состояние AuthContext — initAuth требует ОБА легаси-ключа,
+    // и без login() человек после жёсткого перехода ниже оказался бы
+    // невошедшим (баг ревью пробы 31.10). login() — как в SmsLoginPane.tsx:
+    // тот же verifyCode(), тот же выбор access-токена/'legacy-token'.
+    try {
+      await login(phone, r.tokens ? r.tokens['access-token'] : 'legacy-token');
+    } catch (e) {
+      console.error('login() после привязки не удался', e);
+    }
+    // navigate(), а не window.location.replace: жёсткая перезагрузка
+    // повторяет всю инициализацию SPA заново и теряет уже установленное
+    // в памяти состояние AuthContext, если по какой-то причине userData
+    // всё-таки не записался выше (хвост ревью пробы 31.10) — переходом
+    // роутера сессия остаётся в памяти независимо от этого.
+    navigate('/chat', { replace: true });
   };
 
   const createSeparate = async () => {
@@ -82,7 +99,25 @@ const AuthLinkPage: React.FC = () => {
       if (!tokenManager.saveTokens(data['access-token'], data['refresh-token'])) {
         return fail('authLink.storageFull');
       }
-      window.location.replace('/chat');
+      // Новый отдельный аккаунт — без login() не было ни authToken, ни
+      // userData, ни состояния AuthContext (баг ревью пробы 31.10): initAuth
+      // требует ОБА легаси-ключа, и жёсткий переход ниже приводил не
+      // вошедшего. Телефона здесь нет — как в AuthOAuthCallbackPage.tsx (OAuth/
+      // email тоже входят через login('', accessToken)).
+      //
+      // Свой try/catch вокруг login() (как в verifyAndAttach), а не общий:
+      // к этому моменту аккаунт уже создан и билет уже погашен бэком
+      // (/auth/link/new выше отработал, токены сохранены) — «ссылка
+      // устарела» на сбое login() была бы ложью и некуда вести: начинать
+      // заново нечем, билет одноразовый. Вход и так уже состоялся токенами.
+      try {
+        await login('', data['access-token']);
+      } catch (e) {
+        console.error('login() после создания отдельного аккаунта не удался', e);
+      }
+      // navigate(), а не window.location.replace — см. комментарий в
+      // verifyAndAttach выше.
+      navigate('/chat', { replace: true });
     } catch {
       fail('authLink.ticketExpired');
     }
