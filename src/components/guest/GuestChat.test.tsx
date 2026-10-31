@@ -24,7 +24,8 @@ vi.mock('./guestApi', () => ({ sendGuestMessage: vi.fn() }));
 
 import { getSessionId, track } from '../../services/eventsClient';
 import { sendGuestMessage } from './guestApi';
-import GuestChat, { type GuestChatProps } from './GuestChat';
+import GuestChat, { type GuestChatProps, guestUrlTransform } from './GuestChat';
+import { PENDING_DRAFT_STORE_MAX } from '../../utils/pendingDraft';
 
 const send = sendGuestMessage as unknown as ReturnType<typeof vi.fn>;
 const TOKEN = 'T'.repeat(43);
@@ -937,6 +938,11 @@ describe('чат пробы', () => {
       await clickAsync(byButton(view!.container, /Отправить/)!);
       await flush();
       expect(send).not.toHaveBeenCalled(); // бросок — до вызова sendGuestMessage
+      // T12 (по проверке d3c087a): бросок случился ДО setInput('') —
+      // bubbleAdded ещё false, поле никогда не трогалось. catch раньше
+      // восстанавливал его безусловно и дублировал: «Привет\n\nПривет».
+      // Проверка — ДО следующего type(), который иначе сам перезапишет поле.
+      expect(input().value).toBe('Привет');
       type(input(), 'Снова');
       await clickAsync(byButton(view!.container, /Отправить/)!);
       await flush();
@@ -948,6 +954,68 @@ describe('чат пробы', () => {
       open({ draft: { text: 'a'.repeat(2001), auto: false } });
       expect(input().value.length).toBe(2001);
       expect(byButton(view!.container, /Отправить/)!.disabled).toBe(true);
+    });
+  });
+
+  // T11: urlTransform у ReactMarkdown — не identity, а guestUrlTransform:
+  // tel: как есть, всё остальное — через настоящий defaultUrlTransform
+  // (вторая, самостоятельная проверка схем вдобавок к GuestLink/GuestImage).
+  describe('T11: urlTransform — tel: как есть, остальное через настоящий defaultUrlTransform', () => {
+    it('javascript: гасится ДО GuestLink, а не только внутри него', () => {
+      expect(guestUrlTransform('javascript:alert(1)')).toBe('');
+    });
+
+    it('tel: проходит без изменений (defaultUrlTransform его не пропускает)', () => {
+      expect(guestUrlTransform('tel:+70000000000')).toBe('tel:+70000000000');
+    });
+
+    it('обычный веб-адрес проходит без изменений', () => {
+      expect(guestUrlTransform('https://example.com/page')).toBe('https://example.com/page');
+    });
+  });
+
+  // T13: ссылка на якорь страницы (#…, сноски remark-gfm и обратные ссылки) —
+  // isWebLink соглашается с ней (протокол резолвится к https: базового
+  // PATH_BASE), но target="_blank" для внутристраничного перехода неверен.
+  describe('T13: ссылки на якорь (#…) — без target="_blank"', () => {
+    it('ссылка на #… — настоящая <a>, без target, с ym-disable-tracklink', () => {
+      openWithAnswer('Текст со [сноской](#user-content-fn-1) и обратно.');
+      const a = byLink(view!.container, /сноской/);
+      expect(a).not.toBeNull();
+      expect(a!.getAttribute('href')).toBe('#user-content-fn-1');
+      expect(a!.getAttribute('target')).toBeNull();
+      expect(a!.className).toContain('ym-disable-tracklink');
+    });
+  });
+
+  // T14: на стене склейка (message + то, что успели дописать во время
+  // ожидания, T1) может выйти длиннее PENDING_DRAFT_STORE_MAX — savePendingDraft
+  // молча откажется сохранить ВСЁ (свой же предел, I7), и короткий message
+  // потерялся бы вместе с длинной припиской. Сохраняем хотя бы его.
+  describe('T14: склеенный черновик длиннее PENDING_DRAFT_STORE_MAX — хотя бы message сохраняется', () => {
+    it('стена без ответа, длинная приписка во время ожидания — черновик это message, не null', async () => {
+      localStorage.setItem('loginConsent', 'true');
+      let onEventFn: ((e: any) => void) | null = null;
+      let resolveFn: ((v: string) => void) | null = null;
+      send.mockImplementation((_i: unknown, on: (e: any) => void) => {
+        onEventFn = on;
+        return new Promise<string>((resolve) => { resolveFn = resolve; });
+      });
+      open();
+      type(input(), 'Привет');
+      await clickAsync(byButton(view!.container, /Отправить/)!);
+      // Склейка (restoreInput) даст message + '\n\n' + это — заведомо длиннее
+      // PENDING_DRAFT_STORE_MAX, хотя сам message короткий.
+      type(input(), 'x'.repeat(PENDING_DRAFT_STORE_MAX));
+      await actAsync(() => {
+        onEventFn!({ type: 'guest', left: 0 });
+        onEventFn!({ type: 'wall', reason: 'closed' });
+        resolveFn!('ok');
+      });
+      expect(JSON.parse(localStorage.getItem('pending_draft') ?? 'null')).toMatchObject({
+        text: 'Привет',
+        assistant: '12',
+      });
     });
   });
 });
