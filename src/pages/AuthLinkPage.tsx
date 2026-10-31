@@ -7,6 +7,7 @@ import OTPInput from '../components/onboarding/OTPInput';
 import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
 import { tokenManager } from '../utils/tokenManager';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Вход остановлен: почта принадлежит аккаунту, где она указана в профиле, но
@@ -24,6 +25,7 @@ const AuthLinkPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const { login } = useAuth();
 
   const ticket = params.get('ticket') || '';
   const hint = params.get('hint') || '';
@@ -67,6 +69,16 @@ const AuthLinkPage: React.FC = () => {
       // заходит, привязку можно повторить в настройках.
       console.error('link/attach не удался — почта осталась непривязанной');
     }
+    // verifyCode() уже сохранил jwt-токены (tokenManager), но не authToken/
+    // userData и не состояние AuthContext — initAuth требует ОБА легаси-ключа,
+    // и без login() человек после жёсткого перехода ниже оказался бы
+    // невошедшим (баг ревью пробы 31.10). login() — как в SmsLoginPane.tsx:
+    // тот же verifyCode(), тот же выбор access-токена/'legacy-token'.
+    try {
+      await login(phone, r.tokens ? r.tokens['access-token'] : 'legacy-token');
+    } catch (e) {
+      console.error('login() после привязки не удался', e);
+    }
     window.location.replace('/chat');
   };
 
@@ -82,6 +94,12 @@ const AuthLinkPage: React.FC = () => {
       if (!tokenManager.saveTokens(data['access-token'], data['refresh-token'])) {
         return fail('authLink.storageFull');
       }
+      // Новый отдельный аккаунт — без login() не было ни authToken, ни
+      // userData, ни состояния AuthContext (баг ревью пробы 31.10): initAuth
+      // требует ОБА легаси-ключа, и жёсткий переход ниже приводил не
+      // вошедшего. Телефона здесь нет — как в AuthOAuthCallbackPage.tsx (OAuth/
+      // email тоже входят через login('', accessToken)).
+      await login('', data['access-token']);
       window.location.replace('/chat');
     } catch {
       fail('authLink.ticketExpired');
