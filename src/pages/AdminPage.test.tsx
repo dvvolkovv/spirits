@@ -49,6 +49,7 @@ vi.mock('../components/admin/AdminMonitoringView', () => ({ default: () => 'РА
 vi.mock('../components/admin/AdminProductManagementView', () => ({ default: () => 'РАЗДЕЛ-УПРАВЛЕНИЕ-ПРОДУКТОМ' }));
 vi.mock('../components/admin/AdminIntegrationsView', () => ({ default: () => 'РАЗДЕЛ-ИНТЕГРАЦИИ' }));
 vi.mock('../components/admin/AdminBlogView', () => ({ default: () => 'РАЗДЕЛ-БЛОГ' }));
+vi.mock('../components/admin/GlobalLlmBanner', () => ({ default: () => null }));
 
 import AdminPage from './AdminPage';
 
