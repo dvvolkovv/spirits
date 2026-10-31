@@ -30,6 +30,10 @@ beforeEach(() => {
   fetchMock = vi.fn(() => new Promise(() => {}));
   (window as any).fetch = fetchMock;
   delete (window as any).__guestConfigPrefetch;
+  // T10 (хвост по перепроверкам B9-fix, 31.10): сбрасывать перед каждым
+  // тестом — иначе Capacitor, выставленный в одном тесте, молча протёк бы в
+  // следующий (здесь нет localStorage.clear() для window-полей).
+  delete (window as any).Capacitor;
 });
 
 afterEach(() => {
@@ -83,5 +87,15 @@ describe('ранний запрос конфигурации пробы (data-gu
     localStorage.setItem('linkeon_has_account', '1');
     open('/studio');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // T10 (хвост по перепроверкам B9-fix, 31.10): нативная сборка (Capacitor)
+  // — там проба выключена правилом (decideUnauthEntry: native → 'login'),
+  // запрос никто не прочитает.
+  it('в нативной сборке (window.Capacitor) — запрос не уходит, даже на /chat без токена', () => {
+    (window as any).Capacitor = {};
+    open('/chat');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect((window as any).__guestConfigPrefetch).toBeUndefined();
   });
 });
