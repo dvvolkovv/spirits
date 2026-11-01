@@ -4,15 +4,16 @@ import { actAsync, byButton, byLabel, click, clickAsync, flush, mount, type, vis
 import type { Mounted } from '../../../test/dom';
 import type { AgentVersion } from '../../../services/agentVersionsApi';
 
-const { state, versions, createDraft, publish } = vi.hoisted(() => ({
+const { state, versions, createDraft, publish, testVersion } = vi.hoisted(() => ({
   state: vi.fn(),
   versions: vi.fn(),
   createDraft: vi.fn(),
   publish: vi.fn(),
+  testVersion: vi.fn(),
 }));
 
 vi.mock('../../../services/agentVersionsApi', () => ({
-  agentVersionsApi: { state, versions, createDraft, publish },
+  agentVersionsApi: { state, versions, createDraft, publish, test: testVersion },
 }));
 
 import AgentVersionEditor from './AgentVersionEditor';
@@ -56,12 +57,13 @@ const draft: AgentVersion = {
 
 let mounted: Mounted | undefined;
 
-const renderEditor = async () => {
+const renderEditor = async (onDirtyChange?: (dirty: boolean) => void) => {
   mounted = mount(
     <AgentVersionEditor
       agentId={7}
       initialDescription="Описание из списка"
       initialPrompt="Промпт из списка"
+      onDirtyChange={onDirtyChange}
     />,
   );
   await flush();
@@ -70,12 +72,16 @@ const renderEditor = async () => {
 
 const descriptionField = () => byLabel(mounted!.container, /Описание ассистента/);
 const promptField = () => byLabel(mounted!.container, /Системный промпт/);
+const testInput = () => mounted!.container.querySelector<HTMLTextAreaElement>(
+  '[data-testid="agent-test-input"]',
+);
 
 beforeEach(() => {
   state.mockReset();
   versions.mockReset();
   createDraft.mockReset();
   publish.mockReset();
+  testVersion.mockReset();
   state.mockResolvedValue({ published, draft });
   versions.mockResolvedValue([draft, published]);
   createDraft.mockResolvedValue(draft);
@@ -455,5 +461,113 @@ describe('AgentVersionEditor', () => {
     expect(descriptionField()?.value).toBe('Старое описание');
     expect(promptField()?.value).toBe('Старый промпт');
     expect(byButton(mounted!.container, /^Черновик$/)?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('тестирует сохранённый черновик и показывает ответ со стоимостью в токенах', async () => {
+    const reply = deferred<{ text: string; session_id: string; tokens: number }>();
+    testVersion.mockReturnValue(reply.promise);
+    await renderEditor();
+
+    expect(testInput()).not.toBeNull();
+    type(testInput()!, '  Проверь сохранённый промпт  ');
+    const sendButton = byButton(mounted!.container, /^Отправить$/)!;
+    click(sendButton);
+
+    expect(sendButton.disabled).toBe(true);
+    expect(visibleText(mounted!.container)).toContain('Отправка');
+    expect(visibleText(mounted!.container)).toContain('Проверь сохранённый промпт');
+    await actAsync(() => reply.resolve({
+      text: 'Ответ тестируемой версии',
+      session_id: 'session-1',
+      tokens: 123,
+    }));
+    await flush();
+
+    expect(testVersion).toHaveBeenCalledWith(7, {
+      version_id: 'version-2',
+      message: 'Проверь сохранённый промпт',
+      session_id: undefined,
+    });
+    expect(visibleText(mounted!.container)).toContain('Ответ тестируемой версии');
+    expect(visibleText(mounted!.container)).toContain('123');
+    expect(testInput()?.value).toBe('');
+  });
+
+  it('передаёт session_id из ответа во второй тестовый запрос', async () => {
+    testVersion
+      .mockResolvedValueOnce({ text: 'Первый ответ', session_id: 'session-1', tokens: 10 })
+      .mockResolvedValueOnce({ text: 'Второй ответ', session_id: 'session-1', tokens: 20 });
+    await renderEditor();
+
+    type(testInput()!, 'Первый вопрос');
+    await clickAsync(byButton(mounted!.container, /^Отправить$/)!);
+    type(testInput()!, 'Второй вопрос');
+    await clickAsync(byButton(mounted!.container, /^Отправить$/)!);
+
+    expect(testVersion).toHaveBeenNthCalledWith(2, 7, {
+      version_id: 'version-2',
+      message: 'Второй вопрос',
+      session_id: 'session-1',
+    });
+    expect(visibleText(mounted!.container)).toContain('Первый ответ');
+    expect(visibleText(mounted!.container)).toContain('Второй ответ');
+  });
+
+  it('начинает новый тест без старых сообщений и session_id', async () => {
+    testVersion
+      .mockResolvedValueOnce({ text: 'Старый ответ', session_id: 'session-1', tokens: 10 })
+      .mockResolvedValueOnce({ text: 'Новый ответ', session_id: 'session-2', tokens: 20 });
+    await renderEditor();
+    type(testInput()!, 'Старый вопрос');
+    await clickAsync(byButton(mounted!.container, /^Отправить$/)!);
+    expect(visibleText(mounted!.container)).toContain('Старый ответ');
+
+    click(byButton(mounted!.container, /^Новый тест$/)!);
+    expect(visibleText(mounted!.container)).not.toContain('Старый вопрос');
+    expect(visibleText(mounted!.container)).not.toContain('Старый ответ');
+
+    type(testInput()!, 'Новый вопрос');
+    await clickAsync(byButton(mounted!.container, /^Отправить$/)!);
+    expect(testVersion).toHaveBeenNthCalledWith(2, 7, {
+      version_id: 'version-2',
+      message: 'Новый вопрос',
+      session_id: undefined,
+    });
+  });
+
+  it('при ошибке теста сохраняет ввод, сообщения и чистое состояние редактора', async () => {
+    const onDirtyChange = vi.fn();
+    testVersion
+      .mockResolvedValueOnce({ text: 'Сохранённый ответ', session_id: 'session-1', tokens: 10 })
+      .mockRejectedValueOnce(new Error('Тестовый контур недоступен'));
+    await renderEditor(onDirtyChange);
+    type(testInput()!, 'Первый вопрос');
+    await clickAsync(byButton(mounted!.container, /^Отправить$/)!);
+
+    type(testInput()!, 'Незавершённый вопрос');
+    await clickAsync(byButton(mounted!.container, /^Отправить$/)!);
+    await flush();
+
+    expect(testInput()?.value).toBe('Незавершённый вопрос');
+    expect(visibleText(mounted!.container)).toContain('Первый вопрос');
+    expect(visibleText(mounted!.container)).toContain('Сохранённый ответ');
+    expect(visibleText(mounted!.container)).toContain('Незавершённый вопрос');
+    expect(visibleText(mounted!.container)).toContain('Тестовый контур недоступен');
+    expect(descriptionField()?.value).toBe('Черновое описание');
+    expect(promptField()?.value).toBe('Черновой промпт');
+    expect(byButton(mounted!.container, /Сохранить черновик/)?.disabled).toBe(true);
+    expect(onDirtyChange).not.toHaveBeenCalledWith(true);
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('не показывает тест для несохранённых локальных правок', async () => {
+    await renderEditor();
+    expect(testInput()).not.toBeNull();
+
+    type(promptField()!, 'Ещё не сохранённый промпт');
+
+    expect(testInput()).toBeNull();
+    expect(promptField()?.value).toBe('Ещё не сохранённый промпт');
+    expect(testVersion).not.toHaveBeenCalled();
   });
 });
