@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom';
-import { byButton, byLabel, click, clickAsync, flush, mount, type, visibleText } from '../test/dom';
+import { actAsync, byButton, byLabel, click, clickAsync, flush, mount, type, visibleText } from '../test/dom';
 import type { Mounted } from '../test/dom';
 import type { AgentVersion } from '../services/agentVersionsApi';
 
@@ -67,8 +67,18 @@ const RouteLink = () => {
 
 let mounted: Mounted | undefined;
 
+const goHistory = async (delta: number, expectedPathname: string) => {
+  await actAsync(async () => {
+    window.history.go(delta);
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      if (window.location.pathname === expectedPathname) return;
+    }
+  });
+  await flush();
+};
+
 const renderAdmin = async () => {
-  window.history.replaceState({}, '', '/admin?tab=assistants');
   mounted = mount(
     <BrowserRouter>
       <Routes>
@@ -82,6 +92,7 @@ const renderAdmin = async () => {
 };
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/admin?tab=assistants');
   get.mockReset();
   state.mockReset();
   versions.mockReset();
@@ -121,5 +132,78 @@ describe('защита несохранённых правок в SPA', () => {
     expect(confirm).toHaveBeenCalledTimes(2);
     expect(byLabel(mounted!.container, /Системный промпт/)?.value).toBe('Несохранённая правка');
     expect(visibleText(mounted!.container)).not.toContain('РАЗДЕЛ-ЧАТ');
+  });
+
+  it('отмена Back восстанавливает позицию без потери destination, повторный Back подтверждается', async () => {
+    window.history.replaceState({ idx: 0 }, '', '/chat');
+    window.history.pushState({ idx: 1 }, '', '/admin?tab=assistants');
+    const confirm = vi.spyOn(window, 'confirm')
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+    await renderAdmin();
+    await clickAsync(byButton(mounted!.container, /^Райя$/));
+    await flush();
+    type(byLabel(mounted!.container, /Системный промпт/)!, 'Несохранённая правка');
+    await flush();
+
+    await goHistory(-1, '/admin');
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(window.location.pathname).toBe('/admin');
+    expect(byLabel(mounted!.container, /Системный промпт/)?.value).toBe('Несохранённая правка');
+
+    await goHistory(-1, '/chat');
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(window.location.pathname).toBe('/chat');
+    expect(visibleText(mounted!.container)).toContain('РАЗДЕЛ-ЧАТ');
+  });
+
+  it('отмена Forward сохраняет destination, повторный Forward подтверждается', async () => {
+    window.history.replaceState({ idx: 0 }, '', '/chat');
+    window.history.pushState({ idx: 1 }, '', '/admin?tab=assistants');
+    window.history.pushState({ idx: 2 }, '', '/chat');
+    await goHistory(-1, '/admin');
+    const confirm = vi.spyOn(window, 'confirm')
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+    await renderAdmin();
+    await clickAsync(byButton(mounted!.container, /^Райя$/));
+    await flush();
+    type(byLabel(mounted!.container, /Системный промпт/)!, 'Несохранённая правка');
+    await flush();
+
+    await goHistory(1, '/admin');
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(window.location.pathname).toBe('/admin');
+    expect(byLabel(mounted!.container, /Системный промпт/)?.value).toBe('Несохранённая правка');
+
+    await goHistory(1, '/chat');
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(window.location.pathname).toBe('/chat');
+    expect(visibleText(mounted!.container)).toContain('РАЗДЕЛ-ЧАТ');
+  });
+
+  it('подтверждённый уход очищает dirty: пустые Assistants и первый ассистент не спрашивают снова', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await renderAdmin();
+    await clickAsync(byButton(mounted!.container, /^Райя$/));
+    await flush();
+    type(byLabel(mounted!.container, /Системный промпт/)!, 'Несохранённая правка');
+    await flush();
+
+    click(mounted!.container.querySelector('[data-testid="admin-tab-users"]')!);
+    await flush();
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(visibleText(mounted!.container)).toContain('РАЗДЕЛ-ПОЛЬЗОВАТЕЛИ');
+
+    click(mounted!.container.querySelector('[data-testid="admin-tab-assistants"]')!);
+    await flush();
+    click(mounted!.container.querySelector('[data-testid="admin-tab-users"]')!);
+    await flush();
+    expect(confirm).toHaveBeenCalledOnce();
+
+    click(mounted!.container.querySelector('[data-testid="admin-tab-assistants"]')!);
+    await flush();
+    await clickAsync(byButton(mounted!.container, /^Райя$/));
+    expect(confirm).toHaveBeenCalledOnce();
   });
 });
