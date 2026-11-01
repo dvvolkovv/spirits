@@ -1009,6 +1009,7 @@
       "noKey": "no key on the server",
       "since": "Since {{since}}, switched by {{by}}",
       "confirm": "Assistants, background tasks and the no-sign-in trial will switch to {{model}}. You can switch back here.",
+      "confirmKimiTraining": "Kimi (Moonshot AI) may use texts to train its models.",
       "errorNoKey": "This model has no key on the server.",
       "error": "Could not load or save",
       "banner": "All answers have gone through {{model}} since {{since}}",

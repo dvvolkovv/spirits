@@ -60,7 +60,14 @@ export const GlobalLlmProviderControl: React.FC = () => {
   const choose = async (p: AnswerProvider) => {
     if (savingRef.current || !state || p === state.provider || !available(p)) return;
     if (p !== 'claude') {
-      const sure = window.confirm(t('admin.globalLlm.confirm', 'Ассистенты, фоновые задачи и проба без входа перейдут на {{model}}. Вернуть — здесь же.', { model: PROVIDER_LABELS[p] }));
+      let message = t('admin.globalLlm.confirm', 'Ассистенты, фоновые задачи и проба без входа перейдут на {{model}}. Вернуть — здесь же.', { model: PROVIDER_LABELS[p] });
+      // Честное предупреждение про условия тарифа — только у Kimi: по условиям
+      // Moonshot AI может использовать тексты для обучения своих моделей,
+      // у Qwen такого предупреждения нет (ревью качества 01.11.2026).
+      if (p === 'kimi') {
+        message += ' ' + t('admin.globalLlm.confirmKimiTraining', 'Kimi (Moonshot AI) может использовать тексты для обучения своих моделей.');
+      }
+      const sure = window.confirm(message);
       if (!sure) return;
     }
     savingRef.current = true;
