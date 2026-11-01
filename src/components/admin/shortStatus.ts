@@ -65,7 +65,7 @@ export interface ShortItem {
   ownerNote: string | null;
   /** Код последнего сбоя — у упавшего. Поля нет — бэк ещё без доктора. */
   failedCode?: string | null;
-  /** Самопочинки текущего круга; кнопка владельца обнуляет. */
+  /** Самопочинки текущего круга; кнопка владельца обнуляет (кроме повтора упавшей публикации). */
   autoRecoveries?: number;
   /** Вся история самопочинок; текущий круг — последние autoRecoveries. */
   recoveries?: ShortRecovery[];
@@ -193,16 +193,26 @@ function delayWords(min: number | undefined): string {
   return `через ${[h ? `${h} ч` : '', m ? `${m} мин` : ''].filter(Boolean).join(' ')}`;
 }
 
+/** Слова действий — как ACTION_WORDS бэка (spirits_back src/shorts/short-doctor.ts). */
 const RECOVERY_WORDS: Record<ShortRecovery['action'], (r: ShortRecovery) => string> = {
   later: (r) => `повтор ${delayWords(r.delayMin)}`,
   new_scene: () => 'новая сцена',
   no_skits: () => 'без сценок',
 };
 
-/** Самопочинки текущего круга — последние autoRecoveries записей истории. */
+/** Запись, а не мусор (ручной SQL) — как фильтр currentCircle бэка (spirits_back src/shorts/short-doctor.ts). */
+const isRecovery = (r: unknown): r is ShortRecovery => !!r && typeof r === 'object';
+
+/** Самопочинки текущего круга — последние autoRecoveries записей истории (копия currentCircle бэка). */
 export function currentRecoveries(i: Pick<ShortItem, 'recoveries' | 'autoRecoveries'>): ShortRecovery[] {
+  const all = (Array.isArray(i.recoveries) ? i.recoveries : []).filter(isRecovery);
   const n = i.autoRecoveries ?? 0;
-  return n > 0 ? (i.recoveries ?? []).slice(-n) : [];
+  return n > 0 ? all.slice(-n) : [];
+}
+
+/** Вся история без мусора, новые сверху — для раскрытой карточки. */
+export function recoveryHistory(i: Pick<ShortItem, 'recoveries'>): ShortRecovery[] {
+  return (Array.isArray(i.recoveries) ? i.recoveries : []).filter(isRecovery).reverse();
 }
 
 /** Запись истории словами: «оживление: повтор через 30 мин (google_quota)». */

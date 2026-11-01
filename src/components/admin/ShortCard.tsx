@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight, Loader } from 'lucide-react';
 import ShortActions from './ShortActions';
 import {
   ANGLE_TITLES, ActionExtra, FORMAT_TITLES, PLATFORM_TITLES, ROW_ACTIONS, RUBRIC_TITLES, STATUS_TITLES,
-  ShortAction, ShortDetail, ShortItem, currentRecoveries, publicationLabel, recoveryText, shortTitle, statusLine, statusTone,
+  ShortAction, ShortDetail, ShortItem, currentRecoveries, publicationLabel, recoveryHistory, recoveryText, shortTitle, statusLine, statusTone,
 } from './shortStatus';
 import { formatSlotAt } from './blogSlotFormat';
 import { DANGER, PRIMARY } from './shortButtons';
@@ -100,7 +100,7 @@ const ShortCard: React.FC<Props> = ({
       ? null
       : ANGLE_TITLES[item.angle];
   // Доктор собрал ролик без сценок в этом круге — формат «только чат» не выбирал владелец.
-  const selfNoSkits = currentRecoveries(item).some((r) => r.action === 'no_skits');
+  const selfNoSkits = item.format === 'chat' && currentRecoveries(item).some((r) => r.action === 'no_skits');
   const meta = [RUBRIC_TITLES[item.rubric], angle, assistantName, selfNoSkits ? 'без сценок — сам' : FORMAT_TITLES[item.format]]
     .filter(Boolean).join(' · ');
   const stats = detail
@@ -110,6 +110,7 @@ const ShortCard: React.FC<Props> = ({
         detail.attempts ? `попыток: ${detail.attempts}` : null,
       ].filter(Boolean).join(' · ')
     : '';
+  const history = detail ? recoveryHistory(detail) : [];
   /**
    * Плашка «изменился, пока было открыто» — только если СТРОКА (список)
    * новее самой карточки. Сравнение одних версий (`item.version !==
@@ -249,12 +250,12 @@ const ShortCard: React.FC<Props> = ({
                   {detail.ownerNote && <Field label="Замечания">{detail.ownerNote}</Field>}
                   {detail.lastError && <div className="text-xs text-red-700 break-words">Последняя ошибка: {detail.lastError}</div>}
                   {detail.writerFeedback && <Field label="Отзыв студии сценаристу">{detail.writerFeedback}</Field>}
-                  {(detail.recoveries?.length ?? 0) > 0 && (
+                  {history.length > 0 && (
                     <div data-testid={`short-recoveries-${item.id}`}>
                       <div className="text-xs text-gray-500">Сам восстанавливался</div>
                       <ul className="text-xs space-y-0.5">
-                        {[...(detail.recoveries ?? [])].reverse().map((r) => (
-                          <li key={`${r.at}-${r.action}`} className="break-words">
+                        {history.map((r, i) => (
+                          <li key={`${i}-${r.at}-${r.action}`} className="break-words">
                             {formatSlotAt(r.at, now)} — {recoveryText(r)}{r.reason ? `: ${r.reason}` : ''}
                           </li>
                         ))}
