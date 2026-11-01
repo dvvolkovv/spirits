@@ -1016,7 +1016,7 @@ DEBUG_SECRET=<test secret> BASE_URL=https://test.linkeon.io \
   node /Users/dmitry/Downloads/spirits_back/tests/agent-versions.e2e.mjs
 ```
 
-Скрипт релея staging-тестирует точный target, не перезаписывает несогласованные живые правки, ждёт нуля живых ходов, перезапускает PM2 без `--update-env` и проверяет `http://127.0.0.1:3033/health`. Секреты в команду и лог не выводятся; на практике `DEBUG_SECRET` передаётся через существующий env-helper, без литерала в истории shell.
+Скрипт релея staging-тестирует точный target и не перезаписывает несогласованные живые правки. Перед drain он атомарно создаёт `/tmp/linkeon-relay-drain`; `drain-gate.mjs` проверяет файл на каждом `/chat`, отвечает 503 новым ходам и оставляет `/health` доступным. Marker держится через завершение старых ходов, замену, PM2 restart без `--update-env` и `http://127.0.0.1:3033/health`, снимается только после успешного health. При сбое прежнее дерево восстанавливается и проходит rollback health до снятия marker; при failed rollback health admission остаётся закрытым. Секреты в команду и лог не выводятся; на практике `DEBUG_SECRET` передаётся через существующий env-helper, без литерала в истории shell.
 
 Expected: relay health OK, затем deploy smoke GREEN и E2E «draft isolated → no tools/no @ expansion → publish → rollback → 409 → cleanup» GREEN.
 
