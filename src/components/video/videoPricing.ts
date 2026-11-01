@@ -20,6 +20,17 @@ export function needsVeoConcat(aspect: '16:9' | '9:16', lengthSec: number): bool
   return BASE_SEC + extendCount * EXTEND_SEC > MAX_CHAIN_SEC;
 }
 
+/**
+ * Собирается ли ролик из клипов — способ сборки, а не цена (зеркало
+ * buildsVeoByConcat в backend video.dto.ts). 01.11.2026 Google сломал продление
+ * Omni, и пока OMNI_EXTEND_WORKS на бэке false, горизонталь длиннее 8с тоже
+ * собирается из клипов, но стоит как цепочка (veoCostFor не меняется).
+ */
+const OMNI_EXTEND_WORKS = false;
+export function buildsVeoByConcat(aspect: '16:9' | '9:16', lengthSec: number): boolean {
+  return needsVeoConcat(aspect, lengthSec) || (!OMNI_EXTEND_WORKS && lengthSec > BASE_SEC);
+}
+
 export function veoCostFor(lengthSec: number, aspect: '16:9' | '9:16' = '9:16'): number {
   // Склейка: каждый клип — полная база (N×base). Иначе база + продления по 7с.
   if (needsVeoConcat(aspect, lengthSec)) return Math.ceil(lengthSec / BASE_SEC) * PRICE.base;
