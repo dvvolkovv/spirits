@@ -4,8 +4,9 @@ import { ChevronDown, ChevronRight, Loader } from 'lucide-react';
 import ShortActions from './ShortActions';
 import {
   ANGLE_TITLES, ActionExtra, FORMAT_TITLES, PLATFORM_TITLES, ROW_ACTIONS, RUBRIC_TITLES, STATUS_TITLES,
-  ShortAction, ShortDetail, ShortItem, publicationLabel, shortTitle, statusLine, statusTone,
+  ShortAction, ShortDetail, ShortItem, currentRecoveries, publicationLabel, recoveryText, shortTitle, statusLine, statusTone,
 } from './shortStatus';
+import { formatSlotAt } from './blogSlotFormat';
 import { DANGER, PRIMARY } from './shortButtons';
 import { safeExternalUrl } from '../../utils/safeUrl';
 
@@ -98,7 +99,10 @@ const ShortCard: React.FC<Props> = ({
     : item.status === 'rejected' && !item.slotAt && !item.angleLocked
       ? null
       : ANGLE_TITLES[item.angle];
-  const meta = [RUBRIC_TITLES[item.rubric], angle, assistantName, FORMAT_TITLES[item.format]].filter(Boolean).join(' · ');
+  // Доктор собрал ролик без сценок в этом круге — формат «только чат» не выбирал владелец.
+  const selfNoSkits = currentRecoveries(item).some((r) => r.action === 'no_skits');
+  const meta = [RUBRIC_TITLES[item.rubric], angle, assistantName, selfNoSkits ? 'без сценок — сам' : FORMAT_TITLES[item.format]]
+    .filter(Boolean).join(' · ');
   const stats = detail
     ? [
         detail.durationMs ? `${Math.round(detail.durationMs / 1000)} с` : null,
@@ -244,6 +248,19 @@ const ShortCard: React.FC<Props> = ({
                   )}
                   {detail.ownerNote && <Field label="Замечания">{detail.ownerNote}</Field>}
                   {detail.lastError && <div className="text-xs text-red-700 break-words">Последняя ошибка: {detail.lastError}</div>}
+                  {detail.writerFeedback && <Field label="Отзыв студии сценаристу">{detail.writerFeedback}</Field>}
+                  {(detail.recoveries?.length ?? 0) > 0 && (
+                    <div data-testid={`short-recoveries-${item.id}`}>
+                      <div className="text-xs text-gray-500">Сам восстанавливался</div>
+                      <ul className="text-xs space-y-0.5">
+                        {[...(detail.recoveries ?? [])].reverse().map((r) => (
+                          <li key={`${r.at}-${r.action}`} className="break-words">
+                            {formatSlotAt(r.at, now)} — {recoveryText(r)}{r.reason ? `: ${r.reason}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {detail.publications.filter((p) => p.status === 'failed' && p.lastError).map((p) => (
                     <div key={p.platform} data-testid={`short-pub-error-${item.id}-${p.platform}`} className="text-xs text-red-700 break-words">
                       {PLATFORM_TITLES[p.platform]}: {p.lastError}
