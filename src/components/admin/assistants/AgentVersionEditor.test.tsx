@@ -92,12 +92,31 @@ describe('AgentVersionEditor', () => {
     expect(createDraft).toHaveBeenCalledWith(7, {
       description: 'Новое описание без сокращений',
       system_prompt: 'Новый промпт\nВторая строка',
-      base_version_id: 'version-1',
+      base_version_id: 'version-2',
     });
     expect(publish).not.toHaveBeenCalled();
     expect(descriptionField()?.value).toBe('Новое описание без сокращений');
     expect(promptField()?.value).toBe('Новый промпт\nВторая строка');
     expect(visibleText(mounted!.container)).toContain('Черновик сохранён');
+  });
+
+  it('при повторном сохранении использует id черновика из предыдущего ответа', async () => {
+    createDraft
+      .mockResolvedValueOnce({ ...draft, id: 'version-3', base_version_id: 'version-2' })
+      .mockResolvedValueOnce({ ...draft, id: 'version-4', base_version_id: 'version-3' });
+    await renderEditor();
+
+    type(descriptionField()!, 'Первое сохранение');
+    await clickAsync(byButton(mounted!.container, /Сохранить черновик/)!);
+    await flush();
+    type(descriptionField()!, 'Второе сохранение');
+    await clickAsync(byButton(mounted!.container, /Сохранить черновик/)!);
+    await flush();
+
+    expect(createDraft.mock.calls.map((call) => call[1].base_version_id)).toEqual([
+      'version-2',
+      'version-3',
+    ]);
   });
 
   it('отмена подтверждения при смене режима сохраняет текст и черновой режим', async () => {
@@ -135,19 +154,19 @@ describe('AgentVersionEditor', () => {
     await renderEditor();
     type(descriptionField()!, 'Проверенное описание');
     type(promptField()!, 'Проверенный промпт');
-    await clickAsync(byButton(mounted!.container, /^Опубликовать$/)!);
-    expect(publish).not.toHaveBeenCalled();
+    expect(byButton(mounted!.container, /^Опубликовать$/)!.disabled).toBe(true);
     expect(visibleText(mounted!.container)).toContain('Сначала сохраните черновик и посмотрите diff');
 
     await clickAsync(byButton(mounted!.container, /Сохранить черновик/)!);
     await flush();
-    await clickAsync(byButton(mounted!.container, /^Опубликовать$/)!);
-    expect(publish).not.toHaveBeenCalled();
+    expect(byButton(mounted!.container, /^Опубликовать$/)!.disabled).toBe(true);
     expect(visibleText(mounted!.container)).toContain('Сначала сохраните черновик и посмотрите diff');
+    expect(publish).not.toHaveBeenCalled();
 
     click(byButton(mounted!.container, /Показать diff/)!);
     expect(mounted!.container.querySelector('.removed')?.textContent).toContain('−');
     expect(mounted!.container.querySelector('.added')?.textContent).toContain('+');
+    expect(byButton(mounted!.container, /^Опубликовать$/)!.disabled).toBe(false);
     await clickAsync(byButton(mounted!.container, /^Опубликовать$/)!);
     await flush();
 
@@ -157,23 +176,92 @@ describe('AgentVersionEditor', () => {
     expect(promptField()?.value).toBe('Проверенный промпт');
   });
 
-  it('конфликт 409 сохраняет локальный текст, объясняет проблему и оставляет сравнение доступным', async () => {
+  it('конфликт 409 перезагружает состояние для diff, но не затирает локальный текст', async () => {
+    const remotePublished: AgentVersion = {
+      ...published,
+      id: 'version-remote',
+      system_prompt: 'Промпт другого администратора',
+    };
+    const remoteDraft: AgentVersion = {
+      ...draft,
+      id: 'draft-remote',
+      base_version_id: 'version-remote',
+      system_prompt: 'Черновик другого администратора',
+    };
     createDraft.mockRejectedValue({ status: 409, message: 'Версия устарела' });
+    state
+      .mockResolvedValueOnce({ published, draft })
+      .mockResolvedValueOnce({ published: remotePublished, draft: remoteDraft });
+    versions.mockResolvedValue([remoteDraft, remotePublished]);
     await renderEditor();
     type(descriptionField()!, 'Моё конфликтующее описание');
     type(promptField()!, 'Мой конфликтующий промпт');
 
     await clickAsync(byButton(mounted!.container, /Сохранить черновик/)!);
     await flush();
+    await flush();
 
+    expect(state).toHaveBeenCalledTimes(2);
+    expect(versions).toHaveBeenCalledWith(7, 50);
     expect(descriptionField()?.value).toBe('Моё конфликтующее описание');
     expect(promptField()?.value).toBe('Мой конфликтующий промпт');
-    expect(visibleText(mounted!.container)).toContain('Конфликт версий');
-    expect(visibleText(mounted!.container)).toContain('Версия устарела');
+    expect(visibleText(mounted!.container)).toContain('Версия изменилась другим администратором');
 
     click(byButton(mounted!.container, /Показать diff/)!);
-    expect(mounted!.container.querySelector('.added')).not.toBeNull();
+    expect(mounted!.container.querySelector('.removed')?.textContent).toContain('Промпт другого администратора');
+    expect(mounted!.container.querySelector('.added')?.textContent).toContain('Мой конфликтующий промпт');
     expect(promptField()?.value).toBe('Мой конфликтующий промпт');
+  });
+
+  it('конфликт публикации перезагружает состояние и оставляет текст черновика', async () => {
+    const remotePublished: AgentVersion = {
+      ...published,
+      id: 'version-remote',
+      system_prompt: 'Опубликовано другим администратором',
+    };
+    publish.mockRejectedValue({ status: 409 });
+    state
+      .mockResolvedValueOnce({ published, draft })
+      .mockResolvedValueOnce({ published: remotePublished, draft });
+    versions.mockResolvedValue([draft, remotePublished]);
+    await renderEditor();
+    click(byButton(mounted!.container, /Показать diff/)!);
+
+    await clickAsync(byButton(mounted!.container, /^Опубликовать$/)!);
+    await flush();
+    await flush();
+
+    expect(state).toHaveBeenCalledTimes(2);
+    expect(versions).toHaveBeenCalledWith(7, 50);
+    expect(visibleText(mounted!.container)).toContain('Версия изменилась другим администратором');
+    expect(promptField()?.value).toBe('Черновой промпт');
+    expect(byButton(mounted!.container, /^Черновик$/)?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('конфликт создания из истории перезагружает состояние и историю', async () => {
+    const old: AgentVersion = { ...published, id: 'version-old', status: 'superseded' };
+    const remotePublished: AgentVersion = { ...published, id: 'version-remote' };
+    createDraft.mockRejectedValue({ status: 409 });
+    state
+      .mockResolvedValueOnce({ published, draft: null })
+      .mockResolvedValueOnce({ published: remotePublished, draft });
+    versions
+      .mockResolvedValueOnce([published, old])
+      .mockResolvedValueOnce([draft, remotePublished, old]);
+    await renderEditor();
+    await clickAsync(byButton(mounted!.container, /^История$/)!);
+    await flush();
+
+    const oldRow = mounted!.container.querySelector('[data-testid="agent-version-version-old"]')!;
+    await clickAsync(byButton(oldRow as HTMLElement, /Создать черновик из версии/)!);
+    await flush();
+    await flush();
+
+    expect(state).toHaveBeenCalledTimes(2);
+    expect(versions).toHaveBeenCalledTimes(2);
+    expect(visibleText(mounted!.container)).toContain('Версия изменилась другим администратором');
+    expect(byButton(mounted!.container, /^История$/)?.getAttribute('aria-pressed')).toBe('true');
+    expect(mounted!.container.querySelector('[data-testid="agent-version-version-remote"]')).not.toBeNull();
   });
 
   it('создаёт черновик из старой версии с последней версией в качестве базы', async () => {
@@ -214,6 +302,16 @@ describe('AgentVersionEditor', () => {
     expect(oldRow.textContent).toContain('1');
     expect(oldRow.textContent).toContain('Заменена');
     expect(oldRow.textContent).toContain('editor@linkeon.io');
+    expect(oldRow.textContent).not.toContain('Старый промпт');
+
+    click(byButton(oldRow as HTMLElement, /Показать промпт/)!);
+    const historicalPrompt = oldRow.querySelector('textarea')!;
+    expect(historicalPrompt.readOnly).toBe(true);
+    expect(historicalPrompt.value).toBe('Старый промпт');
+    click(byButton(oldRow as HTMLElement, /Скрыть промпт/)!);
+    expect(oldRow.querySelector('textarea')).toBeNull();
+    click(byButton(oldRow as HTMLElement, /Показать промпт/)!);
+
     await clickAsync(byButton(oldRow as HTMLElement, /Создать черновик из версии/)!);
     await flush();
 
