@@ -500,6 +500,12 @@ describe('раскрытая карточка', () => {
     expect(q('short-recoveries-s1')!.querySelectorAll('li')).toHaveLength(1);
   });
 
+  it('объект в «at» записи истории (ручной SQL) — карточка рисуется, запись видна', () => {
+    const odd = [{ at: { v: 1 }, from: 'animating', code: 'google_quota', action: 'later', delayMin: 30, reason: 'r' }] as unknown as ShortRecovery[];
+    render({ item: item({ format: 'skit', autoRecoveries: 1, recoveries: odd }), open: true, detail: detail({ format: 'skit', autoRecoveries: 1, recoveries: odd }) });
+    expect(q('short-recoveries-s1')!.querySelectorAll('li')).toHaveLength(1);
+  });
+
   it('отзыв студии сценаристу — в раскрытой карточке', () => {
     render({ open: true, detail: detail({ writerFeedback: 'сценка 2 (развязка): реплика 2 не прозвучала' }) });
     expect(m.container.textContent).toContain('Отзыв студии сценаристу');
