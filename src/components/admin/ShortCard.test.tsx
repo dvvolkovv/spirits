@@ -5,7 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { click, mount, type, Mounted } from '../../test/dom';
 import ShortCard from './ShortCard';
 import { NOW, detail as baseDetail, item } from './shortFixtures';
-import { MAX_NOTE_CHARS, ROW_ACTIONS, ShortAction, ShortDetail, ShortStatus, actionsFor } from './shortStatus';
+import { MAX_NOTE_CHARS, ROW_ACTIONS, ShortAction, ShortDetail, ShortRecovery, ShortStatus, actionsFor } from './shortStatus';
 
 const detail = (over: Parameters<typeof baseDetail>[0] = {}) =>
   baseDetail({
@@ -178,6 +178,20 @@ describe('строка ролика', () => {
 
     rerender({ open: true, detail: detail({ status: 'failed', failedFrom: 'rendering' }) });
     expect(m.container.querySelector('.line-clamp-1')).toBeNull();
+  });
+
+  it('«без сценок — сам» — в свёрнутой строке вместо «только чат», только в текущем круге и только у «только чат»', () => {
+    const rec: ShortRecovery = { at: '2030-01-01T08:00:00.000Z', from: 'animating', code: 'omni_budget', action: 'no_skits', reason: 'r' };
+    render({ item: item({ format: 'chat', autoRecoveries: 1, recoveries: [rec] }) });
+    expect(q('short-toggle-s1')!.textContent).toContain('без сценок — сам');
+    expect(q('short-toggle-s1')!.textContent).not.toContain('только чат');
+    m.unmount();
+    render({ item: item({ format: 'chat', autoRecoveries: 0, recoveries: [rec] }) });
+    expect(q('short-toggle-s1')!.textContent).toContain('только чат');
+    m.unmount();
+    // История разошлась со счётчиком (ручной SQL) — у ролика со сценками пометки нет.
+    render({ item: item({ format: 'skit', autoRecoveries: 1, recoveries: [rec] }) });
+    expect(q('short-toggle-s1')!.textContent).not.toContain('без сценок — сам');
   });
 });
 
@@ -478,6 +492,12 @@ describe('раскрытая карточка', () => {
     render({ open: true, detail: detail() });
     expect(q('short-recoveries-s1')).toBeNull();
     expect(m.container.textContent).not.toContain('без сценок — сам');
+  });
+
+  it('история с мусором (ручной SQL) — карточка рисуется, видна одна настоящая запись', () => {
+    const junk = [null, { at: '2030-01-01T08:00:00.000Z', from: 'animating', code: 'omni_budget', action: 'no_skits', reason: 'r' }, 'x'] as unknown as ShortRecovery[];
+    render({ item: item({ format: 'chat', autoRecoveries: 3, recoveries: junk }), open: true, detail: detail({ format: 'chat', autoRecoveries: 3, recoveries: junk }) });
+    expect(q('short-recoveries-s1')!.querySelectorAll('li')).toHaveLength(1);
   });
 
   it('отзыв студии сценаристу — в раскрытой карточке', () => {

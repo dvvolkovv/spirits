@@ -3,7 +3,7 @@ import { NOW, detail, item } from './shortFixtures';
 import {
   GROUP_ORDER, PublicationStatus, ROW_ACTIONS, STATUS_TITLES, ShortPlatform, ShortPublication, ShortRecovery, ShortSettings, ShortStatus,
   actionRequest, actionsFor, archiveOf, currentRecoveries, draftErrors, draftToPatch, groupOf, isReleased, isTelegramPostUrl,
-  noteChars, orderChars, publicationLabel, queueGroups, recoveryText, screenCounts, screenOf, shortTitle, statusLine,
+  noteChars, orderChars, publicationLabel, queueGroups, recoveryHistory, recoveryText, screenCounts, screenOf, shortTitle, statusLine,
   successText, toDraft,
 } from './shortStatus';
 
@@ -337,6 +337,13 @@ describe('самопочинки', () => {
     expect(currentRecoveries({ recoveries: all, autoRecoveries: 1 })).toEqual([all[1]]);
     expect(currentRecoveries({ recoveries: all, autoRecoveries: 0 })).toEqual([]);
     expect(currentRecoveries({})).toEqual([]);
+  });
+
+  it('мусор в истории (ручной SQL) отбрасывается, как на бэке; история — новые сверху', () => {
+    const junk = [null, r('later', { delayMin: 30 }), 'x', r('no_skits')] as unknown as ShortRecovery[];
+    expect(currentRecoveries({ recoveries: junk, autoRecoveries: 4 })).toEqual([junk[1], junk[3]]);
+    expect(recoveryHistory({ recoveries: junk })).toEqual([junk[3], junk[1]]);
+    expect(recoveryHistory({})).toEqual([]);
   });
 
   it('запись словами: этап, действие, код', () => {
