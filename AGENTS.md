@@ -57,6 +57,8 @@ bash ~/Downloads/spirits_back/scripts/deploy.sh
 
 Тестовый сервер `test.linkeon.io` защищён Basic Auth на уровне Nginx. Логин/пароль — в `~/Downloads/spirits_back/scripts/test-server.env.local` (gitignored), создаётся `scripts/provision-test.sh` при первоначальной настройке.
 
+Если совместная фича меняет `spirits_back/relay-agent/`, одного `deploy.sh` недостаточно: релей выкатывается отдельно через `bash ~/Downloads/spirits_back/scripts/deploy-relay.sh <BASE_SHA> <TARGET_SHA>` с рестартом и `/health` **до живого backend E2E**. Официальный порядок — `spirits_back/relay-agent/README.md`.
+
 ## Архитектура
 
 ### Структура `/src`

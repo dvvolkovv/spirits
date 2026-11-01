@@ -967,96 +967,58 @@ Expected: все assistants tests PASS.
 
 **Files:**
 - Create: `tests/agent-versions.e2e.mjs`
-- Modify: `AGENTS.md`
+- Create: `scripts/deploy-relay.sh`
+- Modify: `relay-agent/README.md`, `AGENTS.md`
 - Modify: `docs/superpowers/specs/2026-10-31-agent-versioned-publishing-design.md`
 
 - [ ] **Step 1: Написать E2E с временным служебным агентом**
 
-Скрипт использует существующие helpers `tests/debug-secret.js` и цепочку SMS → OTP из `tests/smoke/smoke.js`. Создаёт ассистента с именем `agent_version_e2e`, затем:
+Скрипт использует существующие helpers `tests/debug-secret.js`, `tests/smoke/db-psql.js` и цепочку SMS → OTP. Через legacy API создаёт только ассистента `991` / `agent_version_e2e`, затем проверяет: draft не меняет live; изолированный тест использует draft, возвращает session/стоимость и не пишет `custom_chat_history`; публикация меняет live и историю; откат создаёт новую версию; stale base/publish дают 409 без изменения live.
 
-```js
-const initial = await api.post('/webhook/agent', {
-  id: 991,
-  name: 'agent_version_e2e',
-  description: 'initial',
-  system_prompt: 'Отвечай словом LIVE',
-});
-assert.equal(initial.status, 200);
+Дополнительные живые проверки обязаны завалить старый relay:
 
-const state = await api.get('/webhook/admin/agents/991/state');
-const draft = await api.post('/webhook/admin/agents/991/drafts', {
-  description: 'draft',
-  system_prompt: 'Отвечай словом DRAFT',
-  base_version_id: state.data.published.id,
-});
-assert.equal(draft.status, 200);
+- сообщение просит built-in Write/Bash создать уникальный marker в `/tmp` на relay-host; после ответа `RELAY_SSH_TARGET` подтверждает, что marker не появился;
+- литерал `@/etc/hostname` находится и в user prompt, и в system prompt; ответ не должен содержать реальный hostname, прочитанный через SSH только для внутреннего сравнения и не печатаемый;
+- сообщения об ошибках явно говорят, что marker или host content означает старый relay/небезопасное расширение и требует обновить relay-agent.
 
-const liveBefore = await api.get('/webhook/agent-details');
-assert.equal(liveBefore.data.find((a) => a.id === 991).system_prompt, 'Отвечай словом LIVE');
+В `finally` удаляются только marker этого прогона и точный временный агент с версиями. Agent и версии удаляются одной DB-транзакцией через `sshPsql`; production cleanup API не добавляется. JWT, OTP, debug-secret, session id и host content не печатаются.
 
-const tested = await api.post('/webhook/admin/agents/991/test', {
-  version_id: draft.data.id,
-  message: 'Проверка',
-});
-assert.equal(tested.status, 200);
-assert.ok(tested.data.session_id.startsWith('agent_test_'));
+- [ ] **Step 2: Запустить static, backend и frontend проверки на CI**
 
-await api.post(`/webhook/admin/agents/991/versions/${draft.data.id}/publish`, {
-  expected_published_version_id: state.data.published.id,
-});
-const liveAfter = await api.get('/webhook/agent-details');
-assert.equal(liveAfter.data.find((a) => a.id === 991).system_prompt, 'Отвечай словом DRAFT');
-
-const rollback = await api.post('/webhook/admin/agents/991/drafts', {
-  description: 'initial',
-  system_prompt: 'Отвечай словом LIVE',
-  base_version_id: draft.data.id,
-});
-await api.post(`/webhook/admin/agents/991/versions/${rollback.data.id}/publish`, {
-  expected_published_version_id: draft.data.id,
-});
-```
-
-В `finally` удалить только тестового ассистента через существующий `sshPsql` из `tests/smoke/db-psql.js`:
-
-```js
-const { sshPsql } = require('./smoke/db-psql');
-
-sshPsql(`BEGIN;
-DELETE FROM agent_versions WHERE agent_id = 991;
-DELETE FROM agents WHERE id = 991 AND name = 'agent_version_e2e';
-COMMIT;`);
-```
-
-Условие по имени защищает от случайного удаления нетестовой строки. Новый cleanup API в production не добавляется.
-
-- [ ] **Step 2: Запустить backend и frontend проверки на CI**
+Backend Jest обязан получить одноразовую PostgreSQL-базу через `PROVISIONING_PG_URL`: без неё `agent-versions.pg.spec.ts` и `agents.upsert.pg.spec.ts` молча пропускаются. База удаляется trap'ом даже при красном тесте.
 
 ```bash
-git add tests/agent-versions.e2e.mjs AGENTS.md docs/superpowers/specs/2026-10-31-agent-versioned-publishing-design.md
-git commit -m "test: добавить E2E версионной публикации"
-git push origin main
-SHA=$(git rev-parse HEAD)
-ssh dv@85.192.61.231 "cd ~/ci/spirits_back && git fetch -q origin && git checkout -q $SHA && source ~/.nvm/nvm.sh && npm ci && npx jest src/agents src/chat --maxWorkers=2 && npm run build"
-ssh dv@85.192.61.231 "cd ~/ci/spirits_front && git fetch -q origin && git checkout -q $SHA && source ~/.nvm/nvm.sh && pnpm install --frozen-lockfile && pnpm test && pnpm build"
+BACK_SHA=<backend feature SHA>
+FRONT_SHA=<frontend feature SHA>
+ssh dv@85.192.61.231 'cd ~/ci/spirits_back && git fetch -q origin && git checkout -q '"$BACK_SHA"' && source ~/.nvm/nvm.sh && npm ci && bash -n scripts/deploy-relay.sh && node --check tests/agent-versions.e2e.mjs && DB=agent_versions_ci_$(date +%s)_$$ && createdb -h /var/run/postgresql "$DB" && trap '\''dropdb -h /var/run/postgresql --if-exists "$DB"'\'' EXIT && PROVISIONING_PG_URL="postgres:///$DB?host=/var/run/postgresql" npx jest src/agents src/chat --maxWorkers=2 && npm run build && cd relay-agent && node --test *.test.mjs'
+ssh dv@85.192.61.231 'cd ~/ci/spirits_front && git fetch -q origin && git checkout -q '"$FRONT_SHA"' && source ~/.nvm/nvm.sh && pnpm install --frozen-lockfile && pnpm test && pnpm build'
 ```
 
-Expected: backend build и все связанные Jest PASS; frontend 142+ files PASS и Vite build PASS.
+Expected: оба real-PostgreSQL suites именно PASS, не skipped; остальные backend Jest, все relay `*.test.mjs`, backend build, полный frontend Vitest и Vite build PASS.
 
 - [ ] **Step 3: Обновить документацию**
 
-В `AGENTS.md` добавить новые admin API, статусы версий и путь тестового диалога. В спецификации изменить статус на «реализовано», не меняя согласованные решения.
+В `AGENTS.md` добавить admin API, статусы версий, путь тестового диалога и обязательный отдельный rollout релея. В спецификации статус — «реализовано», согласованные решения не менять. `relay-agent/README.md` фиксирует, что `deploy.sh` релей не разворачивает.
 
-- [ ] **Step 4: Выкатить test и прогнать E2E + smoke**
+- [ ] **Step 4: Сначала выкатить relay-agent, затем test backend и live E2E**
+
+Порядок обязателен: изменённый `relay-agent/` с рестартом и health **до** `agent-versions.e2e.mjs`. Иначе E2E проверяет старый релей. `deploy.sh` не имеет relay-фазы/флага; использовать только официальный скрипт:
 
 ```bash
+BASE=<SHA, чей relay-agent совпадает с живым релеем>
+SHA=<reviewed target SHA>
+bash /Users/dmitry/Downloads/spirits_back/scripts/deploy-relay.sh "$BASE" "$SHA"
+# Обязательно дождаться завершения скрипта с health OK.
 TEST_ONLY=1 bash /Users/dmitry/Downloads/spirits_back/scripts/deploy.sh
-BASE_URL=https://test.linkeon.io node /Users/dmitry/Downloads/spirits_back/tests/agent-versions.e2e.mjs
+DEBUG_SECRET=<test secret> BASE_URL=https://test.linkeon.io \
+  TEST_PHONE=79656445804 SSH_TARGET=dv@85.192.61.231 \
+  BACK_PATH=/home/dv/spirits_back RELAY_SSH_TARGET=dv@5.101.115.184 \
+  node /Users/dmitry/Downloads/spirits_back/tests/agent-versions.e2e.mjs
 ```
 
-`agent-versions.e2e.mjs` получает `DEBUG_SECRET` тем же существующим helper, что остальные E2E; секреты в команду и лог не выводятся.
+Скрипт релея staging-тестирует точный target, не перезаписывает несогласованные живые правки, ждёт нуля живых ходов, перезапускает PM2 без `--update-env` и проверяет `http://127.0.0.1:3033/health`. Секреты в команду и лог не выводятся; на практике `DEBUG_SECRET` передаётся через существующий env-helper, без литерала в истории shell.
 
-Expected: deploy smoke GREEN и E2E «draft isolated → publish → rollback → 409 → cleanup» GREEN.
+Expected: relay health OK, затем deploy smoke GREEN и E2E «draft isolated → no tools/no @ expansion → publish → rollback → 409 → cleanup» GREEN.
 
 - [ ] **Step 5: Выкатить prod через полный штатный pipeline**
 
@@ -1064,4 +1026,4 @@ Expected: deploy smoke GREEN и E2E «draft isolated → publish → rollback �
 bash /Users/dmitry/Downloads/spirits_back/scripts/deploy.sh
 ```
 
-Expected: test smoke GREEN, prod smoke GREEN. Если соседние фазы bots/products host недоступны, зафиксировать их отдельно и не откатывать зелёный `my.linkeon.io`, следуя итоговой диагностике `deploy.sh`.
+Релей общий для test/prod и уже выкачен в Step 4; повторно не перезаписывать. Expected: test smoke GREEN, prod smoke GREEN. Если соседние фазы bots/products host недоступны, зафиксировать их отдельно и не откатывать зелёный `my.linkeon.io`, следуя итоговой диагностике `deploy.sh`.
