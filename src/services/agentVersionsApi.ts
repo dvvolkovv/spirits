@@ -28,7 +28,7 @@ export interface TestReply {
 }
 
 export interface CreateDraftInput {
-  description?: string;
+  description: string;
   system_prompt: string;
   base_version_id: string;
 }
