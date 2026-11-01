@@ -4,9 +4,55 @@ export type DiffRow = {
   right: string | null;
 };
 
+const MAX_LCS_CELLS = 1_000_000;
+
+function linearDiff(left: string[], right: string[]): DiffRow[] {
+  let prefixLength = 0;
+  while (
+    prefixLength < left.length &&
+    prefixLength < right.length &&
+    left[prefixLength] === right[prefixLength]
+  ) {
+    prefixLength += 1;
+  }
+
+  let suffixLength = 0;
+  while (
+    suffixLength < left.length - prefixLength &&
+    suffixLength < right.length - prefixLength &&
+    left[left.length - 1 - suffixLength] === right[right.length - 1 - suffixLength]
+  ) {
+    suffixLength += 1;
+  }
+
+  const leftEnd = left.length - suffixLength;
+  const rightEnd = right.length - suffixLength;
+  const rows: DiffRow[] = [];
+
+  for (let i = 0; i < prefixLength; i += 1) {
+    rows.push({ kind: 'same', left: left[i], right: right[i] });
+  }
+  for (let i = prefixLength; i < leftEnd; i += 1) {
+    rows.push({ kind: 'removed', left: left[i], right: null });
+  }
+  for (let j = prefixLength; j < rightEnd; j += 1) {
+    rows.push({ kind: 'added', left: null, right: right[j] });
+  }
+  for (let i = 0; i < suffixLength; i += 1) {
+    rows.push({ kind: 'same', left: left[leftEnd + i], right: right[rightEnd + i] });
+  }
+
+  return rows;
+}
+
 export function lineDiff(leftText: string, rightText: string): DiffRow[] {
   const left = leftText === '' ? [] : leftText.split('\n');
   const right = rightText === '' ? [] : rightText.split('\n');
+
+  if ((left.length + 1) * (right.length + 1) > MAX_LCS_CELLS) {
+    return linearDiff(left, right);
+  }
+
   const lcs = Array.from({ length: left.length + 1 }, () =>
     Array<number>(right.length + 1).fill(0),
   );

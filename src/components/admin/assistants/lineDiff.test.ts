@@ -50,4 +50,28 @@ describe('lineDiff', () => {
       { kind: 'added', left: null, right: 'a' },
     ]);
   });
+
+  it('uses bounded prefix/suffix fallback rows above the cell budget', () => {
+    const prefix = Array.from({ length: 100 }, (_, i) => `prefix-${i}`);
+    const suffix = Array.from({ length: 100 }, (_, i) => `suffix-${i}`);
+    const leftMiddle = [
+      'shared',
+      ...Array.from({ length: 999 }, (_, i) => `left-${i}`),
+    ];
+    const rightMiddle = [
+      ...Array.from({ length: 999 }, (_, i) => `right-${i}`),
+      'shared',
+    ];
+    const rows = lineDiff(
+      [...prefix, ...leftMiddle, ...suffix].join('\n'),
+      [...prefix, ...rightMiddle, ...suffix].join('\n'),
+    );
+
+    expect(rows).toHaveLength(2200);
+    expect(rows.filter((row) => row.kind === 'same')).toHaveLength(200);
+    expect(rows.filter((row) => row.kind === 'removed')).toHaveLength(1000);
+    expect(rows.filter((row) => row.kind === 'added')).toHaveLength(1000);
+    expect(rows[0]).toEqual({ kind: 'same', left: 'prefix-0', right: 'prefix-0' });
+    expect(rows.at(-1)).toEqual({ kind: 'same', left: 'suffix-99', right: 'suffix-99' });
+  });
 });
