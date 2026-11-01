@@ -28,10 +28,14 @@ vi.mock('../contexts/AuthContext', () => ({
 
 let search = '';
 const setSearchParams = vi.fn();
-vi.mock('react-router-dom', () => ({
-  useSearchParams: () => [new URLSearchParams(search), setSearchParams],
-  Navigate: () => null,
-}));
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useSearchParams: () => [new URLSearchParams(search), setSearchParams],
+    Navigate: () => null,
+  };
+});
 
 vi.mock('../components/admin/AdminSupportView', () => ({ default: () => 'РАЗДЕЛ-ПОДДЕРЖКА' }));
 vi.mock('../components/admin/AdminUsersView', () => ({ default: () => 'РАЗДЕЛ-ПОЛЬЗОВАТЕЛИ' }));
