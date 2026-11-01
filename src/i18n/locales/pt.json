@@ -1238,6 +1238,7 @@
       "statusProcessing": "A gerar… {{elapsed}}",
       "statusReady": "Pronto",
       "statusFailed": "Erro",
+      "refunded": "Tokens devolvidos",
       "processingHint": "normalmente 3–5 minutos",
       "modes": {
         "text2video": "Texto→Vídeo",
@@ -1372,8 +1373,8 @@
       "aspect_vertical": "9:16 · vertical",
       "aspect_horizontal": "16:9 · horizontal",
       "resolution_label": "Resolução",
-      "resolution_hint": "1080p — mais detalhe (pele, poros). 720p — mais rápido. Na horizontal (16:9), entre 9 e 36 s as extensões são sempre 720p, por isso o 1080p nota-se mais nos clipes curtos. A vertical (9:16) e a horizontal acima de 36 s são montadas a partir de clipes independentes — aí o 1080p funciona em qualquer duração.",
-      "length_hint": "16:9 (horizontal): até 36 s — um único vídeo contínuo, base de 8 s + extensões de 7 s; acima disso, montamos o vídeo a partir de clipes de 8 s. 9:16 (vertical): acima de 8 s montamos automaticamente o clipe a partir de vários clipes de 8 s. Nas junções podem notar-se ligeiras emendas — a fala é distribuída pelos clipes.",
+      "resolution_hint": "1080p — mais detalhe (pele, poros). 720p — mais rápido. A horizontal (16:9) entre 9 e 36 s sai sempre em 720p, por isso o 1080p nota-se mais nos clipes curtos. A vertical (9:16) e a horizontal acima de 36 s têm 1080p em qualquer duração.",
+      "length_hint": "Acima de 8 s montamos automaticamente o vídeo a partir de vários clipes de 8 s — tanto na horizontal (16:9) como na vertical (9:16). Nas junções podem notar-se ligeiras emendas — a fala é distribuída pelos clipes.",
       "vertical_segments_hint": "Vídeo de {{sec}} s — vamos montá-lo a partir de {{count}} clipes de 8 s e uni-los num único vídeo automaticamente.",
       "portrait_photos_label": "Fotos para o retrato (até 3)",
       "portrait_photos_hint": "Para a «cabeça falante» a partir do rosto de uma pessoa. O ideal são 3 fotos frontais com ângulos e iluminações diferentes: o Gemini Omni consegue uma semelhança bastante mais fiel do que com uma só foto. Sem fotos, a cena é criada apenas a partir da descrição.",

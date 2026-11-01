@@ -9,7 +9,7 @@ import VideoExamples from './VideoExamples';
 import { useVoiceProfile } from './useVoiceProfile';
 import VoiceSamplePanel from './VoiceSamplePanel';
 import { formatNumber } from '../../utils/formatters';
-import { needsVeoConcat, veoCostFor } from './videoPricing';
+import { buildsVeoByConcat, veoCostFor } from './videoPricing';
 
 interface Props {
   onCreated: (jobId: string) => void;
@@ -371,7 +371,7 @@ export default function VideoCreateForm({ onCreated, defaults }: Props) {
               </button>
             ))}
           </div>
-          {needsVeoConcat(s.veoAspectRatio ?? '9:16', s.veoLengthSec ?? 24) && (
+          {buildsVeoByConcat(s.veoAspectRatio ?? '9:16', s.veoLengthSec ?? 24) && (
             <p className="mt-2 text-xs text-gray-500">
               {t('video.veo.vertical_segments_hint', { sec: s.veoLengthSec ?? 24, count: Math.ceil((s.veoLengthSec ?? 24) / 8) })}
             </p>

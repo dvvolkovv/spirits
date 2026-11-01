@@ -853,6 +853,7 @@
       "statusProcessing": "Generando… {{elapsed}}",
       "statusReady": "Listo",
       "statusFailed": "Error",
+      "refunded": "Tokens devueltos",
       "processingHint": "normalmente 3-5 minutos",
       "modes": {
         "text2video": "Texto→Vídeo",
@@ -987,8 +988,8 @@
       "aspect_vertical": "9:16 · vertical",
       "aspect_horizontal": "16:9 · horizontal",
       "resolution_label": "Resolución",
-      "resolution_hint": "1080p: más detalle (piel, poros). 720p: más rápido. En horizontal (16:9) de 9 a 36s, las extensiones siempre son 720p, así que 1080p se nota más en vídeos cortos. El vertical (9:16) y el horizontal de más de 36s se montan con clips independientes, así que ahí 1080p funciona con cualquier duración.",
-      "length_hint": "16:9 (horizontal): hasta 36s, un solo vídeo continuo, base de 8s + extensiones de 7s; los más largos se montan con clips de 8s. 9:16 (vertical): más allá de 8s montamos automáticamente el vídeo con varios clips de 8s. Pueden notarse pequeños cortes en las uniones; el texto se reparte entre los clips.",
+      "resolution_hint": "1080p: más detalle (piel, poros). 720p: más rápido. El horizontal (16:9) de 9 a 36s siempre sale en 720p, así que 1080p se nota más en vídeos cortos. El vertical (9:16) y el horizontal de más de 36s admiten 1080p con cualquier duración.",
+      "length_hint": "Los vídeos de más de 8s se montan automáticamente con varios clips de 8s, tanto en horizontal (16:9) como en vertical (9:16). Pueden notarse pequeños cortes en las uniones; el texto se reparte entre los clips.",
       "vertical_segments_hint": "Vídeo de {{sec}}s: lo montaremos con {{count}} clips de 8s y los uniremos en un solo vídeo automáticamente.",
       "portrait_photos_label": "Fotos para el retrato (hasta 3)",
       "portrait_photos_hint": "Para la «cabeza parlante» a partir del rostro de una persona. Lo ideal son 3 fotos frontales en distintos ángulos/iluminaciones: así Gemini Omni logra un parecido notablemente más preciso que con una sola foto. Sin foto, la escena se genera según la descripción.",

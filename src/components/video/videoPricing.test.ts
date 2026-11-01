@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { needsVeoConcat, veoCostFor } from './videoPricing';
+import { needsVeoConcat, buildsVeoByConcat, veoCostFor } from './videoPricing';
 
 // Зеркало backend video.dto.ts: цена на кнопке обязана совпадать со списанной.
 describe('videoPricing', () => {
@@ -14,6 +14,19 @@ describe('videoPricing', () => {
     ['16:9', 60, true],
   ] as const)('%s, %i с → склейка: %s', (aspect, sec, expected) => {
     expect(needsVeoConcat(aspect, sec)).toBe(expected);
+  });
+
+  // Сборка — не цена: пока продление Omni сломано Google (01.11.2026), горизонталь
+  // длиннее 8 с тоже собирается из клипов, но стоит как цепочка.
+  it.each([
+    ['9:16', 8, false],
+    ['9:16', 12, true],
+    ['16:9', 8, false],
+    ['16:9', 9, true],
+    ['16:9', 24, true],
+    ['16:9', 48, true],
+  ] as const)('сборка: %s, %i с → из клипов: %s', (aspect, sec, expected) => {
+    expect(buildsVeoByConcat(aspect, sec)).toBe(expected);
   });
 
   it('8 с стоят базу в любом формате', () => {
