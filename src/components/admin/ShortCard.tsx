@@ -256,7 +256,7 @@ const ShortCard: React.FC<Props> = ({
                       <ul className="text-xs space-y-0.5">
                         {history.map((r, i) => (
                           <li key={`${i}-${r.at}-${r.action}`} className="break-words">
-                            {formatSlotAt(r.at, now)} — {recoveryText(r)}{r.reason ? `: ${r.reason}` : ''}
+                            {formatSlotAt(String(r.at ?? ''), now)} — {recoveryText(r)}{r.reason ? `: ${r.reason}` : ''}
                           </li>
                         ))}
                       </ul>
