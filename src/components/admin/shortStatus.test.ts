@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { NOW, detail, item } from './shortFixtures';
 import {
-  GROUP_ORDER, PublicationStatus, ROW_ACTIONS, STATUS_TITLES, ShortPlatform, ShortPublication, ShortSettings, ShortStatus,
-  actionRequest, actionsFor, archiveOf, draftErrors, draftToPatch, groupOf, isReleased, isTelegramPostUrl,
-  noteChars, orderChars, publicationLabel, queueGroups, screenCounts, screenOf, shortTitle, statusLine,
+  GROUP_ORDER, PublicationStatus, ROW_ACTIONS, STATUS_TITLES, ShortPlatform, ShortPublication, ShortRecovery, ShortSettings, ShortStatus,
+  actionRequest, actionsFor, archiveOf, currentRecoveries, draftErrors, draftToPatch, groupOf, isReleased, isTelegramPostUrl,
+  noteChars, orderChars, publicationLabel, queueGroups, recoveryText, screenCounts, screenOf, shortTitle, statusLine,
   successText, toDraft,
 } from './shortStatus';
 
@@ -324,5 +324,27 @@ describe('настройки', () => {
     expect(draftToPatch({ ...toDraft(s), platforms: ['youtube', 'telegram'] }).platforms).toEqual(['telegram', 'youtube']);
     expect(draftErrors({ ...toDraft(s), slotDays: [9] }).slotDays).toBeTruthy();
     expect(draftErrors({ ...toDraft(s), platforms: ['vk'] }).platforms).toBeTruthy();
+  });
+});
+
+describe('самопочинки', () => {
+  const r = (action: ShortRecovery['action'], over: Partial<ShortRecovery> = {}): ShortRecovery => ({
+    at: '2030-01-01T08:00:00.000Z', from: 'animating', code: 'google_quota', action, reason: 'r', ...over,
+  });
+
+  it('текущий круг — последние autoRecoveries записей; полей нет — пусто', () => {
+    const all = [r('later', { delayMin: 30 }), r('no_skits')];
+    expect(currentRecoveries({ recoveries: all, autoRecoveries: 1 })).toEqual([all[1]]);
+    expect(currentRecoveries({ recoveries: all, autoRecoveries: 0 })).toEqual([]);
+    expect(currentRecoveries({})).toEqual([]);
+  });
+
+  it('запись словами: этап, действие, код', () => {
+    expect(recoveryText(r('later', { delayMin: 30 }))).toBe('оживление: повтор через 30 мин (google_quota)');
+    expect(recoveryText(r('later', { delayMin: 120 }))).toBe('оживление: повтор через 2 ч (google_quota)');
+    expect(recoveryText(r('later', { delayMin: 90 }))).toBe('оживление: повтор через 1 ч 30 мин (google_quota)');
+    expect(recoveryText(r('later', { delayMin: undefined }))).toBe('оживление: повтор позже (google_quota)');
+    expect(recoveryText(r('new_scene', { from: 'capturing', code: 'answer_rejected' }))).toBe('съёмка: новая сцена (answer_rejected)');
+    expect(recoveryText(r('no_skits', { code: null }))).toBe('оживление: без сценок (без кода)');
   });
 });

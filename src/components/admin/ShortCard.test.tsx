@@ -457,6 +457,34 @@ describe('раскрытая карточка', () => {
     });
     expect(m.container.textContent).toContain('YouTube: quota exceeded');
   });
+
+  it('самопочинки — история в раскрытой карточке, новые сверху, с причиной; «без сценок» доктора — пометка в строке', () => {
+    const recoveries = [
+      { at: '2030-01-01T08:00:00.000Z', from: 'animating' as const, code: 'google_quota', action: 'later' as const, delayMin: 30, reason: 'оживление: лимит' },
+      { at: '2030-01-01T08:40:00.000Z', from: 'animating' as const, code: 'omni_budget', action: 'no_skits' as const, reason: 'оживление: предел секунд' },
+    ];
+    render({
+      item: item({ format: 'chat', autoRecoveries: 2, recoveries }),
+      open: true,
+      detail: detail({ format: 'chat', autoRecoveries: 2, recoveries }),
+    });
+    const list = q('short-recoveries-s1')!.textContent!;
+    expect(list).toContain('оживление: без сценок (omni_budget): оживление: предел секунд');
+    expect(list.indexOf('без сценок')).toBeLessThan(list.indexOf('повтор через 30 мин'));
+    expect(m.container.textContent).toContain('без сценок — сам');
+  });
+
+  it('без самопочинок и без полей нового бэка — ни истории, ни пометки', () => {
+    render({ open: true, detail: detail() });
+    expect(q('short-recoveries-s1')).toBeNull();
+    expect(m.container.textContent).not.toContain('без сценок — сам');
+  });
+
+  it('отзыв студии сценаристу — в раскрытой карточке', () => {
+    render({ open: true, detail: detail({ writerFeedback: 'сценка 2 (развязка): реплика 2 не прозвучала' }) });
+    expect(m.container.textContent).toContain('Отзыв студии сценаристу');
+    expect(m.container.textContent).toContain('реплика 2 не прозвучала');
+  });
 });
 
 describe('кнопки раскрытой карточки — по actionsFor', () => {
