@@ -164,6 +164,25 @@ describe('GlobalLlmProviderControl', () => {
     expect(post).toHaveBeenCalledWith('/webhook/admin/llm-provider', { provider: 'kimi' });
   });
 
+  it('confirm для Kimi — предупреждение про обучение моделей', async () => {
+    // kimi: true — иначе кнопка Kimi disabled (нет ключа) и клик не дойдёт до confirm.
+    get.mockResolvedValue(state('claude', true));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await mount();
+    await act(async () => { radio('Kimi').click(); });
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(confirm.mock.calls[0][0]).toContain('Kimi (Moonshot AI) может использовать тексты для обучения своих моделей.');
+  });
+
+  it('confirm для Qwen — без предупреждения про обучение моделей', async () => {
+    get.mockResolvedValue(state('claude'));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await mount();
+    await act(async () => { radio('Qwen').click(); });
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(confirm.mock.calls[0][0]).not.toContain('обучения');
+  });
+
   it('два клика подряд — один confirm и один POST', async () => {
     get.mockResolvedValue(state('claude'));
     post.mockResolvedValue(state('qwen'));

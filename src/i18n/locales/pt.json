@@ -1006,6 +1006,7 @@
       "noKey": "sem chave no servidor",
       "since": "Desde {{since}}, alterado por {{by}}",
       "confirm": "Os assistentes, as tarefas em segundo plano e a experiência sem conta passarão para {{model}}. Pode reverter aqui.",
+      "confirmKimiTraining": "O Kimi (Moonshot AI) pode utilizar os textos para treinar os seus modelos.",
       "errorNoKey": "Este modelo não tem chave no servidor.",
       "error": "Não foi possível carregar ou guardar",
       "banner": "Todos são respondidos por {{model}} desde {{since}}",
