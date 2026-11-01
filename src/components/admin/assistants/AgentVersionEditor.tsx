@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, EyeOff, FileClock, Save, Upload } from 'lucide-react';
 import { agentVersionsApi } from '../../../services/agentVersionsApi';
 import type { AgentVersion } from '../../../services/agentVersionsApi';
+import AgentTestChat from './AgentTestChat';
 import { lineDiff } from './lineDiff';
 
 interface Props {
@@ -503,6 +504,10 @@ const AgentVersionEditor: React.FC<Props> = ({
                 ))}
               </div>
             </section>
+          )}
+
+          {draft && !dirty && (
+            <AgentTestChat key={draft.id} agentId={agentId} versionId={draft.id} />
           )}
         </>
       )}
