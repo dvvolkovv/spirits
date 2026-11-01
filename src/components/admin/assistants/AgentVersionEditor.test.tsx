@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { actAsync, byButton, byLabel, click, clickAsync, flush, mount, type, visibleText } from '../../../test/dom';
+import { actAsync, byButton, byLabel, click, clickAsync, doubleClick, flush, mount, type, visibleText } from '../../../test/dom';
 import type { Mounted } from '../../../test/dom';
 import type { AgentVersion } from '../../../services/agentVersionsApi';
 
@@ -558,6 +558,48 @@ describe('AgentVersionEditor', () => {
     expect(byButton(mounted!.container, /Сохранить черновик/)?.disabled).toBe(true);
     expect(onDirtyChange).not.toHaveBeenCalledWith(true);
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('не отправляет два платных теста при двойном клике в одном тике', async () => {
+    const reply = deferred<{ text: string; session_id: string; tokens: number }>();
+    testVersion.mockReturnValue(reply.promise);
+    await renderEditor();
+    type(testInput()!, 'Один вопрос');
+
+    doubleClick(byButton(mounted!.container, /^Отправить$/)!);
+
+    expect(testVersion).toHaveBeenCalledTimes(1);
+    expect(mounted!.container.querySelectorAll('[aria-live], [role="status"], [role="log"]')).toHaveLength(1);
+    await actAsync(() => reply.resolve({ text: 'Один ответ', session_id: 'session-1', tokens: 10 }));
+    await flush();
+    expect(visibleText(mounted!.container).match(/Один вопрос/g)).toHaveLength(1);
+  });
+
+  it('повторяет неудачный запрос без дублирования сообщения пользователя', async () => {
+    const transcriptText = () => mounted!.container.querySelector('[role="log"]')?.textContent ?? '';
+    testVersion
+      .mockRejectedValueOnce(new Error('Временная ошибка'))
+      .mockResolvedValueOnce({ text: 'Ответ после повтора', session_id: 'session-1', tokens: 10 });
+    await renderEditor();
+    type(testInput()!, 'Повторяемый вопрос');
+    await clickAsync(byButton(mounted!.container, /^Отправить$/)!);
+    await flush();
+
+    expect(testInput()?.value).toBe('Повторяемый вопрос');
+    expect(transcriptText().match(/Повторяемый вопрос/g)).toHaveLength(1);
+
+    await clickAsync(byButton(mounted!.container, /^Отправить$/)!);
+    await flush();
+
+    expect(testVersion).toHaveBeenCalledTimes(2);
+    expect(testVersion).toHaveBeenNthCalledWith(2, 7, {
+      version_id: 'version-2',
+      message: 'Повторяемый вопрос',
+      session_id: undefined,
+    });
+    expect(transcriptText().match(/Повторяемый вопрос/g)).toHaveLength(1);
+    expect(visibleText(mounted!.container)).toContain('Ответ после повтора');
+    expect(testInput()?.value).toBe('');
   });
 
   it('не показывает тест для несохранённых локальных правок', async () => {

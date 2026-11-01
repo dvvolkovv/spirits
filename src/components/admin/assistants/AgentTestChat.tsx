@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Loader2, RotateCcw, Send } from 'lucide-react';
 import { agentVersionsApi } from '../../../services/agentVersionsApi';
 
@@ -26,14 +26,20 @@ const AgentTestChat: React.FC<AgentTestChatProps> = ({ agentId, versionId }) => 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState<string>();
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef(false);
 
   const send = async () => {
     const message = input.trim();
-    if (!message || busy) return;
+    if (!message || busy || inFlightRef.current) return;
 
-    setMessages((current) => [...current, { role: 'user', text: message }]);
+    inFlightRef.current = true;
+    if (pendingMessage !== message) {
+      setMessages((current) => [...current, { role: 'user', text: message }]);
+      setPendingMessage(message);
+    }
     setBusy(true);
     setError(null);
     try {
@@ -47,18 +53,21 @@ const AgentTestChat: React.FC<AgentTestChatProps> = ({ agentId, versionId }) => 
         { role: 'assistant', text: reply.text, tokens: reply.tokens },
       ]);
       setSessionId(reply.session_id);
+      setPendingMessage(null);
       setInput('');
     } catch (testError: unknown) {
       setError(`Не удалось выполнить тест: ${errorMessage(testError)}`);
     } finally {
+      inFlightRef.current = false;
       setBusy(false);
     }
   };
 
   const reset = () => {
-    if (busy) return;
+    if (busy || inFlightRef.current) return;
     setMessages([]);
     setSessionId(undefined);
+    setPendingMessage(null);
     setError(null);
   };
 
@@ -80,7 +89,7 @@ const AgentTestChat: React.FC<AgentTestChatProps> = ({ agentId, versionId }) => 
         </button>
       </div>
 
-      <div aria-live="polite" className="space-y-3">
+      <div role="log" aria-live="polite" className="space-y-3">
         {messages.length === 0 && (
           <p className="text-sm text-gray-500">Отправьте сообщение, чтобы проверить черновик.</p>
         )}
@@ -101,7 +110,7 @@ const AgentTestChat: React.FC<AgentTestChatProps> = ({ agentId, versionId }) => 
           </div>
         ))}
         {busy && (
-          <p role="status" className="text-sm text-gray-500 flex items-center">
+          <p className="text-sm text-gray-500 flex items-center">
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             Отправка...
           </p>
