@@ -178,12 +178,21 @@ src/
 - Auth: `GET /webhook/{uuid}/sms/:phone`, `GET /webhook/{uuid}/check-code/:phone/:code`, `POST /webhook/auth/refresh`
 - Debug OTP: `GET /webhook/debug/sms-code/:phone` (активно при `DEBUG_SMS_CODES=true`)
 - Profile: `GET/POST /webhook/profile`, `POST /webhook/profile-update`, `GET /webhook/user-profile?userId=`
-- Agents: `GET /webhook/agents`, `POST /webhook/change-agent`
+- Agents: `GET /webhook/agents`, `POST /webhook/change-agent`, `POST /webhook/agent` (legacy create/update публикует новую версию)
 - Chat (streaming NDJSON): `POST /webhook/soulmate/chat`, `GET /webhook/chat/history`
 - Tokens/Payments: `GET /webhook/user/tokens/`, `POST /webhook/yookassa/create-payment`, `POST /webhook/coupon/redeem`
 - Search/Compat: `POST /webhook/search-mate`, `POST /webhook/analyze-compatibility`
 - Referral: `POST /webhook/referral/register`, `GET /webhook/referral/stats`
 - Admin: `POST /webhook/admin/coupons`, `POST /webhook/admin/referral`, `GET /webhook/admin/referral/stats`
+- Admin agent versions (JWT + admin): `GET /webhook/admin/agents/:id/state`, `GET /webhook/admin/agents/:id/versions?limit=50`, `GET /webhook/admin/agents/:id/versions/:versionId`, `POST /webhook/admin/agents/:id/drafts`, `POST /webhook/admin/agents/:id/versions/:versionId/publish`, `POST /webhook/admin/agents/:id/test`
+
+### Версионное редактирование ассистентов
+
+- `AdminAssistantsView` использует `AgentVersionEditor`: режимы «Черновик», «Опубликовано» (read-only) и «История» (до 50 версий с просмотром и созданием черновика из любой версии).
+- Сохранение создаёт новый draft от последней версии и не меняет действующего ассистента. Перед публикацией нужно посмотреть diff; публикация проверяет expected published id. При `409` состояние перечитывается, локальный текст сохраняется для сравнения, автоматической перезаписи нет.
+- Откат выполняется созданием и явной публикацией нового черновика со старым содержимым; история не удаляется.
+- `AgentTestChat` тестирует только сохранённую версию в изолированной сессии: без пользовательского контекста, инструментов и записи в историю чатов; показывает ответ, ошибки и стоимость в токенах. «Новый тест» сбрасывает сессию и сообщения.
+- Несохранённые изменения защищены предупреждениями при смене режима/ассистента, SPA-навигации и закрытии страницы (`useSpaNavigationGuard`, `beforeunload`). Клиент API — `services/agentVersionsApi.ts`.
 
 ## Тестовые аккаунты
 
