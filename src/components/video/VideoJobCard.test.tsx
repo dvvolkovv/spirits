@@ -13,6 +13,8 @@ import { mount, visibleText } from '../../test/dom';
 import VideoJobCard from './VideoJobCard';
 import type { VideoJob } from './useVideoJobs';
 
+// «Поделиться» тянет authService и с ним весь i18n — карточке он здесь не нужен.
+vi.mock('../../services/shareReferral', () => ({ shareWithReferral: vi.fn() }));
 vi.mock('react-i18next', async () => {
   const { tRu: t } = await import('../../test/dom');
   return { useTranslation: () => ({ t }) };
