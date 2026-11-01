@@ -850,6 +850,7 @@
       "statusProcessing": "Wird generiert… {{elapsed}}",
       "statusReady": "Fertig",
       "statusFailed": "Fehler",
+      "refunded": "Tokens erstattet",
       "processingHint": "meist 3–5 Minuten",
       "modes": {
         "text2video": "Text→Video",

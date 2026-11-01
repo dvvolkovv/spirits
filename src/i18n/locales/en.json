@@ -1241,6 +1241,7 @@
       "statusProcessing": "Generating… {{elapsed}}",
       "statusReady": "Ready",
       "statusFailed": "Error",
+      "refunded": "Tokens refunded",
       "processingHint": "usually 3–5 minutes",
       "modes": {
         "text2video": "Text→Video",

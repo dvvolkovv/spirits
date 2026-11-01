@@ -847,6 +847,7 @@
       "statusProcessing": "生成中… {{elapsed}}",
       "statusReady": "已完成",
       "statusFailed": "失败",
+      "refunded": "代币已退还",
       "processingHint": "通常需要3–5分钟",
       "modes": {
         "text2video": "文本→视频",

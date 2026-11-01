@@ -126,6 +126,9 @@ export default function VideoJobCard({ job, onDelete, onRepeat, onSendToChat, co
             {job.error_message && (
               <span className="text-xs text-red-200 line-clamp-2">{job.error_message}</span>
             )}
+            {/* Бэк возвращает упавшее видео сам (failAndRefund) — а число под
+                сообщением ассистента посчитано, пока ролик ещё рендерился. */}
+            <span className="text-xs text-white/90">{t('video.job.refunded')}</span>
           </div>
         )}
 

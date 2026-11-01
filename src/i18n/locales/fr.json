@@ -853,6 +853,7 @@
       "statusProcessing": "Génération… {{elapsed}}",
       "statusReady": "Prêt",
       "statusFailed": "Erreur",
+      "refunded": "Jetons remboursés",
       "processingHint": "généralement 3-5 min",
       "modes": {
         "text2video": "Texte→Vidéo",
