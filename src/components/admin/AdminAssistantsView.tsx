@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Save, X, CreditCard as Edit2, Shield } from 'lucide-react';
+import { CreditCard as Edit2, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import AgentVersionEditor from './assistants/AgentVersionEditor';
 
 interface Agent {
   id: number;
@@ -13,11 +14,9 @@ interface Agent {
 const AdminAssistantsView: React.FC = () => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [editedPrompt, setEditedPrompt] = useState('');
-  const [editedDescription, setEditedDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editorDirty, setEditorDirty] = useState(false);
 
   useEffect(() => {
     loadAgents();
@@ -45,70 +44,13 @@ const AdminAssistantsView: React.FC = () => {
   };
 
   const handleSelectAgent = (agent: Agent) => {
+    if (selectedAgent?.id === agent.id) return;
+    if (editorDirty && !window.confirm('Есть несохранённые изменения. Переключить ассистента и потерять их?')) {
+      return;
+    }
+    setEditorDirty(false);
     setSelectedAgent(agent);
-    setEditedPrompt(agent.system_prompt);
-    setEditedDescription(agent.description || '');
   };
-
-  const handleSave = async () => {
-    if (!selectedAgent) return;
-
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      const formData = new URLSearchParams();
-      formData.append('agent-id', selectedAgent.id.toString());
-      formData.append('system_prompt', editedPrompt);
-      formData.append('description', editedDescription);
-      formData.append('name', selectedAgent.name);
-
-      const response = await apiClient.request('/webhook/agent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString()
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ошибка сохранения: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success === 'agent updated') {
-        const updatedAgents = agents.map(agent =>
-          agent.id === selectedAgent.id
-            ? { ...agent, system_prompt: editedPrompt, description: editedDescription }
-            : agent
-        );
-        setAgents(updatedAgents);
-        setSelectedAgent({ ...selectedAgent, system_prompt: editedPrompt, description: editedDescription });
-
-        alert('Ассистент успешно обновлен');
-      } else {
-        throw new Error('Сервер не подтвердил обновление');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка при сохранении');
-      console.error('Error saving agent:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    if (selectedAgent) {
-      setEditedPrompt(selectedAgent.system_prompt);
-      setEditedDescription(selectedAgent.description || '');
-    }
-  };
-
-  const hasChanges = selectedAgent && (
-    editedPrompt !== selectedAgent.system_prompt ||
-    editedDescription !== (selectedAgent.description || '')
-  );
 
   return (
     // h-full, а НЕ h-screen. Вкладка живёт внутри AdminPage, где над ней
@@ -179,74 +121,26 @@ const AdminAssistantsView: React.FC = () => {
           {selectedAgent ? (
             <>
               <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <Edit2 className="w-5 h-5 mr-2 text-forest-600" />
-                    {selectedAgent.name}
-                  </h2>
-                  <div className="flex space-x-2">
-                    {hasChanges && (
-                      <button
-                        onClick={handleCancel}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <X className="w-4 h-4 inline mr-1" />
-                        Отменить
-                      </button>
-                    )}
-                    <button
-                      onClick={handleSave}
-                      disabled={!hasChanges || isSaving}
-                      className={clsx(
-                        'px-4 py-2 rounded-lg font-medium transition-colors flex items-center',
-                        hasChanges
-                          ? 'bg-forest-600 hover:bg-forest-700 text-white'
-                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      )}
-                    >
-                      <Save className="w-4 h-4 mr-1" />
-                      {isSaving ? 'Сохранение...' : 'Сохранить'}
-                    </button>
-                  </div>
-                </div>
-                {hasChanges && (
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <Edit2 className="w-5 h-5 mr-2 text-forest-600" />
+                  {selectedAgent.name}
+                </h2>
+                {editorDirty && (
                   <p className="text-sm text-amber-600 mt-2">
-                    Есть несохраненные изменения
+                    Есть несохранённые изменения
                   </p>
                 )}
               </div>
 
-              <div className="flex-1 p-6 overflow-y-auto pb-20 md:pb-6">
-                <div className="max-w-4xl space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Описание ассистента
-                    </label>
-                    <textarea
-                      value={editedDescription}
-                      onChange={(e) => setEditedDescription(e.target.value)}
-                      className="w-full h-24 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors text-sm"
-                      placeholder="Краткое описание ассистента для пользователей..."
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Символов: {editedDescription.length}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Системный промпт
-                    </label>
-                    <textarea
-                      value={editedPrompt}
-                      onChange={(e) => setEditedPrompt(e.target.value)}
-                      className="w-full h-96 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors font-mono text-sm"
-                      placeholder="Введите системный промпт для ассистента..."
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Символов: {editedPrompt.length}
-                    </p>
-                  </div>
+              <div className="flex-1 p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
+                <div className="max-w-5xl">
+                  <AgentVersionEditor
+                    key={selectedAgent.id}
+                    agentId={selectedAgent.id}
+                    initialDescription={selectedAgent.description || ''}
+                    initialPrompt={selectedAgent.system_prompt}
+                    onDirtyChange={setEditorDirty}
+                  />
                 </div>
               </div>
             </>
