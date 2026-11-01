@@ -180,7 +180,7 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
             </p>
           )}
           <p className="mt-2 text-xs text-gray-500">
-            {t('admin.userActivity.llmProvider.hint', 'Веб-ассистенты, Маша и TG-боты этого человека. «Как у всех» — модель общего рубильника (вкладка «Ассистенты»).')}
+            {t('admin.userActivity.llmProvider.hint', 'Всё, что ассистенты делают для этого человека: чат, Маша, TG-боты, рутины, «Путь», план действий, поездки, итоги и документы звонков. «Как у всех» — модель общего рубильника (вкладка «Ассистенты»).')}
           </p>
         </>
       )}

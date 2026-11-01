@@ -73,7 +73,7 @@ const GlobalLlmBanner: React.FC<{ onOpen: () => void; activeTab: string; hideOpe
   const model = PROVIDER_LABELS[state.provider];
   const noKey = !state.configured[state.provider];
   const text = noKey && state.since
-    ? t('admin.globalLlm.bannerNoKey', 'Все отвечают через {{model}} с {{since}} — ключа нет, фактически Claude', { model, since: fmtSince(state.since) })
+    ? t('admin.globalLlm.bannerNoKey', 'Все отвечают через {{model}} с {{since}} — ключа нет: вошедшим отвечает Claude, гостям пробы — экран входа', { model, since: fmtSince(state.since) })
     : state.since
       ? t('admin.globalLlm.banner', 'Все отвечают через {{model}} с {{since}}', { model, since: fmtSince(state.since) })
       : t('admin.globalLlm.bannerNoSince', 'Все отвечают через {{model}}', { model });

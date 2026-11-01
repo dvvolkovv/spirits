@@ -84,10 +84,11 @@ describe('GlobalLlmBanner', () => {
     expect(get).toHaveBeenCalledTimes(2);
   });
 
-  it('модель рубильника без ключа — явно говорит, что фактически отвечает Claude', async () => {
+  it('модель рубильника без ключа — явно говорит про вошедших и гостей пробы', async () => {
     get.mockResolvedValue(ok({ provider: 'qwen', since: '2026-10-31T13:40:00.000Z', by: 'admin-1', configured: { qwen: false, kimi: false } }));
     await mount();
-    expect(banner()!.textContent).toContain('фактически Claude');
+    expect(banner()!.textContent).toContain('вошедшим отвечает Claude');
+    expect(banner()!.textContent).toContain('гостям пробы');
   });
 
   it('событие смены на Qwen — плашка появляется', async () => {
