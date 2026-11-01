@@ -11,12 +11,16 @@ interface Agent {
   description: string;
 }
 
-const AdminAssistantsView: React.FC = () => {
+interface Props {
+  editorDirty: boolean;
+  onEditorDirtyChange: (dirty: boolean) => void;
+}
+
+const AdminAssistantsView: React.FC<Props> = ({ editorDirty, onEditorDirtyChange }) => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editorDirty, setEditorDirty] = useState(false);
 
   useEffect(() => {
     loadAgents();
@@ -48,7 +52,7 @@ const AdminAssistantsView: React.FC = () => {
     if (editorDirty && !window.confirm('Есть несохранённые изменения. Переключить ассистента и потерять их?')) {
       return;
     }
-    setEditorDirty(false);
+    onEditorDirtyChange(false);
     setSelectedAgent(agent);
   };
 
@@ -139,7 +143,7 @@ const AdminAssistantsView: React.FC = () => {
                     agentId={selectedAgent.id}
                     initialDescription={selectedAgent.description || ''}
                     initialPrompt={selectedAgent.system_prompt}
-                    onDirtyChange={setEditorDirty}
+                    onDirtyChange={onEditorDirtyChange}
                   />
                 </div>
               </div>

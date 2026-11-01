@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { byButton, byLabel, click, clickAsync, flush, mount, type, visibleText } from '../../../test/dom';
+import { actAsync, byButton, byLabel, click, clickAsync, flush, mount, type, visibleText } from '../../../test/dom';
 import type { Mounted } from '../../../test/dom';
 import type { AgentVersion } from '../../../services/agentVersionsApi';
 
@@ -16,6 +16,16 @@ vi.mock('../../../services/agentVersionsApi', () => ({
 }));
 
 import AgentVersionEditor from './AgentVersionEditor';
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
 
 const published: AgentVersion = {
   id: 'version-1',
@@ -79,6 +89,71 @@ afterEach(() => {
 });
 
 describe('AgentVersionEditor', () => {
+  it('блокирует поля до завершения начальной загрузки', async () => {
+    const load = deferred<{ published: AgentVersion | null; draft: AgentVersion | null }>();
+    state.mockReturnValue(load.promise);
+    mounted = mount(
+      <AgentVersionEditor agentId={7} initialDescription="Исходное" initialPrompt="Исходный" />,
+    );
+
+    expect(descriptionField()!.disabled).toBe(true);
+    expect(promptField()!.disabled).toBe(true);
+    await actAsync(() => load.resolve({ published, draft }));
+    await flush();
+    expect(descriptionField()!.disabled).toBe(false);
+    expect(promptField()!.value).toBe('Черновой промпт');
+  });
+
+  it('блокирует новые правки на время сохранения и применяет ответ только к отправленному тексту', async () => {
+    const saving = deferred<AgentVersion>();
+    createDraft.mockReturnValue(saving.promise);
+    await renderEditor();
+    type(descriptionField()!, 'Отправленное описание');
+    type(promptField()!, 'Отправленный промпт');
+
+    click(byButton(mounted!.container, /Сохранить черновик/)!);
+    expect(descriptionField()!.disabled).toBe(true);
+    expect(promptField()!.disabled).toBe(true);
+    await actAsync(() => saving.resolve({
+      ...draft,
+      id: 'version-3',
+      description: 'Ответ сервера',
+      system_prompt: 'Ответ сервера',
+    }));
+    await flush();
+
+    expect(descriptionField()!.value).toBe('Отправленное описание');
+    expect(promptField()!.value).toBe('Отправленный промпт');
+    expect(descriptionField()!.disabled).toBe(false);
+  });
+
+  it('блокирует правки при публикации и публикует ровно просмотренный diff', async () => {
+    const publishing = deferred<AgentVersion>();
+    const publishedResult: AgentVersion = {
+      ...draft,
+      status: 'published',
+      published_at: '2026-01-03T10:00:00.000Z',
+      published_by: 'admin@linkeon.io',
+    };
+    publish.mockReturnValue(publishing.promise);
+    state
+      .mockResolvedValueOnce({ published, draft })
+      .mockResolvedValueOnce({ published: publishedResult, draft: null });
+    await renderEditor();
+    click(byButton(mounted!.container, /Показать diff/)!);
+    expect(mounted!.container.querySelector('.added')?.textContent).toContain('Черновой промпт');
+
+    click(byButton(mounted!.container, /^Опубликовать$/)!);
+    expect(descriptionField()!.disabled).toBe(true);
+    expect(promptField()!.disabled).toBe(true);
+    expect(publish).toHaveBeenCalledWith(7, 'version-2', 'version-1');
+    await actAsync(() => publishing.resolve(publishedResult));
+    await flush();
+
+    expect(promptField()!.value).toBe('Черновой промпт');
+    expect(promptField()!.readOnly).toBe(true);
+  });
+
   it('сохраняет точный черновик с текущей базой и не публикует его', async () => {
     await renderEditor();
     expect(descriptionField()?.value).toBe('Черновое описание');
@@ -174,6 +249,58 @@ describe('AgentVersionEditor', () => {
     expect(versions).toHaveBeenCalledWith(7, 50);
     expect(visibleText(mounted!.container)).toContain('Только чтение');
     expect(promptField()?.value).toBe('Проверенный промпт');
+  });
+
+  it('после успешной публикации ошибку refresh показывает отдельно и даёт повторить', async () => {
+    const publishedResult: AgentVersion = {
+      ...draft,
+      status: 'published',
+      published_at: '2026-01-03T10:00:00.000Z',
+      published_by: 'admin@linkeon.io',
+    };
+    publish.mockResolvedValue(publishedResult);
+    state
+      .mockResolvedValueOnce({ published, draft })
+      .mockRejectedValueOnce(new Error('Сеть недоступна'));
+    await renderEditor();
+    click(byButton(mounted!.container, /Показать diff/)!);
+    await clickAsync(byButton(mounted!.container, /^Опубликовать$/)!);
+    await flush();
+    await flush();
+
+    expect(visibleText(mounted!.container)).toContain('Опубликовано, но не удалось обновить состояние');
+    expect(visibleText(mounted!.container)).not.toContain('Не удалось опубликовать версию');
+    expect(promptField()?.value).toBe('Черновой промпт');
+    expect(promptField()?.readOnly).toBe(true);
+
+    state.mockResolvedValue({ published: publishedResult, draft: null });
+    await clickAsync(byButton(mounted!.container, /Повторить обновление/)!);
+    await flush();
+    expect(visibleText(mounted!.container)).not.toContain('Опубликовано, но не удалось обновить состояние');
+    expect(state).toHaveBeenCalledTimes(3);
+  });
+
+  it('ошибка refresh после конфликта видна, имеет retry и не затирает текст', async () => {
+    createDraft.mockRejectedValue({ status: 409 });
+    state
+      .mockResolvedValueOnce({ published, draft })
+      .mockRejectedValueOnce(new Error('Сеть недоступна'));
+    await renderEditor();
+    type(promptField()!, 'Локальный несохранённый промпт');
+    await clickAsync(byButton(mounted!.container, /Сохранить черновик/)!);
+    await flush();
+    await flush();
+
+    expect(visibleText(mounted!.container)).toContain('Версия изменилась другим администратором');
+    expect(visibleText(mounted!.container)).toContain('Не удалось обновить состояние после конфликта');
+    expect(promptField()?.value).toBe('Локальный несохранённый промпт');
+
+    state.mockResolvedValue({ published, draft });
+    await clickAsync(byButton(mounted!.container, /Повторить обновление/)!);
+    await flush();
+    expect(visibleText(mounted!.container)).not.toContain('Не удалось обновить состояние после конфликта');
+    expect(promptField()?.value).toBe('Локальный несохранённый промпт');
+    expect(state).toHaveBeenCalledTimes(3);
   });
 
   it('конфликт 409 перезагружает состояние для diff, но не затирает локальный текст', async () => {
@@ -304,13 +431,18 @@ describe('AgentVersionEditor', () => {
     expect(oldRow.textContent).toContain('editor@linkeon.io');
     expect(oldRow.textContent).not.toContain('Старый промпт');
 
-    click(byButton(oldRow as HTMLElement, /Показать промпт/)!);
+    const expandButton = byButton(oldRow as HTMLElement, /Показать промпт/)!;
+    const promptContainerId = expandButton.getAttribute('aria-controls');
+    expect(promptContainerId).toBeTruthy();
+    click(expandButton);
     const historicalPrompt = oldRow.querySelector('textarea')!;
+    expect(historicalPrompt.id).toBe(promptContainerId);
     expect(historicalPrompt.readOnly).toBe(true);
     expect(historicalPrompt.value).toBe('Старый промпт');
     click(byButton(oldRow as HTMLElement, /Скрыть промпт/)!);
     expect(oldRow.querySelector('textarea')).toBeNull();
     click(byButton(oldRow as HTMLElement, /Показать промпт/)!);
+    expect(oldRow.querySelector('textarea')!.id).toBe(promptContainerId);
 
     await clickAsync(byButton(oldRow as HTMLElement, /Создать черновик из версии/)!);
     await flush();

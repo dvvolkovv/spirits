@@ -47,7 +47,6 @@ const AgentVersionEditor: React.FC<Props> = ({
   const initialRef = useRef({ initialDescription, initialPrompt });
   initialRef.current = { initialDescription, initialPrompt };
 
-  const [activeAgentId, setActiveAgentId] = useState(agentId);
   const [mode, setMode] = useState<Mode>('draft');
   const [published, setPublished] = useState<AgentVersion | null>(null);
   const [draft, setDraft] = useState<AgentVersion | null>(null);
@@ -57,6 +56,7 @@ const AgentVersionEditor: React.FC<Props> = ({
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [refreshFailure, setRefreshFailure] = useState<'publish' | 'conflict' | null>(null);
   const [busy, setBusy] = useState(true);
   const [history, setHistory] = useState<AgentVersion[]>([]);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
@@ -64,18 +64,11 @@ const AgentVersionEditor: React.FC<Props> = ({
   const [diffViewed, setDiffViewed] = useState(false);
 
   useEffect(() => {
-    if (agentId === activeAgentId) return;
-    if (dirty && !window.confirm('Есть несохранённые изменения. Переключить ассистента и потерять их?')) {
-      return;
-    }
-    setActiveAgentId(agentId);
-  }, [agentId, activeAgentId, dirty]);
-
-  useEffect(() => {
     let cancelled = false;
     setBusy(true);
     setError(null);
     setNotice(null);
+    setRefreshFailure(null);
     setMode('draft');
     setPublished(null);
     setDraft(null);
@@ -88,7 +81,7 @@ const AgentVersionEditor: React.FC<Props> = ({
     setShowDiff(false);
     setDiffViewed(false);
 
-    agentVersionsApi.state(activeAgentId)
+    agentVersionsApi.state(agentId)
       .then((next) => {
         if (cancelled) return;
         const source = next.draft ?? next.published;
@@ -108,7 +101,7 @@ const AgentVersionEditor: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [activeAgentId]);
+  }, [agentId]);
 
   useEffect(() => {
     onDirtyChange?.(dirty);
@@ -129,7 +122,7 @@ const AgentVersionEditor: React.FC<Props> = ({
     let cancelled = false;
     setBusy(true);
     setError(null);
-    agentVersionsApi.versions(activeAgentId, 50)
+    agentVersionsApi.versions(agentId, 50)
       .then((items) => {
         if (!cancelled) setHistory(items);
       })
@@ -142,7 +135,7 @@ const AgentVersionEditor: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [mode, activeAgentId]);
+  }, [mode, agentId]);
 
   const diff = useMemo(
     () => lineDiff(published?.system_prompt ?? '', prompt),
@@ -177,8 +170,8 @@ const AgentVersionEditor: React.FC<Props> = ({
 
   const reloadAfterConflict = async () => {
     const [nextState, nextHistory] = await Promise.all([
-      agentVersionsApi.state(activeAgentId),
-      agentVersionsApi.versions(activeAgentId, 50),
+      agentVersionsApi.state(agentId),
+      agentVersionsApi.versions(agentId, 50),
     ]);
     setPublished(nextState.published);
     setDraft(nextState.draft);
@@ -186,6 +179,30 @@ const AgentVersionEditor: React.FC<Props> = ({
     setBaseVersionId(nextState.draft?.id ?? nextState.published?.id ?? null);
     setShowDiff(false);
     setDiffViewed(false);
+  };
+
+  const recoverConflict = async () => {
+    setError('Версия изменилась другим администратором');
+    try {
+      await reloadAfterConflict();
+      setRefreshFailure(null);
+    } catch {
+      setRefreshFailure('conflict');
+    }
+  };
+
+  const refreshPublishedState = async (publishedVersion: AgentVersion) => {
+    const [nextState, nextHistory] = await Promise.all([
+      agentVersionsApi.state(agentId),
+      agentVersionsApi.versions(agentId, 50),
+    ]);
+    const currentPublished = nextState.published ?? publishedVersion;
+    setPublished(currentPublished);
+    setDraft(nextState.draft);
+    setHistory(nextHistory);
+    setBaseVersionId(nextState.draft?.id ?? currentPublished.id);
+    setDescription(currentPublished.description);
+    setPrompt(currentPublished.system_prompt);
   };
 
   const saveDraft = async () => {
@@ -197,8 +214,9 @@ const AgentVersionEditor: React.FC<Props> = ({
     setBusy(true);
     setError(null);
     setNotice(null);
+    setRefreshFailure(null);
     try {
-      const saved = await agentVersionsApi.createDraft(activeAgentId, {
+      const saved = await agentVersionsApi.createDraft(agentId, {
         description,
         system_prompt: prompt,
         base_version_id: baseVersionId,
@@ -211,8 +229,7 @@ const AgentVersionEditor: React.FC<Props> = ({
       setNotice('Черновик сохранён. Опубликованная версия не изменилась.');
     } catch (saveError: unknown) {
       if (isConflict(saveError)) {
-        setError('Версия изменилась другим администратором');
-        await reloadAfterConflict().catch(() => undefined);
+        await recoverConflict();
       } else {
         setError(`Не удалось сохранить черновик: ${errorMessage(saveError, 'неизвестная ошибка')}`);
       }
@@ -238,41 +255,41 @@ const AgentVersionEditor: React.FC<Props> = ({
     setBusy(true);
     setError(null);
     setNotice(null);
+    setRefreshFailure(null);
+
+    let publishedVersion: AgentVersion;
     try {
-      const publishedVersion = await agentVersionsApi.publish(
-        activeAgentId,
+      publishedVersion = await agentVersionsApi.publish(
+        agentId,
         draft.id,
         published?.id ?? null,
       );
-      setPublished(publishedVersion);
-      setDraft(null);
-      setBaseVersionId(publishedVersion.id);
-      setDescription(publishedVersion.description);
-      setPrompt(publishedVersion.system_prompt);
-      setDirty(false);
-      setShowDiff(false);
-      setDiffViewed(false);
-      setMode('published');
-
-      const [nextState, nextHistory] = await Promise.all([
-        agentVersionsApi.state(activeAgentId),
-        agentVersionsApi.versions(activeAgentId, 50),
-      ]);
-      const currentPublished = nextState.published ?? publishedVersion;
-      setPublished(nextState.published);
-      setDraft(nextState.draft);
-      setHistory(nextHistory);
-      setBaseVersionId(nextState.draft?.id ?? currentPublished.id);
-      setDescription(currentPublished.description);
-      setPrompt(currentPublished.system_prompt);
-      setNotice('Версия опубликована.');
     } catch (publishError: unknown) {
       if (isConflict(publishError)) {
-        setError('Версия изменилась другим администратором');
-        await reloadAfterConflict().catch(() => undefined);
+        await recoverConflict();
       } else {
         setError(`Не удалось опубликовать версию: ${errorMessage(publishError, 'неизвестная ошибка')}`);
       }
+      setBusy(false);
+      return;
+    }
+
+    setPublished(publishedVersion);
+    setDraft(null);
+    setBaseVersionId(publishedVersion.id);
+    setDescription(publishedVersion.description);
+    setPrompt(publishedVersion.system_prompt);
+    setDirty(false);
+    setShowDiff(false);
+    setDiffViewed(false);
+    setMode('published');
+    setNotice('Версия опубликована.');
+
+    try {
+      await refreshPublishedState(publishedVersion);
+      setRefreshFailure(null);
+    } catch {
+      setRefreshFailure('publish');
     } finally {
       setBusy(false);
     }
@@ -284,8 +301,9 @@ const AgentVersionEditor: React.FC<Props> = ({
     setBusy(true);
     setError(null);
     setNotice(null);
+    setRefreshFailure(null);
     try {
-      const created = await agentVersionsApi.createDraft(activeAgentId, {
+      const created = await agentVersionsApi.createDraft(agentId, {
         description: version.description,
         system_prompt: version.system_prompt,
         base_version_id: latest.id,
@@ -301,11 +319,28 @@ const AgentVersionEditor: React.FC<Props> = ({
       setNotice(`Черновик создан из версии ${version.version}.`);
     } catch (createError: unknown) {
       if (isConflict(createError)) {
-        setError('Версия изменилась другим администратором');
-        await reloadAfterConflict().catch(() => undefined);
+        await recoverConflict();
       } else {
         setError(`Не удалось создать черновик из версии: ${errorMessage(createError, 'неизвестная ошибка')}`);
       }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const retryRefresh = async () => {
+    if (!refreshFailure || busy) return;
+    const failure = refreshFailure;
+    setBusy(true);
+    try {
+      if (failure === 'publish' && published) {
+        await refreshPublishedState(published);
+      } else if (failure === 'conflict') {
+        await reloadAfterConflict();
+      }
+      setRefreshFailure(null);
+    } catch {
+      setRefreshFailure(failure);
     } finally {
       setBusy(false);
     }
@@ -343,6 +378,23 @@ const AgentVersionEditor: React.FC<Props> = ({
       {error && (
         <div role="alert" className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
           {error}
+        </div>
+      )}
+      {refreshFailure && (
+        <div role="alert" className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900 flex flex-wrap items-center gap-3">
+          <span>
+            {refreshFailure === 'publish'
+              ? 'Опубликовано, но не удалось обновить состояние'
+              : 'Не удалось обновить состояние после конфликта'}
+          </span>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={retryRefresh}
+            className="px-3 py-1 border border-amber-400 rounded-lg hover:bg-amber-100 disabled:opacity-50"
+          >
+            Повторить обновление
+          </button>
         </div>
       )}
       {notice && (
@@ -393,12 +445,13 @@ const AgentVersionEditor: React.FC<Props> = ({
           {dirty && <p className="text-sm text-amber-600">Есть несохранённые изменения</p>}
 
           <div>
-            <label htmlFor={`agent-description-${activeAgentId}`} className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor={`agent-description-${agentId}`} className="block text-sm font-medium text-gray-700 mb-2">
               Описание ассистента
             </label>
             <textarea
-              id={`agent-description-${activeAgentId}`}
+              id={`agent-description-${agentId}`}
               value={description}
+              disabled={busy}
               onChange={(event) => {
                 setDescription(event.target.value);
                 markDirty();
@@ -409,12 +462,13 @@ const AgentVersionEditor: React.FC<Props> = ({
           </div>
 
           <div>
-            <label htmlFor={`agent-prompt-${activeAgentId}`} className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor={`agent-prompt-${agentId}`} className="block text-sm font-medium text-gray-700 mb-2">
               Системный промпт
             </label>
             <textarea
-              id={`agent-prompt-${activeAgentId}`}
+              id={`agent-prompt-${agentId}`}
               value={prompt}
+              disabled={busy}
               onChange={(event) => {
                 setPrompt(event.target.value);
                 markDirty();
@@ -460,22 +514,22 @@ const AgentVersionEditor: React.FC<Props> = ({
             {metadata(published)}
           </div>
           <div>
-            <label htmlFor={`agent-description-${activeAgentId}`} className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor={`agent-description-${agentId}`} className="block text-sm font-medium text-gray-700 mb-2">
               Описание ассистента
             </label>
             <textarea
-              id={`agent-description-${activeAgentId}`}
+              id={`agent-description-${agentId}`}
               readOnly
               value={published?.description ?? ''}
               className="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700"
             />
           </div>
           <div>
-            <label htmlFor={`agent-prompt-${activeAgentId}`} className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor={`agent-prompt-${agentId}`} className="block text-sm font-medium text-gray-700 mb-2">
               Системный промпт
             </label>
             <textarea
-              id={`agent-prompt-${activeAgentId}`}
+              id={`agent-prompt-${agentId}`}
               readOnly
               value={published?.system_prompt ?? ''}
               className="w-full h-96 px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 font-mono text-sm text-gray-700"
@@ -516,6 +570,7 @@ const AgentVersionEditor: React.FC<Props> = ({
                       <button
                         type="button"
                         aria-expanded={expandedHistoryId === version.id}
+                        aria-controls={`agent-history-prompt-${version.id}`}
                         onClick={() => setExpandedHistoryId(
                           expandedHistoryId === version.id ? null : version.id,
                         )}
@@ -535,6 +590,7 @@ const AgentVersionEditor: React.FC<Props> = ({
                   </div>
                   {expandedHistoryId === version.id && (
                     <textarea
+                      id={`agent-history-prompt-${version.id}`}
                       aria-label={`Системный промпт версии ${version.version}`}
                       readOnly
                       value={version.system_prompt}

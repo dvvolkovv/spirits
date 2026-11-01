@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
+import { useSpaNavigationGuard } from '../hooks/useSpaNavigationGuard';
 import AdminAssistantsView from '../components/admin/AdminAssistantsView';
 import AdminCouponsView from '../components/admin/AdminCouponsView';
 import AdminReferralsView from '../components/admin/AdminReferralsView';
@@ -39,13 +40,21 @@ const AdminPage: React.FC = () => {
   const aliasResolved = TAB_ALIASES[rawTab] ?? (rawTab as AdminTab);
   const initialTab: AdminTab = KNOWN_TABS.includes(aliasResolved) ? aliasResolved : 'support';
   const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
+  const [assistantsDirty, setAssistantsDirty] = useState(false);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+  useSpaNavigationGuard(
+    activeTab === 'assistants' && assistantsDirty,
+    'Есть несохранённые изменения. Покинуть раздел и потерять их?',
+  );
 
   // Переключение раздела пишет ?tab=<id> в URL → раздел переживает F5 и
   // ложится в историю браузера (back/forward). replace, чтобы каждый клик не
   // плодил запись в истории (задача 748eb4b0).
   const selectTab = (id: AdminTab) => {
-    setActiveTab(id);
+    if (id === activeTab) return;
+    if (!(activeTab === 'assistants' && assistantsDirty)) {
+      setActiveTab(id);
+    }
     const next = new URLSearchParams(params);
     next.set('tab', id);
     setSearchParams(next, { replace: true });
@@ -135,7 +144,12 @@ const AdminPage: React.FC = () => {
         {activeTab === 'tokens' && <AdminTokensView />}
         {activeTab === 'usage' && <AdminUsageView />}
         {activeTab === 'calls' && <AdminCallsView />}
-        {activeTab === 'assistants' && <AdminAssistantsView />}
+        {activeTab === 'assistants' && (
+          <AdminAssistantsView
+            editorDirty={assistantsDirty}
+            onEditorDirtyChange={setAssistantsDirty}
+          />
+        )}
         {activeTab === 'coupons' && <AdminCouponsView />}
         {activeTab === 'referrals' && <AdminReferralsView />}
         {activeTab === 'retention' && <AdminRetentionView />}
