@@ -62,7 +62,12 @@ const published: AgentVersion = {
 
 const RouteLink = () => {
   const navigate = useNavigate();
-  return <button type="button" onClick={() => navigate('/chat')}>Открыть чат</button>;
+  return (
+    <>
+      <button type="button" onClick={() => navigate('/chat')}>Открыть чат</button>
+      <button type="button" onClick={() => navigate('/admin')}>Главная админки</button>
+    </>
+  );
 };
 
 let mounted: Mounted | undefined;
@@ -205,5 +210,25 @@ describe('защита несохранённых правок в SPA', () => {
     await flush();
     await clickAsync(byButton(mounted!.container, /^Райя$/));
     expect(confirm).toHaveBeenCalledOnce();
+  });
+
+  it('main Admin link оставляет dirty: следующая вкладка снова требует подтверждения', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await renderAdmin();
+    await clickAsync(byButton(mounted!.container, /^Райя$/));
+    await flush();
+    type(byLabel(mounted!.container, /Системный промпт/)!, 'Несохранённая правка');
+    await flush();
+
+    click(byButton(mounted!.container, /Главная админки/)!);
+    await flush();
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(window.location.pathname).toBe('/admin');
+    expect(byLabel(mounted!.container, /Системный промпт/)?.value).toBe('Несохранённая правка');
+
+    click(mounted!.container.querySelector('[data-testid="admin-tab-users"]')!);
+    await flush();
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(visibleText(mounted!.container)).toContain('РАЗДЕЛ-ПОЛЬЗОВАТЕЛИ');
   });
 });

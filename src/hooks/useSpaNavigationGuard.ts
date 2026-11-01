@@ -1,10 +1,6 @@
 import { useEffect } from 'react';
 
-export function useSpaNavigationGuard(
-  when: boolean,
-  message: string,
-  onAllow: () => void = () => {},
-): void {
+export function useSpaNavigationGuard(when: boolean, message: string): void {
   useEffect(() => {
     if (!when) return;
 
@@ -24,7 +20,6 @@ export function useSpaNavigationGuard(
       url?: string | URL | null,
     ) {
       if (!window.confirm(message)) return;
-      onAllow();
       original.call(this, data, title, url);
       rememberCurrent();
     };
@@ -41,8 +36,7 @@ export function useSpaNavigationGuard(
         return;
       }
       if (window.confirm(message)) {
-        onAllow();
-        rememberCurrent();
+          rememberCurrent();
         return;
       }
       event.preventDefault();
@@ -67,5 +61,5 @@ export function useSpaNavigationGuard(
         browserHistory.replaceState = originalReplaceState;
       }
     };
-  }, [when, message, onAllow]);
+  }, [when, message]);
 }

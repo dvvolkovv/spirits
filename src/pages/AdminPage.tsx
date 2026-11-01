@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useSearchParams } from 'react-router-dom';
@@ -42,12 +42,13 @@ const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>(initialTab);
   const [assistantsDirty, setAssistantsDirty] = useState(false);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
-  const clearAssistantsDirty = useCallback(() => setAssistantsDirty(false), []);
   useSpaNavigationGuard(
     activeTab === 'assistants' && assistantsDirty,
     'Есть несохранённые изменения. Покинуть раздел и потерять их?',
-    clearAssistantsDirty,
   );
+  useEffect(() => {
+    if (activeTab !== 'assistants') setAssistantsDirty(false);
+  }, [activeTab]);
 
   // Переключение раздела пишет ?tab=<id> в URL → раздел переживает F5 и
   // ложится в историю браузера (back/forward). replace, чтобы каждый клик не
