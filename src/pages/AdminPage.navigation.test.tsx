@@ -72,14 +72,23 @@ const RouteLink = () => {
 
 let mounted: Mounted | undefined;
 
-const goHistory = async (delta: number, expectedPathname: string) => {
-  await actAsync(async () => {
-    window.history.go(delta);
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      if (window.location.pathname === expectedPathname) return;
-    }
-  });
+const goHistory = async (delta: number, expectedPathname: string, expectedPopStates = 1) => {
+  let popStates = 0;
+  const countPopState = () => {
+    popStates += 1;
+  };
+  window.addEventListener('popstate', countPopState, true);
+  try {
+    await actAsync(async () => {
+      window.history.go(delta);
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        if (popStates >= expectedPopStates && window.location.pathname === expectedPathname) return;
+      }
+    });
+  } finally {
+    window.removeEventListener('popstate', countPopState, true);
+  }
   await flush();
 };
 
@@ -151,7 +160,7 @@ describe('защита несохранённых правок в SPA', () => {
     type(byLabel(mounted!.container, /Системный промпт/)!, 'Несохранённая правка');
     await flush();
 
-    await goHistory(-1, '/admin');
+    await goHistory(-1, '/admin', 2);
     expect(confirm).toHaveBeenCalledOnce();
     expect(window.location.pathname).toBe('/admin');
     expect(byLabel(mounted!.container, /Системный промпт/)?.value).toBe('Несохранённая правка');
@@ -176,7 +185,7 @@ describe('защита несохранённых правок в SPA', () => {
     type(byLabel(mounted!.container, /Системный промпт/)!, 'Несохранённая правка');
     await flush();
 
-    await goHistory(1, '/admin');
+    await goHistory(1, '/admin', 2);
     expect(confirm).toHaveBeenCalledOnce();
     expect(window.location.pathname).toBe('/admin');
     expect(byLabel(mounted!.container, /Системный промпт/)?.value).toBe('Несохранённая правка');
