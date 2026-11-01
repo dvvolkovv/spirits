@@ -128,8 +128,8 @@ describe('AgentVersionEditor', () => {
     }));
     await flush();
 
-    expect(descriptionField()!.value).toBe('Отправленное описание');
-    expect(promptField()!.value).toBe('Отправленный промпт');
+    expect(descriptionField()!.value).toBe('Ответ сервера');
+    expect(promptField()!.value).toBe('Ответ сервера');
     expect(descriptionField()!.disabled).toBe(false);
   });
 
@@ -161,6 +161,11 @@ describe('AgentVersionEditor', () => {
   });
 
   it('сохраняет точный черновик с текущей базой и не публикует его', async () => {
+    createDraft.mockResolvedValue({
+      ...draft,
+      description: 'Новое описание без сокращений',
+      system_prompt: 'Новый промпт\nВторая строка',
+    });
     await renderEditor();
     expect(descriptionField()?.value).toBe('Черновое описание');
     expect(promptField()?.value).toBe('Черновой промпт');
@@ -371,6 +376,77 @@ describe('AgentVersionEditor', () => {
     expect(byButton(mounted!.container, /^Черновик$/)?.getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('remote draft C после конфликта публикации не заменяет local A и остаётся заблокированным', async () => {
+    const remotePublished: AgentVersion = {
+      ...published,
+      id: 'version-remote',
+      system_prompt: 'Опубликовано другим администратором',
+    };
+    const remoteDraft: AgentVersion = {
+      ...draft,
+      id: 'version-c',
+      description: 'Описание C',
+      system_prompt: 'Промпт C',
+      base_version_id: 'version-remote',
+    };
+    publish.mockRejectedValue({ status: 409 });
+    state
+      .mockResolvedValueOnce({ published, draft })
+      .mockResolvedValueOnce({ published: remotePublished, draft: remoteDraft });
+    versions.mockResolvedValue([remoteDraft, remotePublished]);
+    await renderEditor();
+    click(byButton(mounted!.container, /Показать diff/)!);
+    await clickAsync(byButton(mounted!.container, /^Опубликовать$/)!);
+    await flush();
+    await flush();
+
+    expect(promptField()?.value).toBe('Черновой промпт');
+    expect(visibleText(mounted!.container)).toContain('Версия изменилась другим администратором');
+    expect(testInput()).toBeNull();
+
+    click(byButton(mounted!.container, /Показать diff/)!);
+    expect(byButton(mounted!.container, /^Опубликовать$/)!.disabled).toBe(true);
+    expect(testInput()).toBeNull();
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(testVersion).not.toHaveBeenCalled();
+  });
+
+  it('remote draft C при refresh после публикации не затирает local A и требует rebase', async () => {
+    const publishedResult: AgentVersion = {
+      ...draft,
+      status: 'published',
+      published_at: '2026-01-03T10:00:00.000Z',
+      published_by: 'admin@linkeon.io',
+    };
+    const remoteDraft: AgentVersion = {
+      ...draft,
+      id: 'version-c',
+      description: 'Описание C',
+      system_prompt: 'Промпт C',
+    };
+    publish.mockResolvedValue(publishedResult);
+    state
+      .mockResolvedValueOnce({ published, draft })
+      .mockResolvedValueOnce({ published: publishedResult, draft: remoteDraft });
+    versions.mockResolvedValue([remoteDraft, publishedResult]);
+    await renderEditor();
+    click(byButton(mounted!.container, /Показать diff/)!);
+    await clickAsync(byButton(mounted!.container, /^Опубликовать$/)!);
+    await flush();
+    await flush();
+
+    expect(promptField()?.value).toBe('Черновой промпт');
+    expect(promptField()?.readOnly).toBe(true);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    click(byButton(mounted!.container, /^Черновик$/)!);
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(promptField()?.value).toBe('Черновой промпт');
+    expect(byButton(mounted!.container, /^Опубликовано$/)?.getAttribute('aria-pressed')).toBe('true');
+    expect(testInput()).toBeNull();
+    expect(testVersion).not.toHaveBeenCalled();
+  });
+
   it('конфликт создания из истории перезагружает состояние и историю', async () => {
     const old: AgentVersion = { ...published, id: 'version-old', status: 'superseded' };
     const remotePublished: AgentVersion = { ...published, id: 'version-remote' };
@@ -461,6 +537,28 @@ describe('AgentVersionEditor', () => {
     expect(descriptionField()?.value).toBe('Старое описание');
     expect(promptField()?.value).toBe('Старый промпт');
     expect(byButton(mounted!.container, /^Черновик$/)?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('принимает server-trimmed текст после сохранения и оставляет test/publish согласованными', async () => {
+    const saved: AgentVersion = {
+      ...draft,
+      id: 'version-normalized',
+      description: 'Нормализованное описание',
+      system_prompt: 'Нормализованный промпт',
+    };
+    createDraft.mockResolvedValue(saved);
+    await renderEditor();
+    type(descriptionField()!, '  Нормализованное описание  ');
+    type(promptField()!, '  Нормализованный промпт\n');
+
+    await clickAsync(byButton(mounted!.container, /Сохранить черновик/)!);
+    await flush();
+
+    expect(descriptionField()?.value).toBe('Нормализованное описание');
+    expect(promptField()?.value).toBe('Нормализованный промпт');
+    click(byButton(mounted!.container, /Показать diff/)!);
+    expect(byButton(mounted!.container, /^Опубликовать$/)!.disabled).toBe(false);
+    expect(testInput()).not.toBeNull();
   });
 
   it('тестирует сохранённый черновик и показывает ответ со стоимостью в токенах', async () => {

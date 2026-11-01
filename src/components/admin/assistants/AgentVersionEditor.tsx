@@ -169,6 +169,18 @@ const AgentVersionEditor: React.FC<Props> = ({
     setMode(nextMode);
   };
 
+  const markDraftDivergence = (
+    nextDraft: AgentVersion | null,
+    localDescription = description,
+    localPrompt = prompt,
+  ) => {
+    if (nextDraft && (
+      localDescription !== nextDraft.description || localPrompt !== nextDraft.system_prompt
+    )) {
+      setDirty(true);
+    }
+  };
+
   const reloadAfterConflict = async () => {
     const [nextState, nextHistory] = await Promise.all([
       agentVersionsApi.state(agentId),
@@ -180,6 +192,7 @@ const AgentVersionEditor: React.FC<Props> = ({
     setBaseVersionId(nextState.draft?.id ?? nextState.published?.id ?? null);
     setShowDiff(false);
     setDiffViewed(false);
+    markDraftDivergence(nextState.draft);
   };
 
   const recoverConflict = async () => {
@@ -204,6 +217,11 @@ const AgentVersionEditor: React.FC<Props> = ({
     setBaseVersionId(nextState.draft?.id ?? currentPublished.id);
     setDescription(currentPublished.description);
     setPrompt(currentPublished.system_prompt);
+    markDraftDivergence(
+      nextState.draft,
+      currentPublished.description,
+      currentPublished.system_prompt,
+    );
   };
 
   const saveDraft = async () => {
@@ -224,6 +242,8 @@ const AgentVersionEditor: React.FC<Props> = ({
       });
       setDraft(saved);
       setBaseVersionId(saved.id);
+      setDescription(saved.description);
+      setPrompt(saved.system_prompt);
       setDirty(false);
       setShowDiff(false);
       setDiffViewed(false);
@@ -247,9 +267,13 @@ const AgentVersionEditor: React.FC<Props> = ({
     setError(null);
   };
 
+  const draftMatchesLocal = !!draft &&
+    draft.description === description && draft.system_prompt === prompt;
+
   const publishDraft = async () => {
     if (busy) return;
-    if (!draft || dirty || !diffViewed) {
+    if (!draft || dirty || !diffViewed || !draftMatchesLocal) {
+      if (draft && !draftMatchesLocal) setDirty(true);
       setError('Сначала сохраните черновик и посмотрите diff');
       return;
     }
@@ -366,7 +390,7 @@ const AgentVersionEditor: React.FC<Props> = ({
       Версия {version.version} · {statusLabels[version.status]} · {version.created_by} · {formatDate(version.created_at)}
     </p>
   );
-  const publishUnavailable = busy || !draft || dirty || !diffViewed;
+  const publishUnavailable = busy || !draft || dirty || !diffViewed || !draftMatchesLocal;
 
   return (
     <div className="space-y-5">
@@ -506,7 +530,7 @@ const AgentVersionEditor: React.FC<Props> = ({
             </section>
           )}
 
-          {draft && !dirty && (
+          {draft && !dirty && draftMatchesLocal && (
             <AgentTestChat key={draft.id} agentId={agentId} versionId={draft.id} />
           )}
         </>
