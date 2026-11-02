@@ -3442,7 +3442,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       настоящий (релей пре-эмптит процесс сессии). Подпись это
                       говорит прямо: «Отправить всё равно» жали из нетерпения и
                       убивали работу (находка «Затыков недели» 2ff1a026). */}
-                  <p id={sendAnywayHintId} className="mt-1 text-xs text-gray-400">{t('chat.send_anyway_hint')}</p>
+                  <p id={sendAnywayHintId} className="mt-1 text-xs text-gray-500">{t('chat.send_anyway_hint')}</p>
                 </>
               )}
             </div>
