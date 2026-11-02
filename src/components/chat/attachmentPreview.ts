@@ -31,8 +31,13 @@ export function imageAttachmentPreview(href: string): ImageAttachmentPreview | n
     return null;
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-  const relative = href.startsWith('/');
-  if (!relative && !OUR_HOSTS.has(url.hostname)) return null;
+  // Хост проверяем ВСЕГДА, а не только когда href не начинается с «/»:
+  // «//evil.example/…» и «/\evil.example/…» тоже начинаются с «/», но
+  // резолвятся в чужой hostname (протокол-относительный адрес и обратная
+  // косая, которую URL для http/https приравнивает к прямой) — настоящий
+  // относительный путь вида «/smm-media/…» при этом резолвится от базы
+  // https://my.linkeon.io и проходит эту же проверку как свой хост.
+  if (!OUR_HOSTS.has(url.hostname)) return null;
   if (!url.pathname.startsWith(PREFIX)) return null;
 
   const rawKey = url.pathname.slice(PREFIX.length);
@@ -42,7 +47,13 @@ export function imageAttachmentPreview(href: string): ImageAttachmentPreview | n
   } catch {
     return null;
   }
-  if (segments.some((s) => s === '' || s === '.' || s === '..')) return null;
+  // Раскодированный сегмент со «/» или «\» внутри — закодированный слэш
+  // (%2F) в исходном href: split резал по НЕраскодированному пути, и такой
+  // слэш проявляется только после decodeURIComponent, уже внутри «одного»
+  // сегмента — а значит мимо проверки на «..» строкой выше, с тем же
+  // эффектом (выход из каталога ключа бакета, см. тест «закодированный
+  // слэш в имени»).
+  if (segments.some((s) => s === '' || s === '.' || s === '..' || s.includes('/') || s.includes('\\'))) return null;
   const key = segments.join('/');
   if (!IMAGE_RE.test(key)) return null;
   const src = `linkeon-chat-files/${key}`;
