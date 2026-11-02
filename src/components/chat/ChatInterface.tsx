@@ -66,6 +66,8 @@ import { askBlocksToPlainText } from '../../utils/askBlock';
 import { stripProductActionBlocks } from '../../utils/productActionBlock';
 import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';
 import { createChunkDecoder } from '../../utils/streamDecoder';
+import ChatImageAttachment from './ChatImageAttachment';
+import { imageAttachmentPreview } from './attachmentPreview';
 
 interface Assistant {
   id: number;
@@ -473,6 +475,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <a href={href} className="ym-disable-tracklink text-forest-600 hover:text-forest-700 underline">
             {children}
           </a>
+        );
+      }
+      // Картинка из файлов чата («Скачать схема.jpg») — миниатюрой в ленте,
+      // а не одной ссылкой: иначе её приходится скачивать, чтобы увидеть
+      // (attachmentPreview.ts). Открывается тем же путём, что и ссылка.
+      const attachment = href ? imageAttachmentPreview(href) : null;
+      if (attachment) {
+        return (
+          <ChatImageAttachment
+            thumbUrl={attachment.thumbUrl}
+            fullUrl={attachment.fullUrl}
+            alt={typeof children === 'string' ? children : t('chat.image_alt')}
+            onOpen={() => window.open(attachment.fullUrl, '_blank', 'noopener,noreferrer')}
+          >
+            {children}
+          </ChatImageAttachment>
         );
       }
       return (

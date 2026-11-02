@@ -53,6 +53,7 @@ const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx
 const AdminProductCardSrc = readFileSync(join(__dirname, 'admin', 'AdminProductCard.tsx'), 'utf8');
 const CustomMarkdownSrc = readFileSync(join(__dirname, '..', 'utils', 'customMarkdown.tsx'), 'utf8');
 const GuestChatSrc = readFileSync(join(__dirname, 'guest', 'GuestChat.tsx'), 'utf8');
+const ChatImageAttachmentSrc = readFileSync(join(__dirname, 'chat', 'ChatImageAttachment.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -383,6 +384,7 @@ describe('ссылки переписки мимо «Внешних перехо
     ['ChatInterface.tsx', ChatInterface],
     ['customMarkdown.tsx', CustomMarkdownSrc],
     ['GuestChat.tsx', GuestChatSrc],
+    ['ChatImageAttachment.tsx', ChatImageAttachmentSrc],
   ])('каждая ссылка в %s — с ym-disable-tracklink', (_name, src) => {
     const found = anchors(src);
     expect(found.length).toBeGreaterThan(0);
