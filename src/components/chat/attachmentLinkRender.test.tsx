@@ -4,8 +4,14 @@
 // реально пишет бэк (spirits_back/src/chat/chat-files/relay-links.ts:
 // outputFileLines → `[Скачать ${name}](${url})`; имя в адресе кодируется
 // encodeStrict из file-meta.ts — encodeURIComponent плюс ' ( ) * ! —
-// сырыми они ломают markdown-ссылку на первой же «)»), должна пройти
-// react-markdown + remark-gfm и узнаться imageAttachmentPreview по href,
+// сырыми они ломают markdown-ссылку на первой же «)»), должна пройти через
+// то же, через что лента реально её гонит — сначала parseCustomMarkdown
+// (ChatInterface.tsx отдаёт результат в ReactMarkdown, а не исходный текст
+// ассистента; у customMarkdown.tsx своя регулярка автоссылок на картинку,
+// IMAGE_URL_REGEX, и важно убедиться, что она НЕ трогает адрес внутри уже
+// готовой markdown-ссылки — иначе до react-markdown доехал бы не текст
+// ссылки, а маркер __IMAGE_n__, и a ниже не нашёл бы её вовсе), потом
+// react-markdown + remark-gfm — и узнаться imageAttachmentPreview по href,
 // который РЕАЛЬНО отдаёт парсер — а не по тому, что мы предполагаем, что он
 // отдаёт. Окружение node: разметка рисуется строкой, как в
 // cabinetLinksRender.test.tsx.
@@ -13,11 +19,13 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { parseCustomMarkdown } from '../../utils/customMarkdown';
 import { imageAttachmentPreview } from './attachmentPreview';
 
-/** href всех ссылок, которые react-markdown нарисует из этого текста. */
+/** href всех ссылок, которые react-markdown нарисует из этого текста — после parseCustomMarkdown, как в ленте. */
 function hrefs(markdown: string): string[] {
-  const html = renderToStaticMarkup(<ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>);
+  const { content } = parseCustomMarkdown(markdown);
+  const html = renderToStaticMarkup(<ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>);
   return [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1].replace(/&amp;/g, '&'));
 }
 
@@ -51,5 +59,6 @@ describe('ссылка на картинку в формате бэка (relay-l
     const a = imageAttachmentPreview(found[0]);
     expect(a).not.toBeNull();
     expect(a!.name).toBe('схема.webp');
+    expect(a!.fullUrl).toBe(url);
   });
 });
