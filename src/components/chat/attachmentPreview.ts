@@ -1,25 +1,26 @@
-import { thumbUrlFor } from './files/chatFiles';
-
 /**
- * Ссылка «Скачать имя.jpg» на картинку из файлов чата → миниатюра и оригинал.
+ * Ссылка «Скачать имя.jpg» на картинку из файлов чата → нормализованный
+ * адрес оригинала и имя файла.
  *
  * Релей прикладывает созданные ассистентом файлы ссылками «Скачать …», и
  * картинку приходилось скачивать, чтобы увидеть: схему зала, превью правки
  * знака (находка «Затыков недели» bfc4c3ad; просьба «пришли превью картинкой
- * в чат, чтоб не надо было скачивать»). Такую ссылку лента рисует миниатюрой.
+ * в чат, чтоб не надо было скачивать»). Такую ссылку лента рисует самой
+ * картинкой (ChatImageAttachment.tsx) — ручка миниатюр не годится: она режет
+ * квадратом 384×384 (широкая схема зала обрежется), а по клику всё равно
+ * нужен оригинал, который та же ручка отдаёт на скачивание, а не странице.
  *
- * Только наши хосты и бакет файлов чата: миниатюру ручка строит по КЛЮЧУ в
- * нашем бакете, и чужая ссылка с тем же путём показала бы не тот файл.
- * Ключ — раскодированный путь (как его ждёт parseThumbSrc на бэке).
+ * Прод отдаёт файлы под /smm-media/, тестовый стенд — под /minio/
+ * (MINIO_PUBLIC_URL разный на средах) — принимается любой из префиксов, на
+ * любом из наших хостов.
  */
 const OUR_HOSTS = new Set(['my.linkeon.io', 'test.linkeon.io']);
-const PREFIX = '/smm-media/linkeon-chat-files/';
+const PREFIXES = ['/smm-media/linkeon-chat-files/', '/minio/linkeon-chat-files/'];
 const IMAGE_RE = /\.(png|jpe?g|webp|gif)$/i;
-const MAX_SRC_LENGTH = 300;
 
 export interface ImageAttachmentPreview {
-  thumbUrl: string;
   fullUrl: string;
+  name: string;
 }
 
 export function imageAttachmentPreview(href: string): ImageAttachmentPreview | null {
@@ -30,7 +31,12 @@ export function imageAttachmentPreview(href: string): ImageAttachmentPreview | n
   } catch {
     return null;
   }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+  // Только https, без логина/пароля/порта в адресе: иначе
+  // https://evil.example@my.linkeon.io/… (хост на самом деле наш, но перед
+  // ним чужое имя-«логин») прошёл бы проверку хоста ниже, хотя адрес — не
+  // тот, что пишет собственный бэк.
+  if (url.protocol !== 'https:') return null;
+  if (url.username || url.password || url.port) return null;
   // Хост проверяем ВСЕГДА, а не только когда href не начинается с «/»:
   // «//evil.example/…» и «/\evil.example/…» тоже начинаются с «/», но
   // резолвятся в чужой hostname (протокол-относительный адрес и обратная
@@ -38,9 +44,11 @@ export function imageAttachmentPreview(href: string): ImageAttachmentPreview | n
   // относительный путь вида «/smm-media/…» при этом резолвится от базы
   // https://my.linkeon.io и проходит эту же проверку как свой хост.
   if (!OUR_HOSTS.has(url.hostname)) return null;
-  if (!url.pathname.startsWith(PREFIX)) return null;
 
-  const rawKey = url.pathname.slice(PREFIX.length);
+  const prefix = PREFIXES.find((p) => url.pathname.startsWith(p));
+  if (!prefix) return null;
+
+  const rawKey = url.pathname.slice(prefix.length);
   let segments: string[];
   try {
     segments = rawKey.split('/').map((s) => decodeURIComponent(s));
@@ -52,10 +60,17 @@ export function imageAttachmentPreview(href: string): ImageAttachmentPreview | n
   // резал путь ДО decodeURIComponent, закодированный разделитель
   // проявляется только после него.
   if (segments.some((s) => s === '' || s === '.' || s === '..' || s.includes('/') || s.includes('\\'))) return null;
-  const key = segments.join('/');
-  if (!IMAGE_RE.test(key)) return null;
-  const src = `linkeon-chat-files/${key}`;
-  if (src.length > MAX_SRC_LENGTH) return null;
+  const name = segments[segments.length - 1];
+  if (!IMAGE_RE.test(name)) return null;
 
-  return { thumbUrl: thumbUrlFor(`/webhook/chat/thumb?src=${encodeURIComponent(src)}`), fullUrl: href };
+  // Настоящий относительный адрес (один ведущий «/», не «//» и не «/\») —
+  // от адреса бэкенда ЭТОЙ среды; адрес со своим хостом (как реально пишет
+  // бэк — https://my.linkeon.io/smm-media/…) — тем же хостом. В обоих
+  // случаях — без query/hash: url.pathname их не несёт.
+  const plainRelative = href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/\\');
+  const fullUrl = plainRelative
+    ? `${import.meta.env.VITE_BACKEND_URL || ''}${url.pathname}`
+    : `https://${url.hostname}${url.pathname}`;
+
+  return { fullUrl, name };
 }
