@@ -302,7 +302,9 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={() => onDownload?.(it.kind, 'list')}
-                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50"
+                              // ym-disable-tracklink: адрес файла переписки личный,
+                              // мимо «Внешних переходов» Метрики (webvisorPrivacy.test.ts).
+                              className="ym-disable-tracklink flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50"
                             >
                               <Icon className="h-8 w-8 flex-shrink-0 text-forest-600" />
                               <span className="min-w-0 flex-1">

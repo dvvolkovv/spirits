@@ -84,7 +84,9 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => onDownload?.(item.kind)}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+          // ym-disable-tracklink: адрес файла переписки личный, мимо
+          // «Внешних переходов» Метрики (webvisorPrivacy.test.ts).
+          className="ym-disable-tracklink flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
         >
           <Download className="h-4 w-4" />
           {t('chat.files.download')}
