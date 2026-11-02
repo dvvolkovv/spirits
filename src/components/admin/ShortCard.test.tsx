@@ -5,7 +5,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { click, mount, type, Mounted } from '../../test/dom';
 import ShortCard from './ShortCard';
 import { NOW, detail as baseDetail, item } from './shortFixtures';
-import { MAX_NOTE_CHARS, ROW_ACTIONS, ShortAction, ShortDetail, ShortStatus, actionsFor } from './shortStatus';
+import { MAX_NOTE_CHARS, ROW_ACTIONS, ShortAction, ShortDetail, ShortRecovery, ShortStatus, actionsFor } from './shortStatus';
 
 const detail = (over: Parameters<typeof baseDetail>[0] = {}) =>
   baseDetail({
@@ -178,6 +178,20 @@ describe('строка ролика', () => {
 
     rerender({ open: true, detail: detail({ status: 'failed', failedFrom: 'rendering' }) });
     expect(m.container.querySelector('.line-clamp-1')).toBeNull();
+  });
+
+  it('«без сценок — сам» — в свёрнутой строке вместо «только чат», только в текущем круге и только у «только чат»', () => {
+    const rec: ShortRecovery = { at: '2030-01-01T08:00:00.000Z', from: 'animating', code: 'omni_budget', action: 'no_skits', reason: 'r' };
+    render({ item: item({ format: 'chat', autoRecoveries: 1, recoveries: [rec] }) });
+    expect(q('short-toggle-s1')!.textContent).toContain('без сценок — сам');
+    expect(q('short-toggle-s1')!.textContent).not.toContain('только чат');
+    m.unmount();
+    render({ item: item({ format: 'chat', autoRecoveries: 0, recoveries: [rec] }) });
+    expect(q('short-toggle-s1')!.textContent).toContain('только чат');
+    m.unmount();
+    // История разошлась со счётчиком (ручной SQL) — у ролика со сценками пометки нет.
+    render({ item: item({ format: 'skit', autoRecoveries: 1, recoveries: [rec] }) });
+    expect(q('short-toggle-s1')!.textContent).not.toContain('без сценок — сам');
   });
 });
 
@@ -456,6 +470,46 @@ describe('раскрытая карточка', () => {
       }),
     });
     expect(m.container.textContent).toContain('YouTube: quota exceeded');
+  });
+
+  it('самопочинки — история в раскрытой карточке, новые сверху, с причиной; «без сценок» доктора — пометка в строке', () => {
+    const recoveries = [
+      { at: '2030-01-01T08:00:00.000Z', from: 'animating' as const, code: 'google_quota', action: 'later' as const, delayMin: 30, reason: 'оживление: лимит' },
+      { at: '2030-01-01T08:40:00.000Z', from: 'animating' as const, code: 'omni_budget', action: 'no_skits' as const, reason: 'оживление: предел секунд' },
+    ];
+    render({
+      item: item({ format: 'chat', autoRecoveries: 2, recoveries }),
+      open: true,
+      detail: detail({ format: 'chat', autoRecoveries: 2, recoveries }),
+    });
+    const list = q('short-recoveries-s1')!.textContent!;
+    expect(list).toContain('оживление: без сценок (omni_budget): оживление: предел секунд');
+    expect(list.indexOf('без сценок')).toBeLessThan(list.indexOf('повтор через 30 мин'));
+    expect(m.container.textContent).toContain('без сценок — сам');
+  });
+
+  it('без самопочинок и без полей нового бэка — ни истории, ни пометки', () => {
+    render({ open: true, detail: detail() });
+    expect(q('short-recoveries-s1')).toBeNull();
+    expect(m.container.textContent).not.toContain('без сценок — сам');
+  });
+
+  it('история с мусором (ручной SQL) — карточка рисуется, видна одна настоящая запись', () => {
+    const junk = [null, { at: '2030-01-01T08:00:00.000Z', from: 'animating', code: 'omni_budget', action: 'no_skits', reason: 'r' }, 'x'] as unknown as ShortRecovery[];
+    render({ item: item({ format: 'chat', autoRecoveries: 3, recoveries: junk }), open: true, detail: detail({ format: 'chat', autoRecoveries: 3, recoveries: junk }) });
+    expect(q('short-recoveries-s1')!.querySelectorAll('li')).toHaveLength(1);
+  });
+
+  it('объект в «at» записи истории (ручной SQL) — карточка рисуется, запись видна', () => {
+    const odd = [{ at: { v: 1 }, from: 'animating', code: 'google_quota', action: 'later', delayMin: 30, reason: 'r' }] as unknown as ShortRecovery[];
+    render({ item: item({ format: 'skit', autoRecoveries: 1, recoveries: odd }), open: true, detail: detail({ format: 'skit', autoRecoveries: 1, recoveries: odd }) });
+    expect(q('short-recoveries-s1')!.querySelectorAll('li')).toHaveLength(1);
+  });
+
+  it('отзыв студии сценаристу — в раскрытой карточке', () => {
+    render({ open: true, detail: detail({ writerFeedback: 'сценка 2 (развязка): реплика 2 не прозвучала' }) });
+    expect(m.container.textContent).toContain('Отзыв студии сценаристу');
+    expect(m.container.textContent).toContain('реплика 2 не прозвучала');
   });
 });
 

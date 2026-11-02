@@ -212,7 +212,7 @@ const ShortsSettingsForm: React.FC = () => {
         </div>
 
         <label className="block text-sm">
-          <span className="text-gray-600">Предел секунд Omni на ролик (клип — 8 с)</span>
+          <span className="text-gray-600">Предел секунд Omni на круг (клип — 8 с; новый круг — ваша кнопка у ролика)</span>
           <input data-testid="shorts-max-omni" type="number" min={8} max={400} step={8} value={draft.maxOmniSeconds}
             aria-invalid={!!errors.maxOmniSeconds}
             onChange={(e) => set('maxOmniSeconds', e.target.value)} className={FIELD} />

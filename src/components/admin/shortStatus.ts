@@ -32,6 +32,16 @@ export interface ShortPublication {
   lastError: string | null;
 }
 
+/** Самопочинка упавшего ролика (доктор API): что сделал и почему. */
+export interface ShortRecovery {
+  at: string;
+  from: ShortStatus;
+  code: string | null;
+  action: 'later' | 'new_scene' | 'no_skits';
+  delayMin?: number;
+  reason: string;
+}
+
 /** Ролик в списке (`list`): без съёмки, сценария, подписей и оживления. */
 export interface ShortItem {
   id: string;
@@ -53,6 +63,12 @@ export interface ShortItem {
   lastError: string | null;
   attempts: number;
   ownerNote: string | null;
+  /** Код последнего сбоя — у упавшего. Поля нет — бэк ещё без доктора. */
+  failedCode?: string | null;
+  /** Самопочинки текущего круга; кнопка владельца обнуляет (кроме повтора упавшей публикации). */
+  autoRecoveries?: number;
+  /** Вся история самопочинок; текущий круг — последние autoRecoveries. */
+  recoveries?: ShortRecovery[];
   durationMs: number | null;
   publishedAt: string | null;
   createdAt: string | null;
@@ -70,6 +86,8 @@ export interface ShortDetail extends ShortItem {
   animation: { omniSeconds?: number } | null;
   videoUrl: string | null;
   coverUrl: string | null;
+  /** Отзыв студии сценаристу (длина озвучки, сценка, которую не снять). */
+  writerFeedback?: string | null;
 }
 
 export interface ShortSettings {
@@ -166,6 +184,41 @@ export const STAGE_TITLES: Partial<Record<ShortStatus, string>> = {
   rendering: 'сборка',
   publishing: 'публикация',
 };
+
+/** Пауза словами — как у бота (delayWords, spirits_back src/shorts/short-doctor.ts): «через 1 ч 30 мин», без паузы — «позже». */
+function delayWords(min: number | undefined): string {
+  if (!min || min <= 0) return 'позже';
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `через ${[h ? `${h} ч` : '', m ? `${m} мин` : ''].filter(Boolean).join(' ')}`;
+}
+
+/** Слова действий — как ACTION_WORDS бэка (spirits_back src/shorts/short-doctor.ts). */
+const RECOVERY_WORDS: Record<ShortRecovery['action'], (r: ShortRecovery) => string> = {
+  later: (r) => `повтор ${delayWords(r.delayMin)}`,
+  new_scene: () => 'новая сцена',
+  no_skits: () => 'без сценок',
+};
+
+/** Запись, а не мусор (ручной SQL) — как фильтр currentCircle бэка (spirits_back src/shorts/short-doctor.ts). */
+const isRecovery = (r: unknown): r is ShortRecovery => !!r && typeof r === 'object';
+
+/** Самопочинки текущего круга — последние autoRecoveries записей истории (копия currentCircle бэка). */
+export function currentRecoveries(i: Pick<ShortItem, 'recoveries' | 'autoRecoveries'>): ShortRecovery[] {
+  const all = (Array.isArray(i.recoveries) ? i.recoveries : []).filter(isRecovery);
+  const n = i.autoRecoveries ?? 0;
+  return n > 0 ? all.slice(-n) : [];
+}
+
+/** Вся история без мусора, новые сверху — для раскрытой карточки. */
+export function recoveryHistory(i: Pick<ShortItem, 'recoveries'>): ShortRecovery[] {
+  return (Array.isArray(i.recoveries) ? i.recoveries : []).filter(isRecovery).reverse();
+}
+
+/** Запись истории словами: «оживление: повтор через 30 мин (google_quota)». */
+export function recoveryText(r: ShortRecovery): string {
+  return `${STAGE_TITLES[r.from] ?? r.from}: ${RECOVERY_WORDS[r.action]?.(r) ?? r.action} (${r.code ?? 'без кода'})`;
+}
 
 export type ShortsScreen = 'queue' | 'published' | 'rejected';
 export type ShortGroup = 'review' | 'failed' | 'scheduled' | 'working' | 'ideas';
