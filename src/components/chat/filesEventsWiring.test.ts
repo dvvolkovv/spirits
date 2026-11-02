@@ -41,4 +41,13 @@ describe('события панели «Медиа и файлы»', () => {
     expect(b).toContain("trackAuthed('chat_files_download', user.phone, { kind, from })");
     expect(SRC).toContain('onDownload={trackFilesDownload}');
   });
+
+  // Картинка-вложение в ленте (ChatImageAttachment, рисуется в markdownComponents.a)
+  // — тот же отчёт chat-files-stats.ts, но скачивание начато из самой ленты,
+  // не из панели «Медиа и файлы»: from: 'feed' отличает источник.
+  it('скачивание картинки-вложения в ленте шлёт chat_files_download с from: feed', () => {
+    const b = body('const trackFeedImageDownload = () => {');
+    expect(b).toContain("trackAuthed('chat_files_download', user.phone, { kind: 'image', from: 'feed' })");
+    expect(SRC).toContain('onDownload={trackFeedImageDownload}');
+  });
 });
