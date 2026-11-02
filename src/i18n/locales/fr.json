@@ -325,7 +325,7 @@
     "queued_hint": "sera envoyé ensuite",
     "queued_remove": "Retirer",
     "send_anyway": "Interrompre et envoyer",
-    "send_anyway_hint": "L'assistant arrêtera son travail en cours et passera à votre nouveau message.",
+    "send_anyway_hint": "L'assistant arrêtera son travail en cours et passera à ton nouveau message.",
     "busy_try_later": "L’assistant répond encore — réessayez dans une minute",
     "voice_call": {
       "start": "Appeler",

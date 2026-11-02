@@ -325,7 +325,7 @@
     "queued_hint": "será enviado a seguir",
     "queued_remove": "Remover",
     "send_anyway": "Interromper e enviar",
-    "send_anyway_hint": "O assistente vai parar o trabalho em curso e tratar da tua nova mensagem.",
+    "send_anyway_hint": "O assistente vai parar o trabalho em curso e tratar da sua nova mensagem.",
     "busy_try_later": "O assistente ainda está a responder — tente novamente daqui a um minuto",
     "voice_call": {
       "start": "Ligar",

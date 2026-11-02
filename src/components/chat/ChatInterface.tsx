@@ -3380,7 +3380,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         {/* Гейт по isTyping, а НЕ по turnBusy: очередь входит в turnBusy, и
             карточка пряталась ровно тогда, когда человек что-то написал — то
-            есть кнопка «Отправить всё равно» была недостижима именно в том
+            есть кнопка «Прервать и отправить» была недостижима именно в том
             состоянии, ради которого сделана. */}
         {remoteTurnActive && !streamingMessageId && !isTyping && !historyLoading && (
           <div className="flex justify-start">
