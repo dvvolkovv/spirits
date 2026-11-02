@@ -32,10 +32,13 @@ describe('imageAttachmentPreview', () => {
   it.each([
     ['не картинка', 'https://my.linkeon.io/smm-media/linkeon-chat-files/k/report.pdf'],
     ['чужой хост с тем же путём', 'https://evil.example/smm-media/linkeon-chat-files/k/a.jpg'],
+    ['протокол-относительный чужой хост', '//evil.example/smm-media/linkeon-chat-files/k/a.jpg'],
+    ['обратная косая к чужому хосту', '/\\evil.example/smm-media/linkeon-chat-files/k/a.jpg'],
     ['другой бакет', 'https://my.linkeon.io/smm-media/linkeon-assets/images/a.jpg'],
     ['кабинет', 'https://my.linkeon.io/profile?open=zoom'],
     ['битая кодировка', 'https://my.linkeon.io/smm-media/linkeon-chat-files/k/%E0%A4%A.jpg'],
     ['выход из каталога', 'https://my.linkeon.io/smm-media/linkeon-chat-files/k/../../x.jpg'],
+    ['закодированный слэш в имени', 'https://my.linkeon.io/smm-media/linkeon-chat-files/k%2F..%2F..%2Fx.jpg'],
     ['не веб-схема', 'javascript:alert(1)//linkeon-chat-files/a.jpg'],
     ['пусто', ''],
   ])('%s → null', (_name, href) => {
