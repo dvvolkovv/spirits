@@ -103,8 +103,15 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
         </button>
       </div>
       {/* max(): iPhone с «чёлкой»/индикатором даёт safe-area больше 1.5rem —
-          берём его; на обычном экране safe-area равен 0, остаётся 1.5rem. */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          берём его; на обычном экране safe-area равен 0, остаётся 1.5rem.
+          px-12 — только когда есть стрелки (несколько файлов): при одном
+          файле стрелок нет, а те же поля на телефоне делали «полноэкранный»
+          просмотр мельче, чем картинка в самой ленте. */}
+      <div
+        className={`relative flex min-h-0 flex-1 items-center justify-center pb-[max(1.5rem,env(safe-area-inset-bottom))] ${
+          items.length > 1 ? 'px-12' : 'px-2'
+        }`}
+      >
         {item.kind === 'video' ? (
           <video key={item.key} src={item.url} controls autoPlay className="max-h-full max-w-full" />
         ) : (
