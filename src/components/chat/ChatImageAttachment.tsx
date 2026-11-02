@@ -41,7 +41,9 @@ const noop = () => {};
  * вернуться фокус.
  *
  * Ссылка — обычная ссылка на файл: скачивание — её прямой смысл, поэтому
- * без preventDefault/обработчика открытия (в отличие от прочих ссылок чата).
+ * без preventDefault/обработчика ОТКРЫТИЯ (в отличие от прочих ссылок чата,
+ * которые решают, что открыть, сами). onClick на ней — только статистика
+ * (onDownload), навигацию он не трогает.
  *
  * not-prose — иначе `prose-sm img` даёт картинке лишние ~24px отступов.
  * ym-hide-content — на обёртке (медиа-компоненты в проекте несут класс сами,
@@ -61,7 +63,11 @@ const ChatImageAttachment: React.FC<{
   url: string;
   name: string;
   children: React.ReactNode;
-  /** Нажали «Скачать» в просмотрщике — для статистики (ChatInterface шлёт chat_files_download). */
+  /**
+   * Нажали «Скачать» — ссылку прямо в ленте (без клика по картинке — основной
+   * путь на телефоне) или кнопку внутри просмотрщика — оба места шлют
+   * одно и то же, для статистики (ChatInterface шлёт chat_files_download).
+   */
   onDownload?: () => void;
 }> = ({ url, name, children, onDownload }) => {
   const { t } = useTranslation();
@@ -106,7 +112,13 @@ const ChatImageAttachment: React.FC<{
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="ym-disable-tracklink mt-1 inline-block text-forest-600 hover:text-forest-700 underline"
+        // onDownload — без preventDefault: ссылка открывает файл как обычно
+        // (её прямой смысл), колбэк только отправляет статистику рядом.
+        onClick={() => onDownload?.()}
+        // [overflow-wrap:anywhere] — длинное имя файла без пробелов (хэш,
+        // slug) на узком экране иначе распирает пузырь и ленту горизонтальной
+        // прокруткой; break-words не ловит непрерывную строку без пробелов.
+        className="ym-disable-tracklink mt-1 inline-block [overflow-wrap:anywhere] text-forest-600 hover:text-forest-700 underline"
       >
         {children}
       </a>
