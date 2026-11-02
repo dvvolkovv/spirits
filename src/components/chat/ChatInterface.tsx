@@ -3397,12 +3397,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   минут, автоснятие рвало бы самые дорогие), поэтому после
                   двух минут просто отдаём решение человеку. */}
               {overrideOffered && (
-                <button
-                  onClick={() => setRemoteOverride(true)}
-                  className="mt-2 text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
-                >
-                  {t('chat.send_anyway')}
-                </button>
+                <>
+                  <button
+                    onClick={() => setRemoteOverride(true)}
+                    title={t('chat.send_anyway_hint')}
+                    className="mt-2 text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
+                  >
+                    {t('chat.send_anyway')}
+                  </button>
+                  {/* Кнопка обходит признак «ход идёт» — и прерывает ход, если он
+                      настоящий (релей пре-эмптит процесс сессии). Подпись это
+                      говорит прямо: «Отправить всё равно» жали из нетерпения и
+                      убивали работу (находка «Затыков недели» 2ff1a026). */}
+                  <p className="mt-1 text-xs text-gray-400">{t('chat.send_anyway_hint')}</p>
+                </>
               )}
             </div>
           </div>
