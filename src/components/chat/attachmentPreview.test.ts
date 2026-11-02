@@ -1,7 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { imageAttachmentPreview } from './attachmentPreview';
 
 const FILE = 'https://my.linkeon.io/smm-media/linkeon-chat-files/8b75c10c-0ddf-41b0-b780-7e54bc1175f9/seatmap.jpg';
+
+// В теле теста легко забыть снять стаб при раннем throw/return — тогда он
+// утёк бы в следующий тест этого файла (VITE_BACKEND_URL там же, в afterEach,
+// а не в конце каждого it).
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe('imageAttachmentPreview', () => {
   it('картинка файла чата на проде → адрес и имя', () => {
@@ -16,12 +23,15 @@ describe('imageAttachmentPreview', () => {
     expect(imageAttachmentPreview('https://test.linkeon.io/minio/linkeon-chat-files/k/a.webp')).not.toBeNull();
   });
 
-  it('относительный адрес — fullUrl собирается от VITE_BACKEND_URL, не буквальный href', () => {
-    vi.stubEnv('VITE_BACKEND_URL', 'https://my.linkeon.io');
+  it('относительный адрес — fullUrl собирается от VITE_BACKEND_URL (значение-маркер), не буквальный href', () => {
+    // Маркер, отличный от любого из OUR_HOSTS: совпади он случайно с
+    // my.linkeon.io, тест прошёл бы и при старой зашитой базе, не заметив
+    // регрессию — см. plainRelative-резолв ниже, который раньше резолвился
+    // мимо этой переменной для ряда форм (bare-relative, ./, ../).
+    vi.stubEnv('VITE_BACKEND_URL', 'https://backend.example');
     expect(imageAttachmentPreview('/smm-media/linkeon-chat-files/k/a.png')!.fullUrl).toBe(
-      'https://my.linkeon.io/smm-media/linkeon-chat-files/k/a.png',
+      'https://backend.example/smm-media/linkeon-chat-files/k/a.png',
     );
-    vi.unstubAllEnvs();
   });
 
   it('расширение — без учёта регистра; query и hash отрезаются от fullUrl', () => {
@@ -52,6 +62,21 @@ describe('imageAttachmentPreview', () => {
     ['закодированный слэш в имени', 'https://my.linkeon.io/smm-media/linkeon-chat-files/k%2F..%2F..%2Fx.jpg'],
     ['не веб-схема', 'javascript:alert(1)//linkeon-chat-files/a.jpg'],
     ['пусто', ''],
+    // Без ведущего «/» — new URL(href, 'https://my.linkeon.io') резолвит его
+    // как путь ОТ КОРНЯ этой зашитой базы (сам путь становится
+    // /smm-media/…), и раньше это проходило все проверки и давало ссылку на
+    // my.linkeon.io мимо VITE_BACKEND_URL текущей среды (test.linkeon.io
+    // получил бы чужой хост в адресе своего же файла). Релей такую форму не
+    // пишет — только настоящий абсолютный https:// или путь с одного
+    // ведущего слэша.
+    ['относительный без ведущего слэша', 'smm-media/linkeon-chat-files/k/a.jpg'],
+    ['точка-относительный', './smm-media/linkeon-chat-files/k/a.jpg'],
+    ['выход на уровень выше без ведущего слэша', '../smm-media/linkeon-chat-files/k/a.jpg'],
+    // Протокол-относительный адрес на СВОЙ же хост: форма не абсолютная
+    // (нет https:) и не «один ведущий слэш» (второй символ — тоже «/»), но
+    // url.hostname совпадает с my.linkeon.io — раньше это обманывало
+    // проверку хоста и давало «настоящий» на вид fullUrl.
+    ['протокол-относительный свой хост', '//my.linkeon.io/smm-media/linkeon-chat-files/k/a.jpg'],
   ])('%s → null', (_name, href) => {
     expect(imageAttachmentPreview(href)).toBeNull();
   });
