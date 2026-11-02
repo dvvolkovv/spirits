@@ -25,6 +25,25 @@ export interface ImageAttachmentPreview {
 
 export function imageAttachmentPreview(href: string): ImageAttachmentPreview | null {
   if (!href) return null;
+
+  // Форма адреса — ДО new URL(): релей пишет только настоящий абсолютный
+  // https://… (свой хост — проверяется ниже) или относительный путь с ОДНОГО
+  // ведущего «/». Всё остальное относительное — smm-media/…, ./…, ../…,
+  // minio/… без ведущего «/» — new URL(href, 'https://my.linkeon.io') ниже
+  // всё равно резолвит (относительно КОРНЯ зашитой базы: сам путь становится
+  // /smm-media/…), и тогда оно проходит проверку хоста как «свой» и даёт
+  // ссылку на my.linkeon.io мимо VITE_BACKEND_URL текущей среды — на
+  // test.linkeon.io получилась бы ссылка на прод вместо теста. Лишний
+  // ведущий «/» (протокол-относительный «//host/…») или обратная косая
+  // («/\host/…», которую URL для http/https приравнивает к прямой) —
+  // адрес на чужой хост, даже если этот хост совпадает с нашим: такую форму
+  // релей не пишет вовсе, отбрасываем по одной форме, не дожидаясь, что её
+  // поймает проверка хоста. Лукэхед сверх «/» и «\» исключает ещё и
+  // \t\n\r: new URL() их молча выбрасывает при разборе, и «/\t/host» для
+  // него оказывается тем же «//host».
+  const plainRelative = /^\/(?![/\\\t\n\r])/.test(href);
+  if (!plainRelative && !/^https:\/\//i.test(href)) return null;
+
   let url: URL;
   try {
     url = new URL(href, 'https://my.linkeon.io');
@@ -37,12 +56,12 @@ export function imageAttachmentPreview(href: string): ImageAttachmentPreview | n
   // тот, что пишет собственный бэк.
   if (url.protocol !== 'https:') return null;
   if (url.username || url.password || url.port) return null;
-  // Хост проверяем ВСЕГДА, а не только когда href не начинается с «/»:
-  // «//evil.example/…» и «/\evil.example/…» тоже начинаются с «/», но
-  // резолвятся в чужой hostname (протокол-относительный адрес и обратная
-  // косая, которую URL для http/https приравнивает к прямой) — настоящий
-  // относительный путь вида «/smm-media/…» при этом резолвится от базы
-  // https://my.linkeon.io и проходит эту же проверку как свой хост.
+  // Хост проверяем ВСЕГДА, а не только для абсолютной https-формы: настоящий
+  // относительный путь «/smm-media/…» тоже резолвится от базы
+  // https://my.linkeon.io выше и обязан пройти ту же проверку, что и свой
+  // хост в абсолютном адресе. Для абсолютной https-формы хост может быть
+  // любым (https://evil.example/smm-media/… с тем же путём) — ровно это
+  // отсекается здесь.
   if (!OUR_HOSTS.has(url.hostname)) return null;
 
   const prefix = PREFIXES.find((p) => url.pathname.startsWith(p));
@@ -63,11 +82,10 @@ export function imageAttachmentPreview(href: string): ImageAttachmentPreview | n
   const name = segments[segments.length - 1];
   if (!IMAGE_RE.test(name)) return null;
 
-  // Настоящий относительный адрес (один ведущий «/», не «//» и не «/\») —
-  // от адреса бэкенда ЭТОЙ среды; адрес со своим хостом (как реально пишет
-  // бэк — https://my.linkeon.io/smm-media/…) — тем же хостом. В обоих
-  // случаях — без query/hash: url.pathname их не несёт.
-  const plainRelative = href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/\\');
+  // plainRelative — от адреса бэкенда ЭТОЙ среды (VITE_BACKEND_URL);
+  // абсолютный адрес со своим хостом (как реально пишет бэк —
+  // https://my.linkeon.io/smm-media/…) — тем же хостом. В обоих случаях —
+  // без query/hash: url.pathname их не несёт.
   const fullUrl = plainRelative
     ? `${import.meta.env.VITE_BACKEND_URL || ''}${url.pathname}`
     : `https://${url.hostname}${url.pathname}`;
