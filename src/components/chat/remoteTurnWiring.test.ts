@@ -106,6 +106,14 @@ describe('предохранитель «Прервать и отправить�
     expect(SRC).toContain('aria-describedby={sendAnywayHintId}');
     expect(SRC).toContain('<p id={sendAnywayHintId}');
   });
+
+  // Ревью E3 (02.11): это предупреждение о потере работы (ассистент бросит
+  // текущий ход незавершённым), а не рядовая вторичная подсказка — серому
+  // 400-му (как у queued_hint рядом, где это и правда мелкий тюнинг)
+  // контраста для такого веса не хватает.
+  it('подсказка о потере работы — text-gray-500, не text-gray-400 (нужен контраст у предупреждения)', () => {
+    expect(SRC).toContain('<p id={sendAnywayHintId} className="mt-1 text-xs text-gray-500">');
+  });
 });
 
 describe('досылка не проигрывает гонку истории', () => {
