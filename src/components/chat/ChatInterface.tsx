@@ -426,11 +426,31 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [navigate]);
 
   // Скачивание картинки-вложения прямо из ленты (ChatImageAttachment ниже) —
-  // та же статистика «Медиа и файлы» (trackFilesDownload, см. openFilesPanel
-  // ниже), но from: 'feed' отличает источник от панели (chat-files-stats.ts).
-  const trackFeedImageDownload = () => {
-    if (user?.phone) trackAuthed('chat_files_download', user.phone, { kind: 'image', from: 'feed' });
-  };
+  // тот же chat_files_download, что шлёт панель «Медиа и файлы»
+  // (trackFilesDownload, см. openFilesPanel ниже). from: 'feed' — метка для
+  // разбора по отдельным событиям, не для сводной статистики: сводная цифра
+  // «Скачиваний» в админке (chat-files-stats.ts) считает по kind и теперь
+  // включает скачивания из ленты вместе с панелью, не разделяя их.
+  //
+  // Телефон — из ref, а не из user напрямую (ревью E3, 02.11): markdownComponents
+  // ниже — useMemo с единственной зависимостью handleLinkNavigation и
+  // пересобирается редко (не на каждое обновление user — баланс токенов
+  // поллится раз в 5 с и давал бы новый объект user на каждый тик, вызывая
+  // пересборку всей разметки ленты). Замыкай функция user напрямую —
+  // памятка, собранная один раз (на первом рендере, пока она ещё не
+  // пересобрана), держала бы user именно ТОГО рендера навечно: вход через
+  // OAuth/Taler ID/привязку аккаунта (login('', …)) получает телефон позже
+  // первого рендера, и скачивания из ленты молчали бы весь первый сеанс.
+  // Ref обновляется на каждый рендер независимо от памятки markdownComponents,
+  // поэтому userPhoneRef.current всегда свежий на момент клика, а
+  // useCallback с пустыми зависимостями — стабильная ссылка на функцию,
+  // которой эта свежесть и не требуется добывать через identity.
+  const userPhoneRef = useRef(user?.phone);
+  userPhoneRef.current = user?.phone;
+  const trackFeedImageDownload = useCallback(() => {
+    const phone = userPhoneRef.current;
+    if (phone) trackAuthed('chat_files_download', phone, { kind: 'image', from: 'feed' });
+  }, []);
 
   const markdownComponents = useMemo(() => ({
     p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
