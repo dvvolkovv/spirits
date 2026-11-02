@@ -99,6 +99,13 @@ describe('предохранитель «Прервать и отправить�
     expect(effect).toContain('setRemoteOverride(false)');
     expect(effect).toContain('remoteCheckedAtRef.current = null');
   });
+
+  it('подсказка связана через aria-describedby, а не дублируется title', () => {
+    // title повторял бы то, что и так видно строкой под кнопкой.
+    expect(SRC).not.toContain("title={t('chat.send_anyway_hint')}");
+    expect(SRC).toContain('aria-describedby={sendAnywayHintId}');
+    expect(SRC).toContain('<p id={sendAnywayHintId}');
+  });
 });
 
 describe('досылка не проигрывает гонку истории', () => {

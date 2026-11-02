@@ -189,6 +189,10 @@ describe('переписка скрыта от записи Вебвизора (
   it('админка — рубильник модели: строка «переключил кто»', () => {
     expect(classesOf(GlobalLlmProviderControl, 'global-llm-since', 'p')).toContain('ym-hide-content');
   });
+
+  it('картинка-вложение в ленте (ChatImageAttachment)', () => {
+    expect(classesOf(ChatImageAttachmentSrc, 'chat-image-attachment', 'span')).toContain('ym-hide-content');
+  });
 });
 
 describe('поля ввода сообщений скрыты от записи Вебвизора (ym-disable-keys)', () => {

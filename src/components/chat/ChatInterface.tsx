@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, useId } from 'react';
 
 /**
  * Модалка тянет за собой livekit-client (~1.3 МБ несжатыми). Кнопка «Позвонить»
@@ -477,18 +477,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </a>
         );
       }
-      // Картинка из файлов чата («Скачать схема.jpg») — миниатюрой в ленте,
-      // а не одной ссылкой: иначе её приходится скачивать, чтобы увидеть
-      // (attachmentPreview.ts). Открывается тем же путём, что и ссылка.
+      // Картинка из файлов чата («Скачать схема.jpg») — самим файлом в
+      // ленте, а не одной ссылкой: иначе её приходится скачивать, чтобы
+      // увидеть (attachmentPreview.ts). Картинка открывается в просмотрщике
+      // (MediaViewer, внутри ChatImageAttachment), ссылка под ней — скачать.
+      // key — чтобы состояние ошибки не переживало смену адреса в стриме.
       const attachment = href ? imageAttachmentPreview(href) : null;
       if (attachment) {
         return (
-          <ChatImageAttachment
-            thumbUrl={attachment.thumbUrl}
-            fullUrl={attachment.fullUrl}
-            alt={typeof children === 'string' ? children : t('chat.image_alt')}
-            onOpen={() => window.open(attachment.fullUrl, '_blank', 'noopener,noreferrer')}
-          >
+          <ChatImageAttachment key={attachment.fullUrl} url={attachment.fullUrl} name={attachment.name}>
             {children}
           </ChatImageAttachment>
         );
@@ -640,6 +637,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // не мемоизированы, каждый пузырь тянет разбор markdown, и при длинной
   // истории это полный проход раз в 15 секунд все двадцать минут хода.
   const overrideOffered = shouldOfferOverride(remoteTurnActive, remoteTurnSinceRef.current, nowTick);
+  // Связь кнопки «Прервать и отправить» с подсказкой под ней для скринридера
+  // (aria-describedby, не title — подсказка и так видна строкой под кнопкой,
+  // дублировать её в тултипе незачем).
+  const sendAnywayHintId = useId();
   useEffect(() => {
     if (!remoteTurnActive || overrideOffered) return;
     const id = setInterval(() => setNowTick(Date.now()), 15000);
@@ -3400,7 +3401,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <>
                   <button
                     onClick={() => setRemoteOverride(true)}
-                    title={t('chat.send_anyway_hint')}
+                    aria-describedby={sendAnywayHintId}
                     className="mt-2 text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
                   >
                     {t('chat.send_anyway')}
@@ -3409,7 +3410,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       настоящий (релей пре-эмптит процесс сессии). Подпись это
                       говорит прямо: «Отправить всё равно» жали из нетерпения и
                       убивали работу (находка «Затыков недели» 2ff1a026). */}
-                  <p className="mt-1 text-xs text-gray-400">{t('chat.send_anyway_hint')}</p>
+                  <p id={sendAnywayHintId} className="mt-1 text-xs text-gray-400">{t('chat.send_anyway_hint')}</p>
                 </>
               )}
             </div>
