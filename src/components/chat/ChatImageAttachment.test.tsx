@@ -157,6 +157,40 @@ describe('ChatImageAttachment', () => {
     unmount();
   });
 
+  // Ревью E3 (02.11): раньше onDownload срабатывал только у кнопки «Скачать»
+  // ВНУТРИ просмотрщика — ссылка-подпись в самой ленте (та, что открывается
+  // сразу, без клика по картинке) событие не отправляла вовсе.
+  it('клик по ссылке «Скачать» прямо в ленте тоже вызывает onDownload', () => {
+    const onDownload = vi.fn();
+    const { container, unmount } = mount(
+      <ChatImageAttachment {...props} onDownload={onDownload}>Скачать a.jpg</ChatImageAttachment>,
+    );
+    const link = byLink(container, /Скачать a\.jpg/)!;
+    // preventDefault — только чтобы jsdom не пытался настоящую навигацию по
+    // target=_blank (как в тесте «клик не перехватывается» выше); сама
+    // ссылка/onDownload его не вызывает — это НЕ проверка перехвата.
+    const stopJsdomNavigation = (e: Event) => e.preventDefault();
+    document.addEventListener('click', stopJsdomNavigation);
+    try {
+      act(() => {
+        link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      });
+    } finally {
+      document.removeEventListener('click', stopJsdomNavigation);
+    }
+    expect(onDownload).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
+  // Имя файла без пробелов (хэш, slug) на узком экране распирало пузырь и
+  // ленту горизонтальной прокруткой — break-words не помогает длинным
+  // непрерывным строкам без пробелов, нужен именно overflow-wrap: anywhere.
+  it('ссылка — overflow-wrap: anywhere (длинное имя без пробелов не распирает пузырь)', () => {
+    const { container, unmount } = mount(<ChatImageAttachment {...props}>Скачать a.jpg</ChatImageAttachment>);
+    expect(byLink(container, /Скачать a\.jpg/)!.className).toContain('[overflow-wrap:anywhere]');
+    unmount();
+  });
+
   it('перерисовка (новый текст стрима, тот же файл) не переподписывает keydown просмотрщика на window', () => {
     const addSpy = vi.spyOn(window, 'addEventListener');
     const removeSpy = vi.spyOn(window, 'removeEventListener');
