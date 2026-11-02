@@ -425,6 +425,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (isWebLink(url)) window.open(url, '_blank', 'noopener,noreferrer');
   }, [navigate]);
 
+  // Скачивание картинки-вложения прямо из ленты (ChatImageAttachment ниже) —
+  // та же статистика «Медиа и файлы» (trackFilesDownload, см. openFilesPanel
+  // ниже), но from: 'feed' отличает источник от панели (chat-files-stats.ts).
+  const trackFeedImageDownload = () => {
+    if (user?.phone) trackAuthed('chat_files_download', user.phone, { kind: 'image', from: 'feed' });
+  };
+
   const markdownComponents = useMemo(() => ({
     p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
     strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
@@ -485,7 +492,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const attachment = href ? imageAttachmentPreview(href) : null;
       if (attachment) {
         return (
-          <ChatImageAttachment key={attachment.fullUrl} url={attachment.fullUrl} name={attachment.name}>
+          <ChatImageAttachment
+            key={attachment.fullUrl}
+            url={attachment.fullUrl}
+            name={attachment.name}
+            onDownload={trackFeedImageDownload}
+          >
             {children}
           </ChatImageAttachment>
         );
