@@ -389,6 +389,10 @@ describe('ссылки переписки мимо «Внешних перехо
     ['customMarkdown.tsx', CustomMarkdownSrc],
     ['GuestChat.tsx', GuestChatSrc],
     ['ChatImageAttachment.tsx', ChatImageAttachmentSrc],
+    // Ссылки «Скачать»: список файлов (ChatFilesPanel) и просмотрщик
+    // (MediaViewer) — те же личные адреса файлов переписки.
+    ['ChatFilesPanel.tsx', ChatFilesPanel],
+    ['MediaViewer.tsx', MediaViewer],
   ])('каждая ссылка в %s — с ym-disable-tracklink', (_name, src) => {
     const found = anchors(src);
     expect(found.length).toBeGreaterThan(0);
