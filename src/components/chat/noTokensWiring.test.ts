@@ -79,16 +79,12 @@ describe('C1: текст/черновик трогаем ТОЛЬКО когда
   it('PDF-поток Маши шлёт sendMessageToAI БЕЗ id — промпт с данными документа, не текст человека', () => {
     expect(handleFileUpload()).toContain('await sendMessageToAI(prompt);');
   });
-
-  it('все три синтетических вызова передают РОВНО один аргумент (без userMessageId)', () => {
-    for (const call of [
-      'await sendMessageToAI(greetingMessage);',
-      'await sendMessageToAI(lastUserMessage.content);',
-      'await sendMessageToAI(prompt);',
-    ]) {
-      expect(call).not.toMatch(/,\s*\S/);
-    }
-  });
+  // Повторное ревью 03.11: тест «все три синтетических вызова передают РОВНО
+  // один аргумент» отсюда убран — он сверял регулярку с литералами массива,
+  // объявленными В САМОМ ТЕСТЕ (не с SRC), и поэтому не мог покраснеть ни при
+  // какой правке исходника. Три проверки выше (toContain по SRC) уже
+  // достаточны: лишний аргумент в любом из трёх вызовов сломал бы точное
+  // совпадение строки.
 });
 
 describe('m1: повторный такой же отказ подряд заменяет сообщение остановки, а не дублирует', () => {
@@ -142,6 +138,22 @@ describe('I3: загрузка файлов привязана к ассисте
   });
 });
 
+describe('повторное ревью 03.11 (m-c): pendingFilesAssistantId не остаётся висеть после отправки/отмены', () => {
+  it('отправка задачи (handleFileTaskSubmit) сбрасывает его вместе с pendingFiles/fileTaskInput', () => {
+    const body = handleFileTaskSubmit();
+    const at = body.indexOf("setFileTaskInput('');");
+    expect(at).toBeGreaterThan(-1);
+    expect(body.slice(at, at + 150)).toContain('setPendingFilesAssistantId(null)');
+  });
+
+  it('«Отмена» в окне задачи сбрасывает его тоже', () => {
+    const labelAt = SRC.indexOf("t('chat.file_modal_cancel')");
+    expect(labelAt).toBeGreaterThan(-1);
+    const onClickRegion = SRC.slice(Math.max(0, labelAt - 400), labelAt);
+    expect(onClickRegion).toContain('setPendingFilesAssistantId(null)');
+  });
+});
+
 describe('C1 + общая функция восстановления для ОБЕИХ веток загрузки', () => {
   it('есть общая функция restoreFileTaskOnNoTokens', () => {
     expect(SRC).toMatch(/const restoreFileTaskOnNoTokens = \(/);
@@ -171,28 +183,14 @@ describe('I2: окно задачи не открывается само сра�
     const body = between('const restoreFileTaskOnNoTokens = (', 'const handleFileTaskSubmit = async');
     expect(body).not.toContain('setShowFileTaskModal');
   });
-
-  it('есть эффект, открывающий модалку по user?.tokens', () => {
-    const effectStart = SRC.indexOf('fileTaskAutoReopenedRef');
-    expect(effectStart).toBeGreaterThan(-1);
-    const effectRegion = SRC.slice(effectStart, SRC.indexOf('}, [', effectStart) + 400);
-    expect(effectRegion).toContain('useEffect(');
-    expect(effectRegion).toContain('user?.tokens');
-    expect(effectRegion).toContain('setShowFileTaskModal(true)');
-  });
-
-  it('эффект открывает один раз — есть ref-гард до setShowFileTaskModal(true)', () => {
-    const effectStart = SRC.indexOf('fileTaskAutoReopenedRef');
-    const effectBody = SRC.slice(effectStart, SRC.indexOf('setShowFileTaskModal(true)', effectStart));
-    expect(effectBody).toContain('fileTaskAutoReopenedRef.current');
-  });
-
-  it('эффект сверяет ассистента (I3) — не открывает модалку чужих файлов поверх текущего чата', () => {
-    const effectStart = SRC.indexOf('fileTaskAutoReopenedRef');
-    const effectRegion = SRC.slice(effectStart, SRC.indexOf('}, [', effectStart) + 200);
-    expect(effectRegion).toContain('pendingFilesAssistantId');
-    expect(effectRegion).toContain('selectedAssistant?.id');
-  });
+  // Повторное ревью 03.11: три структурных теста на сам эффект отсюда убраны
+  // — их срез SRC.slice(effectStart, SRC.indexOf('}, [', effectStart) + N)
+  // захватывал ХВОСТ массива зависимостей эффекта, и toContain('user?.tokens')
+  // /('pendingFilesAssistantId')/('selectedAssistant?.id') зеленел, даже если
+  // саму проверку в ТЕЛЕ эффекта вырезать — имя переменной всё равно нашлось
+  // бы в deps. Заменены поведенческими E6/E8/E9 в noTokensMount.test.tsx:
+  // настоящее монтирование видит, открылось ли окно НА ЭКРАНЕ, а не что
+  // написано в исходнике рядом с нужными словами.
 });
 
 describe('окно пополнения токенов (TokenPackages) не открывается само', () => {

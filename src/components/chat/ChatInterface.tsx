@@ -849,6 +849,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // внутри load() и виден только со следующего рендера — досылка успела бы
       // уйти уже новому ассистенту раньше, чем сработает этот гейт.
       returnQueueToInput();
+      // Файлы/текст задачи, отложенные до пополнения баланса
+      // (restoreFileTaskOnNoTokens, I2/I3) — для КОНКРЕТНОГО ассистента.
+      // Ушёл к другому — не трогаем его чат чужим отказом: новое вложение
+      // слилось бы со старым файлом (повторное ревью 03.11, I3/E9), а при
+      // возврате к прежнему ассистенту модалка открылась бы с задачей, текст
+      // которой к тому моменту уже и так подставился в поле из черновика
+      // (E10) — то есть задвоился бы. Текст задачи не теряется: он уже лежит
+      // в pendingDraft (savePendingDraft внутри restoreFileTaskOnNoTokens).
+      if (pendingFilesAssistantId !== null && newId !== pendingFilesAssistantId) {
+        setPendingFiles([]);
+        setFileTaskInput('');
+        setPendingFilesAssistantId(null);
+      }
     }
     prevSelectedAssistantIdRef.current = newId;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2454,11 +2467,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   ) => {
     if (uploadAssistantId !== null) savePendingDraft(task, uploadAssistantId);
     if (uploadAssistantId === null || selectedAssistantIdRef.current !== uploadAssistantId) return;
-    setMessages(prev => (
-      stopMessage
-        ? collapseNoTokensStop(prev, rejectedMessageId, stopMessage)
-        : prev.filter(m => m.id !== rejectedMessageId)
-    ));
+    setMessages(prev => {
+      if (stopMessage) return collapseNoTokensStop(prev, rejectedMessageId, stopMessage);
+      // Ветка одного текстового файла (stopMessage === null, m1 — повторное
+      // ревью 03.11): sendMessageToAI сам уже дописал стоп-сообщение, пока
+      // последним в ленте был пузырь 📎 — между ним и ПРЕЖНИМ стопом (если
+      // он был), поэтому collapseNoTokensStop внутри sendMessageToAI не увидел
+      // их соседства и не схлопнул. Убираем пузырь простым filter'ом и
+      // схлопываем стопы здесь же, повторно — тем же приёмом.
+      const withoutBubble = prev.filter(m => m.id !== rejectedMessageId);
+      const newStop = withoutBubble[withoutBubble.length - 1];
+      if (!newStop?.noTokensStop) return withoutBubble;
+      return collapseNoTokensStop(withoutBubble.slice(0, -1), '', newStop);
+    });
     setPendingFiles(files);
     setFileTaskInput(task);
     setPendingFilesAssistantId(uploadAssistantId);
@@ -2507,6 +2528,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setShowFileTaskModal(false);
     setPendingFiles([]);
     setFileTaskInput('');
+    // Ассоциация с ассистентом (I3) больше не нужна — files/task уже забраны
+    // в локальные files/task ниже, отправляем их прямо сейчас (повторное
+    // ревью 03.11, m-c).
+    setPendingFilesAssistantId(null);
 
     // Пузырь пишем ровно тем же текстом, каким бэк сохранит ход в историю.
     // Раньше здесь был список в столбик, а в БД уезжала строка через запятую —
@@ -2611,8 +2636,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       let accumulatedContent = '';
       let buffer = '';
       let lastTokensUsed = 0;
-      // Нулевой баланс (бэклог 2d71aaf8): файлы и текст задания вернём в окно
-      // отправки — File-объекты ещё в памяти, повторная отправка — одним кликом.
+      // Нулевой баланс (бэклог 2d71aaf8): файлы и текст задания вернём в
+      // состояние (НЕ в открытое окно — модалку сами не открываем, I2, см.
+      // эффект автооткрытия на баланс ниже) — File-объекты ещё в памяти,
+      // повторная отправка после пополнения — одним кликом.
       let noTokens = false;
       // Один decoder на весь поток: раньше TextDecoder создавался заново на
       // каждый кусок — `{ stream: true }` на нём бесполезен, decoder новый и
@@ -2700,10 +2727,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // раз, когда баланс станет больше нуля — так же, как про пополнение узнаёт
   // AuthContext (поллинг раз в 5с, user.tokens обновляется реактивно).
   const fileTaskAutoReopenedRef = useRef(false);
+  // Последний увиденный баланс — ждём ПЕРЕХОДА «было ≤0 → стало >0», а не
+  // просто текущего уровня (повторное ревью 03.11, I2/E8): баланс в кабинете
+  // обновляется поллингом раз в 5с и может на момент самого отказа ещё
+  // показывать старое положительное число, хотя бэк только что ответил
+  // no_tokens по АКТУАЛЬНОМУ (уже нулевому) балансу. Уровень-проверка открыла
+  // бы окно сразу же, пока отказ ещё даже не увидел собственного нуля.
+  const lastSeenTokensRef = useRef<number | null>(null);
   useEffect(() => {
+    const prevTokens = lastSeenTokensRef.current;
+    const tokensNow = user?.tokens ?? 0;
+    lastSeenTokensRef.current = tokensNow;
     if (!pendingFiles.length) { fileTaskAutoReopenedRef.current = false; return; }
     if (showFileTaskModal || fileTaskAutoReopenedRef.current) return;
-    if (!user?.tokens || user.tokens <= 0) return;
+    if (prevTokens === null || prevTokens > 0 || tokensNow <= 0) return;
     // Человек мог уйти к другому ассистенту, пока баланс пополнялся (I3) —
     // открывать чужую модалку поверх текущего чата не нужно.
     if (pendingFilesAssistantId === null || selectedAssistant?.id !== pendingFilesAssistantId) return;
@@ -3752,7 +3789,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <button
                 onClick={() => {
                   if (user?.phone && pendingFiles.length) trackAuthed('file_task_cancel', user.phone, { count: pendingFiles.length, name: pendingFiles.map(f => f.name).join(', ').slice(0, 200), assistant_id: selectedAssistant?.id });
-                  setShowFileTaskModal(false); setPendingFiles([]); setFileTaskInput('');
+                  // Повторное ревью 03.11, m-c: сбрасываем и привязку к
+                  // ассистенту — иначе она переживает отмену как мёртвый
+                  // остаток состояния.
+                  setShowFileTaskModal(false); setPendingFiles([]); setFileTaskInput(''); setPendingFilesAssistantId(null);
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
               >
