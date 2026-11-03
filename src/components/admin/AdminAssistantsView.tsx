@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard as Edit2, Shield } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit2, Shield } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import { GlobalLlmProviderControl } from './GlobalLlmProviderControl';
@@ -57,6 +57,12 @@ const AdminAssistantsView: React.FC<Props> = ({ editorDirty, onEditorDirtyChange
     setSelectedAgent(agent);
   };
 
+  const handleBack = () => {
+    if (editorDirty && !window.confirm('Есть несохранённые изменения. Вернуться к списку и потерять их?')) return;
+    onEditorDirtyChange(false);
+    setSelectedAgent(null);
+  };
+
   return (
     // h-full, а НЕ h-screen. Вкладка живёт внутри AdminPage, где над ней
     // строка вкладок, а контейнер содержимого — flex-1 с overflow-hidden.
@@ -111,8 +117,11 @@ const AdminAssistantsView: React.FC<Props> = ({ editorDirty, onEditorDirtyChange
           минимум, при котором список читаем, а внешняя прокрутка вкладки
           (overflow-y-auto у корня) достаёт до низа. На обычных десктопных
           окнах (1366×650 и выше) 320px — не ограничение: места и так больше. */}
-      <div className="flex-1 flex overflow-hidden min-h-[70vh] md:min-h-[320px]">
-        <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-[70vh] md:min-h-[320px]">
+        <div className={clsx(
+          'w-full md:w-64 bg-white border-r border-gray-200 overflow-y-auto',
+          selectedAgent && 'hidden md:block',
+        )}>
           <div className="p-4 pb-20 md:pb-4">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">Ассистенты</h2>
             {isLoading ? (
@@ -144,10 +153,19 @@ const AdminAssistantsView: React.FC<Props> = ({ editorDirty, onEditorDirtyChange
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className={clsx('flex-1 flex-col overflow-hidden', selectedAgent ? 'flex' : 'hidden md:flex')}>
           {selectedAgent ? (
             <>
-              <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+              <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex-shrink-0 flex items-center gap-3">
+                <button
+                  type="button"
+                  data-testid="admin-assistants-back"
+                  aria-label="Назад к списку ассистентов"
+                  onClick={handleBack}
+                  className="md:hidden p-2 -ml-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
                 <h2 className="text-lg font-semibold text-gray-900 flex items-center">
                   <Edit2 className="w-5 h-5 mr-2 text-forest-600" />
                   {selectedAgent.name}
