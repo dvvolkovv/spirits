@@ -9,7 +9,11 @@ interface VoiceCallDetails {
   transcript: { role: 'user' | 'assistant'; text: string; ts: number }[] | null;
   /** Списано за разговор. Считает бэкенд — курс живёт там и меняется. */
   tokens_charged?: number | null;
+  /** Кто был на встрече, joinedAt — мс эпохи. У звонка — null. */
+  participants?: { name: string; joinedAt: number }[] | null;
 }
+
+const clock = (ms: number) => new Date(ms).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
 /**
  * Карточка состоявшегося звонка в ленте чата. Резюме приходит вместе с
@@ -84,6 +88,17 @@ export default function VoiceCallCard({ callId }: { callId: string }) {
             </div>
           )}
           {failed && <p className="text-xs text-red-600">{t('chat.voice_call.card_load_failed')}</p>}
+          {details && !loading && !!details.participants?.length && (
+            <div data-testid="voice-call-participants" className="mb-2 text-xs text-gray-700">
+              <span className="font-medium text-forest-800">{t('chat.voice_call.participants_title')}:</span>{' '}
+              {details.participants.map((p, i) => (
+                <span key={i}>
+                  {i > 0 && ', '}
+                  {p.name} <span className="text-gray-500">({clock(p.joinedAt)})</span>
+                </span>
+              ))}
+            </div>
+          )}
           {details && !loading && (
             details.transcript?.length ? (
               <div className="space-y-1 max-h-64 overflow-y-auto">

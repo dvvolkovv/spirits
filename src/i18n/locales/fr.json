@@ -340,6 +340,7 @@
       "admin_only": "Les appels vocaux sont pour l'instant réservés aux administrateurs",
       "card_title": "Appel vocal",
       "card_minutes": "{{count}} min",
+      "participants_title": "Participants",
       "card_no_transcript": "Aucune transcription enregistrée",
       "card_load_failed": "Impossible de charger la transcription",
       "speaker_you": "Vous",

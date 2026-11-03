@@ -340,6 +340,7 @@
       "admin_only": "Por agora, as chamadas de voz estão disponíveis apenas para administradores",
       "card_title": "Chamada de voz",
       "card_minutes": "{{count}} min",
+      "participants_title": "Participantes",
       "card_no_transcript": "A transcrição não foi guardada",
       "card_load_failed": "Não foi possível carregar a transcrição",
       "speaker_you": "Você",
