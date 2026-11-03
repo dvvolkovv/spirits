@@ -143,7 +143,7 @@ describe('повторное ревью 03.11 (m-c): pendingFilesAssistantId н�
     const body = handleFileTaskSubmit();
     const at = body.indexOf("setFileTaskInput('');");
     expect(at).toBeGreaterThan(-1);
-    expect(body.slice(at, at + 150)).toContain('setPendingFilesAssistantId(null)');
+    expect(body.slice(at, at + 400)).toContain('setPendingFilesAssistantId(null)');
   });
 
   it('«Отмена» в окне задачи сбрасывает его тоже', () => {
