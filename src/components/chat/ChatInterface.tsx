@@ -64,10 +64,11 @@ import { ProductActionCard } from '../products/ProductActionCard';
 import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
 import { stripProductActionBlocks } from '../../utils/productActionBlock';
-import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';
+import { hasPendingDraftFor, savePendingDraft, takePendingDraftFor } from '../../utils/pendingDraft';
 import { createChunkDecoder } from '../../utils/streamDecoder';
 import ChatImageAttachment from './ChatImageAttachment';
 import { imageAttachmentPreview } from './attachmentPreview';
+import { isNoTokensEnd, restoreIntoInput } from './noTokensDraft';
 
 interface Assistant {
   id: number;
@@ -1417,7 +1418,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => { try { voiceRef.current?.stop(); } catch {} };
   }, []);
 
-  const sendMessageToAI = async (userMessage: string) => {
+  /**
+   * После успешно доставленного хода — если для этого ассистента остался
+   * черновик от прежнего отказа на нулевом балансе (бэклог 2d71aaf8) и его
+   * текст совпадает с только что отправленным, место ему в поле больше не
+   * нужно: иначе он вернулся бы в поле при следующем открытии чата. Текст
+   * может не совпасть — например, поверх лёг новый черновик с linkeon.io
+   * прямо пока это сообщение летело, — тогда кладём найденное обратно: он не
+   * наш, трогать его нельзя.
+   */
+  const forgetDraftIfSent = (assistantId: number, sentText: string) => {
+    const existing = takePendingDraftFor(assistantId);
+    if (existing !== null && existing !== sentText) {
+      savePendingDraft(existing, assistantId);
+    }
+  };
+
+  const sendMessageToAI = async (userMessage: string, userMessageId?: string) => {
     sendSeqRef.current += 1;
     setIsTyping(true);
     setCurrentStreamingMessage('');
@@ -1522,6 +1539,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const updateInterval = 50;
       let buffer = '';
       let lastUsage: { total?: number } | null = null;
+      // Нулевой баланс (бэклог 2d71aaf8): бэк отвечает текстом остановки, но
+      // само сообщение не записано — пузырь и текст вернём человеку сами.
+      let noTokens = false;
       // Один decoder на весь поток: новый TextDecoder на каждый кусок (как
       // было здесь) не хранит байтовый хвост многобайтного знака (кириллица,
       // эмодзи), разрезанного границей кусков, — находка ревью пробы 31.10.
@@ -1593,8 +1613,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 lastUpdate = now;
               }
             }
-            if (data.type === 'end' && data.usage) {
-              lastUsage = data.usage;
+            if (data.type === 'end') {
+              if (data.usage) lastUsage = data.usage;
+              if (isNoTokensEnd(data)) noTokens = true;
             }
             if (data.type === 'tool_start' && data.tool === 'generate_video') {
               inlineJobIds.push('pending');
@@ -1668,6 +1689,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
       }
 
+      // Нулевой баланс — сохраняем черновик независимо от того, остался ли
+      // человек в этом чате: он мог уйти на оплату, а текст должен дождаться
+      // его здесь (переживает и переход на оплату, и перезагрузку страницы).
+      if (noTokens && streamAssistantId !== null) {
+        savePendingDraft(userMessage, streamAssistantId);
+      }
+
       // Only commit to UI state if user is still on the assistant that initiated the stream.
       if (selectedAssistantIdRef.current === streamAssistantId) {
         setCurrentStreamingMessage(accumulatedContent);
@@ -1682,7 +1710,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           calendarProposalIds: calendarProposalIds.length > 0 ? [...calendarProposalIds] : undefined,
           activity: finishActivity(activity, Date.now()),
         };
-        setMessages(prev => [...prev, completedMessage]);
+        if (noTokens) {
+          // Сообщение не доставлено — убираем его пузырь из ленты (фильтр по
+          // id: искать сообщение по совпадению текста менее надёжно — очередь
+          // могла склеить несколько реплик в одну). Ответ остановки от бэка
+          // оставляем как обычный ответ — в нём уже ссылка на пополнение.
+          setMessages(prev => [...prev.filter(m => m.id !== userMessageId), completedMessage]);
+          setInput(prev => restoreIntoInput(prev, userMessage));
+        } else {
+          setMessages(prev => [...prev, completedMessage]);
+          if (streamAssistantId !== null) forgetDraftIfSent(streamAssistantId, userMessage);
+        }
         setStreamingMessageId(null);
       }
       // If user switched — backend has already saved to chat_history; polling
@@ -1792,7 +1830,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     setMessages(prev => [...prev, userMessage]);
-    await sendMessageToAI(text);
+    await sendMessageToAI(text, userMessage.id);
   };
 
   const handleSend = async () => {
@@ -2500,6 +2538,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       let accumulatedContent = '';
       let buffer = '';
       let lastTokensUsed = 0;
+      // Нулевой баланс (бэклог 2d71aaf8): файлы и текст задания вернём в окно
+      // отправки — File-объекты ещё в памяти, повторная отправка — одним кликом.
+      let noTokens = false;
       // Один decoder на весь поток: раньше TextDecoder создавался заново на
       // каждый кусок — `{ stream: true }` на нём бесполезен, decoder новый и
       // без памяти о предыдущих байтах (находка ревью пробы 31.10).
@@ -2537,6 +2578,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             } else if (event.type === 'end') {
               accumulatedContent = event.content || accumulatedContent;
               lastTokensUsed = event.usage?.total || 0;
+              if (isNoTokensEnd(event)) noTokens = true;
             }
           } catch {}
         }
@@ -2550,7 +2592,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         tokensUsed: lastTokensUsed,
         activity: finishActivity(activity, Date.now()),
       };
-      setMessages(prev => [...prev, assistantMsg]);
+      if (noTokens) {
+        // Сообщение с вложениями не доставлено — убираем его пузырь, ответ
+        // остановки от бэка оставляем. Файлы и текст задачи — назад в окно
+        // отправки (File-объекты ещё в памяти — повторная отправка одним
+        // кликом), текст ещё и в черновик: переживёт перезагрузку, когда
+        // File-объекты уже не восстановить (бэк и так попросит прикрепить их
+        // заново).
+        setMessages(prev => [...prev.filter(m => m.id !== userMessage.id), assistantMsg]);
+        setPendingFiles(files);
+        setFileTaskInput(task);
+        setShowFileTaskModal(true);
+        if (selectedAssistant) savePendingDraft(task, selectedAssistant.id);
+      } else {
+        setMessages(prev => [...prev, assistantMsg]);
+        if (selectedAssistant) forgetDraftIfSent(selectedAssistant.id, task);
+      }
     } catch (error) {
       if (user?.phone) trackAuthed('file_upload_error', user.phone, { count: files.length, name: files.map(f => f.name).join(', ').slice(0, 200), error: error instanceof Error ? error.message : String(error), assistant_id: selectedAssistant?.id });
       // Свою внятную причину (превышен размер) показываем как есть. Общая
