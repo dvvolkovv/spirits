@@ -13,6 +13,7 @@ import { resolveLanguage } from '../i18n/languages';
 
 interface User {
   id: string;
+  backendUserId?: string;
   phone: string;
   firstName?: string;
   lastName?: string;
@@ -236,6 +237,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (!currentUser) return currentUser;
             const updatedUser = {
               ...currentUser,
+              backendUserId: profileJson.user_id || currentUser.backendUserId,
               phone: profileJson.phone || currentUser.phone || '',
               isAdmin: profileJson.isadmin === true,
               onboarded: profileJson.onboarded === true,

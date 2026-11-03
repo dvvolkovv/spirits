@@ -25,9 +25,10 @@ const SLA_BADGE: Record<SlaState, string> = {
 export const TicketAssignment: React.FC<TicketAssignmentProps> = ({ ticket, operators, onAssigned }) => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const currentOperatorId = operators.find((operator) => operator.id === user?.backendUserId)?.id;
   const [nowMs, setNowMs] = useState(Date.now());
   const [selectedOperator, setSelectedOperator] = useState(
-    ticket.assigned_to || user?.id || operators[0]?.id || '',
+    ticket.assigned_to || currentOperatorId || operators[0]?.id || '',
   );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,8 +39,8 @@ export const TicketAssignment: React.FC<TicketAssignmentProps> = ({ ticket, oper
   }, []);
 
   useEffect(() => {
-    setSelectedOperator(ticket.assigned_to || user?.id || operators[0]?.id || '');
-  }, [ticket.id, ticket.assigned_to, user?.id, operators]);
+    setSelectedOperator(ticket.assigned_to || currentOperatorId || operators[0]?.id || '');
+  }, [ticket.id, ticket.assigned_to, currentOperatorId, operators]);
 
   const state = slaState(ticket, nowMs);
   const assignedName = useMemo(() => {
@@ -101,11 +102,11 @@ export const TicketAssignment: React.FC<TicketAssignmentProps> = ({ ticket, oper
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        {!ticket.assigned_to && user?.id && (
+        {!ticket.assigned_to && currentOperatorId && (
           <button
             type="button"
             disabled={pending}
-            onClick={() => assign(user.id)}
+            onClick={() => assign(currentOperatorId)}
             className="px-2.5 py-1.5 rounded-md bg-forest-600 hover:bg-forest-700 text-white text-xs font-medium disabled:opacity-60"
           >
             {t('admin.support.assignment.take')}

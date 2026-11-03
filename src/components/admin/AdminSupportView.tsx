@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Send, AlertTriangle, CheckCircle, Inbox, Clock, Bot, UserCircle2, Headphones, ArrowLeft, ListPlus } from 'lucide-react';
@@ -120,6 +120,10 @@ const AdminSupportView: React.FC = () => {
   const [replyInternal, setReplyInternal] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const listRequestRef = useRef(0);
+  const detailRequestRef = useRef(0);
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
 
   // Жалобы живут здесь же, а не отдельной вкладкой: и то и другое —
   // входящие обращения, которые кто-то должен разобрать. Разносить их по
@@ -128,30 +132,37 @@ const AdminSupportView: React.FC = () => {
   const [openReports, setOpenReports] = useState<number | null>(null);
 
   const fetchList = useCallback(async () => {
+    const requestId = ++listRequestRef.current;
     try {
       setLoadingList(true);
       const query = new URLSearchParams({ status: filter, limit: '100' });
       if (slaFilter !== 'all') query.set('sla', slaFilter);
       const r = await apiClient.get(`/webhook/support/admin/tickets?${query.toString()}`);
       const data = await r.json();
-      if (Array.isArray(data)) setTickets(data);
+      if (requestId === listRequestRef.current && Array.isArray(data)) setTickets(data);
     } catch (e: any) {
-      setError(e?.message || 'failed to load tickets');
+      if (requestId === listRequestRef.current) setError(e?.message || 'failed to load tickets');
     } finally {
-      setLoadingList(false);
+      if (requestId === listRequestRef.current) setLoadingList(false);
     }
   }, [filter, slaFilter]);
 
   const fetchDetail = useCallback(async (id: string) => {
+    if (selectedIdRef.current !== id) return;
+    const requestId = ++detailRequestRef.current;
     try {
       setLoadingDetail(true);
       const r = await apiClient.get(`/webhook/support/admin/ticket/${id}`);
       const data = await r.json();
-      setDetail(data);
+      if (requestId === detailRequestRef.current && selectedIdRef.current === id) setDetail(data);
     } catch (e: any) {
-      setError(e?.message || 'failed to load ticket');
+      if (requestId === detailRequestRef.current && selectedIdRef.current === id) {
+        setError(e?.message || 'failed to load ticket');
+      }
     } finally {
-      setLoadingDetail(false);
+      if (requestId === detailRequestRef.current && selectedIdRef.current === id) {
+        setLoadingDetail(false);
+      }
     }
   }, []);
 
@@ -378,7 +389,11 @@ const AdminSupportView: React.FC = () => {
           {SLA_FILTERS.map((f) => (
             <button
               key={f.id}
-              onClick={() => setSlaFilter((current) => current === f.id ? 'all' : f.id)}
+              onClick={() => {
+                const next = slaFilter === f.id ? 'all' : f.id;
+                if (next === 'mine') setFilter('all');
+                setSlaFilter(next);
+              }}
               className={clsx(
                 'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                 slaFilter === f.id
