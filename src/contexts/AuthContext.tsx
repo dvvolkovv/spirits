@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode} from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode} from 'react';
 import { tokenManager } from '../utils/tokenManager';
 import { authService } from '../services/authService';
 import { apiClient } from '../services/apiClient';
@@ -90,6 +90,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const profileRequestRef = useRef(0);
 
   const fetchUserTokens = useCallback(async () => {
     try {
@@ -201,11 +202,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [fetchUserTokens]);
 
   const checkAdminStatus = useCallback(async () => {
+    const requestId = ++profileRequestRef.current;
     try {
       const response = await apiClient.get(`/webhook/profile`);
 
       if (response.ok) {
         const responseData = await response.json();
+        if (requestId !== profileRequestRef.current) return;
 
         let profileRecord;
         if (Array.isArray(responseData) && responseData.length > 0) {
@@ -234,7 +237,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
 
           setUser((currentUser) => {
-            if (!currentUser) return currentUser;
+            if (requestId !== profileRequestRef.current || !currentUser) return currentUser;
             const updatedUser = {
               ...currentUser,
               backendUserId: profileJson.user_id || currentUser.backendUserId,
@@ -288,6 +291,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user?.id, isLoading, fetchUserTokens, updateTokens]);
 
   const login = useCallback(async (phone: string, token: string) => {
+    profileRequestRef.current += 1;
     const newUser: User = {
       id: Math.random().toString(36).substring(2, 11),
       phone,
@@ -340,6 +344,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 
   const logout = () => {
+    profileRequestRef.current += 1;
     clearAppStorage();
     tokenManager.clearTokens();
     authService.logout();
@@ -347,6 +352,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const deleteProfile = async () => {
+    profileRequestRef.current += 1;
     try {
       const response = await apiClient.delete(`/webhook/profile`);
 

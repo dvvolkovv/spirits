@@ -146,6 +146,8 @@ const AdminSupportView: React.FC = () => {
       if (requestId === listRequestRef.current) setLoadingList(false);
     }
   }, [filter, slaFilter]);
+  const fetchListRef = useRef(fetchList);
+  fetchListRef.current = fetchList;
 
   const fetchDetail = useCallback(async (id: string) => {
     if (selectedIdRef.current !== id) return;
@@ -558,7 +560,7 @@ const AdminSupportView: React.FC = () => {
                 operators={operators}
                 onAssigned={async () => {
                   if (selectedId) await fetchDetail(selectedId);
-                  await fetchList();
+                  await fetchListRef.current();
                 }}
               />
             )}

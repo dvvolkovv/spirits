@@ -105,6 +105,8 @@ describe('актуальность identity в AuthContext', () => {
     await flush();
     await flush();
     expect(profileRequests.length).toBeGreaterThan(adminARequests.length);
+    expect(view.container.querySelector('[data-testid="session"]')?.textContent)
+      .toBe(`${PHONE_B}||user`);
 
     await actAsync(() => profileRequests[profileRequests.length - 1](
       profileResponse(PHONE_B, 'backend-b', false),
