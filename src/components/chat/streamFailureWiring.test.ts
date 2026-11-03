@@ -66,7 +66,10 @@ describe('разбор обрыва в catch', () => {
   it('при живом ходе выходим ДО пузыря', () => {
     const body = sendMessageToAI();
     const guard = body.slice(body.indexOf('if (!shouldShowStreamError('), body.indexOf("t('chat.ai_error_fallback')"));
-    expect(guard).toContain('return;');
+    // sendMessageToAI с 03.11 сообщает исход вызывающему (C1, ревью Ф1) —
+    // здесь `return 'ok';`, а не бессодержательный `return;`; проверяем сам
+    // факт раннего выхода, а не конкретное возвращаемое значение.
+    expect(guard).toMatch(/\breturn\b/);
   });
 
   it('при живом ходе поднимаем признак «идёт удалённый ход»', () => {
