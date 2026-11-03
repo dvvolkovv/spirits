@@ -89,7 +89,9 @@ export const TicketAssignment: React.FC<TicketAssignmentProps> = ({ ticket, oper
 
       <div className="text-xs text-gray-500">
         {t('admin.support.assignment.deadline')}: {ticket.first_response_due_at
-          ? `${dateTime(ticket.first_response_due_at)} · ${remainingText(ticket.first_response_due_at, nowMs)}`
+          ? `${dateTime(ticket.first_response_due_at)}${ticket.first_owner_reply_at
+            ? ''
+            : ` · ${remainingText(ticket.first_response_due_at, nowMs)}`}`
           : t('admin.support.time.dash')}
       </div>
       {ticket.first_owner_reply_at && (
