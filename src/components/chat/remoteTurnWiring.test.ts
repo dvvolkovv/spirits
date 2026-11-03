@@ -82,7 +82,7 @@ describe('поллинг истории', () => {
   });
 });
 
-describe('предохранитель «Отправить всё равно»', () => {
+describe('предохранитель «Прервать и отправить»', () => {
   it('карточка гейтится isTyping, а не turnBusy: иначе кнопка недостижима', () => {
     // turnBusy включает очередь, а очередь непуста ровно тогда, когда кнопка и
     // нужна — человек написал, отправка заблокирована. С гейтом по turnBusy
@@ -98,6 +98,21 @@ describe('предохранитель «Отправить всё равно»'
     const effect = activeTurnEffect();
     expect(effect).toContain('setRemoteOverride(false)');
     expect(effect).toContain('remoteCheckedAtRef.current = null');
+  });
+
+  it('подсказка связана через aria-describedby, а не дублируется title', () => {
+    // title повторял бы то, что и так видно строкой под кнопкой.
+    expect(SRC).not.toContain("title={t('chat.send_anyway_hint')}");
+    expect(SRC).toContain('aria-describedby={sendAnywayHintId}');
+    expect(SRC).toContain('<p id={sendAnywayHintId}');
+  });
+
+  // Ревью E3 (02.11): это предупреждение о потере работы (ассистент бросит
+  // текущий ход незавершённым), а не рядовая вторичная подсказка — серому
+  // 400-му (как у queued_hint рядом, где это и правда мелкий тюнинг)
+  // контраста для такого веса не хватает.
+  it('подсказка о потере работы — text-gray-500, не text-gray-400 (нужен контраст у предупреждения)', () => {
+    expect(SRC).toContain('<p id={sendAnywayHintId} className="mt-1 text-xs text-gray-500">');
   });
 });
 

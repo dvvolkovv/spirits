@@ -41,4 +41,31 @@ describe('события панели «Медиа и файлы»', () => {
     expect(b).toContain("trackAuthed('chat_files_download', user.phone, { kind, from })");
     expect(SRC).toContain('onDownload={trackFilesDownload}');
   });
+
+  // Картинка-вложение в ленте (ChatImageAttachment, рисуется в markdownComponents.a)
+  // — тот же chat_files_download, что шлёт панель. from: 'feed' — метка для
+  // разбора по отдельным событиям, а не для сводной цифры: «Скачиваний» в
+  // админке считает по kind и включает оба источника вместе, не разделяя их.
+  it('скачивание картинки-вложения в ленте шлёт chat_files_download с from: feed', () => {
+    const b = body('const trackFeedImageDownload = useCallback(() => {');
+    expect(b).toContain('userPhoneRef.current');
+    expect(b).toContain("trackAuthed('chat_files_download', phone, { kind: 'image', from: 'feed' })");
+    expect(SRC).toContain('onDownload={trackFeedImageDownload}');
+  });
+
+  // Ревью E3 (02.11): markdownComponents ниже — useMemo с единственной
+  // зависимостью handleLinkNavigation, пересоздаётся редко (баланс токенов
+  // поллится раз в 5 с и давал бы новый user на каждый тик — без этого
+  // памятка пересобирала бы всю разметку ленты на каждый тик). Если
+  // trackFeedImageDownload замыкает user НАПРЯМУЮ, то памятка, захваченная
+  // ОДИН раз (на первом рендере, где markdownComponents ещё пересобран),
+  // держит user именно ТОГО рендера навечно: вход через OAuth/Taler ID/
+  // привязку аккаунта (login('', …)) получает телефон позже первого
+  // рендера — скачивания из ленты молчали бы весь первый сеанс. Ref
+  // обновляется на каждый рендер независимо от памятки — его .current
+  // всегда свежий на момент клика, а не на момент создания замыкания.
+  it('trackFeedImageDownload — useCallback с пустыми зависимостями, телефон из ref (не из user напрямую)', () => {
+    expect(SRC).toMatch(/const userPhoneRef = useRef\(user\?\.phone\);\s*\n\s*userPhoneRef\.current = user\?\.phone;/);
+    expect(SRC).toMatch(/const trackFeedImageDownload = useCallback\(\(\) => \{[\s\S]*?\}, \[\]\);/);
+  });
 });

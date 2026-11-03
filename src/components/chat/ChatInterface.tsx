@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback, useId } from 'react';
 
 /**
  * Модалка тянет за собой livekit-client (~1.3 МБ несжатыми). Кнопка «Позвонить»
@@ -66,6 +66,8 @@ import { askBlocksToPlainText } from '../../utils/askBlock';
 import { stripProductActionBlocks } from '../../utils/productActionBlock';
 import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';
 import { createChunkDecoder } from '../../utils/streamDecoder';
+import ChatImageAttachment from './ChatImageAttachment';
+import { imageAttachmentPreview } from './attachmentPreview';
 
 interface Assistant {
   id: number;
@@ -423,6 +425,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (isWebLink(url)) window.open(url, '_blank', 'noopener,noreferrer');
   }, [navigate]);
 
+  // Скачивание картинки-вложения прямо из ленты (ChatImageAttachment ниже) —
+  // тот же chat_files_download, что шлёт панель «Медиа и файлы»
+  // (trackFilesDownload, см. openFilesPanel ниже). from: 'feed' — метка для
+  // разбора по отдельным событиям, не для сводной статистики: сводная цифра
+  // «Скачиваний» в админке (chat-files-stats.ts) считает по kind и теперь
+  // включает скачивания из ленты вместе с панелью, не разделяя их.
+  //
+  // Телефон — из ref, а не из user напрямую (ревью E3, 02.11): markdownComponents
+  // ниже — useMemo с единственной зависимостью handleLinkNavigation и
+  // пересобирается редко (не на каждое обновление user — баланс токенов
+  // поллится раз в 5 с и давал бы новый объект user на каждый тик, вызывая
+  // пересборку всей разметки ленты). Замыкай функция user напрямую —
+  // памятка, собранная один раз (на первом рендере, пока она ещё не
+  // пересобрана), держала бы user именно ТОГО рендера навечно: вход через
+  // OAuth/Taler ID/привязку аккаунта (login('', …)) получает телефон позже
+  // первого рендера, и скачивания из ленты молчали бы весь первый сеанс.
+  // Ref обновляется на каждый рендер независимо от памятки markdownComponents,
+  // поэтому userPhoneRef.current всегда свежий на момент клика, а
+  // useCallback с пустыми зависимостями — стабильная ссылка на функцию,
+  // которой эта свежесть и не требуется добывать через identity.
+  const userPhoneRef = useRef(user?.phone);
+  userPhoneRef.current = user?.phone;
+  const trackFeedImageDownload = useCallback(() => {
+    const phone = userPhoneRef.current;
+    if (phone) trackAuthed('chat_files_download', phone, { kind: 'image', from: 'feed' });
+  }, []);
+
   const markdownComponents = useMemo(() => ({
     p: ({ children }: any) => <p className="mb-2 last:mb-0">{children}</p>,
     strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
@@ -473,6 +502,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <a href={href} className="ym-disable-tracklink text-forest-600 hover:text-forest-700 underline">
             {children}
           </a>
+        );
+      }
+      // Картинка из файлов чата («Скачать схема.jpg») — самим файлом в
+      // ленте, а не одной ссылкой: иначе её приходится скачивать, чтобы
+      // увидеть (attachmentPreview.ts). Картинка открывается в просмотрщике
+      // (MediaViewer, внутри ChatImageAttachment), ссылка под ней — скачать.
+      // key — чтобы состояние ошибки не переживало смену адреса в стриме.
+      const attachment = href ? imageAttachmentPreview(href) : null;
+      if (attachment) {
+        return (
+          <ChatImageAttachment
+            key={attachment.fullUrl}
+            url={attachment.fullUrl}
+            name={attachment.name}
+            onDownload={trackFeedImageDownload}
+          >
+            {children}
+          </ChatImageAttachment>
         );
       }
       return (
@@ -622,6 +669,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // не мемоизированы, каждый пузырь тянет разбор markdown, и при длинной
   // истории это полный проход раз в 15 секунд все двадцать минут хода.
   const overrideOffered = shouldOfferOverride(remoteTurnActive, remoteTurnSinceRef.current, nowTick);
+  // Связь кнопки «Прервать и отправить» с подсказкой под ней для скринридера
+  // (aria-describedby, не title — подсказка и так видна строкой под кнопкой,
+  // дублировать её в тултипе незачем).
+  const sendAnywayHintId = useId();
   useEffect(() => {
     if (!remoteTurnActive || overrideOffered) return;
     const id = setInterval(() => setNowTick(Date.now()), 15000);
@@ -3362,7 +3413,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
         {/* Гейт по isTyping, а НЕ по turnBusy: очередь входит в turnBusy, и
             карточка пряталась ровно тогда, когда человек что-то написал — то
-            есть кнопка «Отправить всё равно» была недостижима именно в том
+            есть кнопка «Прервать и отправить» была недостижима именно в том
             состоянии, ради которого сделана. */}
         {remoteTurnActive && !streamingMessageId && !isTyping && !historyLoading && (
           <div className="flex justify-start">
@@ -3379,12 +3430,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   минут, автоснятие рвало бы самые дорогие), поэтому после
                   двух минут просто отдаём решение человеку. */}
               {overrideOffered && (
-                <button
-                  onClick={() => setRemoteOverride(true)}
-                  className="mt-2 text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
-                >
-                  {t('chat.send_anyway')}
-                </button>
+                <>
+                  <button
+                    onClick={() => setRemoteOverride(true)}
+                    aria-describedby={sendAnywayHintId}
+                    className="mt-2 text-xs text-forest-700 underline underline-offset-2 hover:text-forest-800"
+                  >
+                    {t('chat.send_anyway')}
+                  </button>
+                  {/* Кнопка обходит признак «ход идёт» — и прерывает ход, если он
+                      настоящий (релей пре-эмптит процесс сессии). Подпись это
+                      говорит прямо: «Отправить всё равно» жали из нетерпения и
+                      убивали работу (находка «Затыков недели» 2ff1a026). */}
+                  <p id={sendAnywayHintId} className="mt-1 text-xs text-gray-500">{t('chat.send_anyway_hint')}</p>
+                </>
               )}
             </div>
           </div>

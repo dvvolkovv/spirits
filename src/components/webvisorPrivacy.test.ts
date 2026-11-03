@@ -53,6 +53,7 @@ const TurnHistorySrc = readFileSync(join(__dirname, 'products', 'TurnHistory.tsx
 const AdminProductCardSrc = readFileSync(join(__dirname, 'admin', 'AdminProductCard.tsx'), 'utf8');
 const CustomMarkdownSrc = readFileSync(join(__dirname, '..', 'utils', 'customMarkdown.tsx'), 'utf8');
 const GuestChatSrc = readFileSync(join(__dirname, 'guest', 'GuestChat.tsx'), 'utf8');
+const ChatImageAttachmentSrc = readFileSync(join(__dirname, 'chat', 'ChatImageAttachment.tsx'), 'utf8');
 
 /**
  * Классы искомого открывающего тега (найден по data-testid), и только внутри
@@ -187,6 +188,10 @@ describe('переписка скрыта от записи Вебвизора (
   // (admin.globalLlm.since: «С …, переключил <имя или id>») — личные данные.
   it('админка — рубильник модели: строка «переключил кто»', () => {
     expect(classesOf(GlobalLlmProviderControl, 'global-llm-since', 'p')).toContain('ym-hide-content');
+  });
+
+  it('картинка-вложение в ленте (ChatImageAttachment)', () => {
+    expect(classesOf(ChatImageAttachmentSrc, 'chat-image-attachment', 'span')).toContain('ym-hide-content');
   });
 });
 
@@ -383,6 +388,11 @@ describe('ссылки переписки мимо «Внешних перехо
     ['ChatInterface.tsx', ChatInterface],
     ['customMarkdown.tsx', CustomMarkdownSrc],
     ['GuestChat.tsx', GuestChatSrc],
+    ['ChatImageAttachment.tsx', ChatImageAttachmentSrc],
+    // Ссылки «Скачать»: список файлов (ChatFilesPanel) и просмотрщик
+    // (MediaViewer) — те же личные адреса файлов переписки.
+    ['ChatFilesPanel.tsx', ChatFilesPanel],
+    ['MediaViewer.tsx', MediaViewer],
   ])('каждая ссылка в %s — с ym-disable-tracklink', (_name, src) => {
     const found = anchors(src);
     expect(found.length).toBeGreaterThan(0);

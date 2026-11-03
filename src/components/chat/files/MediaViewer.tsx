@@ -84,7 +84,9 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => onDownload?.(item.kind)}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+          // ym-disable-tracklink: адрес файла переписки личный, мимо
+          // «Внешних переходов» Метрики (webvisorPrivacy.test.ts).
+          className="ym-disable-tracklink flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
         >
           <Download className="h-4 w-4" />
           {t('chat.files.download')}
@@ -101,8 +103,15 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
         </button>
       </div>
       {/* max(): iPhone с «чёлкой»/индикатором даёт safe-area больше 1.5rem —
-          берём его; на обычном экране safe-area равен 0, остаётся 1.5rem. */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center px-12 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          берём его; на обычном экране safe-area равен 0, остаётся 1.5rem.
+          px-12 — только когда есть стрелки (несколько файлов): при одном
+          файле стрелок нет, а те же поля на телефоне делали «полноэкранный»
+          просмотр мельче, чем картинка в самой ленте. */}
+      <div
+        className={`relative flex min-h-0 flex-1 items-center justify-center pb-[max(1.5rem,env(safe-area-inset-bottom))] ${
+          items.length > 1 ? 'px-12' : 'px-2'
+        }`}
+      >
         {item.kind === 'video' ? (
           <video key={item.key} src={item.url} controls autoPlay className="max-h-full max-w-full" />
         ) : (

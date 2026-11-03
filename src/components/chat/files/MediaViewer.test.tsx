@@ -79,6 +79,25 @@ describe('MediaViewer', () => {
     expect(container.querySelector('video')?.getAttribute('src')).toBe('https://pub/v.mp4');
   });
 
+  // Ревью E3 (02.11): px-12 были прибиты всегда — нужны только под стрелки
+  // «назад»/«вперёд», а при одном файле (самый частый случай — просмотр
+  // открыли по клику на единственную картинку в ленте) стрелок нет, и те же
+  // поля на телефоне делали «полноэкранный» просмотр мельче, чем картинка в
+  // самой ленте.
+  it('поля по бокам: px-2 при одном файле (стрелок нет), px-12 при нескольких', () => {
+    const one = mount(<MediaViewer items={[img(1)]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    const stageOne = one.container.querySelector('img')!.parentElement!;
+    expect(stageOne.className).toContain('px-2');
+    expect(stageOne.className).not.toContain('px-12');
+    one.unmount();
+
+    const many = mount(<MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    const stageMany = many.container.querySelector('img')!.parentElement!;
+    expect(stageMany.className).toContain('px-12');
+    expect(stageMany.className).not.toContain('px-2');
+    many.unmount();
+  });
+
   it('открытие переводит фокус на «Закрыть»; имя файла — в aria-label диалога', () => {
     const { container, unmount } = mount(
       <MediaViewer items={[img(1), img(2)]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />,
