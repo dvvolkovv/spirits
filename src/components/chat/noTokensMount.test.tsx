@@ -135,6 +135,7 @@ function deferred() {
 }
 
 const ASSISTANT = { id: 12, name: 'Роман', description: '' };
+const OLYA = { id: 2, name: 'Оля', description: '' };
 const HISTORY = [
   { id: 'h1', type: 'user', content: 'старый вопрос', timestamp: '2026-11-01T10:00:00Z' },
   { id: 'h2', type: 'assistant', content: 'старый ответ', timestamp: '2026-11-01T10:00:05Z' },
@@ -151,6 +152,15 @@ const settle = async (n = 10) => { for (let i = 0; i < n; i++) await flush(); };
 const sleep = (ms: number) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
 async function open() { view = mount(page()); await settle(); }
 const rerender = async () => { view!.rerender(page()); await settle(); };
+/** Смена ассистента тем же путём, что боковая панель (preSelectedAssistant). */
+const switchTo = async (a: { id: number; name: string; description: string }) => {
+  view!.rerender(
+    <MemoryRouter initialEntries={[route]}>
+      <ChatInterface preSelectedAssistant={a} />
+    </MemoryRouter>,
+  );
+  await settle(14);
+};
 const c = () => view!.container;
 const field = () => c().querySelector('[data-testid="chat-input"]') as HTMLTextAreaElement;
 const sendBtn = () => c().querySelector('svg.lucide-send')!.closest('button') as HTMLButtonElement;
@@ -193,9 +203,23 @@ async function submitFileTask(task: string) {
 }
 const setTokens = async (n: number) => { auth.user = { ...auth.user, tokens: n }; await rerender(); };
 const chatPosts = () => net.posts.filter((p) => p.path === '/webhook/soulmate/chat');
+const uploads = () => net.posts.filter((p) => p.path === '/webhook/agent/upload-and-chat');
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
+  // jsdom 25 не реализует File.prototype.text: без полифила ветка одиночного
+  // текстового файла молча уходила в «не удалось прочитать», и E7/R14
+  // проверяли не тот путь (m-3 повторного ревью 03.11).
+  if (!File.prototype.text) {
+    File.prototype.text = function (this: File) {
+      return new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(r.error);
+        r.readAsText(this);
+      });
+    };
+  }
   const g = globalThis as Record<string, unknown>;
   if (!g.ResizeObserver) g.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
   if (!g.IntersectionObserver) g.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} takeRecords() { return []; } };
@@ -283,7 +307,7 @@ describe('no_tokens (бэклог 2d71aaf8) — живое монтирован�
     net.history = [];
     net.chatStreams.push(ndjson(NO_TOKENS));
     await open();
-    await sleep(800);
+    for (let i = 0; i < 20 && chatPosts().length === 0; i++) await sleep(100);
     await settle();
     expect(chatPosts().length).toBe(1);
     expect(field().value).toBe('');
@@ -324,6 +348,8 @@ describe('no_tokens (бэклог 2d71aaf8) — живое монтирован�
     await attach(new File(['строка'], 'note.txt', { type: 'text/plain' }));
     await submitFileTask('перескажи');
     expect(countStops()).toBe(1);
+    // Отказ .txt не затирает восстановленный текстовым ходом ввод (m-3).
+    expect(field().value).toBe('привет');
   });
 
   it('E8 (I2, баланс в кабинете ещё не обнулился поллингом): окно не должно открываться сразу', async () => {
@@ -351,6 +377,8 @@ describe('no_tokens (бэклог 2d71aaf8) — живое монтирован�
     const names = feedText();
     expect(names).toContain('для-оли.png');
     expect(names).not.toContain('для-романа.png');
+    // Смена ассистента сбрасывает и текст задачи вместе с файлами (m-3).
+    expect(modalTask()).toBe('');
   });
 
   it('E10 (I3): отказ загрузки у A → ушёл к B → вернулся к A и пополнил — текст задачи не оказывается и в поле, и в окне', async () => {
@@ -369,5 +397,133 @@ describe('no_tokens (бэклог 2d71aaf8) — живое монтирован�
     const mainAfterReturn = field().value;
     await setTokens(5000);
     expect(mainAfterReturn.includes('сожми фото') && modalTask() === 'сожми фото').toBe(false);
+  });
+});
+
+// Регрессии повторного ревью 03.11 (стенд review3). Каждый тест утверждает
+// ПРАВИЛЬНОЕ поведение; красный = дефект подтверждён. R6/R12/R14 на HEAD
+// (9e61a7f) красные — они охраняют правки m-2/m-1/I-1; R11/R13/R17/R18 зелёные
+// — охраняют уже сданное от регрессий.
+describe('no_tokens — регрессии финального ревью (R)', () => {
+  it('R6: отказ загрузки → «Чистый лист» (история перечитывается, эффект черновика срабатывает) → пополнение — задача не задвоена (поле И окно)', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(new File([new Uint8Array([1])], 'photo.png', { type: 'image/png' }));
+    await submitFileTask('сожми фото');
+    const toggle = c().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement | null;
+    expect(toggle).not.toBeNull();
+    await clickEl(toggle!);
+    await settle(14);
+    const fieldAfterToggle = field().value;
+    await setTokens(5000);
+    expect(fieldAfterToggle.includes('сожми фото') && modalTask() === 'сожми фото').toBe(false);
+  });
+
+  it('R11: два отказа загрузки подряд у одного ассистента — одна остановка; после пополнения окно открывается с последней задачей', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS), ndjson(NO_TOKENS));
+    await open();
+    await attach(new File([new Uint8Array([1])], 'one.png', { type: 'image/png' }));
+    await submitFileTask('первая задача');
+    // второй отказ: прикрепил ещё (окно открылось с one.png + two.png), отправил
+    await attach(new File([new Uint8Array([2])], 'two.png', { type: 'image/png' }));
+    const ta = c().querySelector(`textarea[placeholder="${tRu('chat.file_modal_placeholder')}"]`) as HTMLTextAreaElement;
+    typeInto(ta, 'вторая задача');
+    await clickEl(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(14);
+    const stops = countStops();
+    const modalAfter2 = modalVisible();
+    await setTokens(5000);
+    const t = feedText();
+    expect(stops).toBe(1);
+    expect(modalAfter2).toBe(false);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('вторая задача');
+    expect(t).toContain('one.png');
+    expect(t).toContain('two.png');
+  });
+
+  it('R12: у другого ассистента живой черновик → savePendingDraft молча отказывает → ушёл к B и вернулся — текст задачи не потерян', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({ text: 'черновик для Райи', assistant: '14', expires: Date.now() + 3600_000 }));
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(new File([new Uint8Array([1])], 'photo.png', { type: 'image/png' }));
+    await submitFileTask('сожми фото');
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    const fieldAtA = field().value;
+    await setTokens(5000);
+    expect(fieldAtA.includes('сожми фото') || modalTask() === 'сожми фото').toBe(true);
+  });
+
+  it('R13: тот же ассистент — второй отказ загрузки после пополнения и нового нуля открывает окно снова', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS), ndjson(NO_TOKENS));
+    await open();
+    await attach(new File([new Uint8Array([1])], 'one.png', { type: 'image/png' }));
+    await submitFileTask('раз');
+    await setTokens(5000);
+    const first = modalVisible();
+    // баланс в кабинете ещё 5000, но бэк снова отвечает no_tokens (ушёл в ноль другим ходом)
+    await clickEl(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(14);
+    const afterSecondReject = modalVisible();
+    await setTokens(0);
+    await setTokens(7000);
+    const second = modalVisible();
+    expect(first).toBe(true);
+    expect(afterSecondReject).toBe(false);
+    expect(second).toBe(true);
+    expect(modalTask()).toBe('раз');
+  });
+
+  it('R14 (I-1): один текстовый файл — отказ → пополнение → успешная отправка — черновик задачи снят, поле пустое', async () => {
+    net.chatStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('перескажал')));
+    await open();
+    await attach(new File(['строка'], 'note.txt', { type: 'text/plain' }));
+    await submitFileTask('перескажи');
+    const d1 = draft();
+    await setTokens(5000);
+    const opened = modalVisible();
+    await clickEl(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(14);
+    const reply = feedText().includes('перескажал');
+    const d2 = draft();
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(d1?.text).toBe('перескажи');
+    expect(opened).toBe(true);
+    expect(reply).toBe(true);
+    expect(d2).toBeNull();
+    expect(field().value).toBe('');
+  });
+
+  it('R17: обычная успешная мультипарт-загрузка — ответ в ленте, черновика нет, окно закрыто', async () => {
+    auth.user = { phone: '70000000000', tokens: 5000 };
+    net.uploadStreams.push(ndjson(NORMAL('файл получен')));
+    await open();
+    await attach(new File([new Uint8Array([1, 2, 3])], 'photo.png', { type: 'image/png' }));
+    await submitFileTask('посмотри');
+    await setTokens(4990);
+    expect(feedText()).toContain('файл получен');
+    expect(draft()).toBeNull();
+    expect(modalVisible()).toBe(false);
+  });
+
+  it('R18: отказ загрузки пришёл, когда человек уже ушёл к B, — черновик задачи сохранён для A и встаёт в поле при возврате', async () => {
+    const gate = deferred();
+    net.uploadStreams.push(ndjson(NO_TOKENS, gate.promise));
+    await open();
+    await attach(new File([new Uint8Array([1])], 'photo.png', { type: 'image/png' }));
+    const ta = c().querySelector(`textarea[placeholder="${tRu('chat.file_modal_placeholder')}"]`) as HTMLTextAreaElement;
+    typeInto(ta, 'сожми фото');
+    await clickEl(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle();
+    await switchTo(OLYA);
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    const d = draft();
+    await switchTo(ASSISTANT);
+    expect(d?.text).toBe('сожми фото');
+    expect(d?.assistant).toBe('12');
+    expect(field().value).toBe('сожми фото');
   });
 });
