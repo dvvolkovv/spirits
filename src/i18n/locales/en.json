@@ -892,7 +892,28 @@
       "internal_note_label": "Internal note (hidden from user)",
       "tokens_unit": "tokens: {{value}}",
       "section_tickets": "Tickets",
-      "section_reports": "Reports"
+      "section_reports": "Reports",
+      "sla": {
+        "overdue": "Overdue",
+        "soon": "Within 30 minutes",
+        "normal": "More than 30 minutes",
+        "answered": "First reply sent"
+      },
+      "assignment": {
+        "owner": "Assignee",
+        "unassigned": "Unassigned",
+        "deadline": "First reply deadline",
+        "first_reply": "First reply",
+        "take": "Take ownership",
+        "operator": "Administrator",
+        "reassign": "Reassign",
+        "unassign": "Remove assignment",
+        "unassign_confirm": "Remove the assignee from this ticket?",
+        "conflict": "Another administrator changed the assignment",
+        "failed": "Could not change the assignment",
+        "history": "Assignment history",
+        "event": "{{from}} → {{to}}"
+      }
     },
     "userActivity": {
       "title": "User activity",
