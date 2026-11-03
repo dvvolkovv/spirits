@@ -102,22 +102,27 @@ describe('collapseNoTokensStop', () => {
   });
 });
 
-describe('applyNoTokensOutcome — решение по исходу для ПОЛЯ ВВОДА (текстовый ход)', () => {
-  it('пустое поле — отклонённый текст целиком возвращается в поле и в черновик', () => {
-    const outcome = applyNoTokensOutcome({ rejectedText: 'моё сообщение', currentInput: '', queuedText: '' });
+describe('applyNoTokensOutcome — склейка отклонённого текста с очередью (повторное ревью 03.11)', () => {
+  // C2 (повторное ревью 03.11, CRITICAL): функция больше не принимает
+  // currentInput. Раньше ChatInterface звал её как
+  // applyNoTokensOutcome({ rejectedText: userMessage, currentInput: input, ... })
+  // внутри sendMessageToAI — а там userMessage и input — ОДНО и то же значение
+  // (input из замыкания рендера, из которого ушла отправка, ещё не обнулён:
+  // handleSendInner делает setInput('') ПОСЛЕ, а не до чтения). currentInput
+  // внутри неизбежно совпадал с rejectedText, и restoreIntoInput склеивал текст
+  // САМ С СОБОЙ («привет» → «привет\n\nпривет»). Слияние с ТЕКУЩИМ (а не
+  // пойманным в замыкание) полем ввода теперь делает вызывающий сам —
+  // setInput(prev => restoreIntoInput(prev, outcome.input)) с функциональным
+  // апдейтом, который видит актуальное значение на момент применения.
+  it('без очереди — отклонённый текст целиком, он же черновик', () => {
+    const outcome = applyNoTokensOutcome({ rejectedText: 'моё сообщение', queuedText: '' });
     expect(outcome.input).toBe('моё сообщение');
     expect(outcome.draftText).toBe('моё сообщение');
-  });
-
-  it('в поле уже что-то набрано — дописывает через пустую строку', () => {
-    const outcome = applyNoTokensOutcome({ rejectedText: 'отклонённое', currentInput: 'новый текст', queuedText: '' });
-    expect(outcome.input).toBe('новый текст\n\nотклонённое');
   });
 
   it('m2: очередь, скопившаяся за время хода, возвращается ЦЕЛИКОМ вместе с отклонённым', () => {
     const outcome = applyNoTokensOutcome({
       rejectedText: 'первое отклонённое',
-      currentInput: '',
       queuedText: 'второе из очереди\n\nтретье из очереди',
     });
     expect(outcome.input).toBe('первое отклонённое\n\nвторое из очереди\n\nтретье из очереди');
@@ -127,13 +132,13 @@ describe('applyNoTokensOutcome — решение по исходу для ПО�
   });
 
   it('очередь пустая (только пробелы) — не добавляет лишних переносов строк', () => {
-    const outcome = applyNoTokensOutcome({ rejectedText: 'отклонённое', currentInput: '', queuedText: '   ' });
+    const outcome = applyNoTokensOutcome({ rejectedText: 'отклонённое', queuedText: '   ' });
     expect(outcome.input).toBe('отклонённое');
   });
 
   it('draftText всегда равен input — вызывающий сам решает, помещается ли он в хранилище (m5)', () => {
     const longText = 'я'.repeat(3000);
-    const outcome = applyNoTokensOutcome({ rejectedText: longText, currentInput: '', queuedText: '' });
+    const outcome = applyNoTokensOutcome({ rejectedText: longText, queuedText: '' });
     expect(outcome.draftText).toBe(outcome.input);
     expect(outcome.draftText.length).toBeGreaterThan(2000);
   });
