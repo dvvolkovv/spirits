@@ -766,7 +766,7 @@
       "default_title": "Rappel",
       "test_success": "Envoyé — vérifie la notification 🔔",
       "test_no_push": "Généré, mais la notification n'est pas arrivée. Active les notifications ci-dessus sur cet appareil.",
-      "test_busy": "L'assistant est en train de discuter avec toi — réessaie dans une minute.",
+      "test_busy": "L'assistant est occupé en ce moment — réessaie dans une minute.",
       "test_failed": "Impossible de préparer le message — réessaie un peu plus tard.",
       "day_sun": "dim",
       "day_mon": "lun",

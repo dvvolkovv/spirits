@@ -1152,7 +1152,7 @@
       "default_title": "Lembrete",
       "test_success": "Enviámos — vê a notificação 🔔",
       "test_no_push": "Gerámos, mas o push não foi entregue. Ativa as notificações acima, neste dispositivo.",
-      "test_busy": "O assistente está agora a falar contigo — tenta dentro de um minuto.",
+      "test_busy": "O assistente está ocupado agora mesmo — tenta dentro de um minuto.",
       "test_failed": "Não foi possível preparar a mensagem — tenta de novo um pouco mais tarde.",
       "day_sun": "Dom",
       "day_mon": "Seg",

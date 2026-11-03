@@ -69,13 +69,16 @@ describe('RoutinesManager — кнопка «Проверить»', () => {
     view = null;
   });
 
+  // Ревью Ф1 (m9): утверждаем про НАСТОЯЩИЙ русский текст, а не tRu(key) —
+  // иначе тест и проверяемый текст берутся из ОДНОГО и того же места
+  // (ru.json) и зеленеют даже на опечатке в ключе или не том значении.
   it('занятая сессия (busy) — свой текст, а не «пуш не доставлен»', async () => {
     api.post.mockResolvedValue(ok({ ok: true, delivered: 0, busy: true }));
     const { container } = render();
     await settle();
     await clickTest(container);
-    expect(visibleText(container)).toContain(tRu('settings.routines.test_busy'));
-    expect(visibleText(container)).not.toContain(tRu('settings.routines.test_no_push'));
+    expect(visibleText(container)).toContain('Ассистент сейчас занят — попробуй через минуту.');
+    expect(visibleText(container)).not.toContain('Сгенерировали, но пуш не доставлен');
   });
 
   it('сбойный ход (failed) — свой текст, а не «пуш не доставлен»', async () => {
@@ -83,8 +86,8 @@ describe('RoutinesManager — кнопка «Проверить»', () => {
     const { container } = render();
     await settle();
     await clickTest(container);
-    expect(visibleText(container)).toContain(tRu('settings.routines.test_failed'));
-    expect(visibleText(container)).not.toContain(tRu('settings.routines.test_no_push'));
+    expect(visibleText(container)).toContain('Не получилось подготовить сообщение — попробуй ещё раз чуть позже.');
+    expect(visibleText(container)).not.toContain('Сгенерировали, но пуш не доставлен');
   });
 
   it('доставлено — как раньше, test_success', async () => {
@@ -92,7 +95,7 @@ describe('RoutinesManager — кнопка «Проверить»', () => {
     const { container } = render();
     await settle();
     await clickTest(container);
-    expect(visibleText(container)).toContain(tRu('settings.routines.test_success'));
+    expect(visibleText(container)).toContain('Отправили — проверь уведомление 🔔');
   });
 
   it('не доставлено, без busy/failed — как раньше, test_no_push (пуш не включён на устройстве)', async () => {
@@ -100,6 +103,6 @@ describe('RoutinesManager — кнопка «Проверить»', () => {
     const { container } = render();
     await settle();
     await clickTest(container);
-    expect(visibleText(container)).toContain(tRu('settings.routines.test_no_push'));
+    expect(visibleText(container)).toContain('Сгенерировали, но пуш не доставлен. Включи уведомления выше на этом устройстве.');
   });
 });
