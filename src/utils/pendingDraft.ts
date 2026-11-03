@@ -101,6 +101,29 @@ export function forgetPendingDraft(): void {
   forget();
 }
 
+/**
+ * Забыть черновик этого ассистента, если отправленный текст его уже
+ * покрывает — после успешного (не no_tokens) хода (бэклог 2d71aaf8): иначе
+ * он всплыл бы в поле при следующем открытии чата.
+ *
+ * READ-ONLY сверка, без выдачи и без пересохранения. Прежний приём «забрать
+ * и положить обратно» (takePendingDraftFor + savePendingDraft при
+ * несовпадении) при КАЖДОМ успешном ходе продлевал TTL черновика ещё на
+ * час — черновик, который так и не совпал, жил бы бесконечно, — а у чужого
+ * несовпавшего черновика перезапись (без явной передачи auto) теряла эту
+ * пометку. Здесь несовпавшая запись просто не трогается вовсе.
+ *
+ * `includes`, а не точное совпадение, и `trim()` с обеих сторон: дописанное
+ * поле, правка перед отправкой или склейка очереди (ревью Ф1, m2) — это тот
+ * же самый черновик, просто с добавкой или лишним пробелом, а не «другой».
+ */
+export function forgetPendingDraftIfSent(assistantId: string | number, sentText: string, now = Date.now()): void {
+  const stored = read(now);
+  if (stored && stored.assistant === String(assistantId) && sentText.trim().includes(stored.text.trim())) {
+    forget();
+  }
+}
+
 export interface PendingDraftEntry {
   text: string;
   auto: boolean;
