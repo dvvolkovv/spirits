@@ -120,12 +120,29 @@ describe('черновик сообщения со страницы linkeon.io',
       expect(takePendingDraftEntry('14', NOW)).toEqual({ text: 'Данные рождения для другого вопроса', auto: true });
     });
 
-    it('просроченная запись — не трогается (и так уже никакая, read() сам стёр бы при чтении)', () => {
+    it('повторное ревью 03.11: не продлевает TTL несовпавшего черновика — срок записи не меняется', () => {
+      // READ-ONLY сверка: прежний приём «забрать и положить обратно»
+      // (takePendingDraftFor + savePendingDraft при несовпадении) ПЕРЕСОХРАНЯЛ
+      // запись с новым expires при каждой успешной отправке — даже той, что
+      // вообще не про этот черновик, — и черновик, который так и не совпал,
+      // жил бы бесконечно. Здесь несовпавшая запись не трогается вовсе: поле
+      // expires в хранилище должно остаться БУКВАЛЬНО тем же значением.
+      const expires = NOW + DRAFT_TTL_MS;
+      put({ text: 'Данные рождения для другого вопроса', assistant: '14', expires, auto: true });
+      forgetPendingDraftIfSent('14', 'Привет, это вообще не про то', NOW + 1000);
+      const raw = JSON.parse(localStorage.getItem(DRAFT_KEY) as string) as { expires: number };
+      expect(raw.expires).toBe(expires);
+    });
+
+    it('просроченная запись — вызов не копит мусор в хранилище (не только «takePendingDraftFor и так вернёт null»)', () => {
+      // Повторное ревью 03.11: прежняя версия этого теста проверяла
+      // takePendingDraftFor С ТЕМ ЖЕ просроченным `now` — а она сама по себе
+      // обнаружила бы просрочку и вернула null НЕЗАВИСИМО от того, что сделал
+      // forgetPendingDraftIfSent (даже если бы он был пустой функцией). Здесь
+      // смотрим в хранилище напрямую, сразу после вызова.
       put({ text: 'Райя, привет!', assistant: '14', expires: NOW + DRAFT_TTL_MS });
       forgetPendingDraftIfSent('14', 'Райя, привет!', NOW + DRAFT_TTL_MS + 1);
-      // Запись просрочена — сверка не находит живой черновик и ничего не
-      // стирает ПОВТОРНО, но read() внутри уже увидел её просроченной.
-      expect(takePendingDraftFor('14', NOW + DRAFT_TTL_MS + 1)).toBeNull();
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
     });
   });
 });
