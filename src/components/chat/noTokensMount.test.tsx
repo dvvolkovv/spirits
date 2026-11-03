@@ -203,7 +203,6 @@ async function submitFileTask(task: string) {
 }
 const setTokens = async (n: number) => { auth.user = { ...auth.user, tokens: n }; await rerender(); };
 const chatPosts = () => net.posts.filter((p) => p.path === '/webhook/soulmate/chat');
-const uploads = () => net.posts.filter((p) => p.path === '/webhook/agent/upload-and-chat');
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
