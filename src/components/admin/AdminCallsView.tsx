@@ -6,6 +6,8 @@ import { apiClient } from '../../services/apiClient';
 import { formatTokens, formatDuration, formatWhen } from './callsFormat';
 import { CALL_PROVIDER, providerLabel } from './callProviders';
 import UserActivityDrawer from './UserActivityDrawer';
+import { MobileRecordCard } from './shared/MobileRecordCard';
+import { openableRow } from './shared/openableRow';
 
 type CallKind = 'call' | 'meeting' | 'all';
 
@@ -301,7 +303,27 @@ const AdminCallsView: React.FC = () => {
           ) : rows.length === 0 ? (
             <p className="text-sm text-gray-400 py-12 text-center">{EMPTY_LABEL[shownKind]}</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="md:hidden divide-y divide-gray-100">
+              {rows.map((r) => (
+                <MobileRecordCard
+                  key={r.user_id}
+                  testId={`admin-call-mobile-card-${r.user_id}`}
+                  title={r.user_id}
+                  subtitle={`Последний: ${formatWhen(r.last_call)}`}
+                  onOpen={() => setDrawerUser(r.user_id)}
+                  fields={[
+                    { label: COUNT_LABEL[shownKind], value: r.calls },
+                    { label: 'Длительность', value: formatDuration(r.duration_sec) },
+                    { label: 'Консультации', value: r.consults },
+                    { label: 'За разговор', value: formatTokens(r.tokens_call) },
+                    { label: 'За консультации', value: formatTokens(r.tokens_consult) },
+                    { label: 'Всего списано', value: formatTokens(r.tokens_total) },
+                  ]}
+                />
+              ))}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
@@ -320,8 +342,8 @@ const AdminCallsView: React.FC = () => {
                   {rows.map((r, idx) => (
                     <tr
                       key={r.user_id}
-                      onClick={() => setDrawerUser(r.user_id)}
-                      className="cursor-pointer hover:bg-gray-50"
+                      {...openableRow(() => setDrawerUser(r.user_id), t('admin.calls.openUser', 'Открыть карточку и разговоры'))}
+                      className="cursor-pointer hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-50"
                       title={t('admin.calls.openUser', 'Открыть карточку и разговоры')}
                     >
                       <td className="px-4 py-2.5 text-gray-400">{idx + 1}</td>
@@ -345,6 +367,7 @@ const AdminCallsView: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            </>
           )}
 
           {/* Оговорка про два списания стоит рядом с таблицей, а не в

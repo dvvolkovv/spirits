@@ -4,6 +4,8 @@ import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import UserActivityDrawer from './UserActivityDrawer';
 import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
+import { MobileRecordCard } from './shared/MobileRecordCard';
+import { openableRow } from './shared/openableRow';
 
 interface UserTokenRow {
   phone: string;
@@ -299,7 +301,26 @@ const AdminTokensView: React.FC = () => {
             <p className="text-sm text-gray-400 py-12 text-center">Нет пользователей</p>
           )}
           {usersData && usersData.users.length > 0 && (
-            <div className="overflow-x-auto">
+            <>
+            <div className="md:hidden divide-y divide-gray-100">
+              {sortedUsers.map((u) => (
+                <MobileRecordCard
+                  key={u.phone}
+                  testId={`admin-token-mobile-card-${u.phone}`}
+                  title={formatPhone(u.phone)}
+                  subtitle={u.last_active ? `Активность: ${new Date(u.last_active).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' })}` : 'Активности не было'}
+                  onOpen={() => setSelectedPhone(u.phone)}
+                  fields={[
+                    { label: 'Баланс', value: formatTokens(u.balance) },
+                    { label: `Списано ${periodLabel}`, value: u.spent_period > 0 ? `−${formatTokens(u.spent_period)}` : '—' },
+                    { label: 'Списано всего', value: u.spent_total > 0 ? formatTokens(u.spent_total) : '—' },
+                    { label: 'Платежи', value: u.paid_count > 0 ? `${u.paid_count} · ${formatRub(u.paid_rub)}` : '—' },
+                    { label: 'Реферал', value: u.referral_leader_name || '—' },
+                  ]}
+                />
+              ))}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
@@ -317,8 +338,8 @@ const AdminTokensView: React.FC = () => {
                   {sortedUsers.map((u, idx) => (
                     <tr
                       key={u.phone}
-                      onClick={() => setSelectedPhone(u.phone)}
-                      className="hover:bg-forest-50 transition-colors cursor-pointer"
+                      {...openableRow(() => setSelectedPhone(u.phone), `Открыть пользователя ${formatPhone(u.phone)}`)}
+                      className="hover:bg-forest-50 transition-colors cursor-pointer focus:outline-none focus-visible:bg-forest-50"
                     >
                       <td className="px-4 py-2.5 text-gray-400">{idx + 1}</td>
                       <td className="px-4 py-2.5 font-mono text-gray-800">{formatPhone(u.phone)}</td>
@@ -343,6 +364,7 @@ const AdminTokensView: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>

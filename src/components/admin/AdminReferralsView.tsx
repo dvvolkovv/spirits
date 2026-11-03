@@ -353,11 +353,11 @@ const AdminReferralsView: React.FC = () => {
   }) => {
     const unpaid = leader.commissions.filter(c => !c.paid_out);
     return (
-      <div className={clsx('flex items-center gap-3 px-4 py-3', indent && 'pl-8 bg-blue-50/40')} data-testid="leader-row">
+      <div className={clsx('flex flex-col md:flex-row md:items-center gap-3 px-4 py-4', indent && 'pl-8 bg-blue-50/40')} data-testid="leader-row">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {indent && <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />}
-            <span className="font-medium text-gray-900 text-sm">{leader.name}</span>
+            <span className="font-medium text-gray-900 text-sm break-all">{leader.name}</span>
             <span className={clsx(
               'text-xs px-1.5 py-0.5 rounded-full',
               leader.level === 1 ? 'bg-forest-100 text-forest-700' : 'bg-blue-100 text-blue-700'
@@ -368,23 +368,28 @@ const AdminReferralsView: React.FC = () => {
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">неактивен</span>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <div className="flex items-center gap-x-3 mt-1 flex-wrap">
             <button
+              data-testid="leader-copy"
               onClick={() => copyLink(leader.slug)}
-              className="flex items-center gap-1 text-xs text-forest-600 hover:text-forest-700"
+              className="flex items-center gap-1 min-h-11 text-xs text-forest-600 hover:text-forest-700"
               title="Скопировать ссылку"
             >
               <Copy className="w-3 h-3" />
               ?ref={leader.slug}
             </button>
-            <span className="text-xs text-gray-400">{leader.user_phone}</span>
+            <span className="text-xs text-gray-400 break-all">{leader.user_phone}</span>
             {childrenCount > 0 && (
               <span className="text-xs text-blue-500">↳ {childrenCount} суб-лидер{childrenCount > 1 ? 'а' : ''}</span>
             )}
           </div>
+          <dl className="grid grid-cols-3 gap-2 mt-2 md:hidden text-xs">
+            <div><dt className="text-gray-400">Рефералов</dt><dd className="font-semibold text-gray-900">{leader.total_referees}</dd></div>
+            <div><dt className="text-gray-400">Начислено</dt><dd className="font-semibold text-gray-900">{formatRub(leader.total_commission_rub)}</dd></div>
+            <div><dt className="text-gray-400">К выплате</dt><dd className="font-semibold text-warm-600">{formatRub(leader.pending_rub)}</dd></div>
+          </dl>
         </div>
 
-        {/* Статистика */}
         <div className="hidden md:flex items-center gap-4 text-sm flex-shrink-0">
           <div className="text-center">
             <p className="text-xs text-gray-500">рефералов</p>
@@ -406,20 +411,21 @@ const AdminReferralsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Действия */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center justify-end md:justify-start gap-2 flex-shrink-0">
           {unpaid.length > 0 && !indent && (
             <button
               onClick={() => handleMarkAllPaid(leader.id)}
               disabled={markingPaid === `all_${leader.id}`}
-              className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+              className="min-h-11 px-3 py-2 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
             >
               {markingPaid === `all_${leader.id}` ? <Loader className="w-3 h-3 animate-spin" /> : 'Выплатить всё'}
             </button>
           )}
           <button
+            data-testid="leader-toggle"
+            aria-label={leader.is_active ? 'Деактивировать' : 'Активировать'}
             onClick={() => handleToggle(leader.id, leader.is_active)}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+            className="min-h-11 min-w-11 p-2 rounded hover:bg-gray-100 transition-colors"
             title={leader.is_active ? 'Деактивировать' : 'Активировать'}
           >
             {leader.is_active
@@ -428,8 +434,10 @@ const AdminReferralsView: React.FC = () => {
             }
           </button>
           <button
+            data-testid="leader-expand"
+            aria-label={isExpanded ? 'Свернуть' : 'Развернуть'}
             onClick={onToggle}
-            className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+            className="min-h-11 min-w-11 p-2 rounded hover:bg-gray-100 transition-colors"
           >
             {isExpanded
               ? <ChevronUp className="w-4 h-4 text-gray-500" />
@@ -468,7 +476,7 @@ const AdminReferralsView: React.FC = () => {
 
         {/* Аутрич лидерам (82cda5af) — персональный пинг по SMS */}
         <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-4 flex items-center justify-between border-b border-gray-100">
+          <div className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Send className="w-5 h-5 text-forest-600" />
               Аутрич лидерам
@@ -477,7 +485,7 @@ const AdminReferralsView: React.FC = () => {
             <button
               onClick={() => (outreach ? setOutreachOpen(v => !v) : loadOutreach())}
               disabled={outreachLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm disabled:opacity-50"
+              className="w-full sm:w-auto min-h-11 flex items-center justify-center gap-1.5 px-3 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm disabled:opacity-50"
             >
               {outreachLoading && <Loader className="w-4 h-4 animate-spin" />}
               {outreach ? (outreachOpen ? 'Скрыть' : 'Показать черновики') : 'Подготовить черновики'}
@@ -539,19 +547,19 @@ const AdminReferralsView: React.FC = () => {
 
         {/* Кнопка + форма создания */}
         <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-4 flex items-center justify-between border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 flex-wrap">
               <Users className="w-5 h-5 text-forest-600" />
               Лидеры
               <span className="text-xs font-normal text-gray-400">
                 {onlyWithUsers ? `с привязанными пользователями: ${withUsersIds.size}` : `всего: ${stats?.leaders.length ?? 0}`}
               </span>
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {emptyLeadersCount > 0 && (
                 <button
                   onClick={() => setOnlyWithUsers(v => !v)}
-                  className="px-3 py-1.5 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                  className="min-h-11 px-3 py-2 text-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
                   title="Реферальная запись создаётся каждому пользователю — большинство никого не привело"
                 >
                   {onlyWithUsers ? `Показать пустых (${emptyLeadersCount})` : 'Скрыть пустых'}
@@ -559,7 +567,7 @@ const AdminReferralsView: React.FC = () => {
               )}
               <button
                 onClick={() => setShowCreateForm(v => !v)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm"
+                className="min-h-11 flex items-center gap-1 px-3 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Добавить

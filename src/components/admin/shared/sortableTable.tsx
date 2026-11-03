@@ -161,7 +161,7 @@ export function SortSelect<K extends string>({
         onSort({ key, dir });
       }}
       className={clsx(
-        'text-sm border border-gray-200 rounded px-2 py-1 bg-white text-gray-700',
+        'min-h-11 text-sm border border-gray-200 rounded px-2 py-1 bg-white text-gray-700',
         'focus:border-forest-400 focus:ring-1 focus:ring-forest-200 outline-none',
         className,
       )}

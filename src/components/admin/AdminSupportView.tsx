@@ -380,7 +380,7 @@ const AdminSupportView: React.FC = () => {
               key={f.id}
               onClick={() => setFilter(f.id)}
               className={clsx(
-                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                'min-h-11 px-3 py-2 rounded-md text-xs font-medium transition-colors',
                 filter === f.id
                   ? 'bg-forest-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
@@ -398,7 +398,7 @@ const AdminSupportView: React.FC = () => {
                 setSlaFilter(next);
               }}
               className={clsx(
-                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                'min-h-11 px-3 py-2 rounded-md text-xs font-medium transition-colors',
                 slaFilter === f.id
                   ? 'bg-amber-600 text-white'
                   : 'bg-amber-50 text-amber-800 hover:bg-amber-100',

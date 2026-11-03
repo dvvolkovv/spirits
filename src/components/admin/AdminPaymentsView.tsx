@@ -4,6 +4,8 @@ import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import UserActivityDrawer from './UserActivityDrawer';
 import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
+import { MobileRecordCard } from './shared/MobileRecordCard';
+import { openableRow } from './shared/openableRow';
 
 interface ReferralLeader {
   id: string;
@@ -378,7 +380,29 @@ const AdminPaymentsView: React.FC = () => {
             <p className="text-sm text-gray-400 py-12 text-center">Нет платежей</p>
           )}
           {!isLoading && payments.length > 0 && (
-            <div className="overflow-x-auto">
+            <>
+            <div className="md:hidden divide-y divide-gray-100">
+              {sortedPayments.map((p) => {
+                const meta = STATUS_LABEL[p.status] || { label: p.status, color: 'bg-gray-100 text-gray-600' };
+                return (
+                  <MobileRecordCard
+                    key={p.id}
+                    testId={`admin-payment-mobile-card-${p.id}`}
+                    title={formatPhone(p.phone)}
+                    subtitle={formatDateTime(p.completed_at || p.created_at)}
+                    onOpen={() => setSelectedPhone(p.phone)}
+                    fields={[
+                      { label: 'Сумма', value: formatMoney(p.amount, p.currency) },
+                      { label: 'Статус', value: meta.label },
+                      { label: 'Провайдер', value: PROVIDER_LABEL[p.provider] || p.provider },
+                      { label: 'Токены', value: p.tokens.toLocaleString('ru-RU') },
+                      { label: 'Реферал', value: p.referral_leader?.name || '—' },
+                    ]}
+                  />
+                );
+              })}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
@@ -397,8 +421,8 @@ const AdminPaymentsView: React.FC = () => {
                     return (
                       <tr
                         key={p.id}
-                        onClick={() => setSelectedPhone(p.phone)}
-                        className="hover:bg-forest-50 transition-colors cursor-pointer"
+                        {...openableRow(() => setSelectedPhone(p.phone), `Открыть пользователя ${formatPhone(p.phone)}`)}
+                        className="hover:bg-forest-50 transition-colors cursor-pointer focus:outline-none focus-visible:bg-forest-50"
                       >
                         <td className="px-4 py-2.5 font-mono text-gray-800">
                           <span className="inline-flex items-center gap-1.5">
@@ -434,6 +458,7 @@ const AdminPaymentsView: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>
