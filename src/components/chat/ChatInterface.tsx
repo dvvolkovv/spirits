@@ -629,7 +629,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const pending = joinQueue(queuedRef.current);
     applyQueued(() => []);
     // Та же склейка, что и у текста, отклонённого на нуле (restoreIntoInput,
-    // ревью Ф1, m12) — formула одна: непустое поле дописывается через
+    // ревью Ф1, m12) — формула одна: непустое поле дописывается через
     // пустую строку, иначе просто подставляется. `pending` уже проверен
     // непустым неявно (restoreIntoInput сам отбрасывает пустой rejected).
     setInput((prev) => restoreIntoInput(prev, pending));
@@ -1714,7 +1714,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // (автоприветствие/«Перегенерировать»/служебный PDF-промпт Маши/
           // промпт с содержимым файла) текст/черновик не трогаем вовсе (C1,
           // ревью Ф1): бэк узнаёт приветствие только по русской регулярке и
-          // на других языках не освобождает его от шлагбаута нулевого
+          // на других языках не освобождает его от шлагбаума нулевого
           // баланса — без этой проверки чужой язык утекал бы в поле ввода, а
           // затем и в черновик, который глушит дальнейшие приветствия через
           // hasPendingDraftFor.
@@ -1723,8 +1723,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             // заведомо нулевой баланс (m2) — забираем её текст и чистим.
             const queuedText = joinQueue(queuedRef.current);
             if (queuedRef.current.length) applyQueued(() => []);
-            const outcome = applyNoTokensOutcome({ rejectedText: userMessage, currentInput: input, queuedText });
-            setInput(outcome.input);
+            const outcome = applyNoTokensOutcome({ rejectedText: userMessage, queuedText });
+            // CRITICAL (повторное ревью 03.11, C2): НЕ setInput(outcome.input)
+            // абсолютным значением. `input` в этом замыкании — значение поля
+            // на момент отправки (оно же userMessage: handleSendInner читает
+            // его в const и чистит поле ПОСЛЕ, а не до) — то есть то, что уже
+            // отклонено, а не то, что человек успел набрать за время хода.
+            // Функциональный апдейт видит АКТУАЛЬНОЕ значение поля на момент
+            // применения и не задваивает текст с самим собой.
+            setInput(prev => restoreIntoInput(prev, outcome.input));
             // Длиннее PENDING_DRAFT_STORE_MAX (2000 знаков) молча не
             // сохранится (предел внутри savePendingDraft, m5) — видимое поле
             // ввода это не ограничивает, человек видит текст целиком.

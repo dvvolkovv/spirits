@@ -10,8 +10,8 @@
  * Чистые функции отсюда разбирают это ОДНО условие и склейку текста;
  * подключение в ChatInterface.tsx (где убрать пузырь, куда вернуть текст,
  * когда сохранить черновик) проверяет noTokensWiring.test.ts отдельно, по
- * тексту исходника: ChatInterface огромный, и юнит-тест этих двух функций не
- * заметит, если их забыли позвать из одной из двух точек разбора потока.
+ * тексту исходника: ChatInterface огромный, и юнит-тест этих четырёх функций
+ * не заметит, если их забыли позвать из одной из двух точек разбора потока.
  */
 
 /** Минимальная форма события `end` — ровно то, что нужно для признака. */
@@ -78,8 +78,6 @@ export function collapseNoTokensStop<M extends ChatMessageLike>(
 export interface ApplyNoTokensOutcomeArgs {
   /** Текст, который бэк отклонил (для очереди — уже склеенный вызывающим). */
   rejectedText: string;
-  /** Текущее содержимое поля ввода. */
-  currentInput: string;
   /**
    * Склеенный текст очереди, скопившейся за время ЭТОГО хода ('' — очереди
    * нет). Ревью Ф1, m2: очередь не должна досылаться следом в заведомо
@@ -89,7 +87,13 @@ export interface ApplyNoTokensOutcomeArgs {
 }
 
 export interface NoTokensOutcome {
-  /** Новое содержимое поля ввода. */
+  /**
+   * Текст, который нужно вернуть в поле ввода — отклонённое плюс очередь.
+   * НЕ итоговое содержимое поля: слияние с тем, что там УЖЕ набрано, —
+   * задача вызывающего (restoreIntoInput(prev, outcome.input) функциональным
+   * апдейтом setState, повторное ревью 03.11, C2). Эта функция больше не
+   * принимает текущее поле ввода параметром — см. комментарий ниже.
+   */
   input: string;
   /**
    * Текст для черновика (сейчас всегда равен input). Отдельное поле — на
@@ -111,10 +115,23 @@ export interface NoTokensOutcome {
  * напрямую (есть id его пузыря) — иначе (автоприветствие, «Перегенерировать»,
  * служебный промпт с файлом) в поле/черновик уехал бы не текст человека, а
  * синтетический промпт (бэклог 2d71aaf8, Critical из ревью Ф1 — C1).
+ *
+ * ВАЖНО (повторное ревью 03.11, CRITICAL, C2): до этой правки функция сама
+ * принимала currentInput и склеивала его с rejectedText через
+ * restoreIntoInput. Вызывающий (sendMessageToAI в ChatInterface.tsx) передавал
+ * сюда currentInput: input — значение поля ввода, пойманное в замыкание
+ * рендера, с которого уходила отправка. Но handleSendInner читает input в
+ * локальную переменную и ТОЛЬКО ПОТОМ чистит поле (setInput('')) — то есть к
+ * моменту ответа бэка currentInput в этом замыкании ещё равен userMessage
+ * (= rejectedText), и restoreIntoInput склеивал текст сам с собой: «привет»
+ * превращался в «привет\n\nпривет» и в поле, и в черновике. Теперь эта
+ * функция отдаёт только combined (rejectedText + очередь), а слияние с
+ * ТЕКУЩИМ полем — на вызывающем, функциональным апдейтом setInput(prev =>
+ * restoreIntoInput(prev, outcome.input)), который видит актуальное значение
+ * на момент применения, а не на момент отправки.
  */
 export function applyNoTokensOutcome(args: ApplyNoTokensOutcomeArgs): NoTokensOutcome {
   const queued = args.queuedText.trim();
   const combined = queued ? `${args.rejectedText}\n\n${queued}` : args.rejectedText;
-  const input = restoreIntoInput(args.currentInput, combined);
-  return { input, draftText: input };
+  return { input: combined, draftText: combined };
 }
