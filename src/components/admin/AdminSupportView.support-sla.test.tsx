@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { byButton, clickAsync, flush, mount, tRu, type, visibleText } from '../../test/dom';
