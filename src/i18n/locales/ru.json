@@ -855,7 +855,11 @@
         "owner_handling": "В работе",
         "ai_handling": "AI ведёт",
         "resolved": "Решены",
-        "all": "Все"
+        "all": "Все",
+        "overdue": "Просрочено",
+        "soon": "До 30 минут",
+        "unassigned": "Без назначения",
+        "mine": "Мои"
       },
       "status": {
         "owner_handling": "В работе",
@@ -898,7 +902,28 @@
       "internal_note_label": "Внутренняя заметка (не видна пользователю)",
       "tokens_unit": "токены: {{value}}",
       "section_tickets": "Обращения",
-      "section_reports": "Жалобы"
+      "section_reports": "Жалобы",
+      "sla": {
+        "overdue": "Просрочено",
+        "soon": "До 30 минут",
+        "normal": "Более 30 минут",
+        "answered": "Первый ответ дан"
+      },
+      "assignment": {
+        "owner": "Ответственный",
+        "unassigned": "Не назначен",
+        "deadline": "Дедлайн первого ответа",
+        "first_reply": "Первый ответ",
+        "take": "Взять в работу",
+        "operator": "Администратор",
+        "reassign": "Переназначить",
+        "unassign": "Снять назначение",
+        "unassign_confirm": "Снять назначение с этого тикета?",
+        "conflict": "Назначение изменилось другим администратором",
+        "failed": "Не удалось изменить назначение",
+        "history": "История назначений",
+        "event": "{{from}} → {{to}}"
+      }
     },
     "userActivity": {
       "title": "Активность пользователя",
