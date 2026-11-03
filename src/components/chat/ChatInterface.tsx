@@ -1440,7 +1440,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => { try { voiceRef.current?.stop(); } catch {} };
   }, []);
 
-  const sendMessageToAI = async (userMessage: string, userMessageId?: string): Promise<'ok' | 'no_tokens'> => {
+  const sendMessageToAI = async (userMessage: string, userMessageId?: string): Promise<'ok' | 'no_tokens' | 'error'> => {
     sendSeqRef.current += 1;
     setIsTyping(true);
     setCurrentStreamingMessage('');
@@ -1764,7 +1764,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Request was aborted');
-        return 'ok';
+        return 'error';
       }
 
       console.error('Error sending message to AI:', error);
@@ -1796,7 +1796,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (selectedAssistantIdRef.current === streamAssistantId) {
           applyRemoteTurn(true);
         }
-        return 'ok';
+        return 'error';
       }
 
       // Only show error in UI if user is still on the originating chat
@@ -1809,6 +1809,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         };
         setMessages(prev => [...prev, errorMessage]);
       }
+      // Ход упал насовсем (показали заглушку выше или человек уже ушёл к
+      // другому ассистенту) — 'error', а не 'ok': иначе вызывающая ветка
+      // принимала обрыв/AbortError за успех (I-1 повторного ревью 03.11 —
+      // черновик задачи снимался и при ошибке стрима, и текст файла
+      // терялся). Нормальное завершение (включая no_tokens по флагу выше)
+      // сюда не доходит — оно возвращается после try/finally.
+      return 'error';
     } finally {
       // Only clear typing state if user is still on the originating chat;
       // otherwise the universal-switch effect has already reset it for the new chat.
@@ -2562,7 +2569,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // всегда шлём мультипартом, иначе 10 файлов по 500 КБ раздуют промпт.
     if (files.length === 1 && isTextFile(files[0])) {
       const file = files[0];
-      let outcome: 'ok' | 'no_tokens';
+      let outcome: 'ok' | 'no_tokens' | 'error';
       try {
         const text = await file.text();
         // i18n-ignore: текст промпта для модели, не UI (см. выше)
@@ -2580,6 +2587,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // задачи. stopMessage не передаём (null) — ответ уже в ленте, новый
         // не нужен.
         restoreFileTaskOnNoTokens(userMessage.id, null, files, task, uploadAssistantId);
+      } else if (outcome === 'ok' && uploadAssistantId !== null) {
+        // I-1 повторного ревью 03.11: успешная отправка текстового файла
+        // снимает черновик задачи — без этого «перескажи» всплывало в поле
+        // после возврата к ассистенту и глушило авто-приветствие (R14). Раньше
+        // снятие было только в ветке мультипарта. 'error' НЕ трогаем: ход не
+        // состоялся, текст задачи остаётся в черновике для повтора.
+        forgetPendingDraftIfSent(uploadAssistantId, task);
       }
       return;
     }
