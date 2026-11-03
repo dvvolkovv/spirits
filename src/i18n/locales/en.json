@@ -338,6 +338,7 @@
       "admin_only": "Voice calls are currently available to admins only",
       "card_title": "Voice call",
       "card_minutes": "{{count}} min",
+      "participants_title": "Participants",
       "card_no_transcript": "No transcript saved",
       "card_load_failed": "Could not load the transcript",
       "speaker_you": "You",

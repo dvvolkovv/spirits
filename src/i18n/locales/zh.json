@@ -336,6 +336,7 @@
       "admin_only": "语音通话目前仅对管理员开放",
       "card_title": "语音通话",
       "card_minutes": "{{count}} 分钟",
+      "participants_title": "参会者",
       "card_no_transcript": "未保存文字记录",
       "card_load_failed": "无法加载文字记录",
       "speaker_you": "您",

@@ -338,6 +338,7 @@
       "admin_only": "Anrufe sind derzeit nur für Admins verfügbar",
       "card_title": "Sprachanruf",
       "card_minutes": "{{count}} Min.",
+      "participants_title": "Teilnehmer",
       "card_no_transcript": "Kein Transkript gespeichert",
       "card_load_failed": "Transkript konnte nicht geladen werden",
       "speaker_you": "Sie",
