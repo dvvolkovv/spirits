@@ -4,7 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, Send, AlertTriangle, CheckCircle, Inbox, Clock, Bot, UserCircle2, Headphones, ArrowLeft, ListPlus } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
+import { supportAssignmentApi } from '../../services/supportAssignmentApi';
+import type { SupportOperator } from '../../services/supportAssignmentApi';
 import AdminReportsView from './AdminReportsView';
+import { TicketAssignment } from './support/TicketAssignment';
+import { remainingText, slaState } from './support/sla';
+import type { SlaState } from './support/sla';
 
 interface TicketListItem {
   id: string;
@@ -16,6 +21,11 @@ interface TicketListItem {
   topic: string | null;
   escalationReason: string | null;
   notes: string | null;
+  assignedTo: string | null;
+  assignedAt: string | null;
+  assignedName: string | null;
+  firstResponseDueAt: string | null;
+  firstOwnerReplyAt: string | null;
   lastMessage: string | null;
   messageCount: number;
   createdAt: string;
@@ -45,6 +55,13 @@ const URGENCY_BADGE: Record<string, string> = {
   low: 'bg-gray-100 text-gray-600',
 };
 
+const SLA_BADGE: Record<SlaState, string> = {
+  overdue: 'bg-red-100 text-red-700',
+  soon: 'bg-amber-100 text-amber-800',
+  normal: 'bg-gray-100 text-gray-600',
+  answered: 'bg-green-100 text-green-700',
+};
+
 interface SupportStats {
   window_days: number;
   active: { escalated: number; owner_handling: number; ai_handling: number };
@@ -65,6 +82,12 @@ const AdminSupportView: React.FC = () => {
     { id: 'resolved', label: t('admin.support.filters.resolved') },
     { id: 'all', label: t('admin.support.filters.all') },
   ];
+  const SLA_FILTERS: { id: 'overdue' | 'soon' | 'unassigned' | 'mine'; label: string }[] = [
+    { id: 'overdue', label: t('admin.support.filters.overdue') },
+    { id: 'soon', label: t('admin.support.filters.soon') },
+    { id: 'unassigned', label: t('admin.support.filters.unassigned') },
+    { id: 'mine', label: t('admin.support.filters.mine') },
+  ];
   const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
     ai_handling: { label: 'AI', cls: 'bg-gray-100 text-gray-700' },
     escalated: { label: 'Escalated', cls: 'bg-red-100 text-red-700' },
@@ -84,7 +107,10 @@ const AdminSupportView: React.FC = () => {
   };
   const [params, setParams] = useSearchParams();
   const [filter, setFilter] = useState<string>('escalated');
+  const [slaFilter, setSlaFilter] = useState<'all' | 'overdue' | 'soon' | 'unassigned' | 'mine'>('all');
   const [tickets, setTickets] = useState<TicketListItem[]>([]);
+  const [operators, setOperators] = useState<SupportOperator[]>([]);
+  const [nowMs, setNowMs] = useState(Date.now());
   const [loadingList, setLoadingList] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(params.get('ticket'));
   const [stats, setStats] = useState<SupportStats | null>(null);
@@ -104,7 +130,9 @@ const AdminSupportView: React.FC = () => {
   const fetchList = useCallback(async () => {
     try {
       setLoadingList(true);
-      const r = await apiClient.get(`/webhook/support/admin/tickets?status=${encodeURIComponent(filter)}&limit=100`);
+      const query = new URLSearchParams({ status: filter, limit: '100' });
+      if (slaFilter !== 'all') query.set('sla', slaFilter);
+      const r = await apiClient.get(`/webhook/support/admin/tickets?${query.toString()}`);
       const data = await r.json();
       if (Array.isArray(data)) setTickets(data);
     } catch (e: any) {
@@ -112,7 +140,7 @@ const AdminSupportView: React.FC = () => {
     } finally {
       setLoadingList(false);
     }
-  }, [filter]);
+  }, [filter, slaFilter]);
 
   const fetchDetail = useCallback(async (id: string) => {
     try {
@@ -128,6 +156,19 @@ const AdminSupportView: React.FC = () => {
   }, []);
 
   useEffect(() => { fetchList(); }, [fetchList]);
+
+  useEffect(() => {
+    let alive = true;
+    supportAssignmentApi.operators()
+      .then((items) => { if (alive) setOperators(items); })
+      .catch((e: any) => { if (alive) setError(e?.message || 'failed to load operators'); });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -228,6 +269,10 @@ const AdminSupportView: React.FC = () => {
   };
 
   const selected = detail;
+  const assignmentEvents = selected?.events.filter((event) => event.action === 'assignment') ?? [];
+  const operatorName = (id: string | null) => id
+    ? operators.find((operator) => operator.id === id)?.name || id
+    : t('admin.support.assignment.unassigned');
 
   const formatSec = (s: number | null): string => {
     if (s == null) return t('admin.support.time.dash');
@@ -330,6 +375,20 @@ const AdminSupportView: React.FC = () => {
               {f.label}
             </button>
           ))}
+          {SLA_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setSlaFilter((current) => current === f.id ? 'all' : f.id)}
+              className={clsx(
+                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                slaFilter === f.id
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100',
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
         <div className="flex-1 overflow-y-auto">
           {loadingList && tickets.length === 0 ? (
@@ -343,6 +402,10 @@ const AdminSupportView: React.FC = () => {
             <ul className="divide-y divide-gray-100">
               {tickets.map((ticket) => {
                 const badge = STATUS_BADGE[ticket.status];
+                const sla = slaState({
+                  first_response_due_at: ticket.firstResponseDueAt,
+                  first_owner_reply_at: ticket.firstOwnerReplyAt,
+                }, nowMs);
                 return (
                   <li key={ticket.id}>
                     <button
@@ -353,13 +416,19 @@ const AdminSupportView: React.FC = () => {
                       )}
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                           <span className={clsx('text-xs px-1.5 py-0.5 rounded', badge.cls)}>{badge.label}</span>
                           {ticket.urgency && (
                             <span className={clsx('text-xs px-1.5 py-0.5 rounded', URGENCY_BADGE[ticket.urgency] || 'bg-gray-100 text-gray-600')}>
                               {ticket.urgency}
                             </span>
                           )}
+                          <span className={clsx('text-xs px-1.5 py-0.5 rounded', SLA_BADGE[sla])}>
+                            {t(`admin.support.sla.${sla}`)}
+                            {ticket.firstResponseDueAt && !ticket.firstOwnerReplyAt
+                              ? ` · ${remainingText(ticket.firstResponseDueAt, nowMs)}`
+                              : ''}
+                          </span>
                         </div>
                         <span className="text-xs text-gray-400 flex-shrink-0 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -380,6 +449,11 @@ const AdminSupportView: React.FC = () => {
                       <div className="text-xs text-gray-400 mt-1">
                         {t('admin.support.message_count', { count: ticket.messageCount, tokens: ticket.userTokens.toLocaleString() })}
                       </div>
+                      {ticket.assignedTo && (
+                        <div className="text-xs text-gray-500 truncate mt-1">
+                          {t('admin.support.assignment.owner')}: {ticket.assignedName || operatorName(ticket.assignedTo)}
+                        </div>
+                      )}
                     </button>
                   </li>
                 );
@@ -461,6 +535,35 @@ const AdminSupportView: React.FC = () => {
                 </div>
                 <div className="whitespace-pre-wrap">{selected.ticket.notes}</div>
               </div>
+            )}
+
+            {selected?.ticket && (
+              <TicketAssignment
+                ticket={selected.ticket}
+                operators={operators}
+                onAssigned={async () => {
+                  if (selectedId) await fetchDetail(selectedId);
+                  await fetchList();
+                }}
+              />
+            )}
+
+            {assignmentEvents.length > 0 && (
+              <details className="bg-white border-b border-gray-200 px-4 py-2 text-xs text-gray-600 flex-shrink-0">
+                <summary className="cursor-pointer font-medium">
+                  {t('admin.support.assignment.history')} ({assignmentEvents.length})
+                </summary>
+                <ul className="mt-2 space-y-1">
+                  {assignmentEvents.map((event, index) => (
+                    <li key={`${event.created_at}-${index}`}>
+                      {t('admin.support.assignment.event', {
+                        from: operatorName(event.payload?.from ?? null),
+                        to: operatorName(event.payload?.to ?? null),
+                      })}
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
 
             {/* Messages */}

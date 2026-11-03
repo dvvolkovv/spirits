@@ -849,7 +849,11 @@
         "owner_handling": "In progress",
         "ai_handling": "AI handling",
         "resolved": "Resolved",
-        "all": "All"
+        "all": "All",
+        "overdue": "Overdue",
+        "soon": "Within 30 minutes",
+        "unassigned": "Unassigned",
+        "mine": "Mine"
       },
       "status": {
         "owner_handling": "In progress",

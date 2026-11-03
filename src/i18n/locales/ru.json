@@ -854,7 +854,11 @@
         "owner_handling": "В работе",
         "ai_handling": "AI ведёт",
         "resolved": "Решены",
-        "all": "Все"
+        "all": "Все",
+        "overdue": "Просрочено",
+        "soon": "До 30 минут",
+        "unassigned": "Без назначения",
+        "mine": "Мои"
       },
       "status": {
         "owner_handling": "В работе",
