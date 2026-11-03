@@ -141,4 +141,17 @@ describe('AdminUsersView — кнопка «Открыть карточку» п
     await typeSearch('70000000001');
     expect(q('admin-users-open-by-phone')).toBeNull();
   });
+
+  it('есть мобильная карточка, а строка открывается с клавиатуры', async () => {
+    expect(q('admin-user-mobile-card-70000000001')).not.toBeNull();
+    const row = container.querySelector('tbody tr')!;
+    expect(row.getAttribute('role')).toBe('button');
+    expect(row.getAttribute('tabindex')).toBe('0');
+
+    await act(async () => {
+      row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    await settle();
+    expect(q('user-activity-drawer')?.textContent).toBe('70000000001');
+  });
 });
