@@ -634,6 +634,14 @@
   },
   "admin": {
     "title": "Management",
+    "section_label": "Admin section",
+    "groups": {
+      "work": "Work",
+      "money": "Money",
+      "catalog": "Products",
+      "growth": "Growth",
+      "system": "System"
+    },
     "tabs": {
       "support": "Support",
       "users": "Users",
