@@ -47,10 +47,11 @@ describe('мобильный редактор ассистентов', () => {
   });
 
   it('не закрывает несохранённый редактор без подтверждения', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const onDirty = await renderView(true);
+    const onDirty = await renderView();
     await clickAsync(byButton(mounted!.container, /^Райя$/));
     onDirty.mockClear();
+    mounted!.rerender(<AdminAssistantsView editorDirty onEditorDirtyChange={onDirty} />);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     await actAsync(async () => {
       mounted!.container.querySelector('[data-testid="admin-assistants-back"]')!.dispatchEvent(
