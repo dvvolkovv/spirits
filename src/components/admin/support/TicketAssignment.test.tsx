@@ -28,6 +28,8 @@ const OPERATORS = [
   { id: 'admin-2', name: 'Мария' },
 ];
 
+const NOW_FOR_TESTS = Date.parse('2026-11-03T12:00:00Z');
+
 const baseTicket: AssignmentTicket = {
   id: 'ticket-1',
   updated_at: '2026-11-03T11:00:00Z',
@@ -48,6 +50,8 @@ function chooseOperator(container: HTMLElement, id: string) {
 
 describe('назначение ответственного', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW_FOR_TESTS);
     vi.clearAllMocks();
     vi.mocked(supportAssignmentApi.assign).mockResolvedValue(baseTicket);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -56,6 +60,7 @@ describe('назначение ответственного', () => {
   afterEach(() => {
     document.body.innerHTML = '';
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('показывает просрочку и позволяет взять тикет в работу', async () => {
