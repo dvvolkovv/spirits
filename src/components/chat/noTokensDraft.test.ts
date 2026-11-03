@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isNoTokensEnd, restoreIntoInput } from './noTokensDraft';
+import { isNoTokensEnd, restoreIntoInput, collapseNoTokensStop, applyNoTokensOutcome } from './noTokensDraft';
 
 describe('isNoTokensEnd', () => {
   it('true на событии end с reason no_tokens', () => {
@@ -47,5 +47,94 @@ describe('restoreIntoInput', () => {
 
   it('оба пустые — результат пустая строка', () => {
     expect(restoreIntoInput('', '')).toBe('');
+  });
+});
+
+// Минимальная форма сообщения ленты — ровно то, что нужно чистым функциям.
+interface Msg {
+  id: string;
+  type: 'user' | 'assistant';
+  content: string;
+  noTokensStop?: boolean;
+}
+
+const user = (id: string, content: string): Msg => ({ id, type: 'user', content });
+const bot = (id: string, content: string, noTokensStop = false): Msg => ({
+  id,
+  type: 'assistant',
+  content,
+  ...(noTokensStop ? { noTokensStop: true } : {}),
+});
+
+describe('collapseNoTokensStop', () => {
+  it('убирает пузырь по id и дописывает новое сообщение в конец', () => {
+    const messages = [user('u1', 'привет'), bot('a1', 'было раньше')];
+    const stop = bot('a2', 'на нуле, пополни баланс', true);
+    expect(collapseNoTokensStop(messages, 'u1', stop)).toEqual([bot('a1', 'было раньше'), stop]);
+  });
+
+  it('id не встречается — ничего не убирает, просто дописывает (синтетический ход без пузыря, C1)', () => {
+    const messages = [bot('a1', 'было раньше')];
+    const stop = bot('a2', 'на нуле', true);
+    expect(collapseNoTokensStop(messages, '', stop)).toEqual([bot('a1', 'было раньше'), stop]);
+  });
+
+  it('m1: предыдущее сообщение — ТАКАЯ ЖЕ остановка (noTokensStop) — заменяется, а не дублируется', () => {
+    const prevStop = bot('a1', 'на нуле, пополни баланс', true);
+    const messages = [user('u0', 'первое отклонённое'), prevStop];
+    const newRejected = user('u1', 'второе отклонённое');
+    const newStop = bot('a2', 'на нуле, пополни баланс', true);
+    const result = collapseNoTokensStop([...messages, newRejected], 'u1', newStop);
+    // prevStop заменена, не продублирована; второй пузырь тоже убран.
+    expect(result).toEqual([user('u0', 'первое отклонённое'), newStop]);
+  });
+
+  it('предыдущее сообщение — ОБЫЧНЫЙ (успешный) ответ — не трогается, остаётся в ленте', () => {
+    const successReply = bot('a1', 'обычный успешный ответ');
+    const messages = [user('u0', 'первое'), successReply, user('u1', 'отклонённое')];
+    const stop = bot('a2', 'на нуле', true);
+    expect(collapseNoTokensStop(messages, 'u1', stop)).toEqual([user('u0', 'первое'), successReply, stop]);
+  });
+
+  it('пустая лента — просто дописывает', () => {
+    const stop = bot('a1', 'на нуле', true);
+    expect(collapseNoTokensStop([], 'u1', stop)).toEqual([stop]);
+  });
+});
+
+describe('applyNoTokensOutcome — решение по исходу для ПОЛЯ ВВОДА (текстовый ход)', () => {
+  it('пустое поле — отклонённый текст целиком возвращается в поле и в черновик', () => {
+    const outcome = applyNoTokensOutcome({ rejectedText: 'моё сообщение', currentInput: '', queuedText: '' });
+    expect(outcome.input).toBe('моё сообщение');
+    expect(outcome.draftText).toBe('моё сообщение');
+  });
+
+  it('в поле уже что-то набрано — дописывает через пустую строку', () => {
+    const outcome = applyNoTokensOutcome({ rejectedText: 'отклонённое', currentInput: 'новый текст', queuedText: '' });
+    expect(outcome.input).toBe('новый текст\n\nотклонённое');
+  });
+
+  it('m2: очередь, скопившаяся за время хода, возвращается ЦЕЛИКОМ вместе с отклонённым', () => {
+    const outcome = applyNoTokensOutcome({
+      rejectedText: 'первое отклонённое',
+      currentInput: '',
+      queuedText: 'второе из очереди\n\nтретье из очереди',
+    });
+    expect(outcome.input).toBe('первое отклонённое\n\nвторое из очереди\n\nтретье из очереди');
+    // m2: черновик — из ВСЕГО поля (а не только из отклонённого куска) —
+    // при перезагрузке должно вернуться всё, а не часть.
+    expect(outcome.draftText).toBe(outcome.input);
+  });
+
+  it('очередь пустая (только пробелы) — не добавляет лишних переносов строк', () => {
+    const outcome = applyNoTokensOutcome({ rejectedText: 'отклонённое', currentInput: '', queuedText: '   ' });
+    expect(outcome.input).toBe('отклонённое');
+  });
+
+  it('draftText всегда равен input — вызывающий сам решает, помещается ли он в хранилище (m5)', () => {
+    const longText = 'я'.repeat(3000);
+    const outcome = applyNoTokensOutcome({ rejectedText: longText, currentInput: '', queuedText: '' });
+    expect(outcome.draftText).toBe(outcome.input);
+    expect(outcome.draftText.length).toBeGreaterThan(2000);
   });
 });

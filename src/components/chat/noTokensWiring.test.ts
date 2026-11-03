@@ -4,16 +4,21 @@ import { join } from 'path';
 
 /**
  * Сторож на связку «сообщение, отклонённое на нуле» (бэклог 2d71aaf8; дизайн
- * — spirits_back docs/superpowers/specs/2026-11-03-background-turns-and-no-tokens-draft-design.md, §2).
+ * — spirits_back docs/superpowers/specs/2026-11-03-background-turns-and-no-tokens-draft-design.md, §2;
+ * ревью Ф1 03.11 — C1/I2/I3/I4).
  *
- * isNoTokensEnd/restoreIntoInput проверены как чистые функции в
- * noTokensDraft.test.ts. Но ChatInterface — это ДВА независимых разбора
- * потока (текстовый ход в sendMessageToAI и загрузка в handleFileTaskSubmit),
- * и типичная ошибка здесь — забыть позвать isNoTokensEnd в одной из точек,
- * или позвать, но не довести дело до savePendingDraft/снятия пузыря. Юнит-тест
- * чистых функций такую ошибку не ловит: обе функции остаются целыми и
- * зелёными, просто не вызванными откуда нужно — отсюда отдельный сторож по
- * тексту исходника (как remoteTurnWiring.test.ts/filesEventsWiring.test.ts).
+ * Чистая логика (isNoTokensEnd/restoreIntoInput/collapseNoTokensStop/
+ * applyNoTokensOutcome) проверена поведенчески в noTokensDraft.test.ts. Но
+ * ChatInterface — это НЕСКОЛЬКО мест, зовущих sendMessageToAI, и
+ * критическая ошибка (C1) была ровно в том, что юнит-тест чистых функций не
+ * ловит: восстановление текста/черновика срабатывало при ЛЮБОМ no_tokens,
+ * включая синтетические промпты (автоприветствие, регенерация, PDF Маши,
+ * один текстовый файл) — в поле утекал промпт, а не текст человека.
+ *
+ * Проверки здесь — по ИМЕНАМ функций/переменных и структуре вызовов, а не по
+ * точным спискам импорта или полным сигнатурам (ревью m7/m8): сигнатура
+ * sendMessageToAI меняется (id пузыря, затем тип возврата), и дословная
+ * строка — ложная тревога на следующей же правке рядом.
  */
 const SRC = readFileSync(join(__dirname, 'ChatInterface.tsx'), 'utf8');
 
@@ -26,97 +31,198 @@ const between = (fromMarker: string, toMarker: string): string => {
   return SRC.slice(from, to);
 };
 
-describe('текстовый ход (sendMessageToAI)', () => {
-  const body = between('const sendMessageToAI = async', 'const sendMessageText = async');
+const sendMessageToAI = () => between('const sendMessageToAI = async', 'const sendMessageText = async');
+const sendInitialGreeting = () => between('const sendInitialGreeting = async', 'const loadMoreHistory = async');
+const handleRegenerateResponse = () => between('const handleRegenerateResponse = async', 'const scrollToBottom');
+const handleFileUpload = () => between('const handleFileUpload = async', 'const handleFileTaskSubmit = async');
+const handleFileTaskSubmit = () => between('const handleFileTaskSubmit = async', 'const handleSelectAssistant = async');
 
-  it('принимает id пузыря пользователя вторым (опциональным) параметром', () => {
-    expect(SRC).toContain(
-      "const sendMessageToAI = async (userMessage: string, userMessageId?: string) => {",
-    );
+describe('sendMessageToAI — сигнатура и исход', () => {
+  it('принимает id пузыря пользователя именованным параметром userMessageId (опциональным)', () => {
+    expect(SRC).toMatch(/const sendMessageToAI = async \([^)]*\buserMessageId\b[^)]*\)/);
+  });
+
+  it('возвращает исход хода вызывающему (C1: нужен веткам без id, которым генерик не подходит)', () => {
+    expect(sendMessageToAI()).toMatch(/return\s+noTokens\s*\?\s*'no_tokens'\s*:\s*'ok'/);
   });
 
   it('разбор end зовёт isNoTokensEnd независимо от наличия usage', () => {
-    // Раньше ветка про end была гейтилась `data.usage` — отказ на нуле usage
-    // не несёт (ход не оплачен), и такой гейт замолчал бы признак совсем.
-    expect(body).toContain("if (data.type === 'end') {");
-    expect(body).toContain('if (isNoTokensEnd(data)) noTokens = true;');
-  });
-
-  it('на noTokens — пузырь убран (фильтр по id), ответ бэка остаётся в ленте', () => {
-    const commit = body.slice(body.indexOf('Only commit to UI state'));
-    expect(commit).toContain(
-      'setMessages(prev => [...prev.filter(m => m.id !== userMessageId), completedMessage]);',
-    );
-  });
-
-  it('на noTokens — текст возвращается в поле через restoreIntoInput', () => {
-    expect(body).toContain('setInput(prev => restoreIntoInput(prev, userMessage));');
-  });
-
-  it('черновик сохраняется ДО гейта «пользователь ещё в этом чате» — переживает уход на оплату', () => {
-    // Та же фраза-гейт встречается и ВНУТРИ цикла разбора потока (throttle
-    // обновления стримящегося текста) — ищем гейт коммита ПОСЛЕ маркера
-    // noTokens, а не первое попавшееся совпадение от начала функции.
-    const noTokensAt = body.indexOf('if (noTokens && streamAssistantId');
-    expect(noTokensAt).toBeGreaterThan(-1);
-    const gateAt = body.indexOf('if (selectedAssistantIdRef.current === streamAssistantId) {', noTokensAt);
-    expect(gateAt).toBeGreaterThan(noTokensAt);
-    const beforeGate = body.slice(noTokensAt, gateAt);
-    expect(beforeGate).toContain('savePendingDraft(userMessage, streamAssistantId);');
-  });
-
-  it('успешное (не noTokens) завершение снимает совпавший черновик через forgetDraftIfSent', () => {
-    expect(body).toContain('if (streamAssistantId !== null) forgetDraftIfSent(streamAssistantId, userMessage);');
+    // Раньше код гейтился условием `data.usage` целиком — у отказа на нуле
+    // usage не бывает (ход не оплачен), и такой гейт не пустил бы noTokens.
+    expect(sendMessageToAI()).toContain("if (data.type === 'end') {");
+    expect(sendMessageToAI()).toContain('if (isNoTokensEnd(data)) noTokens = true;');
   });
 });
 
-describe('sendMessageText передаёт id созданного пузыря в sendMessageToAI', () => {
-  it('вызов sendMessageToAI(text, userMessage.id)', () => {
-    const body = between('const sendMessageText = async', 'const handleSend = async');
-    expect(body).toContain('await sendMessageToAI(text, userMessage.id);');
+describe('C1: текст/черновик трогаем ТОЛЬКО когда ход инициирован человеком напрямую', () => {
+  it('решение о тексте/черновике гейтится наличием userMessageId', () => {
+    expect(sendMessageToAI()).toMatch(/if \(userMessageId !== undefined/);
+  });
+
+  it('applyNoTokensOutcome (поле/черновик) зовётся только внутри этого гейта, а не безусловно при noTokens', () => {
+    const body = sendMessageToAI();
+    const gate = body.indexOf('if (userMessageId !== undefined');
+    expect(gate).toBeGreaterThan(-1);
+    expect(body.indexOf('applyNoTokensOutcome(')).toBeGreaterThan(gate);
+    // И только один вызов на всю функцию — не разбросан по синтетической ветке.
+    expect(body.split('applyNoTokensOutcome(').length - 1).toBe(1);
+  });
+
+  it('автоприветствие шлёт sendMessageToAI БЕЗ id — промпт синтетический, не текст человека', () => {
+    expect(sendInitialGreeting()).toContain('await sendMessageToAI(greetingMessage);');
+  });
+
+  it('«Перегенерировать» шлёт sendMessageToAI БЕЗ id — пузырь уже существующий, не новый', () => {
+    expect(handleRegenerateResponse()).toContain('await sendMessageToAI(lastUserMessage.content);');
+  });
+
+  it('PDF-поток Маши шлёт sendMessageToAI БЕЗ id — промпт с данными документа, не текст человека', () => {
+    expect(handleFileUpload()).toContain('await sendMessageToAI(prompt);');
+  });
+
+  it('все три синтетических вызова передают РОВНО один аргумент (без userMessageId)', () => {
+    for (const call of [
+      'await sendMessageToAI(greetingMessage);',
+      'await sendMessageToAI(lastUserMessage.content);',
+      'await sendMessageToAI(prompt);',
+    ]) {
+      expect(call).not.toMatch(/,\s*\S/);
+    }
   });
 });
 
-describe('загрузка файлов (handleFileTaskSubmit)', () => {
-  const body = between('const handleFileTaskSubmit = async', 'const handleSelectAssistant = async');
-
-  it('разбор end зовёт isNoTokensEnd', () => {
-    expect(body).toContain("} else if (event.type === 'end') {");
-    expect(body).toContain('if (isNoTokensEnd(event)) noTokens = true;');
+describe('m1: повторный такой же отказ подряд заменяет сообщение остановки, а не дублирует', () => {
+  it('sendMessageToAI пишет ленту через collapseNoTokensStop при noTokens (а не безусловный append)', () => {
+    const body = sendMessageToAI();
+    expect(body).toContain("collapseNoTokensStop(prev, userMessageId ?? '', completedMessage)");
   });
 
-  it('на noTokens — пузырь убран, файлы и текст задачи возвращены в окно отправки', () => {
-    expect(body).toContain('setMessages(prev => [...prev.filter(m => m.id !== userMessage.id), assistantMsg]);');
-    expect(body).toContain('setPendingFiles(files);');
-    expect(body).toContain('setFileTaskInput(task);');
-    expect(body).toContain('setShowFileTaskModal(true);');
-  });
-
-  it('текст задачи на noTokens ещё и в savePendingDraft', () => {
-    expect(body).toContain('savePendingDraft(task, selectedAssistant.id);');
-  });
-
-  it('успешное завершение снимает совпавший черновик', () => {
-    expect(body).toContain('forgetDraftIfSent(selectedAssistant.id, task);');
+  it('completedMessage помечен noTokensStop при noTokens — иначе collapse не узнает «такое же»', () => {
+    expect(sendMessageToAI()).toMatch(/noTokensStop:\s*noTokens\s*\|\|\s*undefined/);
   });
 });
 
-describe('forgetDraftIfSent — общий хелпер для обеих точек', () => {
-  it('забирает черновик и кладёт обратно, если текст не совпал (не трогаем чужой)', () => {
-    const body = between('const forgetDraftIfSent = (', 'const sendMessageToAI = async');
-    expect(body).toContain('const existing = takePendingDraftFor(assistantId);');
-    expect(body).toContain('savePendingDraft(existing, assistantId);');
+describe('m2: очередь, скопившаяся за время хода, не досылается в заведомо нулевой баланс', () => {
+  it('очередь читается (joinQueue) и чистится (applyQueued) в ветке noTokens с id', () => {
+    const body = sendMessageToAI();
+    const gate = body.indexOf('if (userMessageId !== undefined');
+    const scoped = body.slice(gate);
+    expect(scoped).toContain('joinQueue(queuedRef.current)');
+    expect(scoped).toContain('applyQueued(() => [])');
+  });
+});
+
+describe('m5: предел черновика — комментарий на месте вызова', () => {
+  it('у вызова savePendingDraft в текстовом ходе есть пояснение про PENDING_DRAFT_STORE_MAX', () => {
+    const body = sendMessageToAI();
+    const at = body.indexOf('savePendingDraft(outcome.draftText');
+    expect(at).toBeGreaterThan(-1);
+    expect(body.slice(Math.max(0, at - 400), at)).toContain('PENDING_DRAFT_STORE_MAX');
+  });
+});
+
+describe('успешное (не noTokens) завершение снимает совпавший черновик', () => {
+  it('sendMessageToAI зовёт forgetPendingDraftIfSent (не takePendingDraftFor+savePendingDraft — I1)', () => {
+    expect(sendMessageToAI()).toContain('forgetPendingDraftIfSent(streamAssistantId, userMessage)');
+  });
+
+  it('handleFileTaskSubmit тоже зовёт forgetPendingDraftIfSent при успехе', () => {
+    expect(handleFileTaskSubmit()).toContain('forgetPendingDraftIfSent(uploadAssistantId, task)');
+  });
+});
+
+describe('I3: загрузка файлов привязана к ассистенту', () => {
+  it('handleFileTaskSubmit запоминает ассистента в начале (как streamAssistantId в sendMessageToAI)', () => {
+    expect(handleFileTaskSubmit()).toMatch(/const uploadAssistantId = selectedAssistant\?\.id \?\? null;/);
+  });
+
+  it('восстановление интерфейса (не только черновика) сверяется с selectedAssistantIdRef', () => {
+    const body = between('const restoreFileTaskOnNoTokens = (', 'const handleFileTaskSubmit = async');
+    expect(body).toContain('selectedAssistantIdRef.current !== uploadAssistantId');
+  });
+});
+
+describe('C1 + общая функция восстановления для ОБЕИХ веток загрузки', () => {
+  it('есть общая функция restoreFileTaskOnNoTokens', () => {
+    expect(SRC).toMatch(/const restoreFileTaskOnNoTokens = \(/);
+  });
+
+  it('ветка мультипарта зовёт её при noTokens', () => {
+    expect(handleFileTaskSubmit()).toMatch(/restoreFileTaskOnNoTokens\(\s*userMessage\.id,\s*assistantMsg,/);
+  });
+
+  it('ветка одного текстового файла — по исходу sendMessageToAI (outcome), а не по собственному isNoTokensEnd', () => {
+    const body = handleFileTaskSubmit();
+    const singleFileBranch = body.slice(body.indexOf('isTextFile(files[0])'));
+    expect(singleFileBranch).toMatch(/outcome\s*=\s*await sendMessageToAI\(/);
+    expect(singleFileBranch).toContain("if (outcome === 'no_tokens')");
+    // Та же общая функция — не отдельная копия восстановления.
+    expect(singleFileBranch.indexOf('restoreFileTaskOnNoTokens(')).toBeGreaterThan(-1);
+  });
+
+  it('restoreFileTaskOnNoTokens сохраняет черновик ИЗ ТЕКСТА ЗАДАЧИ (task), не из промпта с содержимым файла', () => {
+    const body = between('const restoreFileTaskOnNoTokens = (', 'const handleFileTaskSubmit = async');
+    expect(body).toContain('savePendingDraft(task, uploadAssistantId)');
+  });
+});
+
+describe('I2: окно задачи не открывается само сразу — ждёт пополнения баланса', () => {
+  it('restoreFileTaskOnNoTokens не открывает модалку (setShowFileTaskModal отсутствует в её теле)', () => {
+    const body = between('const restoreFileTaskOnNoTokens = (', 'const handleFileTaskSubmit = async');
+    expect(body).not.toContain('setShowFileTaskModal');
+  });
+
+  it('есть эффект, открывающий модалку по user?.tokens', () => {
+    const effectStart = SRC.indexOf('fileTaskAutoReopenedRef');
+    expect(effectStart).toBeGreaterThan(-1);
+    const effectRegion = SRC.slice(effectStart, SRC.indexOf('}, [', effectStart) + 400);
+    expect(effectRegion).toContain('useEffect(');
+    expect(effectRegion).toContain('user?.tokens');
+    expect(effectRegion).toContain('setShowFileTaskModal(true)');
+  });
+
+  it('эффект открывает один раз — есть ref-гард до setShowFileTaskModal(true)', () => {
+    const effectStart = SRC.indexOf('fileTaskAutoReopenedRef');
+    const effectBody = SRC.slice(effectStart, SRC.indexOf('setShowFileTaskModal(true)', effectStart));
+    expect(effectBody).toContain('fileTaskAutoReopenedRef.current');
+  });
+
+  it('эффект сверяет ассистента (I3) — не открывает модалку чужих файлов поверх текущего чата', () => {
+    const effectStart = SRC.indexOf('fileTaskAutoReopenedRef');
+    const effectRegion = SRC.slice(effectStart, SRC.indexOf('}, [', effectStart) + 200);
+    expect(effectRegion).toContain('pendingFilesAssistantId');
+    expect(effectRegion).toContain('selectedAssistant?.id');
+  });
+});
+
+describe('окно пополнения токенов (TokenPackages) не открывается само', () => {
+  it('ни одна из точек no_tokens не зовёт setShowTokenPackages', () => {
+    expect(sendMessageToAI()).not.toContain('setShowTokenPackages');
+    expect(handleFileTaskSubmit()).not.toContain('setShowTokenPackages');
+    const restoreFn = between('const restoreFileTaskOnNoTokens = (', 'const handleFileTaskSubmit = async');
+    expect(restoreFn).not.toContain('setShowTokenPackages');
   });
 });
 
 describe('подключение модулей', () => {
-  it('isNoTokensEnd/restoreIntoInput импортированы из noTokensDraft', () => {
-    expect(SRC).toContain("import { isNoTokensEnd, restoreIntoInput } from './noTokensDraft';");
+  it('collapseNoTokensStop и applyNoTokensOutcome импортированы из noTokensDraft', () => {
+    const importLine = SRC.split('\n').find((l) => l.includes("from './noTokensDraft';"));
+    expect(importLine).toBeDefined();
+    expect(importLine).toContain('isNoTokensEnd');
+    expect(importLine).toContain('restoreIntoInput');
+    expect(importLine).toContain('collapseNoTokensStop');
+    expect(importLine).toContain('applyNoTokensOutcome');
   });
 
-  it('savePendingDraft импортирован вместе с остальными хелперами черновика', () => {
-    expect(SRC).toContain(
-      "import { hasPendingDraftFor, savePendingDraft, takePendingDraftFor } from '../../utils/pendingDraft';",
-    );
+  it('forgetPendingDraftIfSent импортирован из utils/pendingDraft (I1) — локального forgetDraftIfSent больше нет', () => {
+    const importLine = SRC.split('\n').find((l) => l.includes("from '../../utils/pendingDraft';"));
+    expect(importLine).toBeDefined();
+    expect(importLine).toContain('forgetPendingDraftIfSent');
+    expect(SRC).not.toContain('const forgetDraftIfSent = ');
+  });
+
+  it('Message несёт признак noTokensStop (для collapseNoTokensStop)', () => {
+    const msgInterface = between('interface Message {', '\n}');
+    expect(msgInterface).toContain('noTokensStop?: boolean');
   });
 });
