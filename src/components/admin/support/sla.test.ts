@@ -19,6 +19,10 @@ describe('SLA первого ответа', () => {
     expect(slaState(ticket(null), NOW)).toBe('normal');
   });
 
+  it('закрывает SLA у решённого тикета даже без первого ответа', () => {
+    expect(slaState({ ...ticket('2026-11-03T10:00:00Z'), status: 'resolved' }, NOW)).toBe('closed');
+  });
+
   it('помечает прошедший дедлайн просроченным', () => {
     expect(slaState(ticket('2026-11-03T11:59:59Z'), NOW)).toBe('overdue');
   });

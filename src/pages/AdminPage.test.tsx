@@ -12,6 +12,7 @@
  * нет, тест не найдёт.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { act } from 'react';
 import { mount, click, tRu } from '../test/dom';
 import type { Mounted } from '../test/dom';
 import en from '../i18n/locales/en.json';
@@ -99,11 +100,19 @@ describe('вкладка «Сайты и боты»', () => {
     expect((pt.admin.tabs as Record<string, string>).products).toBe('Sites e bots');
   });
 
-  it('стоит рядом с «Пользователями»', () => {
+  it('все 16 разделов доступны в пяти группах и мобильном переключателе', () => {
     const container = render();
-    const ids = Array.from(container.querySelectorAll('[data-testid^="admin-tab-"]')).map((b) =>
-      b.getAttribute('data-testid')!.replace('admin-tab-', ''));
-    expect(ids.indexOf('products')).toBe(ids.indexOf('users') + 1);
+    const select = container.querySelector<HTMLSelectElement>('[data-testid="admin-section-select"]')!;
+    expect(container.querySelectorAll('[data-testid^="admin-group-"]')).toHaveLength(5);
+    expect(select.querySelectorAll('optgroup')).toHaveLength(5);
+    expect(select.querySelectorAll('option')).toHaveLength(16);
+
+    act(() => {
+      select.value = 'blog';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const [next] = setSearchParams.mock.calls[0];
+    expect((next as URLSearchParams).get('tab')).toBe('blog');
   });
 
   it('?tab=products открывает раздел и подсвечивает вкладку', () => {

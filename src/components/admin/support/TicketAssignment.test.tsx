@@ -78,6 +78,22 @@ describe('назначение ответственного', () => {
     view.unmount();
   });
 
+  it('не показывает просрочку и назначение у решённого тикета', () => {
+    const ticket = {
+      ...baseTicket,
+      status: 'resolved',
+      first_response_due_at: '2026-11-03T10:00:00Z',
+    };
+    const view = mount(<TicketAssignment ticket={ticket} operators={OPERATORS} onAssigned={vi.fn()} />);
+
+    expect(visibleText(view.container)).toContain(tRu('admin.support.sla.closed'));
+    expect(visibleText(view.container)).not.toContain('−120 мин');
+    expect(byButton(view.container, /Взять в работу/)).toBeNull();
+    expect(byButton(view.container, /Переназначить/)).toBeNull();
+    expect(view.container.querySelector('select')).toBeNull();
+    view.unmount();
+  });
+
   it('после первого ответа показывает его время без продолжающегося отсчёта', () => {
     const ticket = {
       ...baseTicket,
