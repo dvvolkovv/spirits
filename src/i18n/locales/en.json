@@ -901,7 +901,8 @@
         "overdue": "Overdue",
         "soon": "Within 30 minutes",
         "normal": "More than 30 minutes",
-        "answered": "First reply sent"
+        "answered": "First reply sent",
+        "closed": "Closed"
       },
       "assignment": {
         "owner": "Assignee",

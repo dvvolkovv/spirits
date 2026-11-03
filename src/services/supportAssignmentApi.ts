@@ -12,6 +12,7 @@ export interface SupportAssignmentTicket {
   assigned_at: string | null;
   first_response_due_at: string | null;
   first_owner_reply_at: string | null;
+  status?: string;
   assigned_name?: string | null;
 }
 

@@ -60,6 +60,7 @@ const SLA_BADGE: Record<SlaState, string> = {
   soon: 'bg-amber-100 text-amber-800',
   normal: 'bg-gray-100 text-gray-600',
   answered: 'bg-green-100 text-green-700',
+  closed: 'bg-gray-100 text-gray-600',
 };
 
 interface SupportStats {
@@ -422,6 +423,7 @@ const AdminSupportView: React.FC = () => {
                 const sla = slaState({
                   first_response_due_at: ticket.firstResponseDueAt,
                   first_owner_reply_at: ticket.firstOwnerReplyAt,
+                  status: ticket.status,
                 }, nowMs);
                 return (
                   <li key={ticket.id}>
@@ -442,7 +444,7 @@ const AdminSupportView: React.FC = () => {
                           )}
                           <span className={clsx('text-xs px-1.5 py-0.5 rounded', SLA_BADGE[sla])}>
                             {t(`admin.support.sla.${sla}`)}
-                            {ticket.firstResponseDueAt && !ticket.firstOwnerReplyAt
+                            {ticket.firstResponseDueAt && !ticket.firstOwnerReplyAt && ticket.status !== 'resolved'
                               ? ` · ${remainingText(ticket.firstResponseDueAt, nowMs)}`
                               : ''}
                           </span>
