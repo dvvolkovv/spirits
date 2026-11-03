@@ -78,6 +78,20 @@ describe('назначение ответственного', () => {
     view.unmount();
   });
 
+  it('после первого ответа показывает его время без продолжающегося отсчёта', () => {
+    const ticket = {
+      ...baseTicket,
+      first_response_due_at: '2026-11-03T10:00:00Z',
+      first_owner_reply_at: '2026-11-03T11:00:00Z',
+    };
+    const view = mount(<TicketAssignment ticket={ticket} operators={OPERATORS} onAssigned={vi.fn()} />);
+
+    expect(visibleText(view.container)).toContain(tRu('admin.support.sla.answered'));
+    expect(visibleText(view.container)).toContain(tRu('admin.support.assignment.first_reply'));
+    expect(visibleText(view.container)).not.toContain('−120 мин');
+    view.unmount();
+  });
+
   it('переназначает выбранному оператору с версией открытого тикета', async () => {
     const ticket = { ...baseTicket, assigned_to: 'admin-1', assigned_at: '2026-11-03T11:00:00Z' };
     const view = mount(<TicketAssignment ticket={ticket} operators={OPERATORS} onAssigned={vi.fn()} />);
