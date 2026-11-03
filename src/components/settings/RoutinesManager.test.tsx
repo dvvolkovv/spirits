@@ -10,9 +10,14 @@ import { mount, flush, visibleText, tRu, byButton, clickAsync, type Mounted } fr
 import RoutinesManager from './RoutinesManager';
 import { apiClient } from '../../services/apiClient';
 
-vi.mock('react-i18next', async () => {
+// RoutinesManager (в отличие от ZoomConnectCard) импортирует сам инстанс
+// i18n напрямую (для языка в запросе списка ассистентов) — а src/i18n/index.ts
+// на загрузке зовёт i18n.use(initReactI18next). Мок без importOriginal
+// подменяет весь модуль и роняет эту цепочку ("No initReactI18next export").
+vi.mock('react-i18next', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-i18next')>();
   const { tRu: t } = await import('../../test/dom');
-  return { useTranslation: () => ({ t }) };
+  return { ...actual, useTranslation: () => ({ t }) };
 });
 
 vi.mock('../../services/apiClient', () => ({
