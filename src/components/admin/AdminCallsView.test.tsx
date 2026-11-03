@@ -89,9 +89,9 @@ afterEach(async () => {
 });
 
 describe('AdminCallsView', () => {
-  it('по умолчанию — все сессии вместе с тестовыми и предупреждение об этом', () => {
-    expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=all&includeTest=1');
-    expect(q('admin-calls-test-banner')).not.toBeNull();
+  it('по умолчанию — только живые пользователи, без плашки о тестовых', () => {
+    expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=all');
+    expect(q('admin-calls-test-banner')).toBeNull();
   });
 
   it('только статистика: подробности сессий не запрашиваются', async () => {
@@ -155,7 +155,7 @@ describe('AdminCallsView', () => {
     expect(q('admin-calls-provider-talerid')?.textContent).toBe('Taler ID · 43');
 
     await click('admin-calls-provider-zoom');
-    expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=meeting&provider=zoom&includeTest=1');
+    expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=meeting&provider=zoom');
     expect(q('admin-calls-provider-zoom')?.getAttribute('aria-pressed')).toBe('true');
   });
 
@@ -163,19 +163,19 @@ describe('AdminCallsView', () => {
     await click('admin-calls-kind-meeting');
     await click('admin-calls-provider-zoom');
     await click('admin-calls-kind-call');
-    expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=call&includeTest=1');
+    expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=call');
   });
 
-  it('без «Тестовых» фильтр уходит в запрос и плашка исчезает', async () => {
+  it('«Тестовые» явно включают фильтр и предупреждение', async () => {
     await click('admin-calls-include-test');
-    expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=all');
-    expect(q('admin-calls-test-banner')).toBeNull();
+    expect(lastTableUrl()).toBe('/webhook/admin/calls?days=30&kind=all&includeTest=1');
+    expect(q('admin-calls-test-banner')).not.toBeNull();
   });
 
   it('«Обновить» перечитывает таблицу', async () => {
     const before = urls().length;
     await click('admin-calls-refresh');
-    expect(urls().slice(before)).toEqual(['/webhook/admin/calls?days=30&kind=all&includeTest=1']);
+    expect(urls().slice(before)).toEqual(['/webhook/admin/calls?days=30&kind=all']);
   });
 
   it('кнопки площадок строятся по ответу «Встреч», а не по ответу прошлой вкладки', async () => {
