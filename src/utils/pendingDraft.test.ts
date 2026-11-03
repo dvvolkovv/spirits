@@ -5,7 +5,9 @@ import {
   DRAFT_MAX_LENGTH,
   DRAFT_TTL_MS,
   PENDING_DRAFT_STORE_MAX,
+  forgetPendingDraftIfSent,
   hasPendingDraftFor,
+  takePendingDraftEntry,
   takePendingDraftFor,
 } from './pendingDraft';
 
@@ -75,6 +77,55 @@ describe('черновик сообщения со страницы linkeon.io',
       put({ text: 'Райя, привет!', assistant: '14', expires: NOW + DRAFT_TTL_MS });
       expect(hasPendingDraftFor(14, NOW + DRAFT_TTL_MS + 1)).toBe(false);
       expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+  });
+
+  describe('forgetPendingDraftIfSent — снять черновик после успешной отправки (I1, ревью 03.11)', () => {
+    // READ-ONLY сверка: в отличие от «забрать и положить обратно»
+    // (takePendingDraftFor + savePendingDraft), эта функция НИКОГДА не
+    // пересохраняет запись — только либо стирает её целиком, либо не трогает
+    // вовсе. Пересохранение продлевало бы TTL черновика ещё на час при каждой
+    // успешной отправке (черновик жил бы бесконечно) и теряло бы пометку auto
+    // у чужого, не совпавшего черновика.
+    it('текст совпал в точности — черновик снят', () => {
+      put({ text: 'Райя, привет!', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+      forgetPendingDraftIfSent('14', 'Райя, привет!', NOW);
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it('отправленный текст ДОПОЛНЯЕТ черновик (дописанное поле, склейка очереди) — тоже снят', () => {
+      put({ text: 'Райя, привет!', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+      forgetPendingDraftIfSent('14', 'Райя, привет!\n\nи ещё кое-что дописал', NOW);
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it('лишние пробелы с обеих сторон не мешают сверке', () => {
+      put({ text: '  Райя, привет!  ', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+      forgetPendingDraftIfSent('14', '   Райя, привет!   ', NOW);
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it('чужому ассистенту — черновик не трогается', () => {
+      put({ text: 'Райя, привет!', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+      forgetPendingDraftIfSent('12', 'Райя, привет!', NOW);
+      expect(takePendingDraftFor('14', NOW)).toBe('Райя, привет!');
+    });
+
+    it('отправленный текст не покрывает черновик (другой, не прочитанный черновик) — не трогается, auto цел', () => {
+      put({ text: 'Данные рождения для другого вопроса', assistant: '14', expires: NOW + DRAFT_TTL_MS, auto: true });
+      forgetPendingDraftIfSent('14', 'Привет, это вообще не про то', NOW);
+      // Не просто takePendingDraftFor (она бы стёрла запись чтением) —
+      // takePendingDraftEntry тоже стирает, но ДО него localStorage цел.
+      expect(localStorage.getItem(DRAFT_KEY)).not.toBeNull();
+      expect(takePendingDraftEntry('14', NOW)).toEqual({ text: 'Данные рождения для другого вопроса', auto: true });
+    });
+
+    it('просроченная запись — не трогается (и так уже никакая, read() сам стёр бы при чтении)', () => {
+      put({ text: 'Райя, привет!', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+      forgetPendingDraftIfSent('14', 'Райя, привет!', NOW + DRAFT_TTL_MS + 1);
+      // Запись просрочена — сверка не находит живой черновик и ничего не
+      // стирает ПОВТОРНО, но read() внутри уже увидел её просроченной.
+      expect(takePendingDraftFor('14', NOW + DRAFT_TTL_MS + 1)).toBeNull();
     });
   });
 });
