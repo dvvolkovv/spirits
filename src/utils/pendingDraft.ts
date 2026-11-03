@@ -148,15 +148,22 @@ export function takePendingDraftEntry(assistantId: string | number, now = Date.n
  * рождения для другого ассистента, пока гость ещё в пробе у этого): чужой
  * непрочитанный черновик ценнее — это редкий случай. Свой черновик (тот же
  * ассистент) и просроченный — перезаписываются.
+ *
+ * Возвращает, было ли сохранение реально выполнено: false — пустой/слишком
+ * длинный текст, живой черновик другого ассистента или недоступное
+ * хранилище. До 03.11 отказ был молчаливым — вызывающий код очищал текст
+ * задачи в расчёте «он уже в черновике» и терял его (m-1 повторного ревью).
  */
-export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): void {
+export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): boolean {
   const t = text.trim();
-  if (!t || t.length > PENDING_DRAFT_STORE_MAX) return;
+  if (!t || t.length > PENDING_DRAFT_STORE_MAX) return false;
   const existing = read(now);
-  if (existing && existing.assistant !== String(assistantId)) return;
+  if (existing && existing.assistant !== String(assistantId)) return false;
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: t, assistant: String(assistantId), expires: now + DRAFT_TTL_MS }));
+    return true;
   } catch {
     /* хранилище недоступно — черновик не переживёт вход */
+    return false;
   }
 }

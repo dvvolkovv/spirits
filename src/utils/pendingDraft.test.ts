@@ -7,6 +7,7 @@ import {
   PENDING_DRAFT_STORE_MAX,
   forgetPendingDraftIfSent,
   hasPendingDraftFor,
+  savePendingDraft,
   takePendingDraftEntry,
   takePendingDraftFor,
 } from './pendingDraft';
@@ -143,6 +144,33 @@ describe('черновик сообщения со страницы linkeon.io',
       put({ text: 'Райя, привет!', assistant: '14', expires: NOW + DRAFT_TTL_MS });
       forgetPendingDraftIfSent('14', 'Райя, привет!', NOW + DRAFT_TTL_MS + 1);
       expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+  });
+
+  describe('savePendingDraft — boolean-результат (m-1 повторного ревью 03.11)', () => {
+    // Вызывающий код снимает текст задачи в расчёте «он уже в черновике» —
+    // молчаливый отказ раньше означал потерю текста (R12).
+    it('сохранил — true, и черновик лежит для этого ассистента', () => {
+      expect(savePendingDraft('сожми фото', 12, NOW)).toBe(true);
+      expect(hasPendingDraftFor(12, NOW)).toBe(true);
+    });
+
+    it('пустой текст — false и ничего не сохранено', () => {
+      expect(savePendingDraft('   ', 12, NOW)).toBe(false);
+      expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+    });
+
+    it('длиннее PENDING_DRAFT_STORE_MAX — false и чужой черновик не тронут', () => {
+      put({ text: 'черновик для Райи', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+      expect(savePendingDraft('я'.repeat(PENDING_DRAFT_STORE_MAX + 1), 12, NOW)).toBe(false);
+      expect(takePendingDraftFor(14, NOW)).toBe('черновик для Райи');
+    });
+
+    it('живой черновик другого ассистента — false, свой — true (перезапись)', () => {
+      put({ text: 'черновик для Райи', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+      expect(savePendingDraft('сожми фото', 12, NOW)).toBe(false);
+      expect(savePendingDraft('сожми фото', 14, NOW)).toBe(true);
+      expect(takePendingDraftFor(14, NOW)).toBe('сожми фото');
     });
   });
 });

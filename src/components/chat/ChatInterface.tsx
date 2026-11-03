@@ -738,6 +738,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // no_tokens (I2/I3, ревью Ф1 03.11) — эффект автооткрытия модалки открывает
   // её сами только для него, не для того, к кому человек мог переключиться.
   const [pendingFilesAssistantId, setPendingFilesAssistantId] = useState<number | null>(null);
+  // Текст отложенной задачи реально попал в pending_draft (savePendingDraft
+  // не отказал: чужого живого черновика не было, текст в пределах). Вместе
+  // с hasPendingDraftFor — основание снимать отложенные файлы при смене
+  // ассистента: задача переживёт в черновике. False — файлы остаются
+  // единственным носителем задачи (m-1 повторного ревью 03.11, R12).
+  const fileTaskDraftSavedRef = useRef(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
   const [isLoadingAssistants, setIsLoadingAssistants] = useState(true);
@@ -852,15 +858,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // Файлы/текст задачи, отложенные до пополнения баланса
       // (restoreFileTaskOnNoTokens, I2/I3) — для КОНКРЕТНОГО ассистента.
       // Ушёл к другому — не трогаем его чат чужим отказом: новое вложение
-      // слилось бы со старым файлом (повторное ревью 03.11, I3/E9), а при
-      // возврате к прежнему ассистенту модалка открылась бы с задачей, текст
-      // которой к тому моменту уже и так подставился в поле из черновика
-      // (E10) — то есть задвоился бы. Текст задачи не теряется: он уже лежит
-      // в pendingDraft (savePendingDraft внутри restoreFileTaskOnNoTokens).
+      // слилось бы со старым файлом (повторное ревью 03.11, I3/E9).
+      // Снимаем отложенное состояние, только если текст задачи надёжно лежит
+      // в черновике этого ассистента — при возврате он подставится в поле из
+      // черновика (E10), а не задвоится с окном. savePendingDraft отказывает
+      // молча (чужой живой черновик, текст длиннее предела) — тогда файлы и
+      // текст остаются единственным носителем задачи: модалка вернёт их
+      // одним кликом после пополнения (m-1 повторного ревью 03.11, R12).
       if (pendingFilesAssistantId !== null && newId !== pendingFilesAssistantId) {
-        setPendingFiles([]);
-        setFileTaskInput('');
-        setPendingFilesAssistantId(null);
+        if (hasPendingDraftFor(pendingFilesAssistantId) || fileTaskDraftSavedRef.current) {
+          setPendingFiles([]);
+          setFileTaskInput('');
+          setPendingFilesAssistantId(null);
+          fileTaskDraftSavedRef.current = false;
+        }
       }
     }
     prevSelectedAssistantIdRef.current = newId;
@@ -2299,6 +2310,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setPendingFiles([]);
       setFileTaskInput('');
       setPendingFilesAssistantId(null);
+      fileTaskDraftSavedRef.current = false;
     }
     draftEffectAppliedForRef.current = selectedAssistant.id;
     const draft = takePendingDraftFor(selectedAssistant.id);
@@ -2497,7 +2509,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     task: string,
     uploadAssistantId: number | null,
   ) => {
-    if (uploadAssistantId !== null) savePendingDraft(task, uploadAssistantId);
+    // Результат сохраняем ДО раннего выхода ниже: человек мог уйти к другому
+    // ассистенту до прихода отказа (I3), а универсальный эффект смены
+    // сверится с флагом/хранилищем позже (m-1 повторного ревью 03.11, R12).
+    fileTaskDraftSavedRef.current = uploadAssistantId !== null
+      ? savePendingDraft(task, uploadAssistantId)
+      : false;
     if (uploadAssistantId === null || selectedAssistantIdRef.current !== uploadAssistantId) return;
     setMessages(prev => {
       if (stopMessage) return collapseNoTokensStop(prev, rejectedMessageId, stopMessage);
