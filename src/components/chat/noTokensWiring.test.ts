@@ -54,10 +54,14 @@ describe('текстовый ход (sendMessageToAI)', () => {
   });
 
   it('черновик сохраняется ДО гейта «пользователь ещё в этом чате» — переживает уход на оплату', () => {
-    const beforeGate = body.slice(
-      body.indexOf('if (noTokens && streamAssistantId'),
-      body.indexOf('if (selectedAssistantIdRef.current === streamAssistantId) {'),
-    );
+    // Та же фраза-гейт встречается и ВНУТРИ цикла разбора потока (throttle
+    // обновления стримящегося текста) — ищем гейт коммита ПОСЛЕ маркера
+    // noTokens, а не первое попавшееся совпадение от начала функции.
+    const noTokensAt = body.indexOf('if (noTokens && streamAssistantId');
+    expect(noTokensAt).toBeGreaterThan(-1);
+    const gateAt = body.indexOf('if (selectedAssistantIdRef.current === streamAssistantId) {', noTokensAt);
+    expect(gateAt).toBeGreaterThan(noTokensAt);
+    const beforeGate = body.slice(noTokensAt, gateAt);
     expect(beforeGate).toContain('savePendingDraft(userMessage, streamAssistantId);');
   });
 

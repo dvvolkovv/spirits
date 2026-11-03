@@ -78,7 +78,10 @@ describe('пока грузится история, сообщение ждёт 
 
 describe('автоприветствие не перебивает человека', () => {
   it('sendMessageToAI считает отправки', () => {
-    expect(body('const sendMessageToAI = async (userMessage: string) => {')).toContain('sendSeqRef.current += 1;');
+    // Сигнатура с 03.11 несёт второй (опциональный) параметр — id пузыря
+    // пользователя, нужный для разбора no_tokens (бэклог 2d71aaf8,
+    // noTokensWiring.test.ts) — маркер сверяем с ним, а не со старой формой.
+    expect(body('const sendMessageToAI = async (userMessage: string, userMessageId?: string) => {')).toContain('sendSeqRef.current += 1;');
   });
 
   it('решение «приветствовать» перепроверяется прямо перед отправкой', () => {
