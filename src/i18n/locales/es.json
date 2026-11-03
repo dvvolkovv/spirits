@@ -766,6 +766,8 @@
       "default_title": "Recordatorio",
       "test_success": "Enviado: revisa la notificación 🔔",
       "test_no_push": "Se generó, pero el push no llegó. Activa las notificaciones arriba en este dispositivo.",
+      "test_busy": "El asistente está hablando contigo ahora mismo — inténtalo de nuevo en un minuto.",
+      "test_failed": "No se pudo preparar el mensaje — inténtalo de nuevo un poco más tarde.",
       "day_sun": "D",
       "day_mon": "L",
       "day_tue": "M",

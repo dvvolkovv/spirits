@@ -1155,6 +1155,8 @@
       "default_title": "Reminder",
       "test_success": "Sent — check your notification 🔔",
       "test_no_push": "Generated it, but the push wasn't delivered. Enable notifications above on this device.",
+      "test_busy": "The assistant is busy talking with you right now — try again in a minute.",
+      "test_failed": "Couldn't prepare the message — try again a bit later.",
       "day_sun": "Su",
       "day_mon": "Mo",
       "day_tue": "Tu",

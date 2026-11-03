@@ -109,7 +109,13 @@ const RoutinesManager: React.FC = () => {
   };
   const test = async (rt: Routine) => {
     const d = await post({ action: 'test', id: rt.id });
-    if (d) setMsg(d.delivered > 0 ? t('settings.routines.test_success') : t('settings.routines.test_no_push'));
+    if (!d) return;
+    // Бэклог e777aa94: занятая сессия человека (релей не вызывается вовсе) и
+    // сбойный ход (пустая генерация) — не то же самое, что «сгенерировали, но
+    // пуш не доставлен»: совет включить уведомления там мимо дела.
+    if (d.busy) { setMsg(t('settings.routines.test_busy')); return; }
+    if (d.failed) { setMsg(t('settings.routines.test_failed')); return; }
+    setMsg(d.delivered > 0 ? t('settings.routines.test_success') : t('settings.routines.test_no_push'));
   };
   const addEnergy = async () => { await post({ action: 'preset_energy', tz: browserTz }); load(); };
 
