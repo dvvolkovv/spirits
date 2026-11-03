@@ -40,7 +40,13 @@ const greeting = (): string => {
 
 describe('черновик со страницы linkeon.io', () => {
   it('ChatInterface забирает черновик из utils/pendingDraft', () => {
-    expect(SRC).toContain("import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';");
+    // С 03.11 в этом же импорте и savePendingDraft (no_tokens, бэклог
+    // 2d71aaf8) — сверяем по именам, не по точному списку целиком: он ещё
+    // вырастет.
+    const importLine = SRC.split('\n').find((l) => l.includes("from '../../utils/pendingDraft';"));
+    expect(importLine).toBeDefined();
+    expect(importLine).toContain('hasPendingDraftFor');
+    expect(importLine).toContain('takePendingDraftFor');
   });
 
   it('ждёт, пока загрузится история именно выбранного ассистента', () => {

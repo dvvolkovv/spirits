@@ -101,6 +101,29 @@ export function forgetPendingDraft(): void {
   forget();
 }
 
+/**
+ * Забыть черновик этого ассистента, если отправленный текст его уже
+ * покрывает — после успешного (не no_tokens) хода (бэклог 2d71aaf8): иначе
+ * он всплыл бы в поле при следующем открытии чата.
+ *
+ * READ-ONLY сверка, без выдачи и без пересохранения. Прежний приём «забрать
+ * и положить обратно» (takePendingDraftFor + savePendingDraft при
+ * несовпадении) при КАЖДОМ успешном ходе продлевал TTL черновика ещё на
+ * час — черновик, который так и не совпал, жил бы бесконечно, — а у чужого
+ * несовпавшего черновика перезапись (без явной передачи auto) теряла эту
+ * пометку. Здесь несовпавшая запись просто не трогается вовсе.
+ *
+ * `includes`, а не точное совпадение, и `trim()` с обеих сторон: дописанное
+ * поле, правка перед отправкой или склейка очереди (ревью Ф1, m2) — это тот
+ * же самый черновик, просто с добавкой или лишним пробелом, а не «другой».
+ */
+export function forgetPendingDraftIfSent(assistantId: string | number, sentText: string, now = Date.now()): void {
+  const stored = read(now);
+  if (stored && stored.assistant === String(assistantId) && sentText.trim().includes(stored.text.trim())) {
+    forget();
+  }
+}
+
 export interface PendingDraftEntry {
   text: string;
   auto: boolean;
@@ -125,15 +148,22 @@ export function takePendingDraftEntry(assistantId: string | number, now = Date.n
  * рождения для другого ассистента, пока гость ещё в пробе у этого): чужой
  * непрочитанный черновик ценнее — это редкий случай. Свой черновик (тот же
  * ассистент) и просроченный — перезаписываются.
+ *
+ * Возвращает, было ли сохранение реально выполнено: false — пустой/слишком
+ * длинный текст, живой черновик другого ассистента или недоступное
+ * хранилище. До 03.11 отказ был молчаливым — вызывающий код очищал текст
+ * задачи в расчёте «он уже в черновике» и терял его (m-1 повторного ревью).
  */
-export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): void {
+export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): boolean {
   const t = text.trim();
-  if (!t || t.length > PENDING_DRAFT_STORE_MAX) return;
+  if (!t || t.length > PENDING_DRAFT_STORE_MAX) return false;
   const existing = read(now);
-  if (existing && existing.assistant !== String(assistantId)) return;
+  if (existing && existing.assistant !== String(assistantId)) return false;
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: t, assistant: String(assistantId), expires: now + DRAFT_TTL_MS }));
+    return true;
   } catch {
     /* хранилище недоступно — черновик не переживёт вход */
+    return false;
   }
 }

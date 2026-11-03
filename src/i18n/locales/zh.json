@@ -761,6 +761,8 @@
       "default_title": "提醒",
       "test_success": "已发送——请查看通知 🔔",
       "test_no_push": "已生成，但推送未送达。请在上方为此设备开启通知。",
+      "test_busy": "助手现在正忙——过一分钟再试试。",
+      "test_failed": "没能生成消息——晚一点再试一次。",
       "day_sun": "日",
       "day_mon": "一",
       "day_tue": "二",

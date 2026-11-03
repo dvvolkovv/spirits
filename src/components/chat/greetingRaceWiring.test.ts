@@ -12,11 +12,25 @@ import { join } from 'path';
  */
 const SRC = readFileSync(join(__dirname, 'ChatInterface.tsx'), 'utf8');
 
-/** Тело функции `marker {...}` — по парным скобкам. */
-const body = (marker: string): string => {
-  const start = SRC.indexOf(marker);
-  expect(start).toBeGreaterThan(-1);
-  const from = start + marker.length;
+/**
+ * Тело функции `marker {...}` — по парным скобкам.
+ *
+ * marker может быть регулярным выражением — так проверка не привязана к
+ * точному списку параметров: сигнатура sendMessageToAI меняется (id пузыря,
+ * потом тип возврата — ревью Ф1 03.11, m8), а дословная строка на неё ложно
+ * падает на каждой такой правке рядом.
+ */
+const body = (marker: string | RegExp): string => {
+  let from: number;
+  if (typeof marker === 'string') {
+    const start = SRC.indexOf(marker);
+    expect(start).toBeGreaterThan(-1);
+    from = start + marker.length;
+  } else {
+    const m = marker.exec(SRC);
+    expect(m).not.toBeNull();
+    from = m!.index + m![0].length;
+  }
   let depth = 1;
   let i = from;
   while (depth > 0) {
@@ -78,7 +92,10 @@ describe('пока грузится история, сообщение ждёт 
 
 describe('автоприветствие не перебивает человека', () => {
   it('sendMessageToAI считает отправки', () => {
-    expect(body('const sendMessageToAI = async (userMessage: string) => {')).toContain('sendSeqRef.current += 1;');
+    // Сигнатура меняется (id пузыря, потом тип возврата — бэклог 2d71aaf8,
+    // noTokensWiring.test.ts) — ищем по имени функции и списку параметров
+    // без конкретных типов, а не по дословной сигнатуре (ревью m8).
+    expect(body(/const sendMessageToAI = async \([^)]*\)(?:\s*:\s*[^{]+)?\s*=>\s*\{/)).toContain('sendSeqRef.current += 1;');
   });
 
   it('решение «приветствовать» перепроверяется прямо перед отправкой', () => {
