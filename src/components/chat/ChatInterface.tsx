@@ -2272,10 +2272,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // перерисовывает чат, а флаг historyLoading при смене ассистента ещё
   // старый. Если человек уже что-то набрал, не трогаем ни поле, ни черновик:
   // черновик выдаётся один раз, и забрать его сейчас значило бы потерять.
+  // Ассистент, для которого эффект ниже в последний раз отработал целиком:
+  // «вернуться» с отложенными файлами можно только сменой ассистента,
+  // перечитывание истории («Чистый лист») таким возвратом не является (m-2).
+  const draftEffectAppliedForRef = useRef<number | null>(null);
   useEffect(() => {
     if (!selectedAssistant || historyLoading) return;
     if (historyLoadedForRef.current !== selectedAssistant.id) return;
     if (textareaRef.current?.value.trim()) return;
+    // Задача, отложенная с файлами до пополнения (restoreFileTaskOnNoTokens),
+    // лежит ОДНОВРЕМЕННО в состоянии окна (pendingFiles/fileTaskInput) и в
+    // черновике. Подстановка черновика в поле при живых отложенных файлах
+    // этого же ассистента давала бы дубль: текст оказался бы и в поле, и в
+    // окне (m-2 повторного ревью 03.11, R6 — «Чистый лист» перечитывает
+    // историю, эффект срабатывает без смены ассистента; после пополнения
+    // окно открылось бы с той же задачей).
+    if (pendingFiles.length > 0 && pendingFilesAssistantId === selectedAssistant.id) {
+      // Возврат к ассистенту ПОСЛЕ ухода (I3, R18): если задача надёжно лежит
+      // в черновике, отложенные файлы больше не нужны — отдаём текст из
+      // черновика в поле (тот же путь, что E10 для снятых файлов), чтобы не
+      // держать два носителя. Если черновика для этого ассистента нет (чужой
+      // живой черновик отказал в сохранении или текст длиннее предела, m-1/R12)
+      // — файлы остаются единственным носителем задачи: окно, а не поле.
+      const arrivedViaSwitch = draftEffectAppliedForRef.current !== selectedAssistant.id;
+      if (!arrivedViaSwitch || !hasPendingDraftFor(selectedAssistant.id)) return;
+      setPendingFiles([]);
+      setFileTaskInput('');
+      setPendingFilesAssistantId(null);
+    }
+    draftEffectAppliedForRef.current = selectedAssistant.id;
     const draft = takePendingDraftFor(selectedAssistant.id);
     if (!draft) return;
     setInput(draft);
