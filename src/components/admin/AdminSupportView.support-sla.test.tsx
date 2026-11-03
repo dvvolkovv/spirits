@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { actAsync, byButton, clickAsync, flush, mount, tRu, type, visibleText } from '../../test/dom';
+import { actAsync, byButton, click, clickAsync, flush, mount, tRu, type, visibleText } from '../../test/dom';
 import { apiClient } from '../../services/apiClient';
 import { supportAssignmentApi } from '../../services/supportAssignmentApi';
 import AdminSupportView from './AdminSupportView';
@@ -244,6 +244,35 @@ describe('SLA и назначение в очереди поддержки', () 
 
     expect(visibleText(view.container)).toContain('Актуальный второй тикет');
     expect(visibleText(view.container)).not.toContain('Устаревший первый тикет');
+    view.unmount();
+  });
+
+  it('после медленного назначения обновляет очередь с текущим, а не старым фильтром', async () => {
+    let resolveAssignment!: (ticket: Awaited<ReturnType<typeof supportAssignmentApi.assign>>) => void;
+    vi.mocked(supportAssignmentApi.assign).mockImplementation(() => new Promise((resolve) => {
+      resolveAssignment = resolve;
+    }));
+    const view = render('/admin?ticket=ticket-1');
+    await flush();
+    await flush();
+
+    click(byButton(view.container, /Взять в работу/)!);
+    await clickAsync(byButton(view.container, /^В работе$/)!);
+    await actAsync(() => resolveAssignment({
+      id: 'ticket-1',
+      updated_at: '2026-11-03T11:06:00Z',
+      assigned_to: '79030169187',
+      assigned_at: '2026-11-03T11:06:00Z',
+      first_response_due_at: '2026-11-03T11:00:00Z',
+      first_owner_reply_at: null,
+    }));
+    await flush();
+
+    const listUrls = vi.mocked(apiClient.get).mock.calls
+      .map(([url]) => url)
+      .filter((url) => url.startsWith('/webhook/support/admin/tickets?'));
+    const query = new URL(listUrls[listUrls.length - 1], 'https://test.local').searchParams;
+    expect(query.get('status')).toBe('owner_handling');
     view.unmount();
   });
 
