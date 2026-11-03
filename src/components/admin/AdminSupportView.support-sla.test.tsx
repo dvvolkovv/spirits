@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { byButton, clickAsync, flush, mount, tRu, type, visibleText } from '../../test/dom';
+import { actAsync, byButton, clickAsync, flush, mount, tRu, type, visibleText } from '../../test/dom';
 import { apiClient } from '../../services/apiClient';
 import { supportAssignmentApi } from '../../services/supportAssignmentApi';
 import AdminSupportView from './AdminSupportView';
@@ -12,7 +12,9 @@ vi.mock('react-i18next', async () => {
 });
 
 vi.mock('../../contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'admin-1' } }),
+  useAuth: () => ({
+    user: { id: 'random-browser-id', backendUserId: '79030169187', phone: '79030169187' },
+  }),
 }));
 
 vi.mock('../../services/apiClient', () => ({
@@ -26,8 +28,8 @@ vi.mock('../../services/supportAssignmentApi', () => ({
 vi.mock('./AdminReportsView', () => ({ default: () => null }));
 
 const OPERATORS = [
-  { id: 'admin-1', name: 'Иван' },
-  { id: 'admin-2', name: 'Мария' },
+  { id: '79030169187', name: 'Иван' },
+  { id: '79030169188', name: 'Мария' },
 ];
 
 const LIST_TICKET = {
@@ -71,7 +73,7 @@ function detail(ticketOverrides: Record<string, unknown> = {}) {
     events: [{
       action: 'assignment',
       actor_type: 'owner',
-      payload: { from: null, to: 'admin-2' },
+      payload: { from: null, to: '79030169188' },
       created_at: '2026-11-03T11:05:00Z',
     }],
     user: { profile_data: { name: 'Пользователь' }, tokens: 100 },
@@ -141,6 +143,110 @@ describe('SLA и назначение в очереди поддержки', () 
     view.unmount();
   });
 
+  it('использует backend ID активного оператора вместо случайного browser ID', async () => {
+    vi.mocked(supportAssignmentApi.assign).mockResolvedValue({
+      id: 'ticket-1',
+      updated_at: '2026-11-03T11:06:00Z',
+      assigned_to: '79030169187',
+      assigned_at: '2026-11-03T11:06:00Z',
+      first_response_due_at: '2026-11-03T11:00:00Z',
+      first_owner_reply_at: null,
+    });
+    const view = render('/admin?ticket=ticket-1');
+    await flush();
+    await flush();
+
+    await clickAsync(byButton(view.container, /Взять в работу/)!);
+
+    expect(supportAssignmentApi.assign).toHaveBeenCalledWith('ticket-1', {
+      assigneeId: '79030169187',
+      expectedUpdatedAt: '2026-11-03T11:00:00Z',
+    });
+    view.unmount();
+  });
+
+  it('Мои убирает ограничение escalated и показывает назначенные owner_handling', async () => {
+    const view = render('/admin');
+    await flush();
+
+    await clickAsync(byButton(view.container, /^Мои$/)!);
+
+    const listUrls = vi.mocked(apiClient.get).mock.calls
+      .map(([url]) => url)
+      .filter((url) => url.startsWith('/webhook/support/admin/tickets?'));
+    const query = new URL(listUrls[listUrls.length - 1], 'https://test.local').searchParams;
+    expect(query.get('sla')).toBe('mine');
+    expect(query.get('status')).toBe('all');
+    view.unmount();
+  });
+
+  it('не даёт старому ответу очереди перезаписать результаты нового фильтра', async () => {
+    const defaultGet = vi.mocked(apiClient.get).getMockImplementation()!;
+    const pending: Array<{ url: string; resolve: (response: Response) => void }> = [];
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url.startsWith('/webhook/support/admin/tickets?')) {
+        return new Promise<Response>((resolve) => pending.push({ url, resolve }));
+      }
+      return defaultGet(url);
+    });
+    const view = render('/admin');
+    await flush();
+    await clickAsync(byButton(view.container, /^Просрочено$/)!);
+    expect(pending).toHaveLength(2);
+
+    await actAsync(() => pending[1].resolve(json([{
+      ...LIST_TICKET, id: 'ticket-new', userName: 'Новая очередь',
+    }])));
+    await flush();
+    expect(visibleText(view.container)).toContain('Новая очередь');
+
+    await actAsync(() => pending[0].resolve(json([{
+      ...LIST_TICKET, id: 'ticket-old', userName: 'Устаревшая очередь',
+    }])));
+    await flush();
+
+    expect(visibleText(view.container)).toContain('Новая очередь');
+    expect(visibleText(view.container)).not.toContain('Устаревшая очередь');
+    view.unmount();
+  });
+
+  it('не даёт карточке старого тикета перезаписать новый выбор', async () => {
+    const defaultGet = vi.mocked(apiClient.get).getMockImplementation()!;
+    const pending = new Map<string, (response: Response) => void>();
+    vi.mocked(apiClient.get).mockImplementation((url: string) => {
+      if (url.startsWith('/webhook/support/admin/tickets?')) {
+        return Promise.resolve(json([
+          LIST_TICKET,
+          { ...LIST_TICKET, id: 'ticket-2', userName: 'Второй пользователь' },
+        ]));
+      }
+      if (url === '/webhook/support/admin/ticket/ticket-1'
+        || url === '/webhook/support/admin/ticket/ticket-2') {
+        const id = url.endsWith('ticket-1') ? 'ticket-1' : 'ticket-2';
+        return new Promise<Response>((resolve) => pending.set(id, resolve));
+      }
+      return defaultGet(url);
+    });
+    const view = render('/admin?ticket=ticket-1');
+    await flush();
+    await clickAsync(byButton(view.container, /Второй пользователь/)!);
+
+    const second = detail({ id: 'ticket-2' });
+    second.user = { profile_data: { name: 'Актуальный второй тикет' }, tokens: 100 };
+    await actAsync(() => pending.get('ticket-2')!(json(second)));
+    await flush();
+    expect(visibleText(view.container)).toContain('Актуальный второй тикет');
+
+    const first = detail({ id: 'ticket-1' });
+    first.user = { profile_data: { name: 'Устаревший первый тикет' }, tokens: 100 };
+    await actAsync(() => pending.get('ticket-1')!(json(first)));
+    await flush();
+
+    expect(visibleText(view.container)).toContain('Актуальный второй тикет');
+    expect(visibleText(view.container)).not.toContain('Устаревший первый тикет');
+    view.unmount();
+  });
+
   it('409 обновляет карточку, но не очищает введённый ответ', async () => {
     vi.mocked(supportAssignmentApi.assign).mockRejectedValue(
       Object.assign(new Error('conflict'), { status: 409 }),
@@ -154,7 +260,7 @@ describe('SLA и назначение в очереди поддержки', () 
     currentDetail = detail({
       status: 'owner_handling',
       updated_at: '2026-11-03T11:06:00Z',
-      assigned_to: 'admin-2',
+      assigned_to: '79030169188',
       assigned_at: '2026-11-03T11:06:00Z',
     });
     await clickAsync(byButton(view.container, /Взять в работу/)!);

@@ -13,7 +13,7 @@ vi.mock('react-i18next', async () => {
 });
 
 vi.mock('../../../contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'admin-1' } }),
+  useAuth: () => ({ user: { id: 'random-browser-id', backendUserId: 'admin-1' } }),
 }));
 
 vi.mock('../../../services/supportAssignmentApi', () => ({
