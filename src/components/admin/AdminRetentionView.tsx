@@ -85,7 +85,7 @@ const AdminRetentionView: React.FC = () => {
     <div className="h-full flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-4 flex items-center justify-between border-b border-gray-100">
+          <div className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-gray-100">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Send className="w-5 h-5 text-forest-600" />
@@ -95,13 +95,13 @@ const AdminRetentionView: React.FC = () => {
                 «уснувшие» пользователи · вежливый пинг по SMS · отправка наружу — по подтверждению
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Режим: общий retention vs Curious-возврат 24–48ч (3a54efe4) */}
               {([{ l: 'Общий', v: 'general' }, { l: 'Новые 24–48 ч', v: 'curious' }] as const).map((p) => (
                 <button
                   key={p.v}
                   onClick={() => setMode(p.v as Mode)}
-                  className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${mode === p.v ? 'bg-warm-50 border-warm-300 text-warm-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                  className={`min-h-11 px-3 py-2 text-xs rounded-md border transition-colors ${mode === p.v ? 'bg-warm-50 border-warm-300 text-warm-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
                 >
                   {p.l}
                 </button>
@@ -110,7 +110,7 @@ const AdminRetentionView: React.FC = () => {
                 <button
                   key={p.m}
                   onClick={() => setWin({ minDays: p.m, maxDays: 30 })}
-                  className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${win.minDays === p.m ? 'bg-forest-50 border-forest-300 text-forest-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                  className={`min-h-11 px-3 py-2 text-xs rounded-md border transition-colors ${win.minDays === p.m ? 'bg-forest-50 border-forest-300 text-forest-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
                 >
                   {p.l}
                 </button>
@@ -118,7 +118,7 @@ const AdminRetentionView: React.FC = () => {
               <button
                 onClick={load}
                 disabled={loading}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-forest-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
+                className="min-h-11 flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:text-forest-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={loading ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />
                 Обновить
