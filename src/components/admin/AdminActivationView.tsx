@@ -50,7 +50,7 @@ const AdminActivationView: React.FC = () => {
 
   const send = async (phones?: string[], resend = false) => {
     const newCount = preview?.drafts.filter((d) => !d.in_cooldown).length || 0;
-    const who = phones ? 'выбранному пользователю' : `${newCount} пользователям (вне cooldown)`;
+    const who = phones ? 'выбранному пользователю' : `${newCount} пользователям (без паузы)`;
     if (!window.confirm(`Отправить SMS ${who}? Это реальная отправка сообщений людям.`)) return;
     setSending(phones && phones.length === 1 ? phones[0] : 'all');
     setResult(null);
@@ -59,7 +59,7 @@ const AdminActivationView: React.FC = () => {
       const r = await apiClient.post('/webhook/admin/activation', { action: 'send', confirm: true, phones, resend });
       const data = await r.json();
       if (!r.ok) throw new Error(data.message || `Ошибка: ${r.status}`);
-      setResult(`Отправлено: ${data.sent} · ошибок: ${data.failed} · пропущено (cooldown): ${data.skipped_cooldown}`);
+      setResult(`Отправлено: ${data.sent} · ошибок: ${data.failed} · пропущено (пауза): ${data.skipped_cooldown}`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка отправки');
@@ -106,7 +106,7 @@ const AdminActivationView: React.FC = () => {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="text-xs text-gray-500">
                     {preview.count} новичков без первого чата · рег ≥{preview.window.min_hours}ч, ≤{preview.window.max_days}д ·
-                    канал SMS · cooldown {preview.cooldown_days} дн · проверьте тексты перед отправкой
+                    канал SMS · пауза {preview.cooldown_days} дн · проверьте тексты перед отправкой
                   </p>
                   <button
                     onClick={() => send()}
@@ -114,7 +114,7 @@ const AdminActivationView: React.FC = () => {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-warm-600 text-white rounded-lg hover:bg-warm-700 transition-colors text-sm disabled:opacity-50"
                   >
                     {sending === 'all' ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Отправить всем (вне cooldown)
+                    Отправить всем (без паузы)
                   </button>
                 </div>
                 {result && (
@@ -136,7 +136,7 @@ const AdminActivationView: React.FC = () => {
                             <Clock className="w-3 h-3" />{d.hours_since_reg} ч
                           </span>
                           {d.in_cooldown && (
-                            <span className="text-xs text-amber-600" title={d.last_sent_at || ''}>cooldown</span>
+                            <span className="text-xs text-amber-600" title={d.last_sent_at || ''}>пауза</span>
                           )}
                           <button
                             onClick={() => send([d.phone], d.in_cooldown)}

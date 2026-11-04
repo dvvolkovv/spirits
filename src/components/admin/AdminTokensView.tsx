@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Coins, Loader, AlertCircle, RefreshCw, TrendingDown, Users, Wallet } from 'lucide-react';
+import { Coins, Loader, AlertCircle, TrendingDown, Users, Wallet } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import UserActivityDrawer from './UserActivityDrawer';
 import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
 import { MobileRecordCard } from './shared/MobileRecordCard';
 import { openableRow } from './shared/openableRow';
+import { AdminPageHeader } from './shared/AdminPageHeader';
+import { shortAdminIdentity } from './shared/identity';
 
 interface UserTokenRow {
   phone: string;
@@ -50,7 +52,7 @@ const formatPhone = (raw: string) => {
   if (d.length === 11 && (d.startsWith('7') || d.startsWith('8'))) {
     return `+7 ${d.slice(1, 4)} ${d.slice(4, 7)}-${d.slice(7, 9)}-${d.slice(9, 11)}`;
   }
-  return raw;
+  return shortAdminIdentity(raw);
 };
 const formatTokens = (n: number) => n.toLocaleString('ru-RU');
 const formatRub = (n: number) => `${n.toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`;
@@ -125,20 +127,12 @@ const AdminTokensView: React.FC = () => {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Coins className="w-5 h-5 text-forest-600" />
-            <h1 className="text-xl font-bold text-gray-900">Токены</h1>
-          </div>
-          <button
-            onClick={load}
-            disabled={isLoading}
-            className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-700 hover:border-forest-400 hover:bg-forest-50 disabled:opacity-50"
-          >
-            <RefreshCw className={clsx('w-4 h-4', isLoading && 'animate-spin')} />
-            Обновить
-          </button>
-        </div>
+        <AdminPageHeader
+          icon={<Coins className="w-5 h-5" />}
+          title="Токены"
+          onRefresh={load}
+          isLoading={isLoading}
+        />
 
         {error && (
           <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">

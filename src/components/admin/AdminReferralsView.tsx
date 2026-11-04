@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import { SortSelect, useTableSort, cmp, SortState } from './shared/sortableTable';
 import { visibleLeaderIds } from './referralLeaders';
+import { shortAdminIdentity } from './shared/identity';
 
 type LeaderSortKey = 'referees' | 'pending' | 'commission' | 'name';
 
@@ -357,7 +358,7 @@ const AdminReferralsView: React.FC = () => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {indent && <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />}
-            <span className="font-medium text-gray-900 text-sm break-all">{leader.name}</span>
+            <span className="font-medium text-gray-900 text-sm break-all" title={leader.name}>{shortAdminIdentity(leader.name)}</span>
             <span className={clsx(
               'text-xs px-1.5 py-0.5 rounded-full',
               leader.level === 1 ? 'bg-forest-100 text-forest-700' : 'bg-blue-100 text-blue-700'

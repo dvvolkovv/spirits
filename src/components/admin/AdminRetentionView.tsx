@@ -60,7 +60,7 @@ const AdminRetentionView: React.FC = () => {
 
   const send = async (phones?: string[], resend = false) => {
     const newCount = preview?.drafts.filter((d) => !d.in_cooldown).length || 0;
-    const who = phones ? 'выбранному пользователю' : `${newCount} пользователям (вне cooldown)`;
+    const who = phones ? 'выбранному пользователю' : `${newCount} пользователям (без паузы)`;
     if (!window.confirm(`Отправить SMS ${who}? Это реальная отправка сообщений людям.`)) return;
     setSending(phones && phones.length === 1 ? phones[0] : 'all');
     setResult(null);
@@ -72,7 +72,7 @@ const AdminRetentionView: React.FC = () => {
       const r = await apiClient.post('/webhook/admin/retention', body);
       const data = await r.json();
       if (!r.ok) throw new Error(data.message || `Ошибка: ${r.status}`);
-      setResult(`Отправлено: ${data.sent} · ошибок: ${data.failed} · пропущено (cooldown): ${data.skipped_cooldown}`);
+      setResult(`Отправлено: ${data.sent} · ошибок: ${data.failed} · пропущено (пауза): ${data.skipped_cooldown}`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка отправки');
@@ -89,7 +89,7 @@ const AdminRetentionView: React.FC = () => {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Send className="w-5 h-5 text-forest-600" />
-                Retention-аутрич
+                Удержание · рассылка
               </h2>
               <p className="text-xs text-gray-400 mt-0.5">
                 «уснувшие» пользователи · вежливый пинг по SMS · отправка наружу — по подтверждению
@@ -97,7 +97,7 @@ const AdminRetentionView: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               {/* Режим: общий retention vs Curious-возврат 24–48ч (3a54efe4) */}
-              {([{ l: 'Общий', v: 'general' }, { l: 'Curious 24–48ч', v: 'curious' }] as const).map((p) => (
+              {([{ l: 'Общий', v: 'general' }, { l: 'Новые 24–48 ч', v: 'curious' }] as const).map((p) => (
                 <button
                   key={p.v}
                   onClick={() => setMode(p.v as Mode)}
@@ -139,11 +139,11 @@ const AdminRetentionView: React.FC = () => {
               <>
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <p className="text-xs text-gray-500">
-                    {preview.count} {mode === 'curious' ? 'Curious-пользователей' : 'пользователей'} без активности{' '}
+                    {preview.count} {mode === 'curious' ? 'новичков' : 'пользователей'} без активности{' '}
                     {mode === 'curious'
-                      ? `${preview.window.min_hours ?? 24}–${preview.window.max_hours ?? 48}ч`
+                      ? `${preview.window.min_hours ?? 24}–${preview.window.max_hours ?? 48} ч`
                       : `${preview.window.min_days}–${preview.window.max_days} дн`} ·
-                    канал SMS · cooldown {preview.cooldown_days} дн · проверьте тексты перед отправкой
+                    канал SMS · пауза {preview.cooldown_days} дн · проверьте тексты перед отправкой
                   </p>
                   <button
                     onClick={() => send()}
@@ -151,7 +151,7 @@ const AdminRetentionView: React.FC = () => {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-warm-600 text-white rounded-lg hover:bg-warm-700 transition-colors text-sm disabled:opacity-50"
                   >
                     {sending === 'all' ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Отправить всем (вне cooldown)
+                    Отправить всем (без паузы)
                   </button>
                 </div>
                 {result && (
@@ -173,7 +173,7 @@ const AdminRetentionView: React.FC = () => {
                             <Clock className="w-3 h-3" />{d.hours_inactive != null ? `${d.hours_inactive}ч` : `${d.days_inactive} дн`}
                           </span>
                           {d.in_cooldown && (
-                            <span className="text-xs text-amber-600" title={d.last_sent_at || ''}>cooldown</span>
+                            <span className="text-xs text-amber-600" title={d.last_sent_at || ''}>пауза</span>
                           )}
                           <button
                             onClick={() => send([d.phone], d.in_cooldown)}

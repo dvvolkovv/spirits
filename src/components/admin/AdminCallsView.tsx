@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Phone, AlertCircle, RefreshCw, Coins, Users, Clock, MessageSquare } from 'lucide-react';
+import { Phone, AlertCircle, Coins, Users, Clock, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import { formatTokens, formatDuration, formatWhen } from './callsFormat';
@@ -8,6 +8,8 @@ import { CALL_PROVIDER, providerLabel } from './callProviders';
 import UserActivityDrawer from './UserActivityDrawer';
 import { MobileRecordCard } from './shared/MobileRecordCard';
 import { openableRow } from './shared/openableRow';
+import { AdminPageHeader } from './shared/AdminPageHeader';
+import { shortAdminIdentity } from './shared/identity';
 
 type CallKind = 'call' | 'meeting' | 'all';
 
@@ -87,10 +89,9 @@ const AdminCallsView: React.FC = () => {
   const [kind, setKind] = useState<CallKind>('all');
   // Площадка внутри «Встреч»; null — все площадки.
   const [provider, setProvider] = useState<string | null>(null);
-  // Тестовые аккаунты по умолчанию показываем, как в «Платежах»: на 24.09.2026
-  // все встречи на проде — прогоны владельца с тестового номера, и без них
-  // раздел выглядит так, будто встреч нет вовсе. Снимается одним кликом.
-  const [includeTest, setIncludeTest] = useState(true);
+  // По умолчанию статистика содержит только живых пользователей;
+  // тестовые сессии включаются явно для диагностики.
+  const [includeTest, setIncludeTest] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -164,21 +165,13 @@ const AdminCallsView: React.FC = () => {
     <>
     <div className="h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 pb-20 md:pb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Phone className="w-6 h-6 text-forest-600" />
-            <h1 className="text-xl font-bold text-gray-900">Звонки и встречи</h1>
-          </div>
-          <button
-            data-testid="admin-calls-refresh"
-            onClick={() => { load(); }}
-            disabled={isLoading}
-            className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-700 hover:border-forest-400 hover:bg-forest-50 disabled:opacity-50"
-          >
-            <RefreshCw className={clsx('w-4 h-4', isLoading && 'animate-spin')} />
-            Обновить
-          </button>
-        </div>
+        <AdminPageHeader
+          icon={<Phone className="w-6 h-6" />}
+          title="Звонки и встречи"
+          onRefresh={load}
+          isLoading={isLoading}
+          refreshTestId="admin-calls-refresh"
+        />
 
         {error && (
           <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">
@@ -309,7 +302,7 @@ const AdminCallsView: React.FC = () => {
                 <MobileRecordCard
                   key={r.user_id}
                   testId={`admin-call-mobile-card-${r.user_id}`}
-                  title={r.user_id}
+                  title={shortAdminIdentity(r.user_id)}
                   subtitle={`Последний: ${formatWhen(r.last_call)}`}
                   onOpen={() => setDrawerUser(r.user_id)}
                   fields={[
@@ -347,7 +340,7 @@ const AdminCallsView: React.FC = () => {
                       title={t('admin.calls.openUser', 'Открыть карточку и разговоры')}
                     >
                       <td className="px-4 py-2.5 text-gray-400">{idx + 1}</td>
-                      <td className="px-4 py-2.5 font-medium text-forest-700 underline-offset-2 hover:underline">{r.user_id}</td>
+                      <td className="px-4 py-2.5 font-medium text-forest-700 underline-offset-2 hover:underline" title={r.user_id}>{shortAdminIdentity(r.user_id)}</td>
                       <td className="px-4 py-2.5 text-right text-gray-900">{r.calls}</td>
                       <td className="px-4 py-2.5 text-right text-gray-600">{formatDuration(r.duration_sec)}</td>
                       <td className="px-4 py-2.5 text-right text-gray-600">
