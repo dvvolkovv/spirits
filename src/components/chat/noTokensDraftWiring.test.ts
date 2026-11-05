@@ -70,4 +70,43 @@ describe('отказ по балансу — черновик возвращае
     expect(after).toContain('setShowTokenPackages(false);');
     expect(after).toContain('setShowFileTaskModal(true);');
   });
+
+  it('multipart не возвращает файлы другому ассистенту (guard как в текстовом пути)', () => {
+    const fn = body('const handleFileTaskSubmit = async () => {');
+    expect(fn).toContain('const uploadAssistantId = selectedAssistant?.id ?? null;');
+    expect(fn).toContain('if (noTokens && selectedAssistantIdRef.current === uploadAssistantId) {');
+  });
+
+  it('после разобранного end поток закрываем сами — обрыв не уведёт в catch', () => {
+    expect(SRC.match(/if \(noTokens\) break;/g)?.length).toBe(2);
+  });
+
+  it('очередь не досылается в шлагбаум вслед за отклонённым сообщением', () => {
+    const at = SRC.indexOf('// Досылка очереди:');
+    const effect = SRC.slice(at, at + 2500);
+    expect(effect).toContain('if (noTokensHoldRef.current) return;');
+  });
+
+  it('отложенная очистка ?say= не стирает восстановленный черновик', () => {
+    const fn = body('const clearResidue = () => {');
+    expect(fn).toContain('if (noTokensHoldRef.current) return;');
+  });
+
+  it('явная отправка снимает остановку очереди и стирает сохранённую копию', () => {
+    const fn = body('const handleSendInner = async () => {');
+    expect(fn).toContain('noTokensHoldRef.current = false;');
+    expect(fn).toContain('clearNoTokensDraft(selectedAssistant.id)');
+  });
+
+  it('копия в sessionStorage пишется при отказе и читается при монтировании', () => {
+    const send = body('const sendMessageText = async (text: string) => {');
+    expect(send).toContain('saveNoTokensDraft(id, text)');
+    expect(SRC).toContain('const saved = peekNoTokensDraft(selectedAssistant.id);');
+  });
+
+  it('смена ассистента снимает остановку очереди', () => {
+    const at = SRC.indexOf('prevSelectedAssistantIdRef.current = newId;');
+    const effect = SRC.slice(Math.max(0, at - 1500), at);
+    expect(effect).toContain('noTokensHoldRef.current = false;');
+  });
 });

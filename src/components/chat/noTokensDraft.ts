@@ -25,3 +25,37 @@ export function isNoTokensEnd(event: ChatStreamEvent | null | undefined): boolea
 export function restoreDraftText(current: string, sent: string): string {
   return current.trim() ? current : sent;
 }
+
+/**
+ * Копия отклонённого черновика в sessionStorage (per-tab). Нужна потому, что
+ * переход к оплате — это window.location.href: страница выгружается, и всё
+ * состояние чата умирает ровно в момент, когда человек пошёл пополнять баланс.
+ * Без копии текст пропадал бы уже ПОСЛЕ покупки. Читаем при монтировании,
+ * стираем только при явной отправке — F5 до отправки текст сохраняет.
+ *
+ * Файлы здесь сознательно не храним: File не сериализуется, после перезагрузки
+ * вложения прикрепляют заново (их имена остаются в пузыре ленты).
+ */
+const KEY_PREFIX = 'no_tokens_draft:';
+
+function storage(): Storage | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function saveNoTokensDraft(assistantId: number | string, text: string): void {
+  if (!text.trim()) return;
+  try { storage()?.setItem(KEY_PREFIX + assistantId, text); } catch { /* квота/приватный режим */ }
+}
+
+export function peekNoTokensDraft(assistantId: number | string): string | null {
+  try { return storage()?.getItem(KEY_PREFIX + assistantId) || null; } catch { return null; }
+}
+
+export function clearNoTokensDraft(assistantId: number | string): void {
+  try { storage()?.removeItem(KEY_PREFIX + assistantId); } catch { /* no-op */ }
+}
+
