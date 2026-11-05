@@ -78,7 +78,7 @@ describe('пока грузится история, сообщение ждёт 
 
 describe('автоприветствие не перебивает человека', () => {
   it('sendMessageToAI считает отправки', () => {
-    expect(body('const sendMessageToAI = async (userMessage: string) => {')).toContain('sendSeqRef.current += 1;');
+    expect(body('const sendMessageToAI = async (userMessage: string, opts?: { onNoTokens?: () => void }) => {')).toContain('sendSeqRef.current += 1;');
   });
 
   it('решение «приветствовать» перепроверяется прямо перед отправкой', () => {
