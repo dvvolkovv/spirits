@@ -51,6 +51,7 @@ import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
 import { greetingStillWanted } from './greetingGate';
 import { addToQueue, removeFromQueue, joinQueue, type QueuedMessage } from './sendQueue';
 import { shouldShowStreamError, needsActiveTurnProbe } from './streamFailure';
+import { isNoTokensEnd, restoreDraftText, saveNoTokensDraft, peekNoTokensDraft, clearNoTokensDraft } from './noTokensDraft';
 import {
   localTurnBusy,
   turnRunningAnywhere,
@@ -728,6 +729,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [fileTaskInput, setFileTaskInput] = useState('');
   const [showFileTaskModal, setShowFileTaskModal] = useState(false);
+  // Отложенное переоткрытие файловой задачи: при отказе по балансу сначала
+  // показываем окно пополнения, модалка с файлами открывается после его закрытия.
+  const reopenFileTaskRef = useRef(false);
+  // «Стоим на нулевом балансе»: после отказа по no_tokens автодосылка очереди
+  // и отложенная очистка ?say= останавливаются — иначе следующее сообщение
+  // уходит в тот же шлагбаум и теряется уже без восстановления. Снимается
+  // явной отправкой человека и сменой ассистента.
+  const noTokensHoldRef = useRef(false);
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([]);
   const [isLoadingAssistants, setIsLoadingAssistants] = useState(true);
@@ -834,6 +843,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setCurrentStreamingMessage('');
       setStreamingMessageId(null);
       setStreamActivity(null);
+      // Остановка очереди после no_tokens относилась к прежнему ассистенту.
+      noTokensHoldRef.current = false;
       // Единственный путь, через который проходят ВСЕ смены ассистента.
       // historyLoading в эффекте досылки не успел бы прикрыть: он выставляется
       // внутри load() и виден только со следующего рендера — досылка успела бы
@@ -841,6 +852,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       returnQueueToInput();
     }
     prevSelectedAssistantIdRef.current = newId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAssistant?.id]);
+
+  // Черновик, отклонённый на нулевом балансе, переживает уход на оплату и F5:
+  // подставляем сохранённую копию (не затирая то, что уже набрано).
+  useEffect(() => {
+    if (!selectedAssistant) return;
+    const saved = peekNoTokensDraft(selectedAssistant.id);
+    if (saved) setInput(prev => restoreDraftText(prev, saved));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAssistant?.id]);
 
@@ -1417,7 +1437,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => { try { voiceRef.current?.stop(); } catch {} };
   }, []);
 
-  const sendMessageToAI = async (userMessage: string) => {
+  const sendMessageToAI = async (userMessage: string, opts?: { onNoTokens?: () => void }) => {
     sendSeqRef.current += 1;
     setIsTyping(true);
     setCurrentStreamingMessage('');
@@ -1522,6 +1542,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const updateInterval = 50;
       let buffer = '';
       let lastUsage: { total?: number } | null = null;
+      // Шлагбаум баланса: сообщение на сервер не записалось, черновик надо
+      // вернуть (noTokensDraft.ts). Выставляется по `end` с reason no_tokens.
+      let noTokens = false;
       // Один decoder на весь поток: новый TextDecoder на каждый кусок (как
       // было здесь) не хранит байтовый хвост многобайтного знака (кириллица,
       // эмодзи), разрезанного границей кусков, — находка ревью пробы 31.10.
@@ -1596,6 +1619,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             if (data.type === 'end' && data.usage) {
               lastUsage = data.usage;
             }
+            if (isNoTokensEnd(data)) noTokens = true;
             if (data.type === 'tool_start' && data.tool === 'generate_video') {
               inlineJobIds.push('pending');
             }
@@ -1655,6 +1679,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }
         }
 
+        // После отказа по балансу бэк сразу закрывает поток. Выходим сами:
+        // сетевой обрыв на последнем read() не должен уводить в catch — там
+        // восстановление черновика не выполнялось бы.
+        if (noTokens) break;
+
         if (done) {
           if (buffer.trim()) {
             try {
@@ -1684,6 +1713,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         };
         setMessages(prev => [...prev, completedMessage]);
         setStreamingMessageId(null);
+        if (noTokens) {
+          // Отказ шлагбаума: сообщение пользователя на сервер не записалось.
+          // Черновик возвращает вызывающая сторона (текст или файловая
+          // задача), окно пополнения открываем всегда.
+          noTokensHoldRef.current = true;
+          setShowTokenPackages(true);
+          opts?.onNoTokens?.();
+        }
       }
       // If user switched — backend has already saved to chat_history; polling
       // on the original assistant's view will surface the response on return.
@@ -1792,7 +1829,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     setMessages(prev => [...prev, userMessage]);
-    await sendMessageToAI(text);
+    await sendMessageToAI(text, {
+      // Нулевой баланс: сообщение на сервер не ушло — возвращаем его в поле,
+      // чтобы человек не набирал заново. Окно пополнения откроется само.
+      // Копия в sessionStorage — на случай ухода на оплату: страница при этом
+      // выгружается, и состояние чата умирает ровно после покупки.
+      onNoTokens: () => {
+        setInput(prev => restoreDraftText(prev, text));
+        const id = selectedAssistantIdRef.current;
+        if (id != null) saveNoTokensDraft(id, text);
+      },
+    });
   };
 
   const handleSend = async () => {
@@ -1822,6 +1869,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     voiceCommittedRef.current = '';
     const text = input;
     setInput('');
+    // Явная отправка: снимаем остановку очереди после no_tokens и стираем
+    // сохранённую копию черновика — он больше не должен воскресать после F5.
+    noTokensHoldRef.current = false;
+    if (selectedAssistant) clearNoTokensDraft(selectedAssistant.id);
     await submitText(text);
   };
 
@@ -1914,6 +1965,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (isTyping || streamingMessageId || historyLoading) return;
     if (queued.length === 0 || !selectedAssistant) return;
     if (flushingRef.current) return;
+    // Отказ по балансу: не досылаем очередь в тот же шлагбаум — у неё не было
+    // бы восстановления, потому что поле уже занято вернувшимся черновиком.
+    if (noTokensHoldRef.current) return;
     // Ход идёт на сервере, но не в этой вкладке — досылка убила бы его так же,
     // как прямая отправка. Ждём: опрос снимет признак, и эффект стрельнёт сам.
     // Обход («отправить всё равно») это правило снимает — там решение человека.
@@ -2255,6 +2309,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // композицию в сфокусированное поле при переходе). Чистим ТОЛЬКО если текущий ввод — префикс
     // отправляемой фразы (т.е. это её же остаток), чтобы не стереть посторонний текст.
     const clearResidue = () => {
+      // После отказа по балансу в поле лежит восстановленный черновик — это
+      // НЕ IME-остаток, стирать его отложенной очисткой нельзя.
+      if (noTokensHoldRef.current) return;
       try { textareaRef.current?.blur(); } catch { /* no-op */ }
       setInput((cur) => (cur && say.trim().startsWith(cur.trim()) ? '' : cur));
     };
@@ -2382,6 +2439,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const files = pendingFiles;
     const task = fileTaskInput.trim();
 
+    // Отказ по балансу: ход на сервер не записался. Файлы и задание возвращаем
+    // в модалку — File-объекты живы в этом замыкании, прикреплять их заново не
+    // нужно. Сама модалка откроется после закрытия окна пополнения.
+    const restoreFileTask = () => {
+      setPendingFiles(files);
+      setFileTaskInput(task);
+      reopenFileTaskRef.current = true;
+    };
+
     // Отказ ДО выгрузки. Раньше пачка уезжала целиком, упиралась в
     // client_max_body_size на nginx и возвращала 413, который фронт показывал
     // как «не удалось обработать файл» — про размер не говорилось ни слова, и
@@ -2440,16 +2506,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         const text = await file.text();
         // i18n-ignore: текст промпта для модели, не UI (см. выше)
       const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
-        await sendMessageToAI(prompt);
+        await sendMessageToAI(prompt, { onNoTokens: restoreFileTask });
       } catch {
         // i18n-ignore: текст промпта для модели, не UI (см. выше)
-      await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
+      await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`, { onNoTokens: restoreFileTask });
       }
       return;
     }
 
     // Binary file — upload to server via multipart endpoint
     setIsTyping(true);
+    // Ассистент на момент загрузки: поздний отказ не должен вернуть файлы и
+    // задание уже другому чату (в текстовом пути — тот же guard).
+    const uploadAssistantId = selectedAssistant?.id ?? null;
     const assistantMsgId = generateMessageId();
     setStreamingMessageId(assistantMsgId);
     setCurrentStreamingMessage('');
@@ -2500,6 +2569,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       let accumulatedContent = '';
       let buffer = '';
       let lastTokensUsed = 0;
+      let noTokens = false;
       // Один decoder на весь поток: раньше TextDecoder создавался заново на
       // каждый кусок — `{ stream: true }` на нём бесполезен, decoder новый и
       // без памяти о предыдущих байтах (находка ревью пробы 31.10).
@@ -2537,9 +2607,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             } else if (event.type === 'end') {
               accumulatedContent = event.content || accumulatedContent;
               lastTokensUsed = event.usage?.total || 0;
+              if (isNoTokensEnd(event)) noTokens = true;
             }
           } catch {}
         }
+        // Как и в текстовом пути: после отказа по балансу выходим сами, чтобы
+        // обрыв на последнем read() не увёл в catch с файловой ошибкой.
+        if (noTokens) break;
       }
 
       const assistantMsg: Message = {
@@ -2551,6 +2625,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         activity: finishActivity(activity, Date.now()),
       };
       setMessages(prev => [...prev, assistantMsg]);
+      if (noTokens && selectedAssistantIdRef.current === uploadAssistantId) {
+        noTokensHoldRef.current = true;
+        restoreFileTask();
+        setShowTokenPackages(true);
+      }
     } catch (error) {
       if (user?.phone) trackAuthed('file_upload_error', user.phone, { count: files.length, name: files.map(f => f.name).join(', ').slice(0, 200), error: error instanceof Error ? error.message : String(error), assistant_id: selectedAssistant?.id });
       // Свою внятную причину (превышен размер) показываем как есть. Общая
@@ -2704,7 +2783,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <>
       {showTokenPackages && (
-        <TokenPackages onClose={() => setShowTokenPackages(false)} />
+        <TokenPackages onClose={() => {
+          setShowTokenPackages(false);
+          // Если пополнение открылось из-за отказа по балансу в файловой
+          // задаче — возвращаем человека в неё: файлы и задание на месте.
+          if (reopenFileTaskRef.current) {
+            reopenFileTaskRef.current = false;
+            setShowFileTaskModal(true);
+          }
+        }} />
       )}
 
       {showFilesPanel && selectedAssistant && (
