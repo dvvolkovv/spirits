@@ -42,7 +42,7 @@ describe('отказ по балансу — черновик возвращае
 
   it('текстовый путь возвращает отправленное в поле ввода, не затирая новый набор', () => {
     const fn = body('const sendMessageText = async (text: string) => {');
-    expect(fn).toContain('onNoTokens: () => setInput(prev => restoreDraftText(prev, text))');
+    expect(fn).toContain('setInput(prev => restoreDraftText(prev, text))');
   });
 
   it('служебный PDF-промпт Маши черновик НЕ восстанавливает', () => {
