@@ -430,7 +430,7 @@ const ProfileView: React.FC = () => {
         // ym-hide-content: вебвизор не записывает содержимое анкеты
         // (ценности, интересы, описание, имя, фото). Кнопки и вкладки внутри
         // не трогаем — клики всё равно записываются.
-        className="ym-hide-content flex-1 p-3 sm:p-4 pb-20 md:pb-4 space-y-4 sm:space-y-6 overflow-y-auto"
+        className="ym-hide-content flex-1 p-3 sm:px-4 sm:pt-4 pb-20 md:pb-4 space-y-4 sm:space-y-6 overflow-y-auto"
         data-testid="profile-content"
       >
         {/* Loading indicator */}
