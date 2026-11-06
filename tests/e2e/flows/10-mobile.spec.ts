@@ -69,7 +69,7 @@ test.describe('Flow 10 — Mobile Layout', () => {
   const LONG_DISPLAY_NAME = `${LONG_NAME} ${LONG_SURNAME}`;
   const LONG_NICKNAME_TEXT = `@${LONG_NICKNAME}`;
 
-  const setupProfileFixture = async (page: Page) => {
+  const setupProfileFixture = async (page: Page, telegramFirstNameFallback = false) => {
     await page.addInitScript(({ firstName, lastName, phone, email }) => {
       const stored = localStorage.getItem('userData');
       if (!stored) throw new Error('profile fixture: userData is missing from storageState');
@@ -120,7 +120,9 @@ test.describe('Flow 10 — Mobile Layout', () => {
     });
     await page.route('**/webhook/profile-update', (route) => route.fulfill({ json: { success: true } }));
     await page.route('**/webhook/tg-bot/identity-status', (route) => route.fulfill({
-      json: { bound: true, tgUsername: LONG_NICKNAME },
+      json: telegramFirstNameFallback
+        ? { bound: true, tgUsername: null, tgFirstName: LONG_NICKNAME }
+        : { bound: true, tgUsername: LONG_NICKNAME },
     }));
   };
 
@@ -237,6 +239,21 @@ test.describe('Flow 10 — Mobile Layout', () => {
       await expect.poll(() => page.getByTestId('profile-content').evaluate((element) => (
         getComputedStyle(element).paddingBottom
       ))).toBe('80px');
+    });
+
+    test('profile Telegram first name fallback wraps at 320px', async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 664 });
+      await setupProfileFixture(page, true);
+      await page.goto('/profile?lang=ru');
+      const root = page.getByTestId('profile-root');
+      await expect(root).toBeVisible();
+      const telegramFirstName = page.locator('#profile-card-telegram').getByText(LONG_NICKNAME, { exact: true });
+      await expect(telegramFirstName).toBeVisible();
+      await expect(root.locator('.animate-spin')).toHaveCount(0);
+      await page.evaluate(() => document.fonts.ready.then(() => undefined));
+
+      await expectOwnContentToFit(telegramFirstName);
+      await expectNoProfileOverflow(page);
     });
 
     test('profile delete dialog fits short mobile viewport', async ({ page }) => {
