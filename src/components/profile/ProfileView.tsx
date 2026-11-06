@@ -381,19 +381,18 @@ const ProfileView: React.FC = () => {
   return (
     <div data-testid="profile-root" className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-4 border-b flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">
+      <div className="bg-white shadow-sm px-3 sm:px-4 py-3 sm:py-4 border-b flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="mr-auto min-w-0 text-lg sm:text-xl font-bold text-gray-900">
             {t('profile.title')}
           </h1>
-          <div className="flex items-center space-x-2">
-            {/* Язык — в шапке, а не только в свёрнутых настройках: там он
-                оказывался почти в самом низу панели, и найти его было нельзя. */}
-            <LanguageSelect className="px-2 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-forest-500" />
+          {/* Язык остаётся в шапке; на мобильном действия уходят следующей строкой. */}
+          <LanguageSelect className="max-w-[10rem] px-2 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-forest-500" />
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
             <button
               onClick={loadProfileFromServer}
               disabled={isLoadingProfile}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="w-full sm:w-auto flex items-center justify-center px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               {isLoadingProfile ? (
                 <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
@@ -405,7 +404,7 @@ const ProfileView: React.FC = () => {
               <button
                 onClick={handleCancel}
                 data-testid="profile-cancel-btn"
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 {t('profile.cancel')}
               </button>
@@ -414,7 +413,8 @@ const ProfileView: React.FC = () => {
               onClick={isEditing ? handleSave : handleEdit}
               data-testid={isEditing ? 'profile-save-btn' : 'profile-edit-btn'}
               className={clsx(
-                'px-4 py-2 rounded-lg font-medium transition-colors',
+                'w-full sm:w-auto px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors',
+                isEditing && 'col-span-2',
                 isEditing
                   ? 'bg-forest-600 hover:bg-forest-700 text-white'
                   : 'bg-warm-600 hover:bg-warm-700 text-white'
@@ -430,7 +430,7 @@ const ProfileView: React.FC = () => {
         // ym-hide-content: вебвизор не записывает содержимое анкеты
         // (ценности, интересы, описание, имя, фото). Кнопки и вкладки внутри
         // не трогаем — клики всё равно записываются.
-        className="ym-hide-content flex-1 p-4 pb-20 md:pb-4 space-y-6 overflow-y-auto"
+        className="ym-hide-content flex-1 p-3 sm:px-4 sm:pt-4 pb-20 md:pb-4 space-y-4 sm:space-y-6 overflow-y-auto"
         data-testid="profile-content"
       >
         {/* Loading indicator */}
@@ -444,7 +444,7 @@ const ProfileView: React.FC = () => {
         )}
 
         {/* Profile Photo */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <div className="flex flex-col items-center space-y-4">
             <div className="relative">
               {user?.avatar ? (
@@ -478,14 +478,14 @@ const ProfileView: React.FC = () => {
               </label>
             </div>
             
-            <div className="text-center">
-              <h2 data-testid="profile-name" className="text-xl font-bold text-gray-900">
+            <div className="text-center w-full">
+              <h2 data-testid="profile-name" className="text-xl font-bold text-gray-900 break-words">
                 {getUserDisplayName()}
               </h2>
               {profileData?.user_nickname && (
-                <p className="text-sm text-gray-500">@{profileData.user_nickname}</p>
+                <p className="text-sm text-gray-500 break-all">@{profileData.user_nickname}</p>
               )}
-              <p data-testid="profile-phone" className="text-sm text-gray-600">{user?.phone || user?.email}</p>
+              <p data-testid="profile-phone" className="text-sm text-gray-600 break-all">{user?.phone || user?.email}</p>
             </div>
             
             <label className="flex items-center space-x-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
@@ -504,7 +504,7 @@ const ProfileView: React.FC = () => {
           </div>
         </div>
         {/* Token Balance */}
-        <div className="bg-gradient-to-br from-forest-50 to-warm-50 rounded-lg shadow-sm p-6 border border-forest-200">
+        <div className="bg-gradient-to-br from-forest-50 to-warm-50 rounded-lg shadow-sm p-4 sm:p-6 border border-forest-200">
           <div className="flex items-center mb-4">
             <div className="w-10 h-10 bg-gradient-to-br from-forest-500 to-warm-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
               <Coins className="w-5 h-5 text-white" />
@@ -546,20 +546,20 @@ const ProfileView: React.FC = () => {
 
         {/* Telegram identity — для привязки своего TG к Студии (создание ботов).
             id — якорь ссылки /profile?open=telegram (utils/cabinetSections.ts). */}
-        <div id={profileCardAnchor('telegram')} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 scroll-mt-4">
+        <div id={profileCardAnchor('telegram')} className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 scroll-mt-4">
           <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Send className="w-5 h-5 text-blue-500" />
             Telegram
           </h2>
             {tgIdentity?.bound ? (
-              <div className="flex items-center gap-2 text-sm text-gray-700">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
                 {t('profile.telegram_bound')}
-                {tgIdentity.tgUsername && <span className="text-blue-600 font-medium">@{tgIdentity.tgUsername}</span>}
-                {!tgIdentity.tgUsername && tgIdentity.tgFirstName && <span className="text-gray-600">{tgIdentity.tgFirstName}</span>}
+                {tgIdentity.tgUsername && <span className="text-blue-600 font-medium break-all">@{tgIdentity.tgUsername}</span>}
+                {!tgIdentity.tgUsername && tgIdentity.tgFirstName && <span className="text-gray-600 min-w-0 break-words">{tgIdentity.tgFirstName}</span>}
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <span className="text-sm text-gray-500">{t('profile.telegram_not_bound')}</span>
                 <button
                   onClick={() => navigate('/telegram-bots/new')}
@@ -572,7 +572,7 @@ const ProfileView: React.FC = () => {
         </div>
 
         {/* Personal Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <User className="w-5 h-5 mr-2 text-forest-600" />
             {t('profile.personal_info')}
@@ -618,30 +618,30 @@ const ProfileView: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm font-medium text-gray-700">{t('profile.first_name')}:</span>
-                <span className="text-sm text-gray-900">
+                <span className="text-sm text-gray-900 min-w-0 break-words sm:text-right">
                   {profileData?.name || user?.firstName || t('profile.not_specified')}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm font-medium text-gray-700">{t('profile.last_name')}:</span>
-                <span className="text-sm text-gray-900">
+                <span className="text-sm text-gray-900 min-w-0 break-words sm:text-right">
                   {profileData?.family_name || user?.lastName || t('profile.not_specified')}
                 </span>
               </div>
               {profileData?.user_nickname && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-sm font-medium text-gray-700">{t('profile.nickname_label')}:</span>
-                  <span className="text-sm text-gray-900">@{profileData.user_nickname}</span>
+                  <span className="text-sm text-gray-900 min-w-0 break-words sm:text-right">@{profileData.user_nickname}</span>
                 </div>
               )}
               {(user?.phone || user?.email) && (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span className="text-sm font-medium text-gray-700">
                     {user?.phone ? t('profile.phone') : 'Email'}:
                   </span>
-                  <span className="text-sm text-gray-900">{user?.phone || user?.email}</span>
+                  <span className="text-sm text-gray-900 min-w-0 break-all sm:text-right">{user?.phone || user?.email}</span>
                 </div>
               )}
               {(!profileData?.name && !user?.firstName || !profileData?.family_name && !user?.lastName) && (
@@ -660,7 +660,7 @@ const ProfileView: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowSettings((v) => !v)}
-            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors"
           >
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <Settings2 className="w-5 h-5 mr-2 text-forest-600" />
@@ -685,7 +685,7 @@ const ProfileView: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowReferral((v) => !v)}
-            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors"
           >
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <Handshake className="w-5 h-5 mr-2 text-forest-600" />
@@ -705,7 +705,7 @@ const ProfileView: React.FC = () => {
         </div>
 
         {/* Values */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <TrendingUp className="w-5 h-5 mr-2 text-forest-600" />
@@ -736,7 +736,7 @@ const ProfileView: React.FC = () => {
 
         {/* Profile Parameters */}
         {profile.params.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               {t('profile.params_title')}
             </h2>
@@ -762,7 +762,7 @@ const ProfileView: React.FC = () => {
 
         {/* Beliefs */}
         {profile.beliefs.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               {t('profile.beliefs')}
             </h2>
@@ -782,7 +782,7 @@ const ProfileView: React.FC = () => {
 
         {/* Desires */}
         {profile.desires.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               {t('profile.desires')}
             </h2>
@@ -802,7 +802,7 @@ const ProfileView: React.FC = () => {
 
         {/* Intentions */}
         {profile.intentions.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               {t('profile.intentions')}
             </h2>
@@ -822,7 +822,7 @@ const ProfileView: React.FC = () => {
 
         {/* Interests */}
         {profile.interests.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               {t('profile.interests')}
             </h2>
@@ -842,7 +842,7 @@ const ProfileView: React.FC = () => {
 
         {/* Skills */}
         {profile.skills.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               {t('profile.skills')}
             </h2>
@@ -868,7 +868,7 @@ const ProfileView: React.FC = () => {
 
         {/* Empty state when no data */}
         {!profileData && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <div className="text-center py-8">
               <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -890,13 +890,13 @@ const ProfileView: React.FC = () => {
 
         {/* Account Actions */}
         <div className="bg-white rounded-lg shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <User className="w-5 h-5 mr-2 text-gray-600" />
               {t('settings.account')}
             </h2>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             <button
               onClick={handleLogout}
               className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
@@ -916,7 +916,7 @@ const ProfileView: React.FC = () => {
         </div>
 
         {/* Timeline */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Calendar className="w-5 h-5 mr-2 text-gray-600" />
             {t('profile.timeline')}

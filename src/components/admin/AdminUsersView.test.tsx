@@ -50,16 +50,16 @@ const ACTIVE = {
   days: 30,
   bucket: 'day' as const,
   series: [],
-  totals: { total_users: 2, new_30d: 0, new_7d: 0, new_today: 0, dau: 0, wau: 0, mau: 0 },
+  totals: { total_users: 3, new_30d: 0, new_7d: 0, new_today: 0, dau: 0, wau: 0, mau: 0 },
 };
 
-const mkUser = (phone: string) => ({
+const mkUser = (phone: string, last_active: string | null = null) => ({
   phone,
   registered_at: '2026-01-01T00:00:00Z',
   balance: 1000,
   spent_total: 0,
   spent_period: 0,
-  last_active: null,
+  last_active,
   paid_count: 0,
   paid_rub: 0,
   referral_leader_name: null,
@@ -68,8 +68,12 @@ const mkUser = (phone: string) => ({
 // Список, который бэкенд реально отдаёт: без тестового 79030169187.
 const USERS = {
   hours: 720,
-  users: [mkUser('70000000001'), mkUser('70000000002')],
-  totals: { users_with_balance: 2, users_total: 2, total_balance: 2000 },
+  users: [
+    mkUser('70000000001', '2026-01-01T00:00:00Z'),
+    mkUser('70000000002', '2026-01-03T00:00:00Z'),
+    mkUser('70000000003'),
+  ],
+  totals: { users_with_balance: 3, users_total: 3, total_balance: 3000 },
 };
 
 const ok = (body: unknown) => Promise.resolve({ ok: true, status: 200, json: async () => body });
@@ -101,6 +105,29 @@ const click = async (testid: string) => {
   await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   await settle();
 };
+
+const chooseMobileSort = async (value: string) => {
+  const select = q('admin-users-mobile-sort')?.querySelector('select') as HTMLSelectElement | null;
+  if (!select) throw new Error('нет select в admin-users-mobile-sort');
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, value);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await settle();
+};
+
+const clickLastActivityHeader = async () => {
+  const header = Array.from(container.querySelectorAll('th'))
+    .find((th) => th.textContent?.includes('Последняя активность'));
+  if (!header) throw new Error('нет заголовка «Последняя активность»');
+  await act(async () => { header.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  await settle();
+};
+
+const mobileCardPhones = () => Array.from(
+  container.querySelectorAll<HTMLElement>('[data-testid^="admin-user-mobile-card-"]'),
+  (card) => card.dataset.testid!.replace('admin-user-mobile-card-', ''),
+);
 
 describe('AdminUsersView — кнопка «Открыть карточку» по номеру', () => {
   beforeEach(async () => {
@@ -153,5 +180,41 @@ describe('AdminUsersView — кнопка «Открыть карточку» п
     });
     await settle();
     expect(q('user-activity-drawer')?.textContent).toBe('70000000001');
+  });
+
+  describe('мобильная сортировка по последней активности', () => {
+    it('сначала новые: свежая активность первая, отсутствующая дата — в конце', async () => {
+      await chooseMobileSort('last_active|desc');
+      expect(mobileCardPhones()).toEqual(['70000000002', '70000000001', '70000000003']);
+    });
+
+    it('сначала давние: порядок дат меняется на возрастание', async () => {
+      await chooseMobileSort('last_active|asc');
+      expect(mobileCardPhones()).toEqual(['70000000003', '70000000001', '70000000002']);
+    });
+
+    it('сортировка применяется к результату поиска', async () => {
+      await typeSearch('70000000002');
+      await chooseMobileSort('last_active|desc');
+      expect(mobileCardPhones()).toEqual(['70000000002']);
+    });
+
+    it('третий клик по заголовку сбрасывает сортировку и отражается в мобильном select', async () => {
+      const originalOrder = ['70000000001', '70000000002', '70000000003'];
+      const select = q('admin-users-mobile-sort')?.querySelector('select') as HTMLSelectElement | null;
+      if (!select) throw new Error('нет select в admin-users-mobile-sort');
+
+      await clickLastActivityHeader();
+      expect(mobileCardPhones()).toEqual(['70000000002', '70000000001', '70000000003']);
+      await clickLastActivityHeader();
+      expect(mobileCardPhones()).toEqual(['70000000003', '70000000001', '70000000002']);
+      await clickLastActivityHeader();
+
+      expect(mobileCardPhones()).toEqual(originalOrder);
+      const emptyOption = select.querySelector('option[value=""]');
+      expect(emptyOption).not.toBeNull();
+      expect(emptyOption!.textContent).toBe('Без сортировки');
+      expect(select.value).toBe('');
+    });
   });
 });

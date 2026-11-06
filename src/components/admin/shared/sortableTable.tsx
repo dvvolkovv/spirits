@@ -142,6 +142,7 @@ interface SortSelectProps<K extends string> {
   onSort: (next: SortState<K>) => void;
   options: { key: K; dir: Dir; label: string }[];
   className?: string;
+  emptyLabel?: string;
 }
 
 export function SortSelect<K extends string>({
@@ -149,6 +150,7 @@ export function SortSelect<K extends string>({
   onSort,
   options,
   className,
+  emptyLabel,
 }: SortSelectProps<K>) {
   const currentValue = state ? `${state.key}|${state.dir}` : '';
   return (
@@ -166,6 +168,7 @@ export function SortSelect<K extends string>({
         className,
       )}
     >
+      {emptyLabel !== undefined && <option value="">{emptyLabel}</option>}
       {options.map(o => (
         <option key={`${o.key}|${o.dir}`} value={`${o.key}|${o.dir}`}>
           {o.label}

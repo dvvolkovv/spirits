@@ -3,7 +3,7 @@ import { Users, Loader, AlertCircle, UserPlus, Activity, Calendar, Search, Send 
 import { clsx } from 'clsx';
 import { apiClient } from '../../services/apiClient';
 import UserActivityDrawer from './UserActivityDrawer';
-import { SortableTh, useTableSort, cmp, SortState } from './shared/sortableTable';
+import { SortableTh, SortSelect, useTableSort, cmp, SortState } from './shared/sortableTable';
 import { MobileRecordCard } from './shared/MobileRecordCard';
 import { openableRow } from './shared/openableRow';
 import { AdminPageHeader } from './shared/AdminPageHeader';
@@ -399,6 +399,27 @@ const AdminUsersView: React.FC = () => {
               </button>
             )}
           </div>
+          <label data-testid="admin-users-mobile-sort" className="block w-full md:hidden">
+            <span className="sr-only">Сортировка пользователей</span>
+            <SortSelect
+              state={sort}
+              onSort={setSort}
+              emptyLabel="Без сортировки"
+              className="w-full px-3 py-2"
+              options={[
+                { key: 'spent_period', dir: 'desc', label: 'Списано за 30 дн: по убыванию' },
+                { key: 'spent_period', dir: 'asc', label: 'Списано за 30 дн: по возрастанию' },
+                { key: 'last_active', dir: 'desc', label: 'Последняя активность: сначала новые' },
+                { key: 'last_active', dir: 'asc', label: 'Последняя активность: сначала давние' },
+                { key: 'registered_at', dir: 'desc', label: 'Регистрация: сначала новые' },
+                { key: 'registered_at', dir: 'asc', label: 'Регистрация: сначала давние' },
+                { key: 'balance', dir: 'desc', label: 'Баланс: по убыванию' },
+                { key: 'balance', dir: 'asc', label: 'Баланс: по возрастанию' },
+                { key: 'paid_count', dir: 'desc', label: 'Платежи: по убыванию' },
+                { key: 'paid_count', dir: 'asc', label: 'Платежи: по возрастанию' },
+              ]}
+            />
+          </label>
           <span className="text-xs text-gray-400 sm:ml-auto">
             {sortedUsers.length} из {users?.users.length ?? 0}
           </span>
