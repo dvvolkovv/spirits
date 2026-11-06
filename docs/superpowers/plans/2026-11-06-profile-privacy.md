@@ -362,7 +362,7 @@ Expected: все privacy tests PASS, tsc PASS.
 
 ```ts
 import { createPrivacyPg, describePg } from './profile-privacy.pg-helper';
-import { canUseProfileForRequester, canViewProfile, filterSearchCandidateIds, listSearchCandidateIds } from './profile-privacy';
+import { canUseProfileForRequester, canViewProfile, filterSearchCandidateIds, listSearchCandidateIds, readProfileAccess } from './profile-privacy';
 
 describePg('profile access real PG', () => {
   let harness: Awaited<ReturnType<typeof createPrivacyPg>>;
@@ -417,6 +417,25 @@ describePg('profile access real PG', () => {
     expect(await listSearchCandidateIds(harness.pg, 'requester')).toEqual(new Set(['open']));
     expect(await filterSearchCandidateIds(harness.pg, 'requester', ['open', 'paused', 'target', 'missing'])).toEqual(new Set(['open']));
   });
+
+  it('keeps self visible with malformed settings and fails closed only automaticProfiling', async () => {
+    await harness.pool.query(`UPDATE ai_profiles_consolidated SET profile_data = '{"automaticProfiling":"bad","discoverable":"bad"}' WHERE user_id = 'paused'`);
+    expect(await canViewProfile(harness.pg, 'paused', 'paused')).toBe(true);
+    expect(await canUseProfileForRequester(harness.pg, 'paused', 'paused')).toBe(true);
+    expect(await readProfileAccess(harness.pg, 'paused', 'paused')).toEqual({ exists: true, visible: true, automaticProfiling: false });
+  });
+
+  it('uses materialized relationship pairs and projects only privacy values and types', async () => {
+    const query = jest.spyOn(harness.pg, 'query');
+    await listSearchCandidateIds(harness.pg, 'requester');
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).toContain('approved_contact_pairs AS MATERIALIZED');
+    expect(sql).toContain('peer_pairs AS MATERIALIZED');
+    expect(sql).toContain('block_pairs AS MATERIALIZED');
+    expect(sql).toContain('jsonb_typeof');
+    expect(sql).not.toContain('SELECT p.user_id, p.profile_data');
+    expect(sql).not.toContain('EXISTS(SELECT 1 FROM contact_requests');
+  });
 });
 ```
 
@@ -435,8 +454,24 @@ Expected: FAIL — access-функции отсутствуют.
 export interface ProfileAccess { exists: boolean; visible: boolean; automaticProfiling: boolean }
 
 export async function readProfileAccess(pg: PgService, requesterId: string, targetId: string): Promise<ProfileAccess> {
+  if (requesterId === targetId) {
+    const own = await pg.query('SELECT profile_data FROM ai_profiles_consolidated WHERE user_id = $1', [targetId]);
+    if (!own.rows[0]) return { exists: false, visible: false, automaticProfiling: false };
+    const data = own.rows[0].profile_data;
+    const automaticProfiling = data == null
+      ? true
+      : typeof data !== 'object' || Array.isArray(data)
+        ? false
+        : data.automaticProfiling === undefined
+          ? true
+          : typeof data.automaticProfiling === 'boolean'
+            ? data.automaticProfiling
+            : false;
+    return { exists: true, visible: true, automaticProfiling };
+  }
+
   const result = await pg.query(`
-    WITH me AS (SELECT id, user_id FROM ai_profiles_consolidated WHERE user_id = $1),
+    WITH me AS (SELECT id FROM ai_profiles_consolidated WHERE user_id = $1),
     target AS (SELECT id, user_id, profile_data FROM ai_profiles_consolidated WHERE user_id = $2)
     SELECT target.profile_data,
       EXISTS(SELECT 1 FROM contact_requests cr JOIN me ON true JOIN target ON true
@@ -450,7 +485,7 @@ export async function readProfileAccess(pg: PgService, requesterId: string, targ
   const related = row.approved_contact || row.peer;
   return {
     exists: true,
-    visible: requesterId === targetId || (!row.blocked && (settings.discoverable || related)),
+    visible: !row.blocked && (settings.discoverable || related),
     automaticProfiling: settings.automaticProfiling,
   };
 }
@@ -468,22 +503,54 @@ export async function canUseProfileForRequester(pg: PgService, requesterId: stri
 
 async function searchAccessRows(pg: PgService, requesterId: string, candidateIds: string[] | null) {
   return pg.query(`
-    WITH me AS (SELECT id, user_id FROM ai_profiles_consolidated WHERE user_id = $1)
-    SELECT p.user_id, p.profile_data,
-      EXISTS(SELECT 1 FROM contact_requests cr JOIN me ON true
-        WHERE cr.status = 'approved' AND ((cr.requester_id = me.id AND cr.target_id = p.id) OR (cr.requester_id = p.id AND cr.target_id = me.id))) AS approved_contact,
-      EXISTS(SELECT 1 FROM peer_conversations pc WHERE (pc.user_a_id = $1 AND pc.user_b_id = p.user_id) OR (pc.user_a_id = p.user_id AND pc.user_b_id = $1)) AS peer,
-      EXISTS(SELECT 1 FROM user_blocks ub WHERE (ub.blocker_id = $1 AND ub.blocked_id = p.user_id) OR (ub.blocker_id = p.user_id AND ub.blocked_id = $1)) AS blocked
-    FROM ai_profiles_consolidated p LEFT JOIN me ON true
+    WITH me AS (SELECT id FROM ai_profiles_consolidated WHERE user_id = $1),
+    approved_contact_pairs AS MATERIALIZED (
+      SELECT cr.target_id AS profile_id FROM contact_requests cr JOIN me ON me.id = cr.requester_id WHERE cr.status = 'approved'
+      UNION
+      SELECT cr.requester_id AS profile_id FROM contact_requests cr JOIN me ON me.id = cr.target_id WHERE cr.status = 'approved'
+    ),
+    peer_pairs AS MATERIALIZED (
+      SELECT pc.user_b_id AS user_id FROM peer_conversations pc WHERE pc.user_a_id = $1
+      UNION
+      SELECT pc.user_a_id AS user_id FROM peer_conversations pc WHERE pc.user_b_id = $1
+    ),
+    block_pairs AS MATERIALIZED (
+      SELECT ub.blocked_id AS user_id FROM user_blocks ub WHERE ub.blocker_id = $1
+      UNION
+      SELECT ub.blocker_id AS user_id FROM user_blocks ub WHERE ub.blocked_id = $1
+    )
+    SELECT p.user_id,
+      jsonb_typeof(p.profile_data) AS profile_data_type,
+      p.profile_data->'automaticProfiling' AS automatic_profiling,
+      jsonb_typeof(p.profile_data->'automaticProfiling') AS automatic_profiling_type,
+      p.profile_data->'discoverable' AS discoverable,
+      jsonb_typeof(p.profile_data->'discoverable') AS discoverable_type,
+      (acp.profile_id IS NOT NULL) AS approved_contact,
+      (pp.user_id IS NOT NULL) AS peer,
+      (bp.user_id IS NOT NULL) AS blocked
+    FROM ai_profiles_consolidated p
+    LEFT JOIN approved_contact_pairs acp ON acp.profile_id = p.id
+    LEFT JOIN peer_pairs pp ON pp.user_id = p.user_id
+    LEFT JOIN block_pairs bp ON bp.user_id = p.user_id
     WHERE p.user_id <> $1 AND ($2::text[] IS NULL OR p.user_id = ANY($2::text[]))`, [requesterId, candidateIds]);
+}
+
+function searchRowPrivacySettings(row: any): PrivacySettings {
+  if (row.profile_data_type !== null && row.profile_data_type !== 'object' && row.profile_data_type !== 'null') {
+    throw new PrivacySettingsDataError('profile_data must be an object or null');
+  }
+  const settings: Record<string, unknown> = {};
+  if (row.automatic_profiling_type !== null) settings.automaticProfiling = row.automatic_profiling;
+  if (row.discoverable_type !== null) settings.discoverable = row.discoverable;
+  return parsePrivacySettings(settings);
 }
 
 function searchableRows(rows: any[]): Set<string> {
   const allowed = new Set<string>();
   for (const row of rows) {
     try {
-      const settings = parsePrivacySettings(row.profile_data);
-      if (!row.blocked && (settings.discoverable || row.approved_contact || row.peer) && settings.automaticProfiling) allowed.add(row.user_id);
+      const settings = searchRowPrivacySettings(row);
+      if (!row.blocked && settings.automaticProfiling && (settings.discoverable || row.approved_contact || row.peer)) allowed.add(row.user_id);
     } catch { /* invalid candidate privacy is excluded */ }
   }
   return allowed;
