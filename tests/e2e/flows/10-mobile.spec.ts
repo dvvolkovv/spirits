@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // Run under mobile-user project (iPhone 13 viewport, storageState: test-user.json)
 
@@ -61,4 +61,48 @@ test.describe('Flow 10 — Mobile Layout', () => {
     await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId('chat-send-btn')).toBeVisible({ timeout: 10_000 });
   });
+
+  const expectNoProfileOverflow = async (page: Page) => {
+    const dimensions = await page.evaluate(() => ({
+      viewport: window.innerWidth,
+      document: document.documentElement.scrollWidth,
+      profile: document.querySelector<HTMLElement>('[data-testid="profile-root"]')?.scrollWidth ?? 0,
+    }));
+    expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
+    expect(dimensions.profile).toBeLessThanOrEqual(dimensions.viewport);
+  };
+
+  const expectControlInsideViewport = async (page: Page, testId: string) => {
+    const control = page.getByTestId(testId);
+    await expect(control).toBeVisible();
+    const box = await control.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
+  };
+
+  for (const width of [320, 360, 390]) {
+    test(`profile controls fit ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto('/profile');
+      await expect(page.getByTestId('profile-root')).toBeVisible();
+      await expectControlInsideViewport(page, 'profile-edit-btn');
+      await expectNoProfileOverflow(page);
+
+      await page.getByTestId('profile-name').evaluate((element) => {
+        element.textContent = 'ОченьДлинноеИмяПользователяБезПробеловКотороеНеДолжноРасширятьКарточку';
+      });
+      await page.getByTestId('profile-phone').evaluate((element) => {
+        element.textContent = 'very-long-email-address-without-spaces@example-with-a-long-domain.invalid';
+      });
+      await expectNoProfileOverflow(page);
+
+      await page.getByTestId('profile-edit-btn').click();
+      await expectControlInsideViewport(page, 'profile-cancel-btn');
+      await expectControlInsideViewport(page, 'profile-save-btn');
+      await expectNoProfileOverflow(page);
+    });
+  }
 });
