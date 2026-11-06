@@ -12,7 +12,7 @@
 
 ## Файлы
 
-- `src/components/profile/ProfileView.tsx` — адаптивная шапка, отступы карточек, переносы длинных значений, прокрутка модального окна.
+- `src/components/profile/ProfileView.tsx` — адаптивная шапка, отступы карточек и переносы длинных значений; модальное окно не меняется после успешной браузерной проверки.
 - `src/components/admin/AdminUsersView.tsx` — мобильный `SortSelect` над уже существующими `MobileRecordCard`.
 - `src/components/admin/AdminUsersView.test.tsx` — компонентные тесты сортировки по активности и совместной работы с поиском.
 - `tests/e2e/flows/10-mobile.spec.ts` — браузерные проверки геометрии профиля и мобильной сортировки админки.
@@ -245,13 +245,9 @@ className="ym-hide-content flex-1 p-3 sm:p-4 pb-20 md:pb-4 space-y-4 sm:space-y-
 <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
 ```
 
-- [ ] **Step 4: Ограничить модальное окно высотой viewport**
+- [ ] **Step 4: Оставить модальное окно без production-изменений**
 
-Заменить контейнер содержимого подтверждения удаления:
-
-```tsx
-<div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6">
-```
+Красный тест на 320×568 не воспроизвёл дефект: после `scrollIntoViewIfNeeded()` кнопка «Отмена» полностью попадает в viewport и закрывает окно. Не добавлять `max-height` без подтверждённой причины. Сохранить сценарий `profile delete dialog fits short mobile viewport` как зелёный regression guard и убедиться, что после адаптивных правок он по-прежнему проходит.
 
 - [ ] **Step 5: Запустить существующие компонентные тесты профиля**
 
