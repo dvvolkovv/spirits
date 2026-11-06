@@ -85,7 +85,7 @@ test.describe('Flow 10 — Mobile Layout', () => {
       }));
     }, { firstName: LONG_NAME, lastName: LONG_SURNAME, phone: LONG_EMAIL, email: LONG_EMAIL });
 
-    await page.route('**/webhook/profile*', async (route) => {
+    await page.route('**/webhook/profile', async (route) => {
       if (route.request().method() !== 'GET') {
         await route.fallback();
         return;
@@ -192,51 +192,57 @@ test.describe('Flow 10 — Mobile Layout', () => {
     await expect(control).toBeInViewport({ ratio: 1 });
   };
 
-  for (const width of [320, 360, 390]) {
-    test(`profile controls fit ${width}px`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 664 });
+  test.describe('profile layout regressions', () => {
+    // PWA service worker после load перехватывает контроль страницы, и page.route
+    // перестаёт видеть API. Блокируем его только для этих fixture-тестов.
+    test.use({ serviceWorkers: 'block' });
+
+    for (const width of [320, 360, 390]) {
+      test(`profile controls fit ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 664 });
+        await setupProfileFixture(page);
+        await openProfileFixture(page);
+
+        await expectControlInsideViewport(page.getByRole('combobox', { name: 'Язык интерфейса' }));
+        await expectControlInsideViewport(page.getByRole('button', { name: 'Обновить', exact: true }));
+        await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
+        await expectLongProfileValuesToFit(page);
+        await expectNoProfileOverflow(page);
+
+        await page.getByTestId('profile-edit-btn').click();
+        await expectControlInsideViewport(page.getByTestId('profile-cancel-btn'));
+        await expectControlInsideViewport(page.getByTestId('profile-save-btn'));
+        await expect(page.getByTestId('profile-name-input')).toHaveValue(LONG_NAME);
+        await expect(page.getByTestId('profile-lastname-input')).toHaveValue(LONG_SURNAME);
+        await expectNoProfileOverflow(page);
+
+        await page.getByTestId('profile-cancel-btn').click();
+        await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
+
+        await page.getByTestId('profile-edit-btn').click();
+        await expect(page.getByTestId('profile-name-input')).toHaveValue(LONG_NAME);
+        await expect(page.getByTestId('profile-lastname-input')).toHaveValue(LONG_SURNAME);
+        page.once('dialog', async (dialog) => dialog.accept());
+        await page.getByTestId('profile-save-btn').click();
+        await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
+        await expectNoProfileOverflow(page);
+      });
+    }
+
+    test('profile delete dialog fits short mobile viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 568 });
       await setupProfileFixture(page);
       await openProfileFixture(page);
 
-      await expectControlInsideViewport(page.getByRole('combobox', { name: 'Язык интерфейса' }));
-      await expectControlInsideViewport(page.getByRole('button', { name: 'Обновить', exact: true }));
-      await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
-      await expectLongProfileValuesToFit(page);
-      await expectNoProfileOverflow(page);
-
-      await page.getByTestId('profile-edit-btn').click();
-      await expectControlInsideViewport(page.getByTestId('profile-cancel-btn'));
-      await expectControlInsideViewport(page.getByTestId('profile-save-btn'));
-      await expect(page.getByTestId('profile-name-input')).toHaveValue(LONG_NAME);
-      await expect(page.getByTestId('profile-lastname-input')).toHaveValue(LONG_SURNAME);
-      await expectNoProfileOverflow(page);
-
-      await page.getByTestId('profile-cancel-btn').click();
-      await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
-
-      await page.getByTestId('profile-edit-btn').click();
-      await expect(page.getByTestId('profile-name-input')).toHaveValue(LONG_NAME);
-      await expect(page.getByTestId('profile-lastname-input')).toHaveValue(LONG_SURNAME);
-      page.once('dialog', async (dialog) => dialog.accept());
-      await page.getByTestId('profile-save-btn').click();
-      await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
-      await expectNoProfileOverflow(page);
+      await page.getByRole('button', { name: 'Удалить аккаунт', exact: true }).click();
+      const confirmDelete = page.getByRole('button', { name: 'Удалить навсегда', exact: true });
+      const cancel = page.getByRole('button', { name: 'Отмена', exact: true });
+      await expect(confirmDelete).toBeVisible();
+      await expect(cancel).toBeVisible();
+      await cancel.scrollIntoViewIfNeeded();
+      await expect(cancel).toBeInViewport({ ratio: 1 });
+      await cancel.click();
+      await expect(confirmDelete).toHaveCount(0);
     });
-  }
-
-  test('profile delete dialog fits short mobile viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 320, height: 568 });
-    await setupProfileFixture(page);
-    await openProfileFixture(page);
-
-    await page.getByRole('button', { name: 'Удалить аккаунт', exact: true }).click();
-    const confirmDelete = page.getByRole('button', { name: 'Удалить навсегда', exact: true });
-    const cancel = page.getByRole('button', { name: 'Отмена', exact: true });
-    await expect(confirmDelete).toBeVisible();
-    await expect(cancel).toBeVisible();
-    await cancel.scrollIntoViewIfNeeded();
-    await expect(cancel).toBeInViewport({ ratio: 1 });
-    await cancel.click();
-    await expect(confirmDelete).toHaveCount(0);
   });
 });
