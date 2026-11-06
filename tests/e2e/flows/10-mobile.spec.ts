@@ -70,7 +70,7 @@ test.describe('Flow 10 — Mobile Layout', () => {
   const LONG_NICKNAME_TEXT = `@${LONG_NICKNAME}`;
 
   const setupProfileFixture = async (page: Page) => {
-    await page.addInitScript(({ firstName, lastName, email }) => {
+    await page.addInitScript(({ firstName, lastName, phone, email }) => {
       const stored = localStorage.getItem('userData');
       if (!stored) throw new Error('profile fixture: userData is missing from storageState');
       const userData = JSON.parse(stored);
@@ -78,10 +78,12 @@ test.describe('Flow 10 — Mobile Layout', () => {
         ...userData,
         firstName,
         lastName,
-        phone: '',
+        // ProfileView запрашивает анкету только при truthy user.phone. Email-shaped
+        // значение сохраняет реальный GET/render-путь и не использует номер телефона.
+        phone,
         email,
       }));
-    }, { firstName: LONG_NAME, lastName: LONG_SURNAME, email: LONG_EMAIL });
+    }, { firstName: LONG_NAME, lastName: LONG_SURNAME, phone: LONG_EMAIL, email: LONG_EMAIL });
 
     await page.route('**/webhook/profile', async (route) => {
       if (route.request().method() !== 'GET') {
