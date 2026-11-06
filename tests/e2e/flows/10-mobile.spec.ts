@@ -81,6 +81,8 @@ test.describe('Flow 10 — Mobile Layout', () => {
     expect(viewport).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
+    expect(box!.y).toBeGreaterThanOrEqual(0);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height);
   };
 
   for (const width of [320, 360, 390]) {
