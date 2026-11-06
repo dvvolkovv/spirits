@@ -49,6 +49,7 @@ ssh dv@85.192.61.231 'mkdir -p ~/ci/wt && if [ ! -d ~/ci/wt/profile-privacy-fron
 - Create `src/business-profile/business-profile.privacy.spec.ts` — extraction/render/race gates.
 - Modify `src/business-profile/business-profile.service.ts` — business gates; ручной `merge` не блокировать.
 - Create `src/scheduler/profile-compaction.privacy.spec.ts` — nightly и per-write checks.
+- Create `src/scheduler/profile-compaction.pg.spec.ts` — реальная nightly-выборка boolean/malformed настроек.
 - Modify `src/scheduler/profile-compaction.service.ts` — SQL prefilter и per-user gates.
 - Create `src/voice-call/profile-turns-privacy.spec.ts` — пустой результат без сдвига cursor.
 - Modify `src/voice-call/voice-call.service.ts` — profileTurns checks.
@@ -827,6 +828,7 @@ Expected: все business-profile suites PASS.
 **Files:**
 - Modify: `src/scheduler/profile-compaction.service.ts`
 - Create: `src/scheduler/profile-compaction.privacy.spec.ts`
+- Create: `src/scheduler/profile-compaction.pg.spec.ts`
 - Modify: `src/voice-call/voice-call.service.ts`
 - Create: `src/voice-call/profile-turns-privacy.spec.ts`
 - Modify: `src/voice-call/profile-turns-cursor.spec.ts`
@@ -892,15 +894,67 @@ it('discards transcript turns when privacy is revoked after the query', async ()
   const svc = new VoiceCallService(pg as any, ...([] as any[]));
   await expect(svc.profileTurns('u', 123)).resolves.toEqual({ turns: [], cursor: 123 });
 });
+
+it('returns >100 same-millisecond turns and a >30-call backlog exactly once', async () => {
+  allowed.mockResolvedValue(true);
+  const rows = [
+    { id: 'a', transcript: Array.from({ length: 137 }, (_, i) => ({ role: 'user', text: `same-${i}`, ts: 1000 })) },
+    ...Array.from({ length: 35 }, (_, i) => ({ id: `b${i}`, transcript: [{ role: 'user', text: `next-${i}`, ts: 2000 + i }] })),
+  ];
+  const pg = { query: jest.fn(async () => ({ rows })) };
+  const svc = new VoiceCallService(pg as any, ...([] as any[]));
+  const seen = new Set<string>();
+  let cursor = 0;
+  for (let page = 0; page < 10; page++) {
+    const result = await svc.profileTurns('u', cursor);
+    for (const turn of result.turns) seen.add(`${turn.callId}:${turn.index}:${turn.text}`);
+    if (!result.turns.length) break;
+    cursor = result.cursor;
+  }
+  expect(seen.size).toBe(172);
+});
 ```
 
 В `profile-turns-cursor.spec.ts` добавить тот же policy mock и `beforeEach(() => allowed.mockResolvedValue(true));`.
+
+В `profile-compaction.privacy.spec.ts` дополнительно покрыть revocation после `findUserMatches` перед `llmValidateEntity`, после `afterPrune` перед `llmGroupSynonyms`, обе OpenRouter fallback-ветки, а также пустые и singleton-группы и категории с менее чем 12 сущностями.
+
+Дополнительно создать `src/scheduler/profile-compaction.pg.spec.ts` с реальным PostgreSQL:
+
+```ts
+import { createPrivacyPg, describePg } from '../privacy/profile-privacy.pg-helper';
+import { ProfileCompactionService } from './profile-compaction.service';
+
+describePg('nightly privacy selection', () => {
+  let harness: Awaited<ReturnType<typeof createPrivacyPg>>;
+  beforeAll(async () => {
+    harness = await createPrivacyPg();
+    await harness.pool.query(`CREATE TABLE custom_chat_history (
+      session_id text, sender_type text, content text, created_at timestamptz DEFAULT now()
+    )`);
+    await harness.pool.query(`INSERT INTO ai_profiles_consolidated(user_id, profile_data) VALUES
+      ('enabled', '{"automaticProfiling":true}'), ('disabled', '{"automaticProfiling":false}'),
+      ('missing', '{}'), ('string', '{"automaticProfiling":"true"}'),
+      ('null', '{"automaticProfiling":null}'), ('scalar', 'true')`);
+    await harness.pool.query(`INSERT INTO custom_chat_history(session_id, sender_type, content)
+      SELECT user_id || '_agent', 'human', 'private' FROM ai_profiles_consolidated`);
+  });
+  afterAll(async () => { await harness.close(); });
+
+  it('selects only boolean true or missing automaticProfiling', async () => {
+    const svc = new ProfileCompactionService(harness.pg, {} as any);
+    (svc as any).compactUser = jest.fn(async () => ({ skipped: 'test' }));
+    await svc.runDailyCompaction();
+    expect((svc as any).compactUser.mock.calls.map(([id]) => id).sort()).toEqual(['enabled', 'missing']);
+  });
+});
+```
 
 - [ ] **Step 2: Закоммитить и подтвердить RED**
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/scheduler src/voice-call && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "test(privacy): закрыть scheduler и voice feed" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/scheduler/*.spec.ts/profile-compaction.privacy.spec.ts src/voice-call/profile-turns-privacy.spec.ts src/voice-call/profile-turns-cursor.spec.ts"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/scheduler/*.spec.ts src/voice-call/profile-turns-privacy.spec.ts src/voice-call/profile-turns-cursor.spec.ts"
 ```
 
 Expected: FAIL — данные читаются при запрете.
@@ -915,7 +969,7 @@ FROM custom_chat_history h
 JOIN ai_profiles_consolidated p ON p.user_id = split_part(h.session_id, '_', 1)
 WHERE h.sender_type = 'human'
   AND h.created_at > now() - interval '7 days'
-  AND coalesce(p.profile_data->>'automaticProfiling', 'true') = 'true'
+  AND coalesce(p.profile_data->'automaticProfiling', 'true'::jsonb) = 'true'::jsonb
 ```
 
 В `compactUser` после `if (!this.neo4j)`:
@@ -941,6 +995,8 @@ if (!(await automaticProfilingAllowed(this.pg, userId))) return { turns: [], cur
 ```ts
 if (!(await automaticProfilingAllowed(this.pg, userId))) return { turns: [], cursor: sinceTs };
 ```
+
+Для полного cursor-контракта дополнительно убрать `DESC LIMIT 30`: он терял backlog после повторного включения. Сортировать реплики по `(ts, callId, index)` и использовать числовой составной cursor, который внутри группы одинаковых миллисекунд отличает каждую реплику, а на границе следующего ts снова становится целым. Не менять тип cursor и форму endpoint-ответа; 137 одинаковых ts и 35 звонков должны читаться постранично без потерь и дублей.
 
 - [ ] **Step 4: Закоммитить и подтвердить GREEN**
 
