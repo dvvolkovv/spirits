@@ -343,7 +343,7 @@ describe('PrivacyController', () => {
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/privacy src/app.module.ts && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(privacy): добавить настройки приватности" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npm ci && PROVISIONING_PG_URL='postgres:///pl_test?host=/var/run/postgresql' npx jest --runInBand --runTestsByPath src/privacy/profile-privacy.spec.ts src/privacy/profile-privacy.pg.spec.ts src/privacy/privacy.controller.spec.ts && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npm ci && PROVISIONING_PG_URL='postgres:///pl_test?host=/var/run/postgresql' npx jest --runInBand --runTestsByPath src/privacy/profile-privacy.spec.ts src/privacy/profile-privacy.pg.spec.ts src/privacy/privacy.controller.spec.ts && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: все privacy tests PASS, tsc PASS.
@@ -503,7 +503,7 @@ export async function filterSearchCandidateIds(pg: PgService, requesterId: strin
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/privacy && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(privacy): добавить связи и фильтры кандидатов" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && PROVISIONING_PG_URL='postgres:///pl_test?host=/var/run/postgresql' npx jest --runInBand --runTestsByPath src/privacy/profile-privacy.spec.ts src/privacy/profile-privacy.pg.spec.ts src/privacy/profile-access.pg.spec.ts && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && PROVISIONING_PG_URL='postgres:///pl_test?host=/var/run/postgresql' npx jest --runInBand --runTestsByPath src/privacy/profile-privacy.spec.ts src/privacy/profile-privacy.pg.spec.ts src/privacy/profile-access.pg.spec.ts && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: defaults, updates и relationship matrix PASS.
@@ -616,7 +616,7 @@ if (!this.pg || !(await automaticProfilingAllowed(this.pg, userId))) return '';
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/neo4j && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(neo4j): остановить профайлинг по настройке" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/neo4j/neo4j.privacy.spec.ts src/neo4j/neo4j-extraction-wiring.spec.ts src/neo4j/profile-extraction-prompt.spec.ts && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/neo4j/neo4j.privacy.spec.ts src/neo4j/neo4j-extraction-wiring.spec.ts src/neo4j/profile-extraction-prompt.spec.ts && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: privacy и прежние extraction tests PASS.
@@ -719,7 +719,7 @@ if (!this.pg || !(await automaticProfilingAllowed(this.pg, userId))) return '';
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/business-profile && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(business): применить настройку профайлинга" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/business-profile && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/business-profile && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: все business-profile suites PASS.
@@ -850,7 +850,7 @@ if (!(await automaticProfilingAllowed(this.pg, userId))) return { turns: [], cur
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/scheduler src/voice-call && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(privacy): остановить compaction и voice profiling" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/scheduler src/voice-call/profile-turns-cursor.spec.ts src/voice-call/profile-turns-privacy.spec.ts src/voice-call/voice-call.service.spec.ts && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/scheduler src/voice-call/profile-turns-cursor.spec.ts src/voice-call/profile-turns-privacy.spec.ts src/voice-call/voice-call.service.spec.ts && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: scheduler/voice PASS; voice transcript и summary не затронуты.
@@ -969,7 +969,7 @@ if (opts.includeUserContext !== false && (await automaticProfilingAllowed(this.p
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/chat && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(chat): перепроверять профиль перед prompt" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/chat/chat.privacy.spec.ts src/chat/chat.service.agent-version-test.spec.ts src/chat/business-profile-injection.spec.ts src/chat/llm-provider-di.spec.ts && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/chat/chat.privacy.spec.ts src/chat/chat.service.agent-version-test.spec.ts src/chat/business-profile-injection.spec.ts src/chat/llm-provider-di.spec.ts && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: prompt privacy PASS; tasks и существующие call-count contracts PASS.
@@ -1207,7 +1207,7 @@ return res.status(404).json({ code: 'PROFILE_NOT_AVAILABLE' });
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/profile src/contacts && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(privacy): защитить публичные профили" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/profile src/contacts && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/profile src/contacts && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: allowlist, self-edit и public privacy PASS.
@@ -1306,7 +1306,7 @@ if (!(await canReceiveNewProposal(this.pg, dto.toUserId))) {
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/contacts src/peer && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(privacy): ограничить новые предложения" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/contacts src/peer && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/contacts src/peer && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: hidden/missing 404 совпадают; block/conversation/pending/rate tests PASS.
@@ -1481,7 +1481,7 @@ if (!selected.length) return noResults();
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/misc && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(search): ограничить кандидатов до сопоставления" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/misc/misc.search-privacy.spec.ts src/misc/misc.search-mate.spec.ts src/misc/misc.service.deduct.spec.ts && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/misc/misc.search-privacy.spec.ts src/misc/misc.search-mate.spec.ts src/misc/misc.service.deduct.spec.ts && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: six eligible-only branches PASS; prompts/cards не содержат скрытых кандидатов.
@@ -1679,7 +1679,7 @@ try {
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/misc && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "feat(compatibility): проверять доступ до сравнения" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/misc && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/misc && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: compatibility 404/422/mid-flight tests и все misc suites PASS.
@@ -2345,7 +2345,7 @@ cd /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy && node scrip
 
 ```bash
 git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy add src/platform-kb && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy commit -m "docs(help): описать настройки приватности" -m "Co-Authored-By: Kimi <noreply@anthropic.com>" && git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy push origin feat/profile-privacy
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/platform-kb && npx tsc --noEmit --incremental false"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npx jest --runInBand --runTestsByPath src/platform-kb && npx tsc --noEmit --incremental false -p tsconfig.build.json"
 ```
 
 Expected: privacy, labels, KB variants (7 языков × 4 клиента) и 5 KiB limit PASS.
@@ -2491,7 +2491,7 @@ Expected: файл есть в `tests/playwright`, `node -c tests/playwright/pri
 - [ ] **Step 3: Полные backend гейты на ноде**
 
 ```bash
-SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npm ci && npx jest --runInBand --testPathPattern='src/.*\\.spec\\.ts$' && npx tsc --noEmit --incremental false && npm run build && npx jest --runInBand --testPathPattern='tests/unit/.*\\.test\\.js$'"
+SHA=$(git -C /Users/dmitry/Downloads/spirits_back/.worktrees/profile-privacy rev-parse HEAD) && ssh dv@85.192.61.231 "git -C ~/ci/wt/profile-privacy-back fetch -q origin && git -C ~/ci/wt/profile-privacy-back checkout -q $SHA && cd ~/ci/wt/profile-privacy-back && source ~/.nvm/nvm.sh && npm ci && npx jest --runInBand --testPathPattern='src/.*\\.spec\\.ts$' && npx tsc --noEmit --incremental false -p tsconfig.build.json && npm run build && npx jest --runInBand --testPathPattern='tests/unit/.*\\.test\\.js$'"
 ```
 
 Expected: src suites, tsc, build и dist unit PASS. Если baseline `origin/main` имеет известные красные suites, прогнать ту же команду на `origin/main` и приложить машинный список failed suites; новых failures быть не должно.
