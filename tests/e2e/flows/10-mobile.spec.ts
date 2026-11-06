@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 
 // Run under mobile-user project (iPhone 13 viewport, storageState: test-user.json)
 
@@ -60,5 +60,296 @@ test.describe('Flow 10 — Mobile Layout', () => {
     // Verify chat input and send button are visible on mobile
     await expect(page.getByTestId('chat-input')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId('chat-send-btn')).toBeVisible({ timeout: 10_000 });
+  });
+
+  const LONG_NAME = 'ОченьДлинноеИмяПользователяБезПробелов'.repeat(2);
+  const LONG_SURNAME = 'ОченьДлиннаяФамилияПользователяБезПробелов'.repeat(2);
+  const LONG_NICKNAME = 'longnickname'.repeat(12);
+  const LONG_EMAIL = `${'a'.repeat(64)}@${'b'.repeat(63)}.invalid`;
+  const LONG_DISPLAY_NAME = `${LONG_NAME} ${LONG_SURNAME}`;
+  const LONG_NICKNAME_TEXT = `@${LONG_NICKNAME}`;
+
+  const setupProfileFixture = async (page: Page, telegramFirstNameFallback = false) => {
+    await page.addInitScript(({ firstName, lastName, phone, email }) => {
+      const stored = localStorage.getItem('userData');
+      if (!stored) throw new Error('profile fixture: userData is missing from storageState');
+      const userData = JSON.parse(stored);
+      localStorage.setItem('userData', JSON.stringify({
+        ...userData,
+        firstName,
+        lastName,
+        // ProfileView запрашивает анкету только при truthy user.phone. Email-shaped
+        // значение сохраняет реальный GET/render-путь и не использует номер телефона.
+        phone,
+        email,
+      }));
+    }, { firstName: LONG_NAME, lastName: LONG_SURNAME, phone: LONG_EMAIL, email: LONG_EMAIL });
+
+    await page.route('**/webhook/profile', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        json: [{
+          profileJson: {
+            name: LONG_NAME,
+            family_name: LONG_SURNAME,
+            user_nickname: LONG_NICKNAME,
+            email: LONG_EMAIL,
+            phone: '',
+            language: 'ru',
+            isadmin: false,
+            onboarded: true,
+            profile: [],
+            values: [],
+            beliefs: [],
+            desires: [],
+            intents: [],
+            interests: [],
+            skills: [],
+            valuesRich: [],
+            beliefsRich: [],
+            desiresRich: [],
+            intentsRich: [],
+            interestsRich: [],
+            skillsRich: [],
+          },
+        }],
+      });
+    });
+    await page.route('**/webhook/profile-update', (route) => route.fulfill({ json: { success: true } }));
+    await page.route('**/webhook/tg-bot/identity-status', (route) => route.fulfill({
+      json: telegramFirstNameFallback
+        ? { bound: true, tgUsername: null, tgFirstName: LONG_NICKNAME }
+        : { bound: true, tgUsername: LONG_NICKNAME },
+    }));
+  };
+
+  const longProfileLocators = (page: Page) => {
+    const name = page.getByTestId('profile-name');
+    return {
+      name,
+      phone: page.getByTestId('profile-phone'),
+      emails: page.getByText(LONG_EMAIL, { exact: true }),
+      photoNickname: name.locator('..').getByText(LONG_NICKNAME_TEXT, { exact: true }),
+      telegramNickname: page.locator('#profile-card-telegram').getByText(LONG_NICKNAME_TEXT, { exact: true }),
+    };
+  };
+
+  const expectLongProfileText = async (page: Page) => {
+    const locators = longProfileLocators(page);
+    await expect(locators.name).toHaveText(LONG_DISPLAY_NAME);
+    await expect(locators.phone).toHaveText(LONG_EMAIL);
+    await expect(locators.emails).toHaveCount(2);
+    await expect(locators.photoNickname).toHaveCount(1);
+    await expect(locators.photoNickname).toHaveText(LONG_NICKNAME_TEXT);
+    await expect(locators.telegramNickname).toHaveCount(1);
+    await expect(locators.telegramNickname).toHaveText(LONG_NICKNAME_TEXT);
+  };
+
+  const openProfileFixture = async (page: Page) => {
+    await page.goto('/profile?lang=ru');
+    const root = page.getByTestId('profile-root');
+    await expect(root).toBeVisible();
+    await expectLongProfileText(page);
+    await expect(root.locator('.animate-spin')).toHaveCount(0);
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  };
+
+  const expectNoProfileOverflow = async (page: Page) => {
+    await expect.poll(() => page.evaluate(() => {
+      const root = document.querySelector<HTMLElement>('[data-testid="profile-root"]');
+      const content = document.querySelector<HTMLElement>('[data-testid="profile-content"]');
+      if (!root || !content) return false;
+      return document.documentElement.scrollWidth <= window.innerWidth
+        && root.scrollWidth <= window.innerWidth
+        && content.scrollWidth <= content.clientWidth;
+    })).toBe(true);
+  };
+
+  const expectOwnContentToFit = async (locator: Locator) => {
+    await expect.poll(() => locator.evaluate((element) => (
+      element.scrollWidth <= element.clientWidth
+    ))).toBe(true);
+  };
+
+  const expectLongProfileValuesToFit = async (page: Page) => {
+    const locators = longProfileLocators(page);
+    for (const locator of [
+      locators.name,
+      locators.phone,
+      locators.emails.nth(0),
+      locators.emails.nth(1),
+      locators.photoNickname,
+      locators.telegramNickname,
+    ]) {
+      await expectOwnContentToFit(locator);
+    }
+  };
+
+  const expectControlInsideViewport = async (control: Locator) => {
+    await expect(control).toBeVisible();
+    await expect(control).toBeEnabled();
+    await expect(control).toBeInViewport({ ratio: 1 });
+  };
+
+  test.describe('profile layout regressions', () => {
+    // PWA service worker после load перехватывает контроль страницы, и page.route
+    // перестаёт видеть API. Блокируем его только для этих fixture-тестов.
+    test.use({ serviceWorkers: 'block' });
+
+    for (const width of [320, 360, 390]) {
+      test(`profile controls fit ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 664 });
+        await setupProfileFixture(page);
+        await openProfileFixture(page);
+
+        await expectControlInsideViewport(page.getByRole('combobox', { name: 'Язык интерфейса' }));
+        await expectControlInsideViewport(page.getByRole('button', { name: 'Обновить', exact: true }));
+        await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
+        await expectLongProfileValuesToFit(page);
+        await expectNoProfileOverflow(page);
+
+        await page.getByTestId('profile-edit-btn').click();
+        await expectControlInsideViewport(page.getByTestId('profile-cancel-btn'));
+        await expectControlInsideViewport(page.getByTestId('profile-save-btn'));
+        await expect(page.getByTestId('profile-name-input')).toHaveValue(LONG_NAME);
+        await expect(page.getByTestId('profile-lastname-input')).toHaveValue(LONG_SURNAME);
+        await expectNoProfileOverflow(page);
+
+        await page.getByTestId('profile-cancel-btn').click();
+        await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
+
+        await page.getByTestId('profile-edit-btn').click();
+        await expect(page.getByTestId('profile-name-input')).toHaveValue(LONG_NAME);
+        await expect(page.getByTestId('profile-lastname-input')).toHaveValue(LONG_SURNAME);
+        page.once('dialog', async (dialog) => dialog.accept());
+        await page.getByTestId('profile-save-btn').click();
+        await expectControlInsideViewport(page.getByTestId('profile-edit-btn'));
+        await expectNoProfileOverflow(page);
+      });
+    }
+
+    test('profile keeps bottom navigation clearance at 640px', async ({ page }) => {
+      await page.setViewportSize({ width: 640, height: 800 });
+      await setupProfileFixture(page);
+      await openProfileFixture(page);
+
+      await expect.poll(() => page.getByTestId('profile-content').evaluate((element) => (
+        getComputedStyle(element).paddingBottom
+      ))).toBe('80px');
+    });
+
+    test('profile Telegram first name fallback wraps at 320px', async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 664 });
+      await setupProfileFixture(page, true);
+      await page.goto('/profile?lang=ru');
+      const root = page.getByTestId('profile-root');
+      await expect(root).toBeVisible();
+      const telegramFirstName = page.locator('#profile-card-telegram').getByText(LONG_NICKNAME, { exact: true });
+      await expect(telegramFirstName).toBeVisible();
+      await expect(root.locator('.animate-spin')).toHaveCount(0);
+      await page.evaluate(() => document.fonts.ready.then(() => undefined));
+
+      await expectOwnContentToFit(telegramFirstName);
+      await expectNoProfileOverflow(page);
+    });
+
+    test('profile delete dialog fits short mobile viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 568 });
+      await setupProfileFixture(page);
+      await openProfileFixture(page);
+
+      await page.getByRole('button', { name: 'Удалить аккаунт', exact: true }).click();
+      const confirmDelete = page.getByRole('button', { name: 'Удалить навсегда', exact: true });
+      const cancel = page.getByRole('button', { name: 'Отмена', exact: true });
+      await expect(confirmDelete).toBeVisible();
+      await expect(cancel).toBeVisible();
+      await cancel.scrollIntoViewIfNeeded();
+      await expect(cancel).toBeInViewport({ ratio: 1 });
+      await cancel.click();
+      await expect(confirmDelete).toHaveCount(0);
+    });
+  });
+
+  test.describe('mobile admin users sorting', () => {
+    test.use({
+      storageState: './tests/e2e/.auth/test-admin.json',
+      serviceWorkers: 'block',
+    });
+
+    const expectNoAdminOverflow = async (page: Page) => {
+      await expect.poll(() => page.evaluate(() => {
+        const admin = document.querySelector<HTMLElement>('[data-testid="admin-root"]');
+        if (!admin) return false;
+        return document.documentElement.scrollWidth <= window.innerWidth
+          && admin.scrollWidth <= window.innerWidth;
+      })).toBe(true);
+    };
+
+    test('last activity sorts mobile cards in both directions', async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 844 });
+      let activityByPhone = new Map<string, number>();
+      await page.route('**/webhook/admin/users/tokens?*', async (route) => {
+        const response = await route.fetch();
+        const body = await response.json() as {
+          users: { phone: string; last_active: string | null }[];
+        };
+        activityByPhone = new Map(body.users.map((user) => {
+          const parsed = user.last_active ? Date.parse(user.last_active) : Number.NEGATIVE_INFINITY;
+          const timestamp = Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+          return [user.phone, timestamp] as const;
+        }));
+        await route.fulfill({ response, json: body });
+      });
+      await page.goto('/admin?tab=users');
+      await expect(page.getByTestId('admin-root')).toBeVisible();
+
+      const sort = page.getByTestId('admin-users-mobile-sort').locator('select');
+      const cards = page.locator('[data-testid^="admin-user-mobile-card-"]');
+      await expect(sort).toBeVisible();
+      await expect(cards.first()).toBeVisible();
+
+      const readPhones = () => cards.evaluateAll((elements) => elements.map(
+        (element) => element.getAttribute('data-testid')!.replace('admin-user-mobile-card-', ''),
+      ));
+      const expectActivityOrder = async (direction: 'asc' | 'desc') => {
+        await expect.poll(async () => {
+          const phones = await readPhones();
+          if (phones.length !== activityByPhone.size) return false;
+          const values = phones.map((phone) => activityByPhone.get(phone) ?? Number.NEGATIVE_INFINITY);
+          return values.every((value, index) => index === 0 || (
+            direction === 'desc' ? values[index - 1] >= value : values[index - 1] <= value
+          ));
+        }).toBe(true);
+      };
+
+      await sort.selectOption('last_active|desc');
+      await expectActivityOrder('desc');
+      await sort.selectOption('last_active|asc');
+      await expectActivityOrder('asc');
+    });
+
+    test('admin error state fits mobile', async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 844 });
+      await page.route('**/webhook/admin/users/active?*', (route) => route.fulfill({
+        status: 500,
+        contentType: 'text/plain',
+        body: 'test error',
+      }));
+      await page.goto('/admin?tab=users');
+      await expect(page.getByText('Активность: 500')).toBeVisible();
+      await expectNoAdminOverflow(page);
+    });
+
+    test('admin empty state fits mobile', async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 844 });
+      await page.goto('/admin?tab=users');
+      await expect(page.getByTestId('admin-root')).toBeVisible();
+      await page.getByPlaceholder('Поиск по телефону...').fill('999999999999999999999999999999');
+      await expect(page.getByText('Нет пользователей')).toBeVisible();
+      await expectNoAdminOverflow(page);
+    });
   });
 });
