@@ -255,4 +255,84 @@ test.describe('Flow 10 — Mobile Layout', () => {
       await expect(confirmDelete).toHaveCount(0);
     });
   });
+
+  test.describe('mobile admin users sorting', () => {
+    test.use({
+      storageState: './tests/e2e/.auth/test-admin.json',
+      serviceWorkers: 'block',
+    });
+
+    const expectNoAdminOverflow = async (page: Page) => {
+      await expect.poll(() => page.evaluate(() => {
+        const admin = document.querySelector<HTMLElement>('[data-testid="admin-root"]');
+        if (!admin) return false;
+        return document.documentElement.scrollWidth <= window.innerWidth
+          && admin.scrollWidth <= window.innerWidth;
+      })).toBe(true);
+    };
+
+    test('last activity sorts mobile cards in both directions', async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 844 });
+      let activityByPhone = new Map<string, number>();
+      await page.route('**/webhook/admin/users/tokens?*', async (route) => {
+        const response = await route.fetch();
+        const body = await response.json() as {
+          users: { phone: string; last_active: string | null }[];
+        };
+        activityByPhone = new Map(body.users.map((user) => {
+          const parsed = user.last_active ? Date.parse(user.last_active) : Number.NEGATIVE_INFINITY;
+          const timestamp = Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+          return [user.phone, timestamp] as const;
+        }));
+        await route.fulfill({ response, json: body });
+      });
+      await page.goto('/admin?tab=users');
+      await expect(page.getByTestId('admin-root')).toBeVisible();
+
+      const sort = page.getByTestId('admin-users-mobile-sort').locator('select');
+      const cards = page.locator('[data-testid^="admin-user-mobile-card-"]');
+      await expect(sort).toBeVisible();
+      await expect(cards.first()).toBeVisible();
+
+      const readPhones = () => cards.evaluateAll((elements) => elements.map(
+        (element) => element.getAttribute('data-testid')!.replace('admin-user-mobile-card-', ''),
+      ));
+      const expectActivityOrder = async (direction: 'asc' | 'desc') => {
+        await expect.poll(async () => {
+          const phones = await readPhones();
+          if (phones.length !== activityByPhone.size) return false;
+          const values = phones.map((phone) => activityByPhone.get(phone) ?? Number.NEGATIVE_INFINITY);
+          return values.every((value, index) => index === 0 || (
+            direction === 'desc' ? values[index - 1] >= value : values[index - 1] <= value
+          ));
+        }).toBe(true);
+      };
+
+      await sort.selectOption('last_active|desc');
+      await expectActivityOrder('desc');
+      await sort.selectOption('last_active|asc');
+      await expectActivityOrder('asc');
+    });
+
+    test('admin error state fits mobile', async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 844 });
+      await page.route('**/webhook/admin/users/active?*', (route) => route.fulfill({
+        status: 500,
+        contentType: 'text/plain',
+        body: 'test error',
+      }));
+      await page.goto('/admin?tab=users');
+      await expect(page.getByText('Активность: 500')).toBeVisible();
+      await expectNoAdminOverflow(page);
+    });
+
+    test('admin empty state fits mobile', async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 844 });
+      await page.goto('/admin?tab=users');
+      await expect(page.getByTestId('admin-root')).toBeVisible();
+      await page.getByPlaceholder('Поиск по телефону...').fill('999999999999999999999999999999');
+      await expect(page.getByText('Нет пользователей')).toBeVisible();
+      await expectNoAdminOverflow(page);
+    });
+  });
 });
