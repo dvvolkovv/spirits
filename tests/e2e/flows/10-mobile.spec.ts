@@ -85,7 +85,7 @@ test.describe('Flow 10 — Mobile Layout', () => {
       }));
     }, { firstName: LONG_NAME, lastName: LONG_SURNAME, phone: LONG_EMAIL, email: LONG_EMAIL });
 
-    await page.route('**/webhook/profile', async (route) => {
+    await page.route('**/webhook/profile*', async (route) => {
       if (route.request().method() !== 'GET') {
         await route.fallback();
         return;
