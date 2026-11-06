@@ -478,7 +478,7 @@ const ProfileView: React.FC = () => {
               </label>
             </div>
             
-            <div className="text-center">
+            <div className="text-center w-full">
               <h2 data-testid="profile-name" className="text-xl font-bold text-gray-900 break-words">
                 {getUserDisplayName()}
               </h2>
