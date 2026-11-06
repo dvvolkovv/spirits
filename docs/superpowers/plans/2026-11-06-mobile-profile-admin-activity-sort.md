@@ -13,7 +13,7 @@
 ## Файлы
 
 - `src/components/profile/ProfileView.tsx` — адаптивная шапка, отступы карточек, переносы длинных значений, прокрутка модального окна.
-- `src/components/admin/AdminUsersView.tsx` — мобильный `SortSelect` и атрибуты строк для проверки порядка.
+- `src/components/admin/AdminUsersView.tsx` — мобильный `SortSelect` над уже существующими `MobileRecordCard`.
 - `src/components/admin/AdminUsersView.test.tsx` — компонентные тесты сортировки по активности и совместной работы с поиском.
 - `tests/e2e/flows/10-mobile.spec.ts` — браузерные проверки геометрии профиля и мобильной сортировки админки.
 - `docs/superpowers/specs/2026-11-06-mobile-profile-admin-activity-sort-design.md` — согласованная спецификация, не меняется.
@@ -338,9 +338,9 @@ const chooseMobileSort = async (value: string) => {
   await settle();
 };
 
-const rowPhones = () => Array.from(
-  container.querySelectorAll<HTMLElement>('[data-testid="admin-user-row"]'),
-  (row) => row.dataset.phone,
+const mobileCardPhones = () => Array.from(
+  container.querySelectorAll<HTMLElement>('[data-testid^="admin-user-mobile-card-"]'),
+  (card) => card.dataset.testid!.replace('admin-user-mobile-card-', ''),
 );
 ```
 
@@ -350,18 +350,18 @@ const rowPhones = () => Array.from(
   describe('мобильная сортировка по последней активности', () => {
     it('сначала новые: свежая активность первая, отсутствующая дата — в конце', async () => {
       await chooseMobileSort('last_active|desc');
-      expect(rowPhones()).toEqual(['70000000002', '70000000001', '70000000003']);
+      expect(mobileCardPhones()).toEqual(['70000000002', '70000000001', '70000000003']);
     });
 
     it('сначала давние: порядок дат меняется на возрастание', async () => {
       await chooseMobileSort('last_active|asc');
-      expect(rowPhones()).toEqual(['70000000003', '70000000001', '70000000002']);
+      expect(mobileCardPhones()).toEqual(['70000000003', '70000000001', '70000000002']);
     });
 
     it('сортировка применяется к результату поиска', async () => {
       await typeSearch('70000000002');
       await chooseMobileSort('last_active|desc');
-      expect(rowPhones()).toEqual(['70000000002']);
+      expect(mobileCardPhones()).toEqual(['70000000002']);
     });
   });
 ```
@@ -374,25 +374,37 @@ const rowPhones = () => Array.from(
   test.describe('mobile admin users sorting', () => {
     test.use({ storageState: './tests/e2e/.auth/test-admin.json' });
 
-    test('last activity sorts rows in both directions', async ({ page }) => {
+    test('last activity sorts mobile cards in both directions', async ({ page }) => {
       await page.setViewportSize({ width: 360, height: 844 });
+      let activityByPhone = new Map<string, number>();
+      await page.route('**/webhook/admin/users/tokens?*', async (route) => {
+        const response = await route.fetch();
+        const body = await response.json() as {
+          users: { phone: string; last_active: string | null }[];
+        };
+        activityByPhone = new Map(body.users.map((user) => {
+          const parsed = user.last_active ? Date.parse(user.last_active) : Number.NEGATIVE_INFINITY;
+          const timestamp = Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+          return [user.phone, timestamp] as const;
+        }));
+        await route.fulfill({ response, json: body });
+      });
       await page.goto('/admin?tab=users');
       await expect(page.getByTestId('admin-root')).toBeVisible();
 
       const sort = page.getByTestId('admin-users-mobile-sort').locator('select');
-      const rows = page.getByTestId('admin-user-row');
+      const cards = page.locator('[data-testid^="admin-user-mobile-card-"]');
       await expect(sort).toBeVisible();
-      await expect(rows.first()).toBeVisible();
+      await expect(cards.first()).toBeVisible();
 
-      const readActivity = () => rows.evaluateAll((elements) => elements.map((element) => {
-        const raw = element.getAttribute('data-last-active');
-        const timestamp = raw ? Date.parse(raw) : Number.NEGATIVE_INFINITY;
-        return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
-      }));
-
+      const readPhones = () => cards.evaluateAll((elements) => elements.map(
+        (element) => element.getAttribute('data-testid')!.replace('admin-user-mobile-card-', ''),
+      ));
       const expectActivityOrder = async (direction: 'asc' | 'desc') => {
         await expect.poll(async () => {
-          const values = await readActivity();
+          const phones = await readPhones();
+          if (phones.length !== activityByPhone.size) return false;
+          const values = phones.map((phone) => activityByPhone.get(phone) ?? Number.NEGATIVE_INFINITY);
           return values.every((value, index) => index === 0 || (
             direction === 'desc' ? values[index - 1] >= value : values[index - 1] <= value
           ));
@@ -444,7 +456,7 @@ ssh dv@85.192.61.231 "git -C ~/ci/spirits_front fetch -q origin && git -C ~/ci/s
 ssh dv@85.192.61.231 'cd ~/ci/spirits_front && source ~/.nvm/nvm.sh && pnpm exec vitest run src/components/admin/AdminUsersView.test.tsx'
 ```
 
-Expected: три новых теста FAIL, потому что `admin-users-mobile-sort` и `admin-user-row` ещё отсутствуют; прежние проверки поиска остаются зелёными.
+Expected: три новых компонентных теста FAIL, потому что `admin-users-mobile-sort` ещё отсутствует; уже существующие мобильные карточки и прежние проверки поиска остаются зелёными.
 
 ### Task 4: Мобильный контрол сортировки на общем состоянии
 
@@ -489,22 +501,7 @@ import { SortableTh, SortSelect, useTableSort, cmp, SortState } from './shared/s
 
 Не менять начальное `useState<SortState<UserSortKey>>({ key: 'spent_period', dir: 'desc' })` и десктопные `SortableTh`.
 
-- [ ] **Step 3: Добавить строкам атрибуты проверки порядка**
-
-Добавить три атрибута существующей `<tr>` в `sortedUsers.map`:
-
-```tsx
-                    <tr
-                      key={u.phone}
-                      data-testid="admin-user-row"
-                      data-phone={u.phone}
-                      data-last-active={u.last_active ?? ''}
-                      onClick={() => setSelectedPhone(u.phone)}
-                      className="hover:bg-forest-50 transition-colors cursor-pointer"
-                    >
-```
-
-- [ ] **Step 4: Запустить компонентные тесты**
+- [ ] **Step 3: Запустить компонентные тесты**
 
 ```bash
 git add src/components/admin/AdminUsersView.tsx
@@ -517,12 +514,12 @@ ssh dv@85.192.61.231 'cd ~/ci/spirits_front && source ~/.nvm/nvm.sh && pnpm exec
 
 Expected: все тесты `AdminUsersView.test.tsx` PASS, включая оба направления активности и поиск.
 
-- [ ] **Step 5: Запустить обе мобильные браузерные проверки**
+- [ ] **Step 4: Запустить обе мобильные браузерные проверки**
 
 На ноде, при запущенном Vite на `127.0.0.1:5173`:
 
 ```bash
-E2E_BASE_URL=http://127.0.0.1:5173 E2E_API_URL=https://my.linkeon.io DEBUG_SECRET="$DEBUG_SECRET" pnpm exec playwright test tests/e2e/flows/10-mobile.spec.ts --project=mobile-user --grep "profile controls fit|last activity sorts rows|empty and error states fit"
+E2E_BASE_URL=http://127.0.0.1:5173 E2E_API_URL=https://my.linkeon.io DEBUG_SECRET="$DEBUG_SECRET" pnpm exec playwright test tests/e2e/flows/10-mobile.spec.ts --project=mobile-user --grep "profile controls fit|last activity sorts mobile cards|empty and error states fit"
 ```
 
 Expected: 5/5 PASS — три ширины профиля, сортировка админки в обоих направлениях и мобильные состояния ошибки/пустого списка.
