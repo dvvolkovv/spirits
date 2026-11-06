@@ -108,11 +108,19 @@ const click = async (testid: string) => {
 
 const chooseMobileSort = async (value: string) => {
   const select = q('admin-users-mobile-sort')?.querySelector('select') as HTMLSelectElement | null;
-  expect(select).not.toBeNull();
+  if (!select) throw new Error('нет select в admin-users-mobile-sort');
   await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select!, value);
-    select!.dispatchEvent(new Event('change', { bubbles: true }));
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, value);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
   });
+  await settle();
+};
+
+const clickLastActivityHeader = async () => {
+  const header = Array.from(container.querySelectorAll('th'))
+    .find((th) => th.textContent?.includes('Последняя активность'));
+  if (!header) throw new Error('нет заголовка «Последняя активность»');
+  await act(async () => { header.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   await settle();
 };
 
@@ -189,6 +197,24 @@ describe('AdminUsersView — кнопка «Открыть карточку» п
       await typeSearch('70000000002');
       await chooseMobileSort('last_active|desc');
       expect(mobileCardPhones()).toEqual(['70000000002']);
+    });
+
+    it('третий клик по заголовку сбрасывает сортировку и отражается в мобильном select', async () => {
+      const originalOrder = ['70000000001', '70000000002', '70000000003'];
+      const select = q('admin-users-mobile-sort')?.querySelector('select') as HTMLSelectElement | null;
+      if (!select) throw new Error('нет select в admin-users-mobile-sort');
+
+      await clickLastActivityHeader();
+      expect(mobileCardPhones()).toEqual(['70000000002', '70000000001', '70000000003']);
+      await clickLastActivityHeader();
+      expect(mobileCardPhones()).toEqual(['70000000003', '70000000001', '70000000002']);
+      await clickLastActivityHeader();
+
+      expect(mobileCardPhones()).toEqual(originalOrder);
+      const emptyOption = select.querySelector('option[value=""]');
+      expect(emptyOption).not.toBeNull();
+      expect(emptyOption!.textContent).toBe('Без сортировки');
+      expect(select.value).toBe('');
     });
   });
 });
