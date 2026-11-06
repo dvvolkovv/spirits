@@ -593,12 +593,13 @@ import { automaticProfilingAllowed } from '../privacy/profile-privacy';
 jest.mock('../privacy/profile-privacy', () => ({ automaticProfilingAllowed: jest.fn() }));
 const allowed = jest.mocked(automaticProfilingAllowed);
 
-function make(answer = '{}') {
+function make(answer: string | null = '{}') {
   const pg = { query: jest.fn(async () => ({ rows: [{ content: 'PREV' }] })) };
   const cli = { text: jest.fn(async () => answer) };
   const session = { run: jest.fn(async () => ({ records: [] })), close: jest.fn(async () => undefined) };
   const svc = new Neo4jService(pg as any, cli as any);
   (svc as any).driver = {};
+  (svc as any).logger = { warn: jest.fn(), error: jest.fn(), log: jest.fn() };
   (svc as any).getSession = jest.fn(() => session);
   return { svc, pg, cli, session };
 }
@@ -626,6 +627,28 @@ it('disabled prompt profile returns an empty string before opening Neo4j', async
   const { svc } = make();
   await expect(svc.getProfileDescription('u')).resolves.toBe('');
   expect((svc as any).getSession).not.toHaveBeenCalled();
+});
+
+it('does not call the first provider when revoked during history', async () => {
+  allowed.mockResolvedValueOnce(true).mockResolvedValue(false);
+  const { svc, cli } = make();
+  await svc.consolidateFromChat('u', 'a', 'USER', 'ANSWER');
+  expect(cli.text).not.toHaveBeenCalled();
+});
+
+it('does not start OpenRouter when Claude failed after revocation', async () => {
+  allowed.mockResolvedValueOnce(true).mockResolvedValueOnce(true).mockResolvedValue(false);
+  const post = jest.spyOn(axios, 'post');
+  const { svc } = make(null);
+  await svc.consolidateFromChat('u', 'a', 'USER', 'ANSWER');
+  expect(post).not.toHaveBeenCalled();
+});
+
+it('does not log malformed model content after revocation', async () => {
+  allowed.mockResolvedValueOnce(true).mockResolvedValue(false);
+  const { svc } = make('PRIVATE MALFORMED');
+  await svc.consolidateFromChat('u', 'a', 'USER', 'ANSWER');
+  expect((svc as any).logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('PRIVATE MALFORMED'));
 });
 ```
 
@@ -657,7 +680,13 @@ Expected: FAIL — history/LLM вызываются при запрете.
 import { automaticProfilingAllowed } from '../privacy/profile-privacy';
 ```
 
-В начало `consolidateFromChat`, после parse перед первой записью и перед каждой следующей write-группой:
+В `consolidateFromChat` один и тот же guard применяется в таких точках:
+
+- на входе до чтения history;
+- после awaited history и перед первым provider call;
+- непосредственно перед OpenRouter `axios.post` в fallback-ветке;
+- сразу после `if (!content) return` и ДО JSON parse или логирования текста;
+- перед первой записью и перед каждой следующей write-группой (`updateProfileEntities`, `session2.run`/count, embedding).
 
 ```ts
 if (!this.pg || !(await automaticProfilingAllowed(this.pg, userId))) return;
