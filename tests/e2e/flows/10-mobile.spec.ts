@@ -229,6 +229,16 @@ test.describe('Flow 10 — Mobile Layout', () => {
       });
     }
 
+    test('profile keeps bottom navigation clearance at 640px', async ({ page }) => {
+      await page.setViewportSize({ width: 640, height: 800 });
+      await setupProfileFixture(page);
+      await openProfileFixture(page);
+
+      await expect.poll(() => page.getByTestId('profile-content').evaluate((element) => (
+        getComputedStyle(element).paddingBottom
+      ))).toBe('80px');
+    });
+
     test('profile delete dialog fits short mobile viewport', async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 568 });
       await setupProfileFixture(page);
