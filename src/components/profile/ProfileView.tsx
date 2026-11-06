@@ -556,7 +556,7 @@ const ProfileView: React.FC = () => {
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
                 {t('profile.telegram_bound')}
                 {tgIdentity.tgUsername && <span className="text-blue-600 font-medium break-all">@{tgIdentity.tgUsername}</span>}
-                {!tgIdentity.tgUsername && tgIdentity.tgFirstName && <span className="text-gray-600">{tgIdentity.tgFirstName}</span>}
+                {!tgIdentity.tgUsername && tgIdentity.tgFirstName && <span className="text-gray-600 min-w-0 break-words">{tgIdentity.tgFirstName}</span>}
               </div>
             ) : (
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
