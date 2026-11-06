@@ -404,6 +404,7 @@ const AdminUsersView: React.FC = () => {
             <SortSelect
               state={sort}
               onSort={setSort}
+              emptyLabel="Без сортировки"
               className="w-full px-3 py-2"
               options={[
                 { key: 'spent_period', dir: 'desc', label: 'Списано за 30 дн: по убыванию' },
