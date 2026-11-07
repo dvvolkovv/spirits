@@ -15,19 +15,26 @@ export default function PrivacySettings() {
   const [saving, setSaving] = useState<Record<PrivacyKey, boolean>>({ automaticProfiling: false, discoverable: false });
   const inFlight = useRef(new Set<PrivacyKey>());
   const mounted = useRef(true);
+  const loadGeneration = useRef(0);
 
   const load = useCallback(async () => {
+    const generation = ++loadGeneration.current;
+    const isLatest = () => mounted.current && loadGeneration.current === generation;
     setLoading(true); setLoadFailed(false);
     try {
       const response = await apiClient.get('/webhook/privacy-settings');
       if (!response.ok) throw new Error(String(response.status));
       const value = await response.json() as PrivacySettings;
-      if (mounted.current) setSettings(value);
-    } catch { if (mounted.current) { setSettings(null); setLoadFailed(true); } }
-    finally { if (mounted.current) setLoading(false); }
+      if (isLatest()) setSettings(value);
+    } catch { if (isLatest()) { setSettings(null); setLoadFailed(true); } }
+    finally { if (isLatest()) setLoading(false); }
   }, []);
 
-  useEffect(() => { mounted.current = true; void load(); return () => { mounted.current = false; }; }, [load]);
+  useEffect(() => {
+    mounted.current = true;
+    void load();
+    return () => { mounted.current = false; loadGeneration.current += 1; };
+  }, [load]);
 
   const change = async (key: PrivacyKey, next: boolean) => {
     if (!settings || inFlight.current.has(key)) return;

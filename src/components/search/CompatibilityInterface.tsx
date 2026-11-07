@@ -204,7 +204,10 @@ const CompatibilityInterface: React.FC = () => {
       });
 
       if (!response.ok) {
-        const body = await response.json().catch(() => null) as { code?: string } | null;
+        let body: { code?: string } | null = null;
+        if (response.status === 404 || response.status === 422) {
+          body = await response.json().catch(() => null) as { code?: string } | null;
+        }
         setAnalysisResult(t(compatibilityErrorKey(response.status, body?.code ?? null)));
         return;
       }
