@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Heart, X, Plus, Users, Info } from 'lucide-react';
 import { apiClient } from '../../services/apiClient';
 import { createChunkDecoder } from '../../utils/streamDecoder';
+import { compatibilityErrorKey } from './compatibilityError';
 
 const CompatibilityInterface: React.FC = () => {
   const { user } = useAuth();
@@ -203,7 +204,12 @@ const CompatibilityInterface: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let body: { code?: string } | null = null;
+        if (response.status === 404 || response.status === 422) {
+          body = await response.json().catch(() => null) as { code?: string } | null;
+        }
+        setAnalysisResult(t(compatibilityErrorKey(response.status, body?.code ?? null)));
+        return;
       }
 
       const reader = response.body?.getReader();

@@ -630,7 +630,9 @@
     "error_picker_cancelled": "Kontaktauswahl abgebrochen",
     "error_picker_generic": "Fehler bei der Kontaktauswahl. Stell sicher, dass du den Zugriff auf Kontakte erlaubt hast.",
     "error_analysis": "Bei der Kompatibilitätsanalyse ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
-    "phone_placeholder": "+7 (900) 123-45-67"
+    "phone_placeholder": "+7 (900) 123-45-67",
+    "error_profile_not_available": "Dieses Profil ist nicht verfügbar.",
+    "error_profile_data_unavailable": "Die Kompatibilitätsanalyse ist nicht verfügbar, da die automatische Profilerstellung bei einem Profil deaktiviert ist."
   },
   "chats": {
     "title": "Chats",
@@ -814,6 +816,18 @@
       "denied": "Verbindung abgebrochen",
       "expired": "Die Verbindung ist abgelaufen, bitte erneut versuchen",
       "failed": "Zoom hat die Verbindung nicht bestätigt"
+    },
+    "privacy_controls": {
+      "title": "Privatsphäre",
+      "subtitle": "Steuere die automatische Profilerstellung und deine Sichtbarkeit in der Suche.",
+      "automatic_profiling": "Mein Profil automatisch ergänzen",
+      "automatic_profiling_description": "Wenn deaktiviert, werden keine neuen persönlichen oder geschäftlichen Angaben gesammelt. Gespeicherte Angaben werden nicht von Assistenten verwendet und anderen nicht gezeigt. Aufgaben und Termine werden weiterhin gespeichert.",
+      "discoverable": "Man kann mich in der Suche finden",
+      "discoverable_description": "Wenn deaktiviert, können neue Menschen dein Profil nicht finden und dir keine Angebote senden. Bestehende Kontakte und Unterhaltungen bleiben erhalten.",
+      "loading": "Datenschutzeinstellungen werden geladen…",
+      "load_error": "Datenschutzeinstellungen konnten nicht geladen werden.",
+      "retry": "Erneut versuchen",
+      "save_error": "Die Einstellung konnte nicht gespeichert werden. Versuche es erneut."
     }
   },
   "video": {

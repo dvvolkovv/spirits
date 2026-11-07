@@ -81,27 +81,24 @@ const SearchInterface: React.FC = () => {
     return intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)];
   });
 
-  // Используем localStorage для сохранения состояния поиска
+  // Используем localStorage только для сохранения запроса пользователя
   const [searchQuery, setSearchQuery] = useState(() => {
     return localStorage.getItem('search_query') || '';
   });
-  const [results, setResults] = useState<UserMatch[]>(() => {
-    const saved = localStorage.getItem('search_results');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [results, setResults] = useState<UserMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchComment, setSearchComment] = useState(() => {
-    return localStorage.getItem('search_comment') || '';
-  });
-  const [hasSearched, setHasSearched] = useState(() => {
-    return localStorage.getItem('has_searched') === 'true';
-  });
+  const [searchComment, setSearchComment] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserMatch | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     // Scroll to top on mobile when component mounts
     window.scrollTo(0, 0);
+
+    for (const key of ['search_results', 'search_comment', 'has_searched']) {
+      localStorage.removeItem(key);
+    }
 
     const interval = setInterval(() => {
       setCurrentPlaceholder(intentPlaceholders[Math.floor(Math.random() * intentPlaceholders.length)]);
@@ -110,22 +107,10 @@ const SearchInterface: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Сохраняем состояние в localStorage при изменениях
+  // Сохраняем запрос пользователя в localStorage при изменениях
   useEffect(() => {
     localStorage.setItem('search_query', searchQuery);
   }, [searchQuery]);
-
-  useEffect(() => {
-    localStorage.setItem('search_results', JSON.stringify(results));
-  }, [results]);
-
-  useEffect(() => {
-    localStorage.setItem('search_comment', searchComment);
-  }, [searchComment]);
-
-  useEffect(() => {
-    localStorage.setItem('has_searched', hasSearched.toString());
-  }, [hasSearched]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -134,10 +119,6 @@ const SearchInterface: React.FC = () => {
     setSearchComment('');
     setResults([]);
     setHasSearched(true);
-
-    // Очищаем предыдущие результаты из localStorage
-    localStorage.removeItem('search_results');
-    localStorage.removeItem('search_comment');
 
     // Get user phone number for userId
     try {

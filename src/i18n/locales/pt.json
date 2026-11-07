@@ -633,7 +633,9 @@
     "error_picker_cancelled": "Seleção de contactos cancelada",
     "error_picker_generic": "Erro ao selecionar os contactos. Certifique-se de que deu permissão de acesso aos contactos.",
     "error_analysis": "Ocorreu um erro ao analisar a compatibilidade. Tente novamente.",
-    "phone_placeholder": "+7 (900) 123-45-67"
+    "phone_placeholder": "+7 (900) 123-45-67",
+    "error_profile_not_available": "Este perfil não está disponível.",
+    "error_profile_data_unavailable": "A análise de compatibilidade não está disponível porque o perfil automático está desativado num dos perfis."
   },
   "admin": {
     "title": "Gestão",
@@ -1203,6 +1205,18 @@
       "denied": "Conexão cancelada",
       "expired": "A conexão expirou, tente novamente",
       "failed": "O Zoom não confirmou a conexão"
+    },
+    "privacy_controls": {
+      "title": "Privacidade",
+      "subtitle": "Controle o perfil automático e a sua visibilidade na pesquisa.",
+      "automatic_profiling": "Completar automaticamente o meu perfil",
+      "automatic_profiling_description": "Se desativar, não são recolhidos novos dados pessoais ou empresariais, e os dados guardados não são usados pelos assistentes nem mostrados a outras pessoas. As tarefas e as reuniões continuam a ser memorizadas.",
+      "discoverable": "Podem encontrar-me na pesquisa",
+      "discoverable_description": "Se desativar, pessoas novas não poderão encontrar o seu perfil nem enviar-lhe propostas. Os contactos e as conversas existentes são mantidos.",
+      "loading": "A carregar as definições de privacidade…",
+      "load_error": "Não foi possível carregar as definições de privacidade.",
+      "retry": "Tentar novamente",
+      "save_error": "Não foi possível guardar a definição. Tente novamente."
     }
   },
   "video": {

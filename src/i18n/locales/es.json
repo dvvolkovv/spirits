@@ -633,7 +633,9 @@
     "error_picker_cancelled": "Selección de contactos cancelada",
     "error_picker_generic": "Error al seleccionar contactos. Comprueba que has dado permiso de acceso a los contactos.",
     "error_analysis": "Hubo un error al analizar la compatibilidad. Inténtalo de nuevo.",
-    "phone_placeholder": "+7 (900) 123-45-67"
+    "phone_placeholder": "+7 (900) 123-45-67",
+    "error_profile_not_available": "Este perfil no está disponible.",
+    "error_profile_data_unavailable": "El análisis de compatibilidad no está disponible porque el perfil automático está desactivado en uno de los perfiles."
   },
   "chats": {
     "title": "Chats",
@@ -817,6 +819,18 @@
       "denied": "Conexión cancelada",
       "expired": "La conexión ha caducado, inténtalo de nuevo",
       "failed": "Zoom no confirmó la conexión"
+    },
+    "privacy_controls": {
+      "title": "Privacidad",
+      "subtitle": "Controla el perfil automático y tu visibilidad en la búsqueda.",
+      "automatic_profiling": "Completar automáticamente mi perfil",
+      "automatic_profiling_description": "Al desactivarlo, no se recopilan nuevos datos personales ni empresariales, y los datos guardados no se usan por asistentes ni se muestran a otras personas. Las tareas y reuniones se siguen recordando.",
+      "discoverable": "Pueden encontrarme en la búsqueda",
+      "discoverable_description": "Al desactivarlo, personas nuevas no podrán encontrar tu perfil ni enviarte propuestas. Los contactos y las conversaciones existentes se conservan.",
+      "loading": "Cargando configuración de privacidad…",
+      "load_error": "No se pudo cargar la configuración de privacidad.",
+      "retry": "Reintentar",
+      "save_error": "No se pudo guardar la configuración. Inténtalo de nuevo."
     }
   },
   "video": {

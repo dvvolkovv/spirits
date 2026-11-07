@@ -4,7 +4,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { APP_BUILD } from '../../buildInfo';
 import { ANDROID_APK_URL } from '../../androidApp';
 import {
-  Shield,
   Globe,
   Bell,
   Eye,
@@ -22,6 +21,7 @@ import TalerIdEcosystemCard from './TalerIdEcosystemCard';
 import ZoomConnectCard from './ZoomConnectCard';
 import CalendarSourcesCard from './CalendarSourcesCard';
 import VoiceSettings from './VoiceSettings';
+import PrivacySettings from './PrivacySettings';
 import { LanguageSelect } from './LanguageSelect';
 import { profileCardAnchor } from '../../utils/cabinetSections';
 import {
@@ -38,9 +38,6 @@ const SettingsView: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [settings, setSettings] = useState({
-    profileVisibility: 'public',
-    valuesVisibility: 'all',
-    allowChats: 'all',
     language: i18n.language,
     notifications: {
       messages: true,
@@ -252,75 +249,7 @@ const SettingsView: React.FC = () => {
         </div>
 
         {/* Privacy Settings */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Shield className="w-5 h-5 mr-2 text-forest-600" />
-              {t('settings.privacy')}
-            </h2>
-          </div>
-          <div className="p-6 space-y-6">
-            {/* Profile Visibility */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-900">
-                  {t('settings.profile_visibility')}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {t('settings.profile_visibility_desc')}
-                </p>
-              </div>
-              <select
-                value={settings.profileVisibility}
-                onChange={(e) => handleSettingChange('profileVisibility', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-              >
-                <option value="public">{t('settings.visibility.all')}</option>
-                <option value="matches">{t('settings.visibility.matches')}</option>
-                <option value="private">{t('settings.visibility.private')}</option>
-              </select>
-            </div>
-
-            {/* Values Visibility */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-900">
-                  {t('settings.values_visibility')}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {t('settings.values_visibility_desc')}
-                </p>
-              </div>
-              <ToggleSwitch
-                enabled={settings.valuesVisibility === 'all'}
-                onChange={(enabled) => 
-                  handleSettingChange('valuesVisibility', enabled ? 'all' : 'none')
-                }
-              />
-            </div>
-
-            {/* Chat Permissions */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-gray-900">
-                  {t('settings.allow_chats')}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {t('settings.allow_chats_desc')}
-                </p>
-              </div>
-              <select
-                value={settings.allowChats}
-                onChange={(e) => handleSettingChange('allowChats', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
-              >
-                <option value="all">{t('settings.chat_access.all')}</option>
-                <option value="matches">{t('settings.chat_access.matches')}</option>
-                <option value="none">{t('settings.chat_access.none')}</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <PrivacySettings />
 
         {/* Language Settings */}
         <div className="bg-white rounded-lg shadow-sm">
