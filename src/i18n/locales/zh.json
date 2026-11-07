@@ -627,7 +627,9 @@
     "error_picker_cancelled": "已取消选择联系人",
     "error_picker_generic": "选择联系人时出错，请确认你已授权访问通讯录。",
     "error_analysis": "分析契合度时出错，请再试一次。",
-    "phone_placeholder": "+7 (900) 123-45-67"
+    "phone_placeholder": "+7 (900) 123-45-67",
+    "error_profile_not_available": "此个人资料不可用。",
+    "error_profile_data_unavailable": "由于其中一方关闭了自动画像，无法进行兼容性分析。"
   },
   "chats": {
     "title": "聊天",
@@ -811,6 +813,18 @@
       "denied": "已取消连接",
       "expired": "连接已过期，请重试",
       "failed": "Zoom 未确认连接"
+    },
+    "privacy_controls": {
+      "title": "隐私",
+      "subtitle": "管理自动画像和您在搜索中的可见性。",
+      "automatic_profiling": "自动完善我的个人资料",
+      "automatic_profiling_description": "关闭后，不会收集新的个人和商务信息，已保存的信息不会用于助手，也不会向他人显示。任务和会议仍会被记住。",
+      "discoverable": "允许他人在搜索中找到我",
+      "discoverable_description": "关闭后，新用户无法找到您的资料，也无法向您发送邀请。现有联系人和对话会保留。",
+      "loading": "正在加载隐私设置…",
+      "load_error": "无法加载隐私设置。",
+      "retry": "重试",
+      "save_error": "无法保存设置，请重试。"
     }
   },
   "video": {

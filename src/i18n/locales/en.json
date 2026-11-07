@@ -631,7 +631,9 @@
     "error_picker_cancelled": "Contact picker cancelled",
     "error_picker_generic": "Error selecting contacts. Please make sure you've granted access to contacts.",
     "error_analysis": "An error occurred during compatibility analysis. Please try again.",
-    "phone_placeholder": "+7 (900) 123-45-67"
+    "phone_placeholder": "+7 (900) 123-45-67",
+    "error_profile_not_available": "This profile is unavailable.",
+    "error_profile_data_unavailable": "Compatibility analysis is unavailable because automatic profiling is off for one of the profiles."
   },
   "admin": {
     "title": "Management",
@@ -1240,6 +1242,18 @@
       "denied": "Connection cancelled",
       "expired": "The connection link expired, please try again",
       "failed": "Zoom didn't confirm the connection"
+    },
+    "privacy_controls": {
+      "title": "Privacy",
+      "subtitle": "Control automatic profiling and your visibility in search.",
+      "automatic_profiling": "Automatically build my profile",
+      "automatic_profiling_description": "When off, new personal and business details are not collected, and saved details are not used by assistants or shown to others. Tasks and meetings are still remembered.",
+      "discoverable": "People can find me in search",
+      "discoverable_description": "When off, new people cannot find your profile or send proposals. Existing contacts and conversations remain.",
+      "loading": "Loading privacy settings…",
+      "load_error": "Could not load privacy settings.",
+      "retry": "Try again",
+      "save_error": "Could not save the setting. Please try again."
     }
   },
   "video": {

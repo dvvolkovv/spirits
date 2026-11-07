@@ -633,7 +633,9 @@
     "error_picker_cancelled": "Sélection des contacts annulée",
     "error_picker_generic": "Erreur lors de la sélection des contacts. Vérifie que l'accès aux contacts est autorisé.",
     "error_analysis": "Une erreur est survenue pendant l'analyse. Réessaie.",
-    "phone_placeholder": "+7 (900) 123-45-67"
+    "phone_placeholder": "+7 (900) 123-45-67",
+    "error_profile_not_available": "Ce profil est indisponible.",
+    "error_profile_data_unavailable": "L’analyse de compatibilité est indisponible car le profilage automatique est désactivé pour l’un des profils."
   },
   "chats": {
     "title": "Chats",
@@ -817,6 +819,18 @@
       "denied": "Connexion annulée",
       "expired": "La connexion a expiré, veuillez réessayer",
       "failed": "Zoom n'a pas confirmé la connexion"
+    },
+    "privacy_controls": {
+      "title": "Confidentialité",
+      "subtitle": "Contrôlez le profilage automatique et votre visibilité dans la recherche.",
+      "automatic_profiling": "Compléter automatiquement mon profil",
+      "automatic_profiling_description": "Si désactivé, les nouvelles informations personnelles et professionnelles ne sont pas collectées, et les informations enregistrées ne sont ni utilisées par les assistants ni montrées aux autres. Les tâches et les rendez-vous continuent d’être mémorisés.",
+      "discoverable": "On peut me trouver dans la recherche",
+      "discoverable_description": "Si désactivé, de nouvelles personnes ne pourront pas trouver votre profil ni vous envoyer de propositions. Les contacts et les conversations existants sont conservés.",
+      "loading": "Chargement des paramètres de confidentialité…",
+      "load_error": "Impossible de charger les paramètres de confidentialité.",
+      "retry": "Réessayer",
+      "save_error": "Impossible d’enregistrer le paramètre. Veuillez réessayer."
     }
   },
   "video": {
