@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { actAsync, click, clickAsync, flush, mount, tRu, visibleText, type Mounted } from '../../test/dom';
+import { actAsync, click, clickAsync, doubleClick, flush, mount, tRu, visibleText, type Mounted } from '../../test/dom';
 import PrivacySettings from './PrivacySettings';
 import { apiClient } from '../../services/apiClient';
 
@@ -81,8 +82,52 @@ it('does not start a duplicate POST for a saving field', async () => {
   api.post.mockReturnValue(new Promise(() => {}));
   const container = await open();
   const automatic = privacySwitch(container, 'automatic_profiling');
-  click(automatic); click(automatic);
+  doubleClick(automatic);
   expect(api.post).toHaveBeenCalledTimes(1);
+});
+
+type PendingGet = { resolve: (value: any) => void; reject: (reason: Error) => void };
+
+const controlStrictModeGets = () => {
+  const pending: PendingGet[] = [];
+  api.get.mockImplementation(() => new Promise((resolve, reject) => {
+    pending.push({ resolve, reject });
+  }) as any);
+  view = mount(<StrictMode><PrivacySettings /></StrictMode>);
+  expect(pending).toHaveLength(2);
+  return { container: view.container, pending };
+};
+
+it('ignores a stale StrictMode GET after a newer load and a completed POST', async () => {
+  const { container, pending } = controlStrictModeGets();
+  await actAsync(() => pending[1].resolve(ok({ automaticProfiling: true, discoverable: true })));
+  await settle();
+  const automatic = privacySwitch(container, 'automatic_profiling');
+  expect(automatic.getAttribute('aria-checked')).toBe('true');
+
+  api.post.mockResolvedValue(ok({ automaticProfiling: false, discoverable: true }));
+  await clickAsync(automatic);
+  await settle();
+  expect(automatic.getAttribute('aria-checked')).toBe('false');
+  expect(api.post).toHaveBeenCalledTimes(1);
+
+  await actAsync(() => pending[0].resolve(ok({ automaticProfiling: true, discoverable: true })));
+  await settle();
+  expect(privacySwitch(container, 'automatic_profiling').getAttribute('aria-checked')).toBe('false');
+  expect(visibleText(container)).not.toContain(tRu('settings.privacy_controls.load_error'));
+});
+
+it('ignores a stale StrictMode GET error after the newer load succeeded', async () => {
+  const { container, pending } = controlStrictModeGets();
+  await actAsync(() => pending[1].resolve(ok({ automaticProfiling: true, discoverable: true })));
+  await settle();
+  expect(container.querySelectorAll('[role="switch"]')).toHaveLength(2);
+
+  await actAsync(() => pending[0].reject(new Error('stale failure')));
+  await settle();
+  expect(visibleText(container)).not.toContain(tRu('settings.privacy_controls.load_error'));
+  expect(container.querySelectorAll('[role="switch"]')).toHaveLength(2);
+  expect(privacySwitch(container, 'automatic_profiling').getAttribute('aria-checked')).toBe('true');
 });
 
 it('applies two responses only to their own fields in reverse completion order', async () => {
