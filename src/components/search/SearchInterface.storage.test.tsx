@@ -27,6 +27,7 @@ it('removes legacy other-user cards but preserves my query', async () => {
   view = mount(<SearchInterface />);
   await flush(); await flush();
   expect(visibleText(view.container)).not.toContain('Чужой профиль');
+  expect(visibleText(view.container)).not.toContain('чужие данные');
   expect(localStorage.getItem('search_query')).toBe('мой запрос');
   for (const key of ['search_results', 'search_comment', 'has_searched']) expect(localStorage.getItem(key)).toBeNull();
 });
