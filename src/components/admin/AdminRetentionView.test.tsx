@@ -134,6 +134,30 @@ describe('AdminRetentionView mixed channels', () => {
     expect(post.mock.calls.filter(([, body]) => body.action === 'preview')).toHaveLength(3);
   });
 
+  it('результат отправки остаётся виден при ошибке обновления preview', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    let previewCalls = 0;
+    post.mockImplementation(async (_url: string, body: any) => {
+      if (body.action === 'preview') {
+        previewCalls += 1;
+        return previewCalls === 1 ? res(preview) : res({ message: 'Reload failed' }, 500);
+      }
+      if (body.action === 'send') return res(sendResult);
+      throw new Error(`unexpected action ${body.action}`);
+    });
+    m = mount(<AdminRetentionView />);
+    await settle();
+    await clickAsync(byButton(m.container, /Отправить всем/)!);
+    await settle();
+
+    const text = visibleText(m.container);
+    expect(text).toContain('Ошибка: 500');
+    expect(m.container.querySelector('[data-testid^="retention-row-"]')).toBeNull();
+    expect(text).toContain('Отправлено:');
+    expect(previewCalls).toBe(2);
+    expect(post.mock.calls.filter(([, body]) => body.action === 'send')).toHaveLength(1);
+  });
+
   it('ошибка preview очищает старый сегмент и блокирует отправку', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     post.mockImplementation(async (_url: string, body: any) => {
