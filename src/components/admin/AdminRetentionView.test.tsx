@@ -134,6 +134,81 @@ describe('AdminRetentionView mixed channels', () => {
     expect(post.mock.calls.filter(([, body]) => body.action === 'preview')).toHaveLength(3);
   });
 
+  it('не отправляет старый preview во время смены режима', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const deferred = () => {
+      let resolve!: (value: ReturnType<typeof res>) => void;
+      const promise = new Promise<ReturnType<typeof res>>((r) => { resolve = r; });
+      return { promise, resolve };
+    };
+    const firstCuriousPreview = deferred();
+    const reloadCuriousPreview = deferred();
+    const pendingCuriousSend = deferred();
+    const curiousPreview = {
+      ...preview,
+      window: { min_hours: 24, max_hours: 48 },
+      count: 1,
+      summary: { email: 1, sms: 0, no_channel: 0, skipped_unsubscribed: 0 },
+      drafts: [{
+        user_id: 'u-curious', phone: null, email: 'curious@example.com', channel: 'email',
+        language: 'ru', subject: 'Curious subject', message: 'Curious message', last_at: '2026-11-08',
+        hours_inactive: 36, last_sent_at: null, in_cooldown: false,
+      }],
+    };
+    let curiousPreviewCalls = 0;
+    post.mockImplementation(async (_url: string, body: any) => {
+      if (body.action === 'preview') return res(preview);
+      if (body.action === 'curious_preview') {
+        curiousPreviewCalls += 1;
+        return (curiousPreviewCalls === 1 ? firstCuriousPreview : reloadCuriousPreview).promise;
+      }
+      if (body.action === 'curious_send') return pendingCuriousSend.promise;
+      throw new Error(`unexpected action ${body.action}`);
+    });
+
+    m = mount(<AdminRetentionView />);
+    await settle();
+    await clickAsync(byButton(m.container, /^Новые 24–48 ч$/)!);
+    await flush();
+
+    const bulk = byButton(m.container, /Отправить всем/)!;
+    const oldSingles = ['u-email', 'u-sms', 'u-paused'].map((id) =>
+      m!.container.querySelector<HTMLButtonElement>(`[data-testid="retention-send-${id}"]`)!,
+    );
+    expect(bulk.disabled).toBe(true);
+    oldSingles.forEach((button) => expect(button.disabled).toBe(true));
+    expect(byButton(m.container, /^Общий$/)!.disabled).toBe(true);
+    expect(byButton(m.container, /^Обновить$/)!.disabled).toBe(true);
+    await clickAsync(bulk);
+    for (const button of oldSingles) await clickAsync(button);
+    await settle();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(post.mock.calls.filter(([, body]) => body.action === 'curious_send')).toHaveLength(0);
+
+    firstCuriousPreview.resolve(res(curiousPreview));
+    await settle();
+    expect(visibleText(m.container)).toContain('curious@example.com');
+    await clickAsync(byButton(m.container, /Отправить всем/)!);
+    await flush();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(confirm.mock.calls[0][0]).toContain('1 email');
+    expect(confirm.mock.calls[0][0]).toContain('0 SMS');
+    const sendCall = post.mock.calls.find(([, body]) => body.action === 'curious_send');
+    expect(sendCall?.[1]).toEqual({ action: 'curious_send', confirm: true, resend: false });
+    expect(sendCall?.[1]).not.toHaveProperty('userIds');
+    expect(byButton(m.container, /^Общий$/)!.disabled).toBe(true);
+    expect(byButton(m.container, /^Новые 24–48 ч$/)!.disabled).toBe(true);
+    expect(byButton(m.container, /^Обновить$/)!.disabled).toBe(true);
+
+    pendingCuriousSend.resolve(res(sendResult));
+    await settle();
+    expect(curiousPreviewCalls).toBe(2);
+    reloadCuriousPreview.resolve(res(curiousPreview));
+    await settle();
+    expect(byButton(m.container, /^Общий$/)!.disabled).toBe(false);
+    expect(visibleText(m.container)).toContain('curious@example.com');
+  });
+
   it('Curious продолжает использовать curious_preview и curious_send', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     m = mount(<AdminRetentionView />);
