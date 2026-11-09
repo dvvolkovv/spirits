@@ -68,6 +68,14 @@ describe('AdminRetentionView mixed channels', () => {
     expect(text).toContain('Your Linkeon assistant');
     expect(text).toContain('79001112244');
     expect(text).toContain('нет канала');
+    const emailRow = visibleText(m.container.querySelector<HTMLElement>('[data-testid="retention-row-u-email"]')!);
+    expect(emailRow).toContain('email');
+    expect(emailRow).toContain('· en');
+    const smsRow = visibleText(m.container.querySelector<HTMLElement>('[data-testid="retention-row-u-sms"]')!);
+    expect(smsRow).toContain('sms');
+    expect(smsRow).toContain('· ru');
+    const noChannelRow = visibleText(m.container.querySelector<HTMLElement>('[data-testid="retention-row-u-none"]')!);
+    expect(noChannelRow).toContain('u-none');
     expect((m.container.querySelector('[data-testid="retention-send-u-none"]') as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -109,9 +117,21 @@ describe('AdminRetentionView mixed channels', () => {
     await clickAsync(byButton(m.container, /Отправить всем/)!);
     await settle();
     const text = visibleText(m.container);
+    expect(text).toContain('Отправлено: 2');
     expect(text).toContain('Email: 1');
     expect(text).toContain('SMS: 1');
+    expect(text).toContain('ошибок: 0');
+    expect(text).toContain('пауза: 1');
+    expect(text).toContain('отписка: 0');
+    expect(text).toContain('нет канала: 1');
     expect(text).toContain('без записи cooldown: 1');
+    expect(post.mock.calls.filter(([, body]) => body.action === 'preview')).toHaveLength(2);
+    await clickAsync(byButton(m.container, /^Обновить$/)!);
+    await settle();
+    const refreshedText = visibleText(m.container);
+    expect(refreshedText).not.toContain('Отправлено: 2');
+    expect(refreshedText).not.toContain('без записи cooldown');
+    expect(post.mock.calls.filter(([, body]) => body.action === 'preview')).toHaveLength(3);
   });
 
   it('Curious продолжает использовать curious_preview и curious_send', async () => {
