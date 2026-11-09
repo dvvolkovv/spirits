@@ -134,6 +134,31 @@ describe('AdminRetentionView mixed channels', () => {
     expect(post.mock.calls.filter(([, body]) => body.action === 'preview')).toHaveLength(3);
   });
 
+  it('ошибка preview очищает старый сегмент и блокирует отправку', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    post.mockImplementation(async (_url: string, body: any) => {
+      if (body.action === 'preview') return res(preview);
+      if (body.action === 'curious_preview') return res({ message: 'Curious unavailable' }, 500);
+      if (body.action === 'curious_send') return res(sendResult);
+      throw new Error(`unexpected action ${body.action}`);
+    });
+    m = mount(<AdminRetentionView />);
+    await settle();
+    expect(visibleText(m.container)).toContain('person@example.com');
+    await clickAsync(byButton(m.container, /^Новые 24–48 ч$/)!);
+    await settle();
+
+    const text = visibleText(m.container);
+    expect(text).toContain('Ошибка: 500');
+    expect(text).not.toContain('person@example.com');
+    const bulk = byButton(m.container, /Отправить всем/);
+    const single = m.container.querySelector<HTMLButtonElement>('[data-testid="retention-send-u-email"]');
+    expect(bulk === null || bulk.disabled).toBe(true);
+    expect(single === null || single.disabled).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(post.mock.calls.filter(([, body]) => body.action === 'curious_send')).toHaveLength(0);
+  });
+
   it('не отправляет старый preview во время смены режима', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const deferred = () => {
