@@ -124,6 +124,7 @@ const AdminRetentionView: React.FC = () => {
 
           <div className="p-4 space-y-3">
             {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">{error}</div>}
+            {result && <div className="bg-green-50 border border-green-200 rounded p-2 text-green-700 text-xs">{result}</div>}
             {loading && !preview && <div className="flex items-center justify-center py-8"><Loader className="w-6 h-6 text-forest-600 animate-spin" /></div>}
             {preview && (
               <>
@@ -135,7 +136,6 @@ const AdminRetentionView: React.FC = () => {
                     {sending === 'all' ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}Отправить всем (без паузы)
                   </button>
                 </div>
-                {result && <div className="bg-green-50 border border-green-200 rounded p-2 text-green-700 text-xs">{result}</div>}
                 {preview.count === 0 && <p className="text-sm text-gray-500 py-6 text-center">Сейчас получателей в окне нет.</p>}
                 <div className="space-y-2">
                   {preview.drafts.map((d) => (
