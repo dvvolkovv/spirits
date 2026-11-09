@@ -52,6 +52,7 @@ const AdminRetentionView: React.FC = () => {
       if (!r.ok) throw new Error(`Ошибка: ${r.status}`);
       setPreview(await r.json());
     } catch (err) {
+      setPreview(null);
       setError(err instanceof Error ? err.message : 'Не удалось построить сегмент');
     } finally {
       setLoading(false);
