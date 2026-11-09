@@ -61,6 +61,7 @@ const AdminRetentionView: React.FC = () => {
   useEffect(() => { load(); }, [win, mode]);
 
   const send = async (userIds?: string[], resend = false) => {
+    if (loading || sending !== null) return;
     const all = preview?.drafts || [];
     const selected = userIds ? all.filter((d) => userIds.includes(d.user_id)) : all;
     const targets = selected.filter((d) => d.channel !== 'no_channel' && (resend || !d.in_cooldown));
@@ -109,12 +110,12 @@ const AdminRetentionView: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {([{ l: 'Общий', v: 'general' }, { l: 'Новые 24–48 ч', v: 'curious' }] as const).map((p) => (
-                <button key={p.v} onClick={() => setMode(p.v)} className={`min-h-11 px-3 py-2 text-xs rounded-md border transition-colors ${mode === p.v ? 'bg-warm-50 border-warm-300 text-warm-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{p.l}</button>
+                <button key={p.v} onClick={() => setMode(p.v)} disabled={loading || sending !== null} className={`min-h-11 px-3 py-2 text-xs rounded-md border transition-colors ${mode === p.v ? 'bg-warm-50 border-warm-300 text-warm-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{p.l}</button>
               ))}
               {mode === 'general' && ([{ l: '48ч+', m: 2 }, { l: '3–30 дн', m: 3 }] as const).map((p) => (
-                <button key={p.m} onClick={() => setWin({ minDays: p.m, maxDays: 30 })} className={`min-h-11 px-3 py-2 text-xs rounded-md border transition-colors ${win.minDays === p.m ? 'bg-forest-50 border-forest-300 text-forest-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{p.l}</button>
+                <button key={p.m} onClick={() => setWin({ minDays: p.m, maxDays: 30 })} disabled={loading || sending !== null} className={`min-h-11 px-3 py-2 text-xs rounded-md border transition-colors ${win.minDays === p.m ? 'bg-forest-50 border-forest-300 text-forest-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>{p.l}</button>
               ))}
-              <button onClick={() => load()} disabled={loading} className="min-h-11 flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:text-forest-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50">
+              <button onClick={() => load()} disabled={loading || sending !== null} className="min-h-11 flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:text-forest-600 hover:bg-gray-50 rounded-md transition-colors disabled:opacity-50">
                 <RefreshCw className={loading ? 'w-4 h-4 animate-spin' : 'w-4 h-4'} />Обновить
               </button>
             </div>
@@ -129,7 +130,7 @@ const AdminRetentionView: React.FC = () => {
                   <p className="text-xs text-gray-500">
                     {preview.count} получателей · email: {preview.summary.email} · SMS: {preview.summary.sms} · нет канала: {preview.summary.no_channel} · отписка: {preview.summary.skipped_unsubscribed} · пауза {preview.cooldown_days} дн · к отправке {bulkEmails} email и {bulkSms} SMS
                   </p>
-                  <button data-testid="retention-send-all" onClick={() => send()} disabled={sending !== null || !sendable.length} className="flex items-center gap-1.5 px-3 py-1.5 bg-warm-600 text-white rounded-lg hover:bg-warm-700 transition-colors text-sm disabled:opacity-50">
+                  <button data-testid="retention-send-all" onClick={() => send()} disabled={loading || sending !== null || !sendable.length} className="flex items-center gap-1.5 px-3 py-1.5 bg-warm-600 text-white rounded-lg hover:bg-warm-700 transition-colors text-sm disabled:opacity-50">
                     {sending === 'all' ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}Отправить всем (без паузы)
                   </button>
                 </div>
@@ -151,7 +152,7 @@ const AdminRetentionView: React.FC = () => {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="text-xs text-gray-400 flex items-center gap-1"><Clock className="w-3 h-3" />{d.hours_inactive != null ? `${d.hours_inactive}ч` : `${d.days_inactive} дн`}</span>
                           {d.in_cooldown && <span className="text-xs text-amber-600" title={d.last_sent_at || ''}>пауза</span>}
-                          <button data-testid={`retention-send-${d.user_id}`} onClick={() => send([d.user_id], d.in_cooldown)} disabled={sending !== null || d.channel === 'no_channel'} className="flex items-center gap-1 px-2 py-1 text-xs rounded border border-forest-300 text-forest-700 hover:bg-forest-50 disabled:opacity-50">
+                          <button data-testid={`retention-send-${d.user_id}`} onClick={() => send([d.user_id], d.in_cooldown)} disabled={loading || sending !== null || d.channel === 'no_channel'} className="flex items-center gap-1 px-2 py-1 text-xs rounded border border-forest-300 text-forest-700 hover:bg-forest-50 disabled:opacity-50">
                             {sending === d.user_id ? <Loader className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
                             {d.in_cooldown ? 'Повторить' : 'Отправить'}
                           </button>
