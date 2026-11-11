@@ -289,6 +289,7 @@ beforeEach(() => {
   }
   localStorage.clear();
   sessionStorage.clear();
+  window.history.replaceState({}, '', '/chat');
   auth.user = { phone: '70000000000', tokens: 0 };
   net.history = HISTORY;
   net.chatStreams = [];
@@ -1099,5 +1100,88 @@ describe('no_tokens — файловые регрессии повторного
     await settle(20);
     expect(feedText()).toContain('файл успешен');
     expect(storedDraft()).toMatchObject({ text: 'другой живой draft', assistant: '12' });
+  });
+
+  it('R38 Cancel: после редактирования удаляется original draft, F5/A→B→A его не воскрешает', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('cancel-original.png'));
+    await submitFileTask('original cancel draft');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'edited cancel');
+    await clickElement(buttonByText(tRu('chat.file_modal_cancel'))!);
+    await settle();
+    expect(storedDraft()).toBeNull();
+    await reload();
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('original cancel draft');
+    expect(field().value).not.toContain('edited cancel');
+    expect(modalVisible()).toBe(false);
+  });
+
+  it('R38 remove-last: после редактирования X тоже удаляет original draft без воскрешения', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('remove-original.png'));
+    await submitFileTask('original remove draft');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'edited remove');
+    await removeOnlyFile();
+    expect(storedDraft()).toBeNull();
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('original remove draft');
+    expect(field().value).not.toContain('edited remove');
+    expect(modalVisible()).toBe(false);
+  });
+
+  it('R38 control: Cancel после другого text refusal не удаляет более новый draft', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    net.chatStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('cancel-control.png'));
+    await submitFileTask('original control draft');
+    await send('более новый текстовый draft');
+    expect(storedDraft()).toMatchObject({ text: 'более новый текстовый draft', assistant: '12' });
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'edited control cancel');
+    await clickElement(buttonByText(tRu('chat.file_modal_cancel'))!);
+    await settle();
+    expect(storedDraft()).toMatchObject({ text: 'более новый текстовый draft', assistant: '12' });
+  });
+
+  it('R39: shared image A получает owner и не смешивается с новым attach B', async () => {
+    const originalCaches = globalThis.caches;
+    const shared = new Response(new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }), {
+      headers: { 'X-Share-Filename': 'shared-a.png' },
+    });
+    Object.defineProperty(globalThis, 'caches', {
+      configurable: true,
+      value: {
+        open: async () => ({
+          match: async () => shared,
+          delete: async () => true,
+        }),
+      },
+    });
+    try {
+      window.history.replaceState({}, '', '/chat?shared_image=1');
+      await open();
+      await settle(14);
+      expect(modalVisible()).toBe(true);
+      expect(modalText()).toContain('shared-a.png');
+      typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'задача shared A');
+      await switchTo(OLYA);
+      await attach(image('ordinary-b.png', 2));
+      expect(modalText()).toContain('ordinary-b.png');
+      expect(modalText()).not.toContain('shared-a.png');
+      expect(modalTask()).toBe('');
+    } finally {
+      Object.defineProperty(globalThis, 'caches', { configurable: true, value: originalCaches });
+    }
   });
 });
