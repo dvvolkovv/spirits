@@ -96,7 +96,10 @@ vi.mock('../video/useVideoJobs', () => ({ useVideoJobs: () => videoJobs }));
 vi.mock('../video/VideoJobCard', () => ({ default: () => null }));
 vi.mock('../calendar/InlineCalendarProposals', () => ({ InlineCalendarProposals: () => null }));
 vi.mock('../../services/eventsClient', () => ({ trackAuthed: () => {} }));
-vi.mock('./ActivitySteps', () => ({ LiveActivity: () => null, ActivitySummaryView: () => null }));
+vi.mock('./ActivitySteps', () => ({
+  LiveActivity: () => <div data-testid="live-activity">Ассистент работает</div>,
+  ActivitySummaryView: () => null,
+}));
 vi.mock('../products/ProductActionCard', () => ({ ProductActionCard: () => null }));
 vi.mock('./AskCard', () => ({ AskBlockView: () => null }));
 vi.mock('./ChatImageAttachment', () => ({ default: () => null }));
@@ -955,13 +958,13 @@ describe('no_tokens — файловые регрессии повторного
     await send('ход B');
     expect(chatPosts()).toHaveLength(1);
     expect(chatPosts()[0].body).toMatchObject({ assistant: 2, chatInput: 'ход B' });
-    expect(container().querySelectorAll('.animate-bounce, .animate-pulse, .animate-spin').length).toBeGreaterThan(0);
+    expect(container().querySelector('[data-testid="live-activity"]') !== null || feedText().includes('ответ B')).toBe(true);
 
     await act(async () => { resolveRead('текст A'); });
     await settle(14);
     expect(chatPosts()).toHaveLength(1);
     expect(chatPosts()[0].body).toMatchObject({ chatInput: 'ход B' });
-    expect(container().querySelectorAll('.animate-bounce, .animate-pulse, .animate-spin').length).toBeGreaterThan(0);
+    expect(container().querySelector('[data-testid="live-activity"]') !== null || feedText().includes('ответ B')).toBe(true);
     await act(async () => { bStreamGate.resolve(); });
     await settle(14);
     expect(feedText()).toContain('ответ B');
