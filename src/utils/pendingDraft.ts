@@ -126,14 +126,27 @@ export function takePendingDraftEntry(assistantId: string | number, now = Date.n
  * непрочитанный черновик ценнее — это редкий случай. Свой черновик (тот же
  * ассистент) и просроченный — перезаписываются.
  */
-export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): void {
+export function savePendingDraft(text: string, assistantId: string | number, now = Date.now()): boolean {
   const t = text.trim();
-  if (!t || t.length > PENDING_DRAFT_STORE_MAX) return;
+  if (!t || t.length > PENDING_DRAFT_STORE_MAX) return false;
   const existing = read(now);
-  if (existing && existing.assistant !== String(assistantId)) return;
+  if (existing && existing.assistant !== String(assistantId)) return false;
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: t, assistant: String(assistantId), expires: now + DRAFT_TTL_MS }));
+    return true;
   } catch {
     /* хранилище недоступно — черновик не переживёт вход */
+    return false;
   }
+}
+
+/** Стирает только тот черновик, который вошёл в фактически отправленный текст. */
+export function forgetPendingDraftIfSent(
+  assistantId: string | number,
+  sentText: string,
+  now = Date.now(),
+): void {
+  const stored = read(now);
+  if (!stored || stored.assistant !== String(assistantId)) return;
+  if (sentText.trim().includes(stored.text.trim())) forget();
 }

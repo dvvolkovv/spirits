@@ -1,61 +1,47 @@
 /**
- * Ход, остановленный шлагбаумом баланса. Бэк с 03.11.2026 присылает в конце
- * потока `end` с `reason: 'no_tokens'` (spirits_back/src/chat/chat.service.ts),
- * а сообщение пользователя при таком отказе на сервер НЕ записывается: без
- * восстановления оно пропадало при F5 и на другом устройстве, и человек
- * набирал его заново (бэклог 2d71aaf8).
- *
- * Кабинет по этому признаку возвращает текст в поле ввода и открывает окно
- * пополнения. Проверка именно `type === 'end'`: `item` с тем же текстом
- * остановки — просто реплика ассистента, а не сигнал.
+ * Ход, остановленный шлагбаумом баланса. Бэк присылает в конце потока `end`
+ * с `reason: 'no_tokens'`; `item` с таким же reason — обычная реплика, не сигнал.
  */
-export interface ChatStreamEvent {
-  type?: string;
-  reason?: string;
-}
-
-export function isNoTokensEnd(event: ChatStreamEvent | null | undefined): boolean {
+export function isNoTokensEnd(
+  event: { type?: string; reason?: string } | null | undefined,
+): boolean {
   return event?.type === 'end' && event?.reason === 'no_tokens';
 }
 
-/**
- * Текст возвращаем только в пустое поле: пока шёл отказ, человек мог уже
- * начать писать следующее сообщение — его набор затирать нельзя.
- */
-export function restoreDraftText(current: string, sent: string): string {
-  return current.trim() ? current : sent;
+/** Возвращает отклонённый текст, не затирая новый набор в поле. */
+export function restoreIntoInput(current: string, rejected: string): string {
+  if (!rejected.trim()) return current;
+  return current.trim() ? `${current}\n\n${rejected}` : rejected;
 }
 
-/**
- * Копия отклонённого черновика в sessionStorage (per-tab). Нужна потому, что
- * переход к оплате — это window.location.href: страница выгружается, и всё
- * состояние чата умирает ровно в момент, когда человек пошёл пополнять баланс.
- * Без копии текст пропадал бы уже ПОСЛЕ покупки. Читаем при монтировании,
- * стираем только при явной отправке — F5 до отправки текст сохраняет.
- *
- * Файлы здесь сознательно не храним: File не сериализуется, после перезагрузки
- * вложения прикрепляют заново (их имена остаются в пузыре ленты).
- */
-const KEY_PREFIX = 'no_tokens_draft:';
-
-function storage(): Storage | null {
-  try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
-  } catch {
-    return null;
-  }
+export interface ChatMessageLike {
+  id?: string;
+  type: 'user' | 'assistant';
+  content: string;
+  noTokensStop?: boolean;
 }
 
-export function saveNoTokensDraft(assistantId: number | string, text: string): void {
-  if (!text.trim()) return;
-  try { storage()?.setItem(KEY_PREFIX + assistantId, text); } catch { /* квота/приватный режим */ }
+/** Убирает отклонённый пузырь и прежний финальный stop, затем добавляет новый. */
+export function collapseNoTokensStop<T extends ChatMessageLike>(
+  messages: T[],
+  rejectedId: string,
+  stopMessage: T,
+): T[] {
+  const remaining = messages.filter((message) => message.id !== rejectedId);
+  const withoutPreviousStop = remaining[remaining.length - 1]?.noTokensStop
+    ? remaining.slice(0, -1)
+    : remaining;
+  return [...withoutPreviousStop, stopMessage];
 }
 
-export function peekNoTokensDraft(assistantId: number | string): string | null {
-  try { return storage()?.getItem(KEY_PREFIX + assistantId) || null; } catch { return null; }
+/** Текст для поля и общего pending_draft после отказа по балансу. */
+export function applyNoTokensOutcome({
+  rejectedText,
+  queuedText,
+}: {
+  rejectedText: string;
+  queuedText: string;
+}): { input: string; draftText: string } {
+  const input = queuedText.trim() ? `${rejectedText}\n\n${queuedText}` : rejectedText;
+  return { input, draftText: input };
 }
-
-export function clearNoTokensDraft(assistantId: number | string): void {
-  try { storage()?.removeItem(KEY_PREFIX + assistantId); } catch { /* no-op */ }
-}
-
