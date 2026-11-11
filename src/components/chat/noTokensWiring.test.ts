@@ -40,21 +40,31 @@ describe('файловая задача после no_tokens', () => {
     expect(fn).not.toContain('setShowTokenPackages');
   });
 
-  it('late restore сохраняет files/task/id в память ДО guard текущего assistant', () => {
+  it('late restore пишет в per-assistant store ДО guard, а текущий state — только после него', () => {
     const fn = restoreFiles();
     const guard = fn.indexOf('selectedAssistantIdRef.current !== uploadAssistantId');
+    const store = fn.indexOf('deferredFileTasksRef.current.set(uploadAssistantId');
     expect(guard).toBeGreaterThan(-1);
-    for (const marker of ['setPendingFiles(files);', 'setFileTaskInput(task);', 'setPendingFilesAssistantId(uploadAssistantId);']) {
-      expect(fn.indexOf(marker), marker).toBeGreaterThan(-1);
-      expect(fn.indexOf(marker), marker).toBeLessThan(guard);
-    }
-    expect(fn.slice(0, guard)).not.toContain('setMessages');
+    expect(store).toBeGreaterThan(-1);
+    expect(store).toBeLessThan(guard);
+    expect(fn.slice(0, guard)).not.toContain('setPendingFiles(files);');
+    expect(fn.slice(0, guard)).not.toContain('setFileTaskInput(task);');
+    expect(fn.slice(guard)).toContain('setPendingFiles(files);');
+    expect(fn.slice(guard)).toContain('setFileTaskInput(task);');
   });
 
   it('одиночный .txt идёт без id synthetic prompt и разбирает исход; error не снимает draft', () => {
     const fn = filesSubmit();
     const single = fn.slice(fn.indexOf('isTextFile(files[0])'), fn.indexOf('// Binary file'));
     expect(single).toContain('outcome = await sendMessageToAI(prompt);');
+    const read = single.indexOf('await file.text()');
+    const typing = single.indexOf('setIsTyping(true);');
+    const streaming = single.indexOf('setStreamingMessageId(');
+    expect(typing).toBeGreaterThan(-1);
+    expect(typing).toBeLessThan(read);
+    expect(streaming).toBeGreaterThan(-1);
+    expect(streaming).toBeLessThan(read);
+    expect(single).toContain('} finally {');
     expect(single).toContain("if (outcome === 'no_tokens')");
     expect(single).toContain('restoreFileTaskOnNoTokens(userMessage.id, null, files, task, uploadAssistantId);');
     expect(single).toContain("else if (outcome === 'ok' && uploadAssistantId !== null)");

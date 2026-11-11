@@ -819,4 +819,92 @@ describe('no_tokens — файловые регрессии повторного
     expect(field().value).not.toContain('задача удаления');
     expect(modalVisible()).toBe(false);
   });
+
+  it('R29: late A save=false не затирает уже открытую модалку B; после возврата A носитель цел', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({
+      text: 'черновик для Райи', assistant: '14', expires: Date.now() + 3_600_000,
+    }));
+    const gate = deferred();
+    net.uploadStreams.push(ndjson(NO_TOKENS, gate.promise));
+    await open();
+    await attach(image('late-a-open-b.png'));
+    await submitFileTask('поздняя задача A');
+    await switchTo(OLYA);
+    await attach(image('open-b.png', 2));
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'открытая задача B');
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('открытая задача B');
+    expect(modalText()).toContain('open-b.png');
+    expect(modalText()).not.toContain('late-a-open-b.png');
+    await switchTo(ASSISTANT);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('поздняя задача A');
+    expect(modalText()).toContain('late-a-open-b.png');
+    expect(modalText()).not.toContain('open-b.png');
+  });
+
+  it('R30: late END затем positive на B не расходует reopen — при возврате A модалка открывается', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({
+      text: 'черновик для Райи', assistant: '14', expires: Date.now() + 3_600_000,
+    }));
+    const gate = deferred();
+    net.uploadStreams.push(ndjson(NO_TOKENS, gate.promise));
+    await open();
+    await attach(image('late-balance.png'));
+    await submitFileTask('поздний баланс A');
+    await switchTo(OLYA);
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(false);
+    expect(feedText()).not.toContain('late-balance.png');
+    await switchTo(ASSISTANT);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('поздний баланс A');
+    expect(modalText()).toContain('late-balance.png');
+  });
+
+  it('R31: reload в окне file.text не подставляет draft; повторный refusal/успех оставляет один носитель', async () => {
+    net.chatStreams.push(
+      ndjson(NO_TOKENS),
+      ndjson(NO_TOKENS),
+      ndjson(NORMAL('inline retry завершён')),
+    );
+    const file = new File(['строка'], 'retry-inline.txt', { type: 'text/plain' });
+    await open();
+    await attach(file);
+    await submitFileTask('задача inline retry');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+
+    let resolveRead!: (text: string) => void;
+    const readPromise = new Promise<string>((resolve) => { resolveRead = resolve; });
+    Object.defineProperty(file, 'text', { value: () => readPromise, configurable: true });
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle();
+    const toggle = container().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement;
+    await clickElement(toggle);
+    await settle(20);
+    await act(async () => { resolveRead('строка'); });
+    await settle(20);
+
+    expect(countStops()).toBe(1);
+    expect(field().value).toBe('');
+    expect(storedDraft()).toMatchObject({ text: 'задача inline retry', assistant: '12' });
+    expect(modalVisible()).toBe(false);
+    await setTokens(0);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('задача inline retry');
+    Object.defineProperty(file, 'text', { value: () => Promise.resolve('строка'), configurable: true });
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(feedText()).toContain('inline retry завершён');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
+    expect(modalVisible()).toBe(false);
+  });
 });
