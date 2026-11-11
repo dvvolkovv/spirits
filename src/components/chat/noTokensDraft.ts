@@ -43,38 +43,3 @@ export function applyNoTokensOutcome(args: {
   const input = queued ? `${args.rejectedText}\n\n${queued}` : args.rejectedText;
   return { input, draftText: input };
 }
-
-/*
- * Временная совместимость для ChatInterface до его миграции в Task 2.
- * Новые helpers выше эти wrappers не используют.
- */
-const KEY_PREFIX = 'no_tokens_draft:';
-
-function storage(): Storage | null {
-  try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
-/** @deprecated Использовать restoreIntoInput после миграции ChatInterface. */
-export function restoreDraftText(current: string, sent: string): string {
-  return current.trim() ? current : sent;
-}
-
-/** @deprecated Временный per-tab черновик до перехода ChatInterface на pendingDraft. */
-export function saveNoTokensDraft(assistantId: number | string, text: string): void {
-  if (!text.trim()) return;
-  try { storage()?.setItem(KEY_PREFIX + assistantId, text); } catch { /* квота/приватный режим */ }
-}
-
-/** @deprecated Временный per-tab черновик до перехода ChatInterface на pendingDraft. */
-export function peekNoTokensDraft(assistantId: number | string): string | null {
-  try { return storage()?.getItem(KEY_PREFIX + assistantId) || null; } catch { return null; }
-}
-
-/** @deprecated Временный per-tab черновик до перехода ChatInterface на pendingDraft. */
-export function clearNoTokensDraft(assistantId: number | string): void {
-  try { storage()?.removeItem(KEY_PREFIX + assistantId); } catch { /* no-op */ }
-}
