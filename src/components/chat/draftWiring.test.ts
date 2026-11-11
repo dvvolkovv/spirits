@@ -39,8 +39,13 @@ const greeting = (): string => {
 };
 
 describe('черновик со страницы linkeon.io', () => {
-  it('ChatInterface забирает черновик из utils/pendingDraft', () => {
-    expect(SRC).toContain("import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';");
+  it('ChatInterface забирает и сохраняет черновик через общий utils/pendingDraft', () => {
+    const importLine = SRC.split('\n').find((line) => line.includes("from '../../utils/pendingDraft';"));
+    expect(importLine).toBeDefined();
+    expect(importLine).toContain('hasPendingDraftFor');
+    expect(importLine).toContain('takePendingDraftFor');
+    expect(importLine).toContain('savePendingDraft');
+    expect(importLine).toContain('forgetPendingDraftIfSent');
   });
 
   it('ждёт, пока загрузится история именно выбранного ассистента', () => {
@@ -60,6 +65,15 @@ describe('черновик со страницы linkeon.io', () => {
     const check = body.indexOf('if (textareaRef.current?.value.trim()) return;');
     expect(check).toBeGreaterThan(-1);
     expect(check).toBeLessThan(body.indexOf('takePendingDraftFor('));
+  });
+
+  it('пока живы deferred files, задача не подставляется вторым носителем в поле', () => {
+    const body = effect();
+    const deferred = body.indexOf('pendingFiles.length > 0 && pendingFilesAssistantId === selectedAssistant.id');
+    expect(deferred).toBeGreaterThan(-1);
+    expect(deferred).toBeLessThan(body.indexOf('takePendingDraftFor('));
+    expect(body).toContain('draftEffectAppliedForRef.current !== selectedAssistant.id');
+    expect(body).toContain('hasPendingDraftFor(selectedAssistant.id)');
   });
 
   // Иначе вебвизор кабинета записал бы подставленные данные рождения до того,

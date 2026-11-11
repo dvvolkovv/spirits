@@ -1,112 +1,101 @@
 // src/components/chat/noTokensDraftWiring.test.ts
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-/**
- * Сторож связки «отказ по балансу → черновик обратно». Поведение разбора
- * события покрыто noTokensDraft.test.ts; здесь — что оба пути (текст и файлы)
- * действительно зовут восстановление и открывают пополнение, а служебные
- * промпты (приветствие, PDF Маши) черновик НЕ восстанавливают.
- */
+/** Связка текстового no_tokens с готовыми чистыми helpers. */
 const SRC = readFileSync(join(__dirname, 'ChatInterface.tsx'), 'utf8');
 
 const body = (marker: string): string => {
   const start = SRC.indexOf(marker);
   expect(start, marker).toBeGreaterThan(-1);
-  const bodyStart = start + marker.length;
+  const bodyStart = SRC.indexOf('{', start) + 1;
   let depth = 1;
   let i = bodyStart;
-  while (depth > 0) {
+  while (depth > 0 && i < SRC.length) {
     if (SRC[i] === '{') depth++;
     else if (SRC[i] === '}') depth--;
     i++;
   }
+  expect(depth, `незакрытое тело ${marker}`).toBe(0);
   return SRC.slice(bodyStart, i - 1);
 };
 
-describe('отказ по балансу — черновик возвращается', () => {
-  it('sendMessageToAI принимает onNoTokens и зовёт его вместе с окном пополнения', () => {
-    const fn = body('const sendMessageToAI = async (userMessage: string, opts?: { onNoTokens?: () => void }) => {');
+const sendAI = () => body('const sendMessageToAI = async');
+const sendText = () => body('const sendMessageText = async');
+
+describe('текстовый no_tokens — исход, пузырь и ввод', () => {
+  it('sendMessageToAI принимает optional userMessageId и возвращает трёхзначный исход', () => {
+    expect(SRC).toMatch(/const sendMessageToAI = async \(userMessage: string, userMessageId\?: string\)/);
+    expect(sendAI()).toContain("return noTokens ? 'no_tokens' : 'ok';");
+  });
+
+  it('end разбирается по type независимо от usage', () => {
+    const fn = sendAI();
+    expect(fn).toContain("if (data.type === 'end') {");
+    expect(fn).toContain('if (data.usage) lastUsage = data.usage;');
     expect(fn).toContain('if (isNoTokensEnd(data)) noTokens = true;');
-    expect(fn).toContain('setShowTokenPackages(true);');
-    expect(fn).toContain('opts?.onNoTokens?.();');
   });
 
-  it('восстановление — только когда человек остался на том же ассистенте', () => {
-    const fn = body('const sendMessageToAI = async (userMessage: string, opts?: { onNoTokens?: () => void }) => {');
-    const at = fn.indexOf('opts?.onNoTokens?.();');
-    const guard = fn.lastIndexOf('if (selectedAssistantIdRef.current === streamAssistantId)', at);
-    expect(guard).toBeGreaterThan(-1);
+  it('реальный человеческий пузырь передаётся по id, синтетический id не выдумывается', () => {
+    expect(sendText()).toContain('await sendMessageToAI(text, userMessage.id);');
+    expect(sendText()).not.toContain('onNoTokens');
+    expect(sendAI()).toContain('collapseNoTokensStop(prev, userMessageId ?? \'\', completedMessage)');
+    expect(sendAI()).toMatch(/noTokensStop:\s*noTokens\s*\|\|\s*undefined/);
   });
 
-  it('текстовый путь возвращает отправленное в поле ввода, не затирая новый набор', () => {
-    const fn = body('const sendMessageText = async (text: string) => {');
-    expect(fn).toContain('setInput(prev => restoreDraftText(prev, text))');
+  it('rejected+queue идут в applyNoTokensOutcome, затем функциональный restore и общий draft', () => {
+    const fn = sendAI();
+    const gate = fn.indexOf('if (userMessageId !== undefined');
+    expect(gate).toBeGreaterThan(-1);
+    const scoped = fn.slice(gate);
+    expect(scoped).toContain('joinQueue(queuedRef.current)');
+    expect(scoped).toContain('applyQueued(() => [])');
+    expect(scoped).toContain('applyNoTokensOutcome({ rejectedText: userMessage, queuedText })');
+    expect(scoped).toContain('setInput(prev => restoreIntoInput(prev, outcome.input))');
+    expect(scoped).toContain('savePendingDraft(outcome.draftText, streamAssistantId)');
   });
 
-  it('служебный PDF-промпт Маши черновик НЕ восстанавливает', () => {
-    const fn = body('const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {');
-    expect(fn).toContain('await sendMessageToAI(prompt);');
-    expect(fn).not.toContain('onNoTokens');
+  it('успешный human ход снимает только совпавший draft; явная отправка сама по себе его не стирает', () => {
+    const fn = sendAI();
+    const gate = fn.indexOf('if (userMessageId !== undefined');
+    expect(gate).toBeGreaterThan(-1);
+    expect(fn.slice(gate)).toContain('forgetPendingDraftIfSent(streamAssistantId, userMessage)');
+    expect(body('const handleSendInner = async')).not.toContain('clearNoTokensDraft');
   });
 
-  it('файловая задача: инлайн-файл передаёт onNoTokens, multipart ловит reason', () => {
-    const fn = body('const handleFileTaskSubmit = async () => {');
-    expect(fn).toContain('setPendingFiles(files);');
-    expect(fn).toContain('setFileTaskInput(task);');
-    expect(fn).toContain('reopenFileTaskRef.current = true;');
-    expect(fn).toContain('await sendMessageToAI(prompt, { onNoTokens: restoreFileTask });');
-    expect(fn).toContain('if (isNoTokensEnd(event)) noTokens = true;');
-    expect(fn).toContain('restoreFileTask();');
-    expect(fn).toContain('setShowTokenPackages(true);');
+  it('no_tokens не открывает TokenPackages ни в текстовом, ни в файловом пути', () => {
+    expect(sendAI()).not.toContain('setShowTokenPackages');
+    expect(body('const handleFileTaskSubmit = async')).not.toContain('setShowTokenPackages');
+  });
+});
+
+describe('сохранённые защиты и удаление legacy', () => {
+  it('if(noTokens)break остаётся в обоих NDJSON-циклах', () => {
+    expect(SRC.match(/if \(noTokens\) break;/g)).toHaveLength(2);
   });
 
-  it('файловая модалка переоткрывается после закрытия окна пополнения', () => {
-    expect(SRC).toContain('if (reopenFileTaskRef.current) {');
-    const close = SRC.indexOf('<TokenPackages onClose={() => {');
-    expect(close).toBeGreaterThan(-1);
-    const after = SRC.slice(close, close + 600);
-    expect(after).toContain('setShowTokenPackages(false);');
-    expect(after).toContain('setShowFileTaskModal(true);');
+  it('noTokensHoldRef останавливает досылку и отложенную очистку ?say=', () => {
+    expect(sendAI()).toContain('noTokensHoldRef.current = true;');
+    const queueAt = SRC.indexOf('// Досылка очереди:');
+    expect(SRC.slice(queueAt, queueAt + 2600)).toContain('if (noTokensHoldRef.current) return;');
+    expect(body('const clearResidue = () =>')).toContain('if (noTokensHoldRef.current) return;');
   });
 
-  it('multipart не возвращает файлы другому ассистенту (guard как в текстовом пути)', () => {
-    const fn = body('const handleFileTaskSubmit = async () => {');
-    expect(fn).toContain('const uploadAssistantId = selectedAssistant?.id ?? null;');
-    expect(fn).toContain('if (noTokens && selectedAssistantIdRef.current === uploadAssistantId) {');
-  });
-
-  it('после разобранного end поток закрываем сами — обрыв не уведёт в catch', () => {
-    expect(SRC.match(/if \(noTokens\) break;/g)?.length).toBe(2);
-  });
-
-  it('очередь не досылается в шлагбаум вслед за отклонённым сообщением', () => {
-    const at = SRC.indexOf('// Досылка очереди:');
-    const effect = SRC.slice(at, at + 2500);
-    expect(effect).toContain('if (noTokensHoldRef.current) return;');
-  });
-
-  it('отложенная очистка ?say= не стирает восстановленный черновик', () => {
-    const fn = body('const clearResidue = () => {');
-    expect(fn).toContain('if (noTokensHoldRef.current) return;');
-  });
-
-  it('явная отправка снимает остановку очереди и стирает сохранённую копию', () => {
-    const fn = body('const handleSendInner = async () => {');
-    expect(fn).toContain('noTokensHoldRef.current = false;');
-    expect(fn).toContain('clearNoTokensDraft(selectedAssistant.id)');
-  });
-
-  it('копия в sessionStorage пишется при отказе и читается при монтировании', () => {
-    const send = body('const sendMessageText = async (text: string) => {');
-    expect(send).toContain('saveNoTokensDraft(id, text)');
-    expect(SRC).toContain('const saved = peekNoTokensDraft(selectedAssistant.id);');
-  });
-
-  it('смена ассистента снимает остановку очереди', () => {
+  it('смена ассистента по-прежнему снимает остановку очереди', () => {
     const at = SRC.indexOf('prevSelectedAssistantIdRef.current = newId;');
-    const effect = SRC.slice(Math.max(0, at - 1500), at);
-    expect(effect).toContain('noTokensHoldRef.current = false;');
+    expect(SRC.slice(Math.max(0, at - 2200), at)).toContain('noTokensHoldRef.current = false;');
+  });
+
+  it('sessionStorage wrappers и mount peek/clear полностью удалены после миграции', () => {
+    for (const legacy of [
+      'restoreDraftText',
+      'saveNoTokensDraft',
+      'peekNoTokensDraft',
+      'clearNoTokensDraft',
+      'reopenFileTaskRef',
+    ]) {
+      expect(SRC).not.toContain(legacy);
+    }
   });
 });

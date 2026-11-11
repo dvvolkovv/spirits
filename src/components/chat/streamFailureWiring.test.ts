@@ -63,10 +63,10 @@ describe('разбор обрыва в catch', () => {
     expect(decide).toBeLessThan(bubble);
   });
 
-  it('при живом ходе выходим ДО пузыря', () => {
+  it('при живом ходе возвращаем error ДО пузыря', () => {
     const body = sendMessageToAI();
     const guard = body.slice(body.indexOf('if (!shouldShowStreamError('), body.indexOf("t('chat.ai_error_fallback')"));
-    expect(guard).toContain('return;');
+    expect(guard).toContain("return 'error';");
   });
 
   it('при живом ходе поднимаем признак «идёт удалённый ход»', () => {
@@ -83,5 +83,21 @@ describe('разбор обрыва в catch', () => {
     const request = body.indexOf('/webhook/chat/active-turn', probe);
     expect(probe).toBeGreaterThan(-1);
     expect(request).toBeGreaterThan(probe);
+  });
+
+  it('AbortError — error, а не успешный human/file ход', () => {
+    const body = sendMessageToAI();
+    const abort = body.indexOf("error.name === 'AbortError'");
+    expect(abort).toBeGreaterThan(-1);
+    expect(body.slice(abort, abort + 220)).toContain("return 'error';");
+  });
+
+  it('финальный catch тоже возвращает error, чтобы .txt не снял draft при обрыве', () => {
+    const body = sendMessageToAI();
+    const errorBubble = body.indexOf("t('chat.ai_error_fallback')");
+    const finallyAt = body.indexOf('} finally {', errorBubble);
+    expect(errorBubble).toBeGreaterThan(-1);
+    expect(finallyAt).toBeGreaterThan(errorBubble);
+    expect(body.slice(errorBubble, finallyAt)).toContain("return 'error';");
   });
 });
