@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as noTokensDraft from './noTokensDraft';
 
 describe('isNoTokensEnd', () => {
@@ -88,5 +88,59 @@ describe('collapseNoTokensStop', () => {
     const previousStop = { type: 'assistant' as const, content: 'Старый stop', noTokensStop: true };
     const syntheticStop = { type: 'assistant' as const, content: 'Новый stop', noTokensStop: true };
     expect(noTokensDraft.collapseNoTokensStop([previousStop, rejected], rejected.id, syntheticStop)).toEqual([syntheticStop]);
+  });
+});
+
+/** Временная совместимость до миграции ChatInterface на чистые helpers. */
+describe('legacy restoreDraftText', () => {
+  it('пустое поле — возвращает отправленный текст', () => {
+    expect(noTokensDraft.restoreDraftText('', 'мой вопрос')).toBe('мой вопрос');
+    expect(noTokensDraft.restoreDraftText('   ', 'мой вопрос')).toBe('мой вопрос');
+  });
+
+  it('непустое поле — сохраняет текущий набор', () => {
+    expect(noTokensDraft.restoreDraftText('уже пишу новое', 'мой вопрос')).toBe('уже пишу новое');
+  });
+});
+
+/** Минимальный sessionStorage для node-окружения vitest. */
+class MemoryStorage {
+  private map = new Map<string, string>();
+  getItem(k: string) { return this.map.has(k) ? this.map.get(k)! : null; }
+  setItem(k: string, v: string) { this.map.set(k, String(v)); }
+  removeItem(k: string) { this.map.delete(k); }
+}
+
+describe('legacy no_tokens sessionStorage', () => {
+  const real = (globalThis as any).sessionStorage;
+  beforeEach(() => { (globalThis as any).sessionStorage = new MemoryStorage(); });
+  afterEach(() => { (globalThis as any).sessionStorage = real; });
+
+  it('сохранённый текст читается для того же ассистента', () => {
+    noTokensDraft.saveNoTokensDraft(12, 'мой вопрос');
+    expect(noTokensDraft.peekNoTokensDraft(12)).toBe('мой вопрос');
+  });
+
+  it('чужой ассистент свой черновик не видит', () => {
+    noTokensDraft.saveNoTokensDraft(12, 'мой вопрос');
+    expect(noTokensDraft.peekNoTokensDraft(10)).toBeNull();
+  });
+
+  it('после явной отправки копия стёрта', () => {
+    noTokensDraft.saveNoTokensDraft(12, 'мой вопрос');
+    noTokensDraft.clearNoTokensDraft(12);
+    expect(noTokensDraft.peekNoTokensDraft(12)).toBeNull();
+  });
+
+  it('пустой текст не сохраняется', () => {
+    noTokensDraft.saveNoTokensDraft(12, '   ');
+    expect(noTokensDraft.peekNoTokensDraft(12)).toBeNull();
+  });
+
+  it('без sessionStorage — молчаливый no-op', () => {
+    delete (globalThis as any).sessionStorage;
+    expect(() => noTokensDraft.saveNoTokensDraft(12, 'текст')).not.toThrow();
+    expect(noTokensDraft.peekNoTokensDraft(12)).toBeNull();
+    expect(() => noTokensDraft.clearNoTokensDraft(12)).not.toThrow();
   });
 });
