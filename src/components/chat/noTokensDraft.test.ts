@@ -56,6 +56,13 @@ describe('applyNoTokensOutcome', () => {
       draftText: 'первый\n\nвторой из очереди',
     });
   });
+
+  it('обрезает пробелы по краям сообщения из очереди', () => {
+    expect(noTokensDraft.applyNoTokensOutcome({ rejectedText: 'первый', queuedText: '  второе  ' })).toEqual({
+      input: 'первый\n\nвторое',
+      draftText: 'первый\n\nвторое',
+    });
+  });
 });
 
 describe('collapseNoTokensStop', () => {
@@ -65,6 +72,11 @@ describe('collapseNoTokensStop', () => {
   it('удаляет rejected и прежний stop, который оказался в конце', () => {
     const previousStop = { id: 'stop-old', type: 'assistant' as const, content: 'Старое предложение', noTokensStop: true };
     expect(noTokensDraft.collapseNoTokensStop([previousStop, rejected], rejected.id, newStop)).toEqual([newStop]);
+  });
+
+  it('заменяет прежний stop даже без rejected', () => {
+    const previousStop = { id: 'stop-old', type: 'assistant' as const, content: 'Старое предложение', noTokensStop: true };
+    expect(noTokensDraft.collapseNoTokensStop([previousStop], '', newStop)).toEqual([newStop]);
   });
 
   it('обычный успешный ответ в конце сохраняет', () => {
