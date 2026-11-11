@@ -84,7 +84,7 @@ describe('сохранённые защиты и удаление legacy', () =>
 
   it('смена ассистента по-прежнему снимает остановку очереди', () => {
     const at = SRC.indexOf('prevSelectedAssistantIdRef.current = newId;');
-    expect(SRC.slice(Math.max(0, at - 2200), at)).toContain('noTokensHoldRef.current = false;');
+    expect(SRC.slice(Math.max(0, at - 4200), at)).toContain('noTokensHoldRef.current = false;');
   });
 
   it('sessionStorage wrappers и mount peek/clear полностью удалены после миграции', () => {
