@@ -886,7 +886,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // чата восстанавливается из его собственного store, без смешения файлов.
       setShowFileTaskModal(false);
       const incoming = newId === null ? undefined : deferredFileTasksRef.current.get(newId);
-      if (incoming) {
+      if (incoming && newId !== null) {
         const currentOwner = pendingFilesAssistantId ?? prevId;
         if (pendingFiles.length > 0 && currentOwner !== null && currentOwner !== newId) {
           deferredFileTasksRef.current.set(currentOwner, {
