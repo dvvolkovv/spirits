@@ -96,6 +96,23 @@ export function hasPendingDraftFor(assistantId: string | number, now = Date.now(
   return stored !== null && stored.assistant === String(assistantId);
 }
 
+/**
+ * Read-only проверка «в хранилище лежит ИМЕННО этот текст этого ассистента».
+ * В отличие от takePendingDraftFor не выдаёт и не стирает запись, не продлевает
+ * TTL и сохраняет auto. Нужна владельцу deferred file task: чужой или уже
+ * перезаписанный draft того же ассистента не доказывает сохранность файлов.
+ */
+export function pendingDraftMatches(
+  assistantId: string | number,
+  text: string,
+  now = Date.now(),
+): boolean {
+  const stored = read(now);
+  return stored !== null &&
+    stored.assistant === String(assistantId) &&
+    stored.text.trim() === text.trim();
+}
+
 /** Забыть черновик — при выходе из аккаунта и удалении профиля (clearAppStorage). */
 export function forgetPendingDraft(): void {
   forget();

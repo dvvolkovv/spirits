@@ -65,7 +65,7 @@ import { ProductActionCard } from '../products/ProductActionCard';
 import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
 import { stripProductActionBlocks } from '../../utils/productActionBlock';
-import { hasPendingDraftFor, takePendingDraftFor, savePendingDraft, forgetPendingDraftIfSent } from '../../utils/pendingDraft';
+import { hasPendingDraftFor, takePendingDraftFor, savePendingDraft, forgetPendingDraftIfSent, pendingDraftMatches } from '../../utils/pendingDraft';
 import { createChunkDecoder } from '../../utils/streamDecoder';
 import ChatImageAttachment from './ChatImageAttachment';
 import { imageAttachmentPreview } from './attachmentPreview';
@@ -736,6 +736,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // False означает, что чужой живой draft помешал сохранить задачу: тогда
   // File-объекты и fileTaskInput остаются её единственным носителем.
   const fileTaskDraftSavedRef = useRef(false);
+  // Точный текст, который удалось сохранить: последующий text refusal может
+  // перезаписать pending_draft, и тогда он уже не подтверждает файлы.
+  const fileTaskDraftTextRef = useRef<string | null>(null);
   // «Стоим на нулевом балансе»: после отказа по no_tokens автодосылка очереди
   // и отложенная очистка ?say= останавливаются — иначе следующее сообщение
   // уходит в тот же шлагбаум и теряется уже без восстановления. Снимается
@@ -861,11 +864,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // Любой старый draft этого ассистента не доказывает, что СЕЙЧАС
         // отложенная файловая задача сохранена: save=false означает, что
         // файлы и fileTaskInput — её единственный носитель.
-        if (fileTaskDraftSavedRef.current && hasPendingDraftFor(pendingFilesAssistantId)) {
+        if (fileTaskDraftSavedRef.current &&
+            fileTaskDraftTextRef.current !== null &&
+            pendingDraftMatches(pendingFilesAssistantId, fileTaskDraftTextRef.current)) {
           setPendingFiles([]);
           setFileTaskInput('');
           setPendingFilesAssistantId(null);
           fileTaskDraftSavedRef.current = false;
+          fileTaskDraftTextRef.current = null;
         }
       }
     }
@@ -1756,6 +1762,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // on the original assistant's view will surface the response on return.
 
     } catch (error) {
+      // END уже разобран: поздний AbortError транспорта не превращает его в error.
+      if (noTokens) return 'no_tokens';
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Request was aborted');
         return 'error';
@@ -2272,17 +2280,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (!selectedAssistant || historyLoading) return;
     if (historyLoadedForRef.current !== selectedAssistant.id) return;
+    // Retry/история могут завершить загрузку прямо во время стрима. Уже
+    // отправленный draft снимется успехом, а не второй подстановкой в поле.
+    if (isTyping || streamingMessageId) return;
     if (textareaRef.current?.value.trim()) return;
     // Пока файлы отложены, задача живёт в их модалке. Подставлять её ещё и в
     // поле нельзя. При реальном возврате к ассистенту с надёжным draft файлы
     // снимаем: остаётся один носитель — текст в поле.
     if (pendingFiles.length > 0 && pendingFilesAssistantId === selectedAssistant.id) {
       const arrivedViaSwitch = draftEffectAppliedForRef.current !== selectedAssistant.id;
-      if (!arrivedViaSwitch || !fileTaskDraftSavedRef.current || !hasPendingDraftFor(selectedAssistant.id)) return;
+      if (!arrivedViaSwitch ||
+          !fileTaskDraftSavedRef.current ||
+          fileTaskDraftTextRef.current === null ||
+          !pendingDraftMatches(selectedAssistant.id, fileTaskDraftTextRef.current)) return;
       setPendingFiles([]);
       setFileTaskInput('');
       setPendingFilesAssistantId(null);
       fileTaskDraftSavedRef.current = false;
+      fileTaskDraftTextRef.current = null;
     }
     draftEffectAppliedForRef.current = selectedAssistant.id;
     const draft = takePendingDraftFor(selectedAssistant.id);
@@ -2290,7 +2305,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setInput(draft);
     textareaRef.current?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAssistant?.id, historyLoading]);
+  }, [selectedAssistant?.id, historyLoading, isTyping, streamingMessageId]);
 
   // ?say=<text> → автоотправка первого сообщения. Ждём, пока ассистент выбран
   // (?assistant=roman → универсальный Роман), чтобы уйти к нужному.
@@ -2403,6 +2418,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setFileTaskInput('');
         setPendingFilesAssistantId(null);
         fileTaskDraftSavedRef.current = false;
+        fileTaskDraftTextRef.current = null;
       }
       // Универсальный flow: показываем модалку с заданием на всю пачку сразу.
       // Докладываем к уже выбранным — модалка умеет «добавить ещё».
@@ -2485,6 +2501,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     fileTaskDraftSavedRef.current = uploadAssistantId !== null
       ? savePendingDraft(task, uploadAssistantId)
       : false;
+    fileTaskDraftTextRef.current = fileTaskDraftSavedRef.current ? task : null;
+    // Носитель сохраняем при ЛЮБОМ исходе save и даже после A→B. При save=false
+    // это единственная копия задачи; при save=true exact draft решит позже,
+    // какой один носитель оставить при возврате.
+    setPendingFiles(files);
+    setFileTaskInput(task);
+    setPendingFilesAssistantId(uploadAssistantId);
+    // Ленту, hold и модалку другого ассистента не трогаем.
     if (uploadAssistantId === null || selectedAssistantIdRef.current !== uploadAssistantId) return;
     noTokensHoldRef.current = true;
     setMessages(prev => {
@@ -2494,9 +2518,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (!newStop?.noTokensStop) return withoutBubble;
       return collapseNoTokensStop(withoutBubble.slice(0, -1), '', newStop);
     });
-    setPendingFiles(files);
-    setFileTaskInput(task);
-    setPendingFilesAssistantId(uploadAssistantId);
   };
 
   const handleFileTaskSubmit = async () => {
@@ -2544,6 +2565,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setFileTaskInput('');
     setPendingFilesAssistantId(null);
     fileTaskDraftSavedRef.current = false;
+    fileTaskDraftTextRef.current = null;
 
     // Пузырь пишем ровно тем же текстом, каким бэк сохранит ход в историю.
     // Раньше здесь был список в столбик, а в БД уезжала строка через запятую —
@@ -2727,18 +2749,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  // Автооткрытие только на НОВОМ переходе баланса ≤0→>0. Старое
-  // положительное значение AuthContext могло ещё не догнать фактический ноль.
+  // Cancel и удаление последнего файла — один путь. Удаляем draft только
+  // когда он всё ещё содержит ИМЕННО эту файловую задачу; другой текст не трогаем.
+  const cancelDeferredFileTask = () => {
+    const assistantId = pendingFilesAssistantId;
+    const draftText = fileTaskDraftTextRef.current;
+    if (assistantId !== null &&
+        fileTaskDraftSavedRef.current &&
+        draftText !== null &&
+        pendingDraftMatches(assistantId, draftText)) {
+      forgetPendingDraftIfSent(assistantId, draftText);
+    }
+    noTokensHoldRef.current = false;
+    setShowFileTaskModal(false);
+    setPendingFiles([]);
+    setFileTaskInput('');
+    setPendingFilesAssistantId(null);
+    fileTaskDraftSavedRef.current = false;
+    fileTaskDraftTextRef.current = null;
+  };
+
+  // Автооткрытие только на НОВОМ переходе баланса ≤0→>0. Пока человек на
+  // другом ассистенте, переход не расходуем и lastSeenTokensRef не обновляем.
   const fileTaskAutoReopenedRef = useRef(false);
   const lastSeenTokensRef = useRef<number | null>(null);
   useEffect(() => {
-    const prevTokens = lastSeenTokensRef.current;
     const tokensNow = user?.tokens ?? 0;
+    const ownsPendingFiles = pendingFiles.length > 0 &&
+      pendingFilesAssistantId !== null && selectedAssistant?.id === pendingFilesAssistantId;
+    if (!ownsPendingFiles) { fileTaskAutoReopenedRef.current = false; return; }
+    const prevTokens = lastSeenTokensRef.current;
     lastSeenTokensRef.current = tokensNow;
-    if (!pendingFiles.length) { fileTaskAutoReopenedRef.current = false; return; }
     if (showFileTaskModal || fileTaskAutoReopenedRef.current) return;
     if (prevTokens === null || prevTokens > 0 || tokensNow <= 0) return;
-    if (pendingFilesAssistantId === null || selectedAssistant?.id !== pendingFilesAssistantId) return;
     fileTaskAutoReopenedRef.current = true;
     setShowFileTaskModal(true);
   }, [user?.tokens, pendingFiles.length, showFileTaskModal, pendingFilesAssistantId, selectedAssistant?.id]);
@@ -3751,7 +3794,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     <p className="text-xs text-gray-500">{(f.size / 1024).toFixed(1)} KB</p>
                   </div>
                   <button
-                    onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}
+                    onClick={() => {
+                      if (pendingFiles.length === 1) {
+                        cancelDeferredFileTask();
+                        return;
+                      }
+                      setPendingFiles(prev => prev.filter((_, idx) => idx !== i));
+                    }}
                     className="p-1 text-gray-400 hover:text-red-600 flex-shrink-0"
                     title={t('chat.file_remove')}
                   >
@@ -3786,11 +3835,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <button
                 onClick={() => {
                   if (user?.phone && pendingFiles.length) trackAuthed('file_task_cancel', user.phone, { count: pendingFiles.length, name: pendingFiles.map(f => f.name).join(', ').slice(0, 200), assistant_id: selectedAssistant?.id });
-                  setShowFileTaskModal(false);
-                  setPendingFiles([]);
-                  setFileTaskInput('');
-                  setPendingFilesAssistantId(null);
-                  fileTaskDraftSavedRef.current = false;
+                  cancelDeferredFileTask();
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
               >
