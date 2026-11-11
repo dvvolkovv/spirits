@@ -2285,6 +2285,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           const fname = nameEnc ? decodeURIComponent(nameEnc) : 'shared-image.jpg';
           await cache.delete('/__shared_image');
           const file = new File([blob], fname, { type: blob.type || 'image/jpeg' });
+          setPendingFilesAssistantId(selectedAssistantIdRef.current);
           setPendingFiles([file]);
           setFileTaskInput('');
           setShowFileTaskModal(true);
@@ -2884,7 +2885,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // когда он всё ещё содержит ИМЕННО эту файловую задачу; другой текст не трогаем.
   const cancelDeferredFileTask = () => {
     const assistantId = pendingFilesAssistantId;
-    const draftText = fileTaskDraftTextRef.current;
+    const draftText = originalFileTaskDraftTextRef.current;
     if (assistantId !== null &&
         fileTaskDraftSavedRef.current &&
         draftText !== null &&
