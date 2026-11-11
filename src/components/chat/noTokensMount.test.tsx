@@ -958,6 +958,7 @@ describe('no_tokens — файловые регрессии повторного
 
     await act(async () => { resolveRead('текст A'); });
     await settle(14);
+    console.error('R33_DEBUG_POSTS', JSON.stringify(net.posts));
     expect(chatPosts()).toHaveLength(1);
     expect(chatPosts()[0].body).toMatchObject({ chatInput: 'ход B' });
     expect(container().querySelectorAll('.animate-bounce, .animate-pulse').length).toBeGreaterThan(0);
