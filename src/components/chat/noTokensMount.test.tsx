@@ -950,8 +950,10 @@ describe('no_tokens — файловые регрессии повторного
     await attach(file);
     await submitFileTask('задача A');
     await switchTo(OLYA);
+    expect(container().querySelector('[data-testid="assistant-dropdown-btn"]')?.textContent).toContain('Оля');
     await send('ход B');
     expect(chatPosts()).toHaveLength(1);
+    expect(chatPosts()[0].body).toMatchObject({ assistant: 2, chatInput: 'ход B' });
     expect(container().querySelectorAll('.animate-bounce, .animate-pulse').length).toBeGreaterThan(0);
 
     await act(async () => { resolveRead('текст A'); });
