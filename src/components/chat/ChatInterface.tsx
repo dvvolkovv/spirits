@@ -2676,6 +2676,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setStreamingMessageId(generateMessageId());
       setCurrentStreamingMessage('');
       const deferIfAssistantChanged = () => {
+        console.warn('R33_DEBUG_INLINE', uploadAssistantId, selectedAssistantIdRef.current);
         if (selectedAssistantIdRef.current === uploadAssistantId) return false;
         if (uploadAssistantId !== null) {
           deferredFileTasksRef.current.set(uploadAssistantId, {
