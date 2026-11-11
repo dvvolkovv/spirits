@@ -950,6 +950,7 @@ describe('no_tokens — файловые регрессии повторного
     await attach(file);
     await submitFileTask('задача A');
     await switchTo(OLYA);
+    sessionStorage.setItem('selected_assistant', JSON.stringify(OLYA));
     expect(container().querySelector('[data-testid="assistant-dropdown-btn"]')?.textContent).toContain('Оля');
     await send('ход B');
     expect(chatPosts()).toHaveLength(1);
@@ -958,7 +959,6 @@ describe('no_tokens — файловые регрессии повторного
 
     await act(async () => { resolveRead('текст A'); });
     await settle(14);
-    console.error('R33_DEBUG_POSTS', JSON.stringify(net.posts));
     expect(chatPosts()).toHaveLength(1);
     expect(chatPosts()[0].body).toMatchObject({ chatInput: 'ход B' });
     expect(container().querySelectorAll('.animate-bounce, .animate-pulse').length).toBeGreaterThan(0);
