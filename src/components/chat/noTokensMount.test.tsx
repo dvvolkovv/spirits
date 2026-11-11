@@ -938,4 +938,102 @@ describe('no_tokens — файловые регрессии повторного
     expect(modalTask()).toBe(longTask);
     expect(modalText()).toContain('repeat-late.png');
   });
+
+  it('R33: delayed file.text при активном B не отправляет A, не abort и не очищает B streaming', async () => {
+    const bStreamGate = deferred();
+    net.chatStreams.push(ndjson(NORMAL('ответ B'), bStreamGate.promise));
+    const file = new File(['текст A'], 'delayed-a.txt', { type: 'text/plain' });
+    let resolveRead!: (text: string) => void;
+    const readPromise = new Promise<string>((resolve) => { resolveRead = resolve; });
+    Object.defineProperty(file, 'text', { value: () => readPromise, configurable: true });
+    await open();
+    await attach(file);
+    await submitFileTask('задача A');
+    await switchTo(OLYA);
+    await send('ход B');
+    expect(chatPosts()).toHaveLength(1);
+    expect(container().querySelectorAll('.animate-bounce').length).toBeGreaterThan(0);
+
+    await act(async () => { resolveRead('текст A'); });
+    await settle(14);
+    expect(chatPosts()).toHaveLength(1);
+    expect(chatPosts()[0].body).toMatchObject({ chatInput: 'ход B' });
+    expect(container().querySelectorAll('.animate-bounce').length).toBeGreaterThan(0);
+    await act(async () => { bStreamGate.resolve(); });
+    await settle(14);
+    expect(feedText()).toContain('ответ B');
+
+    await switchTo(ASSISTANT);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('задача A');
+    expect(modalText()).toContain('delayed-a.txt');
+  });
+
+  it('R34: редактирование задачи после refusal синхронизирует draft и не стирает правку на A→B→A', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('edited-task.png'));
+    await submitFileTask('исходная задача');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'отредактированная задача');
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    const inField = field().value.includes('отредактированная задача');
+    const inModal = modalTask() === 'отредактированная задача';
+    expect(inField || inModal).toBe(true);
+    expect(inField && inModal).toBe(false);
+    expect(field().value).not.toContain('исходная задача');
+    expect(modalTask()).not.toBe('исходная задача');
+  });
+
+  it('R35 inline: edited-success очищает draft и не возвращает исходный текст в поле', async () => {
+    net.chatStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('inline edited успех')));
+    await open();
+    await attach(new File(['строка'], 'edited-inline.txt', { type: 'text/plain' }));
+    await submitFileTask('исходный inline');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'edited inline');
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(feedText()).toContain('inline edited успех');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('исходный inline');
+    expect(field().value).not.toContain('edited inline');
+  });
+
+  it('R35 multipart: edited-success очищает draft и не возвращает исходный текст в поле', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('multipart edited успех')));
+    await open();
+    await attach(image('edited-multipart.png'));
+    await submitFileTask('исходный multipart');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'edited multipart');
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(feedText()).toContain('multipart edited успех');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('исходный multipart');
+    expect(field().value).not.toContain('edited multipart');
+  });
+
+  it('R36: ordinary A files до первого refusal не смешиваются с новым attach B', async () => {
+    await open();
+    await attach(image('ordinary-a.png'));
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'обычная задача A');
+    await switchTo(OLYA);
+    await attach(image('ordinary-b.png', 2));
+    expect(modalVisible()).toBe(true);
+    expect(modalText()).toContain('ordinary-b.png');
+    expect(modalText()).not.toContain('ordinary-a.png');
+    expect(modalTask()).toBe('');
+  });
 });
