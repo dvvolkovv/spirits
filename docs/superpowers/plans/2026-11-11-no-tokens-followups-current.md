@@ -35,7 +35,7 @@
 - На маке не запускать `pnpm test`, полный `vitest`, `tsc` или `pnpm build`. Все такие команды идут через `front-ci` на `dv@85.192.61.231` в отдельный CI-worktree `~/ci/wt/followups-1111-front`.
 - CI-worktree ставить на точный SHA, не на имя ветки. Живые `~/spirits_front` и `~/spirits_back` на ноде не трогать.
 - Каждая функциональная задача: сначала красный тест на ноде, затем минимальная реализация, зелёный прогон, commit и push `fix/followups-1111-current`. Тесты не ослаблять ради зелёного результата.
-- `git add` только с явными путями. Все commit messages заканчивать trailer `Co-Authored-By: Kimi <noreply@anthropic.com>`.
+- `git add` только с явными путями. Все commit messages заканчивать trailer `Co-Authored-By: Claude Code <noreply@anthropic.com>`.
 
 ### Task 0: Воспроизводимая команда прогонов на ноде
 
@@ -226,7 +226,7 @@ git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current a
   src/utils/pendingDraft.test.ts
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current commit \
   -m "test(chat): финальные helpers no_tokens и pendingDraft (красный)" \
-  -m "Co-Authored-By: Kimi <noreply@anthropic.com>"
+  -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"
 front-ci "pnpm exec vitest run src/components/chat/noTokensDraft.test.ts src/utils/pendingDraft.test.ts"
 ```
 
@@ -348,7 +348,7 @@ git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current a
   src/utils/pendingDraft.test.ts
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current commit \
   -m "fix(chat): чистые helpers no_tokens и общий pendingDraft" \
-  -m "Co-Authored-By: Kimi <noreply@anthropic.com>"
+  -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"
 front-ci "pnpm exec vitest run src/components/chat/noTokensDraft.test.ts src/utils/pendingDraft.test.ts src/utils/pendingDraft.entry.test.ts src/utils/draftCapture.test.ts src/utils/draftCaptureAsk.test.ts src/utils/clearAppStorage.test.ts"
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current status --short
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current rev-parse HEAD
@@ -504,7 +504,7 @@ git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current a
   src/components/chat/greetingRaceWiring.test.ts
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current commit \
   -m "test(chat): живые no_tokens и файловые регрессии (красный)" \
-  -m "Co-Authored-By: Kimi <noreply@anthropic.com>"
+  -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"
 front-ci "pnpm exec vitest run src/components/chat/noTokensMount.test.tsx src/components/chat/noTokensDraftWiring.test.ts src/components/chat/noTokensWiring.test.ts src/components/chat/streamFailureWiring.test.ts src/components/chat/draftWiring.test.ts src/components/chat/greetingRaceWiring.test.ts"
 ```
 
@@ -617,7 +617,7 @@ git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current a
   src/components/chat/ChatInterface.tsx
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current commit \
   -m "fix(chat): вернуть текст и пузырь при no_tokens" \
-  -m "Co-Authored-By: Kimi <noreply@anthropic.com>"
+  -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"
 front-ci "pnpm exec vitest run src/components/chat/noTokensMount.test.tsx -t 'E0|E1|E2|E3|E4|E5'"
 ```
 
@@ -787,7 +787,7 @@ git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current a
   src/components/chat/ChatInterface.tsx
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current commit \
   -m "fix(chat): сохранить отложенные файлы после no_tokens" \
-  -m "Co-Authored-By: Kimi <noreply@anthropic.com>"
+  -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"
 front-ci "pnpm exec vitest run src/components/chat/noTokensMount.test.tsx"
 ```
 
@@ -894,7 +894,7 @@ git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current a
   src/components/settings/RoutinesManager.test.tsx
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current commit \
   -m "test(settings): исходы busy и failed у рутины (красный)" \
-  -m "Co-Authored-By: Kimi <noreply@anthropic.com>"
+  -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"
 front-ci "pnpm exec vitest run src/components/settings/RoutinesManager.test.tsx"
 ```
 
@@ -941,7 +941,7 @@ git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current a
   src/i18n/locales/zh.json
 git -C /Users/dmitry/Downloads/spirits_front/.worktrees/followups-1111-current commit \
   -m "fix(settings): различать busy и failed при проверке рутины" \
-  -m "Co-Authored-By: Kimi <noreply@anthropic.com>"
+  -m "Co-Authored-By: Claude Code <noreply@anthropic.com>"
 ```
 
 Expected: HEAD содержит обработчик, behavioral test и ровно две новые строки в каждой из семи локалей; посторонних locale-изменений нет. Сам test уже находится в предыдущем RED-коммите, поэтому в новом diff обязательны реализация и locale-вставки.
