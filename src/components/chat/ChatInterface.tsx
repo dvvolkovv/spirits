@@ -739,6 +739,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Точный текст, который удалось сохранить: последующий text refusal может
   // перезаписать pending_draft, и тогда он уже не подтверждает файлы.
   const fileTaskDraftTextRef = useRef<string | null>(null);
+  // Late no_tokens пришёл уже после ухода к другому ассистенту. Такой носитель
+  // живёт отдельно от текущего state, чтобы не затирать открытую модалку B.
+  const deferredFileTasksRef = useRef(new Map<number, {
+    files: File[];
+    task: string;
+    draftSaved: boolean;
+    draftText: string | null;
+  }>());
   // «Стоим на нулевом балансе»: после отказа по no_tokens автодосылка очереди
   // и отложенная очистка ?say= останавливаются — иначе следующее сообщение
   // уходит в тот же шлагбаум и теряется уже без восстановления. Снимается
@@ -873,6 +881,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           fileTaskDraftSavedRef.current = false;
           fileTaskDraftTextRef.current = null;
         }
+      }
+      // Открытая модалка принадлежала прежнему ассистенту. Late-задача нового
+      // чата восстанавливается из его собственного store, без смешения файлов.
+      setShowFileTaskModal(false);
+      const incoming = newId === null ? undefined : deferredFileTasksRef.current.get(newId);
+      if (incoming) {
+        const currentOwner = pendingFilesAssistantId ?? prevId;
+        if (pendingFiles.length > 0 && currentOwner !== null && currentOwner !== newId) {
+          deferredFileTasksRef.current.set(currentOwner, {
+            files: pendingFiles,
+            task: fileTaskInput,
+            draftSaved: fileTaskDraftSavedRef.current,
+            draftText: fileTaskDraftTextRef.current,
+          });
+        }
+        setPendingFiles(incoming.files);
+        setFileTaskInput(incoming.task);
+        setPendingFilesAssistantId(newId);
+        fileTaskDraftSavedRef.current = incoming.draftSaved;
+        fileTaskDraftTextRef.current = incoming.draftText;
+        deferredFileTasksRef.current.delete(newId);
       }
     }
     prevSelectedAssistantIdRef.current = newId;
@@ -2498,18 +2527,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   ) => {
     // Сохраняем даже после ухода к другому ассистенту: draft привязан к
     // исходному чату и подставится при возврате.
-    fileTaskDraftSavedRef.current = uploadAssistantId !== null
+    const draftSaved = uploadAssistantId !== null
       ? savePendingDraft(task, uploadAssistantId)
       : false;
+    if (uploadAssistantId !== null) {
+      deferredFileTasksRef.current.set(uploadAssistantId, {
+        files,
+        task,
+        draftSaved,
+        draftText: draftSaved ? task : null,
+      });
+    }
+    // Late A получает только собственный store. Текущие files/task/modal/лента B
+    // остаются нетронутыми; refusal сам подтверждает наблюдённый нулевой баланс.
+    if (uploadAssistantId === null || selectedAssistantIdRef.current !== uploadAssistantId) {
+      if (uploadAssistantId !== null && lastSeenTokensRef.current === null) {
+        lastSeenTokensRef.current = 0;
+      }
+      return;
+    }
+    deferredFileTasksRef.current.delete(uploadAssistantId);
+    fileTaskDraftSavedRef.current = uploadAssistantId !== null
+      ? draftSaved
+      : false;
     fileTaskDraftTextRef.current = fileTaskDraftSavedRef.current ? task : null;
-    // Носитель сохраняем при ЛЮБОМ исходе save и даже после A→B. При save=false
-    // это единственная копия задачи; при save=true exact draft решит позже,
-    // какой один носитель оставить при возврате.
     setPendingFiles(files);
     setFileTaskInput(task);
     setPendingFilesAssistantId(uploadAssistantId);
-    // Ленту, hold и модалку другого ассистента не трогаем.
-    if (uploadAssistantId === null || selectedAssistantIdRef.current !== uploadAssistantId) return;
     noTokensHoldRef.current = true;
     setMessages(prev => {
       if (stopMessage) return collapseNoTokensStop(prev, rejectedMessageId, stopMessage);
@@ -2596,22 +2640,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // всегда шлём мультипартом, иначе 10 файлов по 500 КБ раздуют промпт.
     if (files.length === 1 && isTextFile(files[0])) {
       const file = files[0];
-      let outcome: 'ok' | 'no_tokens' | 'error';
+      // До file.text() тоже идёт retry: history reload не должен вернуть
+      // уже отправленный draft в поле, пока файл ещё читается.
+      setIsTyping(true);
+      setStreamingMessageId(generateMessageId());
+      setCurrentStreamingMessage('');
       try {
-        const text = await file.text();
-        // i18n-ignore: текст промпта для модели, не UI (см. выше)
-        const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
-        outcome = await sendMessageToAI(prompt);
-      } catch {
-        // i18n-ignore: текст промпта для модели, не UI (см. выше)
-        outcome = await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
-      }
-      if (outcome === 'no_tokens') {
-        // sendMessageToAI уже дописал stop, но synthetic prompt без id не
-        // восстанавливает ни attachment bubble, ни человеческую задачу.
-        restoreFileTaskOnNoTokens(userMessage.id, null, files, task, uploadAssistantId);
-      } else if (outcome === 'ok' && uploadAssistantId !== null) {
-        forgetPendingDraftIfSent(uploadAssistantId, task);
+        let outcome: 'ok' | 'no_tokens' | 'error';
+        try {
+          const text = await file.text();
+          // i18n-ignore: текст промпта для модели, не UI (см. выше)
+          const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
+          outcome = await sendMessageToAI(prompt);
+        } catch {
+          // i18n-ignore: текст промпта для модели, не UI (см. выше)
+          outcome = await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
+        }
+        if (outcome === 'no_tokens') {
+          // sendMessageToAI уже дописал stop, но synthetic prompt без id не
+          // восстанавливает ни attachment bubble, ни человеческую задачу.
+          restoreFileTaskOnNoTokens(userMessage.id, null, files, task, uploadAssistantId);
+        } else if (outcome === 'ok' && uploadAssistantId !== null) {
+          forgetPendingDraftIfSent(uploadAssistantId, task);
+        }
+      } finally {
+        setIsTyping(false);
+        setStreamingMessageId(null);
+        setCurrentStreamingMessage('');
       }
       return;
     }
