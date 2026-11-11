@@ -736,8 +736,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // False означает, что чужой живой draft помешал сохранить задачу: тогда
   // File-объекты и fileTaskInput остаются её единственным носителем.
   const fileTaskDraftSavedRef = useRef(false);
-  // Точный текст, который удалось сохранить: последующий text refusal может
-  // перезаписать pending_draft, и тогда он уже не подтверждает файлы.
+  // Точный актуальный текст задачи; fileTaskDraftSavedRef отдельно показывает,
+  // совпадает ли с ним сохранённый pending_draft.
   const fileTaskDraftTextRef = useRef<string | null>(null);
   // Late no_tokens пришёл уже после ухода к другому ассистенту. Такой носитель
   // живёт отдельно от текущего state, чтобы не затирать открытую модалку B.
@@ -746,6 +746,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     task: string;
     draftSaved: boolean;
     draftText: string | null;
+    reopenOnReturn?: boolean;
   }>());
   // «Стоим на нулевом балансе»: после отказа по no_tokens автодосылка очереди
   // и отложенная очистка ?say= останавливаются — иначе следующее сообщение
@@ -902,6 +903,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         fileTaskDraftSavedRef.current = incoming.draftSaved;
         fileTaskDraftTextRef.current = incoming.draftText;
         deferredFileTasksRef.current.delete(newId);
+        setShowFileTaskModal(incoming.reopenOnReturn === true);
       }
     }
     prevSelectedAssistantIdRef.current = newId;
@@ -2440,15 +2442,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     });
 
     if (supportsUniversalFiles) {
+      const attachAssistantId = selectedAssistant?.id ?? null;
       // Явный новый attach в другом чате заменяет отложенную задачу прежнего:
       // просто переключение её сохраняет, а смешивать A-файлы/текст с B нельзя.
-      if (pendingFilesAssistantId !== null && pendingFilesAssistantId !== selectedAssistant?.id) {
+      if (pendingFilesAssistantId !== null && pendingFilesAssistantId !== attachAssistantId) {
         setPendingFiles([]);
         setFileTaskInput('');
         setPendingFilesAssistantId(null);
         fileTaskDraftSavedRef.current = false;
         fileTaskDraftTextRef.current = null;
       }
+      // Owner нужен уже обычному, ещё не отправленному вложению: иначе после
+      // A→B следующий attach унаследует и смешает файлы прежнего чата.
+      setPendingFilesAssistantId(attachAssistantId);
       // Универсальный flow: показываем модалку с заданием на всю пачку сразу.
       // Докладываем к уже выбранным — модалка умеет «добавить ещё».
       setPendingFiles(prev => {
@@ -2535,7 +2541,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         files,
         task,
         draftSaved,
-        draftText: draftSaved ? task : null,
+        draftText: task,
       });
     }
     // Late A получает только собственный store. Текущие files/task/modal/лента B
@@ -2551,7 +2557,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     fileTaskDraftSavedRef.current = uploadAssistantId !== null
       ? draftSaved
       : false;
-    fileTaskDraftTextRef.current = fileTaskDraftSavedRef.current ? task : null;
+    fileTaskDraftTextRef.current = task;
     setPendingFiles(files);
     setFileTaskInput(task);
     setPendingFilesAssistantId(uploadAssistantId);
@@ -2563,6 +2569,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (!newStop?.noTokensStop) return withoutBubble;
       return collapseNoTokensStop(withoutBubble.slice(0, -1), '', newStop);
     });
+  };
+
+  const handleFileTaskInputChange = (next: string) => {
+    setFileTaskInput(next);
+    fileTaskDraftTextRef.current = next;
+    // Правка становится новым содержимым надёжного draft. Если сохранение
+    // невозможно, saved=false оставляет файлы единственным носителем.
+    if (pendingFilesAssistantId !== null && fileTaskDraftSavedRef.current) {
+      fileTaskDraftSavedRef.current = savePendingDraft(next, pendingFilesAssistantId);
+    }
   };
 
   const handleFileTaskSubmit = async () => {
@@ -2580,6 +2596,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const files = pendingFiles;
     const task = fileTaskInput.trim();
     const uploadAssistantId = selectedAssistant?.id ?? null;
+    const completeSuccessfulFileTask = (task: string) => {
+      if (uploadAssistantId === null) return;
+      if (selectedAssistantIdRef.current === uploadAssistantId) {
+        // Перед успешным forget ref должен описывать именно отправленную правку.
+        fileTaskDraftTextRef.current = task;
+        fileTaskDraftSavedRef.current = pendingDraftMatches(uploadAssistantId, task);
+      }
+      forgetPendingDraftIfSent(uploadAssistantId, task);
+      if (selectedAssistantIdRef.current === uploadAssistantId) {
+        fileTaskDraftSavedRef.current = false;
+        fileTaskDraftTextRef.current = null;
+      }
+    };
 
     // Отказ ДО выгрузки. Раньше пачка уезжала целиком, упиралась в
     // client_max_body_size на nginx и возвращала 413, который фронт показывал
@@ -2646,14 +2675,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setIsTyping(true);
       setStreamingMessageId(generateMessageId());
       setCurrentStreamingMessage('');
+      const deferIfAssistantChanged = () => {
+        if (selectedAssistantIdRef.current === uploadAssistantId) return false;
+        if (uploadAssistantId !== null) {
+          deferredFileTasksRef.current.set(uploadAssistantId, {
+            files,
+            task,
+            draftSaved: pendingDraftMatches(uploadAssistantId, task),
+            draftText: task,
+            reopenOnReturn: true,
+          });
+        }
+        return true;
+      };
       try {
         let outcome: 'ok' | 'no_tokens' | 'error';
         try {
           const text = await file.text();
+          if (deferIfAssistantChanged()) return;
           // i18n-ignore: текст промпта для модели, не UI (см. выше)
           const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
           outcome = await sendMessageToAI(prompt);
         } catch {
+          if (deferIfAssistantChanged()) return;
           // i18n-ignore: текст промпта для модели, не UI (см. выше)
           outcome = await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
         }
@@ -2662,12 +2706,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // восстанавливает ни attachment bubble, ни человеческую задачу.
           restoreFileTaskOnNoTokens(userMessage.id, null, files, task, uploadAssistantId);
         } else if (outcome === 'ok' && uploadAssistantId !== null) {
-          forgetPendingDraftIfSent(uploadAssistantId, task);
+          completeSuccessfulFileTask(task);
         }
       } finally {
-        setIsTyping(false);
-        setStreamingMessageId(null);
-        setCurrentStreamingMessage('');
+        if (selectedAssistantIdRef.current === uploadAssistantId) {
+          setIsTyping(false);
+          setStreamingMessageId(null);
+          setCurrentStreamingMessage('');
+        }
       }
       return;
     }
@@ -2784,7 +2830,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         restoreFileTaskOnNoTokens(userMessage.id, assistantMsg, files, task, uploadAssistantId);
       } else {
         setMessages(prev => [...prev, assistantMsg]);
-        if (uploadAssistantId !== null) forgetPendingDraftIfSent(uploadAssistantId, task);
+        if (uploadAssistantId !== null) completeSuccessfulFileTask(task);
       }
     } catch (error) {
       if (user?.phone) trackAuthed('file_upload_error', user.phone, { count: files.length, name: files.map(f => f.name).join(', ').slice(0, 200), error: error instanceof Error ? error.message : String(error), assistant_id: selectedAssistant?.id });
@@ -3876,7 +3922,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             )}
             <textarea
               value={fileTaskInput}
-              onChange={(e) => setFileTaskInput(e.target.value)}
+              onChange={(e) => handleFileTaskInputChange(e.target.value)}
               placeholder={t('chat.file_modal_placeholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-forest-500 focus:border-transparent mb-3"
               rows={3}
