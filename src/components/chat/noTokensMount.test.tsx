@@ -907,4 +907,35 @@ describe('no_tokens — файловые регрессии повторного
     expect(field().value).toBe('');
     expect(modalVisible()).toBe(false);
   });
+
+  it('R32: повторный late refusal после observed positive сбрасывает ноль для reopen на A', async () => {
+    const secondRefusal = deferred();
+    net.uploadStreams.push(
+      ndjson(NO_TOKENS),
+      ndjson(NO_TOKENS, secondRefusal.promise),
+    );
+    await open();
+    await attach(image('repeat-late.png'));
+    await submitFileTask('первая задача');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+
+    const longTask = `повторная поздняя задача ${'я'.repeat(2050)}`;
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, longTask);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle();
+    await switchTo(OLYA);
+    await act(async () => { secondRefusal.resolve(); });
+    await settle(14);
+    // Вторая задача >2000: save=false, прежний draft не доказывает её носитель.
+    expect(storedDraft()).toMatchObject({ text: 'первая задача', assistant: '12' });
+    await setTokens(0);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(false);
+    expect(feedText()).not.toContain('repeat-late.png');
+    await switchTo(ASSISTANT);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe(longTask);
+    expect(modalText()).toContain('repeat-late.png');
+  });
 });
