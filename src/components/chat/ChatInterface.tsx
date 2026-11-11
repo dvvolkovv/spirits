@@ -51,7 +51,7 @@ import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
 import { greetingStillWanted } from './greetingGate';
 import { addToQueue, removeFromQueue, joinQueue, type QueuedMessage } from './sendQueue';
 import { shouldShowStreamError, needsActiveTurnProbe } from './streamFailure';
-import { isNoTokensEnd, restoreDraftText, saveNoTokensDraft, peekNoTokensDraft, clearNoTokensDraft } from './noTokensDraft';
+import { isNoTokensEnd, restoreIntoInput, collapseNoTokensStop, applyNoTokensOutcome } from './noTokensDraft';
 import {
   localTurnBusy,
   turnRunningAnywhere,
@@ -65,7 +65,7 @@ import { ProductActionCard } from '../products/ProductActionCard';
 import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
 import { stripProductActionBlocks } from '../../utils/productActionBlock';
-import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';
+import { hasPendingDraftFor, takePendingDraftFor, savePendingDraft, forgetPendingDraftIfSent } from '../../utils/pendingDraft';
 import { createChunkDecoder } from '../../utils/streamDecoder';
 import ChatImageAttachment from './ChatImageAttachment';
 import { imageAttachmentPreview } from './attachmentPreview';
@@ -93,6 +93,8 @@ interface Message {
    * and rendered as <CalendarProposalCard/> below the message via
    * <InlineCalendarProposals/> (Task S2, mirrors inlineJobIds/video). */
   calendarProposalIds?: string[];
+  /** Серверная остановка по балансу: следующая такая же заменяет её в ленте. */
+  noTokensStop?: boolean;
   /** Шаги работы ассистента в этом ходе (turnActivity.ts). Только в памяти:
    *  из истории сообщение приходит без них. */
   activity?: ActivitySummary;
@@ -855,15 +857,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAssistant?.id]);
 
-  // Черновик, отклонённый на нулевом балансе, переживает уход на оплату и F5:
-  // подставляем сохранённую копию (не затирая то, что уже набрано).
-  useEffect(() => {
-    if (!selectedAssistant) return;
-    const saved = peekNoTokensDraft(selectedAssistant.id);
-    if (saved) setInput(prev => restoreDraftText(prev, saved));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAssistant?.id]);
-
   useEffect(() => {
     if (initialShowTokens) {
       setShowTokenPackages(true);
@@ -1437,7 +1430,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => { try { voiceRef.current?.stop(); } catch {} };
   }, []);
 
-  const sendMessageToAI = async (userMessage: string, opts?: { onNoTokens?: () => void }) => {
+  const sendMessageToAI = async (userMessage: string, userMessageId?: string) => {
     sendSeqRef.current += 1;
     setIsTyping(true);
     setCurrentStreamingMessage('');
@@ -1499,6 +1492,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // и пошли ли события. Объявлены ДО try — в catch нужны оба.
     let responseStarted = false;
     let receivedAnyEvent = false;
+    // Шлагбаум баланса: сообщение на сервер не записалось, черновик надо
+    // вернуть (noTokensDraft.ts). Выставляется по `end` с reason no_tokens.
+    let noTokens = false;
 
     try {
       const response = await apiClient.post('/webhook/soulmate/chat', {
@@ -1542,9 +1538,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const updateInterval = 50;
       let buffer = '';
       let lastUsage: { total?: number } | null = null;
-      // Шлагбаум баланса: сообщение на сервер не записалось, черновик надо
-      // вернуть (noTokensDraft.ts). Выставляется по `end` с reason no_tokens.
-      let noTokens = false;
       // Один decoder на весь поток: новый TextDecoder на каждый кусок (как
       // было здесь) не хранит байтовый хвост многобайтного знака (кириллица,
       // эмодзи), разрезанного границей кусков, — находка ревью пробы 31.10.
@@ -1616,10 +1609,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 lastUpdate = now;
               }
             }
-            if (data.type === 'end' && data.usage) {
-              lastUsage = data.usage;
+            if (data.type === 'end') {
+              if (data.usage) lastUsage = data.usage;
+              if (isNoTokensEnd(data)) noTokens = true;
             }
-            if (isNoTokensEnd(data)) noTokens = true;
             if (data.type === 'tool_start' && data.tool === 'generate_video') {
               inlineJobIds.push('pending');
             }
@@ -1691,6 +1684,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               if (data.type === 'item' && data.content) {
                 accumulatedContent += data.content;
               }
+              if (data.type === 'end') {
+                if (data.usage) lastUsage = data.usage;
+                if (isNoTokensEnd(data)) noTokens = true;
+              }
             } catch (e) { /* ignore */ }
           }
           break;
@@ -1710,16 +1707,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           inlineJobIds: inlineJobIds.length > 0 ? [...inlineJobIds] : undefined,
           calendarProposalIds: calendarProposalIds.length > 0 ? [...calendarProposalIds] : undefined,
           activity: finishActivity(activity, Date.now()),
+          noTokensStop: noTokens || undefined,
         };
-        setMessages(prev => [...prev, completedMessage]);
-        setStreamingMessageId(null);
         if (noTokens) {
-          // Отказ шлагбаума: сообщение пользователя на сервер не записалось.
-          // Черновик возвращает вызывающая сторона (текст или файловая
-          // задача), окно пополнения открываем всегда.
           noTokensHoldRef.current = true;
-          setShowTokenPackages(true);
-          opts?.onNoTokens?.();
+          // Отклонённый пузырь человека убираем; повторный stop заменяет прежний.
+          setMessages(prev => collapseNoTokensStop(prev, userMessageId ?? '', completedMessage));
+        } else {
+          setMessages(prev => [...prev, completedMessage]);
+        }
+        setStreamingMessageId(null);
+
+        if (userMessageId !== undefined && streamAssistantId !== null) {
+          if (noTokens) {
+            // Очередь не досылается вслед в заведомый шлагбаум: её текст
+            // возвращается вместе с отклонённым сообщением.
+            const queuedText = joinQueue(queuedRef.current);
+            if (queuedRef.current.length) applyQueued(() => []);
+            const outcome = applyNoTokensOutcome({ rejectedText: userMessage, queuedText });
+            // Текущее поле читаем функционально: за время хода человек мог
+            // набрать новое, и его нельзя ни затереть, ни продублировать.
+            setInput(prev => restoreIntoInput(prev, outcome.input));
+            // Длиннее PENDING_DRAFT_STORE_MAX savePendingDraft не сохранит;
+            // видимый ввод при этом всё равно восстановлен целиком.
+            savePendingDraft(outcome.draftText, streamAssistantId);
+          } else {
+            forgetPendingDraftIfSent(streamAssistantId, userMessage);
+          }
         }
       }
       // If user switched — backend has already saved to chat_history; polling
@@ -1728,7 +1742,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         console.log('Request was aborted');
-        return;
+        return 'error';
       }
 
       console.error('Error sending message to AI:', error);
@@ -1760,7 +1774,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (selectedAssistantIdRef.current === streamAssistantId) {
           applyRemoteTurn(true);
         }
-        return;
+        return 'error';
       }
 
       // Only show error in UI if user is still on the originating chat
@@ -1773,6 +1787,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         };
         setMessages(prev => [...prev, errorMessage]);
       }
+      return 'error';
     } finally {
       // Only clear typing state if user is still on the originating chat;
       // otherwise the universal-switch effect has already reset it for the new chat.
@@ -1785,6 +1800,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
       abortControllerRef.current = null;
     }
+    return noTokens ? 'no_tokens' : 'ok';
   };
 
   // Cleanup on unmount
@@ -1829,17 +1845,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     setMessages(prev => [...prev, userMessage]);
-    await sendMessageToAI(text, {
-      // Нулевой баланс: сообщение на сервер не ушло — возвращаем его в поле,
-      // чтобы человек не набирал заново. Окно пополнения откроется само.
-      // Копия в sessionStorage — на случай ухода на оплату: страница при этом
-      // выгружается, и состояние чата умирает ровно после покупки.
-      onNoTokens: () => {
-        setInput(prev => restoreDraftText(prev, text));
-        const id = selectedAssistantIdRef.current;
-        if (id != null) saveNoTokensDraft(id, text);
-      },
-    });
+    await sendMessageToAI(text, userMessage.id);
   };
 
   const handleSend = async () => {
@@ -1869,10 +1875,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     voiceCommittedRef.current = '';
     const text = input;
     setInput('');
-    // Явная отправка: снимаем остановку очереди после no_tokens и стираем
-    // сохранённую копию черновика — он больше не должен воскресать после F5.
+    // Явная отправка снимает остановку автодосылки. Общий draft не стираем
+    // заранее: его снимет только фактически успешный ход.
     noTokensHoldRef.current = false;
-    if (selectedAssistant) clearNoTokensDraft(selectedAssistant.id);
     await submitText(text);
   };
 
@@ -2506,10 +2511,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         const text = await file.text();
         // i18n-ignore: текст промпта для модели, не UI (см. выше)
       const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
-        await sendMessageToAI(prompt, { onNoTokens: restoreFileTask });
+        await sendMessageToAI(prompt);
       } catch {
         // i18n-ignore: текст промпта для модели, не UI (см. выше)
-      await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`, { onNoTokens: restoreFileTask });
+      await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
       }
       return;
     }
