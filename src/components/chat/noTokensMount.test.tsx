@@ -22,7 +22,7 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock('../../contexts/AuthContext', () => ({ useAuth: () => auth }));
 
-type PlannedStream = () => unknown;
+type PlannedStream = (request?: { signal?: AbortSignal }) => unknown;
 const net = vi.hoisted(() => ({
   history: [] as unknown[],
   chatStreams: [] as PlannedStream[],
@@ -45,17 +45,17 @@ vi.mock('../../services/apiClient', () => {
         if (url.startsWith('/webhook/agents')) return ok([]);
         return ok({});
       },
-      post: async (path: string, body: unknown) => {
+      post: async (path: string, body: unknown, options?: { signal?: AbortSignal }) => {
         net.posts.push({ path, body });
         if (path === '/webhook/soulmate/chat') {
           const planned = net.chatStreams.shift();
           if (!planned) throw new Error('no planned chat stream');
-          return planned();
+          return planned(options);
         }
         if (path === '/webhook/agent/upload-and-chat') {
           const planned = net.uploadStreams.shift();
           if (!planned) throw new Error('no planned upload stream');
-          return planned();
+          return planned(options);
         }
         return ok({ ok: true });
       },
@@ -117,8 +117,27 @@ const NORMAL = (text: string) => [
   { type: 'end', usage: { input: 1, output: 1, total: 2 } },
 ];
 
-function ndjson(events: object[], endGate?: Promise<void>): PlannedStream {
-  return () => {
+const abortError = () => new DOMException('The operation was aborted.', 'AbortError');
+
+async function waitWithAbort(gate: Promise<void>, signal?: AbortSignal): Promise<void> {
+  if (!signal) return gate;
+  if (signal.aborted) throw abortError();
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => reject(abortError());
+    signal.addEventListener('abort', onAbort, { once: true });
+    gate.then(
+      () => { signal.removeEventListener('abort', onAbort); resolve(); },
+      (error) => { signal.removeEventListener('abort', onAbort); reject(error); },
+    );
+  });
+}
+
+function ndjson(
+  events: object[],
+  endGate?: Promise<void>,
+  behavior?: { deliverEndAfterAbort?: boolean },
+): PlannedStream {
+  return (request) => {
     const encoder = new TextEncoder();
     const chunks = events.map((event) => encoder.encode(`${JSON.stringify(event)}\n`));
     let index = 0;
@@ -128,7 +147,16 @@ function ndjson(events: object[], endGate?: Promise<void>): PlannedStream {
       body: {
         getReader: () => ({
           read: async () => {
-            if (endGate && index === chunks.length - 1) await endGate;
+            const atEnd = index === chunks.length - 1;
+            if (endGate && atEnd) {
+              if (behavior?.deliverEndAfterAbort) await endGate;
+              else await waitWithAbort(endGate, request?.signal);
+            }
+            // deliverEndAfterAbort моделирует END, уже лежавший в очереди
+            // транспорта к моменту abort; ранний abort по-прежнему ошибка.
+            if (request?.signal?.aborted && !(behavior?.deliverEndAfterAbort && atEnd)) {
+              throw abortError();
+            }
             if (index < chunks.length) return { done: false, value: chunks[index++] };
             return { done: true, value: undefined };
           },
@@ -155,9 +183,10 @@ const HISTORY = [
 
 let view: Mounted | null = null;
 let route = '/chat';
+let activeAssistant = ASSISTANT;
 const page = () => (
   <MemoryRouter initialEntries={[route]}>
-    <ChatInterface preSelectedAssistant={ASSISTANT} />
+    <ChatInterface preSelectedAssistant={activeAssistant} />
   </MemoryRouter>
 );
 const settle = async (rounds = 10) => { for (let i = 0; i < rounds; i++) await flush(); };
@@ -165,11 +194,8 @@ const sleep = (ms: number) => act(async () => { await new Promise((r) => setTime
 async function open() { view = mount(page()); await settle(); }
 const rerender = async () => { view!.rerender(page()); await settle(); };
 async function switchTo(assistant: typeof ASSISTANT) {
-  view!.rerender(
-    <MemoryRouter initialEntries={[route]}>
-      <ChatInterface preSelectedAssistant={assistant} />
-    </MemoryRouter>,
-  );
+  activeAssistant = assistant;
+  view!.rerender(page());
   await settle(14);
 }
 
@@ -215,6 +241,17 @@ async function submitFileTask(task: string) {
   await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
   await settle(14);
 }
+async function removeOnlyFile() {
+  const button = fileModal()?.querySelector(`button[title="${tRu('chat.file_remove')}"]`);
+  expect(button).not.toBeNull();
+  await clickElement(button!);
+  await settle(14);
+}
+async function reload() {
+  view!.unmount();
+  view = null;
+  await open();
+}
 const setTokens = async (tokens: number) => {
   auth.user = { ...auth.user, tokens };
   await rerender();
@@ -255,6 +292,7 @@ beforeEach(() => {
   net.uploadStreams = [];
   net.posts = [];
   route = '/chat';
+  activeAssistant = ASSISTANT;
 });
 
 afterEach(() => {
@@ -613,5 +651,172 @@ describe('no_tokens — файловые регрессии повторного
     expect(chatPosts()[0].body).toMatchObject({ chatInput: 'текст из очереди' });
     expect(feedText()).toContain('файл принят');
     expect(feedText()).toContain('очередь доставлена');
+  });
+
+  it('R22: late multipart A→B при save=false сохраняет носитель в памяти, не трогая ленту B', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({
+      text: 'черновик для Райи', assistant: '14', expires: Date.now() + 3_600_000,
+    }));
+    const gate = deferred();
+    net.uploadStreams.push(ndjson(NO_TOKENS, gate.promise));
+    await open();
+    await attach(image('late-multipart.png'));
+    await submitFileTask('поздняя задача');
+    await switchTo(OLYA);
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    expect(modalVisible()).toBe(false);
+    expect(feedText()).not.toContain('late-multipart.png');
+    expect(storedDraft()).toMatchObject({ text: 'черновик для Райи', assistant: '14' });
+    await switchTo(ASSISTANT);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('поздняя задача');
+    expect(modalText()).toContain('late-multipart.png');
+  });
+
+  it('R23: другой text draft не доказывает сохранность file draft; Cancel его не удаляет', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    net.chatStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('exact-draft.png'));
+    await submitFileTask('исходная файловая задача');
+    expect(storedDraft()).toMatchObject({ text: 'исходная файловая задача', assistant: '12' });
+    await send('другой текст');
+    expect(storedDraft()).toMatchObject({ text: 'другой текст', assistant: '12' });
+    await switchTo(OLYA);
+    typeInto(field(), '');
+    await switchTo(ASSISTANT);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('исходная файловая задача');
+    expect(modalText()).toContain('exact-draft.png');
+    await clickElement(buttonByText(tRu('chat.file_modal_cancel'))!);
+    await settle();
+    expect(storedDraft()).toMatchObject({ text: 'другой текст', assistant: '12' });
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('исходная файловая задача');
+  });
+
+  it('R24: inline .txt END после A→B/abort остаётся no_tokens и восстанавливает носитель', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({
+      text: 'черновик для Райи', assistant: '14', expires: Date.now() + 3_600_000,
+    }));
+    const gate = deferred();
+    net.chatStreams.push(ndjson(NO_TOKENS, gate.promise, { deliverEndAfterAbort: true }));
+    await open();
+    await attach(new File(['строка'], 'late-inline.txt', { type: 'text/plain' }));
+    await submitFileTask('поздний inline');
+    await switchTo(OLYA);
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    expect(modalVisible()).toBe(false);
+    expect(feedText()).not.toContain('late-inline.txt');
+    expect(storedDraft()).toMatchObject({ text: 'черновик для Райи', assistant: '14' });
+    await switchTo(ASSISTANT);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('поздний inline');
+    expect(modalText()).toContain('late-inline.txt');
+  });
+
+  it('R25: переход 0→5000 на B не расходует reopen deferred files A', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({
+      text: 'черновик для Райи', assistant: '14', expires: Date.now() + 3_600_000,
+    }));
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('balance-a.png'));
+    await submitFileTask('задача A');
+    await switchTo(OLYA);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(false);
+    expect(feedText()).not.toContain('balance-a.png');
+    await switchTo(ASSISTANT);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('задача A');
+    expect(modalText()).toContain('balance-a.png');
+  });
+
+  it('R26: history reload во время retry не подставляет уже отправленный draft повторно', async () => {
+    const retryGate = deferred();
+    net.uploadStreams.push(
+      ndjson(NO_TOKENS),
+      ndjson(NORMAL('retry завершён'), retryGate.promise),
+    );
+    await open();
+    await attach(image('retry-reload.png'));
+    await submitFileTask('задача retry');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle();
+    const toggle = container().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement;
+    await clickElement(toggle);
+    await settle(20);
+    await act(async () => { retryGate.resolve(); });
+    await settle(20);
+    expect(feedText()).toContain('retry завершён');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
+  });
+
+  it('R27: Cancel удаляет exact file draft и освобождает queue; F5/A→B→A не воскрешает задачу', async () => {
+    const refusalGate = deferred();
+    net.uploadStreams.push(ndjson(NO_TOKENS, refusalGate.promise));
+    net.chatStreams.push(ndjson(NORMAL('очередь после Cancel доставлена')));
+    await open();
+    await attach(image('cancel-task.png'));
+    await submitFileTask('задача Cancel');
+    await send('текст после Cancel');
+    await act(async () => { refusalGate.resolve(); });
+    await settle(20);
+    expect(chatPosts()).toHaveLength(0);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    await clickElement(buttonByText(tRu('chat.file_modal_cancel'))!);
+    await settle(20);
+    for (let i = 0; i < 10 && chatPosts().length === 0; i++) await sleep(50);
+    const afterCancel = {
+      draft: storedDraft(),
+      posts: chatPosts().length,
+      replyVisible: feedText().includes('очередь после Cancel доставлена'),
+    };
+    await reload();
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(afterCancel).toEqual({ draft: null, posts: 1, replyVisible: true });
+    expect(chatPosts()[0].body).toMatchObject({ chatInput: 'текст после Cancel' });
+    expect(field().value).not.toContain('задача Cancel');
+    expect(modalVisible()).toBe(false);
+  });
+
+  it('R28: удаление последнего файла крестиком эквивалентно Cancel и освобождает queue', async () => {
+    const refusalGate = deferred();
+    net.uploadStreams.push(ndjson(NO_TOKENS, refusalGate.promise));
+    net.chatStreams.push(ndjson(NORMAL('очередь после удаления доставлена')));
+    await open();
+    await attach(image('remove-last.png'));
+    await submitFileTask('задача удаления');
+    await send('текст после удаления');
+    await act(async () => { refusalGate.resolve(); });
+    await settle(20);
+    expect(chatPosts()).toHaveLength(0);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    await removeOnlyFile();
+    for (let i = 0; i < 10 && chatPosts().length === 0; i++) await sleep(50);
+    const afterRemove = {
+      draft: storedDraft(),
+      posts: chatPosts().length,
+      replyVisible: feedText().includes('очередь после удаления доставлена'),
+    };
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(afterRemove).toEqual({ draft: null, posts: 1, replyVisible: true });
+    expect(chatPosts()[0].body).toMatchObject({ chatInput: 'текст после удаления' });
+    expect(field().value).not.toContain('задача удаления');
+    expect(modalVisible()).toBe(false);
   });
 });

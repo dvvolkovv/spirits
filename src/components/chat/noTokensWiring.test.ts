@@ -19,12 +19,14 @@ const filesSubmit = () => between('const handleFileTaskSubmit = async', 'const h
 const restoreFiles = () => between('const restoreFileTaskOnNoTokens = (', 'const handleFileTaskSubmit = async');
 
 describe('файловая задача после no_tokens', () => {
-  it('есть привязка к исходному assistant и признак результата savePendingDraft', () => {
+  it('есть привязка к исходному assistant и точный текст результата savePendingDraft', () => {
     expect(SRC).toContain('const [pendingFilesAssistantId, setPendingFilesAssistantId]');
     expect(SRC).toContain('const fileTaskDraftSavedRef = useRef(false);');
+    expect(SRC).toContain('const fileTaskDraftTextRef = useRef<string | null>(null);');
     expect(filesSubmit()).toContain('const uploadAssistantId = selectedAssistant?.id ?? null;');
     expect(restoreFiles()).toContain('fileTaskDraftSavedRef.current = uploadAssistantId !== null');
     expect(restoreFiles()).toContain('savePendingDraft(task, uploadAssistantId)');
+    expect(restoreFiles()).toContain('fileTaskDraftTextRef.current');
   });
 
   it('общий restore сохраняет task/File-объекты, схлопывает bubble/stop и не открывает модалки', () => {
@@ -36,6 +38,17 @@ describe('файловая задача после no_tokens', () => {
     expect(fn).toContain('setPendingFilesAssistantId(uploadAssistantId);');
     expect(fn).not.toContain('setShowFileTaskModal');
     expect(fn).not.toContain('setShowTokenPackages');
+  });
+
+  it('late restore сохраняет files/task/id в память ДО guard текущего assistant', () => {
+    const fn = restoreFiles();
+    const guard = fn.indexOf('selectedAssistantIdRef.current !== uploadAssistantId');
+    expect(guard).toBeGreaterThan(-1);
+    for (const marker of ['setPendingFiles(files);', 'setFileTaskInput(task);', 'setPendingFilesAssistantId(uploadAssistantId);']) {
+      expect(fn.indexOf(marker), marker).toBeGreaterThan(-1);
+      expect(fn.indexOf(marker), marker).toBeLessThan(guard);
+    }
+    expect(fn.slice(0, guard)).not.toContain('setMessages');
   });
 
   it('одиночный .txt идёт без id synthetic prompt и разбирает исход; error не снимает draft', () => {
@@ -64,12 +77,19 @@ describe('файловая задача после no_tokens', () => {
     expect(restoreFiles()).toContain('noTokensHoldRef.current = true;');
   });
 
-  it('отправка и Cancel сбрасывают assistant id отложенных файлов', () => {
+  it('отправка сбрасывает assistant id, а Cancel/remove последнего файла зовут общий cancel', () => {
     const fn = filesSubmit();
     expect(fn.slice(fn.indexOf("setFileTaskInput('');"), fn.indexOf("setFileTaskInput('');") + 500))
       .toContain('setPendingFilesAssistantId(null);');
+    const cancel = between('const cancelDeferredFileTask =', 'const handleSelectAssistant = async');
+    expect(cancel).toContain('setPendingFilesAssistantId(null);');
+    expect(cancel).toContain('pendingDraftMatches(');
+    expect(cancel).toContain('forgetPendingDraftIfSent(');
+    expect(cancel).toContain('noTokensHoldRef.current = false;');
     const cancelAt = SRC.indexOf("t('chat.file_modal_cancel')");
-    expect(SRC.slice(Math.max(0, cancelAt - 650), cancelAt)).toContain('setPendingFilesAssistantId(null);');
+    expect(SRC.slice(Math.max(0, cancelAt - 650), cancelAt)).toContain('cancelDeferredFileTask();');
+    const removeAt = SRC.indexOf("t('chat.file_remove')");
+    expect(SRC.slice(Math.max(0, removeAt - 650), removeAt)).toContain('cancelDeferredFileTask();');
   });
 });
 
@@ -78,7 +98,7 @@ describe('один носитель задачи и reopen только на н�
     const effect = between('const draftEffectAppliedForRef =', '// ?say=<text>');
     expect(effect).toContain('pendingFiles.length > 0 && pendingFilesAssistantId === selectedAssistant.id');
     expect(effect).toContain('draftEffectAppliedForRef.current !== selectedAssistant.id');
-    expect(effect).toContain('hasPendingDraftFor(selectedAssistant.id)');
+    expect(effect).toContain('pendingDraftMatches(selectedAssistant.id, fileTaskDraftTextRef.current');
     expect(effect).toContain('setPendingFilesAssistantId(null);');
   });
 
@@ -88,6 +108,10 @@ describe('один носитель задачи и reopen только на н�
     expect(effect).toContain('if (prevTokens === null || prevTokens > 0 || tokensNow <= 0) return;');
     expect(effect).toContain('selectedAssistant?.id !== pendingFilesAssistantId');
     expect(effect).toContain('fileTaskAutoReopenedRef.current = true;');
+    const ownerGuard = effect.indexOf('if (!ownsPendingFiles)');
+    const seenUpdate = effect.indexOf('lastSeenTokensRef.current = tokensNow;');
+    expect(ownerGuard).toBeGreaterThan(-1);
+    expect(ownerGuard).toBeLessThan(seenUpdate);
   });
 
   it('TokenPackages закрывается только вручную и больше не управляет файловой модалкой', () => {
@@ -118,6 +142,7 @@ describe('synthetic вызовы и экспорты helpers', () => {
     const draftImport = SRC.split('\n').find((line) => line.includes("from '../../utils/pendingDraft';"));
     expect(draftImport).toContain('savePendingDraft');
     expect(draftImport).toContain('forgetPendingDraftIfSent');
+    expect(draftImport).toContain('pendingDraftMatches');
     expect(between('interface Message {', '\n}')).toContain('noTokensStop?: boolean');
   });
 });

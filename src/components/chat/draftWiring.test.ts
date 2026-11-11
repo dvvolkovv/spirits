@@ -14,7 +14,7 @@ const effect = (): string => {
   const a = SRC.indexOf('takePendingDraftFor(selectedAssistant.id)');
   expect(a).toBeGreaterThan(-1);
   const start = SRC.lastIndexOf('useEffect(', a);
-  const end = SRC.indexOf('}, [selectedAssistant?.id, historyLoading]);', a);
+  const end = SRC.indexOf('}, [selectedAssistant?.id, historyLoading, isTyping, streamingMessageId]);', a);
   expect(end).toBeGreaterThan(-1);
   return SRC.slice(start, end);
 };
@@ -53,6 +53,13 @@ describe('черновик со страницы linkeon.io', () => {
     expect(effect()).toContain('historyLoading');
   });
 
+  it('retry/history reload во время streaming не забирает уже отправленный draft', () => {
+    const body = effect();
+    const guard = body.indexOf('if (isTyping || streamingMessageId) return;');
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(body.indexOf('takePendingDraftFor('));
+  });
+
   it('кладёт текст в поле ввода и не отправляет его', () => {
     expect(effect()).toContain('setInput(');
     expect(effect()).not.toContain('sendMessageText');
@@ -73,7 +80,7 @@ describe('черновик со страницы linkeon.io', () => {
     expect(deferred).toBeGreaterThan(-1);
     expect(deferred).toBeLessThan(body.indexOf('takePendingDraftFor('));
     expect(body).toContain('draftEffectAppliedForRef.current !== selectedAssistant.id');
-    expect(body).toContain('hasPendingDraftFor(selectedAssistant.id)');
+    expect(body).toContain('pendingDraftMatches(selectedAssistant.id, fileTaskDraftTextRef.current');
   });
 
   // Иначе вебвизор кабинета записал бы подставленные данные рождения до того,

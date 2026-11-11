@@ -163,3 +163,25 @@ describe('forgetPendingDraftIfSent', () => {
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
 });
+
+describe('pendingDraftMatches — read-only exact match', () => {
+  it('совпадает только текст того же ассистента, без includes и без выдачи', () => {
+    put({ text: 'Вопрос', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+    expect(pendingDraft.pendingDraftMatches(14, 'Вопрос', NOW)).toBe(true);
+    expect(pendingDraft.pendingDraftMatches(14, 'Вопро', NOW)).toBe(false);
+    expect(pendingDraft.pendingDraftMatches(14, 'Вопрос дополнение', NOW)).toBe(false);
+    expect(pendingDraft.pendingDraftMatches(12, 'Вопрос', NOW)).toBe(false);
+    expect(takePendingDraftFor(14, NOW)).toBe('Вопрос');
+  });
+
+  it('не продлевает TTL и не теряет auto при повторных проверках', () => {
+    const original = { text: 'Вопрос', assistant: '14', expires: NOW + 10_000, auto: true };
+    put(original);
+    const before = localStorage.getItem(DRAFT_KEY);
+    expect(pendingDraft.pendingDraftMatches(14, 'Вопрос', NOW + 1_000)).toBe(true);
+    expect(pendingDraft.pendingDraftMatches(14, 'Вопрос', NOW + 2_000)).toBe(true);
+    expect(localStorage.getItem(DRAFT_KEY)).toBe(before);
+    expect(JSON.parse(localStorage.getItem(DRAFT_KEY)!)).toEqual(original);
+    expect(takePendingDraftEntry(14, NOW + 2_000)).toEqual({ text: 'Вопрос', auto: true });
+  });
+});

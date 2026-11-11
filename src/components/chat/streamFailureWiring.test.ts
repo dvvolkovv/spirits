@@ -85,6 +85,15 @@ describe('разбор обрыва в catch', () => {
     expect(request).toBeGreaterThan(probe);
   });
 
+  it('уже полученный no_tokens END имеет приоритет над поздним AbortError/ошибкой', () => {
+    const body = sendMessageToAI();
+    const catchAt = body.indexOf('} catch (error) {');
+    const abort = body.indexOf("error.name === 'AbortError'");
+    expect(catchAt).toBeGreaterThan(-1);
+    expect(abort).toBeGreaterThan(catchAt);
+    expect(body.slice(catchAt, abort)).toContain("if (noTokens) return 'no_tokens';");
+  });
+
   it('AbortError — error, а не успешный human/file ход', () => {
     const body = sendMessageToAI();
     const abort = body.indexOf("error.name === 'AbortError'");
