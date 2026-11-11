@@ -195,8 +195,8 @@ const feedText = () => {
 };
 const countStops = () => (feedText().match(new RegExp(STOP, 'g')) ?? []).length;
 const tokenPackagesVisible = () => container().querySelector('[data-testid="token-packages"]') !== null;
-const fileModal = () => Array.from(container().querySelectorAll('h3'))
-  .find((h) => h.textContent?.includes(tRu('chat.file_modal_title')))?.closest('.fixed') as HTMLElement | null;
+const fileModal = () => (Array.from(container().querySelectorAll('h3'))
+  .find((h) => h.textContent?.includes(tRu('chat.file_modal_title')))?.closest('.fixed') ?? null) as HTMLElement | null;
 const modalVisible = () => fileModal() !== null;
 const modalTask = () => (fileModal()?.querySelector('textarea') as HTMLTextAreaElement | null)?.value ?? null;
 const modalText = () => fileModal()?.textContent ?? '';
