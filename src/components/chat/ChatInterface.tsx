@@ -2047,7 +2047,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTyping, streamingMessageId, historyLoading, queued, selectedAssistant?.id,
-      remoteTurnActive, remoteOverride]);
+      remoteTurnActive, remoteOverride, noTokensHoldRef.current]);
 
   const handleClearChat = async () => {
     if (window.confirm(t('chat.clear_confirm'))) {
@@ -2775,8 +2775,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const lastSeenTokensRef = useRef<number | null>(null);
   useEffect(() => {
     const tokensNow = user?.tokens ?? 0;
+    const differentAssistant = selectedAssistant?.id !== pendingFilesAssistantId;
     const ownsPendingFiles = pendingFiles.length > 0 &&
-      pendingFilesAssistantId !== null && selectedAssistant?.id === pendingFilesAssistantId;
+      pendingFilesAssistantId !== null && !differentAssistant;
     if (!ownsPendingFiles) { fileTaskAutoReopenedRef.current = false; return; }
     const prevTokens = lastSeenTokensRef.current;
     lastSeenTokensRef.current = tokensNow;
