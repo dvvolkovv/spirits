@@ -955,13 +955,13 @@ describe('no_tokens — файловые регрессии повторного
     await send('ход B');
     expect(chatPosts()).toHaveLength(1);
     expect(chatPosts()[0].body).toMatchObject({ assistant: 2, chatInput: 'ход B' });
-    expect(container().querySelectorAll('.animate-bounce, .animate-pulse').length).toBeGreaterThan(0);
+    expect(container().querySelectorAll('.animate-bounce, .animate-pulse, .animate-spin').length).toBeGreaterThan(0);
 
     await act(async () => { resolveRead('текст A'); });
     await settle(14);
     expect(chatPosts()).toHaveLength(1);
     expect(chatPosts()[0].body).toMatchObject({ chatInput: 'ход B' });
-    expect(container().querySelectorAll('.animate-bounce, .animate-pulse').length).toBeGreaterThan(0);
+    expect(container().querySelectorAll('.animate-bounce, .animate-pulse, .animate-spin').length).toBeGreaterThan(0);
     await act(async () => { bStreamGate.resolve(); });
     await settle(14);
     expect(feedText()).toContain('ответ B');
@@ -1038,5 +1038,63 @@ describe('no_tokens — файловые регрессии повторного
     expect(modalText()).toContain('ordinary-b.png');
     expect(modalText()).not.toContain('ordinary-a.png');
     expect(modalTask()).toBe('');
+  });
+
+  it('R37 inline: edited >2000 при save=false всё равно удаляет original draft после успеха', async () => {
+    net.chatStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('long inline успех')));
+    await open();
+    await attach(new File(['строка'], 'long-inline.txt', { type: 'text/plain' }));
+    await submitFileTask('original inline draft');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    const longEdit = `edited inline ${'я'.repeat(2050)}`;
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, longEdit);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(feedText()).toContain('long inline успех');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('original inline draft');
+    expect(field().value).not.toContain('edited inline');
+  });
+
+  it('R37 multipart: edited >2000 при save=false всё равно удаляет original draft после успеха', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('long multipart успех')));
+    await open();
+    await attach(image('long-multipart.png'));
+    await submitFileTask('original multipart draft');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    const longEdit = `edited multipart ${'я'.repeat(2050)}`;
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, longEdit);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(feedText()).toContain('long multipart успех');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('original multipart draft');
+    expect(field().value).not.toContain('edited multipart');
+  });
+
+  it('R37 control: более новый текстовый refusal не удаляется при edited file success', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('файл успешен')));
+    net.chatStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('control-draft.png'));
+    await submitFileTask('original file draft');
+    await send('другой живой draft');
+    expect(storedDraft()).toMatchObject({ text: 'другой живой draft', assistant: '12' });
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    const longEdit = `edited control ${'я'.repeat(2050)}`;
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, longEdit);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(feedText()).toContain('файл успешен');
+    expect(storedDraft()).toMatchObject({ text: 'другой живой draft', assistant: '12' });
   });
 });
