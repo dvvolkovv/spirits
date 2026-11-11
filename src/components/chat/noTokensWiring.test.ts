@@ -23,6 +23,7 @@ describe('файловая задача после no_tokens', () => {
     expect(SRC).toContain('const [pendingFilesAssistantId, setPendingFilesAssistantId]');
     expect(SRC).toContain('const fileTaskDraftSavedRef = useRef(false);');
     expect(SRC).toContain('const fileTaskDraftTextRef = useRef<string | null>(null);');
+    expect(SRC).toContain('const originalFileTaskDraftTextRef = useRef<string | null>(null);');
     expect(filesSubmit()).toContain('const uploadAssistantId = selectedAssistant?.id ?? null;');
     expect(restoreFiles()).toContain('fileTaskDraftSavedRef.current = uploadAssistantId !== null');
     expect(restoreFiles()).toContain('savePendingDraft(task, uploadAssistantId)');
@@ -68,13 +69,15 @@ describe('файловая задача после no_tokens', () => {
     expect(single).toContain("if (outcome === 'no_tokens')");
     expect(single).toContain('restoreFileTaskOnNoTokens(userMessage.id, null, files, task, uploadAssistantId);');
     expect(single).toContain("else if (outcome === 'ok' && uploadAssistantId !== null)");
-    expect(single).toContain('forgetPendingDraftIfSent(uploadAssistantId, task);');
+    expect(single).toContain('completeSuccessfulFileTask();');
+    expect(fn).toContain('forgetPendingDraftIfSent(uploadAssistantId, originalFileTaskDraftText);');
   });
 
   it('multipart использует общий restore, успех снимает task draft', () => {
     const fn = filesSubmit();
     expect(fn).toContain('restoreFileTaskOnNoTokens(userMessage.id, assistantMsg, files, task, uploadAssistantId);');
-    expect(fn).toContain('forgetPendingDraftIfSent(uploadAssistantId, task);');
+    expect(fn).toContain('completeSuccessfulFileTask();');
+    expect(fn).toContain('forgetPendingDraftIfSent(uploadAssistantId, originalFileTaskDraftText);');
     expect(fn).toMatch(/noTokensStop:\s*noTokens\s*\|\|\s*undefined/);
   });
 
