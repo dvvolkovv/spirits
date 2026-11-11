@@ -2706,7 +2706,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // восстанавливает ни attachment bubble, ни человеческую задачу.
           restoreFileTaskOnNoTokens(userMessage.id, null, files, task, uploadAssistantId);
         } else if (outcome === 'ok' && uploadAssistantId !== null) {
-          completeSuccessfulFileTask(task);
+          if (selectedAssistantIdRef.current === uploadAssistantId) {
+            fileTaskDraftTextRef.current = task;
+            fileTaskDraftSavedRef.current = pendingDraftMatches(uploadAssistantId, task);
+          }
+          forgetPendingDraftIfSent(uploadAssistantId, task);
+          if (selectedAssistantIdRef.current === uploadAssistantId) {
+            fileTaskDraftSavedRef.current = false;
+            fileTaskDraftTextRef.current = null;
+          }
         }
       } finally {
         if (selectedAssistantIdRef.current === uploadAssistantId) {
