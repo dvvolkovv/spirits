@@ -827,7 +827,7 @@ describe('no_tokens — файловые регрессии повторного
     const gate = deferred();
     net.uploadStreams.push(ndjson(NO_TOKENS, gate.promise));
     await open();
-    await attach(image('late-a-open-b.png'));
+    await attach(image('late-a.png'));
     await submitFileTask('поздняя задача A');
     await switchTo(OLYA);
     await attach(image('open-b.png', 2));
@@ -837,12 +837,12 @@ describe('no_tokens — файловые регрессии повторного
     expect(modalVisible()).toBe(true);
     expect(modalTask()).toBe('открытая задача B');
     expect(modalText()).toContain('open-b.png');
-    expect(modalText()).not.toContain('late-a-open-b.png');
+    expect(modalText()).not.toContain('late-a.png');
     await switchTo(ASSISTANT);
     await setTokens(5000);
     expect(modalVisible()).toBe(true);
     expect(modalTask()).toBe('поздняя задача A');
-    expect(modalText()).toContain('late-a-open-b.png');
+    expect(modalText()).toContain('late-a.png');
     expect(modalText()).not.toContain('open-b.png');
   });
 
