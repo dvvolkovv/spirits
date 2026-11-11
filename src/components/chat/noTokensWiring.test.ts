@@ -55,6 +55,15 @@ describe('файловая задача после no_tokens', () => {
     expect(fn).toMatch(/noTokensStop:\s*noTokens\s*\|\|\s*undefined/);
   });
 
+  it('явный submit снимает hold до очистки, а refusal в restore его сохраняет', () => {
+    const fn = filesSubmit();
+    const reset = fn.indexOf('noTokensHoldRef.current = false;');
+    const clear = fn.indexOf('setShowFileTaskModal(false);');
+    expect(reset).toBeGreaterThan(-1);
+    expect(reset).toBeLessThan(clear);
+    expect(restoreFiles()).toContain('noTokensHoldRef.current = true;');
+  });
+
   it('отправка и Cancel сбрасывают assistant id отложенных файлов', () => {
     const fn = filesSubmit();
     expect(fn.slice(fn.indexOf("setFileTaskInput('');"), fn.indexOf("setFileTaskInput('');") + 500))

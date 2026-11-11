@@ -269,6 +269,7 @@ describe('no_tokens — живое монтирование ChatInterface', () =
     await send('вопрос');
     expect(feedText()).toContain('обычный ответ');
     expect(field().value).toBe('');
+    expect(storedDraft()).toBeNull();
     expect(tokenPackagesVisible()).toBe(false);
   });
 
@@ -357,6 +358,7 @@ describe('no_tokens — живое монтирование ChatInterface', () =
     await setTokens(5000);
     expect(modalVisible()).toBe(true);
     expect(modalTask()).toBe('сожми фото');
+    expect(modalText()).toContain('photo.png');
     await setTokens(4990);
     expect(modalVisible()).toBe(true);
     await clickElement(buttonByText(tRu('chat.file_modal_cancel'))!);
@@ -549,5 +551,67 @@ describe('no_tokens — файловые регрессии повторного
     expect(field().value).toBe('сожми фото');
     expect(modalVisible()).toBe(false);
     expect(tokenPackagesVisible()).toBe(false);
+  });
+
+  it('R19: старый same-assistant draft + задача >2000 при save=false не снимает единственный носитель', async () => {
+    net.chatStreams.push(ndjson(NO_TOKENS));
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await send('текстовый вопрос');
+    expect(storedDraft()).toMatchObject({ text: 'текстовый вопрос', assistant: '12' });
+    const longTask = `длинная файловая задача ${'я'.repeat(2050)}`;
+    await attach(image('long-task.png'));
+    await submitFileTask(longTask);
+    // savePendingDraft отклонил длинную задачу: прежний текстовый draft остался.
+    expect(storedDraft()).toMatchObject({ text: 'текстовый вопрос', assistant: '12' });
+    await switchTo(OLYA);
+    typeInto(field(), '');
+    await switchTo(ASSISTANT);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe(longTask);
+    expect(modalText()).toContain('long-task.png');
+    expect(storedDraft()).toMatchObject({ text: 'текстовый вопрос', assistant: '12' });
+  });
+
+  it('R20: save=false у A затем явный attach у B — в модалке B только файл B и пустая задача', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({
+      text: 'черновик для Райи', assistant: '14', expires: Date.now() + 3_600_000,
+    }));
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('only-a.png'));
+    await submitFileTask('задача A');
+    expect(storedDraft()).toMatchObject({ text: 'черновик для Райи', assistant: '14' });
+    await switchTo(OLYA);
+    await attach(image('only-b.png', 2));
+    expect(modalText()).toContain('only-b.png');
+    expect(modalText()).not.toContain('only-a.png');
+    expect(modalTask()).toBe('');
+  });
+
+  it('R21: явный файловый retry снимает hold — queued text после success досылается', async () => {
+    const retryGate = deferred();
+    net.uploadStreams.push(
+      ndjson(NO_TOKENS),
+      ndjson(NORMAL('файл принят'), retryGate.promise),
+    );
+    net.chatStreams.push(ndjson(NORMAL('очередь доставлена')));
+    await open();
+    await attach(image('photo.png'));
+    await submitFileTask('сожми фото');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle();
+    await send('текст из очереди');
+    expect(chatPosts()).toHaveLength(0);
+    await act(async () => { retryGate.resolve(); });
+    await settle(20);
+    for (let i = 0; i < 10 && chatPosts().length === 0; i++) await sleep(50);
+    expect(chatPosts()).toHaveLength(1);
+    expect(chatPosts()[0].body).toMatchObject({ chatInput: 'текст из очереди' });
+    expect(feedText()).toContain('файл принят');
+    expect(feedText()).toContain('очередь доставлена');
   });
 });
