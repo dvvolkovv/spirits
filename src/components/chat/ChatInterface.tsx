@@ -2541,7 +2541,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Late A получает только собственный store. Текущие files/task/modal/лента B
     // остаются нетронутыми; refusal сам подтверждает наблюдённый нулевой баланс.
     if (uploadAssistantId === null || selectedAssistantIdRef.current !== uploadAssistantId) {
-      if (uploadAssistantId !== null && lastSeenTokensRef.current === null) {
+      if (uploadAssistantId !== null) {
+        // Каждый late refusal — НОВЫЙ наблюдённый ноль, даже после positive.
         lastSeenTokensRef.current = 0;
       }
       return;
