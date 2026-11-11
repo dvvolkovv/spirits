@@ -1,19 +1,23 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as pendingDraft from './pendingDraft';
 import {
   DRAFT_KEY,
   DRAFT_MAX_LENGTH,
   DRAFT_TTL_MS,
   PENDING_DRAFT_STORE_MAX,
   hasPendingDraftFor,
+  savePendingDraft,
+  takePendingDraftEntry,
   takePendingDraftFor,
 } from './pendingDraft';
 
 const NOW = 1_700_000_000_000;
 const put = (value: unknown) => localStorage.setItem(DRAFT_KEY, JSON.stringify(value));
 
+beforeEach(() => localStorage.clear());
+
 describe('черновик сообщения со страницы linkeon.io', () => {
-  beforeEach(() => localStorage.clear());
 
   it('отдаётся своему ассистенту один раз', () => {
     put({ text: 'Райя, привет!', assistant: '14', expires: NOW + DRAFT_TTL_MS });
@@ -76,5 +80,86 @@ describe('черновик сообщения со страницы linkeon.io',
       expect(hasPendingDraftFor(14, NOW + DRAFT_TTL_MS + 1)).toBe(false);
       expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
     });
+  });
+});
+
+describe('savePendingDraft — явный результат', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('успешное сохранение возвращает true, trim и TTL ровно один час', () => {
+    expect(savePendingDraft('  Вопрос  ', 12, NOW)).toBe(true);
+    expect(JSON.parse(localStorage.getItem(DRAFT_KEY)!)).toEqual({
+      text: 'Вопрос',
+      assistant: '12',
+      expires: NOW + 60 * 60 * 1000,
+    });
+  });
+
+  it('пустой после trim текст возвращает false и не создаёт запись', () => {
+    expect(savePendingDraft('   ', 12, NOW)).toBe(false);
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('ровно 2000 символов сохраняет, 2001 — отклоняет', () => {
+    expect(savePendingDraft('я'.repeat(PENDING_DRAFT_STORE_MAX), 12, NOW)).toBe(true);
+    expect(JSON.parse(localStorage.getItem(DRAFT_KEY)!).text).toHaveLength(PENDING_DRAFT_STORE_MAX);
+
+    localStorage.clear();
+    expect(savePendingDraft('я'.repeat(PENDING_DRAFT_STORE_MAX + 1), 12, NOW)).toBe(false);
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('живой черновик другого ассистента возвращает false и остаётся нетронутым', () => {
+    put({ text: 'Данные рождения', assistant: '14', expires: NOW + DRAFT_TTL_MS, auto: true });
+    const before = localStorage.getItem(DRAFT_KEY);
+    expect(savePendingDraft('Другой вопрос', 12, NOW)).toBe(false);
+    expect(localStorage.getItem(DRAFT_KEY)).toBe(before);
+  });
+
+  it('ошибка localStorage возвращает false', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    expect(savePendingDraft('Вопрос', 12, NOW)).toBe(false);
+  });
+});
+
+describe('forgetPendingDraftIfSent', () => {
+  it('стирает черновик после точной и после дополненной отправки', () => {
+    put({ text: 'Вопрос', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+    pendingDraft.forgetPendingDraftIfSent(14, 'Вопрос', NOW);
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+
+    put({ text: '  Вопрос  ', assistant: '14', expires: NOW + DRAFT_TTL_MS });
+    pendingDraft.forgetPendingDraftIfSent('14', 'Сначала контекст. Вопрос Дополнение после.', NOW);
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
+  });
+
+  it('черновик другого ассистента сохраняет', () => {
+    put({ text: 'Вопрос', assistant: '14', expires: NOW + DRAFT_TTL_MS, auto: true });
+    const before = localStorage.getItem(DRAFT_KEY);
+    pendingDraft.forgetPendingDraftIfSent(12, 'Вопрос', NOW);
+    expect(localStorage.getItem(DRAFT_KEY)).toBe(before);
+  });
+
+  it('несовпавший текст не продлевает TTL и сохраняет auto', () => {
+    const original = {
+      text: 'Исходный вопрос',
+      assistant: '14',
+      expires: NOW + 10_000,
+      auto: true,
+    };
+    put(original);
+    const before = localStorage.getItem(DRAFT_KEY);
+    pendingDraft.forgetPendingDraftIfSent(14, 'Совсем другой текст', NOW + 1_000);
+    expect(localStorage.getItem(DRAFT_KEY)).toBe(before);
+    expect(JSON.parse(localStorage.getItem(DRAFT_KEY)!)).toEqual(original);
+    expect(takePendingDraftEntry(14, NOW + 1_000)).toEqual({ text: original.text, auto: true });
+  });
+
+  it('просроченную запись стирает read даже без совпадения отправки', () => {
+    put({ text: 'Вопрос', assistant: '14', expires: NOW, auto: true });
+    pendingDraft.forgetPendingDraftIfSent(12, 'Другой текст', NOW);
+    expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
   });
 });
