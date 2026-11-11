@@ -739,6 +739,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Точный актуальный текст задачи; fileTaskDraftSavedRef отдельно показывает,
   // совпадает ли с ним сохранённый pending_draft.
   const fileTaskDraftTextRef = useRef<string | null>(null);
+  // Исходный сохранённый draft не перезаписывается редактурой. Успешный retry
+  // удаляет его только при exact match, даже если текущая задача длиннее 2000.
+  const originalFileTaskDraftTextRef = useRef<string | null>(null);
+  const fileTaskEditedRef = useRef(false);
   // Late no_tokens пришёл уже после ухода к другому ассистенту. Такой носитель
   // живёт отдельно от текущего state, чтобы не затирать открытую модалку B.
   const deferredFileTasksRef = useRef(new Map<number, {
@@ -746,6 +750,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     task: string;
     draftSaved: boolean;
     draftText: string | null;
+    originalDraftText: string | null;
+    edited: boolean;
     reopenOnReturn?: boolean;
   }>());
   // «Стоим на нулевом балансе»: после отказа по no_tokens автодосылка очереди
@@ -881,11 +887,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           setPendingFilesAssistantId(null);
           fileTaskDraftSavedRef.current = false;
           fileTaskDraftTextRef.current = null;
+          originalFileTaskDraftTextRef.current = null;
+          fileTaskEditedRef.current = false;
         }
       }
       // Открытая модалка принадлежала прежнему ассистенту. Late-задача нового
       // чата восстанавливается из его собственного store, без смешения файлов.
-      setShowFileTaskModal(false);
+      setShowFileTaskModal(pendingFilesAssistantId === newId && fileTaskEditedRef.current);
       const incoming = newId === null ? undefined : deferredFileTasksRef.current.get(newId);
       if (incoming && newId !== null) {
         const currentOwner = pendingFilesAssistantId ?? prevId;
@@ -895,6 +903,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             task: fileTaskInput,
             draftSaved: fileTaskDraftSavedRef.current,
             draftText: fileTaskDraftTextRef.current,
+            originalDraftText: originalFileTaskDraftTextRef.current,
+            edited: fileTaskEditedRef.current,
           });
         }
         setPendingFiles(incoming.files);
@@ -902,8 +912,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setPendingFilesAssistantId(newId);
         fileTaskDraftSavedRef.current = incoming.draftSaved;
         fileTaskDraftTextRef.current = incoming.draftText;
+        originalFileTaskDraftTextRef.current = incoming.originalDraftText;
+        fileTaskEditedRef.current = incoming.edited;
         deferredFileTasksRef.current.delete(newId);
-        setShowFileTaskModal(incoming.reopenOnReturn === true);
+        setShowFileTaskModal(incoming.reopenOnReturn === true || incoming.edited);
       }
     }
     prevSelectedAssistantIdRef.current = newId;
@@ -2329,6 +2341,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setPendingFilesAssistantId(null);
       fileTaskDraftSavedRef.current = false;
       fileTaskDraftTextRef.current = null;
+      originalFileTaskDraftTextRef.current = null;
+      fileTaskEditedRef.current = false;
     }
     draftEffectAppliedForRef.current = selectedAssistant.id;
     const draft = takePendingDraftFor(selectedAssistant.id);
@@ -2451,6 +2465,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setPendingFilesAssistantId(null);
         fileTaskDraftSavedRef.current = false;
         fileTaskDraftTextRef.current = null;
+        originalFileTaskDraftTextRef.current = null;
+        fileTaskEditedRef.current = false;
       }
       // Owner нужен уже обычному, ещё не отправленному вложению: иначе после
       // A→B следующий attach унаследует и смешает файлы прежнего чата.
@@ -2542,6 +2558,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         task,
         draftSaved,
         draftText: task,
+        originalDraftText: task,
+        edited: false,
       });
     }
     // Late A получает только собственный store. Текущие files/task/modal/лента B
@@ -2558,6 +2576,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       ? draftSaved
       : false;
     fileTaskDraftTextRef.current = task;
+    originalFileTaskDraftTextRef.current = task;
+    fileTaskEditedRef.current = false;
     setPendingFiles(files);
     setFileTaskInput(task);
     setPendingFilesAssistantId(uploadAssistantId);
@@ -2574,11 +2594,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleFileTaskInputChange = (next: string) => {
     setFileTaskInput(next);
     fileTaskDraftTextRef.current = next;
-    // Правка становится новым содержимым надёжного draft. Если сохранение
-    // невозможно, saved=false оставляет файлы единственным носителем.
-    if (pendingFilesAssistantId !== null && fileTaskDraftSavedRef.current) {
-      fileTaskDraftSavedRef.current = savePendingDraft(next, pendingFilesAssistantId);
-    }
+    const original = originalFileTaskDraftTextRef.current;
+    fileTaskEditedRef.current = original !== null && next.trim() !== original.trim();
+    // Редактура НЕ перезаписывает исходный draft: успешный retry удалит его
+    // по exact match оригинала независимо от длины новой задачи.
   };
 
   const handleFileTaskSubmit = async () => {
@@ -2596,17 +2615,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const files = pendingFiles;
     const task = fileTaskInput.trim();
     const uploadAssistantId = selectedAssistant?.id ?? null;
-    const completeSuccessfulFileTask = (task: string) => {
+    const originalFileTaskDraftText = originalFileTaskDraftTextRef.current;
+    const hadOriginalFileTaskDraft = fileTaskDraftSavedRef.current;
+    const completeSuccessfulFileTask = () => {
       if (uploadAssistantId === null) return;
-      if (selectedAssistantIdRef.current === uploadAssistantId) {
-        // Перед успешным forget ref должен описывать именно отправленную правку.
-        fileTaskDraftTextRef.current = task;
-        fileTaskDraftSavedRef.current = pendingDraftMatches(uploadAssistantId, task);
+      // Удаляем ТОЛЬКО исходный file draft. Другой живой текстовый refusal или
+      // перезаписанный новый draft не совпадает с оригиналом и сохраняется.
+      if (hadOriginalFileTaskDraft &&
+          originalFileTaskDraftText !== null &&
+          pendingDraftMatches(uploadAssistantId, originalFileTaskDraftText)) {
+        forgetPendingDraftIfSent(uploadAssistantId, originalFileTaskDraftText);
       }
-      forgetPendingDraftIfSent(uploadAssistantId, task);
       if (selectedAssistantIdRef.current === uploadAssistantId) {
         fileTaskDraftSavedRef.current = false;
         fileTaskDraftTextRef.current = null;
+        originalFileTaskDraftTextRef.current = null;
+        fileTaskEditedRef.current = false;
       }
     };
 
@@ -2640,6 +2664,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setPendingFilesAssistantId(null);
     fileTaskDraftSavedRef.current = false;
     fileTaskDraftTextRef.current = null;
+    originalFileTaskDraftTextRef.current = null;
+    fileTaskEditedRef.current = false;
 
     // Пузырь пишем ровно тем же текстом, каким бэк сохранит ход в историю.
     // Раньше здесь был список в столбик, а в БД уезжала строка через запятую —
@@ -2681,8 +2707,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           deferredFileTasksRef.current.set(uploadAssistantId, {
             files,
             task,
-            draftSaved: pendingDraftMatches(uploadAssistantId, task),
+            draftSaved: hadOriginalFileTaskDraft && originalFileTaskDraftText !== null &&
+              pendingDraftMatches(uploadAssistantId, originalFileTaskDraftText),
             draftText: task,
+            originalDraftText: originalFileTaskDraftText,
+            edited: originalFileTaskDraftText !== null && task !== originalFileTaskDraftText,
             reopenOnReturn: true,
           });
         }
@@ -2706,15 +2735,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // восстанавливает ни attachment bubble, ни человеческую задачу.
           restoreFileTaskOnNoTokens(userMessage.id, null, files, task, uploadAssistantId);
         } else if (outcome === 'ok' && uploadAssistantId !== null) {
-          if (selectedAssistantIdRef.current === uploadAssistantId) {
-            fileTaskDraftTextRef.current = task;
-            fileTaskDraftSavedRef.current = pendingDraftMatches(uploadAssistantId, task);
-          }
-          forgetPendingDraftIfSent(uploadAssistantId, task);
-          if (selectedAssistantIdRef.current === uploadAssistantId) {
-            fileTaskDraftSavedRef.current = false;
-            fileTaskDraftTextRef.current = null;
-          }
+          completeSuccessfulFileTask();
         }
       } finally {
         if (selectedAssistantIdRef.current === uploadAssistantId) {
@@ -2838,7 +2859,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         restoreFileTaskOnNoTokens(userMessage.id, assistantMsg, files, task, uploadAssistantId);
       } else {
         setMessages(prev => [...prev, assistantMsg]);
-        if (uploadAssistantId !== null) completeSuccessfulFileTask(task);
+        if (uploadAssistantId !== null) completeSuccessfulFileTask();
       }
     } catch (error) {
       if (user?.phone) trackAuthed('file_upload_error', user.phone, { count: files.length, name: files.map(f => f.name).join(', ').slice(0, 200), error: error instanceof Error ? error.message : String(error), assistant_id: selectedAssistant?.id });
@@ -2877,6 +2898,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setPendingFilesAssistantId(null);
     fileTaskDraftSavedRef.current = false;
     fileTaskDraftTextRef.current = null;
+    originalFileTaskDraftTextRef.current = null;
+    fileTaskEditedRef.current = false;
   };
 
   // Автооткрытие только на НОВОМ переходе баланса ≤0→>0. Пока человек на
