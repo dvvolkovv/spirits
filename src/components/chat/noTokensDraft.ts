@@ -35,13 +35,11 @@ export function collapseNoTokensStop<T extends ChatMessageLike>(
 }
 
 /** Текст для поля и общего pending_draft после отказа по балансу. */
-export function applyNoTokensOutcome({
-  rejectedText,
-  queuedText,
-}: {
+export function applyNoTokensOutcome(args: {
   rejectedText: string;
   queuedText: string;
 }): { input: string; draftText: string } {
-  const input = queuedText.trim() ? `${rejectedText}\n\n${queuedText}` : rejectedText;
+  const queued = args.queuedText.trim();
+  const input = queued ? `${args.rejectedText}\n\n${queued}` : args.rejectedText;
   return { input, draftText: input };
 }
