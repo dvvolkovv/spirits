@@ -858,7 +858,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // её текст надёжно сохранён в draft, файлы можно снять: при возврате
       // текст подставится в поле. Иначе сохраняем единственный носитель в памяти.
       if (pendingFilesAssistantId !== null && newId !== pendingFilesAssistantId) {
-        if (hasPendingDraftFor(pendingFilesAssistantId) || fileTaskDraftSavedRef.current) {
+        // Любой старый draft этого ассистента не доказывает, что СЕЙЧАС
+        // отложенная файловая задача сохранена: save=false означает, что
+        // файлы и fileTaskInput — её единственный носитель.
+        if (fileTaskDraftSavedRef.current && hasPendingDraftFor(pendingFilesAssistantId)) {
           setPendingFiles([]);
           setFileTaskInput('');
           setPendingFilesAssistantId(null);
@@ -2275,7 +2278,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // снимаем: остаётся один носитель — текст в поле.
     if (pendingFiles.length > 0 && pendingFilesAssistantId === selectedAssistant.id) {
       const arrivedViaSwitch = draftEffectAppliedForRef.current !== selectedAssistant.id;
-      if (!arrivedViaSwitch || !hasPendingDraftFor(selectedAssistant.id)) return;
+      if (!arrivedViaSwitch || !fileTaskDraftSavedRef.current || !hasPendingDraftFor(selectedAssistant.id)) return;
       setPendingFiles([]);
       setFileTaskInput('');
       setPendingFilesAssistantId(null);
@@ -2393,6 +2396,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     });
 
     if (supportsUniversalFiles) {
+      // Явный новый attach в другом чате заменяет отложенную задачу прежнего:
+      // просто переключение её сохраняет, а смешивать A-файлы/текст с B нельзя.
+      if (pendingFilesAssistantId !== null && pendingFilesAssistantId !== selectedAssistant?.id) {
+        setPendingFiles([]);
+        setFileTaskInput('');
+        setPendingFilesAssistantId(null);
+        fileTaskDraftSavedRef.current = false;
+      }
       // Универсальный flow: показываем модалку с заданием на всю пачку сразу.
       // Докладываем к уже выбранным — модалка умеет «добавить ещё».
       setPendingFiles(prev => {
@@ -2525,6 +2536,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return; // модалка остаётся открытой — файлы не потеряны, можно снять лишние
     }
 
+    // Явный retry — такое же решение человека отправить снова, как handleSend:
+    // после него успешный ход может выпустить накопленную текстовую очередь.
+    noTokensHoldRef.current = false;
     setShowFileTaskModal(false);
     setPendingFiles([]);
     setFileTaskInput('');
