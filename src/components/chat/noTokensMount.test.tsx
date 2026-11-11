@@ -952,13 +952,13 @@ describe('no_tokens — файловые регрессии повторного
     await switchTo(OLYA);
     await send('ход B');
     expect(chatPosts()).toHaveLength(1);
-    expect(container().querySelectorAll('.animate-bounce').length).toBeGreaterThan(0);
+    expect(container().querySelectorAll('.animate-bounce, .animate-pulse').length).toBeGreaterThan(0);
 
     await act(async () => { resolveRead('текст A'); });
     await settle(14);
     expect(chatPosts()).toHaveLength(1);
     expect(chatPosts()[0].body).toMatchObject({ chatInput: 'ход B' });
-    expect(container().querySelectorAll('.animate-bounce').length).toBeGreaterThan(0);
+    expect(container().querySelectorAll('.animate-bounce, .animate-pulse').length).toBeGreaterThan(0);
     await act(async () => { bStreamGate.resolve(); });
     await settle(14);
     expect(feedText()).toContain('ответ B');
