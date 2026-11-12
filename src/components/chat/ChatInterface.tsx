@@ -2433,7 +2433,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const storedDraft = lateStoredMatches ? takePendingDraftFor(selectedAssistant.id) : null;
       const restored = storedDraft ?? lateDraftText;
       setInput(prev => prev.includes(restored) ? prev : restoreIntoInput(prev, restored));
-      if (lateNoTokensDraftsRef.current.get(selectedAssistant.id)?.attemptId === lateCandidate.attemptId) {
+      if (lateNoTokensDraftsRef.current.get(selectedAssistant.id)?.attemptId === lateCandidate!.attemptId) {
         lateNoTokensDraftsRef.current.delete(selectedAssistant.id);
       }
       textareaRef.current?.focus();
