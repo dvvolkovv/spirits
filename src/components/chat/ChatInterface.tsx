@@ -904,7 +904,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setShowFileTaskModal(
         pendingFilesAssistantId === newId &&
         (pendingFiles.length > 0 || fileTaskInput.trim().length > 0) &&
-        !isTyping && !streamingMessageId &&
         (fileTaskEditedRef.current || !fileTaskAwaitingTopUpRef.current)
       );
       const incoming = newId === null ? undefined : deferredFileTasksRef.current.get(newId);
@@ -1779,9 +1778,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (noTokens && selectedAssistantIdRef.current !== streamAssistantId &&
           userMessageId !== undefined && streamAssistantId !== null) {
         const outcome = applyNoTokensOutcome({ rejectedText: userMessage, queuedText: '' });
-        if (savePendingDraft(outcome.draftText, streamAssistantId)) {
-          lateNoTokensDraftRef.current = { assistantId: streamAssistantId, text: outcome.draftText };
-        }
+        // Носитель нужен и при save=false (>2000 или чужой живой draft).
+        // Его наличие само по себе не разрешает стирать storage.
+        savePendingDraft(outcome.draftText, streamAssistantId);
+        lateNoTokensDraftRef.current = { assistantId: streamAssistantId, text: outcome.draftText };
       }
 
       // Only commit to UI state if user is still on the assistant that initiated the stream.
@@ -2374,10 +2374,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!selectedAssistant || historyLoading) return;
     if (historyLoadedForRef.current !== selectedAssistant.id) return;
     const lateCandidate = lateNoTokensDraftRef.current;
-    const lateDraftText = lateCandidate?.assistantId === selectedAssistant.id &&
-      pendingDraftMatches(selectedAssistant.id, lateCandidate.text)
+    const lateDraftText = lateCandidate?.assistantId === selectedAssistant.id
       ? lateCandidate.text
       : null;
+    const lateStoredMatches = lateDraftText !== null &&
+      pendingDraftMatches(selectedAssistant.id, lateDraftText);
     // Retry/история могут завершить загрузку прямо во время стрима. Уже
     // отправленный draft снимется успехом, а не второй подстановкой в поле.
     if (isTyping || streamingMessageId) return;
@@ -2404,14 +2405,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       fileTaskAwaitingTopUpRef.current = false;
     }
     draftEffectAppliedForRef.current = selectedAssistant.id;
+    if (lateDraftText) {
+      // Exact stored draft забираем один раз. Если storage пуст или содержит
+      // другой живой текст, НЕ выдаём/не удаляем его — восстанавливаем late ref.
+      const storedDraft = lateStoredMatches ? takePendingDraftFor(selectedAssistant.id) : null;
+      const restored = storedDraft ?? lateDraftText;
+      setInput(prev => prev.includes(restored) ? prev : restoreIntoInput(prev, restored));
+      lateNoTokensDraftRef.current = null;
+      textareaRef.current?.focus();
+      return;
+    }
     const draft = takePendingDraftFor(selectedAssistant.id);
     if (!draft) return;
-    if (lateDraftText) {
-      setInput(prev => prev.includes(draft) ? prev : restoreIntoInput(prev, draft));
-      lateNoTokensDraftRef.current = null;
-    } else {
-      setInput(draft);
-    }
+    setInput(draft);
     textareaRef.current?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAssistant?.id, historyLoading, isTyping, streamingMessageId]);
