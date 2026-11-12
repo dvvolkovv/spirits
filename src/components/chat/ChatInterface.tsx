@@ -1584,6 +1584,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     let noTokens = false;
 
     try {
+      // Пока обновлялся токен, владелец хода мог смениться. Старый inline не
+      // должен после паузы отправлять запрос или вмешиваться в новый чат.
+      if (selectedAssistantIdRef.current !== streamAssistantId || !isLatestTextAttempt()) {
+        return 'error';
+      }
       const response = await apiClient.post('/webhook/soulmate/chat', {
         chatInput: userMessage,
         assistant: currentAssistantId,
@@ -1819,26 +1824,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
         setStreamingMessageId(null);
 
-        if (userMessageId !== undefined && streamAssistantId !== null) {
-          if (noTokens) {
-            // Очередь не досылается вслед в заведомый шлагбаум: её текст
-            // возвращается вместе с отклонённым сообщением.
-            const queuedText = joinQueue(queuedRef.current);
-            if (queuedRef.current.length) applyQueued(() => []);
-            const outcome = applyNoTokensOutcome({ rejectedText: userMessage, queuedText });
-            // Текущее поле читаем функционально: за время хода человек мог
-            // набрать новое, и его нельзя ни затереть, ни продублировать.
-            setInput(prev => restoreIntoInput(prev, outcome.input));
-            // Длиннее PENDING_DRAFT_STORE_MAX savePendingDraft не сохранит;
-            // видимый ввод при этом всё равно восстановлен целиком.
-            savePendingDraft(outcome.draftText, streamAssistantId);
-          } else {
-            forgetPendingDraftIfSent(streamAssistantId, userMessage);
-            const lateAttempt = lateNoTokensDraftsRef.current.get(streamAssistantId);
-            if (lateAttempt?.attemptId === userMessageId) {
-              lateNoTokensDraftsRef.current.delete(streamAssistantId);
-            }
-          }
+        if (noTokens && userMessageId !== undefined && streamAssistantId !== null) {
+          // Очередь не досылается вслед в заведомый шлагбаум: её текст
+          // возвращается вместе с отклонённым сообщением.
+          const queuedText = joinQueue(queuedRef.current);
+          if (queuedRef.current.length) applyQueued(() => []);
+          const outcome = applyNoTokensOutcome({ rejectedText: userMessage, queuedText });
+          // Текущее поле читаем функционально: за время хода человек мог
+          // набрать новое, и его нельзя ни затереть, ни продублировать.
+          setInput(prev => restoreIntoInput(prev, outcome.input));
+          // Длиннее PENDING_DRAFT_STORE_MAX savePendingDraft не сохранит;
+          // видимый ввод при этом всё равно восстановлен целиком.
+          savePendingDraft(outcome.draftText, streamAssistantId);
+        }
+      }
+      if (!noTokens && userMessageId !== undefined && streamAssistantId !== null && isLatestTextAttempt()) {
+        forgetPendingDraftIfSent(streamAssistantId, userMessage);
+        const lateAttempt = lateNoTokensDraftsRef.current.get(streamAssistantId);
+        if (lateAttempt?.attemptId === userMessageId) {
+          lateNoTokensDraftsRef.current.delete(streamAssistantId);
         }
       }
       // If user switched — backend has already saved to chat_history; polling
@@ -1905,7 +1909,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         setStreamingMessageId(null);
         setStreamActivity(null);
       }
-      abortControllerRef.current = null;
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
     }
     return noTokens ? 'no_tokens' : 'ok';
   };
@@ -2728,6 +2734,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const files = pendingFiles;
     const task = fileTaskInput.trim();
     const uploadAssistantId = selectedAssistant?.id ?? null;
+    const latestTextAttemptAtSubmit = uploadAssistantId !== null
+      ? latestTextAttemptByAssistantRef.current.get(uploadAssistantId)
+      : undefined;
     const originalFileTaskDraftText = originalFileTaskDraftTextRef.current;
     const hadOriginalFileTaskDraft = uploadAssistantId !== null &&
       originalFileTaskDraftText !== null &&
@@ -2736,7 +2745,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       originalFileTaskDraftsByAttemptRef.current.set(uploadAssistantId, originalFileTaskDraftText);
     }
     const completeSuccessfulFileTask = () => {
-      if (uploadAssistantId === null) return;
+      if (uploadAssistantId === null ||
+          latestAttemptByAssistantRef.current.get(uploadAssistantId) !== userMessage.id) return;
       // Удаляем ТОЛЬКО исходный file draft. Другой живой текстовый refusal или
       // перезаписанный новый draft не совпадает с оригиналом и сохраняется.
       if (hadOriginalFileTaskDraft &&
@@ -2825,9 +2835,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setIsTyping(true);
       setStreamingMessageId(generateMessageId());
       setCurrentStreamingMessage('');
+      const inlineAttemptIsLatest = () => uploadAssistantId === null ||
+        (latestAttemptByAssistantRef.current.get(uploadAssistantId) === userMessage.id &&
+         latestTextAttemptByAssistantRef.current.get(uploadAssistantId) === latestTextAttemptAtSubmit);
       const deferIfAssistantChanged = () => {
-        if (selectedAssistantIdRef.current === uploadAssistantId) return false;
-        if (uploadAssistantId !== null) {
+        const assistantChanged = selectedAssistantIdRef.current !== uploadAssistantId;
+        if (!assistantChanged && inlineAttemptIsLatest()) return false;
+        // На исходном assistant оставляем задачу только если не появилась более
+        // новая файловая попытка. При более новом text turn носитель newer не затираем.
+        if (assistantChanged && uploadAssistantId !== null &&
+            latestAttemptByAssistantRef.current.get(uploadAssistantId) === userMessage.id) {
           deferredFileTasksRef.current.set(uploadAssistantId, {
             files,
             task,
@@ -2855,6 +2872,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           // i18n-ignore: текст промпта для модели, не UI (см. выше)
           outcome = await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`);
         }
+        if (outcome === 'error' && deferIfAssistantChanged()) return;
         if (outcome === 'no_tokens') {
           // sendMessageToAI уже дописал stop, но synthetic prompt без id не
           // восстанавливает ни attachment bubble, ни человеческую задачу.
@@ -2863,7 +2881,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           completeSuccessfulFileTask();
         }
       } finally {
-        if (selectedAssistantIdRef.current === uploadAssistantId) {
+        if (selectedAssistantIdRef.current === uploadAssistantId && inlineAttemptIsLatest()) {
           setIsTyping(false);
           setStreamingMessageId(null);
           setCurrentStreamingMessage('');
@@ -2873,7 +2891,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
 
     // Binary file — upload to server via multipart endpoint
-    const ownsUpload = () => selectedAssistantIdRef.current === uploadAssistantId;
+    const ownsUpload = () => selectedAssistantIdRef.current === uploadAssistantId &&
+      uploadAssistantId !== null &&
+      latestAttemptByAssistantRef.current.get(uploadAssistantId) === userMessage.id;
     setIsTyping(true);
     const assistantMsgId = generateMessageId();
     setStreamingMessageId(assistantMsgId);
