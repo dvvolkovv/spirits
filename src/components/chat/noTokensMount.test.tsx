@@ -1578,18 +1578,21 @@ describe('no_tokens — файловые регрессии повторного
   });
 
   it('R50: queue-flush/history pull не возвращает отправляемый draft до успеха', async () => {
-    const historyGate = deferred();
+    const initialHistoryGate = deferred();
+    const queueHistoryGate = deferred();
     net.chatStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('queue flush success')));
     await open();
     await send('queue draft');
     expect(storedDraft()).toMatchObject({ text: 'queue draft', assistant: '12' });
+    net.historyGates.push(initialHistoryGate.promise, queueHistoryGate.promise);
+    net.historyGateEnabled = true;
     const toggle = container().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement;
     await clickElement(toggle);
-    net.historyGates.push(historyGate.promise);
-    net.historyGateEnabled = true;
     await send('queue draft');
+    await act(async () => { initialHistoryGate.resolve(); });
     await settle(20);
-    await act(async () => { historyGate.resolve(); });
+    expect(field().value).toBe('');
+    await act(async () => { queueHistoryGate.resolve(); });
     await settle(20);
     expect(feedText()).toContain('queue flush success');
     expect(storedDraft()).toBeNull();
