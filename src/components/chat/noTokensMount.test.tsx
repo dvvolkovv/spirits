@@ -158,7 +158,7 @@ async function waitWithAbort(gate: Promise<void>, signal?: AbortSignal): Promise
 function ndjson(
   events: object[],
   endGate?: Promise<void>,
-  behavior?: { deliverEndAfterAbort?: boolean },
+  behavior?: { deliverEndAfterAbort?: boolean; onEndGate?: () => void },
 ): PlannedStream {
   return (request) => {
     const encoder = new TextEncoder();
@@ -172,6 +172,7 @@ function ndjson(
           read: async () => {
             const atEnd = index === chunks.length - 1;
             if (endGate && atEnd) {
+              behavior?.onEndGate?.();
               if (behavior?.deliverEndAfterAbort) await endGate;
               else await waitWithAbort(endGate, request?.signal);
             }
@@ -1679,9 +1680,13 @@ describe('no_tokens — файловые регрессии повторного
 
   it('R53: late success human retry очищает исходный draft после A→B', async () => {
     const successGate = deferred();
+    let successEndWaiting = false;
     net.chatStreams.push(
       ndjson(NO_TOKENS),
-      ndjson(NORMAL('поздний успех retry'), successGate.promise, { deliverEndAfterAbort: true }),
+      ndjson(NORMAL('поздний успех retry'), successGate.promise, {
+        deliverEndAfterAbort: true,
+        onEndGate: () => { successEndWaiting = true; },
+      }),
     );
     await open();
     await send('late success draft');
@@ -1689,6 +1694,8 @@ describe('no_tokens — файловые регрессии повторного
     await clickElement(sendButton());
     await settle();
     expect(chatPosts()).toHaveLength(2);
+    for (let i = 0; i < 30 && !successEndWaiting; i++) await sleep(10);
+    expect(successEndWaiting).toBe(true);
     await switchTo(OLYA);
     await act(async () => { successGate.resolve(); });
     await settle(14);
