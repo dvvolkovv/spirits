@@ -748,7 +748,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const fileTaskEditedRef = useRef(false);
   const fileTaskAwaitingTopUpRef = useRef(false);
   const originalFileTaskDraftsByAttemptRef = useRef(new Map<number, string | null>());
-  const lateNoTokensDraftRef = useRef<{ assistantId: number; text: string } | null>(null);
+  const latestAttemptByAssistantRef = useRef(new Map<number, string>());
+  const latestTextAttemptByAssistantRef = useRef(new Map<number, string>());
+  const lateNoTokensDraftsRef = useRef(new Map<number, { attemptId: string; text: string }>());
   // Late no_tokens пришёл уже после ухода к другому ассистенту. Такой носитель
   // живёт отдельно от текущего state, чтобы не затирать открытую модалку B.
   const deferredFileTasksRef = useRef(new Map<number, {
@@ -874,6 +876,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setStreamActivity(null);
       // Остановка очереди после no_tokens относилась к прежнему ассистенту.
       noTokensHoldRef.current = false;
+      textSendInFlightRef.current = false;
       // Единственный путь, через который проходят ВСЕ смены ассистента.
       // historyLoading в эффекте досылки не успел бы прикрыть: он выставляется
       // внутри load() и виден только со следующего рендера — досылка успела бы
@@ -1543,6 +1546,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Capture assistant id at send time — if user switches assistants during
     // streaming, callbacks must NOT write into the new chat's state.
     const streamAssistantId = selectedAssistant?.id ?? null;
+    if (userMessageId !== undefined && streamAssistantId !== null) {
+      latestTextAttemptByAssistantRef.current.set(streamAssistantId, userMessageId);
+    }
+    const isLatestTextAttempt = () => userMessageId === undefined || streamAssistantId === null ||
+      latestTextAttemptByAssistantRef.current.get(streamAssistantId) === userMessageId;
 
     // Extract phone number from user data and clean it for sessionId
     //const phoneNumber = user?.phone?.replace(/\D/g, '') || 'anonymous';
@@ -1776,16 +1784,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // Late human TEXT после A→B: в текущий чат B ничего не возвращаем, но
       // отклонённый текст сохраняем для исходного assistant.
       if (noTokens && selectedAssistantIdRef.current !== streamAssistantId &&
-          userMessageId !== undefined && streamAssistantId !== null) {
+          userMessageId !== undefined && streamAssistantId !== null && isLatestTextAttempt()) {
         const outcome = applyNoTokensOutcome({ rejectedText: userMessage, queuedText: '' });
         // Носитель нужен и при save=false (>2000 или чужой живой draft).
         // Его наличие само по себе не разрешает стирать storage.
         savePendingDraft(outcome.draftText, streamAssistantId);
-        lateNoTokensDraftRef.current = { assistantId: streamAssistantId, text: outcome.draftText };
+        lateNoTokensDraftsRef.current.set(streamAssistantId, {
+          attemptId: userMessageId,
+          text: outcome.draftText,
+        });
       }
 
       // Only commit to UI state if user is still on the assistant that initiated the stream.
-      if (selectedAssistantIdRef.current === streamAssistantId) {
+      if (selectedAssistantIdRef.current === streamAssistantId && isLatestTextAttempt()) {
         setCurrentStreamingMessage(accumulatedContent);
         const completedMessage: Message = {
           id: assistantMessageId,
@@ -1823,8 +1834,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             savePendingDraft(outcome.draftText, streamAssistantId);
           } else {
             forgetPendingDraftIfSent(streamAssistantId, userMessage);
-            if (lateNoTokensDraftRef.current?.assistantId === streamAssistantId) {
-              lateNoTokensDraftRef.current = null;
+            const lateAttempt = lateNoTokensDraftsRef.current.get(streamAssistantId);
+            if (lateAttempt?.attemptId === userMessageId) {
+              lateNoTokensDraftsRef.current.delete(streamAssistantId);
             }
           }
         }
@@ -2035,7 +2047,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // чтобы «последний разговор» в виджете был свежим, когда юзер свернёт приложение.
     try { refreshWidget(); } catch {}
     } finally {
-      textSendInFlightRef.current = false;
+      // Enqueue — не конец отправки: guard продолжается через queue-flush и
+      // pullHistoryOnce до фактического sendMessageText/finally.
+      if (queuedRef.current.length === 0 && !flushingRef.current) {
+        textSendInFlightRef.current = false;
+      }
     }
   };
 
@@ -2101,6 +2117,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     if (!text) return; // очередь была из одних пробелов — пустой ход не шлём
 
     flushingRef.current = true;
+    textSendInFlightRef.current = true;
     // Сначала подтягиваем историю, потом шлём.
     //
     // Между сохранением удалённого ответа в БД и этой досылкой бывает меньше
@@ -2117,6 +2134,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       .then(() => sendMessageText(text))
       .finally(() => {
       flushingRef.current = false;
+      textSendInFlightRef.current = false;
       // Тот же виджет, что и при обычной отправке (см. handleSend) — ход из
       // очереди раньше выпадал из этого обновления.
       try { refreshWidget(); } catch {}
@@ -2373,16 +2391,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (!selectedAssistant || historyLoading) return;
     if (historyLoadedForRef.current !== selectedAssistant.id) return;
-    const lateCandidate = lateNoTokensDraftRef.current;
-    const lateDraftText = lateCandidate?.assistantId === selectedAssistant.id
-      ? lateCandidate.text
-      : null;
+    const lateCandidate = lateNoTokensDraftsRef.current.get(selectedAssistant.id);
+    const lateAttemptIsLatest = lateCandidate !== undefined &&
+      latestTextAttemptByAssistantRef.current.get(selectedAssistant.id) === lateCandidate.attemptId;
+    if (lateCandidate && !lateAttemptIsLatest) {
+      lateNoTokensDraftsRef.current.delete(selectedAssistant.id);
+    }
+    const lateDraftText = lateCandidate && lateAttemptIsLatest ? lateCandidate.text : null;
     const lateStoredMatches = lateDraftText !== null &&
       pendingDraftMatches(selectedAssistant.id, lateDraftText);
     // Retry/история могут завершить загрузку прямо во время стрима. Уже
     // отправленный draft снимется успехом, а не второй подстановкой в поле.
     if (isTyping || streamingMessageId) return;
     if (textSendInFlightRef.current) return;
+    if (flushingRef.current) return;
     if (!lateDraftText) {
       if (textareaRef.current?.value.trim()) return;
     }
@@ -2411,7 +2433,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const storedDraft = lateStoredMatches ? takePendingDraftFor(selectedAssistant.id) : null;
       const restored = storedDraft ?? lateDraftText;
       setInput(prev => prev.includes(restored) ? prev : restoreIntoInput(prev, restored));
-      lateNoTokensDraftRef.current = null;
+      if (lateNoTokensDraftsRef.current.get(selectedAssistant.id)?.attemptId === lateCandidate.attemptId) {
+        lateNoTokensDraftsRef.current.delete(selectedAssistant.id);
+      }
       textareaRef.current?.focus();
       return;
     }
@@ -2619,6 +2643,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     task: string,
     uploadAssistantId: number | null,
   ) => {
+    // Только latest attempt владеет deferred files/draft. Поздний старый END
+    // не перезаписывает носитель более новой попытки того же ассистента.
+    if (uploadAssistantId === null ||
+        latestAttemptByAssistantRef.current.get(uploadAssistantId) !== rejectedMessageId) return;
     // Сохраняем даже после ухода к другому ассистенту: draft привязан к
     // исходному чату и подставится при возврате.
     const draftSaved = uploadAssistantId !== null
@@ -2770,6 +2798,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       content: attachmentTurnText(files.map(f => f.name), task),
       timestamp: new Date(),
     };
+    if (uploadAssistantId !== null) {
+      latestAttemptByAssistantRef.current.set(uploadAssistantId, userMessage.id);
+    }
     setMessages(prev => [...prev, userMessage]);
 
     if (user?.phone) trackAuthed('file_upload_start', user.phone, {
