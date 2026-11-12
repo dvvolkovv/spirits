@@ -5,7 +5,7 @@
 // TokenPackages намеренно видим: отказ по балансу НЕ должен открывать его сам.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { flush, mount, tRu, type as typeInto, type Mounted } from '../../test/dom';
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -200,8 +200,15 @@ const HISTORY = [
 let view: Mounted | null = null;
 let route = '/chat';
 let activeAssistant = ASSISTANT;
+const navigation = { go: null as null | ((to: string) => void) };
+function NavigationBridge() {
+  const navigate = useNavigate();
+  navigation.go = (to: string) => navigate(to);
+  return null;
+}
 const page = () => (
   <MemoryRouter initialEntries={[route]}>
+    <NavigationBridge />
     <ChatInterface preSelectedAssistant={activeAssistant} />
   </MemoryRouter>
 );
@@ -314,6 +321,7 @@ beforeEach(() => {
   net.posts = [];
   route = '/chat';
   activeAssistant = ASSISTANT;
+  navigation.go = null;
 });
 
 afterEach(() => {
@@ -1545,24 +1553,19 @@ describe('no_tokens — файловые регрессии повторного
       ndjson(NO_TOKENS, a2.promise, { deliverEndAfterAbort: true }),
     );
     await open();
-    typeInto(field(), 'старый late A');
-    await clickElement(sendButton());
-    await settle();
-    expect(chatPosts()).toHaveLength(1);
+    const say = async (text: string, expectedPosts: number) => {
+      await act(async () => { navigation.go!(`/chat?say=${encodeURIComponent(text)}`); });
+      for (let i = 0; i < 30 && chatPosts().length < expectedPosts; i++) await sleep(100);
+      expect(chatPosts()).toHaveLength(expectedPosts);
+    };
+    sessionStorage.setItem('selected_assistant', JSON.stringify(ASSISTANT));
+    await say('старый late A', 1);
     await switchTo(OLYA);
     sessionStorage.setItem('selected_assistant', JSON.stringify(OLYA));
-    await sleep(50);
-    typeInto(field(), 'late B');
-    await clickElement(sendButton());
-    await settle();
-    expect(chatPosts()).toHaveLength(2);
+    await say('late B', 2);
     await switchTo(ASSISTANT);
     sessionStorage.setItem('selected_assistant', JSON.stringify(ASSISTANT));
-    await sleep(50);
-    typeInto(field(), 'новый late A');
-    await clickElement(sendButton());
-    await settle();
-    expect(chatPosts()).toHaveLength(3);
+    await say('новый late A', 3);
     await switchTo(OLYA);
     await act(async () => { a2.resolve(); });
     await settle(10);
