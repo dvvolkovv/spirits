@@ -1558,6 +1558,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Capture assistant id at send time — if user switches assistants during
     // streaming, callbacks must NOT write into the new chat's state.
     const streamAssistantId = selectedAssistant?.id ?? null;
+    const latestFileAttemptAtTextStart = userMessageId !== undefined && streamAssistantId !== null
+      ? latestAttemptByAssistantRef.current.get(streamAssistantId)
+      : undefined;
     if (userMessageId !== undefined && streamAssistantId !== null) {
       latestTextAttemptByAssistantRef.current.set(streamAssistantId, userMessageId);
     }
@@ -1852,7 +1855,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
       }
       if (!noTokens && userMessageId !== undefined && streamAssistantId !== null && isLatestTextAttempt()) {
-        forgetPendingDraftIfSent(streamAssistantId, userMessage);
+        // Совпадение текста не делает новый file draft собственностью этого
+        // text attempt. Удаляем shared draft только при неизменном file owner.
+        if (latestAttemptByAssistantRef.current.get(streamAssistantId) === latestFileAttemptAtTextStart) {
+          forgetPendingDraftIfSent(streamAssistantId, userMessage);
+        }
         const lateAttempt = lateNoTokensDraftsRef.current.get(streamAssistantId);
         if (lateAttempt?.attemptId === userMessageId) {
           lateNoTokensDraftsRef.current.delete(streamAssistantId);
