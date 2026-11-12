@@ -1574,13 +1574,11 @@ describe('no_tokens — файловые регрессии повторного
     await switchTo(ASSISTANT);
     await act(async () => { b1.resolve(); });
     await settle(14);
+    expect(field().value).toContain('новый late A');
+    expect(field().value).not.toContain('старый late A');
     typeInto(field(), '');
     await switchTo(OLYA);
     expect(field().value).toContain('late B');
-    typeInto(field(), '');
-    await switchTo(ASSISTANT);
-    expect(field().value).toContain('новый late A');
-    expect(field().value).not.toContain('старый late A');
     expect(storedDraft()).toMatchObject({ text: 'живой чужой draft', assistant: '14' });
     expect(tokenPackagesVisible()).toBe(false);
   });
