@@ -1601,17 +1601,22 @@ describe('no_tokens — файловые регрессии повторного
     await open();
     await send('queue draft');
     expect(storedDraft()).toMatchObject({ text: 'queue draft', assistant: '12' });
+    expect(chatPosts()).toHaveLength(1);
     net.historyGates.push(initialHistoryGate.promise, queueHistoryGate.promise);
     net.historyGateEnabled = true;
     const toggle = container().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement;
     await clickElement(toggle);
     await send('queue draft');
+    expect(chatPosts()).toHaveLength(1);
     await act(async () => { initialHistoryGate.resolve(); });
     await settle(20);
     expect(field().value).toBe('');
+    expect(chatPosts()).toHaveLength(1);
     await act(async () => { queueHistoryGate.resolve(); });
     await settle(20);
     expect(feedText()).toContain('queue flush success');
+    expect(chatPosts()).toHaveLength(2);
+    expect(chatPosts()[1].body).toMatchObject({ chatInput: 'queue draft' });
     expect(storedDraft()).toBeNull();
     expect(field().value).toBe('');
   });
@@ -1737,5 +1742,63 @@ describe('no_tokens — файловые регрессии повторного
     expect(modalTask()).toBe('общий original draft');
     expect(modalText()).toContain('reverse-new.png');
     expect(modalText()).not.toContain('reverse-old.png');
+  });
+
+  it('R54: remove-last queued reply снова выпускает сохранённый draft без лишнего POST', async () => {
+    const historyGate = deferred();
+    net.chatStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await send('draft после remove-last');
+    expect(chatPosts()).toHaveLength(1);
+    expect(storedDraft()).toMatchObject({ text: 'draft после remove-last', assistant: '12' });
+    net.historyGates.push(historyGate.promise);
+    net.historyGateEnabled = true;
+    const toggle = container().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement;
+    await clickElement(toggle);
+    await send('draft после remove-last');
+    expect(container().querySelectorAll('[data-testid="chat-queued-message"]')).toHaveLength(1);
+    expect(chatPosts()).toHaveLength(1);
+
+    const remove = container().querySelector(`button[title="${tRu('chat.queued_remove')}"]`);
+    expect(remove).not.toBeNull();
+    await clickElement(remove!);
+    expect(container().querySelectorAll('[data-testid="chat-queued-message"]')).toHaveLength(0);
+    expect(chatPosts()).toHaveLength(1);
+    await act(async () => { historyGate.resolve(); });
+    await settle(20);
+    expect(field().value).toBe('draft после remove-last');
+    expect(storedDraft()).toBeNull();
+    expect(chatPosts()).toHaveLength(1);
+  });
+
+  it('R55: repeated long-edit refusal не reopen’ит modal на A→B→A без нового перехода баланса', async () => {
+    const secondRefusal = deferred();
+    net.uploadStreams.push(
+      ndjson(NO_TOKENS),
+      ndjson(NO_TOKENS, secondRefusal.promise),
+    );
+    await open();
+    await attach(image('repeated-long-edit.png'));
+    await submitFileTask('исходный repeated draft');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    const longTask = `edited repeated ${'я'.repeat(2050)}`;
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, longTask);
+    await setTokens(0);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle();
+    await switchTo(OLYA);
+    await act(async () => { secondRefusal.resolve(); });
+    await settle(14);
+    expect(storedDraft()).toMatchObject({ text: 'исходный repeated draft', assistant: '12' });
+
+    await switchTo(ASSISTANT);
+    expect(modalVisible()).toBe(false);
+    expect(storedDraft()).toMatchObject({ text: 'исходный repeated draft', assistant: '12' });
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe(longTask);
+    expect(modalText()).toContain('repeated-long-edit.png');
+    expect(storedDraft()).toMatchObject({ text: 'исходный repeated draft', assistant: '12' });
   });
 });
