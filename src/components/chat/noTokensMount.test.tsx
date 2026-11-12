@@ -1410,6 +1410,7 @@ describe('no_tokens — файловые регрессии повторного
     await open();
     await send('text retry draft');
     expect(storedDraft()).toMatchObject({ text: 'text retry draft', assistant: '12' });
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 10_000);
     net.activeTurnGates.push(activeTurnGate.promise);
     net.activeTurnGateEnabled = true;
     await clickElement(sendButton());
@@ -1422,5 +1423,6 @@ describe('no_tokens — файловые регрессии повторного
     expect(feedText()).toContain('text retry success');
     expect(storedDraft()).toBeNull();
     expect(field().value).toBe('');
+    nowSpy.mockRestore();
   });
 });
