@@ -31,6 +31,9 @@ const net = vi.hoisted(() => ({
   activeTurnGateEnabled: false,
   historyGates: [] as Array<Promise<void>>,
   historyGateEnabled: false,
+  refreshGates: [] as Array<Promise<void>>,
+  refreshGateEnabled: false,
+  refreshCalls: 0,
   posts: [] as Array<{ path: string; body: unknown }>,
 }));
 
@@ -73,7 +76,11 @@ vi.mock('../../services/apiClient', () => {
         return ok({ ok: true });
       },
       delete: async () => ok({}),
-      refreshTokenIfNeeded: async () => {},
+      refreshTokenIfNeeded: () => {
+        net.refreshCalls += 1;
+        const gate = net.refreshGateEnabled ? net.refreshGates.shift() : undefined;
+        return gate ?? Promise.resolve();
+      },
     },
   };
 });
@@ -318,6 +325,9 @@ beforeEach(() => {
   net.activeTurnGateEnabled = false;
   net.historyGates = [];
   net.historyGateEnabled = false;
+  net.refreshGates = [];
+  net.refreshGateEnabled = false;
+  net.refreshCalls = 0;
   net.posts = [];
   route = '/chat';
   activeAssistant = ASSISTANT;
@@ -1603,5 +1613,122 @@ describe('no_tokens — файловые регрессии повторного
     expect(feedText()).toContain('queue flush success');
     expect(storedDraft()).toBeNull();
     expect(field().value).toBe('');
+  });
+
+  it('R51: delayed inline после более нового text turn не шлёт synthetic prompt и не abort’ит ответ', async () => {
+    const newerTextGate = deferred();
+    net.chatStreams.push(
+      ndjson(NORMAL('ответ более нового текста'), newerTextGate.promise),
+      ndjson(NORMAL('старый inline не должен отправиться')),
+    );
+    const file = new File(['текст старого файла'], 'stale-inline.txt', { type: 'text/plain' });
+    let resolveRead!: (text: string) => void;
+    const readPromise = new Promise<string>((resolve) => { resolveRead = resolve; });
+    Object.defineProperty(file, 'text', { value: () => readPromise, configurable: true });
+    await open();
+    await attach(file);
+    await submitFileTask('старая inline задача');
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    sessionStorage.setItem('selected_assistant', JSON.stringify(ASSISTANT));
+    await send('более новый текстовый ход');
+    expect(chatPosts()).toHaveLength(1);
+
+    await act(async () => { resolveRead('текст старого файла'); });
+    await settle(14);
+    expect(chatPosts()).toHaveLength(1);
+    expect(chatPosts()[0].body).toMatchObject({ chatInput: 'более новый текстовый ход' });
+    await act(async () => { newerTextGate.resolve(); });
+    await settle(14);
+    expect(feedText()).toContain('ответ более нового текста');
+    expect(feedText()).not.toContain('старый inline не должен отправиться');
+  });
+
+  it('R52: A→B во время refresh в inline сохраняет files/task и не отправляет/abort’ит B', async () => {
+    const oldRefresh = deferred();
+    const bStreamGate = deferred();
+    net.refreshGates.push(oldRefresh.promise);
+    net.refreshGateEnabled = true;
+    net.chatStreams.push(
+      ndjson(NORMAL('ответ B после refresh гонки'), bStreamGate.promise),
+      ndjson(NO_TOKENS),
+    );
+    const file = new File(['текст A'], 'refresh-race-a.txt', { type: 'text/plain' });
+    await open();
+    await attach(file);
+    await submitFileTask('задача A во время refresh');
+    expect(net.refreshCalls).toBe(1);
+    expect(chatPosts()).toHaveLength(0);
+    await switchTo(OLYA);
+    sessionStorage.setItem('selected_assistant', JSON.stringify(OLYA));
+    await send('новый ход B');
+    expect(chatPosts()).toHaveLength(1);
+    expect(chatPosts()[0].body).toMatchObject({ assistant: 2, chatInput: 'новый ход B' });
+
+    await act(async () => { oldRefresh.resolve(); });
+    await settle(14);
+    expect(chatPosts()).toHaveLength(1);
+    await act(async () => { bStreamGate.resolve(); });
+    await settle(14);
+    expect(feedText()).toContain('ответ B после refresh гонки');
+    await switchTo(ASSISTANT);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('задача A во время refresh');
+    expect(modalText()).toContain('refresh-race-a.txt');
+  });
+
+  it('R53: late success human retry очищает исходный draft после A→B', async () => {
+    const successGate = deferred();
+    net.chatStreams.push(
+      ndjson(NO_TOKENS),
+      ndjson(NORMAL('поздний успех retry'), successGate.promise, { deliverEndAfterAbort: true }),
+    );
+    await open();
+    await send('late success draft');
+    expect(storedDraft()).toMatchObject({ text: 'late success draft', assistant: '12' });
+    await clickElement(sendButton());
+    await settle();
+    expect(chatPosts()).toHaveLength(2);
+    await switchTo(OLYA);
+    await act(async () => { successGate.resolve(); });
+    await settle(14);
+    expect(storedDraft()).toBeNull();
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('late success draft');
+    expect(storedDraft()).toBeNull();
+  });
+
+  it('R48 reverse-success: старый multipart success не очищает более новый refusal', async () => {
+    const oldSuccess = deferred();
+    net.uploadStreams.push(
+      ndjson(NO_TOKENS),
+      ndjson(NORMAL('старый multipart success'), oldSuccess.promise),
+      ndjson(NO_TOKENS),
+    );
+    await open();
+    await attach(image('reverse-old.png'));
+    await submitFileTask('общий original draft');
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle();
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    await attach(image('reverse-new.png', 2));
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'общий original draft');
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(14);
+    expect(storedDraft()).toMatchObject({ text: 'общий original draft', assistant: '12' });
+
+    await act(async () => { oldSuccess.resolve(); });
+    await settle(14);
+    expect(storedDraft()).toMatchObject({ text: 'общий original draft', assistant: '12' });
+    expect(feedText()).not.toContain('старый multipart success');
+    await setTokens(0);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('общий original draft');
+    expect(modalText()).toContain('reverse-new.png');
+    expect(modalText()).not.toContain('reverse-old.png');
   });
 });
