@@ -29,6 +29,8 @@ const net = vi.hoisted(() => ({
   uploadStreams: [] as PlannedStream[],
   activeTurnGates: [] as Array<Promise<unknown>>,
   activeTurnGateEnabled: false,
+  historyGates: [] as Array<Promise<void>>,
+  historyGateEnabled: false,
   posts: [] as Array<{ path: string; body: unknown }>,
 }));
 
@@ -42,7 +44,13 @@ vi.mock('../../services/apiClient', () => {
   return {
     apiClient: {
       get: async (url: string) => {
-        if (url.startsWith('/webhook/chat/history')) return ok({ messages: net.history, hasMore: false });
+        if (url.startsWith('/webhook/chat/history')) {
+          if (net.historyGateEnabled) {
+            const gate = net.historyGates.shift();
+            if (gate) return gate.then(() => ok({ messages: net.history, hasMore: false }));
+          }
+          return ok({ messages: net.history, hasMore: false });
+        }
         if (url.startsWith('/webhook/chat/active-turn')) {
           const gate = net.activeTurnGateEnabled ? net.activeTurnGates.shift() : undefined;
           return gate ? gate.then((body) => ok(body)) : ok({ active: false });
@@ -301,6 +309,8 @@ beforeEach(() => {
   net.uploadStreams = [];
   net.activeTurnGates = [];
   net.activeTurnGateEnabled = false;
+  net.historyGates = [];
+  net.historyGateEnabled = false;
   net.posts = [];
   route = '/chat';
   activeAssistant = ASSISTANT;
@@ -1493,5 +1503,96 @@ describe('no_tokens — файловые регрессии повторного
     await settle(14);
     expect(feedText()).not.toContain('B late answer');
     expect(modalVisible()).toBe(true);
+  });
+
+  it('R48: два A multipart в обратном порядке — поздний старый refusal не затирает новую задачу', async () => {
+    const first = deferred();
+    const second = deferred();
+    net.uploadStreams.push(
+      ndjson(NO_TOKENS, first.promise),
+      ndjson(NO_TOKENS, second.promise),
+    );
+    await open();
+    await attach(image('attempt-one.png'));
+    await submitFileTask('первая попытка');
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    await attach(image('attempt-two.png', 2));
+    await submitFileTask('вторая попытка');
+    await act(async () => { second.resolve(); });
+    await settle(14);
+    expect(storedDraft()).toMatchObject({ text: 'вторая попытка', assistant: '12' });
+    await act(async () => { first.resolve(); });
+    await settle(14);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('вторая попытка');
+    expect(modalText()).toContain('attempt-two.png');
+    expect(modalText()).not.toContain('attempt-one.png');
+    expect(storedDraft()).toMatchObject({ text: 'вторая попытка', assistant: '12' });
+  });
+
+  it('R49: late text A/B имеют независимые носители, старая попытка не затирает новую', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({
+      text: 'живой чужой draft', assistant: '14', expires: Date.now() + 3_600_000,
+    }));
+    const a1 = deferred();
+    const b1 = deferred();
+    const a2 = deferred();
+    net.chatStreams.push(
+      ndjson(NO_TOKENS, a1.promise, { deliverEndAfterAbort: true }),
+      ndjson(NO_TOKENS, b1.promise, { deliverEndAfterAbort: true }),
+      ndjson(NO_TOKENS, a2.promise, { deliverEndAfterAbort: true }),
+    );
+    await open();
+    typeInto(field(), 'старый late A');
+    await clickElement(sendButton());
+    await settle();
+    await switchTo(OLYA);
+    sessionStorage.setItem('selected_assistant', JSON.stringify(OLYA));
+    typeInto(field(), 'late B');
+    await clickElement(sendButton());
+    await settle();
+    await switchTo(ASSISTANT);
+    sessionStorage.setItem('selected_assistant', JSON.stringify(ASSISTANT));
+    typeInto(field(), 'новый late A');
+    await clickElement(sendButton());
+    await settle();
+    await switchTo(OLYA);
+    await act(async () => { a2.resolve(); });
+    await settle(10);
+    await act(async () => { a1.resolve(); });
+    await settle(10);
+    await switchTo(ASSISTANT);
+    await act(async () => { b1.resolve(); });
+    await settle(14);
+    typeInto(field(), '');
+    await switchTo(OLYA);
+    expect(field().value).toContain('late B');
+    typeInto(field(), '');
+    await switchTo(ASSISTANT);
+    expect(field().value).toContain('новый late A');
+    expect(field().value).not.toContain('старый late A');
+    expect(storedDraft()).toMatchObject({ text: 'живой чужой draft', assistant: '14' });
+    expect(tokenPackagesVisible()).toBe(false);
+  });
+
+  it('R50: queue-flush/history pull не возвращает отправляемый draft до успеха', async () => {
+    const historyGate = deferred();
+    net.chatStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('queue flush success')));
+    await open();
+    await send('queue draft');
+    expect(storedDraft()).toMatchObject({ text: 'queue draft', assistant: '12' });
+    const toggle = container().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement;
+    await clickElement(toggle);
+    net.historyGates.push(historyGate.promise);
+    net.historyGateEnabled = true;
+    await send('queue draft');
+    await settle(20);
+    await act(async () => { historyGate.resolve(); });
+    await settle(20);
+    expect(feedText()).toContain('queue flush success');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
   });
 });
