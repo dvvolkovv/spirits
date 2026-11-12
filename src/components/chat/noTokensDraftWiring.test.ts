@@ -71,8 +71,9 @@ describe('текстовый no_tokens — исход, пузырь и ввод'
 });
 
 describe('сохранённые защиты и удаление legacy', () => {
-  it('if(noTokens)break остаётся в обоих NDJSON-циклах', () => {
-    expect(SRC.match(/if \(noTokens\) break;/g)).toHaveLength(2);
+  it('text NDJSON завершается по terminal END, multipart — по no_tokens', () => {
+    expect(sendAI()).toContain('if (endReceived) break;');
+    expect(body('const handleFileTaskSubmit = async')).toContain('if (noTokens) break;');
   });
 
   it('noTokensHoldRef останавливает досылку и отложенную очистку ?say=', () => {

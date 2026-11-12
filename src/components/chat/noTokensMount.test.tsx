@@ -1801,4 +1801,38 @@ describe('no_tokens — файловые регрессии повторного
     expect(modalText()).toContain('repeated-long-edit.png');
     expect(storedDraft()).toMatchObject({ text: 'исходный repeated draft', assistant: '12' });
   });
+
+  it('R56 cross-type: late text A1 success не удаляет newer file A2 draft с тем же текстом', async () => {
+    const sharedText = 'одинаковый text/file cross-type draft';
+    const a1Success = deferred();
+    let a1EndWaiting = false;
+    net.chatStreams.push(ndjson(NORMAL('поздний успех A1'), a1Success.promise, {
+      deliverEndAfterAbort: true,
+      onEndGate: () => { a1EndWaiting = true; },
+    }));
+    net.uploadStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await send(sharedText);
+    expect(chatPosts()).toHaveLength(1);
+    for (let i = 0; i < 30 && !a1EndWaiting; i++) await sleep(10);
+    expect(a1EndWaiting).toBe(true);
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+
+    await attach(image('cross-type-a2.png'));
+    await submitFileTask(sharedText);
+    expect(storedDraft()).toMatchObject({ text: sharedText, assistant: '12' });
+    await switchTo(OLYA);
+    await act(async () => { a1Success.resolve(); });
+    await settle(14);
+    expect(storedDraft()).toMatchObject({ text: sharedText, assistant: '12' });
+
+    await switchTo(ASSISTANT);
+    // Сохранённый file draft — оставшийся носитель после штатного снятия
+    // pending files на A→B; именно он обязан вернуть задачу в поле.
+    expect(field().value).toBe(sharedText);
+    expect(storedDraft()).toBeNull();
+    expect(modalVisible()).toBe(false);
+    expect(feedText()).not.toContain('поздний успех A1');
+  });
 });
