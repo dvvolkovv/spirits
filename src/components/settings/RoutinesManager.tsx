@@ -109,7 +109,10 @@ const RoutinesManager: React.FC = () => {
   };
   const test = async (rt: Routine) => {
     const d = await post({ action: 'test', id: rt.id });
-    if (d) setMsg(d.delivered > 0 ? t('settings.routines.test_success') : t('settings.routines.test_no_push'));
+    if (!d) return;
+    if (d.busy) { setMsg(t('settings.routines.test_busy')); return; }
+    if (d.failed) { setMsg(t('settings.routines.test_failed')); return; }
+    setMsg(d.delivered > 0 ? t('settings.routines.test_success') : t('settings.routines.test_no_push'));
   };
   const addEnergy = async () => { await post({ action: 'preset_energy', tz: browserTz }); load(); };
 

@@ -766,6 +766,8 @@
       "default_title": "Erinnerung",
       "test_success": "Gesendet — schau nach der Benachrichtigung 🔔",
       "test_no_push": "Erstellt, aber der Push kam nicht an. Aktiviere oben die Benachrichtigungen auf diesem Gerät.",
+      "test_busy": "Der Assistent ist gerade beschäftigt — versuche es in einer Minute noch einmal.",
+      "test_failed": "Die Nachricht konnte nicht vorbereitet werden — versuche es etwas später noch einmal.",
       "day_sun": "So",
       "day_mon": "Mo",
       "day_tue": "Di",
