@@ -1582,6 +1582,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Шлагбаум баланса: сообщение на сервер не записалось, черновик надо
     // вернуть (noTokensDraft.ts). Выставляется по `end` с reason no_tokens.
     let noTokens = false;
+    let endReceived = false;
 
     try {
       // Пока обновлялся токен, владелец хода мог смениться. Старый inline не
@@ -1702,6 +1703,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               }
             }
             if (data.type === 'end') {
+              endReceived = true;
               if (data.usage) lastUsage = data.usage;
               if (isNoTokensEnd(data)) noTokens = true;
             }
@@ -1764,10 +1766,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }
         }
 
-        // После отказа по балансу бэк сразу закрывает поток. Выходим сами:
-        // сетевой обрыв на последнем read() не должен уводить в catch — там
-        // восстановление черновика не выполнялось бы.
-        if (noTokens) break;
+        // END терминален для обоих исходов. После него поздний транспортный
+        // AbortError не должен уводить уже успешный ход в catch до cleanup.
+        if (endReceived) break;
 
         if (done) {
           if (buffer.trim()) {
