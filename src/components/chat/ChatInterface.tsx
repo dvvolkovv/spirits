@@ -713,6 +713,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   // Шаги работы идущего хода — рисуются вместо трёх точек (ActivitySteps.tsx).
   const [streamActivity, setStreamActivity] = useState<TurnActivity | null>(null);
+  const removeQueuedReply = (id: string) => {
+    applyQueued((prev) => removeFromQueue(prev, id));
+    // Ручное снятие последней реплики отменяет именно enqueue-guard. Во время
+    // реальной отправки/flush его продолжает держать соответствующий путь.
+    if (queuedRef.current.length === 0 &&
+        !flushingRef.current &&
+        !sendingRef.current &&
+        !isTyping &&
+        !streamingMessageId) {
+      textSendInFlightRef.current = false;
+    }
+  };
   // Карточку вопроса можно нажать, только когда отправка пойдёт сразу: ответ
   // в очередь посреди чужого хода выглядел бы как проглоченный.
   const askLive = !sendBlocked && !streamingMessageId && !historyLoading;
@@ -932,7 +944,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         fileTaskEditedRef.current = incoming.edited;
         fileTaskAwaitingTopUpRef.current = incoming.awaitingTopUp;
         deferredFileTasksRef.current.delete(newId);
-        setShowFileTaskModal(incoming.reopenOnReturn === true || incoming.edited || !incoming.awaitingTopUp);
+        setShowFileTaskModal(incoming.reopenOnReturn === true || !incoming.awaitingTopUp);
       }
     }
     prevSelectedAssistantIdRef.current = newId;
@@ -3892,7 +3904,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   <span className="text-xs text-gray-400">{t('chat.queued_hint')}</span>
                 )}
                 <button
-                  onClick={() => applyQueued((prev) => removeFromQueue(prev, q.id))}
+                  onClick={() => removeQueuedReply(q.id)}
                   title={t('chat.queued_remove')}
                   aria-label={t('chat.queued_remove')}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
