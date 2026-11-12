@@ -2382,7 +2382,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // отправленный draft снимется успехом, а не второй подстановкой в поле.
     if (isTyping || streamingMessageId) return;
     if (textSendInFlightRef.current) return;
-    if (textareaRef.current?.value.trim() && !lateDraftText) return;
+    if (!lateDraftText) {
+      if (textareaRef.current?.value.trim()) return;
+    }
     // Пока файлы отложены, задача живёт в их модалке. Подставлять её ещё и в
     // поле нельзя. При реальном возврате к ассистенту с надёжным draft файлы
     // снимаем: остаётся один носитель — текст в поле.
