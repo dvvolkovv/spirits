@@ -27,6 +27,7 @@ const net = vi.hoisted(() => ({
   history: [] as unknown[],
   chatStreams: [] as PlannedStream[],
   uploadStreams: [] as PlannedStream[],
+  activeTurnGates: [] as Array<Promise<unknown>>,
   posts: [] as Array<{ path: string; body: unknown }>,
 }));
 
@@ -41,7 +42,10 @@ vi.mock('../../services/apiClient', () => {
     apiClient: {
       get: async (url: string) => {
         if (url.startsWith('/webhook/chat/history')) return ok({ messages: net.history, hasMore: false });
-        if (url.startsWith('/webhook/chat/active-turn')) return ok({ active: false });
+        if (url.startsWith('/webhook/chat/active-turn')) {
+          const gate = net.activeTurnGates.shift();
+          return gate ? gate.then((body) => ok(body)) : ok({ active: false });
+        }
         if (url.startsWith('/webhook/agents')) return ok([]);
         return ok({});
       },
@@ -294,6 +298,7 @@ beforeEach(() => {
   net.history = HISTORY;
   net.chatStreams = [];
   net.uploadStreams = [];
+  net.activeTurnGates = [];
   net.posts = [];
   route = '/chat';
   activeAssistant = ASSISTANT;
@@ -1183,5 +1188,236 @@ describe('no_tokens — файловые регрессии повторного
     } finally {
       Object.defineProperty(globalThis, 'caches', { configurable: true, value: originalCaches });
     }
+  });
+
+  it('R40 success: повторный refusal длинной редактуры сохраняет original draft для удаления', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS), ndjson(NO_TOKENS), ndjson(NORMAL('R40 success')));
+    await open();
+    await attach(image('r40-success.png'));
+    await submitFileTask('original R40 draft');
+    await setTokens(5000);
+    const longEdit = `R40 long edit ${'я'.repeat(2050)}`;
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, longEdit);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(storedDraft()).toMatchObject({ text: 'original R40 draft', assistant: '12' });
+    await setTokens(0);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(feedText()).toContain('R40 success');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
+    await reload();
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('original R40 draft');
+  });
+
+  it('R40 Cancel: повторный refusal длинной редактуры не мешает удалить original draft', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS), ndjson(NO_TOKENS));
+    await open();
+    await attach(image('r40-cancel.png'));
+    await submitFileTask('original R40 cancel');
+    await setTokens(5000);
+    const longEdit = `R40 cancel edit ${'я'.repeat(2050)}`;
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, longEdit);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    expect(storedDraft()).toMatchObject({ text: 'original R40 cancel', assistant: '12' });
+    await setTokens(0);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    await clickElement(buttonByText(tRu('chat.file_modal_cancel'))!);
+    await settle();
+    expect(storedDraft()).toBeNull();
+    await reload();
+    await switchTo(OLYA);
+    await switchTo(ASSISTANT);
+    expect(field().value).not.toContain('original R40 cancel');
+    expect(modalVisible()).toBe(false);
+  });
+
+  it('R40 control: после повторного refusal более новый text draft сохраняется', async () => {
+    net.uploadStreams.push(ndjson(NO_TOKENS), ndjson(NO_TOKENS));
+    net.chatStreams.push(ndjson(NO_TOKENS));
+    await open();
+    await attach(image('r40-control.png'));
+    await submitFileTask('original R40 control');
+    await setTokens(5000);
+    const longEdit = `R40 control edit ${'я'.repeat(2050)}`;
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, longEdit);
+    await clickElement(buttonByText(tRu('chat.file_modal_submit'))!);
+    await settle(20);
+    await send('новый текстовый draft R40');
+    expect(storedDraft()).toMatchObject({ text: 'новый текстовый draft R40', assistant: '12' });
+    await setTokens(0);
+    await setTokens(5000);
+    expect(modalVisible()).toBe(true);
+    await clickElement(buttonByText(tRu('chat.file_modal_cancel'))!);
+    await settle();
+    expect(storedDraft()).toMatchObject({ text: 'новый текстовый draft R40', assistant: '12' });
+  });
+
+  it('R41 ordinary: задача без refusal видна после A→B→A без нового balance transition', async () => {
+    await open();
+    await attach(image('ordinary-return.png'));
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'ordinary task A');
+    await switchTo(OLYA);
+    expect(modalVisible()).toBe(false);
+    await switchTo(ASSISTANT);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('ordinary task A');
+    expect(modalText()).toContain('ordinary-return.png');
+  });
+
+  it('R41 shared: shared-image задача без refusal видна после A→B→A', async () => {
+    const originalCaches = globalThis.caches;
+    const shared = new Response(new Blob([new Uint8Array([1])], { type: 'image/png' }), {
+      headers: { 'X-Share-Filename': 'shared-return.png' },
+    });
+    Object.defineProperty(globalThis, 'caches', {
+      configurable: true,
+      value: { open: async () => ({ match: async () => shared, delete: async () => true }) },
+    });
+    try {
+      window.history.replaceState({}, '', '/chat?shared_image=1');
+      await open();
+      await settle(14);
+      typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'shared task A');
+      await switchTo(OLYA);
+      expect(modalVisible()).toBe(false);
+      await switchTo(ASSISTANT);
+      expect(modalVisible()).toBe(true);
+      expect(modalTask()).toBe('shared task A');
+      expect(modalText()).toContain('shared-return.png');
+    } finally {
+      Object.defineProperty(globalThis, 'caches', { configurable: true, value: originalCaches });
+    }
+  });
+
+  it('R42: late TEXT no_tokens сохраняет rejected для A и добавляет его к непустому полю при возврате', async () => {
+    const gate = deferred();
+    net.chatStreams.push(ndjson(NO_TOKENS, gate.promise, { deliverEndAfterAbort: true }));
+    await open();
+    typeInto(field(), 'late text A');
+    await clickElement(sendButton());
+    await settle();
+    await switchTo(OLYA);
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    expect(field().value).not.toContain('late text A');
+    expect(feedText()).not.toContain('late text A');
+    expect(tokenPackagesVisible()).toBe(false);
+    typeInto(field(), 'заметка B');
+    await switchTo(ASSISTANT);
+    expect(field().value.split('late text A')).toHaveLength(2);
+    expect(field().value).toContain('заметка B');
+    expect(storedDraft()).toBeNull();
+    expect(tokenPackagesVisible()).toBe(false);
+  });
+
+  it('R43 success: late multipart success не меняет ленту, streaming-state и поле активного B', async () => {
+    const aGate = deferred();
+    const bGate = deferred();
+    net.uploadStreams.push(ndjson(NORMAL('A multipart success'), aGate.promise));
+    net.chatStreams.push(ndjson(NORMAL('B stream answer'), bGate.promise));
+    await open();
+    await attach(image('late-success-a.png'));
+    await submitFileTask('задача A');
+    await switchTo(OLYA);
+    sessionStorage.setItem('selected_assistant', JSON.stringify(OLYA));
+    await send('ход B');
+    expect(chatPosts()).toHaveLength(1);
+    expect(chatPosts()[0].body).toMatchObject({ assistant: 2, chatInput: 'ход B' });
+    typeInto(field(), 'поле B сохраняется');
+    await act(async () => { aGate.resolve(); });
+    await settle(14);
+    expect(feedText()).not.toContain('A multipart success');
+    expect(field().value).toBe('поле B сохраняется');
+    expect(container().querySelector('[data-testid="live-activity"]') !== null || feedText().includes('B stream answer')).toBe(true);
+    await act(async () => { bGate.resolve(); });
+    await settle(14);
+    expect(feedText()).toContain('B stream answer');
+  });
+
+  it('R43 error: late multipart error/finally не добавляет ошибку и не очищает активный B', async () => {
+    const aGate = deferred();
+    const bGate = deferred();
+    net.uploadStreams.push(() => async () => {
+      await aGate.promise;
+      return { ok: false, status: 500, body: null };
+    });
+    net.chatStreams.push(ndjson(NORMAL('B active answer'), bGate.promise));
+    await open();
+    await attach(image('late-error-a.png'));
+    await submitFileTask('задача A');
+    await switchTo(OLYA);
+    sessionStorage.setItem('selected_assistant', JSON.stringify(OLYA));
+    await send('ход B');
+    typeInto(field(), 'поле B не очищено');
+    await act(async () => { aGate.resolve(); });
+    await settle(14);
+    expect(feedText()).not.toContain(tRu('chat.file_error_fallback'));
+    expect(field().value).toBe('поле B не очищено');
+    expect(container().querySelector('[data-testid="live-activity"]') !== null || feedText().includes('B active answer')).toBe(true);
+    await act(async () => { bGate.resolve(); });
+    await settle(14);
+    expect(feedText()).toContain('B active answer');
+  });
+
+  it('R44: delayed Cache Storage после A→B не затирает B и сохраняет shared image для A', async () => {
+    const originalCaches = globalThis.caches;
+    let resolveCache!: (value: { match: () => Promise<Response>; delete: () => Promise<boolean> }) => void;
+    const cacheGate = new Promise<{ match: () => Promise<Response>; delete: () => Promise<boolean> }>((resolve) => { resolveCache = resolve; });
+    const shared = new Response(new Blob([new Uint8Array([1])], { type: 'image/png' }), {
+      headers: { 'X-Share-Filename': 'delayed-shared-a.png' },
+    });
+    Object.defineProperty(globalThis, 'caches', {
+      configurable: true,
+      value: { open: () => cacheGate },
+    });
+    try {
+      window.history.replaceState({}, '', '/chat?shared_image=1');
+      await open();
+      await switchTo(OLYA);
+      await attach(image('current-b.png', 2));
+      typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'задача B');
+      await act(async () => {
+        resolveCache({ match: async () => shared, delete: async () => true });
+      });
+      await settle(14);
+      expect(modalVisible()).toBe(true);
+      expect(modalTask()).toBe('задача B');
+      expect(modalText()).toContain('current-b.png');
+      expect(modalText()).not.toContain('delayed-shared-a.png');
+      await switchTo(ASSISTANT);
+      expect(modalVisible()).toBe(true);
+      expect(modalText()).toContain('delayed-shared-a.png');
+      expect(modalText()).not.toContain('current-b.png');
+      expect(modalTask()).not.toBe('задача B');
+    } finally {
+      Object.defineProperty(globalThis, 'caches', { configurable: true, value: originalCaches });
+    }
+  });
+
+  it('R45: history reload во время active-turn check не подставляет draft перед успешным retry', async () => {
+    const activeTurnGate = deferred();
+    net.chatStreams.push(ndjson(NO_TOKENS), ndjson(NORMAL('text retry success')));
+    await open();
+    await send('text retry draft');
+    expect(storedDraft()).toMatchObject({ text: 'text retry draft', assistant: '12' });
+    net.activeTurnGates.push(activeTurnGate.promise);
+    await clickElement(sendButton());
+    await settle();
+    const toggle = container().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement;
+    await clickElement(toggle);
+    await settle(20);
+    await act(async () => { activeTurnGate.resolve(); });
+    await settle(20);
+    expect(feedText()).toContain('text retry success');
+    expect(storedDraft()).toBeNull();
+    expect(field().value).toBe('');
   });
 });
