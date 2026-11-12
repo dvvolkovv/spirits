@@ -28,6 +28,7 @@ const net = vi.hoisted(() => ({
   chatStreams: [] as PlannedStream[],
   uploadStreams: [] as PlannedStream[],
   activeTurnGates: [] as Array<Promise<unknown>>,
+  activeTurnGateEnabled: false,
   posts: [] as Array<{ path: string; body: unknown }>,
 }));
 
@@ -43,7 +44,7 @@ vi.mock('../../services/apiClient', () => {
       get: async (url: string) => {
         if (url.startsWith('/webhook/chat/history')) return ok({ messages: net.history, hasMore: false });
         if (url.startsWith('/webhook/chat/active-turn')) {
-          const gate = net.activeTurnGates.shift();
+          const gate = net.activeTurnGateEnabled ? net.activeTurnGates.shift() : undefined;
           return gate ? gate.then((body) => ok(body)) : ok({ active: false });
         }
         if (url.startsWith('/webhook/agents')) return ok([]);
@@ -299,6 +300,7 @@ beforeEach(() => {
   net.chatStreams = [];
   net.uploadStreams = [];
   net.activeTurnGates = [];
+  net.activeTurnGateEnabled = false;
   net.posts = [];
   route = '/chat';
   activeAssistant = ASSISTANT;
@@ -1345,7 +1347,7 @@ describe('no_tokens — файловые регрессии повторного
   it('R43 error: late multipart error/finally не добавляет ошибку и не очищает активный B', async () => {
     const aGate = deferred();
     const bGate = deferred();
-    net.uploadStreams.push(() => async () => {
+    net.uploadStreams.push(async () => {
       await aGate.promise;
       return { ok: false, status: 500, body: null };
     });
@@ -1409,6 +1411,7 @@ describe('no_tokens — файловые регрессии повторного
     await send('text retry draft');
     expect(storedDraft()).toMatchObject({ text: 'text retry draft', assistant: '12' });
     net.activeTurnGates.push(activeTurnGate.promise);
+    net.activeTurnGateEnabled = true;
     await clickElement(sendButton());
     await settle();
     const toggle = container().querySelector('[data-testid="fresh-mode-toggle"]') as HTMLButtonElement;
