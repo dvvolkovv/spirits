@@ -1789,6 +1789,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // Носитель нужен и при save=false (>2000 или чужой живой draft).
         // Его наличие само по себе не разрешает стирать storage.
         savePendingDraft(outcome.draftText, streamAssistantId);
+        console.error('R49_LATE_SET', streamAssistantId, userMessageId, isLatestTextAttempt());
         lateNoTokensDraftsRef.current.set(streamAssistantId, {
           attemptId: userMessageId,
           text: outcome.draftText,
@@ -2394,6 +2395,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const lateCandidate = lateNoTokensDraftsRef.current.get(selectedAssistant.id);
     const lateAttemptIsLatest = lateCandidate !== undefined &&
       latestTextAttemptByAssistantRef.current.get(selectedAssistant.id) === lateCandidate.attemptId;
+    console.error('R49_LATE_READ', selectedAssistant.id, lateCandidate, latestTextAttemptByAssistantRef.current.get(selectedAssistant.id));
     if (lateCandidate && !lateAttemptIsLatest) {
       lateNoTokensDraftsRef.current.delete(selectedAssistant.id);
     }
