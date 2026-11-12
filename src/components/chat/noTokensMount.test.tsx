@@ -1425,4 +1425,73 @@ describe('no_tokens — файловые регрессии повторного
     expect(field().value).toBe('');
     nowSpy.mockRestore();
   });
+
+  it('R46A: rejected >2000 при save=false возвращается полностью из late носителя и очищается после retry', async () => {
+    const gate = deferred();
+    const longRejected = `late long ${'я'.repeat(2050)}`;
+    net.chatStreams.push(
+      ndjson(NO_TOKENS, gate.promise, { deliverEndAfterAbort: true }),
+      ndjson(NORMAL('late long success')),
+    );
+    await open();
+    typeInto(field(), longRejected);
+    await clickElement(sendButton());
+    await settle();
+    await switchTo(OLYA);
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    expect(storedDraft()).toBeNull();
+    expect(field().value).not.toContain('late long');
+    expect(tokenPackagesVisible()).toBe(false);
+    await switchTo(ASSISTANT);
+    expect(field().value).toBe(longRejected);
+    await clickElement(sendButton());
+    await settle(20);
+    expect(feedText()).toContain('late long success');
+    expect(field().value).toBe('');
+    expect(storedDraft()).toBeNull();
+  });
+
+  it('R46B: живой draft другого assistant не мешает late носителю A и сохраняется', async () => {
+    localStorage.setItem('pending_draft', JSON.stringify({
+      text: 'живой draft B', assistant: '14', expires: Date.now() + 3_600_000,
+    }));
+    const gate = deferred();
+    net.chatStreams.push(ndjson(NO_TOKENS, gate.promise, { deliverEndAfterAbort: true }));
+    await open();
+    typeInto(field(), 'late rejected A');
+    await clickElement(sendButton());
+    await settle();
+    await switchTo(OLYA);
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    expect(storedDraft()).toMatchObject({ text: 'живой draft B', assistant: '14' });
+    expect(field().value).not.toContain('late rejected A');
+    typeInto(field(), 'заметка B');
+    await switchTo(ASSISTANT);
+    expect(field().value.split('late rejected A')).toHaveLength(2);
+    expect(field().value).toContain('заметка B');
+    expect(storedDraft()).toMatchObject({ text: 'живой draft B', assistant: '14' });
+    expect(tokenPackagesVisible()).toBe(false);
+  });
+
+  it('R47: ordinary A files/task открываются после возврата с активного B до конца его stream', async () => {
+    const gate = deferred();
+    net.chatStreams.push(ndjson(NORMAL('B late answer'), gate.promise));
+    await open();
+    await attach(image('ordinary-r47.png'));
+    typeInto(fileModal()?.querySelector('textarea') as HTMLTextAreaElement, 'ordinary R47 task');
+    await switchTo(OLYA);
+    sessionStorage.setItem('selected_assistant', JSON.stringify(OLYA));
+    await send('B active turn');
+    expect(chatPosts()).toHaveLength(1);
+    await switchTo(ASSISTANT);
+    expect(modalVisible()).toBe(true);
+    expect(modalTask()).toBe('ordinary R47 task');
+    expect(modalText()).toContain('ordinary-r47.png');
+    await act(async () => { gate.resolve(); });
+    await settle(14);
+    expect(feedText()).not.toContain('B late answer');
+    expect(modalVisible()).toBe(true);
+  });
 });
