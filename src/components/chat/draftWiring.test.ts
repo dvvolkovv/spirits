@@ -21,7 +21,7 @@ const effect = (): string => {
 
 describe('черновик со страницы linkeon.io', () => {
   it('ChatInterface забирает черновик из utils/pendingDraft', () => {
-    expect(SRC).toContain("import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';");
+    expect(SRC).toContain("import { takePendingDraftFor } from '../../utils/pendingDraft';");
   });
 
   it('ждёт, пока загрузится история именно выбранного ассистента', () => {
