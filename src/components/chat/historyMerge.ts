@@ -62,8 +62,13 @@ const roleOf = (m: LocalMessage | PolledMessage): 'human' | 'ai' =>
  * assistant с content ''. Без фильтра после перезагрузки в ленте вставал бы
  * пустой пузырь.
  *
- * Фильтруются только ответы: пустая строка пользователя — тоже запись хода,
- * а сгенерированная картинка (messageType 'image') может не нести текста.
+ * Фильтруются только ответы: пустая строка пользователя — тоже запись хода.
+ *
+ * Image-guard ниже — защитный, не продуктовый (I7): /webhook/chat/history
+ * всегда шлёт message_type 'text', а картинки приходят непустым content, так
+ * что на данных этого эндпоинта ветка фактически не срабатывает. Оставлена на
+ * случай строк с imageUrl/messageType 'image' из других источников, чтобы
+ * фильтр их не съел.
  */
 export function dropEmptyAssistantMessages<T extends PolledMessage>(msgs: T[]): T[] {
   return msgs.filter(m => {

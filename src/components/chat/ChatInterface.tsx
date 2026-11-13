@@ -411,14 +411,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   }, [navigate]);
 
-  const handleLinkNavigation = useCallback((url: string) => {
+  const handleLinkNavigation = useCallback((url: string, fileName?: string) => {
     // Приватное вложение из реестра загрузок: GET /webhook/chat-uploads/:id
-    // требует JWT владельца, window.open заголовок не пошлёт — качаем через
-    // apiClient и открываем blob (chatUploads.tsx). ДО общего пути: адрес
+    // требует JWT владельца — качаем через apiClient и отдаём файл программным
+    // <a download> (chatUploads.tsx): window.open после await'ов молча
+    // блокируется на мобильных, а download сохраняет имя файла (fileName —
+    // расэкранированное имя из текста ссылки 📎). ДО общего пути: адрес
     // относительный, chatLinkPath принял бы его за раздел кабинета и роутер
     // ушёл бы в SPA-фолбэк с 401 вместо файла.
     if (isChatUploadLink(url)) {
-      void openChatUpload(url, t('chat.upload_download_error'));
+      void openChatUpload(url, t('chat.upload_download_error'), fileName);
       return;
     }
     // Свой кабинет (https://my.linkeon.io/profile?open=zoom из ответа
@@ -433,7 +435,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       return;
     }
     if (isWebLink(url)) window.open(url, '_blank', 'noopener,noreferrer');
-  }, [navigate]);
+    // t в зависимостях (I5): после смены языка колбэк не должен держать
+    // устаревший перевод текста тоста скачивания.
+  }, [navigate, t]);
 
   // Скачивание картинки-вложения прямо из ленты (ChatImageAttachment ниже) —
   // тот же chat_files_download, что шлёт панель «Медиа и файлы»
@@ -1136,7 +1140,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             }
           });
         } else {
-          setHasMoreHistory(false);
+          // Вся страница могла отфильтроваться в ноль (пустые ответы ассистента
+          // из persist-on-empty): гейт догрузки — ответ сервера (data.hasMore),
+          // а не размер отфильтрованного массива, иначе история «закончится»
+          // на первой же пустой странице (I6). Offset сдвигаем, чтобы следующий
+          // скролл читал уже следующую страницу, а не перечитывал эту навсегда.
+          setHistoryOffset(prev => prev + 30);
+          setHasMoreHistory(data.hasMore || false);
         }
       }
     } catch (e) {
@@ -2579,15 +2589,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (noTokens) break;
       }
 
-      const assistantMsg: Message = {
-        id: assistantMsgId,
-        type: 'assistant',
-        content: accumulatedContent,
-        timestamp: new Date(),
-        tokensUsed: lastTokensUsed,
-        activity: finishActivity(activity, Date.now()),
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+      // Пустой ответ релея не должен оставлять пустой белый пузырь в живой
+      // ленте: история такие строки уже фильтрует (dropEmptyAssistantMessages —
+      // след persist-on-empty на бэке), и до перезагрузки лента обязана
+      // выглядеть так же (I2). Отказ по балансу (noTokens) сохраняет прежнее
+      // поведение: за пустым ответом открывается окно пополнения.
+      if (accumulatedContent.trim() !== '' || noTokens) {
+        const assistantMsg: Message = {
+          id: assistantMsgId,
+          type: 'assistant',
+          content: accumulatedContent,
+          timestamp: new Date(),
+          tokensUsed: lastTokensUsed,
+          activity: finishActivity(activity, Date.now()),
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+      }
       if (noTokens && selectedAssistantIdRef.current === uploadAssistantId) {
         noTokensHoldRef.current = true;
         restoreFileTask();
