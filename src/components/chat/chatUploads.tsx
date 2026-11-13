@@ -47,7 +47,15 @@ export async function openChatUpload(href: string, errorText: string): Promise<v
 // Markdown-ссылка на приватное вложение внутри строки 📎. Имя может содержать
 // пробелы и кириллицу; адрес — только /webhook/chat-uploads/... без пробелов
 // и «)» (uuid), так что жадная скобка безопасна.
-const UPLOAD_LINK_RE = /\[([^\]]*)\]\((\/webhook\/chat-uploads\/[^)\s]+)\)/g;
+// Бэк (spirits_back chat.controller.ts, markdownEscapeName) экранирует в именах
+// `\`, `[`, `]`, поэтому имя ловим как «обычный символ ИЛИ экранированная пара»:
+// `\[финал\]` внутри имени не рвёт разбор, а «]» имени от «](адрес)» отличим.
+const UPLOAD_LINK_RE = /\[((?:[^\]\\]|\\.)*)\]\((\/webhook\/chat-uploads\/[^)\s]+)\)/g;
+
+/** Обратная к markdownEscapeName: `\\`→`\`, `\[`→`[`, `\]`→`]` в имени файла. */
+function unescapeFileName(raw: string): string {
+  return raw.replace(/\\([\\[\]])/g, '$1');
+}
 
 /**
  * Содержимое пузыря пользователя: строки 📎 со ссылками на вложения
@@ -86,7 +94,7 @@ export function renderUserMessageContent(
           }}
           className="ym-disable-tracklink underline decoration-white/60 hover:decoration-white cursor-pointer"
         >
-          {m[1]}
+          {unescapeFileName(m[1])}
         </a>,
       );
       last = idx + m[0].length;
