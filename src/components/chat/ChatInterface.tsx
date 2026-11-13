@@ -48,7 +48,6 @@ import { trackAuthed } from '../../services/eventsClient';
 import { getRoleForAssistant } from './assistantRole';
 import { formatTokensCompact } from '../../utils/formatters';
 import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
-import { greetingStillWanted } from './greetingGate';
 import { addToQueue, removeFromQueue, joinQueue, type QueuedMessage } from './sendQueue';
 import { shouldShowStreamError, needsActiveTurnProbe } from './streamFailure';
 import { isNoTokensEnd, restoreDraftText, saveNoTokensDraft, peekNoTokensDraft, clearNoTokensDraft } from './noTokensDraft';
@@ -590,9 +589,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // уходило бы параллельно (guard по isTyping внутри sendMessageText читает
   // stale-значение из замыкания и не спасает).
   const sendingRef = useRef(false);
-  // Сколько ходов начато (sendMessageToAI). По нему автоприветствие видит, что
-  // человек успел отправить своё, пока оно ждало (greetingGate.ts).
-  const sendSeqRef = useRef(0);
 
   // Очередь пишем ТОЛЬКО через этот хелпер: ref обновляется в тот же момент,
   // что и состояние. Пока ref синхронизировался отдельным эффектом, он отставал
@@ -900,8 +896,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // смена ассистента запускают новую загрузку, а прежний запрос ещё в пути:
     // придя позже, он показывал старую переписку и снимал признак загрузки за
     // новый. Человек видел готовый чат и писал, а затем пустая история новой
-    // сессии затирала ленту и слала автоприветствие поверх его хода (прод,
-    // 08.10.2026; greetingRaceWiring.test.ts).
+    // сессии затирала ленту поверх его хода (прод, 08.10.2026;
+    // greetingRaceWiring.test.ts).
     let stale = false;
 
     const load = async () => {
@@ -932,7 +928,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           setMessages(msgs);
           setHasMoreHistory(data.hasMore || false);
           setHistoryOffset(30);
-          if (msgs.length === 0) sendInitialGreeting();
         } else {
           throw new Error('API error');
         }
@@ -952,7 +947,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           }));
         } else {
           setMessages([]);
-          sendInitialGreeting();
         }
       } finally {
         // Признак загрузки и маркер снимает только актуальный запуск: у
@@ -1084,38 +1078,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       remoteCheckedAtRef.current = null;
     };
   }, [selectedAssistant?.id, hasUserSelectedAssistant, isTyping]);
-
-  const sendInitialGreeting = async () => {
-    if (!selectedAssistant) return;
-
-    // Человек пришёл с калькулятора с готовым первым сообщением: оно сейчас
-    // подставится в поле ввода (эффект черновика ниже). Автоприветствие тут
-    // лишнее — ассистент потратил бы ход на общее представление.
-    if (hasPendingDraftFor(selectedAssistant.id)) return;
-
-    // «Чат пуст» решили по ответу истории, а до отправки ещё смена ассистента
-    // на сервере и пауза. Если человек за это время отправил своё или положил
-    // в очередь, приветствие прервало бы его ход (greetingGate.ts).
-    const seqAtDecision = sendSeqRef.current;
-
-    if (lastChangedAgentRef.current !== selectedAssistant.name) {
-      isChangingAgentRef.current = true;
-      lastChangedAgentRef.current = selectedAssistant.name;
-      await changeAgentOnServer(selectedAssistant.name);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      isChangingAgentRef.current = false;
-    }
-
-    if (!greetingStillWanted({
-      queuedCount: queuedRef.current.length,
-      sending: sendingRef.current,
-      sendSeqAtDecision: seqAtDecision,
-      sendSeqNow: sendSeqRef.current,
-    })) return;
-
-    const greetingMessage = t('chat.initial_greeting');
-    await sendMessageToAI(greetingMessage);
-  };
 
   // Ref-guard против конкурентных вызовов: state loadingMore обновляется
   // асинхронно, два scroll-события до ре-рендера проходили проверку оба —
@@ -1438,7 +1400,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, []);
 
   const sendMessageToAI = async (userMessage: string, opts?: { onNoTokens?: () => void }) => {
-    sendSeqRef.current += 1;
     setIsTyping(true);
     setCurrentStreamingMessage('');
     // Шаги хода копятся локально (цикл ниже живёт дольше одного рендера) и
@@ -1890,10 +1851,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       applyQueued((prev) => addToQueue(prev, text, generateMessageId()));
     };
 
-    // Пока грузится история, тоже копим: ответ истории перезапишет ленту, а
-    // пустая история нового чата ещё и запустит автоприветствие. Досылка ждёт
-    // конца загрузки, а приветствие уступает очереди — первым уйдёт то, что
-    // написал человек.
+    // Пока грузится история, тоже копим: её ответ перезапишет ленту. Досылка
+    // ждёт конца загрузки, чтобы реплика человека не потерялась.
     if (sendBlocked || historyLoading) {
       enqueue();
       return;
@@ -2649,12 +2608,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  const handleSelectAssistant = async (assistant: Assistant) => {
+  const handleSelectAssistant = (assistant: Assistant) => {
     setSelectedAssistant(assistant);
     setHasUserSelectedAssistant(true);
     sessionStorage.setItem('selected_assistant', JSON.stringify(assistant));
-
-    await sendInitialGreeting();
   };
 
   const handleSwitchAssistant = async (assistant: Assistant) => {
