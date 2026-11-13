@@ -47,7 +47,8 @@ import { InlineCalendarProposals } from '../calendar/InlineCalendarProposals';
 import { trackAuthed } from '../../services/eventsClient';
 import { getRoleForAssistant } from './assistantRole';
 import { formatTokensCompact } from '../../utils/formatters';
-import { attachmentTurnText, selectNewPolledMessages } from './historyMerge';
+import { attachmentTurnText, dropEmptyAssistantMessages, selectNewPolledMessages } from './historyMerge';
+import { isChatUploadLink, openChatUpload, renderUserMessageContent } from './chatUploads';
 import { addToQueue, removeFromQueue, joinQueue, type QueuedMessage } from './sendQueue';
 import { shouldShowStreamError, needsActiveTurnProbe } from './streamFailure';
 import { isNoTokensEnd, restoreDraftText, saveNoTokensDraft, peekNoTokensDraft, clearNoTokensDraft } from './noTokensDraft';
@@ -411,6 +412,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [navigate]);
 
   const handleLinkNavigation = useCallback((url: string) => {
+    // Приватное вложение из реестра загрузок: GET /webhook/chat-uploads/:id
+    // требует JWT владельца, window.open заголовок не пошлёт — качаем через
+    // apiClient и открываем blob (chatUploads.tsx). ДО общего пути: адрес
+    // относительный, chatLinkPath принял бы его за раздел кабинета и роутер
+    // ушёл бы в SPA-фолбэк с 401 вместо файла.
+    if (isChatUploadLink(url)) {
+      void openChatUpload(url, t('chat.upload_download_error'));
+      return;
+    }
     // Свой кабинет (https://my.linkeon.io/profile?open=zoom из ответа
     // ассистента) и путь внутри него — в той же вкладке, переходом роутера:
     // новая вкладка загружала бы кабинет заново, а в приложении открылся бы
@@ -915,7 +925,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         if (response.ok) {
           const data = await response.json();
           if (stale) return;
-          const msgs = (data.messages || []).map((m: any) => {
+          // Пустые строки assistant — след persist-on-empty на бэке (ход с
+          // вложениями записывается даже без ответа) — в ленту не тащим.
+          const msgs = dropEmptyAssistantMessages(data.messages || []).map((m: any) => {
             const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
             const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
             return {
@@ -984,8 +996,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const response = await apiClient.get(`/webhook/chat/history?assistantId=${assistantId}&limit=5&offset=0${freshParam}`);
       if (isCancelled?.() || !response.ok) return;
       const data = await response.json();
-      const fresh = (data?.messages || []) as any[];
-      if (!Array.isArray(fresh) || fresh.length === 0) return;
+      const rows = (data?.messages || []) as any[];
+      const fresh = Array.isArray(rows) ? dropEmptyAssistantMessages(rows) : [];
+      if (fresh.length === 0) return;
 
       setMessages(prev => {
         if (prev.length === 0) return prev; // initial-load обработает
@@ -1095,7 +1108,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         const data = await response.json();
         // Ассистент сменился, пока fetch шёл — результат чужой, выбрасываем.
         if (selectedAssistantRef.current?.id !== requestedAssistantId) return;
-        const older = (data.messages || []).map((m: any) => {
+        const older = dropEmptyAssistantMessages(data.messages || []).map((m: any) => {
           const ids = typeof m.content === 'string' ? extractVideoJobIds(m.content) : [];
           const calIds = typeof m.content === 'string' ? extractCalendarProposalIds(m.content) : [];
           return {
@@ -2452,28 +2465,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       assistant_id: selectedAssistant?.id,
     });
 
-    // Check if text file — send inline, otherwise upload via multipart
-    const textTypes = ['text/', 'application/json', 'application/xml', 'application/csv', 'text/csv'];
-    const isTextFile = (f: File) =>
-      (textTypes.some(t => f.type.startsWith(t)) || !!f.name.match(/\.(txt|csv|json|xml|md|html|css|js|ts|py|sh|yaml|yml|toml|ini|cfg|log|sql)$/i)) && f.size < 500000;
+    // ВСЕ файлы — включая маленькие текстовые — идут мультипартом. Прежний
+    // инлайн-шорткат (прочитать текст и вложить его в промпт fenced-блоком)
+    // не сохранял оригинал: бэк с фичей «память загрузок» кладёт присланное в
+    // реестр только на multipart-пути, и заметка, уехшая текстом, для будущих
+    // разговоров была бы потеряна.
 
-    // Инлайн-шорткат оставляем только для одиночного текстового файла: пачку
-    // всегда шлём мультипартом, иначе 10 файлов по 500 КБ раздуют промпт.
-    if (files.length === 1 && isTextFile(files[0])) {
-      const file = files[0];
-      try {
-        const text = await file.text();
-        // i18n-ignore: текст промпта для модели, не UI (см. выше)
-      const prompt = `Пользователь загрузил файл "${file.name}".\n\nСодержимое:\n\`\`\`\n${text.slice(0, 50000)}\n\`\`\`\n\nЗадание: ${task}`;
-        await sendMessageToAI(prompt, { onNoTokens: restoreFileTask });
-      } catch {
-        // i18n-ignore: текст промпта для модели, не UI (см. выше)
-      await sendMessageToAI(`Файл "${file.name}" — не удалось прочитать. Задание: ${task}`, { onNoTokens: restoreFileTask });
-      }
-      return;
-    }
-
-    // Binary file — upload to server via multipart endpoint
+    // Upload to server via multipart endpoint
     setIsTyping(true);
     // Ассистент на момент загрузки: поздний отказ не должен вернуть файлы и
     // задание уже другому чату (в текстовом пути — тот же guard).
@@ -2563,6 +2561,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 activity = afterText;
                 setStreamActivity(activity);
               }
+            } else if (event.type === 'upload_persist_failed') {
+              // Оригиналы не легли в реестр загрузок — НЕфатально: ответ
+              // ассистента продолжает идти этим же стримом. Предупреждающий
+              // тост мимо общего catch, иначе «файл не сохранён» выглядел бы
+              // как «не удалось обработать файл» и ход казался бы проваленным.
+              toast(t('chat.upload_persist_failed'), { icon: '⚠️', duration: 7000 });
             } else if (event.type === 'end') {
               accumulatedContent = event.content || accumulatedContent;
               lastTokensUsed = event.usage?.total || 0;
@@ -3305,7 +3309,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 // whitespace-pre-wrap обязателен: реплики из очереди досылки
                 // склеиваются через пустую строку (joinQueue), и без него
                 // разделители схлопывались бы в один сплошной абзац.
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                // renderUserMessageContent: строки 📎 [имя](/webhook/chat-uploads/…)
+                // из новой истории — кликабельные вложения, остальной текст как был.
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{renderUserMessageContent(message.content, handleLinkNavigation)}</p>
               )}
               {message.type === 'assistant' && message.inlineJobIds && message.inlineJobIds.length > 0 && (
                 <InlineVideoCards ids={message.inlineJobIds} messageTimestamp={message.timestamp} />

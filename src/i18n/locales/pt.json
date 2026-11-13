@@ -249,6 +249,8 @@
     "speech_gen_error": "Não foi possível gerar a voz: {{error}}",
     "ai_error_fallback": "Lamentamos, ocorreu um erro ao processar a sua mensagem. Tente novamente.",
     "file_error_fallback": "Ocorreu um erro ao processar o ficheiro. Tente novamente.",
+    "upload_persist_failed": "O ficheiro não foi guardado para conversas futuras",
+    "upload_download_error": "Não foi possível descarregar o ficheiro. Tente novamente.",
     "file_upload_error_generic": "Ocorreu um erro ao carregar o ficheiro: {{error}}. Tente novamente.",
     "file_error_unknown": "Erro desconhecido",
     "file_modal_title": "Carregamento de ficheiro",

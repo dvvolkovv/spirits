@@ -56,6 +56,24 @@ export function stripAttachmentLines(content: string): string {
 const roleOf = (m: LocalMessage | PolledMessage): 'human' | 'ai' =>
   m.type === 'user' ? 'human' : m.type === 'assistant' ? 'ai' : ((m as PolledMessage).sender_type as 'human' | 'ai') || 'ai';
 
+/**
+ * След «памяти загрузок» на бэке: ход теперь сохраняется даже при ПУСТОМ
+ * ответе ассистента (persist-on-empty), и в истории появляется строка
+ * assistant с content ''. Без фильтра после перезагрузки в ленте вставал бы
+ * пустой пузырь.
+ *
+ * Фильтруются только ответы: пустая строка пользователя — тоже запись хода,
+ * а сгенерированная картинка (messageType 'image') может не нести текста.
+ */
+export function dropEmptyAssistantMessages<T extends PolledMessage>(msgs: T[]): T[] {
+  return msgs.filter(m => {
+    if (roleOf(m) !== 'ai') return true;
+    const withImage = m as PolledMessage & { imageUrl?: string; messageType?: string };
+    if (withImage.imageUrl || withImage.messageType === 'image') return true;
+    return typeof m.content === 'string' && m.content.trim() !== '';
+  });
+}
+
 const timeOf = (v: Date | string): number =>
   (v instanceof Date ? v : new Date(v)).getTime();
 

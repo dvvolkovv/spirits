@@ -248,6 +248,8 @@
     "speech_gen_error": "Couldn't read it aloud: {{error}}",
     "ai_error_fallback": "Sorry, an error occurred while processing your message. Please try again.",
     "file_error_fallback": "An error occurred while processing the file. Please try again.",
+    "upload_persist_failed": "File was not saved for future conversations",
+    "upload_download_error": "Could not download the file. Please try again.",
     "file_upload_error_generic": "An error occurred while uploading the file: {{error}}. Please try again.",
     "file_error_unknown": "Unknown error",
     "file_modal_title": "Upload file",

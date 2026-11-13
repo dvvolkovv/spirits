@@ -51,12 +51,15 @@ describe('отказ по балансу — черновик возвращае
     expect(fn).not.toContain('onNoTokens');
   });
 
-  it('файловая задача: инлайн-файл передаёт onNoTokens, multipart ловит reason', () => {
+  it('файловая задача: путь один — multipart ловит reason и возвращает файлы', () => {
+    // Инлайн-ветки для маленьких текстовых файлов больше нет (память загрузок:
+    // оригинал сохраняется только на multipart-пути), поэтому sendMessageToAI
+    // из handleFileTaskSubmit исчез вовсе.
     const fn = body('const handleFileTaskSubmit = async () => {');
     expect(fn).toContain('setPendingFiles(files);');
     expect(fn).toContain('setFileTaskInput(task);');
     expect(fn).toContain('reopenFileTaskRef.current = true;');
-    expect(fn).toContain('await sendMessageToAI(prompt, { onNoTokens: restoreFileTask });');
+    expect(fn).not.toContain('sendMessageToAI(');
     expect(fn).toContain('if (isNoTokensEnd(event)) noTokens = true;');
     expect(fn).toContain('restoreFileTask();');
     expect(fn).toContain('setShowTokenPackages(true);');

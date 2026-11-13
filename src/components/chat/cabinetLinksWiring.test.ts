@@ -34,8 +34,12 @@ describe('ссылки чата на свой кабинет', () => {
       .replace(/\/\/.*$/gm, '')
       .replace(/\s+/g, ' ')
       .trim();
+    // Приватное вложение /webhook/chat-uploads/… разобрано ДО chatLinkPath
+    // (chatUploads.tsx, uploadMemory.test.tsx): относительный адрес иначе
+    // выглядел бы как раздел кабинета.
     expect(code).toBe(
       'const handleLinkNavigation = useCallback((url: string) => {' +
+        " if (isChatUploadLink(url)) { void openChatUpload(url, t('chat.upload_download_error')); return; }" +
         ' const inside = chatLinkPath(url);' +
         ' if (inside) { navigate(inside); return; }' +
         " if (isWebLink(url)) window.open(url, '_blank', 'noopener,noreferrer');",

@@ -248,6 +248,8 @@
     "speech_gen_error": "Sprachausgabe fehlgeschlagen: {{error}}",
     "ai_error_fallback": "Entschuldigung, bei der Verarbeitung deiner Nachricht ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
     "file_error_fallback": "Bei der Verarbeitung der Datei ist ein Fehler aufgetreten. Bitte versuch es noch mal.",
+    "upload_persist_failed": "Die Datei wurde für zukünftige Gespräche nicht gespeichert",
+    "upload_download_error": "Die Datei konnte nicht heruntergeladen werden. Bitte versuch es noch mal.",
     "file_upload_error_generic": "Beim Hochladen der Datei ist ein Fehler aufgetreten: {{error}}. Bitte versuch es noch mal.",
     "file_error_unknown": "Unbekannter Fehler",
     "file_modal_title": "Datei hochladen",

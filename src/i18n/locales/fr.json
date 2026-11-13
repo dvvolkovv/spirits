@@ -249,6 +249,8 @@
     "speech_gen_error": "Échec de la synthèse vocale : {{error}}",
     "ai_error_fallback": "Désolé, une erreur est survenue. Réessaie.",
     "file_error_fallback": "Une erreur est survenue lors du traitement du fichier. Réessaie.",
+    "upload_persist_failed": "Le fichier n'a pas été enregistré pour les conversations futures",
+    "upload_download_error": "Impossible de télécharger le fichier. Réessaie.",
     "file_upload_error_generic": "Erreur lors du chargement du fichier : {{error}}. Réessaie.",
     "file_error_unknown": "Erreur inconnue",
     "file_modal_title": "Chargement du fichier",
