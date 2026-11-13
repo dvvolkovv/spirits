@@ -414,7 +414,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleLinkNavigation = useCallback((url: string, fileName?: string) => {
     // Приватное вложение из реестра загрузок: GET /webhook/chat-uploads/:id
     // требует JWT владельца — качаем через apiClient и отдаём файл программным
-    // <a download> (chatUploads.tsx): window.open после await'ов молча
+    // anchor-download (chatUploads.tsx): window.open после await'ов молча
     // блокируется на мобильных, а download сохраняет имя файла (fileName —
     // расэкранированное имя из текста ссылки 📎). ДО общего пути: адрес
     // относительный, chatLinkPath принял бы его за раздел кабинета и роутер
