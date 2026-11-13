@@ -64,7 +64,7 @@ import { ProductActionCard } from '../products/ProductActionCard';
 import { AskBlockView, type AskMode } from './AskCard';
 import { askBlocksToPlainText } from '../../utils/askBlock';
 import { stripProductActionBlocks } from '../../utils/productActionBlock';
-import { hasPendingDraftFor, takePendingDraftFor } from '../../utils/pendingDraft';
+import { takePendingDraftFor } from '../../utils/pendingDraft';
 import { createChunkDecoder } from '../../utils/streamDecoder';
 import ChatImageAttachment from './ChatImageAttachment';
 import { imageAttachmentPreview } from './attachmentPreview';
