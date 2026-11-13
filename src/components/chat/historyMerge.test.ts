@@ -92,6 +92,53 @@ describe('stripAttachmentLines', () => {
   });
 });
 
+// Бэк с фичи «память загрузок» пишет ход даже при ПУСТОМ ответе ассистента
+// (persist-on-empty): в истории появляется строка assistant с content ''.
+// Без фильтра после перезагрузки в ленте вставал бы пустой пузырь.
+describe('dropEmptyAssistantMessages', () => {
+  // Динамический импорт: на красной стадии экспорта ещё нет, а статический
+  // import уронил бы весь файл вместе с уже зелёными тестами выше.
+  const load = async () =>
+    (await import('./historyMerge') as any).dropEmptyAssistantMessages as <T>(rows: T[]) => T[];
+
+  it('пустой ответ ассистента отбрасывается, ход пользователя остаётся', async () => {
+    const drop = await load();
+    const user = { id: '1', type: 'user', content: '📎 [a.pdf](/webhook/chat-uploads/u1)\nСделай саммари', timestamp: T0 };
+    const emptyAi = { id: '2', type: 'assistant', content: '', timestamp: T1 };
+    expect(drop([user, emptyAi])).toEqual([user]);
+  });
+
+  it('ответ только из пробелов — тоже пустой', async () => {
+    const drop = await load();
+    const rows = [{ id: '2', type: 'assistant', content: '  \n ', timestamp: T1 }];
+    expect(drop(rows)).toEqual([]);
+  });
+
+  it('пустое сообщение пользователя остаётся — фильтруются только ответы', async () => {
+    const drop = await load();
+    const user = { id: '1', type: 'user', content: '', timestamp: T0 };
+    expect(drop([user])).toEqual([user]);
+  });
+
+  it('картинка ассистента без текста остаётся — это не пустой ответ', async () => {
+    const drop = await load();
+    const image = { id: '3', type: 'assistant', content: '', messageType: 'image', imageUrl: 'https://cdn/x.png', timestamp: T1 };
+    expect(drop([image])).toEqual([image]);
+  });
+
+  it('строка поллинга без type, с sender_type=ai и без content — отбрасывается', async () => {
+    const drop = await load();
+    const rows = [{ sender_type: 'ai', timestamp: T2 }];
+    expect(drop(rows)).toEqual([]);
+  });
+
+  it('обычный ответ остаётся', async () => {
+    const drop = await load();
+    const ai = { id: '4', type: 'assistant', content: 'Готово', timestamp: T1 };
+    expect(drop([ai])).toEqual([ai]);
+  });
+});
+
 describe('attachmentTurnText', () => {
   it('совпадает с тем, что бэк кладёт в историю (chat.controller.ts, uploadAndChat)', () => {
     expect(attachmentTurnText(['a.pdf', 'b.pdf'], 'Сделай саммари')).toBe('📎 a.pdf, b.pdf\nСделай саммари');
