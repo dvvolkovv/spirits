@@ -30,16 +30,17 @@ describe('ссылки чата на свой кабинет', () => {
   // Не веб-схемы (javascript:, data:, file: …) не открываются вовсе — ни
   // переходом, ни новой вкладкой: решает isWebLink (тесты там же).
   it('путь кабинета — переходом роутера и только им, веб-адрес — новая вкладка без доступа к нашей, прочее — никуда', () => {
-    const code = between('const handleLinkNavigation = useCallback', '}, [navigate]);')
+    const code = between('const handleLinkNavigation = useCallback', '}, [navigate')
       .replace(/\/\/.*$/gm, '')
       .replace(/\s+/g, ' ')
       .trim();
     // Приватное вложение /webhook/chat-uploads/… разобрано ДО chatLinkPath
     // (chatUploads.tsx, uploadMemory.test.tsx): относительный адрес иначе
-    // выглядел бы как раздел кабинета.
+    // выглядел бы как раздел кабинета. Имя файла из текста ссылки 📎 идёт
+    // вторым аргументом — оно станет download-именем при скачивании.
     expect(code).toBe(
-      'const handleLinkNavigation = useCallback((url: string) => {' +
-        " if (isChatUploadLink(url)) { void openChatUpload(url, t('chat.upload_download_error')); return; }" +
+      'const handleLinkNavigation = useCallback((url: string, fileName?: string) => {' +
+        " if (isChatUploadLink(url)) { void openChatUpload(url, t('chat.upload_download_error'), fileName); return; }" +
         ' const inside = chatLinkPath(url);' +
         ' if (inside) { navigate(inside); return; }' +
         " if (isWebLink(url)) window.open(url, '_blank', 'noopener,noreferrer');",
