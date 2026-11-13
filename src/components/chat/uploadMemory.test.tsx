@@ -88,6 +88,70 @@ describe('приватная ссылка скачивается через apiC
   });
 });
 
+describe('жизненный цикл object URL: create → open → revoke', () => {
+  it('успех: createObjectURL один раз, open с blob-адресом, revoke ровно через 60 с', async () => {
+    vi.useFakeTimers();
+    try {
+      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+      (apiClient.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        status: 200,
+        blob: async () => new Blob(['file-bytes']),
+      });
+
+      await openChatUpload(HREF, 'Не удалось скачать файл');
+
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+      expect(openSpy).toHaveBeenCalledTimes(1);
+      expect(openSpy).toHaveBeenCalledWith('blob:mock-url', '_blank', 'noopener,noreferrer');
+      // Сразу после открытия blob ещё жив — новая вкладка должна успеть его прочитать.
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(59_999);
+      expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+      openSpy.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('срыв скачивания (apiClient rejects): ни createObjectURL, ни window.open, ни revoke — только тост', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+    (apiClient.get as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('network down'));
+
+    await openChatUpload(HREF, 'Не удалось скачать файл');
+
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(openSpy).not.toHaveBeenCalled();
+    // Освобождать нечего: catch-путь revoke сторожит только уже созданный URL.
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Не удалось скачать файл');
+    openSpy.mockRestore();
+  });
+
+  it('срыв ПОСЛЕ createObjectURL (window.open бросает): catch освобождает blob и показывает тост', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {
+      throw new Error('popup blocked');
+    });
+    (apiClient.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['file-bytes']),
+    });
+
+    await openChatUpload(HREF, 'Не удалось скачать файл');
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    expect(toast.error).toHaveBeenCalledWith('Не удалось скачать файл');
+    openSpy.mockRestore();
+  });
+});
+
 describe('строка 📎 в сообщении пользователя рисуется ссылкой', () => {
   it('имя — кликабельная ссылка, клик отдаёт адрес обработчику; сырой markdown не виден', () => {
     const onLink = vi.fn();
@@ -119,6 +183,40 @@ describe('строка 📎 в сообщении пользователя ри�
     expect(onLink).toHaveBeenCalledWith('/webhook/chat-uploads/uuid-2');
     expect(container.textContent).toContain('a.pdf');
     expect(container.textContent).toContain('b.pdf');
+    unmount();
+  });
+
+  // Бэк (spirits_back chat.controller.ts, markdownEscapeName) экранирует в
+  // именах файлов `\`, `[`, `]` — в историю попадает `📎 [отчёт \[финал\].pdf](…)`.
+  it('экранированные скобки в имени — ссылка узнаётся, имя показывается без бэкслэшей', () => {
+    const onLink = vi.fn();
+    const content = `📎 [отчёт \\[финал\\].pdf](${HREF})\nСделай саммари`;
+    const { container, unmount } = mount(<p>{renderUserMessageContent(content, onLink)}</p>);
+
+    expect(container.textContent).toContain('отчёт [финал].pdf');
+    expect(container.textContent).not.toContain('\\');
+    expect(container.textContent).toContain('Сделай саммари');
+
+    const a = container.querySelector('a');
+    expect(a).not.toBeNull();
+    click(a!);
+    expect(onLink).toHaveBeenCalledWith(HREF);
+    unmount();
+  });
+
+  it('экранированная «]» и бэкслэш в именах, две ссылки в одной строке', () => {
+    const onLink = vi.fn();
+    const content =
+      '📎 [a\\]b.pdf](/webhook/chat-uploads/uuid-1) и [c\\\\d.pdf](/webhook/chat-uploads/uuid-2)';
+    const { container, unmount } = mount(<p>{renderUserMessageContent(content, onLink)}</p>);
+
+    const links = container.querySelectorAll('a');
+    expect(links.length).toBe(2);
+    expect(links[0].textContent).toBe('a]b.pdf');
+    expect(links[1].textContent).toBe('c\\d.pdf');
+    expect(container.textContent).not.toContain('](');
+    click(links[0]);
+    expect(onLink).toHaveBeenCalledWith('/webhook/chat-uploads/uuid-1');
     unmount();
   });
 
