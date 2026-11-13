@@ -2608,7 +2608,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  const handleSelectAssistant = (assistant: Assistant) => {
+  const handleSelectAssistant = async (assistant: Assistant) => {
     setSelectedAssistant(assistant);
     setHasUserSelectedAssistant(true);
     sessionStorage.setItem('selected_assistant', JSON.stringify(assistant));

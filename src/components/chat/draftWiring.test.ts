@@ -55,4 +55,3 @@ describe('черновик со страницы linkeon.io', () => {
     expect(classes).toContain('ym-disable-keys');
   });
 });
-
