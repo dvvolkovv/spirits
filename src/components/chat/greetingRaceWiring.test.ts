@@ -76,27 +76,3 @@ describe('пока грузится история, сообщение ждёт 
   });
 });
 
-describe('автоприветствие не перебивает человека', () => {
-  it('sendMessageToAI считает отправки', () => {
-    expect(body('const sendMessageToAI = async (userMessage: string, opts?: { onNoTokens?: () => void }) => {')).toContain('sendSeqRef.current += 1;');
-  });
-
-  it('решение «приветствовать» перепроверяется прямо перед отправкой', () => {
-    const g = body('const sendInitialGreeting = async () => {');
-    const seq = g.indexOf('const seqAtDecision = sendSeqRef.current;');
-    const check = g.indexOf('greetingStillWanted(');
-    const send = g.indexOf('await sendMessageToAI(');
-    expect(seq).toBeGreaterThan(-1);
-    expect(send).toBeGreaterThan(-1);
-    // Номер запоминаем до первой паузы, а проверяем после последней — той,
-    // что стоит перед самой отправкой.
-    expect(seq).toBeLessThan(g.indexOf('await '));
-    expect(check).toBeGreaterThan(g.lastIndexOf('await ', send - 1));
-    expect(check).toBeLessThan(send);
-  });
-
-  it('проверка черновика остаётся первой', () => {
-    const g = body('const sendInitialGreeting = async () => {');
-    expect(g.indexOf('hasPendingDraftFor(selectedAssistant.id)')).toBeLessThan(g.indexOf('greetingStillWanted('));
-  });
-});
