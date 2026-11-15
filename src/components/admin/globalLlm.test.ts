@@ -19,6 +19,7 @@ describe('parseProvider', () => {
     expect(parseProvider('qwen')).toBe('qwen');
     expect(parseProvider('kimi')).toBe('kimi');
     expect(parseProvider('claude')).toBe('claude');
+    expect(parseProvider('codex')).toBe('codex');
   });
 
   it('мусор, undefined и null — Claude (как рубильник без строки в БД)', () => {

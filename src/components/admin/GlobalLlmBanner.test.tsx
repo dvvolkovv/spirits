@@ -150,4 +150,10 @@ describe('GlobalLlmBanner', () => {
     await settle();
     expect(banner()!.textContent).toContain('Qwen');
   });
+
+  it('рубильник на Codex — плашка с моделью', async () => {
+    get.mockResolvedValue(ok({ provider: 'codex', since: '2026-11-14T10:00:00.000Z', by: 'admin-1', configured: { qwen: true, kimi: true, codex: true } }));
+    await mount();
+    expect(banner()!.textContent).toContain('Codex (GPT-6 Astra)');
+  });
 });

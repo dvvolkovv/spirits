@@ -31,8 +31,8 @@ let container: HTMLDivElement;
 let root: Root;
 const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
 const ok = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body });
-const state = (provider: string, kimi = false, since: string | null = '2026-10-31T13:40:00.000Z') =>
-  ok({ provider, since, by: 'admin-1', configured: { qwen: true, kimi } });
+const state = (provider: string, kimi = false, codex = false, since: string | null = '2026-10-31T13:40:00.000Z') =>
+  ok({ provider, since, by: 'admin-1', configured: { qwen: true, kimi, codex } });
 const mount = async () => {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -64,11 +64,11 @@ afterEach(async () => {
 });
 
 describe('GlobalLlmProviderControl', () => {
-  it('три варианта, текущий выбран; GET общего рубильника', async () => {
+  it('четыре варианта, текущий выбран; GET общего рубильника', async () => {
     get.mockResolvedValue(state('qwen'));
     await mount();
     expect(get).toHaveBeenCalledWith('/webhook/admin/llm-provider');
-    expect(container.querySelectorAll('[role="radio"]')).toHaveLength(3);
+    expect(container.querySelectorAll('[role="radio"]')).toHaveLength(4);
     expect(radio('Qwen').getAttribute('aria-checked')).toBe('true');
   });
 
@@ -232,5 +232,44 @@ describe('GlobalLlmProviderControl', () => {
     expect(seen).not.toHaveBeenCalled();
     expect(get).toHaveBeenCalledTimes(2);
     expect(radio('Kimi').disabled).toBe(true);
+  });
+
+  it('Codex без ключа — недоступен и помечен', async () => {
+    get.mockResolvedValue(state('claude'));
+    await mount();
+    expect(radio('Codex (GPT-6 Astra)').disabled).toBe(true);
+    expect(radio('Codex (GPT-6 Astra)').textContent).toContain('нет ключа на сервере');
+  });
+
+  it('Codex с ключом — доступен и помечен «только аварийно»', async () => {
+    get.mockResolvedValue(state('claude', false, true));
+    await mount();
+    const codex = radio('Codex (GPT-6 Astra)');
+    expect(codex.disabled).toBe(false);
+    expect(codex.textContent).toContain('только аварийно');
+  });
+
+  it('confirm для Codex — предупреждение про подписку владельца', async () => {
+    get.mockResolvedValue(state('claude', false, true));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await mount();
+    await act(async () => { radio('Codex (GPT-6 Astra)').click(); });
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(confirm.mock.calls[0][0]).toContain('Codex работает на личной подписке ChatGPT Pro владельца — переключайте только аварийно.');
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('переключение на Codex — POST и событие смены', async () => {
+    get.mockResolvedValue(state('claude', false, true));
+    post.mockResolvedValue(state('codex', false, true));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const seen = vi.fn();
+    onGlobalLlmEvent(seen);
+    await mount();
+    await act(async () => { radio('Codex (GPT-6 Astra)').click(); });
+    await settle();
+    expect(post).toHaveBeenCalledWith('/webhook/admin/llm-provider', { provider: 'codex' });
+    expect(radio('Codex (GPT-6 Astra)').getAttribute('aria-checked')).toBe('true');
+    expect(seen).toHaveBeenCalledTimes(1);
   });
 });

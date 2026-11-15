@@ -36,8 +36,8 @@ const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }
  * отвечает сейчас (effective — учитывает ключ global, не только личный выбор),
  * ключи по каждому запасному.
  */
-const state = (provider: string, qwen = true, kimi = true, userId = 'u-1', global = 'claude', effective?: string) =>
-  ok({ userId, provider, effective: effective ?? (provider === 'default' ? global : provider), global, qwenConfigured: qwen, configured: { qwen, kimi } });
+const state = (provider: string, qwen = true, kimi = true, userId = 'u-1', global = 'claude', effective?: string, codex = true) =>
+  ok({ userId, provider, effective: effective ?? (provider === 'default' ? global : provider), global, qwenConfigured: qwen, configured: { qwen, kimi, codex } });
 const mount = async (userId = 'u-1') => {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -60,11 +60,11 @@ beforeEach(() => { get.mockReset(); post.mockReset(); });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); });
 
 describe('UserLlmProviderControl', () => {
-  it('четыре варианта; показывает текущий выбор', async () => {
+  it('пять вариантов; показывает текущий выбор', async () => {
     get.mockResolvedValue(state('kimi'));
     await mount();
     expect(get).toHaveBeenCalledWith('/webhook/admin/users/u-1/llm-provider');
-    expect(container.querySelectorAll('[role="radio"]')).toHaveLength(4);
+    expect(container.querySelectorAll('[role="radio"]')).toHaveLength(5);
     expect(radio('Kimi').getAttribute('aria-checked')).toBe('true');
     expect(radio('Qwen').getAttribute('aria-checked')).toBe('false');
     expect(radio('Claude').getAttribute('aria-checked')).toBe('false');
@@ -243,5 +243,34 @@ describe('UserLlmProviderControl', () => {
     await settle();
     expect(container.textContent).toContain('Пользователь не найден');
     expect(container.textContent).not.toContain('404');
+  });
+
+  it('переключение на Codex сохраняется сразу', async () => {
+    get.mockResolvedValue(state('claude'));
+    post.mockResolvedValue(state('codex'));
+    await mount();
+    await act(async () => { radio('Codex (GPT-6 Astra)').click(); });
+    await settle();
+    expect(post).toHaveBeenCalledWith('/webhook/admin/users/u-1/llm-provider', { provider: 'codex' });
+    expect(radio('Codex (GPT-6 Astra)').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('вариант Codex без ключа помечен «нет ключа»', async () => {
+    get.mockResolvedValue(state('claude', true, true, 'u-1', 'claude', undefined, false));
+    await mount();
+    expect(radio('Codex (GPT-6 Astra)').textContent).toContain('нет ключа');
+    expect(container.textContent).not.toContain('на сервере не настроен');
+  });
+
+  it('выбран Codex без ключа — предупреждение про Codex', async () => {
+    get.mockResolvedValue(state('codex', true, true, 'u-1', 'claude', undefined, false));
+    await mount();
+    expect(container.textContent).toContain('Ключ Codex на сервере не настроен');
+  });
+
+  it('Codex выбран — подсказка про ответ Claude', async () => {
+    get.mockResolvedValue(state('codex'));
+    await mount();
+    expect(container.textContent).toContain('Если выбранная модель не ответит, ответит Claude.');
   });
 });
