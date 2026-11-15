@@ -27,11 +27,11 @@ interface ProviderState {
  * configured).
  */
 const toState = (j: any): ProviderState => ({
-  provider: j?.provider === 'claude' || j?.provider === 'qwen' || j?.provider === 'kimi' ? j.provider : 'default',
+  provider: j?.provider === 'claude' || j?.provider === 'qwen' || j?.provider === 'kimi' || j?.provider === 'codex' ? j.provider : 'default',
   global: parseProvider(j?.global),
   configured: j?.configured && typeof j.configured === 'object'
-    ? { qwen: j.configured.qwen === true, kimi: j.configured.kimi === true }
-    : { qwen: j?.qwenConfigured === true, kimi: false },
+    ? { qwen: j.configured.qwen === true, kimi: j.configured.kimi === true, codex: j.configured.codex === true }
+    : { qwen: j?.qwenConfigured === true, kimi: false, codex: false },
 });
 
 /**
@@ -111,19 +111,22 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
     if (c === 'default') return t('admin.userActivity.llmProvider.default', 'Как у всех (сейчас: {{model}})', { model: PROVIDER_LABELS[defaultNow] });
     if (c === 'claude') return t('admin.userActivity.llmProvider.claude', 'Claude');
     if (c === 'qwen') return t('admin.userActivity.llmProvider.qwen', 'Qwen');
+    if (c === 'codex') return t('admin.userActivity.llmProvider.codex', 'Codex (GPT-6 Astra)');
     return t('admin.userActivity.llmProvider.kimi', 'Kimi');
   };
   // Ключи — литералами, без шаблона {{name}}: их видит check-keys.
   const noKeyWarning = (p: Alt) => (p === 'qwen'
     ? t('admin.userActivity.llmProvider.noKey', 'Ключ Qwen на сервере не настроен — ответы пойдут через Claude.')
-    : t('admin.userActivity.llmProvider.noKeyKimi', 'Ключ Kimi на сервере не настроен — ответы пойдут через Claude.'));
+    : p === 'kimi'
+      ? t('admin.userActivity.llmProvider.noKeyKimi', 'Ключ Kimi на сервере не настроен — ответы пойдут через Claude.')
+      : t('admin.userActivity.llmProvider.noKeyCodex', 'Ключ Codex на сервере не настроен — ответы пойдут через Claude.'));
 
   // «Как у всех» предупреждает о цепочке на тех же условиях, что явный выбор
   // Qwen/Kimi: только когда модель, которая реально пробует отвечать первой,
   // не Claude. Модель рубильника без ключа (defaultNow уже свёлся к 'claude')
   // этому условию не удовлетворяет — там и предупреждать не о чём.
   const showFallbackHint = !!state && (
-    state.provider === 'qwen' || state.provider === 'kimi'
+    state.provider === 'qwen' || state.provider === 'kimi' || state.provider === 'codex'
     || (state.provider === 'default' && defaultNow !== 'claude')
   );
 
@@ -163,7 +166,7 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
                 )}
               >
                 {label(c)}
-                {(c === 'qwen' || c === 'kimi') && !state.configured[c] && (
+                {(c === 'qwen' || c === 'kimi' || c === 'codex') && !state.configured[c] && (
                   <span className="ml-1 text-xs opacity-75">
                     <span aria-hidden="true">·</span> {t('admin.userActivity.llmProvider.noKeyShort', 'нет ключа')}
                   </span>
@@ -171,7 +174,7 @@ export const UserLlmProviderControl: React.FC<{ userId: string }> = ({ userId })
               </button>
             ))}
           </div>
-          {(state.provider === 'qwen' || state.provider === 'kimi') && !state.configured[state.provider] && (
+          {(state.provider === 'qwen' || state.provider === 'kimi' || state.provider === 'codex') && !state.configured[state.provider] && (
             <p className="mt-2 text-xs text-amber-700">
               {noKeyWarning(state.provider)}
             </p>

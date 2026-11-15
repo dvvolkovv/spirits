@@ -67,6 +67,11 @@ export const GlobalLlmProviderControl: React.FC = () => {
       if (p === 'kimi') {
         message += ' ' + t('admin.globalLlm.confirmKimiTraining', 'Kimi (Moonshot AI) может использовать тексты для обучения своих моделей.');
       }
+      // Codex работает на личной подписке ChatGPT Pro владельца — запасной
+      // только на крайний случай (правило: глобальный рубильник на codex не ставится).
+      if (p === 'codex') {
+        message += ' ' + t('admin.globalLlm.confirmCodexEmergency', 'Codex работает на личной подписке ChatGPT Pro владельца — переключайте только аварийно.');
+      }
       const sure = window.confirm(message);
       if (!sure) return;
     }
@@ -141,6 +146,11 @@ export const GlobalLlmProviderControl: React.FC = () => {
                 {!available(p) && (
                   <span className="ml-1 text-xs opacity-75">
                     <span aria-hidden="true">·</span> {t('admin.globalLlm.noKey', 'нет ключа на сервере')}
+                  </span>
+                )}
+                {p === 'codex' && available(p) && (
+                  <span className="ml-1 text-xs opacity-75">
+                    <span aria-hidden="true">·</span> {t('admin.globalLlm.codexEmergencyOnly', 'только аварийно')}
                   </span>
                 )}
               </button>

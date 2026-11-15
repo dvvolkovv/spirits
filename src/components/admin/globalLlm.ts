@@ -3,20 +3,20 @@ import { apiClient } from '../../services/apiClient';
 // Называется AnswerProvider, а не Provider: «Provider» в этой кодовой базе
 // легко спутать с другими «провайдерами» (OAuth, оплата) — ревью качества
 // 01.11.2026 к задачам 10-12.
-export type AnswerProvider = 'claude' | 'qwen' | 'kimi';
-export const PROVIDERS: readonly AnswerProvider[] = ['claude', 'qwen', 'kimi'];
-export const PROVIDER_LABELS: Record<AnswerProvider, string> = { claude: 'Claude', qwen: 'Qwen', kimi: 'Kimi' };
+export type AnswerProvider = 'claude' | 'qwen' | 'kimi' | 'codex';
+export const PROVIDERS: readonly AnswerProvider[] = ['claude', 'qwen', 'kimi', 'codex'];
+export const PROVIDER_LABELS: Record<AnswerProvider, string> = { claude: 'Claude', qwen: 'Qwen', kimi: 'Kimi', codex: 'Codex (GPT-6 Astra)' };
 
 /** Строка из бэка → известная модель; мусор/отсутствие — Claude, как и у рубильника без строки в БД. */
 export function parseProvider(v: unknown): AnswerProvider {
-  return v === 'qwen' || v === 'kimi' || v === 'claude' ? v : 'claude';
+  return v === 'qwen' || v === 'kimi' || v === 'codex' || v === 'claude' ? v : 'claude';
 }
 
 export interface GlobalLlmState {
   provider: AnswerProvider;
   since: string | null;
   by: string | null;
-  configured: { qwen: boolean; kimi: boolean };
+  configured: { qwen: boolean; kimi: boolean; codex: boolean };
 }
 
 /** Смена рубильника в этой вкладке: блок сообщает, плашка слушает. */
@@ -28,7 +28,7 @@ export function toGlobalState(j: any): GlobalLlmState {
     provider: parseProvider(j?.provider),
     since: typeof j?.since === 'string' ? j.since : null,
     by: typeof j?.by === 'string' ? j.by : null,
-    configured: { qwen: j?.configured?.qwen === true, kimi: j?.configured?.kimi === true },
+    configured: { qwen: j?.configured?.qwen === true, kimi: j?.configured?.kimi === true, codex: j?.configured?.codex === true },
   };
 }
 
