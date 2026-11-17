@@ -19,8 +19,10 @@ const LOCALES: Record<string, any> = { ru, en, de, es, fr, pt, zh };
 
 /**
  * Текст пустой вкладки «Файлы», каким он был до загрузок: только про файлы
- * ассистента. С загрузками в панели такой текст вводил бы в заблуждение,
- * поэтому каждый язык обязан его сменить.
+ * ассистента. Пока флаг CHAT_UPLOADS_ENABLED выключен, загрузки в панель не
+ * попадают, и обещать их было бы неправдой — поэтому до дня включения флага
+ * каждый язык держит прежний текст. Новый текст про загрузки — в ветке
+ * feat/chat-uploads-flagday (revert этого коммита).
  */
 const EMPTY_FILES_BEFORE_UPLOADS: Record<string, string> = {
   ru: 'Здесь появятся файлы, которые создаст ассистент',
@@ -50,14 +52,14 @@ describe('тексты панели «Медиа и файлы»', () => {
       expect(loc.chat.files.delete_confirm).toContain('{{name}}');
     });
 
-    it(`${name}: пустая вкладка «Файлы» говорит и о загрузках пользователя`, () => {
-      expect(loc.chat.files.empty_files).not.toBe(EMPTY_FILES_BEFORE_UPLOADS[name]);
+    it(`${name}: пустая вкладка «Файлы» — прежний текст до дня включения флага`, () => {
+      expect(loc.chat.files.empty_files).toBe(EMPTY_FILES_BEFORE_UPLOADS[name]);
     });
   }
 
-  it('ru: тексты загрузок — как в спеке («…и которые вы загрузите», ассистенты больше не откроют)', () => {
+  it('ru: тексты загрузок — как в спеке (ассистенты больше не откроют); пустая вкладка — прежняя до дня флага', () => {
     expect(ru.chat.files).toMatchObject({
-      empty_files: 'Здесь появятся файлы, которые создаст ассистент и которые вы загрузите',
+      empty_files: 'Здесь появятся файлы, которые создаст ассистент',
       uploaded_by_you: 'Загрузили вы',
       from_telegram: 'Из Telegram',
       delete: 'Удалить',
@@ -83,7 +85,7 @@ describe('тексты панели «Медиа и файлы»', () => {
       tab_media: 'Multimédia',
       tab_files: 'Ficheiros',
       empty_media: 'As imagens e os vídeos desta conversa aparecerão aqui',
-      empty_files: 'Os ficheiros criados pelo assistente e os que carregar aparecerão aqui',
+      empty_files: 'Os ficheiros criados pelo assistente aparecerão aqui',
       load_error: 'Não foi possível carregar',
       retry: 'Tentar novamente',
       download: 'Descarregar',

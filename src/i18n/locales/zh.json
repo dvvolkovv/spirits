@@ -459,7 +459,7 @@
       "tab_media": "媒体",
       "tab_files": "文件",
       "empty_media": "此对话中的图片和视频将显示在这里",
-      "empty_files": "助手创建的文件和你上传的文件将显示在这里",
+      "empty_files": "助手创建的文件将显示在这里",
       "load_error": "加载失败",
       "retry": "重试",
       "download": "下载",
