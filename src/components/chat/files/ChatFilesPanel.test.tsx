@@ -581,6 +581,35 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
     }
   });
 
+  // Прокручивается не окно, а вкладка панели (overflow-y-auto): с корнем по
+  // умолчанию (окно) запас rootMargin не работал бы, и превью начинало бы
+  // качаться, только когда плитка уже на экране.
+  it('видимая область для превью — прокручиваемая вкладка панели, с запасом 200px', async () => {
+    const opts: (IntersectionObserverInit | undefined)[] = [];
+    class FakeIO {
+      constructor(_cb: IntersectionObserverCallback, o?: IntersectionObserverInit) { opts.push(o); }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() { return []; }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeIO);
+    try {
+      api.get.mockImplementation(routeGet([UP_IMG, UP_TG]) as any);
+      const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+      await settleBlobs();
+      const tabpanel = container.querySelector('[role="tabpanel"]');
+      expect(tabpanel).not.toBeNull();
+      expect(opts.length).toBeGreaterThanOrEqual(2);
+      for (const o of opts) {
+        expect(o?.root).toBe(tabpanel);
+        expect(o?.rootMargin).toBe('200px');
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('«Файлы»: скачивание через openChatUpload (JWT), пометка и комментарий; ссылок с href на приватный адрес нет', async () => {
     api.get.mockImplementation(routeGet(UPLOADS) as any);
     const onDownload = vi.fn();
