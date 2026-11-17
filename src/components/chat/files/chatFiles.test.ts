@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { apiClient } from '../../../services/apiClient';
-import { ChatFileItem, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab, thumbUrlFor } from './chatFiles';
+import {
+  ChatFileItem, deleteChatUpload, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab, thumbUrlFor,
+} from './chatFiles';
 
-vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn() } }));
+vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn(), delete: vi.fn() } }));
 const api = vi.mocked(apiClient);
 
 const item = (p: Partial<ChatFileItem>): ChatFileItem => ({
@@ -59,6 +61,29 @@ describe('splitTab / startTab', () => {
     expect(startTab([item({ kind: 'image', stored: false, url: undefined }), item({ kind: 'document' })])).toBe('files');
     expect(startTab([])).toBe('files');
   });
+
+  it('загрузки пользователя раскладываются по тем же правилам: фото и видео — в «Медиа», PDF — в «Файлы»', () => {
+    // Так их отдаёт бэк (chat-files.service.ts, uploadPanelItem): адрес —
+    // приватная ручка, messageId нет, есть origin/source/note/uploadId.
+    const uploads = [
+      item({
+        key: 'upload:p', kind: 'image', url: '/webhook/chat-uploads/p', thumbUrl: '/webhook/chat-uploads/p/thumb',
+        messageId: undefined, origin: 'upload', source: 'web', note: 'Гостиная до ремонта', uploadId: 'p',
+      }),
+      item({
+        key: 'upload:v', kind: 'video', ext: 'mp4', name: 'прогулка.mp4', url: '/webhook/chat-uploads/v',
+        messageId: undefined, origin: 'upload', source: 'telegram', note: null, uploadId: 'v',
+      }),
+      item({
+        key: 'upload:d', kind: 'document', ext: 'pdf', name: 'Договор.pdf', url: '/webhook/chat-uploads/d',
+        messageId: undefined, origin: 'upload', source: 'scan', note: null, uploadId: 'd',
+      }),
+    ];
+    expect(splitTab(uploads, 'media').stored.map((f) => f.key)).toEqual(['upload:p', 'upload:v']);
+    expect(splitTab(uploads, 'files').stored.map((f) => f.key)).toEqual(['upload:d']);
+    expect(splitTab(uploads, 'media').unsaved).toEqual([]);
+    expect(startTab(uploads)).toBe('media');
+  });
 });
 
 describe('groupByMonth', () => {
@@ -103,5 +128,38 @@ describe('thumbUrlFor', () => {
     vi.stubEnv('VITE_BACKEND_URL', '');
     expect(thumbUrlFor('/webhook/chat/thumb?src=a%2Fb.jpg')).toBe('/webhook/chat/thumb?src=a%2Fb.jpg');
     vi.unstubAllEnvs();
+  });
+});
+
+describe('deleteChatUpload', () => {
+  const UPLOAD_ID = 'c1c1c1c1-1111-4111-8111-111111111111';
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it('DELETE своей загрузки через apiClient — JWT добавляет он', async () => {
+    api.delete.mockResolvedValue({ ok: true, status: 204 } as any);
+    await expect(deleteChatUpload(UPLOAD_ID)).resolves.toBeUndefined();
+    expect(api.delete).toHaveBeenCalledTimes(1);
+    expect(api.delete).toHaveBeenCalledWith(`/webhook/chat-uploads/${UPLOAD_ID}`);
+  });
+
+  it('404 — файла уже нет (удалён в другой вкладке): для панели это тот же итог', async () => {
+    api.delete.mockResolvedValue({ ok: false, status: 404 } as any);
+    await expect(deleteChatUpload(UPLOAD_ID)).resolves.toBeUndefined();
+  });
+
+  it('502 — хранилище не ответило, файл цел: исключение, плитка остаётся', async () => {
+    api.delete.mockResolvedValue({ ok: false, status: 502 } as any);
+    await expect(deleteChatUpload(UPLOAD_ID)).rejects.toThrow('HTTP 502');
+  });
+
+  it('сетевой сбой пробрасывается как есть', async () => {
+    api.delete.mockRejectedValue(new Error('network down'));
+    await expect(deleteChatUpload(UPLOAD_ID)).rejects.toThrow('network down');
+  });
+
+  it('пустой id — исключение без запроса: DELETE на голый префикс дал бы 404 и ложный успех', async () => {
+    await expect(deleteChatUpload('')).rejects.toThrow();
+    expect(api.delete).not.toHaveBeenCalled();
   });
 });
