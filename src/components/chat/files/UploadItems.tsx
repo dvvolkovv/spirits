@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, File as FileIcon, Image as ImageIcon, Play, Trash2 } from 'lucide-react';
 import { uploadTilePath, type ChatFileItem } from './chatFiles';
@@ -76,7 +76,8 @@ export const UploadMediaTile: React.FC<MediaTileProps> = ({ item, onOpen, onDown
       <button
         type="button"
         onClick={(e) => onOpen(e.currentTarget)}
-        aria-label={`${t(item.kind === 'video' ? 'chat.files.video' : 'chat.files.image')}: ${item.name}`}
+        // Пометка источника видна на плитке глазами — диктору её тоже нужно услышать.
+        aria-label={`${t(item.kind === 'video' ? 'chat.files.video' : 'chat.files.image')}: ${item.name}, ${badge}`}
         className="relative aspect-square w-full overflow-hidden bg-gray-100"
       >
         {src && !broken ? (
@@ -146,22 +147,29 @@ interface FileRowProps {
 export const UploadFileRow: React.FC<FileRowProps> = ({ item, icon: Icon, lang, onDownload, onDelete, deleting = false }) => {
   const { t } = useTranslation();
   const badge = item.source === 'telegram' ? t('chat.files.from_telegram') : t('chat.files.uploaded_by_you');
+  const date = new Date(item.createdAt).toLocaleDateString(lang);
+  const noteId = useId();
   return (
     <li className="ym-hide-content flex items-start" data-testid="chat-files-upload-row">
       <button
         type="button"
         onClick={onDownload}
+        // Явное имя: действие, файл, дата и пометка. Комментарий — описание
+        // (aria-describedby), а не часть имени: иначе имя кнопки растягивалось
+        // бы на весь комментарий.
+        aria-label={`${t('chat.files.download')}: ${item.name}, ${date}, ${badge}`}
+        aria-describedby={item.note ? noteId : undefined}
         className="flex min-w-0 flex-1 items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50"
       >
         <Icon className="h-8 w-8 flex-shrink-0 text-forest-600" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm text-gray-900">{item.name}</span>
           <span className="block truncate text-xs text-gray-500">
-            {new Date(item.createdAt).toLocaleDateString(lang)} · {badge}
+            {date} · {badge}
           </span>
           {item.note ? (
             // Без block: вместе с line-clamp-2 он ломает обрезку (block в CSS идёт позже).
-            <span className="mt-0.5 line-clamp-2 break-words text-xs text-gray-600" data-testid="chat-files-note">
+            <span id={noteId} className="mt-0.5 line-clamp-2 break-words text-xs text-gray-600" data-testid="chat-files-note">
               {item.note}
             </span>
           ) : null}

@@ -185,13 +185,16 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
             <span className="max-w-full break-words text-center text-base">{item.name}</span>
           </div>
         ) : !mediaSrc ? (
-          // Загрузка ещё едет в blob (или не удалась) — индикатор вместо
-          // картинки без src, которую браузер рисует «битой».
-          <div
-            className="h-10 w-10 animate-spin rounded-full border-2 border-white/30 border-t-white"
-            data-testid="media-viewer-loading"
-            aria-hidden="true"
-          />
+          // Загрузка ещё едет в blob — индикатор вместо картинки без src,
+          // которую браузер рисует «битой». role=status и скрытый текст —
+          // чтобы диктор сказал «Загрузка», а не промолчал.
+          <div role="status" data-testid="media-viewer-loading">
+            <div
+              className="h-10 w-10 animate-spin rounded-full border-2 border-white/30 border-t-white"
+              aria-hidden="true"
+            />
+            <span className="sr-only">{t('common.loading')}</span>
+          </div>
         ) : item.kind === 'video' ? (
           <video key={item.key} src={mediaSrc} controls autoPlay className="max-h-full max-w-full" />
         ) : (
