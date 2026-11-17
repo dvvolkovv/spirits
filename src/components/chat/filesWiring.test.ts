@@ -33,7 +33,7 @@ describe('связка панели «Медиа и файлы»', () => {
   it('на мобиле — первый пункт меню «⋯»', () => {
     const menu = SRC.indexOf('role="menu"');
     const item = SRC.indexOf('data-testid="chat-files-menuitem"', menu);
-    const fresh = SRC.indexOf('toggleFreshMode(); }}', menu);
+    const fresh = SRC.indexOf('startFreshContext(); }}', menu);
     expect(item).toBeGreaterThan(menu);
     expect(item).toBeLessThan(fresh);
     expect(SRC.slice(item, item + 400)).toContain("setShowChatActions(false); openFilesPanel('menu');");
@@ -48,7 +48,7 @@ describe('связка панели «Медиа и файлы»', () => {
     expect(SRC.slice(btn, regen)).toContain("onClick={() => openFilesPanel('header')}");
   });
 
-  it('смена ассистента или «Чистого листа» закрывает обе панели', () => {
-    expect(SRC).toMatch(/useEffect\(\(\) => \{\s*setShowFilesPanel\(false\);\s*setShowActionPlan\(false\);\s*\}, \[selectedAssistant\?\.id, freshTs\]\)/);
+  it('смена ассистента закрывает обе панели', () => {
+    expect(SRC).toMatch(/useEffect\(\(\) => \{\s*setShowFilesPanel\(false\);\s*setShowActionPlan\(false\);\s*\}, \[selectedAssistant\?\.id\]\)/);
   });
 });
