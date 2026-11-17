@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseContextResetAt, resetDividerIndex, sameResetAt } from './contextReset';
+import { mergePolledReset, parseContextResetAt, resetDividerIndex, type ResetMark } from './contextReset';
 
 const R = new Date('2026-11-17T00:00:00Z');
-const m = (iso: string) => ({ timestamp: new Date(iso) });
+const m = (id: string, iso: string) => ({ id, timestamp: new Date(iso) });
+// Метка с опроса истории — без якоря, только время базы.
+const polledMark = (at: Date): ResetMark => ({ at });
 
 describe('parseContextResetAt', () => {
   it('нет поля (старый бэк) — undefined: состояние не трогаем', () => {
@@ -32,44 +34,97 @@ describe('parseContextResetAt', () => {
   });
 });
 
-describe('resetDividerIndex', () => {
-  it('без точки или без сообщений — черты нет', () => {
-    expect(resetDividerIndex([m('2026-11-16T00:00:00Z')], null, false)).toBeNull();
-    expect(resetDividerIndex([], R, false)).toBeNull();
+describe('resetDividerIndex: по времени (точка с опроса, без якоря)', () => {
+  it('без метки или без сообщений — черты нет', () => {
+    expect(resetDividerIndex([m('s1', '2026-11-16T00:00:00Z')], null)).toBeNull();
+    expect(resetDividerIndex([], polledMark(R))).toBeNull();
+  });
+  it('битое время точки — черты нет', () => {
+    expect(resetDividerIndex([m('s1', '2026-11-16T00:00:00Z')], polledMark(new Date('не дата')))).toBeNull();
   });
   it('перед первым сообщением новее точки', () => {
-    expect(resetDividerIndex([m('2026-11-16T00:00:00Z'), m('2026-11-17T01:00:00Z'), m('2026-11-17T02:00:00Z')], R, false)).toBe(1);
+    const msgs = [m('s1', '2026-11-16T00:00:00Z'), m('s2', '2026-11-17T01:00:00Z'), m('s3', '2026-11-17T02:00:00Z')];
+    expect(resetDividerIndex(msgs, polledMark(R))).toBe(1);
   });
   it('новых ещё нет — черта внизу', () => {
-    expect(resetDividerIndex([m('2026-11-16T00:00:00Z')], R, false)).toBe(1);
+    expect(resetDividerIndex([m('s1', '2026-11-16T00:00:00Z')], polledMark(R))).toBe(1);
   });
-  it('старше точки ничего нет и больше не подгрузить — черты нет', () => {
-    expect(resetDividerIndex([m('2026-11-17T01:00:00Z')], R, false)).toBeNull();
-  });
-  it('старше точки есть на следующих страницах — черта сверху', () => {
-    expect(resetDividerIndex([m('2026-11-17T01:00:00Z')], R, true)).toBe(0);
+  it('первое же сообщение новее точки — черты нет, даже если выше есть непрогруженные страницы', () => {
+    // Что старшие сообщения лежат на следующих страницах — допущение: черта
+    // встала бы наугад и прыгала бы при подгрузке. Появится на своём месте,
+    // когда подгрузится нужная страница.
+    expect(resetDividerIndex([m('s1', '2026-11-17T01:00:00Z')], polledMark(R))).toBeNull();
   });
   it('время строкой тоже понимает', () => {
-    expect(resetDividerIndex([{ timestamp: '2026-11-16T00:00:00Z' }, { timestamp: '2026-11-17T01:00:00Z' }], R, false)).toBe(1);
+    const msgs = [{ id: 's1', timestamp: '2026-11-16T00:00:00Z' }, { id: 's2', timestamp: '2026-11-17T01:00:00Z' }];
+    expect(resetDividerIndex(msgs, polledMark(R))).toBe(1);
   });
   it('сообщение ровно в момент точки — старше её: черта после него', () => {
-    expect(resetDividerIndex([m(R.toISOString()), m('2026-11-17T01:00:00Z')], R, false)).toBe(1);
-    expect(resetDividerIndex([m(R.toISOString())], R, false)).toBe(1);
+    expect(resetDividerIndex([m('s1', R.toISOString()), m('s2', '2026-11-17T01:00:00Z')], polledMark(R))).toBe(1);
+    expect(resetDividerIndex([m('s1', R.toISOString())], polledMark(R))).toBe(1);
   });
   it('битое время новее точки не считается: такое сообщение остаётся над чертой', () => {
-    expect(resetDividerIndex([{ timestamp: 'не дата' }], R, false)).toBe(1);
-    expect(resetDividerIndex([m('2026-11-16T00:00:00Z'), { timestamp: 'не дата' }, m('2026-11-17T01:00:00Z')], R, false)).toBe(2);
+    expect(resetDividerIndex([{ id: 's1', timestamp: 'не дата' }], polledMark(R))).toBe(1);
+    const msgs = [m('s1', '2026-11-16T00:00:00Z'), { id: 's2', timestamp: 'не дата' }, m('s3', '2026-11-17T01:00:00Z')];
+    expect(resetDividerIndex(msgs, polledMark(R))).toBe(2);
   });
 });
 
-describe('sameResetAt', () => {
-  it('сравнивает моменты, а не объекты', () => {
-    expect(sameResetAt(new Date(R), new Date(R))).toBe(true);
-    expect(sameResetAt(null, null)).toBe(true);
-    expect(sameResetAt(R, null)).toBe(false);
+describe('resetDividerIndex: с якорем (точка поставлена в этой вкладке)', () => {
+  it('часы клиента отстают: сообщения после якоря — под чертой, хоть их время и раньше точки', () => {
+    const msgs = [
+      m('s1', '2026-11-16T12:00:00Z'),
+      m('loc-1', '2026-11-16T23:58:00Z'), // последнее до нажатия
+      m('loc-2', '2026-11-16T23:59:00Z'), // после нажатия, но часы на 2 минуты позади базы
+    ];
+    expect(resetDividerIndex(msgs, { at: R, afterId: 'loc-1' })).toBe(2);
   });
-  it('разные моменты и null с любой стороны — не одно и то же', () => {
-    expect(sameResetAt(null, R)).toBe(false);
-    expect(sameResetAt(R, new Date(R.getTime() + 1))).toBe(false);
+  it('часы клиента спешат: сообщение до нажатия — над чертой, хоть его время и позже точки', () => {
+    const msgs = [
+      m('loc-1', '2026-11-17T00:05:00Z'), // до нажатия, часы на 5 минут впереди базы
+      m('loc-2', '2026-11-17T00:10:00Z'),
+    ];
+    expect(resetDividerIndex(msgs, { at: R, afterId: 'loc-1' })).toBe(1);
+  });
+  it('якорь — последнее сообщение: новых ещё нет, черта внизу', () => {
+    expect(resetDividerIndex([m('loc-1', '2026-11-17T00:05:00Z')], { at: R, afterId: 'loc-1' })).toBe(1);
+  });
+  it('якорь не найден (ленту перечитали, перегенерация срезала хвост) — по времени', () => {
+    const msgs = [m('s1', '2026-11-16T00:00:00Z'), m('s2', '2026-11-17T01:00:00Z')];
+    expect(resetDividerIndex(msgs, { at: R, afterId: 'loc-gone' })).toBe(1);
+    expect(resetDividerIndex([m('s2', '2026-11-17T01:00:00Z')], { at: R, afterId: 'loc-gone' })).toBeNull();
+  });
+  it('afterId: null — лента была пуста при нажатии: всё в ней после точки, черты нет', () => {
+    // Время раньше точки — отстающие часы; якорь важнее.
+    expect(resetDividerIndex([m('loc-1', '2026-11-16T23:59:00Z')], { at: R, afterId: null })).toBeNull();
+    expect(resetDividerIndex([m('loc-1', '2026-11-17T00:01:00Z')], { at: R, afterId: null })).toBeNull();
+  });
+});
+
+describe('mergePolledReset', () => {
+  const anchored: ResetMark = { at: R, afterId: 'loc-1' };
+
+  it('в ответе нет точки (null — сбой чтения, undefined — старый бэк) — прежняя метка', () => {
+    expect(mergePolledReset(anchored, null)).toBe(anchored);
+    expect(mergePolledReset(anchored, undefined)).toBe(anchored);
+    expect(mergePolledReset(null, null)).toBeNull();
+    expect(mergePolledReset(null, undefined)).toBeNull();
+  });
+  it('та же точка — прежняя метка тем же объектом: якорь цел, перерисовки нет', () => {
+    expect(mergePolledReset(anchored, new Date(R))).toBe(anchored);
+  });
+  it('старшая точка — запоздалый ответ опроса: прежняя метка', () => {
+    expect(mergePolledReset(anchored, new Date(R.getTime() - 60_000))).toBe(anchored);
+  });
+  it('новая точка (с другого устройства) — без якоря', () => {
+    const later = new Date(R.getTime() + 60_000);
+    expect(mergePolledReset(anchored, later)).toStrictEqual({ at: later });
+  });
+  it('первая точка — без якоря', () => {
+    expect(mergePolledReset(null, R)).toStrictEqual({ at: R });
+  });
+  it('битая дата — прежняя метка', () => {
+    expect(mergePolledReset(anchored, new Date('не дата'))).toBe(anchored);
+    expect(mergePolledReset(null, new Date('не дата'))).toBeNull();
   });
 });
