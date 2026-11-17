@@ -7,6 +7,9 @@ import { ActionPlanRequestError, actionPlansApi, type ActionPlan } from '../../.
 import { actAsync, byButton, click, clickAsync, flush, mount, type, visibleText } from '../../../test/dom';
 
 // Класс ошибки — настоящий: панель отличает «мало разговора» через instanceof.
+// apiClient — заглушка: настоящий тянет authService, а тот — src/i18n, который
+// инициализирует i18next языком браузера (en) раньше русской инициализации ниже.
+vi.mock('../../../services/apiClient', () => ({ apiClient: {} }));
 vi.mock('../../../services/actionPlansApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../services/actionPlansApi')>()),
   actionPlansApi: { get: vi.fn(), generate: vi.fn(), update: vi.fn(), remove: vi.fn() },
