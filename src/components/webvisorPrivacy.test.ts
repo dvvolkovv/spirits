@@ -23,6 +23,7 @@ import { join } from 'path';
 const ChatInterface = readFileSync(join(__dirname, 'chat', 'ChatInterface.tsx'), 'utf8');
 const ChatFilesPanel = readFileSync(join(__dirname, 'chat', 'files', 'ChatFilesPanel.tsx'), 'utf8');
 const MediaViewer = readFileSync(join(__dirname, 'chat', 'files', 'MediaViewer.tsx'), 'utf8');
+const UploadItemsSrc = readFileSync(join(__dirname, 'chat', 'files', 'UploadItems.tsx'), 'utf8');
 const ChatConversationView = readFileSync(join(__dirname, 'chats', 'ChatConversationView.tsx'), 'utf8');
 const PeerInboxPanels = readFileSync(join(__dirname, 'peer', 'PeerInboxPanels.tsx'), 'utf8');
 const SupportView = readFileSync(join(__dirname, 'support', 'SupportView.tsx'), 'utf8');
@@ -115,6 +116,17 @@ describe('переписка скрыта от записи Вебвизора (
 
   it('просмотр файла', () => {
     expect(classesOf(MediaViewer, 'media-viewer', 'div')).toContain('ym-hide-content');
+  });
+
+  // Плитки загрузок рисуются внутри панели, но имя, превью и комментарий
+  // ассистента — личное: класс стоит на самих плитках, а не только на корне
+  // панели (переиспользование плитки вне панели не должно его терять).
+  it('«Медиа и файлы» — плитка загрузки', () => {
+    expect(classesOf(UploadItemsSrc, 'chat-files-upload-tile', 'div')).toContain('ym-hide-content');
+  });
+
+  it('«Медиа и файлы» — строка загрузки', () => {
+    expect(classesOf(UploadItemsSrc, 'chat-files-upload-row', 'li')).toContain('ym-hide-content');
   });
 
   it('переписка с человеком — лента', () => {

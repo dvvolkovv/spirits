@@ -149,6 +149,25 @@ describe('приватная ссылка скачивается через apiC
     restore();
   });
 
+  // Временная ссылка на миг попадает в body с именем файла в download: от
+  // записи Вебвизора и от «Внешних переходов» Метрики её прячут те же классы,
+  // что у ссылок переписки (webvisorPrivacy.test.ts).
+  it('временная ссылка скачивания скрыта от Вебвизора и Метрики', async () => {
+    const { clicked, restore } = spyAnchorClicks();
+    (apiClient.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => new Blob(['file-bytes']),
+    });
+
+    await openChatUpload('/webhook/chat-uploads/ym-1', 'Не удалось скачать файл', 'договор.pdf');
+
+    expect(clicked.length).toBe(1);
+    expect(clicked[0].el.classList.contains('ym-hide-content')).toBe(true);
+    expect(clicked[0].el.classList.contains('ym-disable-tracklink')).toBe(true);
+    restore();
+  });
+
   it('отказ сервера — тост; ни object URL, ни anchor, ни window.open', async () => {
     const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
     const { clicked, restore } = spyAnchorClicks();
