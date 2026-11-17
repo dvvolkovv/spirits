@@ -711,4 +711,29 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
     // Плитки, что открыла просмотр, больше нет — фокус остаётся в панели, а не падает на body.
     expect(container.contains(document.activeElement)).toBe(true);
   });
+
+  // Удаление открытого файла, пока DELETE в пути, пользователь листнул на
+  // соседний: закрывать просмотр нечего — он показывает не удалённый файл.
+  it('удалили A, пока просмотр уже на B, — просмотр остаётся на B', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    let finish!: () => void;
+    vi.mocked(deleteChatUpload).mockReturnValue(new Promise<void>((r) => { finish = r; }));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    const viewer = () => container.querySelector('[data-testid="media-viewer"]') as HTMLElement | null;
+
+    click(imageTile(container, 'гостиная.jpg')!);
+    await settleBlobs();
+    await clickAsync(byButton(viewer()!, new RegExp(tRu('chat.files.delete')))!);
+    expect(deleteChatUpload).toHaveBeenCalledWith('u1');
+    click(viewer()!.querySelector(`button[aria-label="${tRu('chat.files.next')}"]`)!);
+    expect(viewer()!.getAttribute('aria-label')).toBe('чек.png');
+
+    await actAsync(() => { finish(); });
+    await settle();
+    expect(imageTile(container, 'гостиная.jpg')).toBeNull();
+    expect(viewer()).not.toBeNull();
+    expect(viewer()!.getAttribute('aria-label')).toBe('чек.png');
+    expect(tab(container, 'chat.files.tab_media').textContent).toBe(`${tRu('chat.files.tab_media')} · 1`);
+  });
 });
