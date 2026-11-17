@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flush, actAsync } from '../../../test/dom';
 import { apiClient } from '../../../services/apiClient';
-import { useAuthedBlobUrl } from './useAuthedBlobUrl';
+import { useAuthedBlob, useAuthedBlobUrl } from './useAuthedBlobUrl';
 
 vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn() } }));
 const api = vi.mocked(apiClient);
@@ -19,6 +19,12 @@ function Probe({ path, enabled }: { path?: string; enabled?: boolean }) {
   return <span data-testid="probe" data-src={src ?? ''} />;
 }
 const srcOf = (c: HTMLElement) => c.querySelector('[data-testid="probe"]')!.getAttribute('data-src');
+
+function FailProbe({ path }: { path?: string }) {
+  const { url, failed } = useAuthedBlob(path);
+  return <span data-testid="fail-probe" data-src={url ?? ''} data-failed={String(failed)} />;
+}
+const failedOf = (c: HTMLElement) => c.querySelector('[data-testid="fail-probe"]')!.getAttribute('data-failed');
 const blobRes = () => ({ ok: true, status: 200, blob: async () => new Blob(['x'], { type: 'image/webp' }) }) as any;
 const settle = async () => { await flush(); await flush(); };
 
@@ -115,6 +121,60 @@ describe('useAuthedBlobUrl', () => {
     await actAsync(() => { d.resolve(blobRes()); });
     await settle();
     expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+});
+
+// Просмотр должен отличать «ещё едет» от «не загрузится»: иначе при 404 или
+// обрыве сети вместо значка и «Скачать» бесконечно крутится индикатор.
+describe('useAuthedBlob — признак неудачи', () => {
+  it('пока едет и после успеха — не failed', async () => {
+    const d = deferred();
+    api.get.mockReturnValue(d.promise as any);
+    const { container } = mount(<FailProbe path={THUMB} />);
+    expect(failedOf(container)).toBe('false');
+    await actAsync(() => { d.resolve(blobRes()); });
+    await settle();
+    expect(failedOf(container)).toBe('false');
+    expect(container.querySelector('[data-testid="fail-probe"]')!.getAttribute('data-src')).toBe('blob:mock-1');
+  });
+
+  it('ответ не 2xx (404) — failed', async () => {
+    api.get.mockResolvedValue({ ok: false, status: 404, blob: vi.fn() } as any);
+    const { container } = mount(<FailProbe path={THUMB} />);
+    await settle();
+    expect(failedOf(container)).toBe('true');
+  });
+
+  it('сеть упала — failed', async () => {
+    api.get.mockRejectedValue(new Error('network'));
+    const { container } = mount(<FailProbe path={THUMB} />);
+    await settle();
+    expect(failedOf(container)).toBe('true');
+  });
+
+  it('смена адреса сбрасывает failed; сбой отменённого прежнего запроса новый не помечает', async () => {
+    api.get.mockResolvedValueOnce({ ok: false, status: 404, blob: vi.fn() } as any);
+    const { container, rerender } = mount(<FailProbe path={THUMB} />);
+    await settle();
+    expect(failedOf(container)).toBe('true');
+
+    const d = deferred();
+    api.get.mockReturnValueOnce(d.promise as any);
+    rerender(<FailProbe path={OTHER} />);
+    await settle();
+    expect(failedOf(container)).toBe('false');
+
+    // Прежний запрос OTHER отменяется сменой на THUMB и падает уже отменённым.
+    const again = deferred();
+    api.get.mockReturnValueOnce(again.promise as any);
+    rerender(<FailProbe path={THUMB} />);
+    await actAsync(() => { d.resolve({ ok: false, status: 500, blob: vi.fn() }); });
+    await settle();
+    expect(failedOf(container)).toBe('false');
+
+    await actAsync(() => { again.resolve(blobRes()); });
+    await settle();
+    expect(failedOf(container)).toBe('false');
   });
 });
 

@@ -214,6 +214,27 @@ describe('MediaViewer — загрузка пользователя (прива�
     unmount();
   });
 
+  it('оригинал не загрузился (404) — значок с именем и «Скачать», а не бесконечный индикатор', async () => {
+    api.get.mockResolvedValue({ ok: false, status: 404, blob: vi.fn() } as any);
+    const { container, unmount } = mount(<MediaViewer items={[upload()]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    await settle();
+    expect(container.querySelector('[data-testid="media-viewer-loading"]')).toBeNull();
+    expect(container.querySelector('[data-testid="media-viewer-upload-file"]')!.textContent).toContain('гостиная.jpg');
+    expect(byButton(container, new RegExp(tRu('chat.files.download')))).toBeTruthy();
+    unmount();
+  });
+
+  it('blob пришёл, но браузер его не нарисовал (onError) — тот же значок с именем', async () => {
+    api.get.mockResolvedValue(blobRes());
+    const { container, unmount } = mount(<MediaViewer items={[upload()]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    await settle();
+    const im = container.querySelector('img')!;
+    act(() => { im.dispatchEvent(new Event('error')); });
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('[data-testid="media-viewer-upload-file"]')!.textContent).toContain('гостиная.jpg');
+    unmount();
+  });
+
   it('видео-загрузка — без плеера и без загрузки в память: название и «Скачать»', async () => {
     const v = upload({ key: 'upload:v1', kind: 'video', ext: 'mp4', name: 'кухня.mp4', url: '/webhook/chat-uploads/v1', thumbUrl: undefined, uploadId: 'v1' });
     const { container, unmount } = mount(<MediaViewer items={[v]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
