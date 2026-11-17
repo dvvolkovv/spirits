@@ -20,8 +20,11 @@ interface Props {
   /** Метка «Чистого листа»: панель показывает ту переписку, что на экране. */
   freshTs?: string | null;
   onClose: () => void;
-  /** Скачали файл из списка или из просмотра — для статистики. */
-  onDownload?: (kind: ChatFileKind, from: 'list' | 'viewer') => void;
+  /**
+   * Скачали файл — для статистики: из списка «Файлы» (list), из просмотра
+   * (viewer) или кнопкой под плиткой загрузки без превью в «Медиа» (grid).
+   */
+  onDownload?: (kind: ChatFileKind, from: 'list' | 'viewer' | 'grid') => void;
 }
 
 /** Один общий tabpanel на обе вкладки — контент каждой вкладки не живёт отдельным DOM-узлом. */
@@ -151,8 +154,8 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
 
   // Скачивание загрузки: приватный адрес, ссылка с href вернула бы 401
   // (браузер не шлёт JWT), — поэтому через openChatUpload.
-  const downloadUpload = (it: ChatFileItem) => {
-    onDownload?.(it.kind, 'list');
+  const downloadUpload = (it: ChatFileItem, from: 'list' | 'grid') => {
+    onDownload?.(it.kind, from);
     void openChatUpload(it.url as string, t('chat.upload_download_error'), it.name);
   };
 
@@ -327,7 +330,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                               lastTileRef.current = tile;
                               setViewerKey(it.key);
                             }}
-                            onDownload={() => downloadUpload(it)}
+                            onDownload={() => downloadUpload(it, 'grid')}
                             scrollRoot={tabpanelEl}
                           />
                         ) : (
@@ -389,7 +392,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                               item={it}
                               icon={Icon}
                               lang={lang}
-                              onDownload={() => downloadUpload(it)}
+                              onDownload={() => downloadUpload(it, 'list')}
                               onDelete={() => void removeUpload(it)}
                               deleting={deletingKeys.has(it.key)}
                             />

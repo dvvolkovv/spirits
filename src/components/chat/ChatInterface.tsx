@@ -899,7 +899,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       trackAuthed('chat_files_panel_open', user.phone, { assistantId: selectedAssistant.id, fresh: !!freshTs, entry });
     }
   };
-  const trackFilesDownload = (kind: ChatFileKind, from: 'list' | 'viewer') => {
+  const trackFilesDownload = (kind: ChatFileKind, from: 'list' | 'viewer' | 'grid') => {
     if (user?.phone) trackAuthed('chat_files_download', user.phone, { kind, from });
   };
 
