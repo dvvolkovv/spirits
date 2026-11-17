@@ -462,7 +462,7 @@
       "tab_media": "Media",
       "tab_files": "Files",
       "empty_media": "Images and videos from this conversation will appear here",
-      "empty_files": "Files the assistant creates will appear here",
+      "empty_files": "Files the assistant creates and files you upload will appear here",
       "load_error": "Couldn't load",
       "retry": "Try again",
       "download": "Download",

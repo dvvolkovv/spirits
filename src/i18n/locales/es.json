@@ -465,7 +465,7 @@
       "tab_media": "Multimedia",
       "tab_files": "Archivos",
       "empty_media": "Aquí aparecerán las imágenes y los vídeos de esta conversación",
-      "empty_files": "Aquí aparecerán los archivos que cree el asistente",
+      "empty_files": "Aquí aparecerán los archivos que cree el asistente y los que subas",
       "load_error": "No se pudo cargar",
       "retry": "Reintentar",
       "download": "Descargar",

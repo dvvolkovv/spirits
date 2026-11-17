@@ -465,7 +465,7 @@
       "tab_media": "Médias",
       "tab_files": "Fichiers",
       "empty_media": "Les images et vidéos de cette conversation apparaîtront ici",
-      "empty_files": "Les fichiers créés par l'assistant apparaîtront ici",
+      "empty_files": "Les fichiers créés par l'assistant et ceux que tu envoies apparaîtront ici",
       "load_error": "Échec du chargement",
       "retry": "Réessayer",
       "download": "Télécharger",
