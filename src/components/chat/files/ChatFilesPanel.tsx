@@ -1,14 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
+import toast from 'react-hot-toast';
 import {
   ArrowLeft, Download, File, FileArchive, FileAudio, FileCode, FileSpreadsheet, FileText, ImageOff, Play,
   Presentation, X,
 } from 'lucide-react';
 import MediaViewer from './MediaViewer';
+import { UploadFileRow, UploadMediaTile } from './UploadItems';
 import {
-  ChatFileItem, ChatFileKind, FileIconKind, FilesTab, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab, thumbUrlFor,
+  ChatFileItem, ChatFileKind, FileIconKind, FilesTab, deleteChatUpload, fetchChatFiles, fileIconKind, groupByMonth,
+  splitTab, startTab, thumbUrlFor,
 } from './chatFiles';
+import { openChatUpload } from '../chatUploads';
 import { trapTab } from './focusTrap';
 
 interface Props {
@@ -36,8 +40,10 @@ const ICONS: Record<FileIconKind, React.ComponentType<{ className?: string }>> =
 
 /**
  * «Медиа и файлы» переписки с ассистентом — как раздел медиа в Telegram.
- * Список строит бэк из текста истории (GET /webhook/chat/files), поэтому в
- * панели ровно то, что есть в ленте, включая старую историю.
+ * Список строит бэк (GET /webhook/chat/files). Файлы ассистента берутся из
+ * текста истории, включая старую; загрузки пользователя (origin === 'upload') —
+ * из реестра chat_uploads. Загрузки приватные: превью и скачивание идут с JWT
+ * (UploadItems.tsx), удалить их может только сам пользователь.
  */
 const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDownload }) => {
   const { t, i18n } = useTranslation();
@@ -85,6 +91,39 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
   // Держим актуальный onClose в ref и подписываемся один раз.
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  // Удаление своей загрузки (DELETE /webhook/chat-uploads/:id через
+  // deleteChatUpload). Замок по ключу: второе нажатие, пока первый запрос в
+  // пути, не шлёт второй DELETE — тот ответил бы 404 и показал ложную ошибку.
+  const deletingRef = useRef<Set<string>>(new Set());
+  const removeUpload = useCallback(
+    async (it: ChatFileItem) => {
+      if (!it.uploadId || deletingRef.current.has(it.key)) return;
+      if (!window.confirm(t('chat.files.delete_confirm'))) return;
+      deletingRef.current.add(it.key);
+      try {
+        await deleteChatUpload(it.uploadId);
+        setItems((prev) => (prev ? prev.filter((x) => x.key !== it.key) : prev));
+        // Плитки, что открыла просмотр, больше нет: просмотр закрываем, фокус
+        // оставляем в панели, иначе он падает на body и ловушка Tab его теряет.
+        setViewerIndex(null);
+        dialogRef.current?.focus();
+      } catch {
+        // Строка в базе осталась (сбой хранилища — 502), повтор безопасен.
+        toast.error(t('chat.files.delete_failed'));
+      } finally {
+        deletingRef.current.delete(it.key);
+      }
+    },
+    [t],
+  );
+
+  // Скачивание загрузки: приватный адрес, ссылка с href вернула бы 401
+  // (браузер не шлёт JWT), — поэтому через openChatUpload.
+  const downloadUpload = (it: ChatFileItem) => {
+    onDownload?.(it.kind, 'list');
+    void openChatUpload(it.url as string, t('chat.upload_download_error'), it.name);
+  };
 
   const load = useCallback(async () => {
     setError(false);
@@ -243,7 +282,18 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                   <h3 className="px-4 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">{g.label}</h3>
                   {current === 'media' ? (
                     <div className="grid grid-cols-3 gap-1 px-1">
-                      {g.items.map((it) => (
+                      {g.items.map((it) =>
+                        it.origin === 'upload' ? (
+                          <UploadMediaTile
+                            key={it.key}
+                            item={it}
+                            onOpen={(tile) => {
+                              lastTileRef.current = tile;
+                              setViewerIndex(media.stored.indexOf(it));
+                            }}
+                            onDownload={() => downloadUpload(it)}
+                          />
+                        ) : (
                         <button
                           key={it.key}
                           type="button"
@@ -288,12 +338,25 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                             </span>
                           )}
                         </button>
-                      ))}
+                        ),
+                      )}
                     </div>
                   ) : (
                     <ul>
                       {g.items.map((it) => {
                         const Icon = ICONS[fileIconKind(it)];
+                        if (it.origin === 'upload') {
+                          return (
+                            <UploadFileRow
+                              key={it.key}
+                              item={it}
+                              icon={Icon}
+                              lang={lang}
+                              onDownload={() => downloadUpload(it)}
+                              onDelete={() => void removeUpload(it)}
+                            />
+                          );
+                        }
                         return (
                           <li key={it.key}>
                             <a
@@ -362,6 +425,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
             lastTileRef.current?.focus();
           }}
           onDownload={(kind) => onDownload?.(kind, 'viewer')}
+          onDelete={(it) => void removeUpload(it)}
         />
       )}
     </div>

@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, File as FileIcon, Trash2, X } from 'lucide-react';
 import type { ChatFileItem, ChatFileKind } from './chatFiles';
 import { trapTab } from './focusTrap';
+import { openChatUpload } from '../chatUploads';
+import { useAuthedBlobUrl } from './useAuthedBlobUrl';
+import { uploadViewerPath } from './UploadItems';
 
 interface Props {
   /** Только сохранённые медиа: у них есть адрес. */
@@ -12,10 +15,16 @@ interface Props {
   onClose: () => void;
   /** Нажали «Скачать» — для статистики (ChatInterface шлёт событие). */
   onDownload?: (kind: ChatFileKind) => void;
+  /**
+   * «Удалить» у загрузки пользователя (origin === 'upload'). Подтверждение,
+   * запрос и уборку списка делает вызывающий (ChatFilesPanel). Без пропа
+   * кнопки нет: просмотр картинки из ленты (ChatImageAttachment) ничего не удаляет.
+   */
+  onDelete?: (item: ChatFileItem) => void;
 }
 
 /** Картинка или видео на весь экран: «Скачать», «Закрыть», стрелки и клавиатура. */
-const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, onDownload }) => {
+const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, onDownload, onDelete }) => {
   const { t } = useTranslation();
   const item = items[index];
   const hasPrev = index > 0;
@@ -26,6 +35,19 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
   // пока просмотр открыт (ChatFilesPanel.tsx) — иначе Tab утекал бы на её
   // «Назад»/«Закрыть» под опаской подложкой.
   const rootRef = useRef<HTMLDivElement>(null);
+  // Загрузка пользователя лежит в приватном бакете: картинка с сырым адресом
+  // без JWT получила бы 401, поэтому её берём через apiClient в blob.
+  // Хук стоит до раннего return ниже: порядок хуков не должен зависеть от item.
+  const isUpload = item?.origin === 'upload';
+  // Видео-загрузку (до 100 МБ) целиком в память браузера не тянем: вместо
+  // плеера — название и «Скачать». Картинки идут в blob, они небольшие.
+  const uploadVideo = isUpload && item?.kind === 'video';
+  // Оригинал, если браузер его покажет, иначе миниатюра (TIFF). Нет ни того,
+  // ни другого (HEIC без миниатюры) — значок файла с именем и «Скачать».
+  const uploadPath = isUpload && item && !uploadVideo ? uploadViewerPath(item) : undefined;
+  const uploadFileOnly = isUpload && !uploadVideo && !uploadPath;
+  const blobSrc = useAuthedBlobUrl(uploadPath);
+  const mediaSrc = isUpload ? blobSrc : item?.url;
 
   // Один раз на открытие (не на каждую навигацию ← →): иначе «Закрыть»
   // перехватывал бы фокус у пользователя при каждом нажатии стрелки.
@@ -65,6 +87,7 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
   }, [index, hasPrev, hasNext, onClose, onIndexChange]);
 
   if (!item?.url) return null;
+  const url = item.url;
 
   return (
     <div
@@ -78,19 +101,45 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
       data-testid="media-viewer"
     >
       <div className="flex items-center justify-end gap-2 p-3">
-        <a
-          href={item.url}
-          download={item.name}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => onDownload?.(item.kind)}
-          // ym-disable-tracklink: адрес файла переписки личный, мимо
-          // «Внешних переходов» Метрики (webvisorPrivacy.test.ts).
-          className="ym-disable-tracklink flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
-        >
-          <Download className="h-4 w-4" />
-          {t('chat.files.download')}
-        </a>
+        {isUpload ? (
+          // Приватный адрес: ссылка с href вернула бы 401 (браузер не шлёт
+          // JWT) — скачиваем через openChatUpload, как вложения в ленте.
+          <button
+            type="button"
+            onClick={() => {
+              onDownload?.(item.kind);
+              void openChatUpload(url, t('chat.upload_download_error'), item.name);
+            }}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+          >
+            <Download className="h-4 w-4" />
+            {t('chat.files.download')}
+          </button>
+        ) : (
+          <a
+            href={item.url}
+            download={item.name}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => onDownload?.(item.kind)}
+            // ym-disable-tracklink: адрес файла переписки личный, мимо
+            // «Внешних переходов» Метрики (webvisorPrivacy.test.ts).
+            className="ym-disable-tracklink flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+          >
+            <Download className="h-4 w-4" />
+            {t('chat.files.download')}
+          </a>
+        )}
+        {isUpload && onDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(item)}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+          >
+            <Trash2 className="h-4 w-4" />
+            {t('chat.files.delete')}
+          </button>
+        )}
         <button
           ref={closeBtnRef}
           type="button"
@@ -112,10 +161,31 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
           items.length > 1 ? 'px-12' : 'px-2'
         }`}
       >
-        {item.kind === 'video' ? (
-          <video key={item.key} src={item.url} controls autoPlay className="max-h-full max-w-full" />
+        {uploadVideo ? (
+          // Видео-загрузка: без плеера, скачать — кнопкой «Скачать» в шапке.
+          <div className="flex flex-col items-center gap-2 text-white" data-testid="media-viewer-upload-video">
+            <span className="text-sm opacity-70">{t('chat.files.video')}</span>
+            <span className="max-w-full break-words text-center text-base">{item.name}</span>
+          </div>
+        ) : uploadFileOnly ? (
+          // Картинка, которую браузер не покажет (HEIC): значок файла с именем,
+          // скачать — кнопкой «Скачать» в шапке.
+          <div className="flex flex-col items-center gap-2 text-white" data-testid="media-viewer-upload-file">
+            <FileIcon className="h-12 w-12 opacity-70" aria-hidden="true" />
+            <span className="max-w-full break-words text-center text-base">{item.name}</span>
+          </div>
+        ) : !mediaSrc ? (
+          // Загрузка ещё едет в blob (или не удалась) — индикатор вместо
+          // картинки без src, которую браузер рисует «битой».
+          <div
+            className="h-10 w-10 animate-spin rounded-full border-2 border-white/30 border-t-white"
+            data-testid="media-viewer-loading"
+            aria-hidden="true"
+          />
+        ) : item.kind === 'video' ? (
+          <video key={item.key} src={mediaSrc} controls autoPlay className="max-h-full max-w-full" />
         ) : (
-          <img src={item.url} alt={item.name} className="max-h-full max-w-full object-contain" />
+          <img src={mediaSrc} alt={item.name} className="max-h-full max-w-full object-contain" />
         )}
         {hasPrev && (
           <button
@@ -140,6 +210,16 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
           </button>
         )}
       </div>
+      {item.note ? (
+        // Полный комментарий ассистента к загрузке; в плитке панели он обрезан до двух строк.
+        <div
+          className="max-h-[30vh] overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-white/90"
+          data-testid="media-viewer-note"
+        >
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-white/60">{t('chat.files.note_label')}</p>
+          <p className="whitespace-pre-wrap break-words">{item.note}</p>
+        </div>
+      ) : null}
     </div>
   );
 };
