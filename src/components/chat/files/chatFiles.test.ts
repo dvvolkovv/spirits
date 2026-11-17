@@ -16,16 +16,22 @@ const item = (p: Partial<ChatFileItem>): ChatFileItem => ({
 describe('fetchChatFiles', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('просит файлы переписки с ассистентом и «Чистым листом»', async () => {
+  it('просит файлы переписки с ассистентом', async () => {
     api.get.mockResolvedValue({ ok: true, json: async () => ({ items: [item({})] }) } as any);
-    const out = await fetchChatFiles('custom:abc', '1728000000000');
-    expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=custom%3Aabc&freshTs=1728000000000');
+    const out = await fetchChatFiles('custom:abc');
+    expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=custom%3Aabc');
     expect(out).toHaveLength(1);
   });
 
-  it('без «Чистого листа» метку не шлёт', async () => {
+  it('просит ровно адрес без метки «Чистого листа»', async () => {
     api.get.mockResolvedValue({ ok: true, json: async () => ({ items: [] }) } as any);
-    await fetchChatFiles(12, null);
+    await fetchChatFiles(12);
+    expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12');
+  });
+
+  it('метку «Чистого листа» не шлёт, даже если её передал старый вызов: точка отсчёта — на сервере', async () => {
+    api.get.mockResolvedValue({ ok: true, json: async () => ({ items: [] }) } as any);
+    await (fetchChatFiles as (...args: unknown[]) => Promise<ChatFileItem[]>)(12, '1728000000000');
     expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12');
   });
 
