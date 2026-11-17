@@ -712,6 +712,48 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
     expect(container.contains(document.activeElement)).toBe(true);
   });
 
+  it('пока DELETE в пути, корзина — disabled и aria-busy; сбой снимает признак', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    let fail!: (e: Error) => void;
+    vi.mocked(deleteChatUpload).mockReturnValue(new Promise<void>((_r, j) => { fail = j; }));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    click(tab(container, 'chat.files.tab_files'));
+    expect(delBtn(container, 'договор.pdf')!.disabled).toBe(false);
+    expect(delBtn(container, 'договор.pdf')!.hasAttribute('aria-busy')).toBe(false);
+
+    await clickAsync(delBtn(container, 'договор.pdf')!);
+    expect(delBtn(container, 'договор.pdf')!.disabled).toBe(true);
+    expect(delBtn(container, 'договор.pdf')!.getAttribute('aria-busy')).toBe('true');
+
+    await actAsync(() => { fail(new Error('chat upload delete: HTTP 502')); });
+    await settle();
+    expect(toast.error).toHaveBeenCalledWith(tRu('chat.files.delete_failed'));
+    expect(delBtn(container, 'договор.pdf')!.disabled).toBe(false);
+    expect(delBtn(container, 'договор.pdf')!.hasAttribute('aria-busy')).toBe(false);
+  });
+
+  it('«Удалить» в просмотре, пока DELETE в пути, — disabled и aria-busy', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    let finish!: () => void;
+    vi.mocked(deleteChatUpload).mockReturnValue(new Promise<void>((r) => { finish = r; }));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    click(imageTile(container, 'гостиная.jpg')!);
+    await settleBlobs();
+    const viewer = container.querySelector('[data-testid="media-viewer"]') as HTMLElement;
+    const del = () => byButton(viewer, new RegExp(tRu('chat.files.delete')))!;
+    expect(del().disabled).toBe(false);
+
+    await clickAsync(del());
+    expect(del().disabled).toBe(true);
+    expect(del().getAttribute('aria-busy')).toBe('true');
+
+    await actAsync(() => { finish(); });
+    await settle();
+    expect(container.querySelector('[data-testid="media-viewer"]')).toBeNull();
+  });
+
   // Удаление открытого файла, пока DELETE в пути, пользователь листнул на
   // соседний: закрывать просмотр нечего — он показывает не удалённый файл.
   it('удалили A, пока просмотр уже на B, — просмотр остаётся на B', async () => {
