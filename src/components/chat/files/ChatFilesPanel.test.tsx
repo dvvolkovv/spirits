@@ -582,6 +582,34 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
     }
   });
 
+  // Защита: бэк без поля origin (или старый ответ) — приватный адрес всё равно
+  // не уходит в <img src> или в ссылку с href, где браузер получил бы 401.
+  it('элемент без origin с адресом /webhook/chat-uploads/ — как загрузка: ни <img src>, ни ссылки с href на него', async () => {
+    const NO_ORIGIN = [
+      f({ key: 'g1', name: 'без-пометки.jpg', ext: 'jpg', url: '/webhook/chat-uploads/g1', thumbUrl: '/webhook/chat-uploads/g1/thumb', messageId: 0 }),
+      f({ key: 'g2', kind: 'document', ext: 'pdf', name: 'без-пометки.pdf', url: '/webhook/chat-uploads/g2', messageId: 0 }),
+    ];
+    api.get.mockImplementation(routeGet(NO_ORIGIN) as any);
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    expect(container.querySelector('img[src*="/webhook/chat-uploads/"]')).toBeNull();
+    expect(container.querySelector('[data-testid="chat-files-upload-tile"]')).not.toBeNull();
+
+    click(imageTile(container, 'без-пометки.jpg')!);
+    await settleBlobs();
+    const viewer = container.querySelector('[data-testid="media-viewer"]') as HTMLElement;
+    expect(viewer.querySelector('img[src*="/webhook/chat-uploads/"]')).toBeNull();
+    expect(viewer.querySelector('a[href^="/webhook/chat-uploads/"]')).toBeNull();
+    // uploadId нет — удалять нечем: кнопки «Удалить» нет, а не мёртвая кнопка.
+    expect(byButton(viewer, new RegExp(tRu('chat.files.delete')))).toBeNull();
+    click(viewer.querySelector(`button[aria-label="${tRu('chat.files.close')}"]`)!);
+
+    click(tab(container, 'chat.files.tab_files'));
+    expect(container.querySelector('a[href^="/webhook/chat-uploads/"]')).toBeNull();
+    expect(container.querySelector('[data-testid="chat-files-upload-row"]')).not.toBeNull();
+    expect(delBtn(container, 'без-пометки.pdf')).toBeNull();
+  });
+
   // Прокручивается не окно, а вкладка панели (overflow-y-auto): с корнем по
   // умолчанию (окно) запас rootMargin не работал бы, и превью начинало бы
   // качаться, только когда плитка уже на экране.

@@ -317,6 +317,17 @@ describe('MediaViewer — загрузка пользователя (прива�
     unmount();
   });
 
+  it('элемент без origin с приватным адресом — как загрузка: blob, ни <img src>, ни ссылки с href на него', async () => {
+    api.get.mockResolvedValue(blobRes());
+    const bare = upload({ origin: undefined, source: undefined, note: null });
+    const { container, unmount } = mount(<MediaViewer items={[bare]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
+    await settle();
+    expect(container.querySelector('img[src*="/webhook/chat-uploads/"]')).toBeNull();
+    expect(container.querySelector('a[href^="/webhook/chat-uploads/"]')).toBeNull();
+    expect(container.querySelector('img')!.getAttribute('src')).toBe('blob:viewer-1');
+    unmount();
+  });
+
   it('«Удалить» — только у загрузки и только с onDelete; зовёт onDelete с этим файлом', async () => {
     api.get.mockResolvedValue(blobRes());
     const onDelete = vi.fn();

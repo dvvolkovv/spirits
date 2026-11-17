@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { apiClient } from '../../../services/apiClient';
 import {
   BROWSER_IMAGE_EXTS, ChatFileItem, TILE_ORIGINAL_MAX_BYTES, deleteChatUpload, fetchChatFiles, fileIconKind, groupByMonth,
-  splitTab, startTab, thumbUrlFor, uploadTilePath, uploadViewerPath,
+  isUploadItem, splitTab, startTab, thumbUrlFor, uploadTilePath, uploadViewerPath,
 } from './chatFiles';
 
 vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn(), delete: vi.fn() } }));
@@ -162,6 +162,24 @@ describe('deleteChatUpload', () => {
   it('пустой id — исключение без запроса: DELETE на голый префикс дал бы 404 и ложный успех', async () => {
     await expect(deleteChatUpload('')).rejects.toThrow();
     expect(api.delete).not.toHaveBeenCalled();
+  });
+});
+
+// Защита: приватный адрес без origin (бэк без поля, старый ответ) всё равно
+// не должен попасть в <img src> или ссылку с href — браузер не пошлёт JWT.
+describe('isUploadItem', () => {
+  it('origin upload — загрузка', () => {
+    expect(isUploadItem(item({ origin: 'upload', url: '/webhook/chat-uploads/u1' }))).toBe(true);
+  });
+
+  it('без origin, но с приватным адресом загрузки — тоже загрузка', () => {
+    expect(isUploadItem(item({ url: '/webhook/chat-uploads/u1' }))).toBe(true);
+  });
+
+  it('файл ассистента на публичном адресе и без адреса — не загрузка', () => {
+    expect(isUploadItem(item({ url: 'https://pub/a.png' }))).toBe(false);
+    expect(isUploadItem(item({ origin: 'assistant', url: 'https://pub/a.png' }))).toBe(false);
+    expect(isUploadItem(item({ url: undefined, stored: false }))).toBe(false);
   });
 });
 
