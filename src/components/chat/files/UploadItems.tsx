@@ -138,10 +138,12 @@ interface FileRowProps {
   lang: string;
   onDownload: () => void;
   onDelete: () => void;
+  /** DELETE этой загрузки в пути: корзина disabled и aria-busy. */
+  deleting?: boolean;
 }
 
 /** Строка «Файлы»: скачать (вся строка) и корзина; дата, пометка, комментарий в две строки. */
-export const UploadFileRow: React.FC<FileRowProps> = ({ item, icon: Icon, lang, onDownload, onDelete }) => {
+export const UploadFileRow: React.FC<FileRowProps> = ({ item, icon: Icon, lang, onDownload, onDelete, deleting = false }) => {
   const { t } = useTranslation();
   const badge = item.source === 'telegram' ? t('chat.files.from_telegram') : t('chat.files.uploaded_by_you');
   return (
@@ -169,9 +171,11 @@ export const UploadFileRow: React.FC<FileRowProps> = ({ item, icon: Icon, lang, 
       <button
         type="button"
         onClick={onDelete}
+        disabled={deleting}
+        aria-busy={deleting || undefined}
         aria-label={`${t('chat.files.delete')}: ${item.name}`}
         title={t('chat.files.delete')}
-        className="mr-2 mt-2.5 flex-shrink-0 rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600"
+        className="mr-2 mt-2.5 flex-shrink-0 rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-wait disabled:opacity-50"
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
       </button>

@@ -20,10 +20,12 @@ interface Props {
    * кнопки нет: просмотр картинки из ленты (ChatImageAttachment) ничего не удаляет.
    */
   onDelete?: (item: ChatFileItem) => void;
+  /** DELETE показанного файла в пути: «Удалить» disabled и aria-busy. */
+  deleting?: boolean;
 }
 
 /** Картинка или видео на весь экран: «Скачать», «Закрыть», стрелки и клавиатура. */
-const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, onDownload, onDelete }) => {
+const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, onDownload, onDelete, deleting = false }) => {
   const { t } = useTranslation();
   const item = items[index];
   const hasPrev = index > 0;
@@ -140,7 +142,9 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
           <button
             type="button"
             onClick={() => onDelete(item)}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+            disabled={deleting}
+            aria-busy={deleting || undefined}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10 disabled:cursor-wait disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
             {t('chat.files.delete')}

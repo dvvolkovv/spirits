@@ -110,12 +110,17 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
   // Удаление своей загрузки (DELETE /webhook/chat-uploads/:id через
   // deleteChatUpload). Замок по ключу: второе нажатие, пока первый запрос в
   // пути, не шлёт второй DELETE — тот ответил бы 404 и показал ложную ошибку.
+  // Ref — замок (два клика в одном тике state ещё не видят), state — для
+  // экрана: корзина и «Удалить» в просмотре на время запроса disabled и
+  // aria-busy.
   const deletingRef = useRef<Set<string>>(new Set());
+  const [deletingKeys, setDeletingKeys] = useState<ReadonlySet<string>>(new Set());
   const removeUpload = useCallback(
     async (it: ChatFileItem) => {
       if (!it.uploadId || deletingRef.current.has(it.key)) return;
       if (!window.confirm(t('chat.files.delete_confirm'))) return;
       deletingRef.current.add(it.key);
+      setDeletingKeys((prev) => new Set(prev).add(it.key));
       try {
         await deleteChatUpload(it.uploadId);
         setItems((prev) => (prev ? prev.filter((x) => x.key !== it.key) : prev));
@@ -132,6 +137,11 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
         toast.error(t('chat.files.delete_failed'));
       } finally {
         deletingRef.current.delete(it.key);
+        setDeletingKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(it.key);
+          return next;
+        });
       }
     },
     [t],
@@ -379,6 +389,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                               lang={lang}
                               onDownload={() => downloadUpload(it)}
                               onDelete={() => void removeUpload(it)}
+                              deleting={deletingKeys.has(it.key)}
                             />
                           );
                         }
@@ -453,6 +464,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
           }}
           onDownload={(kind) => onDownload?.(kind, 'viewer')}
           onDelete={(it) => void removeUpload(it)}
+          deleting={viewerKey !== null && deletingKeys.has(viewerKey)}
         />
       )}
     </div>
