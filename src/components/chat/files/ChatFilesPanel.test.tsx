@@ -431,9 +431,10 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
     origin: 'upload', source: 'web', note: 'Фото гостиной: решили перекрасить стены в серый', uploadId: 'u1',
     createdAt: '2026-10-06T10:00:00.000Z', messageId: 0,
   });
-  // Картинка без миниатюры (битый файл, сбой генерации) — превью берётся из оригинала.
+  // Картинка без миниатюры (битый файл, сбой генерации) — превью берётся из
+  // оригинала: он небольшой (3 МБ, до потолка плитки в 5 МБ).
   const UP_TG = f({
-    key: 'upload:u2', name: 'чек.png', url: '/webhook/chat-uploads/u2',
+    key: 'upload:u2', name: 'чек.png', url: '/webhook/chat-uploads/u2', sizeBytes: 3 * 1024 * 1024,
     origin: 'upload', source: 'telegram', note: null, uploadId: 'u2', createdAt: '2026-10-06T09:00:00.000Z', messageId: 0,
   });
   // PDF, который Маша разобрала через scan-document: source 'scan' — тоже «загрузили вы».
@@ -527,6 +528,22 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
     await settleBlobs();
     expect(container.querySelector('[data-testid="media-viewer-upload-file"]')).not.toBeNull();
     expect(uploadCalls()).toHaveLength(0);
+  });
+
+  it.each([
+    ['30 МБ', 30 * 1024 * 1024],
+    ['размер неизвестен', undefined],
+  ])('«Медиа»: картинка без миниатюры, %s, — значок с именем, оригинал ради плитки не тянем', async (_label, sizeBytes) => {
+    const BIG = f({
+      key: 'upload:b1', name: 'панорама.jpg', ext: 'jpg', url: '/webhook/chat-uploads/b1', sizeBytes,
+      origin: 'upload', source: 'web', note: null, uploadId: 'b1', createdAt: '2026-10-06T10:00:00.000Z', messageId: 0,
+    });
+    api.get.mockImplementation(routeGet([BIG]) as any);
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    expect(uploadCalls()).toHaveLength(0);
+    expect(container.querySelector('[role="tabpanel"] img')).toBeNull();
+    expect(container.querySelector('[data-testid="chat-files-upload-file"]')!.textContent).toContain('панорама.jpg');
   });
 
   it('превью качается, только когда плитка подошла к видимой области: 500 загрузок не тянутся разом', async () => {

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { apiClient } from '../../../services/apiClient';
 import {
-  BROWSER_IMAGE_EXTS, ChatFileItem, deleteChatUpload, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab,
-  thumbUrlFor, uploadTilePath, uploadViewerPath,
+  BROWSER_IMAGE_EXTS, ChatFileItem, TILE_ORIGINAL_MAX_BYTES, deleteChatUpload, fetchChatFiles, fileIconKind, groupByMonth,
+  splitTab, startTab, thumbUrlFor, uploadTilePath, uploadViewerPath,
 } from './chatFiles';
 
 vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn(), delete: vi.fn() } }));
@@ -193,5 +193,23 @@ describe('превью загрузки: uploadTilePath / uploadViewerPath', () 
   it('просмотр: формат не браузерный — миниатюра (TIFF), а без неё ничего (HEIC)', () => {
     expect(uploadViewerPath(up({ ext: 'tiff', thumbUrl: THUMB }))).toBe(THUMB);
     expect(uploadViewerPath(up({ ext: 'heic' }))).toBeUndefined();
+  });
+
+  // Плитка ~120 px: тянуть ради неё 30-мегабайтный оригинал нельзя (миниатюра
+  // не получилась — битый файл, сбой генерации). Размер шлёт бэк (sizeBytes).
+  it('плитка без миниатюры: оригинал только до 5 МБ; размер неизвестен — без превью', () => {
+    expect(TILE_ORIGINAL_MAX_BYTES).toBe(5 * 1024 * 1024);
+    expect(uploadTilePath(up({ ext: 'jpg', sizeBytes: 3 * 1024 * 1024 }))).toBe('/webhook/chat-uploads/u1');
+    expect(uploadTilePath(up({ ext: 'jpg', sizeBytes: TILE_ORIGINAL_MAX_BYTES }))).toBe('/webhook/chat-uploads/u1');
+    expect(uploadTilePath(up({ ext: 'jpg', sizeBytes: TILE_ORIGINAL_MAX_BYTES + 1 }))).toBeUndefined();
+    expect(uploadTilePath(up({ ext: 'jpg', sizeBytes: 30 * 1024 * 1024 }))).toBeUndefined();
+    expect(uploadTilePath(up({ ext: 'jpg' }))).toBeUndefined();
+    // Миниатюра есть — размер оригинала не важен.
+    expect(uploadTilePath(up({ ext: 'jpg', sizeBytes: 30 * 1024 * 1024, thumbUrl: THUMB }))).toBe(THUMB);
+  });
+
+  it('просмотр открывают нарочно — оригинал грузится при любом размере', () => {
+    expect(uploadViewerPath(up({ ext: 'jpg', sizeBytes: 30 * 1024 * 1024 }))).toBe('/webhook/chat-uploads/u1');
+    expect(uploadViewerPath(up({ ext: 'jpg' }))).toBe('/webhook/chat-uploads/u1');
   });
 });
