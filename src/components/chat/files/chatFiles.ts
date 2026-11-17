@@ -34,6 +34,8 @@ export interface ChatFileItem {
   note?: string | null;
   /** Только у загрузок: id для deleteChatUpload. */
   uploadId?: string;
+  /** Только у загрузок: байты оригинала — плитка без миниатюры тянет его, только если он небольшой. */
+  sizeBytes?: number;
 }
 
 export type FilesTab = 'media' | 'files';
@@ -127,12 +129,22 @@ const browserShows = (f: Pick<ChatFileItem, 'ext' | 'kind'>) =>
   f.kind === 'image' && BROWSER_IMAGE_EXTS.has((f.ext || '').toLowerCase());
 
 /**
+ * Потолок оригинала для плитки без миниатюры. Плитка ~120 px, а оригинал
+ * загрузки — до 100 МБ: больше потолка (или размер неизвестен) — значок файла.
+ */
+export const TILE_ORIGINAL_MAX_BYTES = 5 * 1024 * 1024;
+
+/**
  * Что плитка загрузки показывает превью: миниатюра (webp до 480 px), а у
- * картинки без неё — оригинал, если браузер его покажет. undefined — превью
- * нет: у видео тёмная плитка, у картинки — значок файла.
+ * картинки без неё — оригинал, если браузер его покажет и он не больше
+ * TILE_ORIGINAL_MAX_BYTES. undefined — превью нет: у видео тёмная плитка, у
+ * картинки — значок файла. Просмотр (uploadViewerPath) оригинал грузит всегда:
+ * его открывают нарочно.
  */
 export function uploadTilePath(f: ChatFileItem): string | undefined {
-  return f.thumbUrl ?? (browserShows(f) ? f.url : undefined);
+  if (f.thumbUrl) return f.thumbUrl;
+  const small = typeof f.sizeBytes === 'number' && f.sizeBytes <= TILE_ORIGINAL_MAX_BYTES;
+  return browserShows(f) && small ? f.url : undefined;
 }
 
 /**
