@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Download, File as FileIcon, Trash2, X } from 'lucide-react';
-import { uploadViewerPath, type ChatFileItem, type ChatFileKind } from './chatFiles';
+import { isUploadItem, uploadViewerPath, type ChatFileItem, type ChatFileKind } from './chatFiles';
 import { trapTab } from './focusTrap';
 import { openChatUpload } from '../chatUploads';
 import { useAuthedBlob } from './useAuthedBlobUrl';
@@ -39,7 +39,8 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
   // Загрузка пользователя лежит в приватном бакете: картинка с сырым адресом
   // без JWT получила бы 401, поэтому её берём через apiClient в blob.
   // Хук стоит до раннего return ниже: порядок хуков не должен зависеть от item.
-  const isUpload = item?.origin === 'upload';
+  // isUploadItem: origin 'upload' или приватный адрес без origin (защита).
+  const isUpload = !!item && isUploadItem(item);
   // Видео-загрузку (до 100 МБ) целиком в память браузера не тянем: вместо
   // плеера — название и «Скачать». Картинки идут в blob, они небольшие.
   const uploadVideo = isUpload && item?.kind === 'video';
@@ -138,7 +139,7 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
             {t('chat.files.download')}
           </a>
         )}
-        {isUpload && onDelete && (
+        {isUpload && onDelete && item.uploadId && (
           <button
             type="button"
             onClick={() => onDelete(item)}

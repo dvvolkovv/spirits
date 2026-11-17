@@ -10,7 +10,7 @@ import MediaViewer from './MediaViewer';
 import { UploadFileRow, UploadMediaTile } from './UploadItems';
 import {
   ChatFileItem, ChatFileKind, FileIconKind, FilesTab, deleteChatUpload, fetchChatFiles, fileIconKind, groupByMonth,
-  splitTab, startTab, thumbUrlFor,
+  isUploadItem, splitTab, startTab, thumbUrlFor,
 } from './chatFiles';
 import { openChatUpload } from '../chatUploads';
 import { trapTab } from './focusTrap';
@@ -319,7 +319,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                   {current === 'media' ? (
                     <div className="grid grid-cols-3 gap-1 px-1">
                       {g.items.map((it) =>
-                        it.origin === 'upload' ? (
+                        isUploadItem(it) ? (
                           <UploadMediaTile
                             key={it.key}
                             item={it}
@@ -382,7 +382,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                     <ul>
                       {g.items.map((it) => {
                         const Icon = ICONS[fileIconKind(it)];
-                        if (it.origin === 'upload') {
+                        if (isUploadItem(it)) {
                           return (
                             <UploadFileRow
                               key={it.key}

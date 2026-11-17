@@ -176,6 +176,8 @@ export const UploadFileRow: React.FC<FileRowProps> = ({ item, icon: Icon, lang, 
         </span>
         <Download className="h-4 w-4 flex-shrink-0 text-gray-400" aria-hidden="true" />
       </button>
+      {/* Без uploadId (ответ без поля) удалять нечем — кнопки нет, а не мёртвая. */}
+      {item.uploadId ? (
       <button
         type="button"
         onClick={onDelete}
@@ -187,6 +189,7 @@ export const UploadFileRow: React.FC<FileRowProps> = ({ item, icon: Icon, lang, 
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
       </button>
+      ) : null}
     </li>
   );
 };

@@ -40,6 +40,22 @@ export interface ChatFileItem {
 
 export type FilesTab = 'media' | 'files';
 
+/**
+ * Префикс приватной ручки загрузок. Тот же, что CHAT_UPLOAD_PREFIX в
+ * chatUploads.tsx; своя копия — чтобы этот модуль без React не тянул тот.
+ */
+const UPLOAD_URL_PREFIX = '/webhook/chat-uploads/';
+
+/**
+ * Загрузка пользователя: origin 'upload' или — защита на случай ответа без
+ * поля origin — приватный адрес загрузки. Такой адрес нельзя ставить в
+ * картинку или ссылку с href: браузер не пошлёт JWT и получит 401, поэтому
+ * показ всегда идёт веткой загрузок (blob и openChatUpload).
+ */
+export function isUploadItem(f: Pick<ChatFileItem, 'origin' | 'url'>): boolean {
+  return f.origin === 'upload' || !!f.url?.startsWith(UPLOAD_URL_PREFIX);
+}
+
 export async function fetchChatFiles(assistantId: string | number, freshTs?: string | null): Promise<ChatFileItem[]> {
   const fresh = freshTs ? `&freshTs=${encodeURIComponent(freshTs)}` : '';
   const res = await apiClient.get(`/webhook/chat/files?assistantId=${encodeURIComponent(String(assistantId))}${fresh}`);
