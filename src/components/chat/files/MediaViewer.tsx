@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Download, File as FileIcon, Trash2, X } from 'lucide-react';
 import { uploadViewerPath, type ChatFileItem, type ChatFileKind } from './chatFiles';
 import { trapTab } from './focusTrap';
 import { openChatUpload } from '../chatUploads';
-import { useAuthedBlobUrl } from './useAuthedBlobUrl';
+import { useAuthedBlob } from './useAuthedBlobUrl';
 
 interface Props {
   /** Только сохранённые медиа: у них есть адрес. */
@@ -44,8 +44,15 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
   // Оригинал, если браузер его покажет, иначе миниатюра (TIFF). Нет ни того,
   // ни другого (HEIC без миниатюры) — значок файла с именем и «Скачать».
   const uploadPath = isUpload && item && !uploadVideo ? uploadViewerPath(item) : undefined;
-  const uploadFileOnly = isUpload && !uploadVideo && !uploadPath;
-  const blobSrc = useAuthedBlobUrl(uploadPath);
+  const { url: blobSrc, failed: blobFailed } = useAuthedBlob(uploadPath);
+  // Картинка-загрузка, которую браузер не нарисовал (onError у <img>): битый
+  // файл или формат не тот, что в расширении. По ключу — у соседнего файла,
+  // открытого стрелкой, своя попытка.
+  const [brokenKey, setBrokenKey] = useState<string | null>(null);
+  // Загрузка не удалась (404, сеть) или картинка не нарисовалась — тоже значок
+  // с именем и «Скачать»: иначе индикатор крутился бы бесконечно.
+  const uploadFileOnly =
+    isUpload && !uploadVideo && (!uploadPath || blobFailed || (!!item && brokenKey === item.key));
   const mediaSrc = isUpload ? blobSrc : item?.url;
 
   // Один раз на открытие (не на каждую навигацию ← →): иначе «Закрыть»
@@ -167,8 +174,8 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
             <span className="max-w-full break-words text-center text-base">{item.name}</span>
           </div>
         ) : uploadFileOnly ? (
-          // Картинка, которую браузер не покажет (HEIC): значок файла с именем,
-          // скачать — кнопкой «Скачать» в шапке.
+          // Картинка, которую браузер не покажет (HEIC) или что не загрузилась:
+          // значок файла с именем, скачать — кнопкой «Скачать» в шапке.
           <div className="flex flex-col items-center gap-2 text-white" data-testid="media-viewer-upload-file">
             <FileIcon className="h-12 w-12 opacity-70" aria-hidden="true" />
             <span className="max-w-full break-words text-center text-base">{item.name}</span>
@@ -184,7 +191,12 @@ const MediaViewer: React.FC<Props> = ({ items, index, onIndexChange, onClose, on
         ) : item.kind === 'video' ? (
           <video key={item.key} src={mediaSrc} controls autoPlay className="max-h-full max-w-full" />
         ) : (
-          <img src={mediaSrc} alt={item.name} className="max-h-full max-w-full object-contain" />
+          <img
+            src={mediaSrc}
+            alt={item.name}
+            className="max-h-full max-w-full object-contain"
+            onError={isUpload ? () => setBrokenKey(item.key) : undefined}
+          />
         )}
         {hasPrev && (
           <button
