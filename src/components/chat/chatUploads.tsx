@@ -102,9 +102,21 @@ export async function openChatUpload(href: string, errorText: string, fileName?:
 // `\[финал\]` внутри имени не рвёт разбор, а «]» имени от «](адрес)» отличим.
 const UPLOAD_LINK_RE = /\[((?:[^\]\\]|\\.)*)\]\((\/webhook\/chat-uploads\/[^)\s]+)\)/g;
 
-/** Обратная к markdownEscapeName: `\\`→`\`, `\[`→`[`, `\]`→`]` в имени файла. */
+// Управляющие (Cc), форматные (Cf: RLO/LRI, ZWSP, BOM…) и разделители строк
+// и абзацев (Zl, Zp). Строка 📎 в истории остаётся сырой — бэк ищет её точным
+// совпадением при удалении, — поэтому чистим имя здесь, на показе.
+const INVISIBLE_IN_NAME_RE = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu;
+
+/**
+ * Обратная к markdownEscapeName: `\\`→`\`, `\[`→`[`, `\]`→`]` в имени файла,
+ * затем без невидимых символов и пробелов по краям. Имя идёт и в пузырь, и в
+ * a.download: RLO иначе развернёт расширение и на экране, и у сохранённого
+ * файла («invoice<RLO>gpj.exe» выглядит как …exe.jpg). Если от имени ничего не
+ * осталось — отдаём расэкранированное как есть, а не пустую ссылку.
+ */
 function unescapeFileName(raw: string): string {
-  return raw.replace(/\\([\\[\]])/g, '$1');
+  const unescaped = raw.replace(/\\([\\[\]])/g, '$1');
+  return unescaped.replace(INVISIBLE_IN_NAME_RE, '').trim() || unescaped;
 }
 
 /**
