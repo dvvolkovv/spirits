@@ -1,0 +1,119 @@
+// src/components/chat/files/useAuthedBlobUrl.test.tsx
+// @vitest-environment jsdom
+//
+// Приватные загрузки (/webhook/chat-uploads/:id и …/thumb) отдаются только
+// владельцу по JWT, а <img src> заголовок Authorization не шлёт. Хук забирает
+// байты через apiClient и отдаёт blob:-адрес. Здесь проверяется, что адрес
+// появляется только после ответа, не появляется при ошибке и всегда
+// отзывается.
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount, flush, actAsync } from '../../../test/dom';
+import { apiClient } from '../../../services/apiClient';
+import { useAuthedBlobUrl } from './useAuthedBlobUrl';
+
+vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn() } }));
+const api = vi.mocked(apiClient);
+
+function Probe({ path, enabled }: { path?: string; enabled?: boolean }) {
+  const src = useAuthedBlobUrl(path, enabled);
+  return <span data-testid="probe" data-src={src ?? ''} />;
+}
+const srcOf = (c: HTMLElement) => c.querySelector('[data-testid="probe"]')!.getAttribute('data-src');
+const blobRes = () => ({ ok: true, status: 200, blob: async () => new Blob(['x'], { type: 'image/webp' }) }) as any;
+const settle = async () => { await flush(); await flush(); };
+
+/** Ответ, который приходит по команде теста: так ловится состояние «файл ещё едет». */
+function deferred() {
+  let resolve!: (v: unknown) => void;
+  const promise = new Promise((r) => { resolve = r; });
+  return { promise, resolve };
+}
+
+const THUMB = '/webhook/chat-uploads/11111111-1111-4111-8111-111111111111/thumb';
+const OTHER = '/webhook/chat-uploads/22222222-2222-4222-8222-222222222222/thumb';
+
+let created = 0;
+beforeEach(() => {
+  vi.clearAllMocks();
+  created = 0;
+  // jsdom не реализует object URL (как в uploadMemory.test.tsx).
+  (URL as unknown as Record<string, unknown>).createObjectURL = vi.fn(() => `blob:mock-${++created}`);
+  (URL as unknown as Record<string, unknown>).revokeObjectURL = vi.fn();
+});
+
+describe('useAuthedBlobUrl', () => {
+  it('пока файл едет — пусто; после ответа — blob-адрес; запрос идёт через apiClient (он ставит Bearer)', async () => {
+    const d = deferred();
+    api.get.mockReturnValue(d.promise as any);
+    const { container } = mount(<Probe path={THUMB} />);
+    expect(srcOf(container)).toBe('');
+    expect(api.get).toHaveBeenCalledWith(THUMB, expect.objectContaining({ signal: expect.any(AbortSignal) }));
+
+    await actAsync(() => { d.resolve(blobRes()); });
+    await settle();
+    expect(srcOf(container)).toBe('blob:mock-1');
+  });
+
+  it('ответ не 2xx (чужой или удалённый файл — 404) — пусто, blob-адрес не создаётся', async () => {
+    api.get.mockResolvedValue({ ok: false, status: 404, blob: vi.fn() } as any);
+    const { container } = mount(<Probe path={THUMB} />);
+    await settle();
+    expect(srcOf(container)).toBe('');
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+
+  it('сеть упала — пусто, исключение наружу не выходит', async () => {
+    api.get.mockRejectedValue(new Error('network'));
+    const { container } = mount(<Probe path={THUMB} />);
+    await settle();
+    expect(srcOf(container)).toBe('');
+  });
+
+  it('без адреса или с enabled=false — запроса нет', async () => {
+    const a = mount(<Probe path={undefined} />);
+    const b = mount(<Probe path={THUMB} enabled={false} />);
+    await settle();
+    expect(api.get).not.toHaveBeenCalled();
+    expect(srcOf(a.container)).toBe('');
+    expect(srcOf(b.container)).toBe('');
+  });
+
+  it('смена адреса отзывает прежний blob и не показывает его, пока едет новый', async () => {
+    api.get.mockResolvedValueOnce(blobRes());
+    const { container, rerender } = mount(<Probe path={THUMB} />);
+    await settle();
+    expect(srcOf(container)).toBe('blob:mock-1');
+
+    const d = deferred();
+    api.get.mockReturnValueOnce(d.promise as any);
+    rerender(<Probe path={OTHER} />);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-1');
+    expect(srcOf(container)).toBe('');
+
+    await actAsync(() => { d.resolve(blobRes()); });
+    await settle();
+    expect(srcOf(container)).toBe('blob:mock-2');
+  });
+
+  it('размонтирование отзывает blob-адрес', async () => {
+    api.get.mockResolvedValue(blobRes());
+    const { container, unmount } = mount(<Probe path={THUMB} />);
+    await settle();
+    expect(srcOf(container)).toBe('blob:mock-1');
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-1');
+  });
+
+  it('ответ после размонтирования: запрос отменён, blob-адрес не создаётся (утекать нечему)', async () => {
+    const d = deferred();
+    api.get.mockReturnValue(d.promise as any);
+    const { unmount } = mount(<Probe path={THUMB} />);
+    const signal = (api.get.mock.calls[0][1] as { signal: AbortSignal }).signal;
+    unmount();
+    expect(signal.aborted).toBe(true);
+
+    await actAsync(() => { d.resolve(blobRes()); });
+    await settle();
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+  });
+});
