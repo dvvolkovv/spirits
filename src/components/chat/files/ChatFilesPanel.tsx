@@ -118,7 +118,9 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
   const removeUpload = useCallback(
     async (it: ChatFileItem) => {
       if (!it.uploadId || deletingRef.current.has(it.key)) return;
-      if (!window.confirm(t('chat.files.delete_confirm'))) return;
+      // Имя в вопросе: в длинном списке легко нажать не ту корзину. Подставляется
+      // как есть (escapeValue: false), window.confirm — простой текст.
+      if (!window.confirm(t('chat.files.delete_confirm', { name: it.name }))) return;
       deletingRef.current.add(it.key);
       setDeletingKeys((prev) => new Set(prev).add(it.key));
       try {

@@ -480,7 +480,7 @@
       "uploaded_by_you": "Carregado por si",
       "from_telegram": "Do Telegram",
       "delete": "Eliminar",
-      "delete_confirm": "Eliminar o ficheiro? Os assistentes deixarão de poder abri-lo.",
+      "delete_confirm": "Eliminar «{{name}}»? Os assistentes deixarão de poder abri-lo.",
       "delete_failed": "Não foi possível eliminar o ficheiro. Tente novamente.",
       "note_label": "Comentário do assistente"
     }

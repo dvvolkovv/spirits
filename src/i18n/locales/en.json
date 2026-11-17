@@ -477,7 +477,7 @@
       "uploaded_by_you": "Uploaded by you",
       "from_telegram": "From Telegram",
       "delete": "Delete",
-      "delete_confirm": "Delete this file? Assistants will no longer be able to open it.",
+      "delete_confirm": "Delete \"{{name}}\"? Assistants will no longer be able to open it.",
       "delete_failed": "Couldn't delete the file. Please try again.",
       "note_label": "Assistant's comment"
     }

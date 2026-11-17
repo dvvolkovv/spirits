@@ -474,7 +474,7 @@
       "uploaded_by_you": "由你上传",
       "from_telegram": "来自 Telegram",
       "delete": "删除",
-      "delete_confirm": "删除此文件？删除后助手将无法再打开它。",
+      "delete_confirm": "删除「{{name}}」？删除后助手将无法再打开它。",
       "delete_failed": "无法删除文件，请再试一次。",
       "note_label": "助手备注"
     }

@@ -477,7 +477,7 @@
       "uploaded_by_you": "Von dir hochgeladen",
       "from_telegram": "Aus Telegram",
       "delete": "Löschen",
-      "delete_confirm": "Datei löschen? Assistenten können sie dann nicht mehr öffnen.",
+      "delete_confirm": "„{{name}}“ löschen? Assistenten können die Datei dann nicht mehr öffnen.",
       "delete_failed": "Die Datei konnte nicht gelöscht werden. Bitte versuch es noch mal.",
       "note_label": "Kommentar des Assistenten"
     }
