@@ -656,7 +656,9 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
 
     await clickAsync(delBtn(container, 'договор.pdf')!);
     await settle();
-    expect(window.confirm).toHaveBeenCalledWith(tRu('chat.files.delete_confirm'));
+    // Подтверждение называет файл: в длинном списке легко нажать не ту корзину.
+    expect(window.confirm).toHaveBeenCalledWith(tRu('chat.files.delete_confirm', { name: 'договор.pdf' }));
+    expect(vi.mocked(window.confirm).mock.calls[0][0]).toContain('договор.pdf');
     expect(deleteChatUpload).toHaveBeenCalledWith('u3');
     expect(visibleText(container)).not.toContain('договор.pdf');
     expect(visibleText(container)).toContain(tRu('chat.files.empty_files'));

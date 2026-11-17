@@ -46,6 +46,8 @@ describe('тексты панели «Медиа и файлы»', () => {
         if (name !== 'ru') expect(v, `${name}: chat.files.${k}`).not.toMatch(/[Ѐ-ӿ]/);
       }
       expect(loc.chat.files.unsaved).toContain('{{n}}');
+      // Подтверждение называет файл: иначе в длинном списке легко удалить не тот.
+      expect(loc.chat.files.delete_confirm).toContain('{{name}}');
     });
 
     it(`${name}: пустая вкладка «Файлы» говорит и о загрузках пользователя`, () => {
@@ -59,7 +61,7 @@ describe('тексты панели «Медиа и файлы»', () => {
       uploaded_by_you: 'Загрузили вы',
       from_telegram: 'Из Telegram',
       delete: 'Удалить',
-      delete_confirm: 'Удалить файл? Ассистенты больше не смогут его открыть.',
+      delete_confirm: 'Удалить «{{name}}»? Ассистенты больше не смогут его открыть.',
       delete_failed: 'Не удалось удалить файл. Попробуйте ещё раз.',
       note_label: 'Комментарий ассистента',
     });
@@ -96,7 +98,7 @@ describe('тексты панели «Медиа и файлы»', () => {
       uploaded_by_you: 'Carregado por si',
       from_telegram: 'Do Telegram',
       delete: 'Eliminar',
-      delete_confirm: 'Eliminar o ficheiro? Os assistentes deixarão de poder abri-lo.',
+      delete_confirm: 'Eliminar «{{name}}»? Os assistentes deixarão de poder abri-lo.',
       delete_failed: 'Não foi possível eliminar o ficheiro. Tente novamente.',
       note_label: 'Comentário do assistente',
     });
