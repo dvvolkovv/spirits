@@ -2,6 +2,61 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '../../../services/apiClient';
 
 /**
+ * Сколько blob-запросов идёт разом. Панель с сотнями загрузок иначе забила бы
+ * все соединения браузера (их около 6 на хост) превью, и запросы самого чата
+ * ждали бы в общей очереди. Кэш браузера тут не помогает: бэк отдаёт файлы с
+ * no-store (общие устройства), поэтому очередь — своя.
+ */
+const MAX_IN_FLIGHT = 6;
+
+interface Job {
+  run: () => Promise<void>;
+  signal: AbortSignal;
+  onAbort: () => void;
+}
+
+let inFlight = 0;
+const waiting: Job[] = [];
+
+/** Запуск занимает место; освобождается оно в finally при любом исходе. */
+async function start(run: () => Promise<void>): Promise<void> {
+  inFlight += 1;
+  try {
+    await run();
+  } finally {
+    inFlight -= 1;
+    const next = waiting.shift();
+    if (next) {
+      next.signal.removeEventListener('abort', next.onAbort);
+      void start(next.run);
+    }
+  }
+}
+
+/**
+ * Свободно место — запрос стартует сразу (синхронно), иначе ждёт в очереди.
+ * Отменённый до старта (плитка ушла) места не занимает: из очереди он
+ * снимается, а уже отменённый в неё не встаёт.
+ */
+function schedule(signal: AbortSignal, run: () => Promise<void>): void {
+  if (signal.aborted) return;
+  if (inFlight < MAX_IN_FLIGHT) {
+    void start(run);
+    return;
+  }
+  const job: Job = {
+    run,
+    signal,
+    onAbort: () => {
+      const i = waiting.indexOf(job);
+      if (i >= 0) waiting.splice(i, 1);
+    },
+  };
+  signal.addEventListener('abort', job.onAbort, { once: true });
+  waiting.push(job);
+}
+
+/**
  * Приватный файл (загрузка пользователя или её миниатюра) как адрес для
  * <img>/<video>.
  *
@@ -23,8 +78,10 @@ export function useAuthedBlobUrl(path: string | undefined, enabled = true): stri
     let objectUrl: string | null = null;
     // Отмена нужна ради видео: просмотр закрыли — недокачанные мегабайты не тянем.
     const controller = new AbortController();
-    void (async () => {
+    schedule(controller.signal, async () => {
       try {
+        // Ушли, пока ждали очереди, — запрос не шлём.
+        if (cancelled) return;
         const res = await apiClient.get(path, { signal: controller.signal });
         if (!res.ok) return;
         const blob = await res.blob();
@@ -35,7 +92,7 @@ export function useAuthedBlobUrl(path: string | undefined, enabled = true): stri
       } catch {
         // Сеть, отмена, протухший вход — превью просто нет, вызывающий рисует значок.
       }
-    })();
+    });
     return () => {
       cancelled = true;
       controller.abort();
