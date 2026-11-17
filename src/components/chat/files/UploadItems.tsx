@@ -13,8 +13,9 @@ import { useAuthedBlobUrl } from './useAuthedBlobUrl';
  * здесь нет ни картинок с сырым адресом, ни ссылок с href. Каждая плитка —
  * свой компонент: хук нельзя звать внутри map.
  *
- * Имена и комментарии личные: от Вебвизора их прячет ym-hide-content на корне
- * панели, внутри которого плитки только и рисуются (webvisorPrivacy.test.ts).
+ * Имена, превью и комментарии личные: ym-hide-content стоит на самих плитке и
+ * строке (а не только на корне панели), чтобы Вебвизор их не записал, где бы
+ * их ни нарисовали (webvisorPrivacy.test.ts).
  *
  * Что показывать превью, решают uploadTilePath/uploadViewerPath (chatFiles.ts):
  * в этом файле — только компоненты (правило react-refresh).
@@ -71,7 +72,7 @@ export const UploadMediaTile: React.FC<MediaTileProps> = ({ item, onOpen, onDown
   const [broken, setBroken] = useState(false);
   const badge = item.source === 'telegram' ? t('chat.files.from_telegram') : t('chat.files.uploaded_by_you');
   return (
-    <div ref={ref} className="flex min-w-0 flex-col" data-testid="chat-files-upload-tile">
+    <div ref={ref} className="ym-hide-content flex min-w-0 flex-col" data-testid="chat-files-upload-tile">
       <button
         type="button"
         onClick={(e) => onOpen(e.currentTarget)}
@@ -144,7 +145,7 @@ export const UploadFileRow: React.FC<FileRowProps> = ({ item, icon: Icon, lang, 
   const { t } = useTranslation();
   const badge = item.source === 'telegram' ? t('chat.files.from_telegram') : t('chat.files.uploaded_by_you');
   return (
-    <li className="flex items-start" data-testid="chat-files-upload-row">
+    <li className="ym-hide-content flex items-start" data-testid="chat-files-upload-row">
       <button
         type="button"
         onClick={onDownload}

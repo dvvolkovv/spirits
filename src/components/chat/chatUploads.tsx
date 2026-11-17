@@ -76,6 +76,9 @@ export async function openChatUpload(href: string, errorText: string, fileName?:
     const name = fileName || fileNameFromHeaders(response);
     if (name) a.download = name;
     a.rel = 'noopener';
+    // На миг в body с именем файла: мимо записи Вебвизора и «Внешних
+    // переходов» Метрики, как ссылки переписки (webvisorPrivacy.test.ts).
+    a.className = 'ym-hide-content ym-disable-tracklink';
     a.style.display = 'none';
     document.body.appendChild(a);
     try {
