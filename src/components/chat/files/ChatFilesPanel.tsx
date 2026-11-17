@@ -69,6 +69,12 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
   // currentTarget клика, список плиток между открытием и закрытием не меняется.
   const lastTileRef = useRef<HTMLButtonElement | null>(null);
 
+  // Вкладка — прокручиваемый контейнер плиток: корень IntersectionObserver у
+  // загрузок (UploadItems.tsx), чтобы запас «подошла к видимой области»
+  // считался от неё, а не от окна. State, а не ref: плиткам нужен перерендер,
+  // когда элемент появился.
+  const [tabpanelEl, setTabpanelEl] = useState<HTMLDivElement | null>(null);
+
   // Фокус-ловушка: без неё Tab после открытия панели уходит на кнопки под
   // подложкой («Перегенерировать» и т. п.), а Enter там — например, сбрасывает
   // последний ответ и шлёт запрос заново, тратя токены.
@@ -246,6 +252,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
         </div>
 
         <div
+          ref={setTabpanelEl}
           role="tabpanel"
           id={TABPANEL_ID}
           // tab, не current: до первого ответа API ни одна вкладка не выбрана
@@ -292,6 +299,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                               setViewerIndex(media.stored.indexOf(it));
                             }}
                             onDownload={() => downloadUpload(it)}
+                            scrollRoot={tabpanelEl}
                           />
                         ) : (
                         <button

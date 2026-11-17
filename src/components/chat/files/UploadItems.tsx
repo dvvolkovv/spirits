@@ -20,8 +20,13 @@ import { useAuthedBlobUrl } from './useAuthedBlobUrl';
  * в этом файле — только компоненты (правило react-refresh).
  */
 
-/** Плитка у видимой области (с запасом 200px): до этого превью не качаем. */
-function useNearViewport<T extends Element>(): [React.RefObject<T>, boolean] {
+/**
+ * Плитка у видимой области (с запасом 200px): до этого превью не качаем.
+ * root — прокручиваемый контейнер (вкладка панели): с корнем по умолчанию
+ * (окно) запас не работал бы, ведь прокручивается не окно. Пока контейнера
+ * нет, корень — окно.
+ */
+function useNearViewport<T extends Element>(root: Element | null): [React.RefObject<T>, boolean] {
   const ref = useRef<T>(null);
   // Без IntersectionObserver (jsdom, старые WebView) качаем сразу.
   const [near, setNear] = useState(() => typeof IntersectionObserver === 'undefined');
@@ -36,11 +41,11 @@ function useNearViewport<T extends Element>(): [React.RefObject<T>, boolean] {
           io.disconnect();
         }
       },
-      { rootMargin: '200px' },
+      { root, rootMargin: '200px' },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [near]);
+  }, [near, root]);
   return [ref, near];
 }
 
@@ -50,12 +55,14 @@ interface MediaTileProps {
   onOpen: (tile: HTMLButtonElement) => void;
   /** «Скачать» у картинки без превью (HEIC; большой оригинал без миниатюры). */
   onDownload: () => void;
+  /** Прокручиваемый контейнер плиток — корень IntersectionObserver. */
+  scrollRoot?: Element | null;
 }
 
 /** Плитка «Медиа»: превью из blob, пометка источника, комментарий в две строки. */
-export const UploadMediaTile: React.FC<MediaTileProps> = ({ item, onOpen, onDownload }) => {
+export const UploadMediaTile: React.FC<MediaTileProps> = ({ item, onOpen, onDownload, scrollRoot = null }) => {
   const { t } = useTranslation();
-  const [ref, near] = useNearViewport<HTMLDivElement>();
+  const [ref, near] = useNearViewport<HTMLDivElement>(scrollRoot);
   const previewPath = uploadTilePath(item);
   // Картинка без превью — значок файла с именем, как у документа, и «Скачать».
   const fileOnly = item.kind === 'image' && !previewPath;
