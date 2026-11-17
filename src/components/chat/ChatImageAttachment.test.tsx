@@ -15,6 +15,11 @@ vi.mock('react-i18next', async () => {
   const { tRu: t } = await import('../../test/dom');
   return { useTranslation: () => ({ t }) };
 });
+// MediaViewer тянет apiClient (просмотр загрузок через useAuthedBlobUrl и
+// openChatUpload). Без мока импорт настоящего apiClient поднимает
+// src/i18n/index.ts, а тот зовёт initReactI18next, которого в моке
+// react-i18next выше нет, — тест падал бы на импорте.
+vi.mock('../../services/apiClient', () => ({ apiClient: { get: vi.fn() } }));
 
 const props = {
   url: 'https://my.linkeon.io/smm-media/linkeon-chat-files/k/a.jpg',

@@ -1,16 +1,28 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
-import { mount, flush, click, clickAsync, byButton, byLink, visibleText, tRu } from '../../../test/dom';
+import toast from 'react-hot-toast';
+import { mount, flush, click, clickAsync, doubleClick, actAsync, byButton, byLink, visibleText, tRu } from '../../../test/dom';
 import ChatFilesPanel from './ChatFilesPanel';
 import { apiClient } from '../../../services/apiClient';
-import type { ChatFileItem } from './chatFiles';
+import { deleteChatUpload, type ChatFileItem } from './chatFiles';
+import { openChatUpload } from '../chatUploads';
 
 vi.mock('react-i18next', async () => {
   const { tRu: t } = await import('../../../test/dom');
   return { useTranslation: () => ({ t, i18n: { language: 'ru' } }) };
 });
 vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn() } }));
+// Удаление загрузки — deleteChatUpload из chatFiles.ts (задача C2), его HTTP
+// проверяет chatFiles.test.ts. Здесь важен исход для панели.
+vi.mock('./chatFiles', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./chatFiles')>()),
+  deleteChatUpload: vi.fn(),
+}));
+// Скачивание приватного файла с JWT проверяет uploadMemory.test.tsx; здесь —
+// что панель и просмотр идут именно через него, а не через ссылку с href.
+vi.mock('../chatUploads', () => ({ openChatUpload: vi.fn() }));
+vi.mock('react-hot-toast', () => ({ default: { error: vi.fn() } }));
 const api = vi.mocked(apiClient);
 
 const ok = (items: ChatFileItem[]) => ({ ok: true, json: async () => ({ items }) }) as any;
@@ -162,14 +174,19 @@ describe('ChatFilesPanel', () => {
     expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).not.toBeNull();
   });
 
-  it('картинка без thumbPath — сразу оригинал', async () => {
+  // Уточнено с приходом загрузок (C4): «сразу оригинал по адресу» — только у
+  // файлов ассистента (публичный бакет). Загрузки пользователя идут через blob
+  // с JWT — describe «загрузки пользователя» ниже.
+  it('картинка ассистента без thumbPath — сразу оригинал по публичному адресу, без запроса за blob', async () => {
     api.get.mockResolvedValue(ok([f({ key: 'i1', name: 'i1.png', url: 'https://pub/i1.png' })]));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
     await settle();
     expect(container.querySelector('[role="tabpanel"] img')!.getAttribute('src')).toBe('https://pub/i1.png');
+    // Единственный запрос — сам список; превью ассистента браузер берёт сам.
+    expect(api.get).toHaveBeenCalledTimes(1);
   });
 
-  it('файл скачивается по ссылке под своим именем', async () => {
+  it('файл ассистента скачивается по публичной ссылке под своим именем', async () => {
     api.get.mockResolvedValue(ok(ITEMS));
     const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
     await settle();
@@ -405,5 +422,247 @@ describe('ChatFilesPanel', () => {
       addSpy.mockRestore();
       removeSpy.mockRestore();
     }
+  });
+});
+
+describe('ChatFilesPanel — загрузки пользователя', () => {
+  const UP_IMG = f({
+    key: 'upload:u1', name: 'гостиная.jpg', ext: 'jpg', url: '/webhook/chat-uploads/u1', thumbUrl: '/webhook/chat-uploads/u1/thumb',
+    origin: 'upload', source: 'web', note: 'Фото гостиной: решили перекрасить стены в серый', uploadId: 'u1',
+    createdAt: '2026-10-06T10:00:00.000Z', messageId: 0,
+  });
+  // Картинка без миниатюры (битый файл, сбой генерации) — превью берётся из оригинала.
+  const UP_TG = f({
+    key: 'upload:u2', name: 'чек.png', url: '/webhook/chat-uploads/u2',
+    origin: 'upload', source: 'telegram', note: null, uploadId: 'u2', createdAt: '2026-10-06T09:00:00.000Z', messageId: 0,
+  });
+  // PDF, который Маша разобрала через scan-document: source 'scan' — тоже «загрузили вы».
+  const UP_DOC = f({
+    key: 'upload:u3', kind: 'document', ext: 'pdf', name: 'договор.pdf', url: '/webhook/chat-uploads/u3',
+    origin: 'upload', source: 'scan', note: 'Договор аренды, срок до мая', uploadId: 'u3',
+    createdAt: '2026-10-06T08:00:00.000Z', messageId: 0,
+  });
+  const UPLOADS = [UP_IMG, UP_TG, UP_DOC];
+  /** Список панели — JSON; всё остальное (миниатюры и оригиналы загрузок) — байты. */
+  const routeGet = (items: ChatFileItem[]) => (url: string) =>
+    Promise.resolve(
+      url.startsWith('/webhook/chat/files')
+        ? ok(items)
+        : ({ ok: true, status: 200, blob: async () => new Blob(['x'], { type: 'image/webp' }) } as any),
+    );
+  // Список, затем запрос за каждым превью и его тело — цепочка длиннее, чем у settle().
+  const settleBlobs = async () => { await settle(); await settle(); };
+  const delBtn = (c: ParentNode, name: string) =>
+    c.querySelector(`button[aria-label="${tRu('chat.files.delete')}: ${name}"]`) as HTMLButtonElement | null;
+  const imageTile = (c: ParentNode, name: string) =>
+    c.querySelector(`button[aria-label="${tRu('chat.files.image')}: ${name}"]`) as HTMLButtonElement | null;
+  /** Запросы к приватным адресам загрузок (миниатюры и оригиналы), без списка. */
+  const uploadCalls = () => api.get.mock.calls.filter(([u]) => String(u).startsWith('/webhook/chat-uploads/'));
+
+  let blobs = 0;
+  beforeEach(() => {
+    // reset, а не clear: тесты выше оставляют на api.get реализации
+    // (mockResolvedValue и т.п.), а здесь каждый тест ставит свою маршрутизацию.
+    vi.resetAllMocks();
+    blobs = 0;
+    // jsdom не реализует object URL (как в uploadMemory.test.tsx).
+    (URL as unknown as Record<string, unknown>).createObjectURL = vi.fn(() => `blob:panel-${++blobs}`);
+    (URL as unknown as Record<string, unknown>).revokeObjectURL = vi.fn();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+  afterEach(() => {
+    vi.mocked(window.confirm).mockRestore();
+  });
+
+  it('«Медиа»: превью из blob (миниатюра, у картинки без неё — оригинал), пометка источника, комментарий в две строки', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    expect(tab(container, 'chat.files.tab_media').textContent).toBe(`${tRu('chat.files.tab_media')} · 2`);
+    expect(api.get).toHaveBeenCalledWith('/webhook/chat-uploads/u1/thumb', expect.anything());
+    expect(api.get).toHaveBeenCalledWith('/webhook/chat-uploads/u2', expect.anything());
+    // Миниатюра есть — оригинал (до 100 МБ) ради плитки не тянем.
+    expect(api.get).not.toHaveBeenCalledWith('/webhook/chat-uploads/u1', expect.anything());
+
+    const imgs = Array.from(container.querySelectorAll('[role="tabpanel"] img'));
+    expect(imgs).toHaveLength(2);
+    for (const im of imgs) expect(im.getAttribute('src')).toMatch(/^blob:panel-/);
+    // <img src> на приватный адрес получил бы 401: браузер не шлёт JWT.
+    expect(container.querySelector('img[src*="/webhook/chat-uploads/"]')).toBeNull();
+
+    const text = visibleText(container);
+    expect(text).toContain(tRu('chat.files.uploaded_by_you'));
+    expect(text).toContain(tRu('chat.files.from_telegram'));
+    const note = container.querySelector('[data-testid="chat-files-note"]')!;
+    expect(note.textContent).toBe('Фото гостиной: решили перекрасить стены в серый');
+    expect(note.classList.contains('line-clamp-2')).toBe(true);
+    // block вместе с line-clamp-2 не работает: block в CSS идёт позже (CallSessionItem.test.tsx).
+    expect(note.classList.contains('block')).toBe(false);
+  });
+
+  // Поправка после ревью B1: картинка, которую браузер не покажет (HEIC с
+  // айфона, BMP), миниатюры не получает. Оригинал в blob ради «битой
+  // картинки» не тянем — значок файла с именем и «Скачать», как у документа.
+  it('«Медиа»: HEIC без миниатюры — значок с именем и «Скачать», ни одного запроса к /webhook/chat-uploads/', async () => {
+    const UP_HEIC = f({
+      key: 'upload:h1', name: 'IMG_0001.heic', ext: 'heic', url: '/webhook/chat-uploads/h1',
+      origin: 'upload', source: 'web', note: null, uploadId: 'h1', createdAt: '2026-10-06T10:00:00.000Z', messageId: 0,
+    });
+    api.get.mockImplementation(routeGet([UP_HEIC]) as any);
+    const onDownload = vi.fn();
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} onDownload={onDownload} />);
+    await settleBlobs();
+    expect(uploadCalls()).toHaveLength(0);
+    expect(container.querySelector('[role="tabpanel"] img')).toBeNull();
+    const file = container.querySelector('[data-testid="chat-files-upload-file"]')!;
+    expect(file.querySelector('svg')).not.toBeNull();
+    expect(file.textContent).toContain('IMG_0001.heic');
+
+    click(byButton(container, new RegExp(tRu('chat.files.download')))!);
+    expect(openChatUpload).toHaveBeenCalledWith('/webhook/chat-uploads/h1', tRu('chat.upload_download_error'), 'IMG_0001.heic');
+    expect(onDownload).toHaveBeenCalledWith('image', 'list');
+
+    // Просмотр такой картинки — тот же значок, а не запрос оригинала.
+    click(imageTile(container, 'IMG_0001.heic')!);
+    await settleBlobs();
+    expect(container.querySelector('[data-testid="media-viewer-upload-file"]')).not.toBeNull();
+    expect(uploadCalls()).toHaveLength(0);
+  });
+
+  it('превью качается, только когда плитка подошла к видимой области: 500 загрузок не тянутся разом', async () => {
+    const seen: { cb: IntersectionObserverCallback; target: Element | null }[] = [];
+    class FakeIO {
+      private rec: { cb: IntersectionObserverCallback; target: Element | null };
+      constructor(cb: IntersectionObserverCallback) {
+        this.rec = { cb, target: null };
+        seen.push(this.rec);
+      }
+      observe(el: Element) { this.rec.target = el; }
+      unobserve() {}
+      disconnect() {}
+      takeRecords() { return []; }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeIO);
+    try {
+      api.get.mockImplementation(routeGet([UP_IMG, UP_TG]) as any);
+      const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+      await settleBlobs();
+      expect(api.get).toHaveBeenCalledTimes(1);
+      expect(container.querySelector('[role="tabpanel"] img')).toBeNull();
+
+      // Первая плитка (гостиная.jpg) доехала до видимой области, вторая — нет.
+      const first = seen[0];
+      act(() => {
+        first.cb([{ isIntersecting: true, target: first.target } as unknown as IntersectionObserverEntry], {} as IntersectionObserver);
+      });
+      await settleBlobs();
+      expect(api.get).toHaveBeenCalledWith('/webhook/chat-uploads/u1/thumb', expect.anything());
+      expect(api.get).not.toHaveBeenCalledWith('/webhook/chat-uploads/u2', expect.anything());
+      expect(container.querySelectorAll('[role="tabpanel"] img')).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('«Файлы»: скачивание через openChatUpload (JWT), пометка и комментарий; ссылок с href на приватный адрес нет', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    const onDownload = vi.fn();
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} onDownload={onDownload} />);
+    await settleBlobs();
+    click(tab(container, 'chat.files.tab_files'));
+    const text = visibleText(container);
+    expect(text).toContain('договор.pdf');
+    expect(text).toContain('Договор аренды, срок до мая');
+    expect(text).toContain(tRu('chat.files.uploaded_by_you'));
+    expect(container.querySelector('a[href^="/webhook/chat-uploads/"]')).toBeNull();
+
+    click(byButton(container, /договор\.pdf/)!);
+    expect(openChatUpload).toHaveBeenCalledWith('/webhook/chat-uploads/u3', tRu('chat.upload_download_error'), 'договор.pdf');
+    expect(onDownload).toHaveBeenCalledWith('document', 'list');
+  });
+
+  it('удаление: подтверждение → DELETE → строка пропадает, «Медиа» не задеты', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    vi.mocked(deleteChatUpload).mockResolvedValue(undefined);
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    click(tab(container, 'chat.files.tab_files'));
+
+    await clickAsync(delBtn(container, 'договор.pdf')!);
+    await settle();
+    expect(window.confirm).toHaveBeenCalledWith(tRu('chat.files.delete_confirm'));
+    expect(deleteChatUpload).toHaveBeenCalledWith('u3');
+    expect(visibleText(container)).not.toContain('договор.pdf');
+    expect(visibleText(container)).toContain(tRu('chat.files.empty_files'));
+    expect(tab(container, 'chat.files.tab_media').textContent).toBe(`${tRu('chat.files.tab_media')} · 2`);
+  });
+
+  it('отказ в подтверждении — запроса нет, файл на месте', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    vi.mocked(window.confirm).mockReturnValue(false);
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    click(tab(container, 'chat.files.tab_files'));
+
+    await clickAsync(delBtn(container, 'договор.pdf')!);
+    await settle();
+    expect(deleteChatUpload).not.toHaveBeenCalled();
+    expect(visibleText(container)).toContain('договор.pdf');
+  });
+
+  it('сбой удаления (502) — файл остаётся, тост «не удалось удалить»', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    vi.mocked(deleteChatUpload).mockRejectedValue(new Error('chat upload delete: HTTP 502'));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    click(tab(container, 'chat.files.tab_files'));
+
+    await clickAsync(delBtn(container, 'договор.pdf')!);
+    await settle();
+    expect(toast.error).toHaveBeenCalledWith(tRu('chat.files.delete_failed'));
+    expect(visibleText(container)).toContain('договор.pdf');
+  });
+
+  it('второе «Удалить», пока первый запрос в пути, второго DELETE не шлёт', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    let finish!: () => void;
+    vi.mocked(deleteChatUpload).mockReturnValue(new Promise<void>((r) => { finish = r; }));
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    click(tab(container, 'chat.files.tab_files'));
+
+    doubleClick(delBtn(container, 'договор.pdf')!);
+    expect(deleteChatUpload).toHaveBeenCalledTimes(1);
+    expect(window.confirm).toHaveBeenCalledTimes(1);
+
+    await actAsync(() => { finish(); });
+    await settle();
+    expect(visibleText(container)).not.toContain('договор.pdf');
+  });
+
+  it('просмотр загрузки: оригинал из blob и полный комментарий; «Удалить» в просмотре закрывает его и убирает плитку', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    vi.mocked(deleteChatUpload).mockResolvedValue(undefined);
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+
+    click(imageTile(container, 'гостиная.jpg')!);
+    await settleBlobs();
+    const viewer = container.querySelector('[data-testid="media-viewer"]') as HTMLElement;
+    expect(viewer).not.toBeNull();
+    expect(api.get).toHaveBeenCalledWith('/webhook/chat-uploads/u1', expect.anything());
+    expect(viewer.querySelector('img')!.getAttribute('src')).toMatch(/^blob:panel-/);
+    expect(viewer.querySelector('[data-testid="media-viewer-note"]')!.textContent).toContain(
+      'Фото гостиной: решили перекрасить стены в серый',
+    );
+
+    await clickAsync(byButton(viewer, new RegExp(tRu('chat.files.delete')))!);
+    await settle();
+    expect(deleteChatUpload).toHaveBeenCalledWith('u1');
+    expect(container.querySelector('[data-testid="media-viewer"]')).toBeNull();
+    expect(imageTile(container, 'гостиная.jpg')).toBeNull();
+    expect(tab(container, 'chat.files.tab_media').textContent).toBe(`${tRu('chat.files.tab_media')} · 1`);
+    // Плитки, что открыла просмотр, больше нет — фокус остаётся в панели, а не падает на body.
+    expect(container.contains(document.activeElement)).toBe(true);
   });
 });
