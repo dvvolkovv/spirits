@@ -52,7 +52,13 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
   const [error, setError] = useState(false);
   const [tab, setTab] = useState<FilesTab | null>(null);
   const [showUnsaved, setShowUnsaved] = useState(false);
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  // Ключ файла в просмотре, а не индекс: удаление соседнего файла сдвигает
+  // индексы, а просмотр должен остаться на своём файле.
+  const [viewerKey, setViewerKey] = useState<string | null>(null);
+  // Свежий ключ для removeUpload: ответ DELETE приходит позже, а пользователь
+  // за это время мог листнуть просмотр на другой файл.
+  const viewerKeyRef = useRef<string | null>(null);
+  viewerKeyRef.current = viewerKey;
   // Миниатюры, у которых <img> отдал 'error' (адрес протух/404) — рисуем
   // заглушку вместо штатной «битой картинки» браузера.
   const [brokenKeys, setBrokenKeys] = useState<ReadonlySet<string>>(new Set());
@@ -62,11 +68,14 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
   // Ref, а не состояние: оба обработчика срабатывают на одно и то же нажатие,
   // и к моменту проверки здесь просмотр ещё не успел закрыться.
   const viewerOpen = useRef(false);
-  viewerOpen.current = viewerIndex !== null;
 
   // Плитка, что открыла просмотр, — чтобы вернуть на неё фокус при закрытии
   // (MediaViewer.tsx). Не React-ref на элемент списка: достаточно узла из
-  // currentTarget клика, список плиток между открытием и закрытием не меняется.
+  // currentTarget клика. Список может измениться, пока просмотр открыт
+  // (удаление загрузки): удалили сам открытый файл — просмотр закрывает
+  // removeUpload и фокус уходит в панель; удалили соседний — плитка-открыватель
+  // на месте (ключи плиток стабильны). Узел, которого уже нет в документе,
+  // фокус не получает — тогда тоже панель.
   const lastTileRef = useRef<HTMLButtonElement | null>(null);
 
   // Вкладка — прокручиваемый контейнер плиток: корень IntersectionObserver у
@@ -110,10 +119,14 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
       try {
         await deleteChatUpload(it.uploadId);
         setItems((prev) => (prev ? prev.filter((x) => x.key !== it.key) : prev));
-        // Плитки, что открыла просмотр, больше нет: просмотр закрываем, фокус
-        // оставляем в панели, иначе он падает на body и ловушка Tab его теряет.
-        setViewerIndex(null);
-        dialogRef.current?.focus();
+        // Просмотр показывал удалённый файл — закрываем его. Показывал другой
+        // (листнули, пока DELETE был в пути) — остаётся на нём: индекс
+        // пересчитается по ключу.
+        const shown = viewerKeyRef.current;
+        if (shown === it.key) setViewerKey(null);
+        // Удалённой плитки или строки больше нет: фокус оставляем в панели,
+        // иначе он падает на body и ловушка Tab его теряет.
+        if (shown === it.key || shown === null) dialogRef.current?.focus();
       } catch {
         // Строка в базе осталась (сбой хранилища — 502), повтор безопасен.
         toast.error(t('chat.files.delete_failed'));
@@ -134,6 +147,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
   const load = useCallback(async () => {
     setError(false);
     setItems(null);
+    setViewerKey(null);
     // Сбрасываем и заглушки «не загрузилась»: без этого «Повторить» с теми
     // же данными мог бы навечно держать миниатюру заглушкой, даже если
     // адрес уже ожил, — ключ в brokenKeys от прежней попытки переживал load().
@@ -181,6 +195,9 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
   const media = useMemo(() => splitTab(items ?? [], 'media'), [items]);
   const files = useMemo(() => splitTab(items ?? [], 'files'), [items]);
   const view = current === 'media' ? media : files;
+  // Нет файла с таким ключом (удалён, список перезагружается) — просмотр закрыт.
+  const viewerIndex = viewerKey === null ? -1 : media.stored.findIndex((x) => x.key === viewerKey);
+  viewerOpen.current = viewerIndex >= 0;
   const monthGroups = useMemo(() => groupByMonth(view.stored, lang), [view.stored, lang]);
 
   return (
@@ -296,7 +313,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                             item={it}
                             onOpen={(tile) => {
                               lastTileRef.current = tile;
-                              setViewerIndex(media.stored.indexOf(it));
+                              setViewerKey(it.key);
                             }}
                             onDownload={() => downloadUpload(it)}
                             scrollRoot={tabpanelEl}
@@ -307,7 +324,7 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
                           type="button"
                           onClick={(e) => {
                             lastTileRef.current = e.currentTarget;
-                            setViewerIndex(media.stored.indexOf(it));
+                            setViewerKey(it.key);
                           }}
                           aria-label={`${t(it.kind === 'video' ? 'chat.files.video' : 'chat.files.image')}: ${it.name}`}
                           className="relative aspect-square overflow-hidden bg-gray-100"
@@ -423,14 +440,16 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
         </div>
       </div>
 
-      {viewerIndex !== null && (
+      {viewerIndex >= 0 && (
         <MediaViewer
           items={media.stored}
           index={viewerIndex}
-          onIndexChange={setViewerIndex}
+          onIndexChange={(i) => setViewerKey(media.stored[i]?.key ?? null)}
           onClose={() => {
-            setViewerIndex(null);
-            lastTileRef.current?.focus();
+            setViewerKey(null);
+            const tile = lastTileRef.current;
+            if (tile?.isConnected) tile.focus();
+            else dialogRef.current?.focus();
           }}
           onDownload={(kind) => onDownload?.(kind, 'viewer')}
           onDelete={(it) => void removeUpload(it)}
