@@ -331,6 +331,57 @@ describe('строка 📎 в сообщении пользователя ри�
     unmount();
   });
 
+  // Строка 📎 в истории — сырое имя (deleteForOwner на бэке ищет её точным
+  // совпадением), а имя из неё уходит и в пузырь, и в a.download. RLO
+  // разворачивает конец имени: на экране «invoiceexe.jpg», сохранится .exe.
+  // Символы собраны через fromCodePoint: в исходнике теста их не видно глазом.
+  const RLO = String.fromCodePoint(0x202e);
+
+  it('RLO в имени вырезается: и в тексте ссылки, и в имени для скачивания; href не трогаем', () => {
+    const onLink = vi.fn();
+    const content = `📎 [invoice${RLO}gpj.exe](${HREF})`;
+    const { container, unmount } = mount(<p>{renderUserMessageContent(content, onLink)}</p>);
+
+    const a = container.querySelector('a');
+    expect(a).not.toBeNull();
+    expect(a!.textContent).toBe('invoicegpj.exe');
+    expect(container.textContent).not.toContain(RLO);
+    click(a!);
+    expect(onLink).toHaveBeenCalledWith(HREF, 'invoicegpj.exe');
+    unmount();
+  });
+
+  it('управляющие, форматные и разделители строк/абзацев вырезаются, пробелы по краям обрезаются', () => {
+    const onLink = vi.fn();
+    const cp = (n: number) => String.fromCodePoint(n);
+    // U+0007 BEL (Cc), U+200B ZWSP и U+FEFF BOM и U+2066 LRI (Cf),
+    // U+2028 (Zl), U+2029 (Zp); пробел внутри имени остаётся.
+    const raw = `  ${cp(0x200b)}от${cp(0x07)}чёт${cp(0x2066)} \\[финал\\]${cp(0x2028)}.p${cp(0x2029)}df${cp(0xfeff)}  `;
+    const { container, unmount } = mount(
+      <p>{renderUserMessageContent(`📎 [${raw}](${HREF})`, onLink)}</p>,
+    );
+
+    const a = container.querySelector('a')!;
+    expect(a.textContent).toBe('отчёт [финал].pdf');
+    click(a);
+    expect(onLink).toHaveBeenCalledWith(HREF, 'отчёт [финал].pdf');
+    unmount();
+  });
+
+  it('имя только из невидимых символов — остаётся как было после снятия экранирования, а не пустая ссылка', () => {
+    const onLink = vi.fn();
+    const ZWSP = String.fromCodePoint(0x200b);
+    const { container, unmount } = mount(
+      <p>{renderUserMessageContent(`📎 [${RLO}${ZWSP}](${HREF})`, onLink)}</p>,
+    );
+
+    const a = container.querySelector('a')!;
+    expect(a.textContent).toBe(`${RLO}${ZWSP}`);
+    click(a);
+    expect(onLink).toHaveBeenCalledWith(HREF, `${RLO}${ZWSP}`);
+    unmount();
+  });
+
   it('вложение доступно с клавиатуры: role, tabIndex, Enter и Space скачивают (I8)', () => {
     const onLink = vi.fn();
     const { container, unmount } = mount(
