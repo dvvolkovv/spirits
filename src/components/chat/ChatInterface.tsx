@@ -69,6 +69,8 @@ import { takePendingDraftFor } from '../../utils/pendingDraft';
 import { createChunkDecoder } from '../../utils/streamDecoder';
 import ChatImageAttachment from './ChatImageAttachment';
 import { imageAttachmentPreview } from './attachmentPreview';
+import { ContextResetDivider } from './ContextResetDivider';
+import { parseContextResetAt, resetDividerIndex, mergePolledReset, type ResetMark } from './contextReset';
 
 interface Assistant {
   id: number;
@@ -690,9 +692,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => clearInterval(id);
   }, [remoteTurnActive, overrideOffered]);
 
+  // «Чистый лист» (spec spirits_back 2026-11-17-context-reset): точка отсчёта
+  // памяти ассистента. Лента одна; точку хранит бэк и отдаёт с историей —
+  // черта в ленте показывает, откуда ассистент помнит разговор.
+  // Объявлены здесь, а не рядом с кнопкой: resettingContext нужен sendBlocked.
+  const [resetMark, setResetMark] = useState<ResetMark | null>(null);
+  const [resettingContext, setResettingContext] = useState(false);
+
   // «Ход идёт хоть где-то» — этим решаем, слать или копить. Отправка в идущий
   // удалённый ход убила бы его: релей пре-эмптит процесс на том же sessionId.
-  const sendBlocked = turnRunningAnywhere({
+  // Пока ставится точка «Чистого листа», тоже копим: ход, ушедший до точки,
+  // ответил бы со старой памятью, а лёг бы под черту. Досылка ждёт её конца.
+  const sendBlocked = resettingContext || turnRunningAnywhere({
     isTyping,
     queuedCount: queued.length,
     remoteTurnActive: remoteTurnActive && !remoteOverride,
@@ -770,42 +781,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // устаревает, пока fetch в полёте, а ref всегда свежий.
   const selectedAssistantRef = useRef<Assistant | null>(selectedAssistant);
   useEffect(() => { selectedAssistantRef.current = selectedAssistant; }, [selectedAssistant]);
-
-  // «Чистый лист»: per-assistant режим общения без прошлой истории и задач
-  // (профиль при этом продолжает формироваться на бэке). freshTs — метка
-  // включения, из неё бэк собирает отдельную fresh-сессию. Переживает F5
-  // через sessionStorage; повторное включение = новый чистый лист.
-  const getFreshKey = (aid: unknown) => `fresh_ts_${aid}`;
-  const [freshTs, setFreshTs] = useState<string | null>(() => {
-    const saved = sessionStorage.getItem('selected_assistant');
-    if (!saved) return null;
-    try { return sessionStorage.getItem(getFreshKey(JSON.parse(saved).id)); } catch { return null; }
-  });
-  useEffect(() => {
-    const aid = selectedAssistant?.id;
-    setFreshTs(aid != null ? sessionStorage.getItem(getFreshKey(aid)) : null);
-  }, [selectedAssistant?.id]);
-
-  const toggleFreshMode = () => {
-    if (!selectedAssistant) return;
-    // Очередь копилась для текущей сессии релея — «чистый лист» переключает
-    // на новую (или возвращает в старую), и досланная реплика уехала бы не туда.
-    // Возвращаем в поле, а не выбрасываем: тумблер «чистый лист» не спрашивает
-    // подтверждения, и молча терять набранное на обычном переключателе нельзя.
-    returnQueueToInput();
-    const key = getFreshKey(selectedAssistant.id);
-    if (freshTs) {
-      sessionStorage.removeItem(key);
-      setFreshTs(null);
-    } else {
-      const ts = Date.now().toString();
-      sessionStorage.setItem(key, ts);
-      setFreshTs(ts);
-    }
-    // Скролл-маркеры сбрасываем: история сменится, надо заново прыгнуть вниз.
-    initialScrollDoneForAssistantRef.current = null;
-    historyLoadedForRef.current = null;
-  };
 
   // Голосовой звонок Роману (id 12, только для админов) — модалка над чатом,
   // весь жизненный цикл звонка живёт внутри неё через useVoiceCall.
@@ -889,14 +864,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     setShowFilesPanel(false);
     setShowActionPlan(false);
-  }, [selectedAssistant?.id, freshTs]);
+  }, [selectedAssistant?.id]);
 
   // Открытие панели и скачивание из неё — в статистику админки (spirits_back:
   // monitoring/product/chat-files-stats.ts). Шлём так же, как file_pick.
   const openFilesPanel = (entry: 'header' | 'menu') => {
     setShowFilesPanel(true);
     if (user?.phone && selectedAssistant) {
-      trackAuthed('chat_files_panel_open', user.phone, { assistantId: selectedAssistant.id, fresh: !!freshTs, entry });
+      trackAuthed('chat_files_panel_open', user.phone, { assistantId: selectedAssistant.id, entry });
     }
   };
   const trackFilesDownload = (kind: ChatFileKind, from: 'list' | 'viewer' | 'grid') => {
@@ -906,25 +881,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   useEffect(() => {
     if (!selectedAssistant || !hasUserSelectedAssistant) return;
 
-    // Ответ устаревшего запуска не применяем. Включение «Чистого листа» или
-    // смена ассистента запускают новую загрузку, а прежний запрос ещё в пути:
-    // придя позже, он показывал старую переписку и снимал признак загрузки за
-    // новый. Человек видел готовый чат и писал, а затем пустая история новой
-    // сессии затирала ленту поверх его хода (прод, 08.10.2026;
-    // greetingRaceWiring.test.ts).
+    // Ответ устаревшего запуска не применяем. Смена ассистента запускает новую
+    // загрузку, а прежний запрос ещё в пути: придя позже, он показывал старую
+    // переписку и снимал признак загрузки за новый. Человек видел готовый чат
+    // и писал, а затем история другой загрузки затирала ленту поверх его хода
+    // (прод, 08.10.2026; greetingRaceWiring.test.ts).
     let stale = false;
 
     const load = async () => {
       setHistoryLoading(true);
       setHistoryOffset(0);
+      // Точка «Чистого листа» — прежнего ассистента; свою отдаст история.
+      setResetMark(null);
       // Сброс ДО fetch: при смене ассистента список схлопывается до спиннера,
       // браузер клампит scrollTop к 0 → onScroll видит scrollTop<100 со СТАРЫМ
       // hasMoreHistory и дёргает loadMoreHistory с чужим offset для нового
       // ассистента → дубли истории (duplicate keys) и «открылся в середине».
       setHasMoreHistory(false);
       try {
-        const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
-        const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=0${freshParam}`);
+        const response = await apiClient.get(`/webhook/chat/history?assistantId=${selectedAssistant.id}&limit=30&offset=0`);
         if (stale) return;
         if (response.ok) {
           const data = await response.json();
@@ -944,6 +919,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           setMessages(msgs);
           setHasMoreHistory(data.hasMore || false);
           setHistoryOffset(30);
+          // Точка без якоря: лента целиком серверная, черту ставит время базы.
+          // Старый бэк поля не шлёт — черты нет.
+          const at = parseContextResetAt(data.contextResetAt);
+          setResetMark(at ? { at } : null);
         } else {
           throw new Error('API error');
         }
@@ -983,7 +962,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return () => {
       stale = true;
     };
-  }, [selectedAssistant?.id, hasUserSelectedAssistant, freshTs]);
+  }, [selectedAssistant?.id, hasUserSelectedAssistant]);
 
   // Подтянуть свежие строки истории и слить их в ленту.
   //
@@ -996,10 +975,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Ответ при этом цел в БД, но в ленте не появится до перезагрузки.
   const pullHistoryOnce = async (assistantId: number, isCancelled?: () => boolean) => {
     try {
-      const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
-      const response = await apiClient.get(`/webhook/chat/history?assistantId=${assistantId}&limit=5&offset=0${freshParam}`);
+      const response = await apiClient.get(`/webhook/chat/history?assistantId=${assistantId}&limit=5&offset=0`);
       if (isCancelled?.() || !response.ok) return;
       const data = await response.json();
+      // Точку могли поставить в другой вкладке или на телефоне. До раннего
+      // выхода ниже: опрос без новых строк — обычное дело.
+      if (selectedAssistantIdRef.current === assistantId) {
+        setResetMark(prev => mergePolledReset(prev, parseContextResetAt(data?.contextResetAt)));
+      }
       const rows = (data?.messages || []) as any[];
       const fresh = Array.isArray(rows) ? dropEmptyAssistantMessages(rows) : [];
       if (fresh.length === 0) return;
@@ -1050,7 +1033,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       clearTimeout(t1);
       clearInterval(id);
     };
-  }, [selectedAssistant?.id, hasUserSelectedAssistant, historyPollBlocked, freshTs]);
+  }, [selectedAssistant?.id, hasUserSelectedAssistant, historyPollBlocked]);
 
   // Идёт ли ход на сервере прямо сейчас. Спрашиваем только когда в этой вкладке
   // стрима нет — иначе про свой же ход и спрашивать незачем. Отвечает бэкенд по
@@ -1106,8 +1089,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     const requestedAssistantId = selectedAssistant.id;
     setLoadingMore(true);
     try {
-      const freshParam = freshTs ? `&freshTs=${freshTs}` : '';
-      const response = await apiClient.get(`/webhook/chat/history?assistantId=${requestedAssistantId}&limit=30&offset=${historyOffset}${freshParam}`);
+      const response = await apiClient.get(`/webhook/chat/history?assistantId=${requestedAssistantId}&limit=30&offset=${historyOffset}`);
       if (response.ok) {
         const data = await response.json();
         // Ассистент сменился, пока fetch шёл — результат чужой, выбрасываем.
@@ -1500,7 +1482,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         // Клиент рисует шаги работы и карточки вопросов — бэк включает их
         // только по этому полю, мобилка его не шлёт.
         ui: { activity: true, ask: true, cards: true },
-        ...(freshTs ? { fresh: true, freshTs } : {})
       }, {
         signal: controller.signal
       });
@@ -1954,6 +1935,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // как прямая отправка. Ждём: опрос снимет признак, и эффект стрельнёт сам.
     // Обход («отправить всё равно») это правило снимает — там решение человека.
     if (remoteTurnActive && !remoteOverride) return;
+    // Ставится точка «Чистого листа»: реплики, набранные в это окно, уходят
+    // после неё — эффект стрельнёт сам, когда признак снимется.
+    if (resettingContext) return;
 
     // Ассистента могли сменить в соседней вкладке, пока шёл ход. sendMessageText
     // подхватит нового из sessionStorage и отправит ему очередь, копившуюся для
@@ -2000,7 +1984,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTyping, streamingMessageId, historyLoading, queued, selectedAssistant?.id,
-      remoteTurnActive, remoteOverride]);
+      remoteTurnActive, remoteOverride, resettingContext]);
 
   const handleClearChat = async () => {
     if (window.confirm(t('chat.clear_confirm'))) {
@@ -2024,6 +2008,40 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           timestamp: new Date()
         }]);
       }
+    }
+  };
+
+  // «Чистый лист» — точка отсчёта на сервере: ассистент перестаёт учитывать
+  // сообщения до неё, переписка остаётся. Не ставим, пока ход идёт или вот-вот
+  // начнётся (отправка или досылка уже в пути) и пока грузится история: такой
+  // ход ответил бы со старой памятью, а лёг бы под черту.
+  const startFreshContext = async () => {
+    if (!selectedAssistant || turnBusy || resettingContext || historyLoading || sendingRef.current || flushingRef.current) return;
+    if (!window.confirm(t('chat.fresh_confirm'))) return;
+    // Набранная очередь писалась для прежней памяти — возвращаем её в поле,
+    // а не досылаем: после точки человек сам решит, что отправить.
+    returnQueueToInput();
+    const assistantId = selectedAssistant.id;
+    // Якорь — синхронно, до await: в своей вкладке черта держится за него, а не
+    // за время (сообщения вкладки несут время клиента, точку ставят часы базы).
+    const afterId = messages.length ? messages[messages.length - 1].id : null;
+    setResettingContext(true);
+    try {
+      const response = await apiClient.post('/webhook/chat/reset-context', { assistantId });
+      if (!response.ok) throw new Error(`reset-context ${response.status}`);
+      const data = await response.json();
+      if (selectedAssistantRef.current?.id !== assistantId) return;
+      // Без запасной даты клиента: если бэк точку не вернул, её подхватит опрос.
+      const at = parseContextResetAt(data?.resetAt);
+      if (at) setResetMark({ at, afterId });
+      // Черта встаёт внизу — держим ленту прижатой, чтобы её было видно.
+      pinToBottomRef.current = true;
+      pinStartedAtRef.current = performance.now();
+    } catch (error) {
+      console.error('Failed to reset assistant context:', error);
+      window.alert(t('chat.fresh_failed'));
+    } finally {
+      setResettingContext(false);
     }
   };
 
@@ -2506,13 +2524,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // пользователя с ещё не записанным языком профиля файл иначе уехал бы в
       // сессию другого языка, то есть к ассистенту, который его не видел.
       formData.append('lang', resolveLanguage(i18n.language));
-      // «Чистый лист» — те же поля, что у текстового хода: у режима своя сессия
-      // на релее, и без этой пары файл уезжал бы в основную, где ассистент его
-      // не ждёт. multipart везёт значения строками — бэк это учитывает.
-      if (freshTs) {
-        formData.append('fresh', 'true');
-        formData.append('freshTs', freshTs);
-      }
       // Шаги работы и карточки — как у текстового хода. multipart везёт
       // объект строкой, бэк это учитывает (client-ui.ts).
       formData.append('ui', JSON.stringify({ activity: true, ask: true, cards: true }));
@@ -2674,6 +2685,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }, 1000);
   };
 
+  // Где в ленте черта «Чистого листа» (contextReset.ts). Хук — до раннего
+  // return экрана выбора ассистента ниже.
+  const resetDividerAt = useMemo(() => resetDividerIndex(messages, resetMark), [messages, resetMark]);
+
   if (!hasUserSelectedAssistant) {
     // Сразу после логина показываем сетку карточек ассистентов — нагляднее
     // чем пустой плейсхолдер. На десктопе ChatLayout слева оставит свой
@@ -2697,25 +2712,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     return tokens.toLocaleString();
   };
 
-  // Один тумблер «Чистый лист», но в шапке он живёт в двух местах: на десктопе
-  // справа с подписью, на мобиле — иконкой слева, на месте ссылки «Подобрать
-  // специалиста». Ссылка занимала всю свободную ширину и обрезала баланс
-  // токенов, а иконка помещается. Разметка общая, чтобы состояния тумблера не
-  // разъезжались между брейкпоинтами.
-  const renderFreshToggle = (testId: string, wrapperClass: string) => (
+  // «Чистый лист» в шапке живёт в двух местах: на десктопе справа с подписью,
+  // на мобиле — иконкой слева, на месте ссылки «Подобрать специалиста» (та
+  // обрезала баланс токенов). Разметка общая. Это действие, а не тумблер:
+  // состояния «включён» нет — точку видно чертой в ленте.
+  const renderFreshButton = (testId: string, wrapperClass: string) => (
     <button
-      onClick={toggleFreshMode}
+      onClick={() => { void startFreshContext(); }}
+      disabled={turnBusy || resettingContext || historyLoading}
       data-testid={testId}
       className={clsx(
-        'items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors',
+        'items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-50',
         wrapperClass,
-        freshTs
-          ? 'bg-forest-600 border-forest-600 text-white hover:bg-forest-700'
-          : 'border-gray-200 text-gray-500 hover:text-forest-700 hover:border-forest-300'
+        'border-gray-200 text-gray-500 hover:text-forest-700 hover:border-forest-300'
       )}
-      title={freshTs
-        ? t('chat.fresh_mode_on_title')
-        : t('chat.fresh_mode_off_title')}
+      title={t('chat.fresh_mode_off_title')}
       aria-label={t('chat.fresh_mode_label')}
     >
       <Eraser className="w-4 h-4" />
@@ -2723,8 +2734,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     </button>
   );
 
-  // Кнопка звонка Роману в шапке чата. Тот же тумблер-стиль, что и
-  // «Чистый лист», в двух местах шапки.
+  // Кнопка звонка Роману в шапке чата. Та же форма кнопки, что у
+  // «Чистого листа», в двух местах шапки.
   const renderCallButton = (testId: string, wrapperClass: string) => {
     // Звонок открыт всем вошедшим: бэкенд снял админскую проверку 28.08
     // (voice-call), встречи — 03.09. Здесь условие оставалось и прятало
@@ -2859,8 +2870,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </button>
 
                 {/* Мобила: вместо текстовой ссылки — иконка «Чистый лист».
-                    Десктопный вариант тумблера живёт справа (hidden md:flex). */}
-                {renderFreshToggle('fresh-mode-toggle-mobile', 'hidden sm:flex md:hidden')}
+                    Десктопный вариант кнопки живёт справа (hidden md:flex). */}
+                {renderFreshButton('fresh-mode-toggle-mobile', 'hidden sm:flex md:hidden')}
                 {/* На мобиле звонок теперь у плавающей кнопки (FloatingCallButton
                     поднята над строкой ввода) — вторая такая же в шапке только
                     отбирала бы место у имени ассистента. На десктопе кнопка
@@ -2996,7 +3007,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </span>
               </button>
             )}
-            {renderFreshToggle('fresh-mode-toggle', 'hidden md:flex')}
+            {renderFreshButton('fresh-mode-toggle', 'hidden md:flex')}
             {messages.length > 1 && (
               <>
                 {/* Десктоп: кнопки в ряд. «Медиа и файлы» — как раздел медиа в
@@ -3079,11 +3090,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                           действие, а не настройка. */}
                       <button
                         role="menuitem"
-                        onClick={() => { setShowChatActions(false); toggleFreshMode(); }}
-                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        data-testid="chat-fresh-menuitem"
+                        onClick={() => { setShowChatActions(false); void startFreshContext(); }}
+                        disabled={turnBusy || resettingContext || historyLoading}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                       >
                         <Eraser className="w-4 h-4" />
-                        {freshTs ? t('chat.fresh_mode_on_title') : t('chat.fresh_mode_label')}
+                        {t('chat.fresh_mode_label')}
                       </button>
                       <button
                         role="menuitem"
@@ -3137,8 +3150,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="w-6 h-6 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : messages.map((message, mi) => (
+          <React.Fragment key={message.id}>
+          {mi === resetDividerAt && <ContextResetDivider />}
           <div
-            key={message.id}
             data-testid="chat-message"
             className={clsx(
               'flex',
@@ -3377,7 +3391,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               </div>
             </div>
           </div>
+          </React.Fragment>
         ))}
+
+        {!historyLoading && resetDividerAt === messages.length && <ContextResetDivider />}
 
         {/* Suggested-prompt chips for Роман — nudge to deepen the session (8ebe8593).
             Shown after his reply, while the session is still shallow (< 3 user msgs). */}
