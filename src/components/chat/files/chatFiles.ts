@@ -6,16 +6,34 @@ export type ChatFileKind = 'image' | 'video' | 'document' | 'audio';
 export interface ChatFileItem {
   key: string;
   kind: ChatFileKind;
-  /** Нет у stored=false: файл пропал, скачивать нечего. */
+  /**
+   * Нет у stored=false: файл пропал, скачивать нечего. У загрузок пользователя
+   * (origin='upload') — приватная ручка /webhook/chat-uploads/<id>: открывать
+   * только запросом с JWT, не простым <img src>.
+   */
   url?: string;
+  /** У загрузок — /webhook/chat-uploads/<id>/thumb, тоже только с JWT; есть, если миниатюра получилась. */
   thumbUrl?: string;
   /** Только у картинок из наших бакетов: путь ручки миниатюры на бэке (chat-thumb.controller.ts). */
   thumbPath?: string;
   name: string;
   ext: string;
   createdAt: string;
-  messageId: number;
+  /** Строка истории с файлом. У загрузок пользователя её нет — и поля нет. */
+  messageId?: number;
   stored: boolean;
+  /**
+   * 'assistant' — файл из ответа ассистента, 'upload' — его загрузил сам
+   * пользователь. Поля нет — флаг CHAT_UPLOADS_ENABLED на бэке выключен:
+   * это файл ассистента, как раньше.
+   */
+  origin?: 'assistant' | 'upload';
+  /** Только у загрузок: веб и приложения, PDF у Маши или Telegram — для пометки на плитке. */
+  source?: 'web' | 'scan' | 'telegram';
+  /** Только у загрузок: комментарий ассистента; null — его ещё нет. */
+  note?: string | null;
+  /** Только у загрузок: id для deleteChatUpload. */
+  uploadId?: string;
 }
 
 export type FilesTab = 'media' | 'files';
@@ -26,6 +44,20 @@ export async function fetchChatFiles(assistantId: string | number, freshTs?: str
   if (!res.ok) throw new Error(`chat files: HTTP ${res.status}`);
   const data = await res.json();
   return Array.isArray(data?.items) ? data.items : [];
+}
+
+/**
+ * Удалить свою загрузку: DELETE /webhook/chat-uploads/:id, только владелец
+ * по JWT (его добавляет apiClient). 204 — удалена. 404 — её уже нет
+ * (например, удалили в другой вкладке): для панели итог тот же, плитку можно
+ * убирать. Остальное — исключение (502: хранилище не ответило, файл цел), и
+ * панель показывает delete_failed, оставляя плитку на месте.
+ */
+export async function deleteChatUpload(uploadId: string): Promise<void> {
+  if (!uploadId) throw new Error('chat upload delete: empty id');
+  const res = await apiClient.delete(`/webhook/chat-uploads/${encodeURIComponent(uploadId)}`);
+  if (res.ok || res.status === 404) return;
+  throw new Error(`chat upload delete: HTTP ${res.status}`);
 }
 
 /**
