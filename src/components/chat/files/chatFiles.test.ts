@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { apiClient } from '../../../services/apiClient';
 import {
-  ChatFileItem, deleteChatUpload, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab, thumbUrlFor,
+  BROWSER_IMAGE_EXTS, ChatFileItem, deleteChatUpload, fetchChatFiles, fileIconKind, groupByMonth, splitTab, startTab,
+  thumbUrlFor, uploadTilePath, uploadViewerPath,
 } from './chatFiles';
 
 vi.mock('../../../services/apiClient', () => ({ apiClient: { get: vi.fn(), delete: vi.fn() } }));
@@ -161,5 +162,36 @@ describe('deleteChatUpload', () => {
   it('пустой id — исключение без запроса: DELETE на голый префикс дал бы 404 и ложный успех', async () => {
     await expect(deleteChatUpload('')).rejects.toThrow();
     expect(api.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe('превью загрузки: uploadTilePath / uploadViewerPath', () => {
+  const up = (p: Partial<ChatFileItem>): ChatFileItem =>
+    item({ key: 'upload:u1', url: '/webhook/chat-uploads/u1', origin: 'upload', uploadId: 'u1', ...p });
+  const THUMB = '/webhook/chat-uploads/u1/thumb';
+
+  it('браузерные форматы картинок — те, что рисует <img>', () => {
+    expect([...BROWSER_IMAGE_EXTS].sort()).toEqual(['avif', 'gif', 'jpeg', 'jpg', 'png', 'webp']);
+  });
+
+  it('плитка: миниатюра, если есть, — у картинки и у видео', () => {
+    expect(uploadTilePath(up({ ext: 'jpg', thumbUrl: THUMB }))).toBe(THUMB);
+    expect(uploadTilePath(up({ kind: 'video', ext: 'mp4', thumbUrl: THUMB }))).toBe(THUMB);
+  });
+
+  it('плитка без миниатюры: HEIC и прочее, что браузер не покажет, — без превью; видео — без превью', () => {
+    expect(uploadTilePath(up({ ext: 'heic' }))).toBeUndefined();
+    expect(uploadTilePath(up({ ext: '' }))).toBeUndefined();
+    expect(uploadTilePath(up({ kind: 'video', ext: 'mp4' }))).toBeUndefined();
+  });
+
+  it('просмотр: оригинал браузерного формата (регистр расширения не важен), а не миниатюра', () => {
+    expect(uploadViewerPath(up({ ext: 'jpg', thumbUrl: THUMB }))).toBe('/webhook/chat-uploads/u1');
+    expect(uploadViewerPath(up({ ext: 'PNG' }))).toBe('/webhook/chat-uploads/u1');
+  });
+
+  it('просмотр: формат не браузерный — миниатюра (TIFF), а без неё ничего (HEIC)', () => {
+    expect(uploadViewerPath(up({ ext: 'tiff', thumbUrl: THUMB }))).toBe(THUMB);
+    expect(uploadViewerPath(up({ ext: 'heic' }))).toBeUndefined();
   });
 });
