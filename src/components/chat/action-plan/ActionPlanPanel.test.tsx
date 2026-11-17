@@ -106,6 +106,22 @@ describe('ActionPlanPanel', () => {
     view.unmount();
   });
 
+  it('clears "not enough conversation" after a successful retry', async () => {
+    vi.mocked(actionPlansApi.get).mockResolvedValue(null);
+    vi.mocked(actionPlansApi.generate)
+      .mockRejectedValueOnce(new ActionPlanRequestError(400, 'not enough conversation for an action plan'))
+      .mockResolvedValueOnce(plan);
+    const { view } = await openPanel();
+    await clickAsync(byButton(view.container, /Сформировать план/)!);
+    expect(visibleText(view.container)).toContain('Для плана пока мало разговора');
+    // Написал ассистенту пару сообщений — жмёт снова, план получился.
+    await clickAsync(byButton(view.container, /Сформировать план/)!);
+    expect(visibleText(view.container)).not.toContain('Для плана пока мало разговора');
+    expect(view.container.querySelector('[role="alert"]')).toBeNull();
+    expect((view.container.querySelector('#action-plan-title') as HTMLInputElement).value).toBe('Подготовка к переезду');
+    view.unmount();
+  });
+
   it.each([
     ['another 400 from the server', () => new ActionPlanRequestError(400, 'assistantId is required')],
     ['a server failure', () => new ActionPlanRequestError(502, 'assistant returned an invalid action plan')],
