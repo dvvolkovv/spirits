@@ -449,6 +449,7 @@
       "delete_confirm": "Supprimer ce plan d'action ? Cette action est irréversible.",
       "unsaved_confirm": "Fermer sans enregistrer les modifications ?",
       "error": "Impossible de charger ou d'enregistrer le plan. Réessaie.",
+      "not_enough": "Pas encore assez de conversation pour un plan : écris au moins quelques messages à l'assistant. Après « Page blanche », le plan se base uniquement sur la nouvelle conversation.",
       "retry": "Réessayer",
       "disclaimer": "Ce plan est proposé par l'assistant, ce n'est pas une recommandation définitive. Vérifie les étapes juridiques, médicales et financières importantes."
     },

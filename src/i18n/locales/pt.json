@@ -449,6 +449,7 @@
       "delete_confirm": "Eliminar este plano de ação? Esta ação não pode ser anulada.",
       "unsaved_confirm": "Fechar sem guardar as alterações?",
       "error": "Não foi possível carregar ou guardar o plano. Tente novamente.",
+      "not_enough": "Ainda há pouca conversa para um plano: escreva ao assistente pelo menos algumas mensagens. Depois da «Página em branco», o plano é feito apenas com a nova conversa.",
       "retry": "Tentar novamente",
       "disclaimer": "Este plano é uma sugestão do assistente, não uma recomendação definitiva. Verifique os passos jurídicos, médicos e financeiros importantes."
     },

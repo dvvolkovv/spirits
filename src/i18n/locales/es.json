@@ -449,6 +449,7 @@
       "delete_confirm": "¿Eliminar este plan de acción? Esta acción no se puede deshacer.",
       "unsaved_confirm": "¿Cerrar sin guardar los cambios?",
       "error": "No se pudo cargar o guardar el plan. Inténtalo de nuevo.",
+      "not_enough": "Todavía hay poca conversación para un plan: escribe al asistente al menos un par de mensajes. Después de «Hoja en blanco», el plan se crea solo con la nueva conversación.",
       "retry": "Reintentar",
       "disclaimer": "Este plan es una sugerencia del asistente, no una recomendación definitiva. Verifica los pasos legales, médicos y financieros importantes."
     },

@@ -446,6 +446,7 @@
       "delete_confirm": "Diesen Aktionsplan löschen? Das kann nicht rückgängig gemacht werden.",
       "unsaved_confirm": "Ohne Speichern der Änderungen schließen?",
       "error": "Plan konnte nicht geladen oder gespeichert werden. Versuche es erneut.",
+      "not_enough": "Für einen Plan gibt es noch zu wenig Gespräch: Schreib dem Assistenten mindestens ein paar Nachrichten. Nach „Neustart“ entsteht der Plan nur aus dem neuen Gespräch.",
       "retry": "Erneut versuchen",
       "disclaimer": "Dieser Plan ist ein Vorschlag des Assistenten, keine verbindliche Empfehlung. Prüfe wichtige rechtliche, medizinische und finanzielle Schritte."
     },

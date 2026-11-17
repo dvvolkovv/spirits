@@ -446,6 +446,7 @@
       "delete_confirm": "Delete this action plan? This cannot be undone.",
       "unsaved_confirm": "Close without saving your changes?",
       "error": "Couldn't load or save the plan. Please try again.",
+      "not_enough": "Not enough conversation for a plan yet: write the assistant at least a couple of messages. After «Fresh start», the plan is built only from the new conversation.",
       "retry": "Try again",
       "disclaimer": "This plan is suggested by the assistant, not a definitive recommendation. Verify important legal, medical, and financial steps."
     },
