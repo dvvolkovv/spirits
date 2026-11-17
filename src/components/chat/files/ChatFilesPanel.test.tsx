@@ -522,7 +522,9 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
 
     click(byButton(container, new RegExp(tRu('chat.files.download')))!);
     expect(openChatUpload).toHaveBeenCalledWith('/webhook/chat-uploads/h1', tRu('chat.upload_download_error'), 'IMG_0001.heic');
-    expect(onDownload).toHaveBeenCalledWith('image', 'list');
+    // Место — сетка «Медиа» (grid), а не список «Файлы» (list): так их и
+    // различает chat_files_download в статистике.
+    expect(onDownload).toHaveBeenCalledWith('image', 'grid');
 
     // Просмотр такой картинки — тот же значок, а не запрос оригинала.
     click(imageTile(container, 'IMG_0001.heic')!);

@@ -36,8 +36,9 @@ describe('события панели «Медиа и файлы»', () => {
     expect(b).toMatch(/trackAuthed\('chat_files_panel_open', user\.phone, \{ assistantId: selectedAssistant\.id, fresh: !!freshTs, entry \}\)/);
   });
 
+  // grid — «Скачать» под плиткой загрузки без превью в сетке «Медиа».
   it('скачивание из панели шлёт chat_files_download', () => {
-    const b = body("const trackFilesDownload = (kind: ChatFileKind, from: 'list' | 'viewer') => {");
+    const b = body("const trackFilesDownload = (kind: ChatFileKind, from: 'list' | 'viewer' | 'grid') => {");
     expect(b).toContain("trackAuthed('chat_files_download', user.phone, { kind, from })");
     expect(SRC).toContain('onDownload={trackFilesDownload}');
   });
