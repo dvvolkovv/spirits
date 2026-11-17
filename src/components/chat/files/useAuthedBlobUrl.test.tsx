@@ -117,3 +117,84 @@ describe('useAuthedBlobUrl', () => {
     expect(URL.createObjectURL).not.toHaveBeenCalled();
   });
 });
+
+// Очередь общая на модуль: каждый тест ниже отвечает на все свои запросы,
+// иначе занятые места перешли бы в следующий тест.
+describe('useAuthedBlobUrl — не больше 6 запросов разом', () => {
+  const path = (i: number) => `/webhook/chat-uploads/p${i}/thumb`;
+  const probes = (from: number, to: number) => (
+    <>
+      {Array.from({ length: to - from }, (_, i) => (
+        <Probe key={from + i} path={path(from + i)} />
+      ))}
+    </>
+  );
+  const allSrc = (c: HTMLElement) =>
+    Array.from(c.querySelectorAll('[data-testid="probe"]')).map((e) => e.getAttribute('data-src') ?? '');
+
+  it('10 превью разом: в полёте не больше 6, после ответов адрес получают все 10', async () => {
+    const pending: ReturnType<typeof deferred>[] = [];
+    let inFlight = 0;
+    let peak = 0;
+    api.get.mockImplementation((() => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      const d = deferred();
+      pending.push(d);
+      return d.promise.then((v) => { inFlight -= 1; return v; });
+    }) as any);
+
+    const { container } = mount(probes(0, 10));
+    await settle();
+    expect(api.get).toHaveBeenCalledTimes(6);
+
+    while (pending.length > 0) {
+      const d = pending.shift()!;
+      await actAsync(() => { d.resolve(blobRes()); });
+      await settle();
+      await settle();
+    }
+    expect(api.get).toHaveBeenCalledTimes(10);
+    expect(peak).toBeLessThanOrEqual(6);
+    expect(allSrc(container).every((s) => s.startsWith('blob:'))).toBe(true);
+  });
+
+  it('превью ушло, не дождавшись очереди, — его запрос не шлётся и место не занимает', async () => {
+    const pending: ReturnType<typeof deferred>[] = [];
+    api.get.mockImplementation((() => {
+      const d = deferred();
+      pending.push(d);
+      return d.promise;
+    }) as any);
+
+    mount(probes(0, 6));
+    const queued = mount(<Probe path={path(6)} />);
+    await settle();
+    expect(api.get).toHaveBeenCalledTimes(6);
+    queued.unmount();
+
+    // Одно место освободилось — ждущих нет, запрос ушедшей плитки не стартует.
+    await actAsync(() => { pending[0].resolve(blobRes()); });
+    await settle();
+    await settle();
+    expect(api.get).toHaveBeenCalledTimes(6);
+    expect(api.get).not.toHaveBeenCalledWith(path(6), expect.anything());
+
+    // А свободное место достаётся новой плитке сразу.
+    mount(<Probe path={path(7)} />);
+    expect(api.get).toHaveBeenCalledTimes(7);
+    expect(api.get).toHaveBeenLastCalledWith(path(7), expect.anything());
+
+    for (const d of pending.slice(1)) await actAsync(() => { d.resolve(blobRes()); });
+    await settle();
+    await settle();
+  });
+
+  it('ошибка запроса тоже освобождает место', async () => {
+    api.get.mockRejectedValue(new Error('network'));
+    mount(probes(0, 7));
+    await settle();
+    await settle();
+    expect(api.get).toHaveBeenCalledTimes(7);
+  });
+});
