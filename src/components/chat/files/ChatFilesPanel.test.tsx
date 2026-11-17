@@ -61,7 +61,7 @@ describe('ChatFilesPanel', () => {
     expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12');
   });
 
-  it('метку «Чистого листа» от старого вызывающего не пересылает: точка отсчёта — на сервере', async () => {
+  it('метку «Чистого листа» от старого вызывающего не пересылает: он файлы не прячет', async () => {
     api.get.mockResolvedValue(ok([]));
     // Приведение — имитация вызывающего, который ещё передаёт снятый проп.
     const legacy = { freshTs: '1728000000000' } as object;

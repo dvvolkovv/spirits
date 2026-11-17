@@ -56,9 +56,9 @@ export function isUploadItem(f: Pick<ChatFileItem, 'origin' | 'url'>): boolean {
   return f.origin === 'upload' || !!f.url?.startsWith(UPLOAD_URL_PREFIX);
 }
 
-export async function fetchChatFiles(assistantId: string | number, freshTs?: string | null): Promise<ChatFileItem[]> {
-  const fresh = freshTs ? `&freshTs=${encodeURIComponent(freshTs)}` : '';
-  const res = await apiClient.get(`/webhook/chat/files?assistantId=${encodeURIComponent(String(assistantId))}${fresh}`);
+/** Все файлы переписки с ассистентом: лента одна, «Чистый лист» файлы не прячет — метку не шлём. */
+export async function fetchChatFiles(assistantId: string | number): Promise<ChatFileItem[]> {
+  const res = await apiClient.get(`/webhook/chat/files?assistantId=${encodeURIComponent(String(assistantId))}`);
   if (!res.ok) throw new Error(`chat files: HTTP ${res.status}`);
   const data = await res.json();
   return Array.isArray(data?.items) ? data.items : [];

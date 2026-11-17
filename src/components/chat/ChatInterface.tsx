@@ -2774,15 +2774,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {showFilesPanel && selectedAssistant && (
         <ChatFilesPanel
-          // key по ассистенту и freshTs: смена «Чистого листа» при открытой
-          // панели иначе не размонтирует её, а только меняет пропсы — и
-          // устаревший ответ fetchChatFiles по старому freshTs, если он
-          // разрешится позже нового запроса, переписывает уже верные данные.
-          // key заставляет React пересоздать компонент, старый fetch
-          // дозревает уже у выброшенного инстанса.
-          key={`${selectedAssistant.id}|${freshTs ?? ''}`}
+          // key по ассистенту: смена ассистента пересоздаёт панель, запоздалый
+          // fetch дозревает у выброшенного инстанса.
+          key={selectedAssistant.id}
           assistantId={selectedAssistant.id}
-          freshTs={freshTs}
           onClose={() => setShowFilesPanel(false)}
           onDownload={trackFilesDownload}
         />
@@ -2790,9 +2785,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {showActionPlan && selectedAssistant && (
         <ActionPlanPanel
-          key={`${selectedAssistant.id}|${freshTs ?? ''}`}
+          key={selectedAssistant.id}
           assistantId={selectedAssistant.id}
-          freshTs={freshTs}
           onClose={() => setShowActionPlan(false)}
           onDiscuss={handleDiscussActionPlan}
         />

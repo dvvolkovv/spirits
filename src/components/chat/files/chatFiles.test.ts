@@ -29,7 +29,7 @@ describe('fetchChatFiles', () => {
     expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12');
   });
 
-  it('метку «Чистого листа» не шлёт, даже если её передал старый вызов: точка отсчёта — на сервере', async () => {
+  it('метку «Чистого листа» не шлёт, даже если её передал старый вызов: он файлы не прячет', async () => {
     api.get.mockResolvedValue({ ok: true, json: async () => ({ items: [] }) } as any);
     await (fetchChatFiles as (...args: unknown[]) => Promise<ChatFileItem[]>)(12, '1728000000000');
     expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12');

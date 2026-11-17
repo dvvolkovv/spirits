@@ -17,8 +17,6 @@ import { trapTab } from './focusTrap';
 
 interface Props {
   assistantId: string | number;
-  /** Метка «Чистого листа»: панель показывает ту переписку, что на экране. */
-  freshTs?: string | null;
   onClose: () => void;
   /**
    * Скачали файл — для статистики: из списка «Файлы» (list), из просмотра
@@ -48,7 +46,7 @@ const ICONS: Record<FileIconKind, React.ComponentType<{ className?: string }>> =
  * из реестра chat_uploads. Загрузки приватные: превью и скачивание идут с JWT
  * (UploadItems.tsx), удалить их может только сам пользователь.
  */
-const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDownload }) => {
+const ChatFilesPanel: React.FC<Props> = ({ assistantId, onClose, onDownload }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n?.language || 'ru';
   const [items, setItems] = useState<ChatFileItem[] | null>(null);
@@ -169,13 +167,13 @@ const ChatFilesPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDown
     setBrokenKeys(new Set());
     setThumbFailedKeys(new Set());
     try {
-      const list = await fetchChatFiles(assistantId, freshTs);
+      const list = await fetchChatFiles(assistantId);
       setItems(list);
       setTab((cur) => cur ?? startTab(list));
     } catch {
       setError(true);
     }
-  }, [assistantId, freshTs]);
+  }, [assistantId]);
 
   useEffect(() => {
     void load();

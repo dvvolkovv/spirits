@@ -9,7 +9,7 @@ import { join } from 'path';
 const SRC = readFileSync(join(__dirname, 'ChatInterface.tsx'), 'utf8');
 
 describe('связка панели «Медиа и файлы»', () => {
-  it('панель получает открытого ассистента — без метки «Чистого листа»: точка отсчёта на сервере', () => {
+  it('панель получает открытого ассистента — без метки «Чистого листа»: он файлы не прячет', () => {
     expect(SRC).toContain("import ChatFilesPanel from './files/ChatFilesPanel';");
     const at = SRC.indexOf('<ChatFilesPanel');
     expect(at).toBeGreaterThan(-1);
