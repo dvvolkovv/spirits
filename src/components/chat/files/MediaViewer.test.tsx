@@ -202,7 +202,11 @@ describe('MediaViewer — загрузка пользователя (прива�
     let resolve!: (v: unknown) => void;
     api.get.mockReturnValue(new Promise((r) => { resolve = r; }) as any);
     const { container, unmount } = mount(<MediaViewer items={[upload()]} index={0} onIndexChange={vi.fn()} onClose={vi.fn()} />);
-    expect(container.querySelector('[data-testid="media-viewer-loading"]')).not.toBeNull();
+    const loading = container.querySelector('[data-testid="media-viewer-loading"]')!;
+    expect(loading).not.toBeNull();
+    // Диктору — «Загрузка…», а не тишина: индикатор живая область со скрытым текстом.
+    expect(loading.getAttribute('role')).toBe('status');
+    expect(loading.querySelector('.sr-only')!.textContent).toBe(tRu('common.loading'));
     expect(container.querySelector('img')).toBeNull();
     // Просмотр — оригинал, не миниатюра.
     expect(api.get).toHaveBeenCalledWith('/webhook/chat-uploads/u1', expect.anything());

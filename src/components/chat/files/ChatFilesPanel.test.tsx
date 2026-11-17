@@ -455,8 +455,9 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
   const settleBlobs = async () => { await settle(); await settle(); };
   const delBtn = (c: ParentNode, name: string) =>
     c.querySelector(`button[aria-label="${tRu('chat.files.delete')}: ${name}"]`) as HTMLButtonElement | null;
-  const imageTile = (c: ParentNode, name: string) =>
-    c.querySelector(`button[aria-label="${tRu('chat.files.image')}: ${name}"]`) as HTMLButtonElement | null;
+  // Точная метка плитки: вид, имя и пометка источника (её слышит и экранный диктор).
+  const imageTile = (c: ParentNode, name: string, badge = tRu('chat.files.uploaded_by_you')) =>
+    c.querySelector(`button[aria-label="${tRu('chat.files.image')}: ${name}, ${badge}"]`) as HTMLButtonElement | null;
   /** Запросы к приватным адресам загрузок (миниатюры и оригиналы), без списка. */
   const uploadCalls = () => api.get.mock.calls.filter(([u]) => String(u).startsWith('/webhook/chat-uploads/'));
 
@@ -608,6 +609,25 @@ describe('ChatFilesPanel — загрузки пользователя', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  // Пометка источника видна глазами на плитке — диктору её тоже нужно услышать.
+  it('доступность: в имени плитки и строки — пометка источника; комментарий строки — её описание', async () => {
+    api.get.mockImplementation(routeGet(UPLOADS) as any);
+    const { container } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
+    await settleBlobs();
+    expect(imageTile(container, 'гостиная.jpg')).not.toBeNull();
+    expect(imageTile(container, 'чек.png', tRu('chat.files.from_telegram'))).not.toBeNull();
+
+    click(tab(container, 'chat.files.tab_files'));
+    const row = byButton(container, /договор\.pdf/)!;
+    const date = new Date(UP_DOC.createdAt).toLocaleDateString('ru');
+    expect(row.getAttribute('aria-label')).toBe(
+      `${tRu('chat.files.download')}: договор.pdf, ${date}, ${tRu('chat.files.uploaded_by_you')}`,
+    );
+    const noteId = row.getAttribute('aria-describedby')!;
+    expect(noteId).toBeTruthy();
+    expect(container.querySelector(`[id="${noteId}"]`)!.textContent).toBe('Договор аренды, срок до мая');
   });
 
   it('«Файлы»: скачивание через openChatUpload (JWT), пометка и комментарий; ссылок с href на приватный адрес нет', async () => {
