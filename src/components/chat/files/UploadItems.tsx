@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, File as FileIcon, Image as ImageIcon, Play, Trash2 } from 'lucide-react';
-import type { ChatFileItem } from './chatFiles';
+import { uploadTilePath, type ChatFileItem } from './chatFiles';
 import { useAuthedBlobUrl } from './useAuthedBlobUrl';
 
 /*
@@ -15,34 +15,10 @@ import { useAuthedBlobUrl } from './useAuthedBlobUrl';
  *
  * Имена и комментарии личные: от Вебвизора их прячет ym-hide-content на корне
  * панели, внутри которого плитки только и рисуются (webvisorPrivacy.test.ts).
+ *
+ * Что показывать превью, решают uploadTilePath/uploadViewerPath (chatFiles.ts):
+ * в этом файле — только компоненты (правило react-refresh).
  */
-
-/**
- * Форматы, которые браузер рисует в картинке. Остальное (HEIC/HEIF с айфона,
- * TIFF, BMP, SVG) в blob ради «битой картинки» не тянем: миниатюры у HEIC и BMP
- * нет (бэк, upload-thumb.ts), а оригинал до 100 МБ браузер всё равно не покажет.
- */
-const BROWSER_IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif']);
-
-const browserShows = (item: ChatFileItem) =>
-  item.kind === 'image' && BROWSER_IMAGE_EXTS.has((item.ext || '').toLowerCase());
-
-/**
- * Что плитка показывает превью: миниатюра (webp до 480 px), а у картинки без
- * неё — оригинал, если браузер его покажет. undefined — превью нет: у видео
- * тёмная плитка, у картинки — значок файла.
- */
-export function uploadTilePath(item: ChatFileItem): string | undefined {
-  return item.thumbUrl ?? (browserShows(item) ? item.url : undefined);
-}
-
-/**
- * Что просмотр показывает картинкой: оригинал, если браузер его покажет, иначе
- * миниатюра (TIFF). undefined — ни того, ни другого (HEIC): значок файла и «Скачать».
- */
-export function uploadViewerPath(item: ChatFileItem): string | undefined {
-  return browserShows(item) ? item.url : item.thumbUrl;
-}
 
 /** Плитка у видимой области (с запасом 200px): до этого превью не качаем. */
 function useNearViewport<T extends Element>(): [React.RefObject<T>, boolean] {

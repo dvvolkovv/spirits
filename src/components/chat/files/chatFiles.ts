@@ -116,6 +116,34 @@ const POWERPOINT = new Set(['ppt', 'pptx', 'odp']);
 const ARCHIVE = new Set(['zip', 'rar', '7z', 'tar', 'gz']);
 const CODE = new Set(['py', 'js', 'ts', 'json', 'html', 'htm', 'css', 'sh', 'sql', 'xml', 'yaml', 'yml']);
 
+/**
+ * Форматы, которые браузер рисует в картинке. Остальное (HEIC/HEIF с айфона,
+ * TIFF, BMP, SVG) в blob ради «битой картинки» не тянем: миниатюры у HEIC и BMP
+ * нет (бэк, upload-thumb.ts), а оригинал до 100 МБ браузер всё равно не покажет.
+ */
+export const BROWSER_IMAGE_EXTS: ReadonlySet<string> = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif']);
+
+const browserShows = (f: Pick<ChatFileItem, 'ext' | 'kind'>) =>
+  f.kind === 'image' && BROWSER_IMAGE_EXTS.has((f.ext || '').toLowerCase());
+
+/**
+ * Что плитка загрузки показывает превью: миниатюра (webp до 480 px), а у
+ * картинки без неё — оригинал, если браузер его покажет. undefined — превью
+ * нет: у видео тёмная плитка, у картинки — значок файла.
+ */
+export function uploadTilePath(f: ChatFileItem): string | undefined {
+  return f.thumbUrl ?? (browserShows(f) ? f.url : undefined);
+}
+
+/**
+ * Что просмотр загрузки показывает картинкой: оригинал, если браузер его
+ * покажет, иначе миниатюра (TIFF). undefined — ни того, ни другого (HEIC):
+ * значок файла и «Скачать».
+ */
+export function uploadViewerPath(f: ChatFileItem): string | undefined {
+  return browserShows(f) ? f.url : f.thumbUrl;
+}
+
 export function fileIconKind(f: Pick<ChatFileItem, 'ext' | 'kind'>): FileIconKind {
   if (f.kind === 'audio') return 'audio';
   if (f.ext === 'pdf') return 'pdf';

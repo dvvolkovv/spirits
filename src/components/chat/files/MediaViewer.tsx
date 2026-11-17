@@ -1,11 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Download, File as FileIcon, Trash2, X } from 'lucide-react';
-import type { ChatFileItem, ChatFileKind } from './chatFiles';
+import { uploadViewerPath, type ChatFileItem, type ChatFileKind } from './chatFiles';
 import { trapTab } from './focusTrap';
 import { openChatUpload } from '../chatUploads';
 import { useAuthedBlobUrl } from './useAuthedBlobUrl';
-import { uploadViewerPath } from './UploadItems';
 
 interface Props {
   /** Только сохранённые медиа: у них есть адрес. */
