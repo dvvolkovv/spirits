@@ -462,7 +462,7 @@
       "tab_media": "Media",
       "tab_files": "Files",
       "empty_media": "Images and videos from this conversation will appear here",
-      "empty_files": "Files the assistant creates will appear here",
+      "empty_files": "Files the assistant creates and files you upload will appear here",
       "load_error": "Couldn't load",
       "retry": "Try again",
       "download": "Download",
@@ -473,7 +473,13 @@
       "unsaved": "Not saved: {{n}}",
       "unsaved_hint": "The file was kept on a temporary server and has been deleted",
       "video": "Video",
-      "image": "Image"
+      "image": "Image",
+      "uploaded_by_you": "Uploaded by you",
+      "from_telegram": "From Telegram",
+      "delete": "Delete",
+      "delete_confirm": "Delete this file? Assistants will no longer be able to open it.",
+      "delete_failed": "Couldn't delete the file. Please try again.",
+      "note_label": "Assistant's comment"
     }
   },
   "profile": {

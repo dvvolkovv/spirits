@@ -459,7 +459,7 @@
       "tab_media": "媒体",
       "tab_files": "文件",
       "empty_media": "此对话中的图片和视频将显示在这里",
-      "empty_files": "助手创建的文件将显示在这里",
+      "empty_files": "助手创建的文件和你上传的文件将显示在这里",
       "load_error": "加载失败",
       "retry": "重试",
       "download": "下载",
@@ -470,7 +470,13 @@
       "unsaved": "未保存：{{n}}",
       "unsaved_hint": "该文件存放在临时服务器上，已被删除",
       "video": "视频",
-      "image": "图片"
+      "image": "图片",
+      "uploaded_by_you": "由你上传",
+      "from_telegram": "来自 Telegram",
+      "delete": "删除",
+      "delete_confirm": "删除此文件？删除后助手将无法再打开它。",
+      "delete_failed": "无法删除文件，请再试一次。",
+      "note_label": "助手备注"
     }
   },
   "profile": {

@@ -465,7 +465,7 @@
       "tab_media": "Multimedia",
       "tab_files": "Archivos",
       "empty_media": "Aquí aparecerán las imágenes y los vídeos de esta conversación",
-      "empty_files": "Aquí aparecerán los archivos que cree el asistente",
+      "empty_files": "Aquí aparecerán los archivos que cree el asistente y los que subas",
       "load_error": "No se pudo cargar",
       "retry": "Reintentar",
       "download": "Descargar",
@@ -476,7 +476,13 @@
       "unsaved": "No guardados: {{n}}",
       "unsaved_hint": "El archivo estaba en un servidor temporal y se eliminó",
       "video": "Vídeo",
-      "image": "Imagen"
+      "image": "Imagen",
+      "uploaded_by_you": "Subido por ti",
+      "from_telegram": "Desde Telegram",
+      "delete": "Eliminar",
+      "delete_confirm": "¿Eliminar el archivo? Los asistentes ya no podrán abrirlo.",
+      "delete_failed": "No se pudo eliminar el archivo. Inténtalo de nuevo.",
+      "note_label": "Comentario del asistente"
     }
   },
   "profile": {
