@@ -448,7 +448,7 @@
       "delete_confirm": "Delete this action plan? This cannot be undone.",
       "unsaved_confirm": "Close without saving your changes?",
       "error": "Couldn't load or save the plan. Please try again.",
-      "not_enough": "Not enough conversation for a plan yet: write the assistant at least a couple of messages. After «Fresh start», the plan is built only from the new conversation.",
+      "not_enough": "There isn't enough conversation for a plan yet — you need at least one question and the assistant's answer. After “Fresh start”, the plan is based only on the new conversation.",
       "retry": "Try again",
       "disclaimer": "This plan is suggested by the assistant, not a definitive recommendation. Verify important legal, medical, and financial steps."
     },
@@ -1620,7 +1620,7 @@
       },
       {
         "q": "How do I start a conversation from scratch?",
-        "a": "Turn on «Fresh start» in the chat header: the assistant won't see your past history and tasks, while your profile keeps growing. Turn it off and the conversation continues with the earlier context."
+        "a": "Tap «Fresh start» in the chat header (on a phone, in the «⋯» menu) and confirm. From that point the assistant no longer takes past messages into account: it sees your profile and the new conversation. The chat stays in the feed, and a line shows where the assistant's memory starts. The earlier context can't be restored — you can only start again from a new point."
       },
       {
         "q": "Is there a mobile app?",
