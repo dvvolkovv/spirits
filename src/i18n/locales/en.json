@@ -1620,7 +1620,7 @@
       },
       {
         "q": "How do I start a conversation from scratch?",
-        "a": "Tap «Fresh start» in the chat header (on a phone, in the «⋯» menu) and confirm. From that point the assistant no longer takes past messages into account: it sees your profile and the new conversation. The chat stays in the feed, and a line shows where the assistant's memory starts. The earlier context can't be restored — you can only start again from a new point."
+        "a": "Click «Fresh start» in the chat header (on a phone, in the «⋯» menu) and confirm. From then on, the assistant no longer takes past messages into account: it sees your profile and the new conversation. Your messages stay in the chat, and a line marks where the assistant's memory begins. The earlier context can't be restored — you can only set a new starting point."
       },
       {
         "q": "Is there a mobile app?",

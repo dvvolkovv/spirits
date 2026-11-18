@@ -448,7 +448,7 @@
       "delete_confirm": "Diesen Aktionsplan löschen? Das kann nicht rückgängig gemacht werden.",
       "unsaved_confirm": "Ohne Speichern der Änderungen schließen?",
       "error": "Plan konnte nicht geladen oder gespeichert werden. Versuche es erneut.",
-      "not_enough": "Das Gespräch ist noch zu kurz für einen Plan: Es braucht mindestens eine Frage von dir und die Antwort des Assistenten. Nach „Neustart“ basiert der Plan nur auf dem neuen Gespräch.",
+      "not_enough": "Das Gespräch ist noch zu kurz für einen Plan: Dafür braucht es mindestens eine Frage von dir und die Antwort des Assistenten. Nach „Neustart“ basiert der Plan nur auf dem neuen Gespräch.",
       "retry": "Erneut versuchen",
       "disclaimer": "Dieser Plan ist ein Vorschlag des Assistenten, keine verbindliche Empfehlung. Prüfe wichtige rechtliche, medizinische und finanzielle Schritte."
     },
@@ -1190,7 +1190,7 @@
       },
       {
         "q": "Wie beginne ich ein Gespräch von vorn?",
-        "a": "Tippe in der Kopfzeile des Chats auf „Neustart“ (auf dem Handy im Menü „⋯“) und bestätige. Ab dieser Stelle berücksichtigt der Assistent frühere Nachrichten nicht mehr: Er sieht dein Profil und das neue Gespräch. Der Chat bleibt erhalten, eine Linie zeigt, ab wo sich der Assistent erinnert. Den früheren Kontext kannst du nicht zurückholen – du kannst nur von einer neuen Stelle aus neu beginnen."
+        "a": "Tippe in der Kopfzeile des Chats auf „Neustart“ (auf dem Handy im Menü „⋯“) und bestätige. Ab dieser Stelle berücksichtigt der Assistent frühere Nachrichten nicht mehr: Er sieht dein Profil und das neue Gespräch. Der Chat bleibt erhalten, eine Trennlinie zeigt, wo das Gedächtnis des Assistenten beginnt. Den früheren Kontext kannst du nicht zurückholen – du kannst nur ab einer neuen Stelle von vorn beginnen."
       },
       {
         "q": "Gibt es eine mobile App?",

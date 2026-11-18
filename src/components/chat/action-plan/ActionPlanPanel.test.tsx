@@ -89,7 +89,7 @@ describe('ActionPlanPanel', () => {
     expect(text).not.toContain('Не удалось загрузить или сохранить план');
     // Повтор загрузки не поможет — кнопки «Повторить» нет.
     expect(byButton(view.container, /Повторить/)).toBeNull();
-    // Кнопка формирования остаётся: написал пару сообщений — жмёт снова.
+    // Кнопка формирования остаётся: дождался ответа ассистента на свой вопрос — жмёт снова.
     expect(byButton(view.container, /Сформировать план/)).not.toBeNull();
     view.unmount();
   });
@@ -114,7 +114,7 @@ describe('ActionPlanPanel', () => {
     const { view } = await openPanel();
     await clickAsync(byButton(view.container, /Сформировать план/)!);
     expect(visibleText(view.container)).toContain('Для плана пока мало разговора');
-    // Написал ассистенту пару сообщений — жмёт снова, план получился.
+    // Задал вопрос, ассистент ответил — жмёт снова, план получился.
     await clickAsync(byButton(view.container, /Сформировать план/)!);
     expect(visibleText(view.container)).not.toContain('Для плана пока мало разговора');
     expect(view.container.querySelector('[role="alert"]')).toBeNull();

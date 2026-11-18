@@ -1583,7 +1583,7 @@
       },
       {
         "q": "Como começo uma conversa do zero?",
-        "a": "Toque em «Página em branco» no cabeçalho do chat (no telemóvel, no menu «⋯») e confirme. A partir desse ponto, o assistente deixa de ter em conta as mensagens anteriores: vê o seu perfil e a nova conversa. A conversa mantém-se no histórico e uma linha mostra a partir de onde o assistente se lembra. O contexto anterior não pode ser recuperado — só é possível recomeçar a partir de um novo ponto."
+        "a": "Clique em «Página em branco» no cabeçalho do chat (no telemóvel, no menu «⋯») e confirme. A partir desse ponto, o assistente deixa de ter em conta as mensagens anteriores: vê o seu perfil e a nova conversa. A conversa mantém-se no histórico e uma linha mostra onde começa a memória do assistente. O contexto anterior não pode ser recuperado — só é possível recomeçar a partir de um novo ponto."
       },
       {
         "q": "Existe uma aplicação móvel?",

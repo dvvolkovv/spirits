@@ -451,7 +451,7 @@
       "delete_confirm": "Supprimer ce plan d'action ? Cette action est irréversible.",
       "unsaved_confirm": "Fermer sans enregistrer les modifications ?",
       "error": "Impossible de charger ou d'enregistrer le plan. Réessaie.",
-      "not_enough": "La conversation est encore trop courte pour un plan : il faut au moins une de tes questions et la réponse de l'assistant. Après « Page blanche », le plan ne s'appuie que sur la nouvelle conversation.",
+      "not_enough": "La conversation est encore trop courte pour un plan : il faut au moins une question de ta part et la réponse de l'assistant. Après « Page blanche », le plan ne s'appuie que sur la nouvelle conversation.",
       "retry": "Réessayer",
       "disclaimer": "Ce plan est proposé par l'assistant, ce n'est pas une recommandation définitive. Vérifie les étapes juridiques, médicales et financières importantes."
     },
@@ -1193,7 +1193,7 @@
       },
       {
         "q": "Comment repartir de zéro dans une conversation ?",
-        "a": "Appuie sur « Page blanche » dans l'en-tête du chat (sur téléphone, dans le menu « ⋯ ») et confirme. À partir de là, l'assistant ne tient plus compte des messages précédents : il voit ton profil et la nouvelle conversation. La conversation reste affichée, et une ligne indique à partir d'où l'assistant s'en souvient. Le contexte précédent ne peut pas être rétabli : tu peux seulement repartir d'un nouveau point."
+        "a": "Clique sur « Page blanche » dans l'en-tête du chat (sur téléphone, dans le menu « ⋯ ») et confirme. À partir de là, l'assistant ne tient plus compte des messages précédents : il voit ton profil et la nouvelle conversation. La conversation reste affichée, et une ligne indique où commence la mémoire de l'assistant. Le contexte précédent ne peut pas être rétabli : tu peux seulement repartir d'un nouveau point."
       },
       {
         "q": "Y a-t-il une application mobile ?",
