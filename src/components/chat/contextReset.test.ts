@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergePolledReset, parseContextResetAt, resetDividerIndex, type ResetMark } from './contextReset';
+import { markFromHistory, mergePolledReset, parseContextResetAt, resetDividerIndex, type ResetMark } from './contextReset';
 
 const R = new Date('2026-11-17T00:00:00Z');
 const m = (id: string, iso: string) => ({ id, timestamp: new Date(iso) });
@@ -126,5 +126,44 @@ describe('mergePolledReset', () => {
   it('битая дата — прежняя метка', () => {
     expect(mergePolledReset(anchored, new Date('не дата'))).toBe(anchored);
     expect(mergePolledReset(null, new Date('не дата'))).toBeNull();
+  });
+});
+
+describe('markFromHistory: точка из первой загрузки истории', () => {
+  it('все сообщения не новее точки — якорь на последнем серверном', () => {
+    const msgs = [m('s1', '2026-11-16T12:00:00Z'), m('s2', '2026-11-16T23:00:00Z')];
+    expect(markFromHistory(msgs, R)).toStrictEqual({ at: R, afterId: 's2' });
+  });
+  it('сообщение ровно в момент точки — старше её: якорь на нём', () => {
+    const msgs = [m('s1', '2026-11-16T12:00:00Z'), m('s2', R.toISOString())];
+    expect(markFromHistory(msgs, R)).toStrictEqual({ at: R, afterId: 's2' });
+  });
+  it('хоть одно сообщение новее точки — без якоря: черту ставит время базы', () => {
+    const msgs = [m('s1', '2026-11-16T12:00:00Z'), m('s2', '2026-11-17T00:01:00Z')];
+    expect(markFromHistory(msgs, R)).toStrictEqual({ at: R });
+  });
+  it('лента пуста — всё, что придёт, после точки: черты нет', () => {
+    expect(markFromHistory([], R)).toStrictEqual({ at: R, afterId: null });
+  });
+  it('битое время сообщения новее не считается — как в resetDividerIndex', () => {
+    const msgs = [m('s1', '2026-11-16T12:00:00Z'), { id: 's2', timestamp: new Date('не дата') }];
+    expect(markFromHistory(msgs, R)).toStrictEqual({ at: R, afterId: 's2' });
+  });
+  it('время строкой тоже понимает', () => {
+    expect(markFromHistory([{ id: 's1', timestamp: '2026-11-17T00:01:00Z' }], R)).toStrictEqual({ at: R });
+    expect(markFromHistory([{ id: 's1', timestamp: '2026-11-16T00:01:00Z' }], R)).toStrictEqual({ at: R, afterId: 's1' });
+  });
+  it('битая точка — без якоря (resetDividerIndex её и так не рисует)', () => {
+    const bad = new Date('не дата');
+    expect(markFromHistory([m('s1', '2026-11-16T12:00:00Z')], bad)).toStrictEqual({ at: bad });
+  });
+  it('после перезагрузки новое сообщение с отстающими часами клиента — под чертой', () => {
+    // Черта внизу, а часы клиента на 2 минуты позади базы: без якоря новое
+    // сообщение встало бы над чертой до следующей перезагрузки.
+    const loaded = [m('s1', '2026-11-16T12:00:00Z'), m('s2', '2026-11-16T23:59:30Z')];
+    const mark = markFromHistory(loaded, R);
+    expect(resetDividerIndex(loaded, mark)).toBe(2);
+    const afterSend = [...loaded, m('loc-1', '2026-11-16T23:59:50Z')];
+    expect(resetDividerIndex(afterSend, mark)).toBe(2);
   });
 });

@@ -56,7 +56,7 @@ describe('«Чистый лист» — точка отсчёта (провод�
   it('импорты из contextReset и черта', () => {
     expect(src).toContain("import { ContextResetDivider } from './ContextResetDivider';");
     expect(src).toMatch(
-      /import \{ parseContextResetAt, resetDividerIndex, mergePolledReset, type ResetMark \} from '\.\/contextReset';/,
+      /import \{ parseContextResetAt, resetDividerIndex, mergePolledReset, markFromHistory, type ResetMark \} from '\.\/contextReset';/,
     );
     expect(src).toContain('const [resetMark, setResetMark] = useState<ResetMark | null>(null);');
     expect(src).toContain('const [resettingContext, setResettingContext] = useState(false);');
@@ -78,9 +78,27 @@ describe('«Чистый лист» — точка отсчёта (провод�
   });
 
   it('reset-context ограничен таймаутом: подвисшая сеть иначе запрёт чат через sendBlocked', () => {
-    expect(startFresh()).toContain(
-      "apiClient.post('/webhook/chat/reset-context', { assistantId }, { signal: AbortSignal.timeout(15000) })",
+    const b = startFresh();
+    expect(b).toContain('const resetTimeout = withAbortTimeout(15000);');
+    expect(b).toContain(
+      "apiClient.post('/webhook/chat/reset-context', { assistantId }, { signal: resetTimeout.signal })",
     );
+    expect(b).toMatch(/finally \{\s*resetTimeout\.done\(\);\s*\}/);
+  });
+
+  it('таймауты — общим помощником: AbortSignal.timeout нет в Safari < 16 и WebView < 103', () => {
+    // Там вызов бросал бы TypeError до запроса, catch показывал бы «Не
+    // получилось…» на каждое нажатие.
+    expect(src).toContain("import { withAbortTimeout } from '../../utils/abortTimeout';");
+    expect(startFresh()).not.toContain('AbortSignal.timeout');
+    // Единственный оставшийся вызов — проверка удалённого хода в submitText:
+    // там сбой открывает отправку, а не запирает её (remoteTurnWiring.test.ts).
+    // Новых не добавлять.
+    expect((src.match(/AbortSignal\.timeout\(/g) || []).length).toBe(1);
+    const submit = src.indexOf('const submitText = async');
+    const only = src.indexOf('AbortSignal.timeout(');
+    expect(only).toBeGreaterThan(submit);
+    expect(only).toBeLessThan(src.indexOf('const handleAskAnswer = async'));
   });
 
   it('не ставит точку, пока ход идёт где угодно, вот-вот начнётся или грузится история', () => {
@@ -102,7 +120,9 @@ describe('«Чистый лист» — точка отсчёта (провод�
     const gate = b.slice(0, check);
     expect(gate).toContain('!remoteOverride && needsFreshRemoteCheck(remoteCheckedAtRef.current, Date.now())');
     const probe = b.slice(check, post);
-    expect(probe).toContain('AbortSignal.timeout(2000)');
+    expect(probe).toContain('const probeTimeout = withAbortTimeout(2000);');
+    expect(probe).toContain('{ signal: probeTimeout.signal }');
+    expect(probe).toMatch(/finally \{\s*probeTimeout\.done\(\);\s*\}/);
     expect(probe).toMatch(/if \(turn\?\.active\) \{\s*applyRemoteTurn\(true\);\s*toast\.error\(t\('chat\.busy_try_later'\)\);\s*return;\s*\}/);
     expect(probe).toContain('applyRemoteTurn(false)');
     // Сбой проверки — не повод не ставить точку.
@@ -128,6 +148,18 @@ describe('«Чистый лист» — точка отсчёта (провод�
     const stale = b.indexOf('if (selectedAssistantRef.current?.id !== assistantId) return;');
     expect(stale).toBeGreaterThan(b.indexOf('await response.json()'));
     expect(stale).toBeLessThan(b.indexOf(set));
+  });
+
+  it('поставленная точка — событие chat_fresh_start: решение «выключения нет» проверяем цифрами', () => {
+    const b = startFresh();
+    const track = b.indexOf("if (user?.phone) trackAuthed('chat_fresh_start', user.phone, { assistantId });");
+    expect(track).toBeGreaterThan(-1);
+    // Только после ответа 200: отказ и сбой точкой не считаются.
+    expect(track).toBeGreaterThan(b.indexOf('if (!response.ok) throw'));
+    expect(track).toBeGreaterThan(b.indexOf('await response.json()'));
+    // Точка поставлена, даже если человек тем временем ушёл к другому ассистенту.
+    expect(track).toBeLessThan(b.indexOf('if (selectedAssistantRef.current?.id !== assistantId) return;'));
+    expect((src.match(/'chat_fresh_start'/g) || []).length).toBe(1);
   });
 
   it('возврат очереди в поле — страховка: при нажатии очередь отсекает условие выхода', () => {
@@ -171,14 +203,18 @@ describe('«Чистый лист» — точка отсчёта (провод�
     expect((src.match(/parseContextResetAt\(data\??\.contextResetAt\)/g) || []).length).toBeGreaterThanOrEqual(2);
   });
 
-  it('первая загрузка: точка сбрасывается до запроса и ставится без якоря', () => {
+  it('первая загрузка: точка сбрасывается до запроса, а после — с якорем, если черта встала бы внизу', () => {
+    // Иначе новые сообщения вкладки с отстающими часами клиента встали бы
+    // над чертой до следующей перезагрузки (markFromHistory).
     const e = historyEffect();
     const reset = e.indexOf('setResetMark(null);');
     expect(reset).toBeGreaterThan(-1);
     expect(reset).toBeLessThan(e.indexOf('await apiClient.get('));
     expect(e).toContain('const at = parseContextResetAt(data.contextResetAt);');
-    expect(e).toContain('setResetMark(at ? { at } : null);');
-    expect(e.indexOf('setResetMark(at ? { at } : null);')).toBeGreaterThan(e.indexOf('setHistoryOffset(30);'));
+    const set = 'setResetMark(at ? markFromHistory(msgs, at) : null);';
+    expect(e).toContain(set);
+    expect(e.indexOf(set)).toBeGreaterThan(e.indexOf('setMessages(msgs);'));
+    expect(e.indexOf(set)).toBeGreaterThan(e.indexOf('setHistoryOffset(30);'));
   });
 
   it('опрос: точка только вперёд, только для того же ассистента и до раннего выхода', () => {
