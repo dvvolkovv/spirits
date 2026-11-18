@@ -119,8 +119,8 @@ describe('«Чистый лист» — точка отсчёта (провод�
     expect(check).toBeLessThan(post);
     const gate = b.slice(0, check);
     expect(gate).toContain('!remoteOverride && needsFreshRemoteCheck(remoteCheckedAtRef.current, Date.now())');
+    expect(gate).toContain('const probeTimeout = withAbortTimeout(2000);');
     const probe = b.slice(check, post);
-    expect(probe).toContain('const probeTimeout = withAbortTimeout(2000);');
     expect(probe).toContain('{ signal: probeTimeout.signal }');
     expect(probe).toMatch(/finally \{\s*probeTimeout\.done\(\);\s*\}/);
     expect(probe).toMatch(/if \(turn\?\.active\) \{\s*applyRemoteTurn\(true\);\s*toast\.error\(t\('chat\.busy_try_later'\)\);\s*return;\s*\}/);

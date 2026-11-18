@@ -70,7 +70,8 @@ import { createChunkDecoder } from '../../utils/streamDecoder';
 import ChatImageAttachment from './ChatImageAttachment';
 import { imageAttachmentPreview } from './attachmentPreview';
 import { ContextResetDivider } from './ContextResetDivider';
-import { parseContextResetAt, resetDividerIndex, mergePolledReset, type ResetMark } from './contextReset';
+import { parseContextResetAt, resetDividerIndex, mergePolledReset, markFromHistory, type ResetMark } from './contextReset';
+import { withAbortTimeout } from '../../utils/abortTimeout';
 
 interface Assistant {
   id: number;
@@ -944,10 +945,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           setMessages(msgs);
           setHasMoreHistory(data.hasMore || false);
           setHistoryOffset(30);
-          // Точка без якоря: лента целиком серверная, черту ставит время базы.
-          // Старый бэк поля не шлёт — черты нет.
+          // Лента целиком серверная — черту ставит время базы; если встала бы
+          // внизу, markFromHistory якорит её на последнем сообщении, чтобы
+          // новые с часами клиента не всплыли над ней. Старый бэк поля не
+          // шлёт — черты нет.
           const at = parseContextResetAt(data.contextResetAt);
-          setResetMark(at ? { at } : null);
+          setResetMark(at ? markFromHistory(msgs, at) : null);
         } else {
           throw new Error('API error');
         }
@@ -2068,10 +2071,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // active-turn ходит раз в 5 секунд. Знание протухло — спрашиваем; сбой
       // проверки не повод не ставить точку.
       if (!remoteOverride && needsFreshRemoteCheck(remoteCheckedAtRef.current, Date.now())) {
+        const probeTimeout = withAbortTimeout(2000);
         try {
           const r = await apiClient.get(
             `/webhook/chat/active-turn?assistantId=${assistantId}`,
-            { signal: AbortSignal.timeout(2000) },
+            { signal: probeTimeout.signal },
           );
           if (r.ok) {
             const turn = await r.json();
@@ -2082,13 +2086,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             }
             applyRemoteTurn(false);
           }
-        } catch { /* сеть моргнула — ставим точку */ }
+        } catch { /* сеть моргнула — ставим точку */ } finally {
+          probeTimeout.done();
+        }
       }
       // Таймаут обязателен: пока запрос в пути, отправка заперта через
       // sendBlocked, и подвисшая сеть без него запирала бы чат насовсем.
-      const response = await apiClient.post('/webhook/chat/reset-context', { assistantId }, { signal: AbortSignal.timeout(15000) });
-      if (!response.ok) throw new Error(`reset-context ${response.status}`);
-      const data = await response.json();
+      // Через withAbortTimeout: встроенного таймаута сигнала нет в Safari < 16.
+      const resetTimeout = withAbortTimeout(15000);
+      let data: { resetAt?: unknown } | null = null;
+      try {
+        const response = await apiClient.post('/webhook/chat/reset-context', { assistantId }, { signal: resetTimeout.signal });
+        if (!response.ok) throw new Error(`reset-context ${response.status}`);
+        data = await response.json();
+      } finally {
+        resetTimeout.done();
+      }
+      // Точка поставлена — в статистику: решение «выключения нет» проверяем
+      // цифрами. До проверки ассистента: точка стоит, даже если человек уже
+      // ушёл к другому.
+      if (user?.phone) trackAuthed('chat_fresh_start', user.phone, { assistantId });
       if (selectedAssistantRef.current?.id !== assistantId) return;
       // Без запасной даты клиента: если бэк точку не вернул, её подхватит опрос.
       // Только вперёд: опрос мог уже принести точку новее (с другого устройства).
