@@ -65,20 +65,48 @@ describe('«Чистый лист» — точка отсчёта (провод�
   it('кнопка спрашивает подтверждение и зовёт reset-context', () => {
     const b = startFresh();
     expect(b).toContain("window.confirm(t('chat.fresh_confirm'))");
-    expect(b).toContain("apiClient.post('/webhook/chat/reset-context', { assistantId })");
     expect(b).toContain('returnQueueToInput()');
-    expect(b).toContain("window.alert(t('chat.fresh_failed'))");
     expect(b).toContain('setResettingContext(true)');
-    expect(b).toMatch(/finally \{\s*setResettingContext\(false\);\s*\}/);
+    expect(b).toMatch(/finally \{\s*resettingRef\.current = false;\s*setResettingContext\(false\);\s*\}/);
+    expect(b).toMatch(/resettingRef\.current = true;\s*setResettingContext\(true\);/);
   });
 
-  it('не ставит точку, когда ход вот-вот начнётся или история грузится', () => {
+  it('сбой — тостом, как соседнее «занято», а не alert', () => {
     const b = startFresh();
-    const guard = b.slice(0, b.indexOf('window.confirm('));
-    for (const cond of ['!selectedAssistant', 'turnBusy', 'resettingContext', 'historyLoading', 'sendingRef.current', 'flushingRef.current']) {
-      expect(guard, cond).toContain(cond);
-    }
-    expect(guard).toContain(') return;');
+    expect(b).toContain("toast.error(t('chat.fresh_failed'))");
+    expect(b).not.toContain('window.alert');
+  });
+
+  it('reset-context ограничен таймаутом: подвисшая сеть иначе запрёт чат через sendBlocked', () => {
+    expect(startFresh()).toContain(
+      "apiClient.post('/webhook/chat/reset-context', { assistantId }, { signal: AbortSignal.timeout(15000) })",
+    );
+  });
+
+  it('не ставит точку, пока ход идёт где угодно, вот-вот начнётся или грузится история', () => {
+    // freshBlocked — то же, что блокирует отправку (включая ход на другом
+    // устройстве), плюс загрузка истории.
+    expect(src).toMatch(/const freshBlocked = sendBlocked \|\| historyLoading;/);
+    expect(src.indexOf('const freshBlocked')).toBeGreaterThan(src.indexOf('const sendBlocked'));
+    expect(startFresh()).toContain(
+      'if (!selectedAssistant || freshBlocked || sendingRef.current || flushingRef.current) return;',
+    );
+  });
+
+  it('перед точкой спрашивает про удалённый ход, если знание устарело', () => {
+    const b = startFresh();
+    const check = b.indexOf('/webhook/chat/active-turn?assistantId=${assistantId}');
+    const post = b.indexOf("apiClient.post('/webhook/chat/reset-context'");
+    expect(check).toBeGreaterThan(b.indexOf('setResettingContext(true)'));
+    expect(check).toBeLessThan(post);
+    const gate = b.slice(0, check);
+    expect(gate).toContain('!remoteOverride && needsFreshRemoteCheck(remoteCheckedAtRef.current, Date.now())');
+    const probe = b.slice(check, post);
+    expect(probe).toContain('AbortSignal.timeout(2000)');
+    expect(probe).toMatch(/if \(turn\?\.active\) \{\s*applyRemoteTurn\(true\);\s*toast\.error\(t\('chat\.busy_try_later'\)\);\s*return;\s*\}/);
+    expect(probe).toContain('applyRemoteTurn(false)');
+    // Сбой проверки — не повод не ставить точку.
+    expect(probe).toMatch(/\} catch \{/);
   });
 
   it('якорь берётся синхронно после подтверждения, до первого await', () => {
@@ -90,28 +118,43 @@ describe('«Чистый лист» — точка отсчёта (провод�
     expect(anchor).toBeLessThan(b.indexOf('await '));
   });
 
-  it('точку ставят часы базы: без запасной даты клиента, только для того же ассистента', () => {
+  it('точку ставят часы базы: без запасной даты клиента, только вперёд и для того же ассистента', () => {
     const b = startFresh();
     expect(b).toContain('const at = parseContextResetAt(data?.resetAt);');
-    expect(b).toContain('if (at) setResetMark({ at, afterId });');
+    // Опрос мог уже принести точку новее (с другого устройства) — её не откатываем.
+    const set = 'if (at) setResetMark(prev => (prev && prev.at.getTime() > at.getTime() ? prev : { at, afterId }));';
+    expect(b).toContain(set);
     expect(b).not.toMatch(/new Date\(/);
     const stale = b.indexOf('if (selectedAssistantRef.current?.id !== assistantId) return;');
     expect(stale).toBeGreaterThan(b.indexOf('await response.json()'));
-    expect(stale).toBeLessThan(b.indexOf('setResetMark({ at, afterId })'));
+    expect(stale).toBeLessThan(b.indexOf(set));
   });
 
-  it('кнопка в шапке и пункт меню неактивны, пока идёт ход, ставится точка или грузится история', () => {
+  it('возврат очереди в поле — страховка: при нажатии очередь отсекает условие выхода', () => {
+    const b = startFresh();
+    const ret = b.indexOf('returnQueueToInput();');
+    expect(ret).toBeGreaterThan(b.indexOf('window.confirm('));
+    // Комментарий между подтверждением и возвратом честно говорит, почему он не лишний.
+    expect(b.slice(b.indexOf('window.confirm('), ret)).toContain('freshBlocked');
+  });
+
+  it('кнопка в шапке и пункт меню неактивны по freshBlocked', () => {
     // ровно два места: renderFreshButton и пункт меню «⋯»
-    expect((src.match(/disabled=\{turnBusy \|\| resettingContext \|\| historyLoading\}/g) || []).length).toBe(2);
+    expect((src.match(/disabled=\{freshBlocked\}/g) || []).length).toBe(2);
     const btnAt = src.indexOf('const renderFreshButton = (testId: string, wrapperClass: string) => (');
     expect(btnAt).toBeGreaterThan(-1);
     const btn = src.slice(btnAt, src.indexOf('const renderCallButton', btnAt));
     expect(btn).toContain('onClick={() => { void startFreshContext(); }}');
+    expect(btn).toContain('disabled={freshBlocked}');
     expect(btn).toContain("title={t('chat.fresh_mode_off_title')}");
     const item = src.slice(src.indexOf('data-testid="chat-fresh-menuitem"'), src.indexOf('data-testid="chat-fresh-menuitem"') + 500);
     expect(item).toContain('onClick={() => { setShowChatActions(false); void startFreshContext(); }}');
-    expect(item).toContain('disabled={turnBusy || resettingContext || historyLoading}');
+    expect(item).toContain('disabled={freshBlocked}');
     expect((src.match(/renderFreshButton\('/g) || []).length).toBe(2);
+  });
+
+  it('признак «ставится точка» продублирован в ref для колбэков вне рендера', () => {
+    expect(src).toContain('const resettingRef = useRef(false);');
   });
 
   it('пока ставится точка, отправка копится, а досылка ждёт', () => {
@@ -144,7 +187,9 @@ describe('«Чистый лист» — точка отсчёта (провод�
     expect(merge).toBeGreaterThan(p.indexOf('const data = await response.json();'));
     // Опрос без новых строк — обычное дело, а точку могли поставить с телефона.
     expect(merge).toBeLessThan(p.indexOf('if (fresh.length === 0) return;'));
-    const gate = p.lastIndexOf('if (selectedAssistantIdRef.current === assistantId)', merge);
+    // Пока ставится своя точка, опрос её не сливает: принёс бы без якоря раньше
+    // ответа reset-context, и черта мигнула бы по времени клиента.
+    const gate = p.lastIndexOf('if (selectedAssistantIdRef.current === assistantId && !resettingRef.current)', merge);
     expect(gate).toBeGreaterThan(p.indexOf('const data = await response.json();'));
   });
 
@@ -156,8 +201,11 @@ describe('«Чистый лист» — точка отсчёта (провод�
 
   it('черта ставится по resetDividerIndex и не прикидывается сообщением', () => {
     expect(src).toContain('const resetDividerAt = useMemo(() => resetDividerIndex(messages, resetMark), [messages, resetMark]);');
-    // Хук — до раннего return экрана выбора ассистента.
-    expect(src.indexOf('const resetDividerAt = useMemo(')).toBeLessThan(src.indexOf('if (!hasUserSelectedAssistant) {'));
+    // Хук — до раннего return экрана выбора ассистента и до тех, кто его читает.
+    const at = src.indexOf('const resetDividerAt = useMemo(');
+    expect(at).toBeLessThan(src.indexOf('if (!hasUserSelectedAssistant) {'));
+    expect(at).toBeGreaterThan(src.indexOf('const freshBlocked'));
+    expect(at).toBeLessThan(src.indexOf('const handleRegenerateResponse'));
     expect(src).toMatch(
       /messages\.map\(\(message, mi\) => \(\s*<React\.Fragment key=\{message\.id\}>\s*\{mi === resetDividerAt && <ContextResetDivider \/>\}\s*<div\s*data-testid="chat-message"/,
     );
@@ -170,8 +218,84 @@ describe('«Чистый лист» — точка отсчёта (провод�
     expect(divider).not.toContain('chat-message');
   });
 
+  it('черта читается скринридером одной фразой, а не тремя кусками', () => {
+    const divider = readFileSync(join(__dirname, 'ContextResetDivider.tsx'), 'utf8');
+    expect(divider).toContain("const label = t('chat.fresh_divider');");
+    expect(divider).toMatch(/role="separator"[^>]*aria-label=\{label\}/);
+    // Обе линии и текст скрыты от скринридера — их смысл уже в aria-label.
+    expect((divider.match(/aria-hidden="true"/g) || []).length).toBe(3);
+  });
+
+  it('черта на телефоне: фраза не обрезается, линии не схлопываются', () => {
+    const divider = readFileSync(join(__dirname, 'ContextResetDivider.tsx'), 'utf8');
+    expect(divider).not.toContain('uppercase');
+    expect(divider).not.toContain('tracking-wider');
+    expect((divider.match(/min-w-6/g) || []).length).toBe(2);
+    expect(divider).toContain('max-w-[80%]');
+  });
+
   it('ход и загрузка уходят без полей fresh', () => {
     expect(src).not.toMatch(/fresh: true/);
     expect(src).not.toMatch(/formData\.append\('fresh/);
+  });
+});
+
+describe('«Чистый лист» — соседние пути отправки', () => {
+  it('«Перегенерировать» не уходит в идущий ход, в окно отправки и через черту', () => {
+    const b = body('const handleRegenerateResponse = async () => {');
+    expect(b).toContain('if (sendBlocked || historyLoading || sendingRef.current || flushingRef.current) return;');
+    expect(b).toContain('if (lastQuestionAboveReset) return;');
+    expect(src).toContain('const regenerateBlocked = sendBlocked || lastQuestionAboveReset;');
+    // Обе кнопки: в ряду шапки и в меню «⋯».
+    const desk = src.indexOf('onClick={handleRegenerateResponse}');
+    expect(src.slice(desk, desk + 200)).toContain('disabled={regenerateBlocked}');
+    const menu = src.indexOf('handleRegenerateResponse(); }}');
+    expect(src.slice(menu, menu + 200)).toContain('disabled={regenerateBlocked}');
+    expect((src.match(/disabled=\{regenerateBlocked\}/g) || []).length).toBe(2);
+  });
+
+  it('последний вопрос над чертой — перегенерация ушла бы в новую память без контекста', () => {
+    const a = src.indexOf('const lastQuestionAboveReset = useMemo(');
+    expect(a).toBeGreaterThan(src.indexOf('const resetDividerAt = useMemo('));
+    const memo = src.slice(a, src.indexOf(']);', a) + 3);
+    expect(memo).toContain('if (resetDividerAt === null) return false;');
+    expect(memo).toContain("messages[i].type === 'user'");
+    expect(memo).toContain('i < resetDividerAt');
+    expect(memo).toContain('[messages, resetDividerAt]');
+  });
+
+  it('подсказки Романа — только когда отправка свободна, и через замок с очередью', () => {
+    const chips = src.slice(src.indexOf('Suggested-prompt chips for Роман — nudge'), src.indexOf('{streamingMessageId && !historyLoading && ('));
+    expect(chips).toContain('!sendBlocked');
+    expect(chips).toContain('onClick={() => { void handleAskAnswer(s); }}');
+    expect(chips).not.toContain('sendMessageText(');
+  });
+
+  it('карточка вопроса над чертой не активна: ассистент уже не помнит, что спрашивал', () => {
+    expect(src).toContain(
+      ": mi === messages.length - 1 && askLive && (resetDividerAt === null || mi >= resetDividerAt) ? 'active' : 'disabled';",
+    );
+  });
+
+  it('очистка ленты снимает якорь, а пока ставится точка — не чистит', () => {
+    const b = body('const handleClearChat = async () => {');
+    const guard = b.indexOf('if (resettingContext) return;');
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(b.indexOf('window.confirm('));
+    const clear = b.indexOf('setMessages([]);');
+    const unanchor = b.indexOf('setResetMark(prev => (prev ? { at: prev.at, afterId: null } : prev));');
+    expect(unanchor).toBeGreaterThan(clear);
+    // Обе кнопки очистки: в ряду шапки и в меню «⋯».
+    const desk = src.indexOf('onClick={handleClearChat}');
+    expect(src.slice(desk, desk + 200)).toContain('disabled={resettingContext}');
+    const menu = src.indexOf('handleClearChat(); }}');
+    expect(src.slice(menu, menu + 200)).toContain('disabled={resettingContext}');
+  });
+
+  it('?say= во время точки ложится в очередь, а не уходит со старой памятью', () => {
+    const e = src.slice(src.indexOf('const trySend = () => {'), src.indexOf('setTimeout(trySend, 300);'));
+    expect(e).toMatch(
+      /if \(resettingRef\.current\) applyQueued\(\(prev\) => addToQueue\(prev, say, generateMessageId\(\)\)\);\s*else sendMessageText\(say\);/,
+    );
   });
 });
