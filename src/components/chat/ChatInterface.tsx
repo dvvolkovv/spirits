@@ -698,6 +698,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Объявлены здесь, а не рядом с кнопкой: resettingContext нужен sendBlocked.
   const [resetMark, setResetMark] = useState<ResetMark | null>(null);
   const [resettingContext, setResettingContext] = useState(false);
+  // Зеркало resettingContext для колбэков вне рендера (опрос истории, ?say=):
+  // состояние в их замыканиях устаревает. Пишется рядом с setResettingContext.
+  const resettingRef = useRef(false);
 
   // «Ход идёт хоть где-то» — этим решаем, слать или копить. Отправка в идущий
   // удалённый ход убила бы его: релей пре-эмптит процесс на том же sessionId.
@@ -708,6 +711,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     queuedCount: queued.length,
     remoteTurnActive: remoteTurnActive && !remoteOverride,
   });
+
+  // «Чистый лист» блокирует то же, что отправку, — включая ход на другом
+  // устройстве: тот досчитается со старой памятью, а ответ ляжет под черту.
+  // Плюс загрузка истории: якорю черты нужна уже загруженная лента.
+  const freshBlocked = sendBlocked || historyLoading;
+
+  // Где в ленте черта «Чистого листа» (contextReset.ts). Хук — до раннего
+  // return экрана выбора ассистента и до тех, кто его читает (карточка
+  // вопроса, «Перегенерировать»).
+  const resetDividerAt = useMemo(() => resetDividerIndex(messages, resetMark), [messages, resetMark]);
+
+  // «Перегенерировать» отправляет последний вопрос пользователя заново. Если
+  // он над чертой, ответ пришёл бы из новой памяти — без разговора, к
+  // которому вопрос относится. Такую перегенерацию не даём.
+  const lastQuestionAboveReset = useMemo(() => {
+    if (resetDividerAt === null) return false;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].type === 'user') return i < resetDividerAt;
+    }
+    return false;
+  }, [messages, resetDividerAt]);
+  const regenerateBlocked = sendBlocked || lastQuestionAboveReset;
 
   // Гейт поллинга ИСТОРИИ — отдельно от turnBusy.
   //
@@ -979,8 +1004,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (isCancelled?.() || !response.ok) return;
       const data = await response.json();
       // Точку могли поставить в другой вкладке или на телефоне. До раннего
-      // выхода ниже: опрос без новых строк — обычное дело.
-      if (selectedAssistantIdRef.current === assistantId) {
+      // выхода ниже: опрос без новых строк — обычное дело. Пока ставится своя
+      // точка, не сливаем: опрос принёс бы её без якоря раньше ответа
+      // reset-context, и черта мигнула бы по времени клиента.
+      if (selectedAssistantIdRef.current === assistantId && !resettingRef.current) {
         setResetMark(prev => mergePolledReset(prev, parseContextResetAt(data?.contextResetAt)));
       }
       const rows = (data?.messages || []) as any[];
@@ -1987,11 +2014,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       remoteTurnActive, remoteOverride, resettingContext]);
 
   const handleClearChat = async () => {
+    // Пока ставится точка «Чистого листа», не чистим: два запроса к одной
+    // ленте разом, и ответ reset-context вернул бы якорь на стёртое сообщение.
+    if (resettingContext) return;
     if (window.confirm(t('chat.clear_confirm'))) {
       // Очередь относится к истории, которую сейчас стираем — без этого она
       // досылалась бы через секунду и воскрешала «стёртую» реплику с ответом.
       applyQueued(() => []);
       setMessages([]);
+      // Над приветствием отделять нечего: черту снимаем (afterId null — лента
+      // была пуста), точку держим. Опрос принесёт ту же точку, и
+      // mergePolledReset оставит эту метку, а не вернёт черту по времени.
+      setResetMark(prev => (prev ? { at: prev.at, afterId: null } : prev));
       if (selectedAssistant) {
         localStorage.removeItem(getChatStorageKey(selectedAssistant.id));
         try {
@@ -2012,35 +2046,62 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   // «Чистый лист» — точка отсчёта на сервере: ассистент перестаёт учитывать
-  // сообщения до неё, переписка остаётся. Не ставим, пока ход идёт или вот-вот
-  // начнётся (отправка или досылка уже в пути) и пока грузится история: такой
-  // ход ответил бы со старой памятью, а лёг бы под черту.
+  // сообщения до неё, переписка остаётся. Не ставим, пока ход идёт где угодно
+  // (freshBlocked — в том числе на другом устройстве) или вот-вот начнётся
+  // (отправка или досылка уже в пути), и пока грузится история: такой ход
+  // ответил бы со старой памятью, а лёг бы под черту.
   const startFreshContext = async () => {
-    if (!selectedAssistant || turnBusy || resettingContext || historyLoading || sendingRef.current || flushingRef.current) return;
+    if (!selectedAssistant || freshBlocked || sendingRef.current || flushingRef.current) return;
     if (!window.confirm(t('chat.fresh_confirm'))) return;
-    // Набранная очередь писалась для прежней памяти — возвращаем её в поле,
-    // а не досылаем: после точки человек сам решит, что отправить.
+    // Страховка: сейчас очередь при нажатии пуста — её отсекает условие выхода
+    // выше (freshBlocked включает очередь). Если условие когда-нибудь ослабят,
+    // набранное для прежней памяти вернётся в поле, а не уйдёт после точки.
     returnQueueToInput();
     const assistantId = selectedAssistant.id;
     // Якорь — синхронно, до await: в своей вкладке черта держится за него, а не
     // за время (сообщения вкладки несут время клиента, точку ставят часы базы).
     const afterId = messages.length ? messages[messages.length - 1].id : null;
+    resettingRef.current = true;
     setResettingContext(true);
     try {
-      const response = await apiClient.post('/webhook/chat/reset-context', { assistantId });
+      // Как в submitText: ход мог начаться на другом устройстве, а опрос
+      // active-turn ходит раз в 5 секунд. Знание протухло — спрашиваем; сбой
+      // проверки не повод не ставить точку.
+      if (!remoteOverride && needsFreshRemoteCheck(remoteCheckedAtRef.current, Date.now())) {
+        try {
+          const r = await apiClient.get(
+            `/webhook/chat/active-turn?assistantId=${assistantId}`,
+            { signal: AbortSignal.timeout(2000) },
+          );
+          if (r.ok) {
+            const turn = await r.json();
+            if (turn?.active) {
+              applyRemoteTurn(true);
+              toast.error(t('chat.busy_try_later'));
+              return;
+            }
+            applyRemoteTurn(false);
+          }
+        } catch { /* сеть моргнула — ставим точку */ }
+      }
+      // Таймаут обязателен: пока запрос в пути, отправка заперта через
+      // sendBlocked, и подвисшая сеть без него запирала бы чат насовсем.
+      const response = await apiClient.post('/webhook/chat/reset-context', { assistantId }, { signal: AbortSignal.timeout(15000) });
       if (!response.ok) throw new Error(`reset-context ${response.status}`);
       const data = await response.json();
       if (selectedAssistantRef.current?.id !== assistantId) return;
       // Без запасной даты клиента: если бэк точку не вернул, её подхватит опрос.
+      // Только вперёд: опрос мог уже принести точку новее (с другого устройства).
       const at = parseContextResetAt(data?.resetAt);
-      if (at) setResetMark({ at, afterId });
+      if (at) setResetMark(prev => (prev && prev.at.getTime() > at.getTime() ? prev : { at, afterId }));
       // Черта встаёт внизу — держим ленту прижатой, чтобы её было видно.
       pinToBottomRef.current = true;
       pinStartedAtRef.current = performance.now();
     } catch (error) {
       console.error('Failed to reset assistant context:', error);
-      window.alert(t('chat.fresh_failed'));
+      toast.error(t('chat.fresh_failed'));
     } finally {
+      resettingRef.current = false;
       setResettingContext(false);
     }
   };
@@ -2056,8 +2117,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const handleRegenerateResponse = async () => {
+    // Перегенерация — такой же ход к релею: в идущий ход (здесь или на другом
+    // устройстве), в окно отправки или досылки и пока ставится точка она не
+    // уходит. Кнопки и так погашены по regenerateBlocked — это гард от
+    // нажатия в окне до перерисовки.
+    if (sendBlocked || historyLoading || sendingRef.current || flushingRef.current) return;
+    // Последний вопрос над чертой — см. lastQuestionAboveReset.
+    if (lastQuestionAboveReset) return;
     if (messages.length < 2) return;
-    
+
     // Find the last user message
     let lastUserMessageIndex = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -2320,7 +2388,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // Кап ~4с (ждём и резолв ассистента, и сетевую загрузку истории) → текст НИКОГДА не теряется:
       // если так и не «созрело», всё равно отправим (лучше редкий ре-рендер, чем потерянный ввод).
       if (ready() || tries >= 26) {
-        sendMessageText(say);
+        // Ставится точка «Чистого листа» — текст ждёт в очереди и уйдёт после
+        // неё досылкой, а не со старой памятью под черту. Ref, а не состояние:
+        // trySend живёт в замыкании эффекта и видит его устаревшим.
+        if (resettingRef.current) applyQueued((prev) => addToQueue(prev, say, generateMessageId()));
+        else sendMessageText(say);
         clearResidue();
         setTimeout(clearResidue, 500); // подстраховка от позднего IME-докоммита после перехода
         return;
@@ -2685,10 +2757,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }, 1000);
   };
 
-  // Где в ленте черта «Чистого листа» (contextReset.ts). Хук — до раннего
-  // return экрана выбора ассистента ниже.
-  const resetDividerAt = useMemo(() => resetDividerIndex(messages, resetMark), [messages, resetMark]);
-
   if (!hasUserSelectedAssistant) {
     // Сразу после логина показываем сетку карточек ассистентов — нагляднее
     // чем пустой плейсхолдер. На десктопе ChatLayout слева оставит свой
@@ -2719,7 +2787,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const renderFreshButton = (testId: string, wrapperClass: string) => (
     <button
       onClick={() => { void startFreshContext(); }}
-      disabled={turnBusy || resettingContext || historyLoading}
+      disabled={freshBlocked}
       data-testid={testId}
       className={clsx(
         'items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-50',
@@ -3033,7 +3101,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </button>
                 <button
                   onClick={handleRegenerateResponse}
-                  disabled={turnBusy}
+                  disabled={regenerateBlocked}
                   className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                   title={t('chat.regenerate_title')}
                 >
@@ -3041,7 +3109,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </button>
                 <button
                   onClick={handleClearChat}
-                  className="hidden sm:block p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  disabled={resettingContext}
+                  className="hidden sm:block p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                   title={t('chat.clear_title')}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -3092,7 +3161,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                         role="menuitem"
                         data-testid="chat-fresh-menuitem"
                         onClick={() => { setShowChatActions(false); void startFreshContext(); }}
-                        disabled={turnBusy || resettingContext || historyLoading}
+                        disabled={freshBlocked}
                         className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                       >
                         <Eraser className="w-4 h-4" />
@@ -3101,7 +3170,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       <button
                         role="menuitem"
                         onClick={() => { setShowChatActions(false); handleRegenerateResponse(); }}
-                        disabled={turnBusy}
+                        disabled={regenerateBlocked}
                         className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                       >
                         <RotateCcw className="w-4 h-4" />
@@ -3110,7 +3179,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                       <button
                         role="menuitem"
                         onClick={() => { setShowChatActions(false); handleClearChat(); }}
-                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                        disabled={resettingContext}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                       >
                         <Trash2 className="w-4 h-4" />
                         {t('chat.clear_title')}
@@ -3187,11 +3257,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     const { content: parsedContent, buttons, links, videos, images, audioClips, voiceCalls, meetings, asks, productActions } = parseCustomMarkdown(contentForRender);
                     // Состояние карточки вопроса: ответили ли уже (следующее
                     // сообщение — пользователя) и можно ли отвечать сейчас.
+                    // Карточка над чертой «Чистого листа» не активна: ассистент
+                    // уже не помнит, что спрашивал, и ответ ушёл бы без вопроса.
                     const nextMsg = messages[mi + 1];
                     const answered = nextMsg?.type === 'user';
                     const askMode: AskMode = answered
                       ? 'answered'
-                      : mi === messages.length - 1 && askLive ? 'active' : 'disabled';
+                      : mi === messages.length - 1 && askLive && (resetDividerAt === null || mi >= resetDividerAt) ? 'active' : 'disabled';
                     const parts: React.ReactNode[] = [];
                     let lastIndex = 0;
                     const buttonMatches = [...parsedContent.matchAll(/__BUTTON_(\w+?)__/g)];
@@ -3404,7 +3476,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           const show =
             selectedAssistant?.id === ROMAN_ASSISTANT_ID &&
             !!last && last.type === 'assistant' && !last.isStreaming &&
-            !streamingMessageId && !isTyping && !historyLoading &&
+            !streamingMessageId && !isTyping && !historyLoading && !sendBlocked &&
             userMsgCount < 3;
           if (!show) return null;
           return (
@@ -3414,10 +3486,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="flex flex-wrap gap-2">
                   {ROMAN_SUGGESTION_KEYS.map((key) => {
                     const s = t(key);
+                    // Тот же путь, что у ответа из карточки вопроса: замок
+                    // от двойного нажатия, очередь и проверка удалённого хода.
                     return (
                       <button
                         key={key}
-                        onClick={() => sendMessageText(s)}
+                        onClick={() => { void handleAskAnswer(s); }}
                         className="text-sm text-forest-700 bg-white border border-forest-300 hover:border-forest-400 hover:bg-forest-50 rounded-full px-3 py-1.5 transition-colors text-left"
                       >
                         {s}
