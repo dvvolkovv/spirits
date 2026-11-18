@@ -9,32 +9,31 @@ import { join } from 'path';
 const SRC = readFileSync(join(__dirname, 'ChatInterface.tsx'), 'utf8');
 
 describe('связка панели «Медиа и файлы»', () => {
-  it('панель получает открытого ассистента и метку «Чистого листа»', () => {
+  it('панель получает открытого ассистента — без метки «Чистого листа»: он файлы не прячет', () => {
     expect(SRC).toContain("import ChatFilesPanel from './files/ChatFilesPanel';");
     const at = SRC.indexOf('<ChatFilesPanel');
     expect(at).toBeGreaterThan(-1);
     const tag = SRC.slice(at, SRC.indexOf('/>', at));
     expect(tag).toContain('assistantId={selectedAssistant.id}');
-    expect(tag).toContain('freshTs={freshTs}');
+    expect(tag).not.toContain('freshTs');
     expect(tag).toContain('onClose={() => setShowFilesPanel(false)}');
     expect(SRC.slice(at - 120, at)).toContain('showFilesPanel && selectedAssistant && (');
   });
 
-  it('у панели есть key по ассистенту и freshTs — устаревший ответ не перепишет данные другого чата', () => {
+  it('у панели есть key по ассистенту — устаревший ответ не перепишет данные другого чата', () => {
     const at = SRC.indexOf('<ChatFilesPanel');
     const tag = SRC.slice(at, SRC.indexOf('/>', at));
-    // Без key React при смене freshTs (переключение «Чистого листа» при
-    // открытой панели) не размонтирует ChatFilesPanel, а только меняет
-    // пропсы — и ответ по старому freshTs, пришедший позже нового запроса,
-    // может переписать уже верные данные. key заставляет React пересоздать
-    // компонент целиком: старый fetch дозревает уже у выброшенного инстанса.
-    expect(tag).toContain("key={`${selectedAssistant.id}|${freshTs ?? ''}`}");
+    // Без key React при смене ассистента не размонтирует ChatFilesPanel, а
+    // только меняет пропсы — и ответ по прежнему ассистенту, пришедший позже
+    // нового запроса, может переписать уже верные данные. key заставляет
+    // React пересоздать компонент: старый fetch дозревает у выброшенного инстанса.
+    expect(tag).toContain('key={selectedAssistant.id}');
   });
 
   it('на мобиле — первый пункт меню «⋯»', () => {
     const menu = SRC.indexOf('role="menu"');
     const item = SRC.indexOf('data-testid="chat-files-menuitem"', menu);
-    const fresh = SRC.indexOf('toggleFreshMode(); }}', menu);
+    const fresh = SRC.indexOf('startFreshContext(); }}', menu);
     expect(item).toBeGreaterThan(menu);
     expect(item).toBeLessThan(fresh);
     expect(SRC.slice(item, item + 400)).toContain("setShowChatActions(false); openFilesPanel('menu');");
@@ -49,7 +48,7 @@ describe('связка панели «Медиа и файлы»', () => {
     expect(SRC.slice(btn, regen)).toContain("onClick={() => openFilesPanel('header')}");
   });
 
-  it('смена ассистента или «Чистого листа» закрывает обе панели', () => {
-    expect(SRC).toMatch(/useEffect\(\(\) => \{\s*setShowFilesPanel\(false\);\s*setShowActionPlan\(false\);\s*\}, \[selectedAssistant\?\.id, freshTs\]\)/);
+  it('смена ассистента закрывает обе панели', () => {
+    expect(SRC).toMatch(/useEffect\(\(\) => \{\s*setShowFilesPanel\(false\);\s*setShowActionPlan\(false\);\s*\}, \[selectedAssistant\?\.id\]\)/);
   });
 });

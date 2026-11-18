@@ -288,9 +288,11 @@
     "file_upload_error_detail": "Error al subir el archivo: {{status}} {{statusText}}",
     "file_uploaded_message": "Archivo subido: {{name}}",
     "my_custom_assistants": "Mis",
-    "fresh_mode_on_title": "Hoja en blanco activada: el asistente no ve el historial ni las tareas anteriores (el perfil sigue actualizándose). Toca para volver a la conversación normal.",
-    "fresh_mode_off_title": "Hoja en blanco: empieza una conversación sin historial ni tareas anteriores. El perfil sigue actualizándose.",
+    "fresh_mode_off_title": "Hoja en blanco: el asistente deja de tener en cuenta los mensajes anteriores. El chat se conserva y el asistente sigue viendo tu perfil.",
     "fresh_mode_label": "Hoja en blanco",
+    "fresh_confirm": "¿Empezar con una hoja en blanco? El asistente dejará de tener en cuenta los mensajes de arriba. El chat se conserva.",
+    "fresh_divider": "Hoja en blanco — el asistente no ve los mensajes de arriba",
+    "fresh_failed": "No se pudo empezar con una hoja en blanco. Inténtalo de nuevo.",
     "copy_message": "Copiar respuesta",
     "listen": "Escuchar",
     "listen_loading": "Generando audio…",
@@ -449,6 +451,7 @@
       "delete_confirm": "¿Eliminar este plan de acción? Esta acción no se puede deshacer.",
       "unsaved_confirm": "¿Cerrar sin guardar los cambios?",
       "error": "No se pudo cargar o guardar el plan. Inténtalo de nuevo.",
+      "not_enough": "La conversación aún es demasiado corta para crear un plan: hace falta al menos una pregunta tuya y la respuesta del asistente. Después de «Hoja en blanco», el plan se basa solo en la nueva conversación.",
       "retry": "Reintentar",
       "disclaimer": "Este plan es una sugerencia del asistente, no una recomendación definitiva. Verifica los pasos legales, médicos y financieros importantes."
     },
@@ -1190,7 +1193,7 @@
       },
       {
         "q": "¿Cómo empiezo una conversación desde cero?",
-        "a": "Activa «Hoja en blanco» en la cabecera del chat: el asistente no verá el historial ni las tareas anteriores, y tu perfil seguirá completándose. Desactívalo y la conversación continuará con el contexto anterior."
+        "a": "Pulsa «Hoja en blanco» en la cabecera del chat (en el móvil, en el menú «⋯») y confirma. Desde ese punto el asistente deja de tener en cuenta los mensajes anteriores: ve tu perfil y la nueva conversación. El chat se conserva y una línea marca dónde empieza la memoria del asistente. El contexto anterior no se puede recuperar; solo puedes volver a empezar desde un nuevo punto."
       },
       {
         "q": "¿Hay aplicación móvil?",

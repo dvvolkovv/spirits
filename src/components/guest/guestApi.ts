@@ -1,4 +1,5 @@
 import { apiClient } from '../../services/apiClient';
+import { withAbortTimeout } from '../../utils/abortTimeout';
 import { readGuestStream } from './guestStream';
 import type { GuestAgent, GuestConfig, GuestEvent, GuestMessage } from './guestTypes';
 
@@ -6,13 +7,6 @@ import type { GuestAgent, GuestConfig, GuestEvent, GuestMessage } from './guestT
 const GUEST_CONFIG_TIMEOUT_MS = 4000;
 /** Ассистенты и восстановление разговора — операции чуть тяжелее config, но тоже не вечные. */
 const GUEST_LOAD_TIMEOUT_MS = 8000;
-
-/** Ручной AbortController + setTimeout: не AbortSignal.timeout — его нет в старых Safari. */
-function withAbortTimeout(ms: number): { signal: AbortSignal; done: () => void } {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  return { signal: controller.signal, done: () => clearTimeout(timer) };
-}
 
 /** Непрочитанное тело держит соединение; не ждём его освобождения — не тормозим этим ход гостя. */
 function drain(r: Response): void {

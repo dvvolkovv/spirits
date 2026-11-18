@@ -33,7 +33,7 @@ describe('события панели «Медиа и файлы»', () => {
   it('openFilesPanel открывает панель и шлёт chat_files_panel_open', () => {
     const b = body("const openFilesPanel = (entry: 'header' | 'menu') => {");
     expect(b).toContain('setShowFilesPanel(true)');
-    expect(b).toMatch(/trackAuthed\('chat_files_panel_open', user\.phone, \{ assistantId: selectedAssistant\.id, fresh: !!freshTs, entry \}\)/);
+    expect(b).toMatch(/trackAuthed\('chat_files_panel_open', user\.phone, \{ assistantId: selectedAssistant\.id, entry \}\)/);
   });
 
   // grid — «Скачать» под плиткой загрузки без превью в сетке «Медиа».

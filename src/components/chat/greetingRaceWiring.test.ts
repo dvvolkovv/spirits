@@ -9,6 +9,8 @@ import { join } from 'path';
  * применялся: показывал старую переписку и снимал признак загрузки. Человек
  * видел готовый чат и писал; затем приходила пустая история новой сессии —
  * лента затиралась, а автоприветствие уходило поверх его хода и прерывало его.
+ * Тумблера больше нет («Чистый лист» — точка на сервере, лента одна), но та же
+ * гонка остаётся при смене ассистента.
  */
 const SRC = readFileSync(join(__dirname, 'ChatInterface.tsx'), 'utf8');
 
@@ -28,16 +30,16 @@ const body = (marker: string): string => {
 };
 
 const historyEffect = (): string => {
-  const a = SRC.indexOf('&limit=30&offset=0${freshParam}');
+  const a = SRC.indexOf('&limit=30&offset=0`');
   expect(a).toBeGreaterThan(-1);
   const start = SRC.lastIndexOf('useEffect(', a);
-  const end = SRC.indexOf('}, [selectedAssistant?.id, hasUserSelectedAssistant, freshTs]);', a);
+  const end = SRC.indexOf('}, [selectedAssistant?.id, hasUserSelectedAssistant]);', a);
   expect(end).toBeGreaterThan(-1);
   return SRC.slice(start, end);
 };
 
 describe('загрузка истории не применяет устаревший ответ', () => {
-  it('эффект помечает свой запуск устаревшим при смене ассистента или «Чистого листа»', () => {
+  it('эффект помечает свой запуск устаревшим при смене ассистента', () => {
     expect(historyEffect()).toMatch(/return \(\) => \{\s*stale = true;\s*\};/);
   });
 

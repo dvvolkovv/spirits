@@ -2,17 +2,22 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Check, ListChecks, Loader2, MessageCircle, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { clsx } from 'clsx';
-import { actionPlansApi, type ActionPlan, type ActionPlanItem } from '../../../services/actionPlansApi';
+import { ActionPlanRequestError, actionPlansApi, type ActionPlan, type ActionPlanItem } from '../../../services/actionPlansApi';
 import { trapTab } from '../files/focusTrap';
 
 interface Props {
   assistantId: string | number;
-  freshTs?: string | null;
   onClose: () => void;
   onDiscuss: (plan: ActionPlan) => void;
 }
 
 type PanelStatus = 'loading' | 'empty' | 'ready' | 'generating' | 'saving';
+/**
+ * 'not_enough' — бэк ответил 400 «мало разговора» (после «Чистого листа» план
+ * строится только по новому разговору): повтор не поможет, нужно написать
+ * ассистенту. 'generic' — любой другой сбой, его повтор может исправить.
+ */
+type PanelError = 'generic' | 'not_enough';
 
 function itemId(): string {
   return typeof crypto?.randomUUID === 'function'
@@ -20,28 +25,28 @@ function itemId(): string {
     : `step-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-const ActionPlanPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDiscuss }) => {
+const ActionPlanPanel: React.FC<Props> = ({ assistantId, onClose, onDiscuss }) => {
   const { t } = useTranslation();
   const [plan, setPlan] = useState<ActionPlan | null>(null);
   const [status, setStatus] = useState<PanelStatus>('loading');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<PanelError | null>(null);
   const [dirty, setDirty] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<Element | null>(null);
 
   const load = useCallback(async () => {
     setStatus('loading');
-    setError(false);
+    setError(null);
     try {
-      const saved = await actionPlansApi.get(assistantId, freshTs);
+      const saved = await actionPlansApi.get(assistantId);
       setPlan(saved);
       setStatus(saved ? 'ready' : 'empty');
       setDirty(false);
     } catch {
-      setError(true);
+      setError('generic');
       setStatus('empty');
     }
-  }, [assistantId, freshTs]);
+  }, [assistantId]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -80,14 +85,14 @@ const ActionPlanPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDis
   const generate = async () => {
     if (plan && !window.confirm(t('chat.action_plan.regenerate_confirm'))) return;
     setStatus('generating');
-    setError(false);
+    setError(null);
     try {
-      const generated = await actionPlansApi.generate(assistantId, freshTs);
+      const generated = await actionPlansApi.generate(assistantId);
       setPlan(generated);
       setStatus('ready');
       setDirty(false);
-    } catch {
-      setError(true);
+    } catch (err) {
+      setError(err instanceof ActionPlanRequestError && err.notEnoughConversation ? 'not_enough' : 'generic');
       setStatus(plan ? 'ready' : 'empty');
     }
   };
@@ -95,14 +100,14 @@ const ActionPlanPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDis
   const save = async () => {
     if (!plan || !dirty) return;
     setStatus('saving');
-    setError(false);
+    setError(null);
     try {
       const saved = await actionPlansApi.update(plan.id, plan);
       setPlan(saved);
       setStatus('ready');
       setDirty(false);
     } catch {
-      setError(true);
+      setError('generic');
       setStatus('ready');
     }
   };
@@ -110,14 +115,14 @@ const ActionPlanPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDis
   const remove = async () => {
     if (!plan || !window.confirm(t('chat.action_plan.delete_confirm'))) return;
     setStatus('saving');
-    setError(false);
+    setError(null);
     try {
       await actionPlansApi.remove(plan.id);
       setPlan(null);
       setStatus('empty');
       setDirty(false);
     } catch {
-      setError(true);
+      setError('generic');
       setStatus('ready');
     }
   };
@@ -154,9 +159,16 @@ const ActionPlanPanel: React.FC<Props> = ({ assistantId, freshTs, onClose, onDis
         </header>
 
         {error && (
-          <div className="flex items-center justify-between gap-3 border-b border-red-100 bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert">
-            <span>{t('chat.action_plan.error')}</span>
-            {!plan && status !== 'generating' && (
+          <div
+            className={clsx(
+              'flex items-center justify-between gap-3 border-b px-4 py-2.5 text-sm',
+              error === 'not_enough' ? 'border-amber-100 bg-amber-50 text-amber-800' : 'border-red-100 bg-red-50 text-red-700',
+            )}
+            role="alert"
+          >
+            <span>{error === 'not_enough' ? t('chat.action_plan.not_enough') : t('chat.action_plan.error')}</span>
+            {/* «Мало разговора» повтором загрузки не лечится — кнопки «Повторить» нет. */}
+            {error === 'generic' && !plan && status !== 'generating' && (
               <button type="button" onClick={() => void load()} className="shrink-0 font-medium underline underline-offset-2">{t('chat.action_plan.retry')}</button>
             )}
           </div>

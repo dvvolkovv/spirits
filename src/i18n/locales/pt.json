@@ -289,9 +289,11 @@
     "file_upload_error_detail": "Erro ao carregar o ficheiro: {{status}} {{statusText}}",
     "file_uploaded_message": "Ficheiro carregado: {{name}}",
     "my_custom_assistants": "Meus",
-    "fresh_mode_on_title": "Página em branco ativada: o assistente não vê o histórico nem as tarefas anteriores (o perfil continua a ser preenchido). Clica para voltar à conversa normal.",
-    "fresh_mode_off_title": "Página em branco: começar a conversa sem o histórico nem as tarefas anteriores. O perfil continua a ser preenchido.",
+    "fresh_mode_off_title": "Página em branco: o assistente deixa de ter em conta as mensagens anteriores. A conversa mantém-se e o assistente continua a ver o seu perfil.",
     "fresh_mode_label": "Página em branco",
+    "fresh_confirm": "Começar do zero? O assistente deixa de ter em conta as mensagens acima. A conversa mantém-se.",
+    "fresh_divider": "Página em branco — o assistente não vê as mensagens acima",
+    "fresh_failed": "Não foi possível começar do zero. Tente novamente.",
     "copy_message": "Copiar a resposta",
     "listen": "Ouvir",
     "listen_loading": "A gerar o áudio…",
@@ -449,6 +451,7 @@
       "delete_confirm": "Eliminar este plano de ação? Esta ação não pode ser anulada.",
       "unsaved_confirm": "Fechar sem guardar as alterações?",
       "error": "Não foi possível carregar ou guardar o plano. Tente novamente.",
+      "not_enough": "A conversa ainda é demasiado curta para criar um plano: é preciso pelo menos uma pergunta sua e a resposta do assistente. Depois de «Página em branco», o plano baseia-se apenas na nova conversa.",
       "retry": "Tentar novamente",
       "disclaimer": "Este plano é uma sugestão do assistente, não uma recomendação definitiva. Verifique os passos jurídicos, médicos e financeiros importantes."
     },
@@ -1580,7 +1583,7 @@
       },
       {
         "q": "Como começo uma conversa do zero?",
-        "a": "Ative «Página em branco» no cabeçalho do chat: o assistente não verá o histórico nem as tarefas anteriores, e o seu perfil continua a ser completado. Desative-o e a conversa continua com o contexto anterior."
+        "a": "Clique em «Página em branco» no cabeçalho do chat (no telemóvel, no menu «⋯») e confirme. A partir desse ponto, o assistente deixa de ter em conta as mensagens anteriores: vê o seu perfil e a nova conversa. A conversa mantém-se no histórico e uma linha mostra onde começa a memória do assistente. O contexto anterior não pode ser recuperado — só é possível recomeçar a partir de um novo ponto."
       },
       {
         "q": "Existe uma aplicação móvel?",

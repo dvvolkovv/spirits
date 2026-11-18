@@ -54,11 +54,20 @@ const pressShiftTab = () =>
 describe('ChatFilesPanel', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('просит файлы именно этой переписки', async () => {
+  it('просит файлы именно этой переписки — без метки «Чистого листа»', async () => {
     api.get.mockResolvedValue(ok([]));
-    mount(<ChatFilesPanel assistantId={12} freshTs="1728000000000" onClose={vi.fn()} />);
+    mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
     await settle();
-    expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12&freshTs=1728000000000');
+    expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12');
+  });
+
+  it('метку «Чистого листа» от старого вызывающего не пересылает: он файлы не прячет', async () => {
+    api.get.mockResolvedValue(ok([]));
+    // Приведение — имитация вызывающего, который ещё передаёт снятый проп.
+    const legacy = { freshTs: '1728000000000' } as object;
+    mount(<ChatFilesPanel {...legacy} assistantId={12} onClose={vi.fn()} />);
+    await settle();
+    expect(api.get).toHaveBeenCalledWith('/webhook/chat/files?assistantId=12');
   });
 
   it('до первого ответа API ни одна вкладка не выбрана (вместо «Медиа» поверх скелетона)', async () => {
@@ -135,18 +144,17 @@ describe('ChatFilesPanel', () => {
 
   it('повторная загрузка даёт битой миниатюре новый шанс, а не хранит старую заглушку', async () => {
     api.get.mockResolvedValueOnce(ok(ITEMS));
-    const { container, rerender } = mount(<ChatFilesPanel assistantId={12} freshTs="t1" onClose={vi.fn()} />);
+    const { container, rerender } = mount(<ChatFilesPanel assistantId={12} onClose={vi.fn()} />);
     await settle();
     const img = container.querySelector('img[src="https://pub/i1.png"]') as HTMLImageElement;
     expect(img).not.toBeNull();
     act(() => { img.dispatchEvent(new Event('error')); });
     expect(container.querySelector('[data-testid="chat-files-broken-thumb"]')).not.toBeNull();
 
-    // freshTs меняется — как переключение на «Чистый лист» при открытой
-    // панели (комментарий у Props.freshTs) — и запускает новую загрузку;
-    // бэк на этот раз временно недоступен.
+    // Меняется assistantId — панель, оставшаяся тем же инстансом, запускает
+    // новую загрузку; бэк на этот раз временно недоступен.
     api.get.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) } as any);
-    rerender(<ChatFilesPanel assistantId={12} freshTs="t2" onClose={vi.fn()} />);
+    rerender(<ChatFilesPanel assistantId={13} onClose={vi.fn()} />);
     await settle();
     expect(visibleText(container)).toContain(tRu('chat.files.load_error'));
 

@@ -287,9 +287,11 @@
     "file_upload_error_detail": "Fehler beim Hochladen: {{status}} {{statusText}}",
     "file_uploaded_message": "Datei hochgeladen: {{name}}",
     "my_custom_assistants": "Meine",
-    "fresh_mode_on_title": "Neustart aktiv: Der Assistent sieht weder bisherigen Verlauf noch Aufgaben (dein Profil wird trotzdem weiter ergänzt). Klick, um zum normalen Chat zurückzukehren.",
-    "fresh_mode_off_title": "Neustart: Gespräch ohne bisherigen Verlauf und Aufgaben beginnen. Dein Profil wird weiter ergänzt.",
+    "fresh_mode_off_title": "Neustart: Der Assistent berücksichtigt frühere Nachrichten nicht mehr. Der Chat bleibt erhalten, dein Profil sieht er weiterhin.",
     "fresh_mode_label": "Neustart",
+    "fresh_confirm": "Neu starten? Der Assistent berücksichtigt die Nachrichten oben nicht mehr. Der Chat bleibt erhalten.",
+    "fresh_divider": "Neustart — der Assistent sieht die Nachrichten oben nicht",
+    "fresh_failed": "Neustart hat nicht geklappt. Versuch es noch einmal.",
     "copy_message": "Antwort kopieren",
     "listen": "Anhören",
     "listen_loading": "Wird vertont…",
@@ -446,6 +448,7 @@
       "delete_confirm": "Diesen Aktionsplan löschen? Das kann nicht rückgängig gemacht werden.",
       "unsaved_confirm": "Ohne Speichern der Änderungen schließen?",
       "error": "Plan konnte nicht geladen oder gespeichert werden. Versuche es erneut.",
+      "not_enough": "Das Gespräch ist noch zu kurz für einen Plan: Dafür braucht es mindestens eine Frage von dir und die Antwort des Assistenten. Nach „Neustart“ basiert der Plan nur auf dem neuen Gespräch.",
       "retry": "Erneut versuchen",
       "disclaimer": "Dieser Plan ist ein Vorschlag des Assistenten, keine verbindliche Empfehlung. Prüfe wichtige rechtliche, medizinische und finanzielle Schritte."
     },
@@ -1187,7 +1190,7 @@
       },
       {
         "q": "Wie beginne ich ein Gespräch von vorn?",
-        "a": "Schalte „Neustart“ in der Kopfzeile des Chats ein: Der Assistent sieht deinen bisherigen Verlauf und deine Aufgaben nicht, dein Profil wird aber weiter ergänzt. Schaltest du es aus, geht das Gespräch mit dem bisherigen Kontext weiter."
+        "a": "Tippe in der Kopfzeile des Chats auf „Neustart“ (auf dem Handy im Menü „⋯“) und bestätige. Ab dieser Stelle berücksichtigt der Assistent frühere Nachrichten nicht mehr: Er sieht dein Profil und das neue Gespräch. Der Chat bleibt erhalten, eine Trennlinie zeigt, wo das Gedächtnis des Assistenten beginnt. Den früheren Kontext kannst du nicht zurückholen – du kannst nur ab einer neuen Stelle von vorn beginnen."
       },
       {
         "q": "Gibt es eine mobile App?",

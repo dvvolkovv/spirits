@@ -3,10 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import ActionPlanPanel from './ActionPlanPanel';
-import { actionPlansApi, type ActionPlan } from '../../../services/actionPlansApi';
+import { ActionPlanRequestError, actionPlansApi, type ActionPlan } from '../../../services/actionPlansApi';
 import { actAsync, byButton, click, clickAsync, flush, mount, type, visibleText } from '../../../test/dom';
 
-vi.mock('../../../services/actionPlansApi', () => ({
+// Класс ошибки — настоящий: панель отличает «мало разговора» через instanceof.
+// apiClient — заглушка: настоящий тянет authService, а тот — src/i18n, который
+// инициализирует i18next языком браузера (en) раньше русской инициализации ниже.
+vi.mock('../../../services/apiClient', () => ({ apiClient: {} }));
+vi.mock('../../../services/actionPlansApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../services/actionPlansApi')>()),
   actionPlansApi: { get: vi.fn(), generate: vi.fn(), update: vi.fn(), remove: vi.fn() },
 }));
 
@@ -40,6 +45,9 @@ async function openPanel(onDiscuss = vi.fn()) {
 describe('ActionPlanPanel', () => {
   it('shows a saved plan and its real progress', async () => {
     const { view } = await openPanel();
+    // Только ассистент: точка отсчёта «Чистого листа» — на сервере.
+    expect(actionPlansApi.get).toHaveBeenCalledWith(12);
+    expect(vi.mocked(actionPlansApi.get).mock.calls[0]).toHaveLength(1);
     expect((view.container.querySelector('#action-plan-title') as HTMLInputElement).value).toBe('Подготовка к переезду');
     expect(visibleText(view.container)).toContain('Выполнено 1 из 2');
     expect(view.container.querySelector('[aria-valuenow]')).toBeNull();
@@ -63,8 +71,69 @@ describe('ActionPlanPanel', () => {
     const { view } = await openPanel();
     expect(actionPlansApi.generate).not.toHaveBeenCalled();
     await clickAsync(byButton(view.container, /Сформировать план/)!);
-    expect(actionPlansApi.generate).toHaveBeenCalledWith(12, undefined);
+    expect(actionPlansApi.generate).toHaveBeenCalledWith(12);
+    expect(vi.mocked(actionPlansApi.generate).mock.calls[0]).toHaveLength(1);
     expect((view.container.querySelector('#action-plan-title') as HTMLInputElement).value).toBe('Подготовка к переезду');
+    view.unmount();
+  });
+
+  it('explains "not enough conversation" instead of asking to retry', async () => {
+    vi.mocked(actionPlansApi.get).mockResolvedValue(null);
+    vi.mocked(actionPlansApi.generate).mockRejectedValue(
+      new ActionPlanRequestError(400, 'not enough conversation for an action plan'),
+    );
+    const { view } = await openPanel();
+    await clickAsync(byButton(view.container, /Сформировать план/)!);
+    const text = visibleText(view.container);
+    expect(text).toContain('Для плана пока мало разговора');
+    expect(text).not.toContain('Не удалось загрузить или сохранить план');
+    // Повтор загрузки не поможет — кнопки «Повторить» нет.
+    expect(byButton(view.container, /Повторить/)).toBeNull();
+    // Кнопка формирования остаётся: дождался ответа ассистента на свой вопрос — жмёт снова.
+    expect(byButton(view.container, /Сформировать план/)).not.toBeNull();
+    view.unmount();
+  });
+
+  it('keeps the old plan and explains "not enough conversation" on regenerate', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.mocked(actionPlansApi.generate).mockRejectedValue(
+      new ActionPlanRequestError(400, 'not enough conversation for an action plan'),
+    );
+    const { view } = await openPanel();
+    await clickAsync(byButton(view.container, /Сформировать заново/)!);
+    expect((view.container.querySelector('#action-plan-title') as HTMLInputElement).value).toBe('Подготовка к переезду');
+    expect(visibleText(view.container)).toContain('Для плана пока мало разговора');
+    view.unmount();
+  });
+
+  it('clears "not enough conversation" after a successful retry', async () => {
+    vi.mocked(actionPlansApi.get).mockResolvedValue(null);
+    vi.mocked(actionPlansApi.generate)
+      .mockRejectedValueOnce(new ActionPlanRequestError(400, 'not enough conversation for an action plan'))
+      .mockResolvedValueOnce(plan);
+    const { view } = await openPanel();
+    await clickAsync(byButton(view.container, /Сформировать план/)!);
+    expect(visibleText(view.container)).toContain('Для плана пока мало разговора');
+    // Задал вопрос, ассистент ответил — жмёт снова, план получился.
+    await clickAsync(byButton(view.container, /Сформировать план/)!);
+    expect(visibleText(view.container)).not.toContain('Для плана пока мало разговора');
+    expect(view.container.querySelector('[role="alert"]')).toBeNull();
+    expect((view.container.querySelector('#action-plan-title') as HTMLInputElement).value).toBe('Подготовка к переезду');
+    view.unmount();
+  });
+
+  it.each([
+    ['another 400 from the server', () => new ActionPlanRequestError(400, 'assistantId is required')],
+    ['a server failure', () => new ActionPlanRequestError(502, 'assistant returned an invalid action plan')],
+    ['a network failure', () => new Error('network')],
+  ])('shows the generic error for %s', async (_name, makeError) => {
+    vi.mocked(actionPlansApi.get).mockResolvedValue(null);
+    vi.mocked(actionPlansApi.generate).mockRejectedValue(makeError());
+    const { view } = await openPanel();
+    await clickAsync(byButton(view.container, /Сформировать план/)!);
+    const text = visibleText(view.container);
+    expect(text).toContain('Не удалось загрузить или сохранить план');
+    expect(text).not.toContain('Для плана пока мало разговора');
     view.unmount();
   });
 

@@ -287,9 +287,11 @@
     "file_upload_error_detail": "File upload error: {{status}} {{statusText}}",
     "file_uploaded_message": "Uploaded file: {{name}}",
     "my_custom_assistants": "Mine",
-    "fresh_mode_on_title": "Fresh start is on: the assistant can't see past history or tasks (your profile keeps growing). Click to return to the regular conversation.",
-    "fresh_mode_off_title": "Fresh start: begin a conversation without past history or tasks. Your profile keeps growing.",
+    "fresh_mode_off_title": "Fresh start: the assistant stops taking past messages into account. The chat stays, and the assistant still sees your profile.",
     "fresh_mode_label": "Fresh start",
+    "fresh_confirm": "Start fresh? The assistant will stop taking the messages above into account. The chat stays.",
+    "fresh_divider": "Fresh start — the assistant doesn't see the messages above",
+    "fresh_failed": "Couldn't start fresh. Please try again.",
     "copy_message": "Copy reply",
     "listen": "Listen",
     "listen_loading": "Voicing…",
@@ -446,6 +448,7 @@
       "delete_confirm": "Delete this action plan? This cannot be undone.",
       "unsaved_confirm": "Close without saving your changes?",
       "error": "Couldn't load or save the plan. Please try again.",
+      "not_enough": "There isn't enough conversation for a plan yet — you need at least one question and the assistant's answer. After “Fresh start”, the plan is based only on the new conversation.",
       "retry": "Try again",
       "disclaimer": "This plan is suggested by the assistant, not a definitive recommendation. Verify important legal, medical, and financial steps."
     },
@@ -1617,7 +1620,7 @@
       },
       {
         "q": "How do I start a conversation from scratch?",
-        "a": "Turn on «Fresh start» in the chat header: the assistant won't see your past history and tasks, while your profile keeps growing. Turn it off and the conversation continues with the earlier context."
+        "a": "Click «Fresh start» in the chat header (on a phone, in the «⋯» menu) and confirm. From then on, the assistant no longer takes past messages into account: it sees your profile and the new conversation. Your messages stay in the chat, and a line marks where the assistant's memory begins. The earlier context can't be restored — you can only set a new starting point."
       },
       {
         "q": "Is there a mobile app?",

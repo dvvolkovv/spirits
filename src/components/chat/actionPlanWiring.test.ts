@@ -11,9 +11,12 @@ describe('action plan wiring', () => {
     expect(source).toContain('<ActionPlanPanel');
   });
 
-  it('belongs to the selected conversation, including fresh-start mode', () => {
-    expect(source).toContain('assistantId={selectedAssistant.id}');
-    expect(source).toContain('freshTs={freshTs}');
+  it('belongs to the selected conversation; the fresh-start point lives on the server', () => {
+    const at = source.indexOf('<ActionPlanPanel');
+    const tag = source.slice(at, source.indexOf('/>', at));
+    expect(tag).toContain('assistantId={selectedAssistant.id}');
+    expect(tag).toContain('key={selectedAssistant.id}');
+    expect(tag).not.toContain('freshTs');
   });
 
   it('returns plan discussion to the regular send queue', () => {
